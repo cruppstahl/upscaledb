@@ -14,6 +14,7 @@
 
 #include "blob_manager.h"
 #include "btree_index.h"
+#include "btree_index_factory.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
 #include "cache.h"
@@ -52,7 +53,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   ham_record_t record;
   ham_u8_t *ptr;
 
-  ham_assert(key_flags & PBtreeKey::kExtended);
+  ham_assert(key_flags & BtreeKey::kExtended);
 
   /*
    * make sure that we have an extended key-cache
@@ -351,7 +352,7 @@ LocalDatabase::find_txn(Transaction *txn, ham_key_t *key,
             : &txn->get_key_arena();
 
   ham_key_set_intflags(key,
-        (ham_key_get_intflags(key) & (~PBtreeKey::kApproximate)));
+        (ham_key_get_intflags(key) & (~BtreeKey::kApproximate)));
 
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
@@ -386,19 +387,19 @@ retry:
        */
       else if (op->get_flags() & TransactionOperation::kErase) {
         if (first_loop
-            && !(ham_key_get_intflags(key) & PBtreeKey::kApproximate))
+            && !(ham_key_get_intflags(key) & BtreeKey::kApproximate))
           exact_is_erased = true;
         first_loop = false;
         if (flags & HAM_FIND_LT_MATCH) {
           node = node->get_previous_sibling();
           ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
+              (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
         }
         else if (flags & HAM_FIND_GT_MATCH) {
           node = node->get_next_sibling();
           ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
+              (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
         }
         return (HAM_KEY_NOT_FOUND);
@@ -413,7 +414,7 @@ retry:
           || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
         // approx match? leave the loop and continue
         // with the btree
-        if (ham_key_get_intflags(key) & PBtreeKey::kApproximate)
+        if (ham_key_get_intflags(key) & BtreeKey::kApproximate)
           break;
         // otherwise copy the record and return
         return (LocalDatabase::copy_record(this, txn, op, record));
@@ -435,11 +436,11 @@ retry:
    * if there was an approximate match: check if the btree provides
    * a better match
    */
-  if (op && ham_key_get_intflags(key) & PBtreeKey::kApproximate) {
+  if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
     ham_key_t txnkey = {0};
     ham_key_t *k = op->get_node()->get_key();
     txnkey.size = k->size;
-    txnkey._flags = PBtreeKey::kApproximate;
+    txnkey._flags = BtreeKey::kApproximate;
     txnkey.data = Memory::allocate<ham_u8_t>(txnkey.size);
     memcpy(txnkey.data, k->data, txnkey.size);
 
@@ -468,7 +469,7 @@ retry:
     else if (st)
       return (st);
     // the btree key is a direct match? then return it
-    if ((!(ham_key_get_intflags(key) & PBtreeKey::kApproximate))
+    if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
         && (flags & HAM_FIND_EXACT_MATCH)) {
       Memory::release(txnkey.data);
       return (0);
@@ -497,7 +498,7 @@ retry:
       st = find_txn(txn, key, record, flags | HAM_FIND_EXACT_MATCH);
       if (st == 0)
         ham_key_set_intflags(key,
-          (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
+          (ham_key_get_intflags(key) | BtreeKey::kApproximate));
       return (st);
     }
     else { // use txn
@@ -610,8 +611,11 @@ LocalDatabase::open(ham_u16_t descriptor)
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
+  PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
+
   /* create the BtreeIndex */
-  BtreeIndex *bt = new BtreeIndex(this, descriptor, flags);
+  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor, flags,
+                    desc->get_keytype());
 
   ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
@@ -656,7 +660,8 @@ LocalDatabase::open(ham_u16_t descriptor)
 }
 
 ham_status_t
-LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
+LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
+                ham_u16_t keytype)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
@@ -669,12 +674,23 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
-  /* create the btree */
-  BtreeIndex *bt = new BtreeIndex(this, descriptor, persistent_flags);
-  m_btree_index = bt;
+  // create the btree
+  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
+                  persistent_flags, keytype);
+
+  if (!keysize)
+    keysize = bt->get_default_keysize();
+
+  // make sure that the cooked pagesize is big enough for at least 10 keys
+  if (get_local_env()->get_pagesize() / keysize < 10) {
+    ham_trace(("keysize too large; either increase pagesize or decrease "
+                "keysize"));
+    delete bt;
+    return (HAM_INV_KEYSIZE);
+  }
 
   /* initialize the btree */
-  ham_status_t st = bt->create(keysize);
+  ham_status_t st = bt->create(keysize, keytype);
   if (st) {
     delete bt;
     return (st);
@@ -682,6 +698,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
 
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
+  m_btree_index = bt;
 
   return (0);
 }
@@ -694,8 +711,11 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
   if (p) {
     for (; p->name; p++) {
       switch (p->name) {
-      case HAM_PARAM_KEYSIZE:
+      case HAM_PARAM_KEY_SIZE:
         p->value = get_btree_index() ? get_keysize() : 21;
+        break;
+      case HAM_PARAM_KEY_TYPE:
+        p->value = get_btree_index() ? get_keytype() : 0;
         break;
       case HAM_PARAM_FLAGS:
         p->value = (ham_u64_t)get_rt_flags();
@@ -1757,6 +1777,12 @@ ham_u16_t
 LocalDatabase::get_keysize()
 {
   return (get_btree_index()->get_keysize());
+}
+
+ham_u16_t
+LocalDatabase::get_keytype()
+{
+  return (get_btree_index()->get_keytype());
 }
 
 void 

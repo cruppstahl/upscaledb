@@ -12,24 +12,16 @@
 
 #include "config.h"
 
-#include <string.h>
-
-#include "blob_manager.h"
-#include "btree_index.h"
-#include "db_local.h"
-#include "env_local.h"
 #include "error.h"
-#include "extkeys.h"
-#include "btree_key.h"
-#include "mem.h"
-#include "page.h"
+#include "db_local.h"
+#include "btree_node_legacy.h"
 
 namespace hamsterdb {
 
-ham_size_t PBtreeKey::kSizeofOverhead = OFFSETOF(PBtreeKey, m_key);
+ham_size_t PBtreeKeyLegacy::kSizeofOverhead = OFFSETOF(PBtreeKeyLegacy, m_key);
 
 ham_u64_t
-PBtreeKey::get_extended_rid(LocalDatabase *db) const
+PBtreeKeyLegacy::get_extended_rid(LocalDatabase *db) const
 {
   ham_u64_t rid;
   memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
@@ -38,7 +30,7 @@ PBtreeKey::get_extended_rid(LocalDatabase *db) const
 }
 
 void
-PBtreeKey::set_extended_rid(LocalDatabase *db, ham_u64_t rid)
+PBtreeKeyLegacy::set_extended_rid(LocalDatabase *db, ham_u64_t rid)
 {
   rid = ham_h2db_offset(rid);
   memcpy(get_key() + (db->get_keysize() - sizeof(ham_u64_t)),

@@ -21,6 +21,8 @@
 
 namespace hamsterdb {
 
+class PBtreeKeyLegacy;
+
 /*
  * A BtreeNode structure spans the persistent part of a Page
  *
@@ -35,9 +37,9 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
       return ((PBtreeNode *)page->get_payload());
     }
 
-    // Returns the offset (in bytes) of the member |m_entries|
+    // Returns the offset (in bytes) of the member |m_data|
     static ham_size_t get_entry_offset() {
-      return (OFFSETOF(PBtreeNode, m_entries));
+      return (OFFSETOF(PBtreeNode, m_data));
     }
 
     // Returns the number of entries in a BtreeNode
@@ -86,14 +88,13 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
       m_ptr_down = ham_h2db_offset(o);
     }
 
-    // Returns the BtreeKey at index |i| in this node
-    //
-    // note that this function does not check the boundaries (i.e. whether
-    // i <= get_count(), because some functions deliberately write to
-    // elements "after" get_count()
-    PBtreeKey *get_key(LocalDatabase *db, int i) {
-      return ((PBtreeKey *)&((const char *)m_entries)
-                [(db->get_keysize() + PBtreeKey::kSizeofOverhead) * i]);
+    // Returns a pointer to the key data
+    ham_u8_t *get_data() {
+      return (&m_data[0]);
+    }
+
+    const ham_u8_t *get_data() const {
+      return (&m_data[0]);
     }
 
   private:
@@ -114,7 +115,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     ham_u64_t m_ptr_down;
 
     // the entries of this node
-    PBtreeKey m_entries[1];
+    ham_u8_t m_data[1];
 
 } HAM_PACK_2;
 

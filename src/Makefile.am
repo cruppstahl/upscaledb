@@ -21,11 +21,12 @@ libhamsterdb_la_SOURCES = \
 	btree_find.cc \
 	btree_index.cc \
 	btree_index.h \
+	btree_index_factory.h \
 	btree_insert.cc \
-	btree_key.cc \
 	btree_key.h \
 	btree_node.h \
-	btree_node_factory.h \
+	btree_node_legacy.h \
+	btree_node_legacy.cc \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \

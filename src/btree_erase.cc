@@ -21,7 +21,6 @@
 #include "cursor.h"
 #include "btree_stats.h"
 #include "btree_index.h"
-#include "btree_node_factory.h"
 #include "page_manager.h"
 #include "blob_manager.h"
 
@@ -57,7 +56,7 @@ class BtreeEraseAction
           ham_u32_t coupled_index;
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
 
-          BtreeNodeProxy *node = BtreeNodeFactory::get(coupled_page);
+          BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
           ham_assert(node->is_leaf());
           if (coupled_index > 0
               && node->get_count() > m_btree->get_minkeys()) {
@@ -118,7 +117,7 @@ class BtreeEraseAction
     /* remove an item from a page */
     ham_status_t remove_entry(Page *page, int slot) {
       LocalDatabase *db = m_btree->get_db();
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       ham_assert(slot >= 0);
       ham_assert(slot < (int)node->get_count());
@@ -222,7 +221,7 @@ class BtreeEraseAction
       Page *tempp = 0;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       *page_ref = 0;
 
@@ -267,7 +266,7 @@ class BtreeEraseAction
             st = env->get_page_manager()->fetch_page(&tempp, db, left);
             if (st)
               return (st);
-            BtreeNodeProxy *n = BtreeNodeFactory::get(tempp);
+            BtreeNodeProxy *n = m_btree->get_node_from_page(tempp);
             next_left = n->get_record_id(n->get_count() - 1);
           }
           next_lanchor = lanchor;
@@ -288,7 +287,7 @@ class BtreeEraseAction
             st = env->get_page_manager()->fetch_page(&tempp, db, right);
             if (st)
               return (st);
-            BtreeNodeProxy *n = BtreeNodeFactory::get(tempp);
+            BtreeNodeProxy *n = m_btree->get_node_from_page(tempp);
             next_right = n->get_record_id(0);
           }
           next_ranchor = ranchor;
@@ -345,7 +344,7 @@ class BtreeEraseAction
                     ham_u64_t right, ham_u64_t lanchor,
                     ham_u64_t ranchor, Page *parent) {
       ham_status_t st;
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       Page *leftpage = 0;
       Page *rightpage = 0;
       BtreeNodeProxy *leftnode = 0;
@@ -369,7 +368,7 @@ class BtreeEraseAction
         if (st)
           return (st);
         if (leftpage) {
-          leftnode = BtreeNodeFactory::get(leftpage);
+          leftnode = m_btree->get_node_from_page(leftpage);
           fewleft  = (leftnode->get_count() <= minkeys);
         }
       }
@@ -379,7 +378,7 @@ class BtreeEraseAction
         if (st)
           return (st);
         if (rightpage) {
-          rightnode = BtreeNodeFactory::get(rightpage);
+          rightnode = m_btree->get_node_from_page(rightpage);
           fewright  = (rightnode->get_count() <= minkeys);
         }
       }
@@ -457,9 +456,9 @@ class BtreeEraseAction
       if (st)
         return (st);
 
-      BtreeNodeProxy *node    = BtreeNodeFactory::get(page);
-      BtreeNodeProxy *sibnode = BtreeNodeFactory::get(sibpage);
-      BtreeNodeProxy *ancnode = BtreeNodeFactory::get(ancpage);
+      BtreeNodeProxy *node    = m_btree->get_node_from_page(page);
+      BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
+      BtreeNodeProxy *ancnode = m_btree->get_node_from_page(ancpage);
 
       /* do not shift if both pages have (nearly) equal size; too much
        * effort for too little gain! */
@@ -664,8 +663,8 @@ cleanup:
                         ham_u64_t anchor) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      BtreeNodeProxy *sibnode = BtreeNodeFactory::get(sibpage);
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       *newpage_ref = 0;
 
@@ -683,7 +682,7 @@ cleanup:
                         page->get_db(), anchor);
         if (st)
           return (st);
-        ancnode = BtreeNodeFactory::get(ancpage);
+        ancnode = m_btree->get_node_from_page(ancpage);
         if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
           return (st);
       }
@@ -717,7 +716,7 @@ cleanup:
                             page->get_db(), sibnode->get_left());
           if (st)
             return (st);
-          BtreeNodeProxy *n = BtreeNodeFactory::get(p);
+          BtreeNodeProxy *n = m_btree->get_node_from_page(p);
           n->set_right(sibnode->get_right());
           node->set_left(sibnode->get_left());
           p->set_dirty(true);
@@ -732,7 +731,7 @@ cleanup:
                       page->get_db(), sibnode->get_right());
           if (st)
             return (st);
-          BtreeNodeProxy *n = BtreeNodeFactory::get(p);
+          BtreeNodeProxy *n = m_btree->get_node_from_page(p);
           node->set_right(sibnode->get_right());
           n->set_left(sibnode->get_left());
           p->set_dirty(true);
@@ -773,8 +772,8 @@ cleanup:
                     Page *dest_page, int dest_slot, bool dest_is_internal) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      BtreeNodeProxy *node = BtreeNodeFactory::get(src_page);
-      BtreeNodeProxy *dest= BtreeNodeFactory::get(dest_page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(src_page);
+      BtreeNodeProxy *dest= m_btree->get_node_from_page(dest_page);
 
       /* uncouple all cursors */
       ham_status_t st;

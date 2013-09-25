@@ -272,6 +272,37 @@ typedef struct {
 
 
 /**
+ * @defgroup ham_key_types hamsterdb Key Types
+ * @{
+ */
+
+/** A binary blob without type; sorted by memcmp */
+#define HAM_TYPE_BINARY                      0
+/** A binary blob without type; sorted by callback function */
+#define HAM_TYPE_CUSTOM                      1
+/** A signed 8-bit integer */
+#define HAM_TYPE_SINT8                       2
+/** An unsigned 8-bit integer */
+#define HAM_TYPE_UINT8                       3
+/** A signed 16-bit integer */
+#define HAM_TYPE_SINT16                      4
+/** An unsigned 16-bit integer */
+#define HAM_TYPE_UINT16                      5
+/** A signed 32-bit integer */
+#define HAM_TYPE_SINT32                      6
+/** An unsigned 32-bit integer */
+#define HAM_TYPE_UINT32                      7
+/** A signed 64-bit integer */
+#define HAM_TYPE_SINT64                      8
+/** An unsigned 64-bit integer */
+#define HAM_TYPE_UINT64                      9
+
+/**
+ * @}
+ */
+
+
+/**
  * @defgroup ham_status_codes hamsterdb Status Codes
  * @{
  */
@@ -697,8 +728,24 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *
  * A Database can be configured and optimized for the data that is inserted.
  * The data is described through flags and parameters. hamsterdb
- * differentiates between several data characteristics:
+ * differentiates between several data characteristics, and offers predefined
+ * "types" to describe the keys. This key type is set via
+ * @ref HAM_PARAM_KEY_TYPE and can have either of the following values:
  *
+ * <ul>
+ *   <li>HAM_TYPE_BINARY</li> This is the default key type: a binary blob.
+ *   Internally, hamsterdb uses memcmp for the sort order. Key size depends
+ *   on additional flags.
+ *   <li>HAM_TYPE_CUSTOM</li> Similar to @ref HAM_TYPE_BINARY, but
+ *   uses a callback function for the sort order. This function is supplied
+ *   with @sa ham_db_set_compare_func.
+ *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer.
+ * </ul>
+ *
+ * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.
+ *
+ * Additional flags are available for custom key types
+ * (@ref HAM_TYPE_CUSTOM) and binary blobs (@ref HAM_TYPE_BINARY):
  * <ul>
  *   <li>Fixed keys with constant size (not extended)</li>
  *     <ul>
@@ -759,8 +806,11 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @param params An array of ham_parameter_t structures. The following
  *    parameters are available:
  *    <ul>
+ *    <li>@ref HAM_PARAM_KEY_TYPE </li> The type of the keys in the B+Tree
+ *      index. The default is @ref HAM_TYPE_BINARY. See above for more
+ *      information.
  *    <li>@ref HAM_PARAM_KEY_SIZE </li> The size of the keys in the B+Tree
- *      index. The default size is 21 bytes.
+ *      index. The default size is 21 bytes. See above for more information.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1180,11 +1230,17 @@ typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
  * first key is smaller, +1 if the second key is smaller or 0 if both
  * keys are equal.
  *
+ * Supplying a comparison function is only allowed for the key type
+ * @ref HAM_TYPE_CUSTOM; see the documentation of @sa ham_env_create_db 
+ * for more information.
+ *
  * @param db A valid Database handle
  * @param foo A pointer to the compare function
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if one of the parameters is NULL
+ * @return @ref HAM_INV_PARAMETER if the database's key type was not
+ *          specified as @ref HAM_TYPE_CUSTOM
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
@@ -1536,6 +1592,7 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
  *        open or create this Database
  *    <li>HAM_PARAM_DATABASE_NAME</li> returns the Database name
+ *    <li>HAM_PARAM_KEY_TYPE</li> returns the Btree key type
  *    <li>HAM_PARAM_KEY_SIZE</li> returns the Btree key size
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
@@ -1570,6 +1627,9 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_create; sets the number of maximum
  * Databases */
 #define HAM_PARAM_MAX_DATABASES         0x00000103
+
+/** Parameter name for @ref ham_env_create_db; sets the key type */
+#define HAM_PARAM_KEY_TYPE              0x00000104
 
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the path of the log files */

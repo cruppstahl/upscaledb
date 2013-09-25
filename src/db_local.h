@@ -55,7 +55,8 @@ class LocalDatabase : public Database {
     virtual ham_status_t open(ham_u16_t descriptor);
 
     // Creates a new Database
-    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keysize);
+    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keysize,
+                    ham_u16_t keytype);
 
     // Erases this Database
     ham_status_t erase_me();
@@ -128,8 +129,14 @@ class LocalDatabase : public Database {
     }
 
     // Sets the default comparison function (ham_db_set_compare_func)
-    void set_compare_func(ham_compare_func_t f) {
+    ham_status_t set_compare_func(ham_compare_func_t f) {
+      if (get_keytype() != HAM_TYPE_CUSTOM) {
+        ham_trace(("ham_set_compare_func only allowed for HAM_TYPE_CUSTOM "
+                        "databases!"));
+        return (HAM_INV_PARAMETER);
+      }
       m_cmp_func = f;
+      return (0);
     }
 
     // Returns the cache for extended keys
@@ -153,6 +160,9 @@ class LocalDatabase : public Database {
 
     // Returns the key size of the btree
     ham_u16_t get_keysize();
+
+    // Returns the key type (set with HAM_PARAM_KEY_TYPE)
+    ham_u16_t get_keytype();
 
     // Flushes a TransactionOperation to the btree
     ham_status_t flush_txn_operation(Transaction *txn,

@@ -43,6 +43,7 @@
 namespace hamsterdb {
 
 class Cursor;
+class BtreeIndex;
 
 //
 // The Cursor structure for a b+tree cursor
@@ -60,12 +61,7 @@ class BtreeCursor
     };
 
     // Constructor
-    BtreeCursor(Cursor *parent = 0)
-      : m_parent(parent), m_state(0), m_duplicate_index(0), m_dupe_cache(),
-        m_coupled_page(0), m_coupled_index(0), m_next_in_page(0),
-        m_previous_in_page(0) {
-      memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
-    }
+    BtreeCursor(Cursor *parent = 0);
 
     // Destructor; asserts that the cursor is nil
     ~BtreeCursor() {
@@ -199,6 +195,9 @@ class BtreeCursor
 
     // the parent cursor
     Cursor *m_parent;
+
+    // The BtreeIndex instance
+    BtreeIndex *m_btree;
 
     // "coupled" or "uncoupled" states; coupled means that the
     // cursor points into a Page object, which is in

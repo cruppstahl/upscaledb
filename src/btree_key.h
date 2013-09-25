@@ -12,26 +12,16 @@
 #ifndef HAM_BTREE_KEY_H__
 #define HAM_BTREE_KEY_H__
 
-#include <string.h>
-
-#include <ham/hamsterdb_int.h>
-
-#include "endianswap.h"
-
 namespace hamsterdb {
 
-class LocalDatabase;
-class Transaction;
-
-#include "packstart.h"
-
-/*
- * the internal representation of a serialized key
- */
-HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
+//
+// A helper class wrapping key-related constants into a common namespace.
+// This class does not contain any logic.
+//
+class BtreeKey
 {
   public:
-    // persisted PBtreeKey flags; also used in combination with ham_key_t._flags
+    // persisted PBtreeKeyLegacy flags; also used in combination with ham_key_t._flags
     //
     // NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
     // 0x000000FF
@@ -59,7 +49,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
     // field is for INTERNAL USE!)
     //
     // Note: these flags should NOT overlap with the persisted flags for
-    // PBtreeKey
+    // PBtreeKeyLegacy
     //
     // As these flags NEVER will be persisted, they should be located outside
     // the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
@@ -73,112 +63,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
       // Actual key is an "approximate match"
       kApproximate         = (kLower | kGreater)
     };
-
-    // Returns the record id
-    //
-    // !!!
-    // if TINY or SMALL is set, the key is actually a char*-pointer;
-    // in this case, we must not use endian-conversion!
-    ham_u64_t get_record_id() {
-      return (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
-              ? m_ptr
-              : ham_db2h_offset(m_ptr));
-    }
-
-    // Returns the record id
-    ham_u64_t get_record_id() const {
-      return (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
-              ? m_ptr
-              : ham_db2h_offset(m_ptr));
-    }
-
-    // Same as above, but without endian conversion
-    ham_u64_t *get_rawptr() {
-      return (&m_ptr);
-    }
-
-    // Same as above, but without endian conversion
-    const ham_u64_t *get_rawptr() const {
-      return (&m_ptr);
-    }
-
-    // Sets the record id
-    //
-    // !!! same problems as with get_record_id():
-    // if TINY or SMALL is set, the key is actually a char*-pointer;
-    // in this case, we must not use endian-conversion
-    void set_record_id(ham_u64_t ptr) {
-      m_ptr = (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
-              ? ptr
-              : ham_h2db_offset(ptr));
-    }
-
-    // Returns the size of an btree-entry
-    ham_u16_t get_size() const {
-      return (ham_db2h16(m_keysize));
-    }
-
-    // Sets the size of an btree-entry
-    void set_size(ham_u16_t size) {
-      m_keysize = ham_h2db16(size);
-    }
-
-    // Returns the (persisted) flags of a key
-    ham_u8_t get_flags() const {
-      return (m_flags8);
-    }
-
-    // Sets the flags of a key
-    //
-    // Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
-    // defined such that those can peacefully co-exist with these; that's why
-    // those public flags start at the value 0x1000 (4096).
-    void set_flags(ham_u8_t flags) {
-      m_flags8 = flags;
-    }
-
-    // Returns a pointer to the key data
-    ham_u8_t *get_key() {
-      return (m_key);
-    }
-
-    // Returns a pointer to the key data
-    const ham_u8_t *get_key() const {
-      return (m_key);
-    }
-
-    // Overwrites the key data
-    void set_key(const void *ptr, ham_size_t len) {
-      memcpy(m_key, ptr, len);
-    }
-  
-    // Returns the record address of an extended key overflow area
-    ham_u64_t get_extended_rid(LocalDatabase *db) const;
-
-    // Sets the record address of an extended key overflow area
-    void set_extended_rid(LocalDatabase *db, ham_u64_t rid);
-
-    // The size of this structure without the single byte for the m_key
-    static ham_size_t kSizeofOverhead;
-
-  private:
-    friend struct MiscFixture;
-
-    // the pointer/record ID of this entry
-    ham_u64_t m_ptr;
-
-    // the size of this entry
-    ham_u16_t m_keysize;
-
-    // key flags (see above)
-    ham_u8_t m_flags8;
-
-    // the key data
-    ham_u8_t m_key[1];
-
-} HAM_PACK_2;
-
-#include "packstop.h"
+};
 
 } // namespace hamsterdb
 

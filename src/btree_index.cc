@@ -23,7 +23,6 @@
 #include "cursor.h"
 #include "page_manager.h"
 #include "btree_index.h"
-#include "btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -32,13 +31,13 @@ ham_u64_t BtreeIndex::ms_btree_smo_merge = 0;
 ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
-  : m_db(db), m_keysize(0), m_descriptor_index(descriptor),
+  : m_db(db), m_keysize(0), m_keytype(0), m_descriptor_index(descriptor),
     m_flags(flags), m_root_address(0), m_maxkeys(0), m_statistics()
 {
 }
 
 ham_status_t
-BtreeIndex::create(ham_u16_t keysize)
+BtreeIndex::create(ham_u16_t keysize, ham_u16_t keytype)
 {
   ham_assert(keysize != 0);
 
@@ -67,6 +66,7 @@ BtreeIndex::create(ham_u16_t keysize)
    */
   m_maxkeys = (ham_u16_t)maxkeys;
   m_keysize = keysize;
+  m_keytype = keytype;
   m_root_address = root->get_address();
 
   flush_descriptor();
@@ -80,6 +80,7 @@ BtreeIndex::open()
   ham_u64_t rootadd;
   ham_u16_t maxkeys;
   ham_u16_t keysize;
+  ham_u16_t keytype;
   ham_u32_t flags;
   PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
@@ -89,6 +90,7 @@ BtreeIndex::open()
    */
   maxkeys = desc->get_maxkeys();
   keysize = desc->get_keysize();
+  keytype = desc->get_keytype();
   rootadd = desc->get_root_address();
   flags = desc->get_flags();
 
@@ -99,6 +101,7 @@ BtreeIndex::open()
   m_maxkeys = maxkeys;
   m_root_address = rootadd;
   m_keysize = keysize;
+  m_keytype = keytype;
   m_flags = flags;
 
   return (0);
@@ -117,6 +120,7 @@ BtreeIndex::flush_descriptor()
   desc->set_dbname(m_db->get_name());
   desc->set_maxkeys(m_maxkeys);
   desc->set_keysize(get_keysize());
+  desc->set_keytype(get_keytype());
   desc->set_root_address(get_root_address());
   desc->set_flags(get_flags());
 
@@ -129,7 +133,7 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
 {
   *pchild = 0;
 
-  BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+  BtreeNodeProxy *node = get_node_from_page(page);
 
   // make sure that we're not in a leaf page, and that the
   // page is not empty
@@ -147,7 +151,7 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
   else {
 #ifdef HAM_DEBUG
     ham_u32_t flags = node->test_get_flags(slot);
-    ham_assert(flags == 0 || flags == PBtreeKey::kExtended);
+    ham_assert(flags == 0 || flags == BtreeKey::kExtended);
 #endif
     return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
                             m_db, node->get_record_id(slot)));
@@ -158,11 +162,11 @@ ham_s32_t
 BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 {
   int cmp;
-  BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+  BtreeNodeProxy *node = get_node_from_page(page);
 
   /* ensure the approx flag is NOT set by anyone yet */
   ham_key_set_intflags(key, ham_key_get_intflags(key)
-            & ~PBtreeKey::kApproximate);
+            & ~BtreeKey::kApproximate);
 
   if (node->get_count() == 0)
     return (-1);
@@ -340,13 +344,13 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
         if (slot > 0) {
           slot--;
           ham_key_set_intflags(key, ham_key_get_intflags(key)
-                  | PBtreeKey::kLower);
+                  | BtreeKey::kLower);
           cmp = 0;
         }
         else if (flags & HAM_FIND_GT_MATCH) {
           ham_assert(slot == 0);
           ham_key_set_intflags(key, ham_key_get_intflags(key)
-                  | PBtreeKey::kGreater);
+                  | BtreeKey::kGreater);
           cmp = 0;
         }
       }
@@ -354,7 +358,7 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
         /* key @ slot is SMALLER than the key we search for */
         ham_assert(cmp > 0);
         ham_key_set_intflags(key, ham_key_get_intflags(key)
-                  | PBtreeKey::kLower);
+                  | BtreeKey::kLower);
         cmp = 0;
       }
     }
@@ -365,7 +369,7 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
       if (cmp < 0) {
         /* key @ slot is LARGER than the key we search for ... */
         ham_key_set_intflags(key, ham_key_get_intflags(key)
-                  | PBtreeKey::kGreater);
+                  | BtreeKey::kGreater);
         cmp = 0;
       }
       else
@@ -375,7 +379,7 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
         if (slot < (int)node->get_count() - 1) {
           slot++;
           ham_key_set_intflags(key, ham_key_get_intflags(key)
-                  | PBtreeKey::kGreater);
+                  | BtreeKey::kGreater);
           cmp = 0;
         }
       }
@@ -395,7 +399,7 @@ BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
   /* adjust page size and key size by adding the overhead */
   pagesize -= PBtreeNode::get_entry_offset();
   pagesize -= Page::sizeof_persistent_header;
-  keysize += (ham_u16_t)PBtreeKey::kSizeofOverhead;
+  keysize += (ham_u16_t)PBtreeKeyLegacy::kSizeofOverhead;
 
   /* and return an even number */
   ham_size_t max = pagesize / keysize;
@@ -422,7 +426,7 @@ class CalcKeysVisitor : public BtreeVisitor {
         return (false);
       }
 
-      if (key_flags & PBtreeKey::kDuplicates) {
+      if (key_flags & BtreeKey::kDuplicates) {
         if (m_db->get_local_env()->get_duplicate_manager()->get_count(record_id,
                                 &dupcount, 0))
           return (false);
@@ -480,10 +484,15 @@ BtreeIndex::release()
   return (enumerate(visitor, true));
 }
 
-int
-BtreeIndex::compare_keys(ham_key_t *lhs, ham_key_t *rhs) const
+BtreeNodeProxy *
+BtreeIndex::get_node_from_page(Page *page)
 {
-  return (BtreeNodeFactory::compare(m_db, lhs, rhs));
+  if (page->get_node_proxy())
+    return (page->get_node_proxy());
+
+  BtreeNodeProxy *proxy = get_node_from_page_impl(page);
+  page->set_node_proxy(proxy);
+  return (proxy);
 }
 
 } // namespace hamsterdb

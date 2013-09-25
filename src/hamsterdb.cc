@@ -946,6 +946,10 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
     ham_trace(("parameter 'db' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
+  if (!foo) {
+    ham_trace(("function pointer must not be NULL"));
+    return (HAM_INV_PARAMETER);
+  }
 
   LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
   if (!ldb) {
@@ -958,8 +962,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
     lock = ScopedLock(ldb->get_env()->get_mutex());
 
   /* set the compare functions */
-  ldb->set_compare_func(foo);
-  return (ldb->set_error(HAM_SUCCESS));
+  return (ldb->set_error(ldb->set_compare_func(foo)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1036,8 +1039,8 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
-  if (key && (ham_key_get_intflags(key) & PBtreeKey::kApproximate)) {
-    int rv = (ham_key_get_intflags(key) & PBtreeKey::kLower) ? -1 : +1;
+  if (key && (ham_key_get_intflags(key) & BtreeKey::kApproximate)) {
+    int rv = (ham_key_get_intflags(key) & BtreeKey::kLower) ? -1 : +1;
     return (rv);
   }
 
@@ -1813,3 +1816,12 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
   return (0);
 }
 
+ham_bool_t HAM_CALLCONV
+ham_is_debug_build()
+{
+#ifdef HAM_DEBUG
+  return ((ham_bool_t)1);
+#else
+  return ((ham_bool_t)0);
+#endif
+}

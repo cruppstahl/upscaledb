@@ -90,7 +90,7 @@ struct ApproxFixture {
     if (st)
       return (st);
     if (strcmp(expected, (const char *)k.data))
-      REQUIRE((ham_key_get_intflags(&k) & PBtreeKey::kApproximate));
+      REQUIRE((ham_key_get_intflags(&k) & BtreeKey::kApproximate));
     return (strcmp(expected, (const char *)r.data));
   }
 

@@ -112,9 +112,14 @@ TEST_CASE("CppApi/staticFunctionsTest", "")
 
 TEST_CASE("CppApi/compareTest", "")
 {
+  ham_parameter_t p[] = {
+      { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
+      { 0, 0 }
+  };
+
   hamsterdb::env env;
   env.create(Globals::opath(".test"));
-  hamsterdb::db db = env.create_db(1);
+  hamsterdb::db db = env.create_db(1, 0, &p[0]);
   db.set_compare_func(my_compare_func);
   env.close(HAM_AUTO_CLEANUP);
 }

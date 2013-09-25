@@ -1010,9 +1010,8 @@ Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
 }
 
 Cursor::Cursor(Cursor &other)
-  : m_txn_cursor(this), m_btree_cursor(this)
+  : m_db(other.m_db), m_txn_cursor(this), m_btree_cursor(this)
 {
-  m_db = other.m_db;
   m_txn = other.m_txn;
   m_remote_handle = other.m_remote_handle;
   m_next = other.m_next;

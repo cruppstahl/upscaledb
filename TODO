@@ -399,43 +399,55 @@ o new monster test requirements
         between posix and win32; get rid of common (it's replaced by the perl
         script)
 
-o HI Wohnbau
-    o generate performance graphs (latencies for insert/erase/find/txn_commit)
+    x generate performance graphs (latencies for insert/erase/find/txn_commit)
         and maybe map additional events in the graph, like cache flushes
         x store insert latencies
         x store find latencies
         x store erase latencies
         x store txn_commit latencies
         x only for hamsterdb, not for berkeleydb
-========================
-        o also should show "inserts/erase/find/commit per second" graphs
-implementiert, muss noch getestet werden
+        x also should show "inserts/erase/find/commit per second" graphs
+        x call gnuplot to generate the graph
 
-reset
-set terminal png
-set xlabel "time"
-set ylabel "latency"
-set style data linespoint
-plot "gnuplot.dat" using 1:2 title "insert", \
-"gnuplot.dat1" using 1:2 title "erase", \
-"gnuplot.dat2" using 1:2 title "find"
+x move virtual inheritance one level "up" into the BtreeIndex
+    x the BtreeProxyFactory now creates BtreeIndex objects
+    x the BtreeNodeProxy is created by the BtreeIndex
+    x rewrite BtreeIndex::compare_keys and directly use a Comparator
+        object
+    x introduce HAM_PARAM_KEY_TYPE = HAM_KEY_TYPE_BINARY, HAM_KEY_TYPE_CUSTOM,
+            HAM_KEY_TYPE_UINT32
+        x BINARY: uses builtin memcmp comparator
+        x BINARY is the default!
+        x add documentation to header file
+        x store persistently in database
+            x unittest
+        x return in ham_db_get_parameters
+            x documentation
+            x unittest
+        x disallow ham_db_set_compare_func if type != CUSTOM
+            x documentation
+            x unittest
+        x add to Changelog!
+    x remove BtreeNodeFactory
+    x move existing layout to btree_node_legacy.h (include btree_key.h)
+        x move PBtreeKey-enum (kExtendedKey etc) somewhere else
+        x PBtreeKey and btree_key.h should no longer be used!
+    x need monster test for key type "custom"
+        x set type CUSTOM if a callback compare is required
+        x set type CUSTOM if --keytype=custom was selected
+        x add this to monster.lst, performance test and valgrind.lst
 
-========================
-        o call gnuplot to generate the graph
-        o show page fetch/flush operations in the graph
-        o how to solve this when doing multithreading? (at least solve it for
-            (XXX per second" graphs)
-    o move the whole binary to the hamsterdb main repository? then it's
-        automatically tagged and updated, and easier for everyone to
-        find it. testfiles and the tests for the monster binary can be
-        stored in a separate repository (hamsterdb-tests), as well as
-        the whole sandbox with the additional stuff.
-        o make bdb disabled by default, enable it with configure-switch
-        o need a better name
-        o msvc/win32 project files
-        o document the whole thing
-            o wiki: 1 page for benchmarking
-            o wiki: 1 page for running the tests
+o move the monster tool to the main hamsterdb repository; then it's
+    automatically tagged and updated, and easier for everyone to
+    find it. testfiles and the tests for the monster binary can be
+    stored in a separate repository (hamsterdb-tests), as well as
+    the whole sandbox with the additional stuff.
+    x if test is run in debug mode then print a fat warning!
+    o make bdb disabled by default, enable it with configure-switch
+    o need a better name - ham_bench?
+    o link statically
+    o msvc/win32 project files
+    o clean up monster test suite
 
 o coverity-fixes!
 
@@ -444,34 +456,33 @@ o use parameterized btree for fix sized POD types
     o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
         a new BtreeNodeProxy in the factory; add a new comparator and
         reimplement everything for a 32bit integer
-        o need header flag and documentation in the header file
-        o use PAX style storage in the node (flags, keys, records)
-            - separate flags
-            - separate keys (fixed length only - for now)
-            - separate records (as of now)
+        x need header flag and documentation in the header file
+        o need to do endian-conversion!! - where?
+            o move actual conversion logic to BtreeIndex, impelment with
+                a template parameter:
+                virtual void prepare_key_for_insert
+                virtual void prepare_key_after_find
+            o ham_db_find
+            o ham_cursor_find
+            o ham_cursor_move
+            o ham_db_insert
+            o ham_cursor_insert
+            o key compare function that works with numeric values (templates)
+        o use PAX style storage in the node (flags, keys, records) and
+            separate flags, keys (fixed length only - for now) and records
+            o implement new template class for the layout (btree_node_pax.h)
             o calculate layout when creating the node (the layout is fixed,
                 since all sizes are fixed)
-            o move existing layout to btree_node_legacy.h
-                (include btree_key.h)
-                o move PBtreeKey-enum (kExtendedKey etc) somewhere else
-            o implement new template class for the layout (btree_node_pax.h)
         o needs its own custom compare object
         o does not require 2 bytes for key size
         o requires new unittests
         o requires new monster tests
     o Create all other POD types
     o use HAM_TYPE_UINT64 for record numbers
+        o remove existing endian conversion
     o use HAM_TYPE_BINARY with variable length is the default
         (uses legacy layout for now)
     o support these types in the new monster test
-
-o move virtual inheritance one level "up" into the BtreeIndex?
-
-o COMM: have a CUSTOM data type which allows to
-    o specify the maximum length or the fixed length
-    o can set the compare function i.e. to u32, u64 etc (would use
-        the first N bytes)
-    o ... or to a custom compare function, as usual
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -489,11 +500,22 @@ o specify timeout for remote client
 
 . win32: need a release-v2.pl which fully automates the various release steps
 
+o ham_bench fixes
+    o the zipfian distribution is unusable because it is so slow; can we
+        somehow mitigate this? otherwise get rid of it
+    o show page fetch/flush operations in the graph
+        o they are currently not shown because they're not counted!?
+        o they are currently not shown because the graph is not printed
+        o have a different unit on y-axis; scale down?
+
 o update the documentation/changelog/README/tutorial
     o the prefix compare function API was removed
     o the new flags/options
+    o ham_bench
+        o wiki: 1 page for benchmarking
+        o wiki: 1 page for running the tests
 
-------------------- release 2.2.0-pre1 unstable --------------------------------
+------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
 high-level plan for 2.2.0-pre2 (unstable)
 - btree understands variable-sized PODs
@@ -501,6 +523,7 @@ high-level plan for 2.2.0-pre2 (unstable)
     If the extended key does not fit into one page: allocate an overflow area,
     move the FULL key into that area. get rid of the prefix compare. compare
     functions no longer need to return errors. get rid of the extkey-cache.
+    (really?)
     ==> make sure this does not cause performance regressions
     ==> count number of overflow areas for statistics!
 - btree stores fixed-length records in the leaf

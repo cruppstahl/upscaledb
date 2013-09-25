@@ -18,7 +18,6 @@
 
 #include "btree_index.h"
 #include "page_manager.h"
-#include "btree_node_factory.h"
 
 
 namespace hamsterdb {
@@ -46,13 +45,13 @@ class BtreeEnumAction
 
       // go down to the leaf
       while (page) {
-        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         ham_u64_t ptr_down = node->get_ptr_down();
 
         // visit internal nodes as well?
         if (ptr_down != 0 && m_visit_internal_nodes) {
           while (page) {
-            node = BtreeNodeFactory::get(page);
+            node = m_btree->get_node_from_page(page);
             node->enumerate(m_visitor);
 
             // load the right sibling
@@ -81,7 +80,7 @@ class BtreeEnumAction
 
       // now enumerate all leaf nodes
       while (page) {
-        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         ham_u64_t right = node->get_right();
 
         node->enumerate(m_visitor);

@@ -1211,7 +1211,7 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));
 
-    ps[0].value = 476;
+    ps[0].value = 405;
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));

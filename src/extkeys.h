@@ -17,6 +17,7 @@
 #include "hash-table.h"
 #include "mem.h"
 #include "env.h"
+#include "error.h"
 #include "db_local.h"
 
 namespace hamsterdb {

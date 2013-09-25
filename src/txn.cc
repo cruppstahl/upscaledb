@@ -357,10 +357,10 @@ TransactionIndex::get(ham_key_t *key, ham_u32_t flags)
   /* approx. matching: set the key flag */
   if (match < 0)
     ham_key_set_intflags(key, (ham_key_get_intflags(key)
-            & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
+            & ~BtreeKey::kApproximate) | BtreeKey::kLower);
   else if (match > 0)
     ham_key_set_intflags(key, (ham_key_get_intflags(key)
-            & ~PBtreeKey::kApproximate) | PBtreeKey::kGreater);
+            & ~BtreeKey::kApproximate) | BtreeKey::kGreater);
 
   return (node);
 }

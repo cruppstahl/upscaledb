@@ -1,3 +1,10 @@
+Sep 23, 2013 - chris ---------------------------------------------------
+o Introducing "types" for the btree; the default type is HAM_TYPE_BINARY,
+	additional types are HAM_TYPE_CUSTOM, HAM_TYPE_UINT32 etc. The types
+	influence the internal btree layout.
+o ham_db_set_compare_func is only allowed if the key type is HAM_TYPE_CUSTOM;
+	otherwise, an error is returned
+
 Sep 13, 2013 - chris ---------------------------------------------------
 o The btree now has relaxed rules regarding merging/shifting after delete;
 	if a node is less than 20% full it will trigger an SMO (previously:

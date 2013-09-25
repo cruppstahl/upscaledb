@@ -23,7 +23,6 @@
 #include "btree_index.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
-#include "btree_node_factory.h"
 #include "page_manager.h"
 
 namespace hamsterdb {
@@ -65,7 +64,7 @@ class BtreeFindAction
         st = env->get_page_manager()->fetch_page(&page, db,
                         hints.leaf_page_addr, true);
         if (st == 0 && page) {
-          node = BtreeNodeFactory::get(page);
+          node = m_btree->get_node_from_page(page);
           ham_assert(node->is_leaf());
 
           idx = m_btree->find_leaf(page, m_key, hints.flags);
@@ -98,7 +97,7 @@ class BtreeFindAction
           return (st);
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
-        node = BtreeNodeFactory::get(page);
+        node = m_btree->get_node_from_page(page);
         if (!node->is_leaf()) {
           /* signal 'don't care' when we have multiple pages; we resolve
            * this once we've got a hit further down */
@@ -112,7 +111,7 @@ class BtreeFindAction
               return (st ? st : HAM_KEY_NOT_FOUND);
             }
 
-            node = BtreeNodeFactory::get(page);
+            node = m_btree->get_node_from_page(page);
             if (node->is_leaf())
               break;
           }
@@ -146,10 +145,10 @@ class BtreeFindAction
        * shift by one.
        */
       if (idx >= 0) {
-        if ((ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
+        if ((ham_key_get_intflags(m_key) & BtreeKey::kApproximate)
             && (hints.original_flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 != (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) {
-          if ((ham_key_get_intflags(m_key) & PBtreeKey::kGreater)
+          if ((ham_key_get_intflags(m_key) & BtreeKey::kGreater)
               && (hints.original_flags & HAM_FIND_LT_MATCH)) {
             /* if the index-1 is still in the page, just decrement the index */
             if (idx > 0)
@@ -165,13 +164,13 @@ class BtreeFindAction
                               node->get_left());
               if (st)
                 return (st);
-              node = BtreeNodeFactory::get(page);
+              node = m_btree->get_node_from_page(page);
               idx = node->get_count() - 1;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
+                        & ~BtreeKey::kApproximate) | BtreeKey::kLower);
           }
-          else if ((ham_key_get_intflags(m_key) & PBtreeKey::kLower)
+          else if ((ham_key_get_intflags(m_key) & BtreeKey::kLower)
               && (hints.original_flags & HAM_FIND_GT_MATCH)) {
             /* if the index+1 is still in the page, just increment the index */
             if (idx + 1 < (int)node->get_count())
@@ -187,14 +186,14 @@ class BtreeFindAction
                               node->get_right());
               if (st)
                 return (st);
-              node = BtreeNodeFactory::get(page);
+              node = m_btree->get_node_from_page(page);
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~PBtreeKey::kApproximate) | PBtreeKey::kGreater);
+                        & ~BtreeKey::kApproximate) | BtreeKey::kGreater);
           }
         }
-        else if (!(ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
+        else if (!(ham_key_get_intflags(m_key) & BtreeKey::kApproximate)
             && !(hints.original_flags & HAM_FIND_EXACT_MATCH)
             && (hints.original_flags != 0)) {
           /*
@@ -218,7 +217,7 @@ class BtreeFindAction
             if (idx > 0) {
               idx--;
               ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                          & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
+                          & ~BtreeKey::kApproximate) | BtreeKey::kLower);
             }
             else {
               /* otherwise load the left sibling page */
@@ -240,11 +239,11 @@ class BtreeFindAction
                                     node->get_right());
                     if (st)
                       return (st);
-                    node = BtreeNodeFactory::get(page);
+                    node = m_btree->get_node_from_page(page);
                     idx = 0;
                   }
                   ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key) &
-                              ~PBtreeKey::kApproximate) | PBtreeKey::kGreater);
+                              ~BtreeKey::kApproximate) | BtreeKey::kGreater);
                 }
                 else {
                   stats->find_failed();
@@ -256,11 +255,11 @@ class BtreeFindAction
                                 node->get_left());
                 if (st)
                   return (st);
-                node = BtreeNodeFactory::get(page);
+                node = m_btree->get_node_from_page(page);
                 idx = node->get_count() - 1;
 
                 ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                              & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
+                              & ~BtreeKey::kApproximate) | BtreeKey::kLower);
               }
             }
           }
@@ -279,12 +278,12 @@ class BtreeFindAction
                               node->get_right());
               if (st)
                 return (st);
-              node = BtreeNodeFactory::get(page);
+              node = m_btree->get_node_from_page(page);
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                & ~PBtreeKey::kApproximate)
-                                | PBtreeKey::kGreater);
+                                & ~BtreeKey::kApproximate)
+                                | BtreeKey::kGreater);
           }
         }
       }
@@ -304,7 +303,7 @@ class BtreeFindAction
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
-      if (m_key && (ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
+      if (m_key && (ham_key_get_intflags(m_key) & BtreeKey::kApproximate)
           && !(m_flags & Cursor::kSyncDontLoadKey)) {
         ByteArray *arena = (m_txn == 0
                         || (m_txn->get_flags() & HAM_TXN_TEMPORARY))

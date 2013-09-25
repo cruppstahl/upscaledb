@@ -22,7 +22,6 @@
 #include "page.h"
 #include "page_manager.h"
 #include "btree_index.h"
-#include "btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -54,7 +53,7 @@ class BtreeCheckAction
 
       // for each level...
       while (page) {
-        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         ham_u64_t ptr_down = node->get_ptr_down();
 
         // verify the page and all its siblings
@@ -86,7 +85,7 @@ class BtreeCheckAction
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       Page *child, *leftsib = 0;
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       // assert that the parent page's smallest item (item 0) is bigger
       // than the largest item in this page
@@ -107,7 +106,7 @@ class BtreeCheckAction
           break;
 
         // follow the right sibling
-        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         if (node->get_right()) {
           st = env->get_page_manager()->fetch_page(&child,
                             db, node->get_right());
@@ -129,7 +128,7 @@ class BtreeCheckAction
                 ham_u32_t level) {
       ham_status_t st;
       LocalDatabase *db = m_btree->get_db();
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
@@ -144,7 +143,7 @@ class BtreeCheckAction
       // check if the largest item of the left sibling is smaller than
       // the smallest item of this page
       if (leftsib) {
-        BtreeNodeProxy *sibnode = BtreeNodeFactory::get(leftsib);
+        BtreeNodeProxy *sibnode = m_btree->get_node_from_page(leftsib);
         ham_key_t key1 = {0};
         ham_key_t key2 = {0};
 
@@ -189,7 +188,7 @@ class BtreeCheckAction
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
       ham_status_t st;
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       ham_key_t key1 = {0};
       ham_key_t key2 = {0};
 

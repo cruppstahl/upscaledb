@@ -14,10 +14,10 @@
 
 #include "endianswap.h"
 
-#include "btree_cursor.h"
-#include "btree_key.h"
 #include "db.h"
 #include "util.h"
+#include "btree_cursor.h"
+#include "btree_key.h"
 #include "btree_stats.h"
 
 namespace hamsterdb {
@@ -65,6 +65,16 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
       m_keysize = ham_h2db16(n);
     }
 
+    // Returns the btree's key type
+    ham_u16_t get_keytype() const {
+      return (ham_db2h16(m_keytype));
+    }
+
+    // Sets the btree's key type
+    void set_keytype(ham_u16_t type) {
+      m_keytype = ham_h2db16(type);
+    }
+
     // Returns the address of the btree's root page.
     ham_u64_t get_root_address() const {
       return (ham_db2h_offset(m_root_address));
@@ -86,20 +96,23 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
   private:
-    // The name of the database
-    ham_u16_t m_dbname;
-
     // address of the root-page
     ham_u64_t m_root_address;
 
     // flags for this database
     ham_u32_t m_flags;
 
+    // The name of the database
+    ham_u16_t m_dbname;
+
     // maximum keys in an internal page
     ham_u16_t m_maxkeys;
 
     // key size used in the pages
     ham_u16_t m_keysize;
+
+    // key type
+    ham_u16_t m_keytype;
 
     // reserved for record size
     ham_u32_t m_recsize;
@@ -111,7 +124,8 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     ham_u16_t m_reserved_pages;
 
     // reserved for padding
-    ham_u16_t m_padding;
+    ham_u16_t m_padding1;
+    ham_u32_t m_padding2;
 
 } HAM_PACK_2;
 
@@ -128,7 +142,8 @@ struct BtreeVisitor {
 };
 
 //
-// The Btree.
+// The Btree. Derived by BtreeIndexImpl, which uses template policies to
+// define the btree node layout.
 //
 class BtreeIndex
 {
@@ -136,26 +151,27 @@ class BtreeIndex
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags = 0);
 
-    // Creates and initializes the btree
-    //
-    // This function is called after the ham_db_t structure was allocated
-    // and the file was opened
-    ham_status_t create(ham_u16_t keysize);
-
-    // Opens and initializes the btree
-    //
-    // This function is called after the ham_db_t structure was allocated
-    // and the file was opened
-    ham_status_t open();
+    // Virtual destructor
+    virtual ~BtreeIndex() { }
 
     // Returns the database pointer
     LocalDatabase *get_db() {
       return (m_db);
     }
 
+    // Returns the database pointer
+    LocalDatabase *get_db() const {
+      return (m_db);
+    }
+
     // Returns the internal key size
     ham_u16_t get_keysize() const {
       return (m_keysize);
+    }
+
+    // Returns the internal key type
+    ham_u16_t get_keytype() const {
+      return (m_keytype);
     }
 
     // Returns the address of the root page
@@ -178,6 +194,21 @@ class BtreeIndex
     ham_u16_t get_minkeys() const {
       return (m_maxkeys / 5);
     }
+
+    // Returns the default key size
+    virtual ham_u16_t get_default_keysize() const = 0;
+
+    // Creates and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
+    ham_status_t create(ham_u16_t keysize, ham_u16_t keytype);
+
+    // Opens and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
+    ham_status_t open();
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,
@@ -212,7 +243,10 @@ class BtreeIndex
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const;
+    virtual int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const = 0;
+
+    // Returns a BtreeNodeProxy for a Page
+    BtreeNodeProxy *get_node_from_page(Page *page);
 
     // Returns the usage metrics
     static void get_metrics(ham_env_metrics_t *metrics) {
@@ -234,6 +268,9 @@ class BtreeIndex
     friend struct DbFixture;
     friend struct DuplicateFixture;
     friend struct RecordNumberFixture;
+
+    // Implementation of get_node_from_page()
+    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) = 0;
 
     // Sets the address of the root page
     void set_root_address(ham_u64_t address) {
@@ -275,6 +312,9 @@ class BtreeIndex
     // the keysize of this btree index
     ham_u16_t m_keysize;
 
+    // the keytype of this btree index
+    ham_u16_t m_keytype;
+
     // the index of the PBtreeHeader in the Environment's header page
     ham_u32_t m_descriptor_index;
 
@@ -298,6 +338,47 @@ class BtreeIndex
 
     // usage metrics - number of page shifts
     static ham_u64_t ms_btree_smo_shift;
+};
+
+} // namespace hamsterdb
+
+#include "btree_node_proxy.h"
+#include "btree_node_legacy.h"
+
+namespace hamsterdb {
+
+//
+// A Btree which uses template parameters to define the btree node layout.
+//
+template<class NodeLayout, class Comparator>
+class BtreeIndexImpl : public BtreeIndex
+{
+  public:
+    // Constructor; creates and initializes a new btree
+    BtreeIndexImpl(LocalDatabase *db, ham_u32_t descriptor,
+                    ham_u32_t flags = 0)
+      : BtreeIndex(db, descriptor, flags) {
+    }
+
+    // Returns the default key size
+    virtual ham_u16_t get_default_keysize() const {
+      return (NodeLayout::get_default_keysize());
+    }
+
+    // Compares two keys
+    // Returns -1, 0, +1 or higher positive values are the result of a
+    // successful key comparison (0 if both keys match, -1 when
+    // LHS < RHS key, +1 when LHS > RHS key).
+    virtual int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
+      Comparator cmp(get_db());
+      return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
+    }
+
+  private:
+    // Implementation of get_node_from_page()
+    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) {
+      return new BtreeNodeProxyImpl<NodeLayout, Comparator>(page);
+    }
 };
 
 } // namespace hamsterdb

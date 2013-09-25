@@ -306,6 +306,7 @@ struct HamsterdbFixture {
 
   void setCompareTest() {
     REQUIRE(HAM_INV_PARAMETER == ham_db_set_compare_func(0, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_db_set_compare_func(m_db, 0));
   }
 
   void findTest() {
@@ -403,7 +404,8 @@ struct HamsterdbFixture {
       { 0, 0 }
     };
     ham_parameter_t ps2[] = {
-      { HAM_PARAM_KEYSIZE,  sizeof(my_key_t) },
+      { HAM_PARAM_KEY_SIZE, sizeof(my_key_t) },
+      { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
       { 0, 0 }
     };
 
@@ -413,13 +415,11 @@ struct HamsterdbFixture {
     my_key_t my_key;
     my_rec_t my_rec;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"),
-            HAM_DISABLE_MMAP, 0644, ps));
+    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"),
+                            HAM_DISABLE_MMAP, 0644, ps));
 
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, ps2));
-    REQUIRE(0 ==
-        ham_db_set_compare_func(db, &my_compare_func_u32));
+    REQUIRE(0 == ham_db_set_compare_func(db, &my_compare_func_u32));
 
     /* insert the records: key=2*i; rec=100*i */
     int lower_bound_of_range = 0;
@@ -468,8 +468,7 @@ struct HamsterdbFixture {
     for (i = 0; i < RECORD_COUNT_PER_DB; i++) {
       ::memset(&key, 0, sizeof(key));
       ::memset(&rec, 0, sizeof(rec));
-      REQUIRE(0 ==
-          ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
       REQUIRE(key.data != (void *)0);
       REQUIRE(rec.data != (void *)0);
       r = (my_rec_t *)rec.data;
@@ -672,6 +671,10 @@ struct HamsterdbFixture {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t ps[] = { { HAM_PARAM_PAGESIZE, 64 * 1024 },  { 0, 0 } };
+    ham_parameter_t params[] = {
+        { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
+        { 0, 0 }
+    };
     const int MY_KEY_SIZE = 6554;
     struct my_key_t {
       ham_u32_t key_val1;
@@ -686,10 +689,9 @@ struct HamsterdbFixture {
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), 0, 0644, &ps[0]));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+        ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, &params[0]));
     keycount = 8;
-    REQUIRE(0 ==
-        ham_db_set_compare_func(db, &my_compare_func_u32));
+    REQUIRE(0 == ham_db_set_compare_func(db, &my_compare_func_u32));
 
     ham_key_t key;
     ham_record_t rec;
@@ -1174,8 +1176,22 @@ struct HamsterdbFixture {
   void compareTest() {
     ham_compare_func_t f = my_compare_func;
 
-    REQUIRE(0 == ham_db_set_compare_func(m_db, f));
-    REQUIRE(f == ((LocalDatabase *)m_db)->get_compare_func());
+    ham_parameter_t params[] = {
+      { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
+      { 0, 0 }
+    };
+    ham_env_t *env;
+    ham_db_t *db;
+
+    REQUIRE(HAM_INV_PARAMETER == ham_db_set_compare_func(m_db, f));
+
+    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 111, 0, &params[0]));
+
+    REQUIRE(0 == ham_db_set_compare_func(db, f));
+    REQUIRE(f == ((LocalDatabase *)db)->get_compare_func());
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
   void cursorCreateTest() {
@@ -1861,7 +1877,8 @@ struct HamsterdbFixture {
     ham_env_t *env;
     ham_cursor_t *cursor;
     ham_parameter_t ps[] = {
-        { HAM_PARAM_KEYSIZE, 8 },
+        { HAM_PARAM_KEY_SIZE, 8 },
+        { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
         { 0, 0 }
     };
     ham_u32_t flags = HAM_ENABLE_EXTENDED_KEYS
@@ -1876,10 +1893,18 @@ struct HamsterdbFixture {
     // reopen the database
     REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
+    REQUIRE(0 == ham_db_set_compare_func(db, &my_compare_func));
 
     // check if the flags and parameters were stored persistently
     LocalDatabase *ldb = (LocalDatabase *)db;
     REQUIRE((ldb->get_rt_flags() & flags) == flags);
+
+    ham_parameter_t query[] = {
+        {HAM_PARAM_KEY_TYPE, 0},
+        {0, 0}
+    };
+    REQUIRE(0 == ham_db_get_parameters(db, query));
+    REQUIRE(HAM_TYPE_CUSTOM == query[0].value);
 
     REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
 

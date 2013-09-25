@@ -23,13 +23,13 @@
 #include "../src/env.h"
 #include "../src/btree_index.h"
 #include "../src/btree_key.h"
-#include "../src/btree_node_factory.h"
 
 namespace hamsterdb {
 
 struct MiscFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
+  LocalDatabase *m_dbp;
   BtreeIndex *m_btree;
 
   MiscFixture() {
@@ -40,8 +40,8 @@ struct MiscFixture {
     REQUIRE(0 ==
           ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    LocalDatabase *db = (LocalDatabase *)m_db;
-    m_btree = db->get_btree_index();
+    m_dbp = (LocalDatabase *)m_db;
+    m_btree = m_dbp->get_btree_index();
   }
 
   ~MiscFixture() {
@@ -51,9 +51,9 @@ struct MiscFixture {
   void copyKeyInt2PubEmptyTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    page->set_db((LocalDatabase *)m_db);
+    page->set_db(m_dbp);
     REQUIRE(0 == page->allocate());
-    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
     ByteArray arena;
@@ -70,9 +70,9 @@ struct MiscFixture {
   void copyKeyInt2PubTinyTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    page->set_db((LocalDatabase *)m_db);
+    page->set_db(m_dbp);
     REQUIRE(0 == page->allocate());
-    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
     ByteArray arena;
@@ -89,9 +89,9 @@ struct MiscFixture {
   void copyKeyInt2PubSmallTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    page->set_db((LocalDatabase *)m_db);
+    page->set_db(m_dbp);
     REQUIRE(0 == page->allocate());
-    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
     ByteArray arena;
@@ -108,9 +108,9 @@ struct MiscFixture {
   void copyKeyInt2PubFullTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    page->set_db((LocalDatabase *)m_db);
+    page->set_db(m_dbp);
     REQUIRE(0 == page->allocate());
-    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
     ByteArray arena;

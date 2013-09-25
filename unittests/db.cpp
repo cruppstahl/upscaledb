@@ -23,12 +23,12 @@
 #include "../src/env.h"
 #include "../src/env_header.h"
 #include "../src/btree_index.h"
+#include "../src/btree_index_factory.h"
 #include "../src/blob_manager.h"
 #include "../src/page_manager.h"
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/btree_node.h"
-#include "../src/btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -80,12 +80,6 @@ struct DbFixture {
 
     REQUIRE(((LocalEnvironment *)m_env)->get_page_manager()->test_get_cache());
 
-    ham_compare_func_t oldfoo2 = m_dbp->get_compare_func();
-    REQUIRE(0 == m_dbp->get_compare_func());
-    m_dbp->set_compare_func((ham_compare_func_t)19);
-    REQUIRE((ham_compare_func_t)19 == m_dbp->get_compare_func());
-    m_dbp->set_compare_func(oldfoo2);
-
     ((LocalEnvironment *)m_env)->get_header()->get_header_page()->set_dirty(false);
     REQUIRE(!((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
     ((LocalEnvironment *)m_env)->mark_header_page_dirty();
@@ -102,27 +96,27 @@ struct DbFixture {
     key1.size = 3;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE( 0 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    REQUIRE( 0 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"ab";
     key1.size = 2;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)"bcd";
     key2.size = 3;
-    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)0;
     key2.size = 0;
-    REQUIRE(+1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    REQUIRE(+1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)0;
     key1.size = 0;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
   }
 
   void flushPageTest() {
@@ -158,16 +152,16 @@ struct DbFixture {
     REQUIRE(sizeof(PBlobHeader) == 28);
     REQUIRE(sizeof(PDupeEntry) == 16);
     REQUIRE(sizeof(PDupeTable) == 8 + sizeof(PDupeEntry));
-    REQUIRE(sizeof(PBtreeNode) == 32 + sizeof(PBtreeKey));
-    REQUIRE(sizeof(PBtreeKey) == 12);
+    REQUIRE(sizeof(PBtreeNode) == 21 + sizeof(PBtreeKeyLegacy));
+    REQUIRE(sizeof(PBtreeKeyLegacy) == 12);
     REQUIRE(sizeof(PEnvironmentHeader) == 20);
-    REQUIRE(sizeof(PBtreeHeader) == 34);
+    REQUIRE(sizeof(PBtreeHeader) == 40);
     REQUIRE(sizeof(PFreelistPayload) == 3 * 8 + 4 + 1);
     REQUIRE(sizeof(PFreelistPageStatistics) ==
         4 + 8 + 4 * HAM_FREELIST_SLOT_SPREAD);
     REQUIRE(HAM_FREELIST_SLOT_SPREAD == 16 - 5 + 1);
     REQUIRE(PFreelistPayload::get_bitmap_offset() == 28);
-    REQUIRE(PBtreeKey::kSizeofOverhead == 11);
+    REQUIRE(PBtreeKeyLegacy::kSizeofOverhead == 11);
     REQUIRE(sizeof(Log::PEnvironmentHeader) == 16);
     REQUIRE(sizeof(Log::PEntry) == 32);
     REQUIRE(sizeof(PPageData) == 13);
@@ -178,12 +172,12 @@ struct DbFixture {
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
-    BtreeIndex be(&db, 0);
+    BtreeIndex *be = BtreeIndexFactory::create(&db, 0, 0, 0);
 
     page.set_address(1000);
     page.set_db(&db);
-    db.m_btree_index = &be;
-    be.m_keysize = 666;
+    db.m_btree_index = be;
+    be->m_keysize = 666;
     REQUIRE(Page::sizeof_persistent_header == 12);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
@@ -200,6 +194,7 @@ struct DbFixture {
     PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
     REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 12);
     hdrpage.set_data(0);
+    delete be;
   }
 
 };

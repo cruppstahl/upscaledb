@@ -30,7 +30,6 @@
 #include "page.h"
 #include "btree_key.h"
 #include "btree_stats.h"
-#include "btree_node_factory.h"
 
 using namespace std;
 
@@ -127,7 +126,7 @@ class BtreeInsertAction
       if (!page)
         return (insert());
 
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       ham_assert(node->is_leaf());
 
       /*
@@ -213,7 +212,7 @@ class BtreeInsertAction
       m_btree->get_statistics()->reset_page(root);
 
       // initialize the new page
-      BtreeNodeProxy *node = BtreeNodeFactory::get(newroot);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(newroot);
       node->initialize();
 
       /* insert the pivot element and the ptr_down */
@@ -245,7 +244,7 @@ class BtreeInsertAction
     // leaf, inserting the key using insert_in_page()
     // and performing necessary SMOs. It works recursive.
     ham_status_t insert_recursive(Page *page, ham_key_t *key, ham_u64_t rid) {
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       /* if we've reached a leaf: insert the key */
       if (node->is_leaf())
@@ -291,7 +290,7 @@ class BtreeInsertAction
     // Inserts a key in a page; if necessary, the page is split
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
       ham_status_t st;
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       ham_assert(m_btree->get_maxkeys() > 5);
 
@@ -327,8 +326,8 @@ class BtreeInsertAction
 
       m_btree->get_statistics()->reset_page(page);
 
-      BtreeNodeProxy *new_node = BtreeNodeFactory::get(new_page);
-      BtreeNodeProxy *old_node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_page);
+      BtreeNodeProxy *old_node = m_btree->get_node_from_page(page);
       ham_size_t count = old_node->get_count();
 
       // initialize the new page
@@ -422,7 +421,7 @@ class BtreeInsertAction
       new_node->set_right(old_node->get_right());
       old_node->set_right(new_page->get_address());
       if (sib_page) {
-        BtreeNodeProxy *sib_node = BtreeNodeFactory::get(sib_page);
+        BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
         sib_node->set_left(new_page->get_address());
         sib_page->set_dirty(true);
       }
@@ -450,7 +449,7 @@ class BtreeInsertAction
       bool exists = false;
       ham_s32_t slot;
 
-      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       int count = node->get_count();
 
       if (node->get_count() == 0)

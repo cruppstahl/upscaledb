@@ -64,8 +64,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PDupeEntry
  * in this case, we must not use endian-conversion!
  */
 #define dupe_entry_get_rid(e)                                                 \
-         (((dupe_entry_get_flags(e)&PBtreeKey::kBlobSizeTiny)             \
-          || (dupe_entry_get_flags(e)&PBtreeKey::kBlobSizeSmall))         \
+         (((dupe_entry_get_flags(e)&BtreeKey::kBlobSizeTiny)             \
+          || (dupe_entry_get_flags(e)&BtreeKey::kBlobSizeSmall))         \
            ? (e)->_rid                                                        \
            : ham_db2h_offset((e)->_rid))
 
@@ -80,8 +80,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PDupeEntry
  * in this case we must not use endian-conversion!
  */
 #define dupe_entry_set_rid(e, r)                                              \
-         (e)->_rid=(((dupe_entry_get_flags(e)&PBtreeKey::kBlobSizeTiny)   \
-          || (dupe_entry_get_flags(e)&PBtreeKey::kBlobSizeSmall))         \
+         (e)->_rid=(((dupe_entry_get_flags(e)&BtreeKey::kBlobSizeTiny)   \
+          || (dupe_entry_get_flags(e)&BtreeKey::kBlobSizeSmall))         \
            ? (r)                                                              \
            : ham_h2db_offset(r))
 

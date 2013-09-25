@@ -19,7 +19,6 @@
 #include "page.h"
 #include "btree_stats.h"
 #include "btree_index.h"
-#include "btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -60,7 +59,8 @@ BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
   else
     m_last_leaf_count[kOperationInsert]++;
 
-  BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+  BtreeNodeProxy *node;
+  node = page->get_db()->get_btree_index()->get_node_from_page(page);
   ham_assert(node->is_leaf());
   
   if (!node->get_right() && slot == node->get_count() - 1)

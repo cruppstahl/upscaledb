@@ -231,6 +231,13 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_get_metrics(ham_env_t *env, ham_env_metrics_t *metrics);
 
 /**
+ * Retrieves whether this hamsterdb library was compiled with debug
+ * diagnostics, checks and asserts
+ */
+HAM_EXPORT ham_bool_t HAM_CALLCONV
+ham_is_debug_build();
+
+/**
  * @}
  */
 

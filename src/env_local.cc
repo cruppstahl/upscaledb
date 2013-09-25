@@ -592,6 +592,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_u16_t keysize = 0;
+  ham_u16_t keytype = HAM_TYPE_BINARY;
   ham_u16_t dbi;
   std::string logdir;
 
@@ -602,20 +603,18 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     return (HAM_WRITE_PROTECTED);
   }
 
-  /*
-   * initialize the keysize with a good default value;
-   * 32byte is the size of a first level cache line for most modern
-   * processors; the default key fits into 32 bytes
-   */
+  // Initialize the keysize with a good default value;
+  // 32byte is a good value since it's aligned with the CPU caches
   if (flags & HAM_RECORD_NUMBER)
     keysize = sizeof(ham_u64_t);
-  else
-    keysize = (ham_u16_t)(32 - (PBtreeKey::kSizeofOverhead));
 
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-        case HAM_PARAM_KEYSIZE:
+        case HAM_PARAM_KEY_TYPE:
+          keytype = (ham_u16_t)param->value;
+          break;
+        case HAM_PARAM_KEY_SIZE:
           if (param->value != 0) {
             keysize = (ham_u16_t)param->value;
             if (flags & HAM_RECORD_NUMBER) {
@@ -632,19 +631,6 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
           return (HAM_INV_PARAMETER);
       }
     }
-  }
-
-  /*
-   * make sure that the cooked pagesize is big enough for at least 10 keys;
-   * record number database: need 8 byte
-   *
-   * By first calculating the keysize if none was specced, we can
-   * quickly discard tiny page sizes as well here:
-   */
-  if (m_pagesize / keysize < 10) {
-    ham_trace(("keysize too large; either increase pagesize or decrease "
-                "keysize"));
-    return (HAM_INV_KEYSIZE);
   }
 
   ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
@@ -694,7 +680,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 #endif
 
   /* initialize the Database */
-  ham_status_t st = db->create(dbi, keysize);
+  ham_status_t st = db->create(dbi, keysize, keytype);
   if (st) {
     delete db;
     return (st);
