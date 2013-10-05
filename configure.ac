@@ -33,10 +33,14 @@ AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev pread pwrite)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h uv.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
+AM_PROG_CC_C_O
 
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.36])
 BOOST_SYSTEM()
+BOOST_CHRONO()
+BOOST_FILESYSTEM()
+BOOST_THREADS()
 
 AM_CONDITIONAL([DARWIN],  [AS_CASE([$host_os], [darwin*],  [true], [false])])
 AM_CONDITIONAL([FREEBSD], [AS_CASE([$host_os], [freebsd*], [true], [false])])
@@ -193,12 +197,27 @@ if test x$enable_remote != xno; then
 fi
 AM_CONDITIONAL(ENABLE_REMOTE, test x$enable_remote != xno)
 
+# -------------------------------------------------------------------------
+# Build ham_bench with Berkeleydb?
+# -------------------------------------------------------------------------
+AC_ARG_WITH(berkeleydb,
+  AS_HELP_STRING(--without-berkeleydb, enables ham_bench tests against berkeleydb))
+if test x$with_berkeleydb = xyes; then
+  AC_CHECK_LIB(db, db_create)
+  AC_CHECK_HEADERS(db.h)
+  AM_CONDITIONAL(WITH_BERKELEYDB, true)
+  settings="$settings (berkeleydb)"
+else
+  AM_CONDITIONAL(WITH_BERKELEYDB, false)
+fi
+
+
 CXXFLAGS=${CFLAGS}
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_OUTPUT
 
 # Messages

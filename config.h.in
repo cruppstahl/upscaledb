@@ -6,8 +6,20 @@
 /* Defined if the requested minimum BOOST version is satisfied */
 #undef HAVE_BOOST
 
+/* Define to 1 if you have <boost/chrono.hpp> */
+#undef HAVE_BOOST_CHRONO_HPP
+
+/* Define to 1 if you have <boost/filesystem/path.hpp> */
+#undef HAVE_BOOST_FILESYSTEM_PATH_HPP
+
 /* Define to 1 if you have <boost/system/error_code.hpp> */
 #undef HAVE_BOOST_SYSTEM_ERROR_CODE_HPP
+
+/* Define to 1 if you have <boost/thread.hpp> */
+#undef HAVE_BOOST_THREAD_HPP
+
+/* Define to 1 if you have the <db.h> header file. */
+#undef HAVE_DB_H
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
@@ -32,6 +44,9 @@
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
+
+/* Define to 1 if you have the `db' library (-ldb). */
+#undef HAVE_LIBDB
 
 /* Define to 1 if you have the `tcmalloc_minimal' library
    (-ltcmalloc_minimal). */
@@ -92,6 +107,9 @@
    */
 #undef LT_OBJDIR
 
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
+
 /* Name of package */
 #undef PACKAGE
 
@@ -129,11 +147,6 @@
 # ifndef WORDS_BIGENDIAN
 #  undef WORDS_BIGENDIAN
 # endif
-#endif
-
-/* Enable large inode numbers on Mac OS X 10.5.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */

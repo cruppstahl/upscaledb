@@ -437,17 +437,30 @@ x move virtual inheritance one level "up" into the BtreeIndex
         x set type CUSTOM if --keytype=custom was selected
         x add this to monster.lst, performance test and valgrind.lst
 
-o move the monster tool to the main hamsterdb repository; then it's
+x move the monster tool to the main hamsterdb repository; then it's
     automatically tagged and updated, and easier for everyone to
     find it. testfiles and the tests for the monster binary can be
     stored in a separate repository (hamsterdb-tests), as well as
     the whole sandbox with the additional stuff.
     x if test is run in debug mode then print a fat warning!
-    o make bdb disabled by default, enable it with configure-switch
-    o need a better name - ham_bench?
-    o link statically
-    o msvc/win32 project files
-    o clean up monster test suite
+    x need a better name - ham_bench?
+    x link statically
+    x make bdb disabled by default, enable it with configure-switch
+    x should also compile/run if remote is disabled
+    x clean up monster test suite
+
+x ham_bench fixes
+    x --help does not work
+    x perftest.pl: also test transactions with inmemorydb
+    x add new operation "table-scan", option "table-scan-pct"
+        x also for parser!
+    x parser-generator still has many TODOs
+    x parser-generator ignores NUMERIC_KEY flag
+    x the zipfian distribution is unusable because it is so slow; can we
+        somehow mitigate this? otherwise get rid of it (or do not document it)
+    x msvc/win32 project files
+    x wiki: 1 page for benchmarking
+    x wiki: 1 page for running the tests
 
 o coverity-fixes!
 
@@ -457,32 +470,32 @@ o use parameterized btree for fix sized POD types
         a new BtreeNodeProxy in the factory; add a new comparator and
         reimplement everything for a 32bit integer
         x need header flag and documentation in the header file
-        o need to do endian-conversion!! - where?
-            o move actual conversion logic to BtreeIndex, impelment with
-                a template parameter:
-                virtual void prepare_key_for_insert
-                virtual void prepare_key_after_find
-            o ham_db_find
-            o ham_cursor_find
-            o ham_cursor_move
-            o ham_db_insert
-            o ham_cursor_insert
-            o key compare function that works with numeric values (templates)
+        x no endian conversion - document this!
+        x needs its own custom compare object
+        x use HAM_TYPE_BINARY with variable length is the default
+            (uses legacy layout for now)
         o use PAX style storage in the node (flags, keys, records) and
             separate flags, keys (fixed length only - for now) and records
-            o implement new template class for the layout (btree_node_pax.h)
+            x implement new template class for the layout (btree_node_pax.h)
+            o iterator is a simple integer index with constant key size
             o calculate layout when creating the node (the layout is fixed,
                 since all sizes are fixed)
-        o needs its own custom compare object
+            o should also work with fixed-size strings/binaries
         o does not require 2 bytes for key size
         o requires new unittests
+            o need to check whether the correct template parameters are picked,
+                i.e. by having the BtreeIndex return a string of its class
+                name (how to do that?)
+                http://gcc.gnu.org/onlinedocs/libstdc++/manual/ext_demangling.html
         o requires new monster tests
     o Create all other POD types
-    o use HAM_TYPE_UINT64 for record numbers
-        o remove existing endian conversion
-    o use HAM_TYPE_BINARY with variable length is the default
-        (uses legacy layout for now)
+    o use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
     o support these types in the new monster test
+
+o ham_bench: show page fetch/flush operations in the graph
+    o they are currently not shown because they're not counted!?
+    o they are currently not shown because the graph is not printed
+    o have a different unit on y-axis; scale down?
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -500,20 +513,9 @@ o specify timeout for remote client
 
 . win32: need a release-v2.pl which fully automates the various release steps
 
-o ham_bench fixes
-    o the zipfian distribution is unusable because it is so slow; can we
-        somehow mitigate this? otherwise get rid of it
-    o show page fetch/flush operations in the graph
-        o they are currently not shown because they're not counted!?
-        o they are currently not shown because the graph is not printed
-        o have a different unit on y-axis; scale down?
-
 o update the documentation/changelog/README/tutorial
     o the prefix compare function API was removed
     o the new flags/options
-    o ham_bench
-        o wiki: 1 page for benchmarking
-        o wiki: 1 page for running the tests
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 

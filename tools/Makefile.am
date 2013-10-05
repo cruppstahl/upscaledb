@@ -1,4 +1,6 @@
 
+SUBDIRS 			= ham_bench
+
 AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \
 					  -I../3rdparty/json
 

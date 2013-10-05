@@ -1,3 +1,6 @@
+Oct 5, 2013 - chris ---------------------------------------------------
+o Integrating "ham_bench" tool for benchmarking and testing
+
 Sep 23, 2013 - chris ---------------------------------------------------
 o Introducing "types" for the btree; the default type is HAM_TYPE_BINARY,
 	additional types are HAM_TYPE_CUSTOM, HAM_TYPE_UINT32 etc. The types

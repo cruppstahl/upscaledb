@@ -1,5 +1,6 @@
 *.o
 *~
+compile
 documentation/html
 documentation/latex
 Makefile

@@ -168,11 +168,11 @@ class LegacyNodeLayout
     }
 
     Iterator at(int slot) {
-      return (get_key(m_page->get_db(), slot));
+      return (get_iterator(m_page->get_db(), slot));
     }
 
     Iterator at(int slot) const {
-      return (get_key(m_page->get_db(), slot));
+      return (get_iterator(m_page->get_db(), slot));
     }
 
     Iterator next(Iterator it) {
@@ -380,13 +380,13 @@ class LegacyNodeLayout
     // note that this function does not check the boundaries (i.e. whether
     // i <= get_count(), because some functions deliberately write to
     // elements "after" get_count()
-    PBtreeKeyLegacy *get_key(LocalDatabase *db, int i) {
+    Iterator get_iterator(LocalDatabase *db, int i) {
       return ((PBtreeKeyLegacy *)&(m_node->get_data()
                 [(db->get_keysize() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
     }
 
     // Same as above, const flavor
-    PBtreeKeyLegacy *get_key(LocalDatabase *db, int i) const {
+    Iterator get_iterator(LocalDatabase *db, int i) const {
       return ((PBtreeKeyLegacy *)&(m_node->get_data()
                 [(db->get_keysize() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
     }

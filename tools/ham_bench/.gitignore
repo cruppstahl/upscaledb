@@ -1,0 +1,5 @@
+*.db
+*.db.log*
+ham_bench
+ham_bench.exe
+*.o
