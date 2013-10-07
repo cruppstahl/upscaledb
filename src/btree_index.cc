@@ -41,7 +41,6 @@ BtreeIndex::create(ham_u16_t keysize, ham_u16_t keytype)
 {
   ham_assert(keysize != 0);
 
-  /* prevent overflow - maxkeys only has 16 bit! */
   ham_size_t maxkeys = calc_maxkeys(m_db->get_local_env()->get_pagesize(),
                   keysize);
   if (maxkeys == 0) {
@@ -153,8 +152,10 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
     ham_u32_t flags = node->test_get_flags(slot);
     ham_assert(flags == 0 || flags == BtreeKey::kExtended);
 #endif
+    ham_u64_t rid = node->get_record_id(slot);
+    ham_assert(rid != 0);
     return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
-                            m_db, node->get_record_id(slot)));
+                            m_db, rid));
   }
 }
 
@@ -399,10 +400,9 @@ BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
   /* adjust page size and key size by adding the overhead */
   pagesize -= PBtreeNode::get_entry_offset();
   pagesize -= Page::sizeof_persistent_header;
-  keysize += (ham_u16_t)PBtreeKeyLegacy::kSizeofOverhead;
 
   /* and return an even number */
-  ham_size_t max = pagesize / keysize;
+  ham_size_t max = pagesize / get_system_keysize(keysize);
   return (max & 1 ? max - 1 : max);
 }
 

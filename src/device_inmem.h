@@ -138,7 +138,7 @@ class InMemoryDevice : public Device {
     // frees a page on the device; plays counterpoint to @ref alloc_page 
     virtual void free_page(Page *page) {
       ham_assert(page->get_data() != 0);
-      ham_assert(page->get_flags() | Page::kNpersMalloc);
+      ham_assert(page->get_flags() & Page::kNpersMalloc);
 
       page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       Memory::release(page->get_data());

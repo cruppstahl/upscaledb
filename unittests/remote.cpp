@@ -39,7 +39,8 @@ struct RemoteFixture {
   ham_db_t *m_db;
   ham_srv_t *m_srv;
 
-  RemoteFixture() {
+  RemoteFixture()
+    : m_env(0), m_db(0), m_srv(0) {
     ham_srv_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.port = 8989;

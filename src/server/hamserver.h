@@ -51,6 +51,8 @@ class ServerContext {
   public:
     ServerContext()
       : thread_id(0), loop(0), m_inducer(0), m_handle_counter(1) {
+      memset(&server, 0, sizeof(server));
+      memset(&async, 0, sizeof(async));
     }
 
     // allocates a new handle

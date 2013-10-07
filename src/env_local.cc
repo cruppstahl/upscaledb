@@ -603,11 +603,6 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     return (HAM_WRITE_PROTECTED);
   }
 
-  // Initialize the keysize with a good default value;
-  // 32byte is a good value since it's aligned with the CPU caches
-  if (flags & HAM_RECORD_NUMBER)
-    keysize = sizeof(ham_u64_t);
-
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
@@ -632,6 +627,9 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
       }
     }
   }
+
+  if (flags & HAM_RECORD_NUMBER)
+    keytype = HAM_TYPE_UINT64;
 
   ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
                     | HAM_ENABLE_DUPLICATE_KEYS
@@ -848,31 +846,29 @@ ham_status_t
 LocalEnvironment::recover(ham_u32_t flags)
 {
   ham_status_t st;
-  Log *log = new Log(this);
-  Journal *journal = new Journal(this);
+  m_log = new Log(this);
+  m_journal = new Journal(this);
 
   ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
 
   /* open the log and the journal (if transactions are enabled) */
-  st = log->open();
-  m_log = log;
+  st = m_log->open();
   if (st == HAM_FILE_NOT_FOUND)
-    st = log->create();
+    st = m_log->create();
   if (st)
     goto bail;
   if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    st = journal->open();
-    m_journal = journal;
+    st = m_journal->open();
     if (st == HAM_FILE_NOT_FOUND)
-      st = journal->create();
+      st = m_journal->create();
     if (st)
       goto bail;
   }
 
   /* success - check if we need recovery */
-  if (!log->is_empty()) {
+  if (!m_log->is_empty()) {
     if (flags & HAM_AUTO_RECOVERY) {
-      st = log->recover();
+      st = m_log->recover();
       if (st)
         goto bail;
     }
@@ -883,9 +879,9 @@ LocalEnvironment::recover(ham_u32_t flags)
   }
 
   if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    if (!journal->is_empty()) {
+    if (!m_journal->is_empty()) {
       if (flags & HAM_AUTO_RECOVERY) {
-        st = journal->recover();
+        st = m_journal->recover();
         if (st)
           goto bail;
       }
@@ -900,40 +896,22 @@ goto success;
 
 bail:
   /* in case of errors: close log and journal, but do not delete the files */
-  if (log) {
-    log->close(true);
-    delete log;
-    m_log = 0;
-  }
-  if (journal) {
-    journal->close(true);
-    delete journal;
-    m_journal = 0;
-  }
+  m_log->close(true);
+  delete m_log;
+  m_log = 0;
+
+  m_journal->close(true);
+  delete m_journal;
+  m_journal = 0;
   return (st);
 
 success:
   /* done with recovering - if there's no log and/or no journal then
    * create them and store them in the environment */
-  if (!log) {
-    log = new Log(this);
-    st = log->create();
-    if (st)
-      return (st);
+  if (!(get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    delete m_journal;
+    m_journal = 0;
   }
-  m_log = log;
-
-  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    if (!journal) {
-      journal = new Journal(this);
-      st = journal->create();
-      if (st)
-        return (st);
-    }
-    m_journal = journal;
-  }
-  else if (journal)
-    delete journal;
 
   return (0);
 }

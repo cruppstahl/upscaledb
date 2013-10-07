@@ -154,9 +154,14 @@ class LegacyNodeLayout
       : m_page(page), m_node(PBtreeNode::from_page(page)) {
     }
 
-    static ham_u16_t get_default_keysize() {
-      // 32byte is a good value since it's aligned with the CPU caches
+    // Returns the default key size (excluding overhead)
+    static ham_u16_t get_default_user_keysize() {
       return ((ham_u16_t)(32 - (PBtreeKeyLegacy::kSizeofOverhead)));
+    }
+
+    // Returns the actual key size (including overhead)
+    static ham_u16_t get_system_keysize(ham_size_t keysize) {
+      return ((ham_u16_t)(keysize + PBtreeKeyLegacy::kSizeofOverhead));
     }
 
     Iterator begin() {
@@ -356,18 +361,6 @@ class LegacyNodeLayout
       ham_size_t keysize = m_page->get_db()->get_keysize();
       memmove(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize)
               * other->m_node->get_count());
-
-      lhs = other->begin();
-      rhs = at(slot);
-      memmove(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize) * count);
-    }
-
-    void shift_prepend(LegacyNodeLayout *other, int slot, int count) {
-      Iterator lhs = other->at(count);
-      Iterator rhs = other->begin();
-      ham_size_t keysize = m_page->get_db()->get_keysize();
-      memmove(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize)
-                      * other->m_node->get_count());
 
       lhs = other->begin();
       rhs = at(slot);

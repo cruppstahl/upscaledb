@@ -237,7 +237,7 @@ struct CallbackCompare
   LocalDatabase *m_db;
 };
 
-// Compare object for record number keys
+// Compare object for record number keys (includes endian conversion)
 struct RecordNumberCompare
 {
   RecordNumberCompare(LocalDatabase *) {
@@ -249,6 +249,23 @@ struct RecordNumberCompare
     ham_assert(lhs_size == sizeof(ham_u64_t));
     ham_u64_t l = ham_db2h64(*(ham_u64_t *)lhs_data);
     ham_u64_t r = ham_db2h64(*(ham_u64_t *)rhs_data);
+    return (l < r ? -1 : (l > r ? +1 : 0));
+  }
+};
+
+// Compare object for numeric keys (no endian conversion)
+template<typename T>
+struct NumericCompare
+{
+  NumericCompare(LocalDatabase *) {
+  }
+
+  int operator()(const void *lhs_data, ham_size_t lhs_size,
+          const void *rhs_data, ham_size_t rhs_size) const {
+    ham_assert(lhs_size == rhs_size);
+    ham_assert(lhs_size == sizeof(T));
+    T l = *(T *)lhs_data;
+    T r = *(T *)rhs_data;
     return (l < r ? -1 : (l > r ? +1 : 0));
   }
 };
@@ -324,7 +341,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       it->set_record_id(record_id);
       it->set_flags(flags);
       it->set_size(data_size);
-      ::memcpy(it->get_key(), data, data_size);
+      it->set_key(data, data_size);
     }
 
     // Retrieves the key at the specific |slot|
@@ -382,7 +399,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // are endian-translated.
     virtual ham_status_t copy_full_key(int slot, ByteArray *arena,
                     ham_key_t *dest) const {
-      typename NodeLayout::Iterator it = m_layout.at(slot);
+      typename NodeLayout::ConstIterator it = m_layout.at(slot);
       if (dest->flags & HAM_KEY_USER_ALLOC) {
         arena->assign(dest->data, dest->size);
         arena->disown();
@@ -580,7 +597,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns true if the key at the given |slot| has duplicates
     virtual bool has_duplicates(ham_u32_t slot) const {
-      typename NodeLayout::Iterator it = m_layout.at(slot);
+      typename NodeLayout::ConstIterator it = m_layout.at(slot);
       return ((bool)(it->get_flags() & BtreeKey::kDuplicates));
     }
 
@@ -700,15 +717,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       other->set_count(other->get_count() + count);
     }
 
-    // Prepends |count| keys from the |other| node to this node
-    virtual void shift_prepend(BtreeNodeProxy *other_node,
-                    int slot, int count) {
-      ClassType *other = dynamic_cast<ClassType *>(other_node);
-      m_layout.shift_prepend(&other->m_layout, slot, count);
-      set_count(get_count() - count);
-      other->set_count(other->get_count() + count);
-    }
-
     // High level function to insert a new key
     virtual ham_status_t insert(ham_u32_t slot, const ham_key_t *key,
                     BlobManager *blob_manager) {
@@ -720,10 +728,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       /* extended key: allocate a blob and store it in the key */
       if (key->size > keysize) {
         ham_u64_t blobid;
-
+        ham_record_t rec = {0};
         ham_u8_t *data_ptr = (ham_u8_t *)key->data;
-        ham_record_t rec = ham_record_t();
-        rec.data = data_ptr  + (keysize - sizeof(ham_u64_t));
+        rec.data = data_ptr + (keysize - sizeof(ham_u64_t));
         rec.size = key->size - (keysize - sizeof(ham_u64_t));
 
         ham_status_t st;
@@ -931,7 +938,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       other->m_layout.release_key(dest);
 
       dest->set_flags(src->get_flags());
-      memcpy(dest->get_key(), src->get_key(), db->get_keysize());
+      dest->set_key(src->get_key(), src->get_size());
 
       /*
        * internal keys are not allowed to have blob-flags, because only the
@@ -1029,7 +1036,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
               (unsigned long long)m_page->get_address(), get_count(),
               (unsigned long long)get_left(), (unsigned long long)get_right(),
               (unsigned long long)get_ptr_down());
-      typename NodeLayout::ConstIterator it = m_layout.begin();
+      typename NodeLayout::Iterator it = m_layout.begin();
       for (ham_size_t i = 0; i < get_count(); i++, it = m_layout.next(it)) {
         printf("    %08d -> %08lld\n", *(int *)it->get_key(),
                 (unsigned long long)it->get_record_id());

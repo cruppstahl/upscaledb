@@ -31,7 +31,8 @@ struct TxnCursorFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  TxnCursorFixture() {
+  TxnCursorFixture()
+    : m_cursor(0), m_db(0), m_env(0) {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));

@@ -334,16 +334,19 @@ jparams_to_native(JNIEnv *jenv, jobjectArray jparams, ham_parameter_t **pparams)
       jfieldID fidname, fidvalue;
       jclass jcls = (*jenv)->GetObjectClass(jenv, jobj);
       if (!jcls) {
+        free(params);
         jni_log(("GetObjectClass failed\n"));
         return (HAM_INTERNAL_ERROR);
       }
       fidname = (*jenv)->GetFieldID(jenv, jcls, "name", "I");
       if (!fidname) {
+        free(params);
         jni_log(("GetFieldID failed\n"));
         return (HAM_INTERNAL_ERROR);
       }
       fidvalue = (*jenv)->GetFieldID(jenv, jcls, "value", "J");
       if (!fidvalue) {
+        free(params);
         jni_log(("GetFieldID failed\n"));
         return (HAM_INTERNAL_ERROR);
       }
@@ -449,7 +452,7 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1license(JNIEnv *jenv, jclass jcls,
 
   if (which == 0)
     ham_get_license(&p, 0);
-  else if (which == 1)
+  else /* if (which == 1) */
     ham_get_license(0, &p);
 
   return ((*jenv)->NewStringUTF(jenv, p));

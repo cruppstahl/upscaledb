@@ -462,7 +462,8 @@ x ham_bench fixes
     x wiki: 1 page for benchmarking
     x wiki: 1 page for running the tests
 
-o coverity-fixes!
+x search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
+    and fix it
 
 o use parameterized btree for fix sized POD types
     x if performance is fine: rebase/merge with v2
@@ -474,28 +475,81 @@ o use parameterized btree for fix sized POD types
         x needs its own custom compare object
         x use HAM_TYPE_BINARY with variable length is the default
             (uses legacy layout for now)
-        o use PAX style storage in the node (flags, keys, records) and
+        x use PAX style storage in the node (flags, keys, records) and
             separate flags, keys (fixed length only - for now) and records
             x implement new template class for the layout (btree_node_pax.h)
-            o iterator is a simple integer index with constant key size
-            o calculate layout when creating the node (the layout is fixed,
+            x iterator is a simple integer index with constant key size
+            x calculate layout when creating the node (the layout is fixed,
                 since all sizes are fixed)
-            o should also work with fixed-size strings/binaries
-        o does not require 2 bytes for key size
-        o requires new unittests
-            o need to check whether the correct template parameters are picked,
-                i.e. by having the BtreeIndex return a string of its class
-                name (how to do that?)
-                http://gcc.gnu.org/onlinedocs/libstdc++/manual/ext_demangling.html
-        o requires new monster tests
-    o Create all other POD types
-    o use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
-    o support these types in the new monster test
+            x does not require 2 bytes for key size
+            x update BtreeIndex::calc_maxkeys - should be calculated by node
+                layout/proxy
+                x unittest: verify keysize for uint32-type
+                x unittest: verify max. keys per page for uint32-type
+                x unittest: verify keysize for binary/custom
+                x unittest: verify max. keys per page for binary/custom
+            x implement all remaining functions
+        x unittest: need to check whether the correct template parameters
+            are picked, i.e. by having the BtreeIndex return a string of its
+            class name (how to do that?)
+            http://gcc.gnu.org/onlinedocs/libstdc++/manual/ext_demangling.html
+        x test and verify
+            x key types must work with berkeleydb
+            x requires new monster tests (esp. with small pages)
+                x make sure NUMERIC_KEYS tests still work and use the new type
+                x do not reopen inmemorydb files
+                x ./ham_bench ../testfiles/1/220.tst fails
+                x ./ham_bench ../testfiles/1/45.tst fails
+                x ./ham_bench ../testfiles/1/46.tst fails
+                x enable EXTENDED_KEYS if filename starts with "ext_"
+                x --inmemorydb --use-extended --use-berkeleydb ../testfiles/1/ext_020.tst
+                x --inmemorydb --use-extended --use-berkeleydb ../testfiles/1/ext_021.tst
 
-o ham_bench: show page fetch/flush operations in the graph
-    o they are currently not shown because they're not counted!?
-    o they are currently not shown because the graph is not printed
-    o have a different unit on y-axis; scale down?
+                x new tests should use randomly generated data
+                x enable EXTENDED_KEYS if filename starts with "ext_"
+                x new tests should use randomly generated data
+            x requires new performance tests
+            x requires new valgrind tests
+        o fix outstanding bugs
+            x btree_index_factory has asserts if duplicates are enabled
+            x uintXX/duplicates are failing because duplicates enforce
+                binary type
+            x multithreaded tests are failing b/c berkeleydb is enabled
+                -> remove them, they're not worthy
+            o make sure that all tests run fine
+
+        o how can we assure that after opening the file the identical Btree
+            templates are selected??
+
+    x use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
+    x support these types in the new monster test
+    o legacy-layout:284: allocates m_arena on stack, should be member
+        to avoid frequent re-allocations
+    o support float (REAL32) and double (REAL64) type
+        o have 1 unittest per type
+        o extend monster tests
+        o extend valgrind tests
+        o extend performance tests
+    o disallow flag HAM_ENABLE_EXTENDED_KEYS
+    o enforce correkt key size in ham_db_insert, ham_cursor_insert
+    o compare performance vs. regular keys (2.1.2, w/o records)
+        o create a build script to build against 2.1.2
+    o use pax layout for fixed-size strings/binaries??
+        o run performance test against 2.1.2
+
+    o once more review the code, esp. the "compare" should be in a really tight
+        loop without branches
+
+x ham_dump: "tee" does not write FULLCHECKs
+
+. db_local: create extkey-cache in constructor, not on demand (only if extended
+    keys are enabled and not inmemory)
+    -> remove set_extkey_cache
+    -> this cleans up some code
+
+o run static code analysis
+    o coverity
+    o clang
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -513,14 +567,19 @@ o specify timeout for remote client
 
 . win32: need a release-v2.pl which fully automates the various release steps
 
+o win32: a few unimportant unittests are failing (2.1.2)
+
 o update the documentation/changelog/README/tutorial
     o the prefix compare function API was removed
-    o the new flags/options
+    o describe the new flags/options
+    o announce the 3 new wiki pages (or better move them to hamsterdb.com?)
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
 high-level plan for 2.2.0-pre2 (unstable)
 - btree understands variable-sized PODs
+    - uses PAX layout with a small (in-memory) skiplist and linear search
+        in this skiplist
 - completely rewrite handling of extended keys
     If the extended key does not fit into one page: allocate an overflow area,
     move the FULL key into that area. get rid of the prefix compare. compare
@@ -530,23 +589,32 @@ high-level plan for 2.2.0-pre2 (unstable)
     ==> count number of overflow areas for statistics!
 - btree stores fixed-length records in the leaf
     also support record length of 0 ("key exists" vs "key does not exist")
-    - not for internal nodes!
+    - not for internal nodes! they have a fixed record length of 8!
     - needs to move BtreeIndex::read_record into BtreeNodeProxy
     - if duplicates are disabled AND record size is fix:
         do not store 1 byte flag for each key
-- btree allows lazy updates -> COMM??
-- btree can compress keys and records -> COMM
-- use SIMD for scans (if it makes sense!) -> COMM
+    - if page is large enough then store the record in the leaf, even
+        if it's > 8 bytes
 - replace 3rdparty/json with boost property_tree
+- btree can compress keys (strings: prefix, everything: dict) -> COMM
+    - needs new ham_bench enhancements to use actual strings instead of
+        random garbage - see below
+- btree can compress records (prefix, dict, snappy) -> COMM
+- use SIMD for scans (if it makes sense!) -> COMM
 
-high-level plan for 2.2.0 (stable)
+high-level plan for 2.2.0 (unstable)
 - completely rewrite handling of duplicate keys
-- asynchronous read-ahead (if it makes sense!) -> COMM
-- combine POD types into high-level schemas (split off something for COMM!)
-- file format will be fixed from now on
-- lay the groundwork for concurrency 
+    o store records inline; if there are too many then allocate an overflow
+        extend
+- btree can handle delta updates
+- delta updates are merged when there are too many of them, or if a cursor
+        traverses the page (only if memcpy/memmove takes too much time)
+- lay the groundwork for concurrency -> LSS-streams, finalize the file format
+    (every buffer needs stream descriptor, trailer)
+- cache-oblivious page distribution? (maybe write the LSS first?)
+- security? -> COMM
 
-o monster test
+o ham_bench improvements
     o have more data sources based on dict/words (concatenate, if there are
         not enough or if they are too short)
       o StringRandomSource(max)
@@ -575,11 +643,6 @@ o continue with the Btree rewrite
     o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
     ------- release -------
     o add combined high-level schemas (combinations of various POD types)
-
-o win32: a few unimportant unittests are failing (2.1.2)
-
-o search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
-    and fix it
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information

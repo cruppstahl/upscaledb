@@ -357,7 +357,6 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
       {
         ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
-        ham_assert(entry_index >= 0);
         ham_assert(entry_index < fl->get_count());
 
         for (b = 0; b <= bucket; b++) {
@@ -447,7 +446,6 @@ FreelistStatistics::globalhints_no_hit(Freelist *fl,
   ham_u16_t bucket = size2bucket(hints->size_bits);
   ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
-  ham_assert(entry_index >= 0);
   ham_assert(entry_index < fl->get_count());
 
   ham_assert(hints->page_span_width >= 1);

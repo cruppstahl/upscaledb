@@ -69,6 +69,11 @@ class RuntimeGenerator : public Generator
       *metrics = m_metrics;
     }
 
+    // "tee"s the generated test data to a file (and/or to stdout 
+    // if 'verbose' is enabled)
+    virtual void tee(const char *foo, const ham_key_t *key = 0,
+                    const ham_record_t *record = 0);
+ 
   private:
     // creates the Environment
     void create();
@@ -106,11 +111,6 @@ class RuntimeGenerator : public Generator
     // returs true if test should stop now
     bool limit_reached();
 
-    // "tee"s the generated test data to a file (and/or to stdout 
-    // if 'verbose' is enabled)
-    void tee(const char *foo, const ham_key_t *key = 0,
-                    const ham_record_t *record = 0);
- 
     // the current state (running, reopening etc)
     int m_state;
 

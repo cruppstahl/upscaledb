@@ -92,6 +92,12 @@ class Generator
       return (&m_record);
     }
 
+    // "tee"s the generated test data to a file (and/or to stdout 
+    // if 'verbose' is enabled)
+    virtual void tee(const char *foo, const ham_key_t *key = 0,
+                    const ham_record_t *record = 0) {
+    }
+
   protected:
     // unique ID - used to create the database
     int m_id;

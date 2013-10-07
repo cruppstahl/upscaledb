@@ -141,6 +141,9 @@ class ParserGenerator : public Generator
 
     // cached pointer for record data
     void *m_data_ptr;
+
+    // cached tokens of the current line
+    std::vector<std::string> m_tokens;
 };
 
 #endif /* PARSER_GENERATOR_H__ */

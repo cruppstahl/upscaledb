@@ -422,8 +422,6 @@ struct KeyCounter : public TransactionIndex::Visitor
         // if key was erased then it doesn't exist
         else if (op->get_flags() & TransactionOperation::kErase)
           return;
-        else if (op->get_flags() & TransactionOperation::kNop)
-          ; // nop
         else if (op->get_flags() & TransactionOperation::kInsert) {
           counter++;
           return;
@@ -453,7 +451,7 @@ struct KeyCounter : public TransactionIndex::Visitor
               return;
           }
         }
-        else {
+        else if (!(op->get_flags() & TransactionOperation::kNop)) {
           ham_assert(!"shouldn't be here");
           return;
         }

@@ -29,11 +29,15 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 LT_INIT
 AC_CONFIG_SRCDIR(src/hamsterdb.cc)
 AC_CONFIG_HEADERS(config.h)
-AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev pread pwrite)
-AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h uv.h)
+AM_PROG_CC_C_O
+
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
-AM_PROG_CC_C_O
+AC_CHECK_FUNCS([mmap munmap getpagesize fdatasync fsync writev pread pwrite])
+AC_CHECK_HEADERS([fcntl.h unistd.h malloc.h uv.h])
+
+m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
+AX_CXX_GCC_ABI_DEMANGLE
 
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.36])

@@ -364,7 +364,6 @@ class BtreeInsertAction
       else
         pivot = count / 2;
       ham_assert(pivot > 0 && pivot <= (int)count - 2);
-
       /* uncouple all cursors */
       st = BtreeCursor::uncouple_all_cursors(page, pivot);
       if (st)

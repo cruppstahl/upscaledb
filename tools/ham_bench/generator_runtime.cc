@@ -605,19 +605,19 @@ RuntimeGenerator::tee(const char *foo, const ham_key_t *key,
       switch (m_config->key_type) {
         case Configuration::kKeyBinary:
         case Configuration::kKeyCustom:
-          ss << " (" << (const char *)key->data;
+          ss << " (0, \"" << (const char *)key->data << '"';
           break;
         case Configuration::kKeyUint8:
-          ss << " (" << (int)*(const char *)key->data;
+          ss << " (0, \"" << (int)*(const char *)key->data << '"';
           break;
         case Configuration::kKeyUint16:
-          ss << " (" << *(uint16_t *)key->data;
+          ss << " (0, \"" << *(uint16_t *)key->data << '"';
           break;
         case Configuration::kKeyUint32:
-          ss << " (" << *(uint32_t *)key->data;
+          ss << " (0, \"" << *(uint32_t *)key->data << '"';
           break;
         case Configuration::kKeyUint64:
-          ss << " (" << *(uint64_t *)key->data;
+          ss << " (0, \"" << *(uint64_t *)key->data << '"';
           break;
         default:
           assert(!"shouldn't be here");

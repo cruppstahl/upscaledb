@@ -50,7 +50,6 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   ham_u64_t blobid;
   ham_status_t st;
   ham_size_t temp;
-  ham_record_t record;
   ham_u8_t *ptr;
 
   ham_assert(key_flags & BtreeKey::kExtended);
@@ -115,7 +114,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   memmove(ext_key->data, key_data, get_keysize() - sizeof(ham_u64_t));
 
   /* now read the remainder of the key */
-  memset(&record, 0, sizeof(record));
+  ham_record_t record = {0};
   record.data = (((ham_u8_t *)ext_key->data) +
           get_keysize() - sizeof(ham_u64_t));
   record.size = key_length - (get_keysize() - sizeof(ham_u64_t));
@@ -165,8 +164,6 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
         ; /* nop */
       else if (op->get_flags() & TransactionOperation::kErase)
         return (0);
-      else if (op->get_flags() & TransactionOperation::kNop)
-        ; /* nop */
       /* if the key already exists then we can only continue if
        * we're allowed to overwrite it or to insert a duplicate */
       else if ((op->get_flags() & TransactionOperation::kInsert)
@@ -177,7 +174,7 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
         else
           return (HAM_DUPLICATE_KEY);
       }
-      else {
+      else if (!(op->get_flags() & TransactionOperation::kNop)) {
         ham_assert(!"shouldn't be here");
         return (HAM_DUPLICATE_KEY);
       }
@@ -236,15 +233,13 @@ LocalDatabase::check_erase_conflicts(Transaction *txn,
        * an error */
       else if (op->get_flags() & TransactionOperation::kErase)
         return (HAM_KEY_NOT_FOUND);
-      else if (op->get_flags() & TransactionOperation::kNop)
-        ; /* nop */
       /* if the key exists then we're successful */
       else if ((op->get_flags() & TransactionOperation::kInsert)
           || (op->get_flags() & TransactionOperation::kInsertOverwrite)
           || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
         return (0);
       }
-      else {
+      else if (!(op->get_flags() & TransactionOperation::kNop)) {
         ham_assert(!"shouldn't be here");
         return (HAM_KEY_NOT_FOUND);
       }
@@ -404,8 +399,6 @@ retry:
         }
         return (HAM_KEY_NOT_FOUND);
       }
-      else if (op->get_flags() & TransactionOperation::kNop)
-        ; /* nop */
       /* if the key already exists then return its record; do not
        * return pointers to TransactionOperation::get_record, because it may be
        * flushed and the user's pointers would be invalid */
@@ -419,7 +412,7 @@ retry:
         // otherwise copy the record and return
         return (LocalDatabase::copy_record(this, txn, op, record));
       }
-      else {
+      else if (!(op->get_flags() & TransactionOperation::kNop)) {
         ham_assert(!"shouldn't be here");
         return (HAM_KEY_NOT_FOUND);
       }
@@ -614,8 +607,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
 
   /* create the BtreeIndex */
-  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor, flags,
-                    desc->get_keytype());
+  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
+                    flags | desc->get_flags(), desc->get_keytype());
 
   ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
@@ -678,8 +671,25 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
   BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
                   persistent_flags, keytype);
 
-  if (!keysize)
-    keysize = bt->get_default_keysize();
+  if (!keysize) {
+    switch (keytype) {
+      case HAM_TYPE_UINT8:
+        keysize = 1;
+        break;
+      case HAM_TYPE_UINT16:
+        keysize = 2;
+        break;
+      case HAM_TYPE_UINT32:
+        keysize = 4;
+        break;
+      case HAM_TYPE_UINT64:
+        keysize = 8;
+        break;
+      default:
+        keysize = bt->get_default_user_keysize();
+        break;
+    }
+  }
 
   // make sure that the cooked pagesize is big enough for at least 10 keys
   if (get_local_env()->get_pagesize() / keysize < 10) {

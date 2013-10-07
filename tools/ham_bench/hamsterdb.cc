@@ -76,11 +76,11 @@ HamsterDatabase::do_create_env()
     params[0].value = m_config->cachesize;
     params[1].name = HAM_PARAM_PAGESIZE;
     params[1].value = m_config->pagesize;
-    params[2].name = HAM_PARAM_MAX_DATABASES;
-    params[2].value = 32; // for up to 32 threads
+    //params[2].name = HAM_PARAM_MAX_DATABASES;
+    //params[2].value = 32; // for up to 32 threads
     if (m_config->use_encryption) {
-      params[3].name = HAM_PARAM_ENCRYPTION_KEY;
-      params[3].value = (ham_u64_t)"1234567890123456";
+      params[2].name = HAM_PARAM_ENCRYPTION_KEY;
+      params[2].value = (ham_u64_t)"1234567890123456";
     }
 
     flags |= m_config->inmemory ? HAM_IN_MEMORY : 0; 
@@ -231,16 +231,40 @@ HamsterDatabase::do_create_db(int id)
   ham_parameter_t params[6] = {{0, 0}};
 
   params[0].name = HAM_PARAM_KEY_SIZE;
-  params[0].value = m_config->btree_key_size;
-  if (m_config->key_type == Configuration::kKeyCustom) {
-    params[1].name = HAM_PARAM_KEY_TYPE;
-    params[1].value = HAM_TYPE_CUSTOM;
+  params[0].value = 0;
+  switch (m_config->key_type) {
+    case Configuration::kKeyCustom:
+      params[0].value = m_config->btree_key_size;
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_CUSTOM;
+      break;
+    case Configuration::kKeyBinary:
+      params[0].value = m_config->btree_key_size;
+      break;
+    case Configuration::kKeyUint8:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_UINT8;
+      break;
+    case Configuration::kKeyUint16:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_UINT16;
+      break;
+    case Configuration::kKeyUint32:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_UINT32;
+      break;
+    case Configuration::kKeyUint64:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_UINT64;
+      break;
   }
 
   ham_u32_t flags = 0;
 
   flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
   if (m_config->btree_key_size < m_config->key_size)
+    flags |= HAM_ENABLE_EXTENDED_KEYS;
+  if (m_config->extended_keys)
     flags |= HAM_ENABLE_EXTENDED_KEYS;
 
   st = ham_env_create_db(m_env ? m_env : ms_env, &m_db, 1 + id,

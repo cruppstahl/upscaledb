@@ -478,7 +478,7 @@ struct JournalFixture {
 
   void iterateOverLogMultipleEntryTest() {
     ham_txn_t *txn;
-    Journal *j = disconnect_and_create_new_journal();
+    disconnect_and_create_new_journal();
     unsigned p = 0;
 
     LogEntry vec[20];
@@ -502,7 +502,7 @@ struct JournalFixture {
     REQUIRE(0 ==
         ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
-    j = new Journal(m_lenv);
+    Journal *j = new Journal(m_lenv);
     REQUIRE(0 == j->open());
     m_lenv->test_set_journal(j);
 

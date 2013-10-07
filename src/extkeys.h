@@ -55,7 +55,7 @@ class ExtKeyCache {
     class ExtKeyHelper {
       public:
         ExtKeyHelper(ExtKeyCache *parent)
-          : m_parent(parent) {
+          : m_removeall(false), m_parent(parent) {
         }
 
         unsigned hash(const ExtKey *extkey) const {

@@ -3,3 +3,5 @@
 ham_bench
 ham_bench.exe
 *.o
+gnuplot*
+*.dat

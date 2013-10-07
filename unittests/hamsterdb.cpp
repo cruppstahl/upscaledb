@@ -1899,6 +1899,11 @@ struct HamsterdbFixture {
     LocalDatabase *ldb = (LocalDatabase *)db;
     REQUIRE((ldb->get_rt_flags() & flags) == flags);
 
+#ifdef HAVE_GCC_ABI_DEMANGLE
+    std::string s = ldb->get_btree_index()->test_get_classname();
+    REQUIRE(s == "hamsterdb::BtreeIndexImpl<hamsterdb::LegacyNodeLayout, hamsterdb::CallbackCompare>");
+#endif
+
     ham_parameter_t query[] = {
         {HAM_PARAM_KEY_TYPE, 0},
         {0, 0}
@@ -1918,6 +1923,70 @@ struct HamsterdbFixture {
     key.size = 8;
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_OVERWRITE));
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
+  void binaryTypeTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_parameter_t ps[] = {
+        { HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY },
+        { 0, 0 }
+    };
+
+    // create the database with flags and parameters
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
+
+    ham_parameter_t query[] = {
+        {HAM_PARAM_KEY_TYPE, 0},
+        {HAM_PARAM_KEY_SIZE, 0},
+        {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
+        {0, 0}
+    };
+    REQUIRE(0 == ham_db_get_parameters(db, query));
+    REQUIRE(HAM_TYPE_BINARY == query[0].value);
+    REQUIRE(21 == query[1].value);
+    REQUIRE(510 == query[2].value);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+    std::string s;
+    s = ((LocalDatabase *)m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(s == "hamsterdb::BtreeIndexImpl<hamsterdb::LegacyNodeLayout, hamsterdb::VariableSizeCompare>");
+#endif
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
+  void uint32TypeTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_parameter_t ps[] = {
+        { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
+        { 0, 0 }
+    };
+
+    // create the database with flags and parameters
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
+
+    ham_parameter_t query[] = {
+        {HAM_PARAM_KEY_TYPE, 0},
+        {HAM_PARAM_KEY_SIZE, 0},
+        {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
+        {0, 0}
+    };
+    REQUIRE(0 == ham_db_get_parameters(db, query));
+    REQUIRE(HAM_TYPE_UINT32 == query[0].value);
+    REQUIRE(4 == query[1].value);
+    REQUIRE(1256 == query[2].value);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+    std::string s;
+    s = ((LocalDatabase *)m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(s == "hamsterdb::BtreeIndexImpl<hamsterdb::LegacyNodeLayout, hamsterdb::VariableSizeCompare>");
+#endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -2281,6 +2350,18 @@ TEST_CASE("Hamsterdb/persistentFlagsTest", "")
 {
   HamsterdbFixture f;
   f.persistentFlagsTest();
+}
+
+TEST_CASE("Hamsterdb/binaryTypeTest", "")
+{
+  HamsterdbFixture f;
+  f.binaryTypeTest();
+}
+
+TEST_CASE("Hamsterdb/uint32Type", "")
+{
+  HamsterdbFixture f;
+  f.uint32TypeTest();
 }
 
 } // namespace hamsterdb

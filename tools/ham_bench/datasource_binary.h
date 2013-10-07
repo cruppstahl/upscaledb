@@ -81,7 +81,7 @@ class BinaryAscendingDatasource : public Datasource
 
       size_t size = m_data.size();
       if (m_fixed_size || m_data.size() == m_size) {
-        for (size_t s = size - 1; s >= 0; s--) {
+        for (int s = (int)size - 1; s >= 0; s--) {
           // if we have an overflow: continue with the next digit
           // otherwise stop
           if (m_data[s] == m_alphabet.size() - 1)
@@ -111,7 +111,6 @@ class BinaryAscendingDatasource : public Datasource
     }
 
   private:
-    unsigned char m_value;
     size_t m_size;
     std::vector<unsigned char> m_data;
     std::string m_alphabet;
@@ -145,7 +144,7 @@ class BinaryDescendingDatasource : public Datasource
 
       size_t size = m_data.size();
       if (m_fixed_size || m_data.size() == m_size) {
-        for (size_t s = size - 1; s >= 0; s--) {
+        for (int s = (int)size - 1; s >= 0; s--) {
           if (m_data[s] == 0)
             m_data[s] = m_alphabet.size() - 1;
           else {
@@ -173,7 +172,6 @@ class BinaryDescendingDatasource : public Datasource
     }
 
   private:
-    unsigned char m_value;
     size_t m_size;
     std::vector<unsigned char> m_data;
     std::string m_alphabet;

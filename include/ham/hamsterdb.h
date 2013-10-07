@@ -280,20 +280,12 @@ typedef struct {
 #define HAM_TYPE_BINARY                      0
 /** A binary blob without type; sorted by callback function */
 #define HAM_TYPE_CUSTOM                      1
-/** A signed 8-bit integer */
-#define HAM_TYPE_SINT8                       2
 /** An unsigned 8-bit integer */
 #define HAM_TYPE_UINT8                       3
-/** A signed 16-bit integer */
-#define HAM_TYPE_SINT16                      4
 /** An unsigned 16-bit integer */
 #define HAM_TYPE_UINT16                      5
-/** A signed 32-bit integer */
-#define HAM_TYPE_SINT32                      6
 /** An unsigned 32-bit integer */
 #define HAM_TYPE_UINT32                      7
-/** A signed 64-bit integer */
-#define HAM_TYPE_SINT64                      8
 /** An unsigned 64-bit integer */
 #define HAM_TYPE_UINT64                      9
 
@@ -729,7 +721,8 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * A Database can be configured and optimized for the data that is inserted.
  * The data is described through flags and parameters. hamsterdb
  * differentiates between several data characteristics, and offers predefined
- * "types" to describe the keys. This key type is set via
+ * "types" to describe the keys. Numeric key types are stored in host endian
+ * format and are NOT endian converted! The key type is set with
  * @ref HAM_PARAM_KEY_TYPE and can have either of the following values:
  *
  * <ul>
@@ -739,7 +732,10 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *   <li>HAM_TYPE_CUSTOM</li> Similar to @ref HAM_TYPE_BINARY, but
  *   uses a callback function for the sort order. This function is supplied
  *   with @sa ham_db_set_compare_func.
+ *   <li>HAM_TYPE_UINT8</li> Key is a 8bit (1 byte) unsigned integer.
+ *   <li>HAM_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer.
  *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer.
+ *   <li>HAM_TYPE_UINT64</li> Key is a 64bit (8 byte) unsigned integer.
  * </ul>
  *
  * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.

@@ -580,7 +580,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
 {
   ham_status_t st = 0;
   ham_key_t key;
-  ham_record_t rec;
+  ham_record_t rec = {0};
   bool send_key = false;
 
   ham_assert(request != 0);
@@ -606,7 +606,6 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
       key.flags = request->db_find_request().key().flags()
                   & (~HAM_KEY_USER_ALLOC);
 
-      memset(&rec, 0, sizeof(rec));
       rec.data = (void *)&request->db_find_request().record().data()[0];
       rec.size = (ham_size_t)request->db_find_request().record().data().size();
       rec.partial_size = request->db_find_request().record().partial_size();

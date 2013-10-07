@@ -41,6 +41,7 @@
 #define ARG_REOPEN                  5
 #define ARG_METRICS                 6
 #define ARG_KEYSIZE_BTREE           7
+#define ARG_USE_EXTENDED            8
 #define ARG_INMEMORY                10
 #define ARG_OVERWRITE               11
 #define ARG_DISABLE_MMAP            12
@@ -208,7 +209,7 @@ static option_t opts[] = {
     0,
     "pagesize",
     "Sets the pagesize (use 0 for default)",
-    0 },
+    GETOPTS_NEED_ARGUMENT },
   {
     ARG_KEYSIZE,
     0,
@@ -222,6 +223,12 @@ static option_t opts[] = {
     "Sets the key size of the btree; if < --keysize: extended keys are enabled."
             "\n\tif not specified: will use same size as for --keysize",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_USE_EXTENDED,
+    0,
+    "use-extended",
+    "Sets the HAM_ENABLE_EXTENDED_KEYS flags",
+    0 },
   {
     ARG_KEYSIZE_FIXED,
     0,
@@ -442,6 +449,9 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_KEYSIZE_BTREE) {
       c->btree_key_size = strtoul(param, 0, 0);
     }
+    else if (opt == ARG_USE_EXTENDED) {
+      c->extended_keys = true;
+    }
     else if (opt == ARG_KEYSIZE_FIXED) {
       c->key_is_fixed_size = true;
     }
@@ -455,12 +465,16 @@ parse_config(int argc, char **argv, Configuration *c)
         c->cachesize = strtoul(param, 0, 0);
     }
     else if (opt == ARG_HINTING) {
+      if (!param) {
+        printf("[FAIL] missing parameter for '--hints'\n");
+        exit(-1);
+      }
       if (strstr(param, "HAM_HINT_APPEND"))
         c->hints |= HAM_HINT_APPEND;
       if (strstr(param, "HAM_HINT_PREPEND"))
         c->hints |= HAM_HINT_PREPEND;
       if (param && !c->hints) {
-        printf("[FAIL] invalid or missing parameter for 'hints'\n");
+        printf("[FAIL] invalid or missing parameter for '--hints'\n");
         exit(-1);
       }
     }
@@ -885,8 +899,7 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
   Database::Cursor *c1 = gen1->get_db()->cursor_create(0);
   Database::Cursor *c2 = gen2->get_db()->cursor_create(0);
 
-  if (conf->verbose)
-    std::cout << "FULLCHECK" << std::endl;
+  gen1->tee("FULLCHECK");
 
   do {
     ham_key_t key1 = {0};
@@ -1033,7 +1046,7 @@ run_both_tests(Configuration *conf)
   generator2.get_metrics(&metrics2);
 
   // now reopen and run another fullcheck
-  if (conf->reopen) {
+  if (ok && conf->reopen) {
     generator1.close();
     generator2.close();
     generator1.open();

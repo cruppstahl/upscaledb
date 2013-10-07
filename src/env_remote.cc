@@ -290,7 +290,8 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
     case HAM_PARAM_FILENAME:
       if (reply->env_get_parameters_reply().has_filename()) {
         strncpy(filename, reply->env_get_parameters_reply().filename().c_str(),
-              sizeof(filename));
+              sizeof(filename) - 1);
+        filename[sizeof(filename) - 1] = 0;
         p->value = (ham_u64_t)(&filename[0]);
       }
       break;

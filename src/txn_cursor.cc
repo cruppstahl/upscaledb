@@ -85,7 +85,6 @@ ham_status_t
 TransactionCursor::move_top_in_node(TransactionNode *node,
         TransactionOperation *op, bool ignore_conflicts, ham_u32_t flags)
 {
-  TransactionOperation *lastdup = 0;
   Transaction *optxn = 0;
 
   if (!op)
@@ -133,12 +132,6 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
 next:
     m_parent->set_dupecache_index(0);
     op = op->get_previous_in_node();
-  }
-
-  /* did we find a duplicate key? then return it */
-  if (lastdup) {
-    couple_to_op(op);
-    return (0);
   }
 
   return (HAM_KEY_NOT_FOUND);

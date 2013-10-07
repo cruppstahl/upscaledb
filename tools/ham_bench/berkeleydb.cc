@@ -26,8 +26,8 @@ compare_db8(DB *db, const DBT *dbt1, const DBT *dbt2)
 compare_db8(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
 #endif
 {
-  uint8_t l = *(int *)dbt1->data;
-  uint8_t r = *(int *)dbt2->data;
+  uint8_t l = *(uint8_t *)dbt1->data;
+  uint8_t r = *(uint8_t *)dbt2->data;
   if (l < r) return (-1);
   if (r < l) return (+1);
   return (0);
@@ -40,8 +40,8 @@ compare_db16(DB *db, const DBT *dbt1, const DBT *dbt2)
 compare_db16(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
 #endif
 {
-  uint16_t l = *(int *)dbt1->data;
-  uint16_t r = *(int *)dbt2->data;
+  uint16_t l = *(uint16_t *)dbt1->data;
+  uint16_t r = *(uint16_t *)dbt2->data;
   if (l < r) return (-1);
   if (r < l) return (+1);
   return (0);
@@ -54,8 +54,8 @@ compare_db32(DB *db, const DBT *dbt1, const DBT *dbt2)
 compare_db32(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
 #endif
 {
-  uint32_t l = *(int *)dbt1->data;
-  uint32_t r = *(int *)dbt2->data;
+  uint32_t l = *(uint32_t *)dbt1->data;
+  uint32_t r = *(uint32_t *)dbt2->data;
   if (l < r) return (-1);
   if (r < l) return (+1);
   return (0);
@@ -68,8 +68,8 @@ compare_db64(DB *db, const DBT *dbt1, const DBT *dbt2)
 compare_db64(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
 #endif
 {
-  uint64_t l = *(int *)dbt1->data;
-  uint64_t r = *(int *)dbt2->data;
+  uint64_t l = *(uint64_t *)dbt1->data;
+  uint64_t r = *(uint64_t *)dbt2->data;
   if (l < r) return (-1);
   if (r < l) return (+1);
   return (0);
@@ -109,10 +109,23 @@ BerkeleyDatabase::do_open_env()
   }
 
   if (m_config->pagesize) {
-    ret = m_db->set_pagesize(m_db, m_config->pagesize);
-    if (ret) {
-      ERROR(("db->set_pagesize failed w/ status %d\n", ret));
-      return (db2ham(ret));
+    // berkeleydb max. pagesize is 64k and must be a power of two
+    int pagesize = m_config->pagesize;
+    if (pagesize > 64 * 1024) {
+      pagesize = 64 * 1024;
+      printf("[info] berkeleydb pagesize reduced to 64kb\n");
+    }
+    if ((pagesize - 1) & pagesize) {
+      pagesize = 0;
+      printf("[info] berkeleydb pagesize ignored, must be pow(2)\n");
+    }
+
+    if (pagesize) {
+      ret = m_db->set_pagesize(m_db, pagesize);
+      if (ret) {
+        ERROR(("db->set_pagesize failed w/ status %d\n", ret));
+        return (db2ham(ret));
+      }
     }
   }
 
@@ -195,7 +208,29 @@ BerkeleyDatabase::do_create_db(int id)
 ham_status_t
 BerkeleyDatabase::do_open_db(int id)
 {
-  int ret = m_db->open(m_db, 0, "test-berk.db", 0, DB_BTREE, 0, 0);
+  int ret = 0;
+
+  switch (m_config->key_type) {
+    case Configuration::kKeyUint8:
+      ret = m_db->set_bt_compare(m_db, compare_db8);
+      break;
+    case Configuration::kKeyUint16:
+      ret = m_db->set_bt_compare(m_db, compare_db16);
+      break;
+    case Configuration::kKeyUint32:
+      ret = m_db->set_bt_compare(m_db, compare_db32);
+      break;
+    case Configuration::kKeyUint64:
+      ret = m_db->set_bt_compare(m_db, compare_db64);
+      break;
+  }
+
+  if (ret) {
+    ERROR(("set_bt_compare failed w/ status %d\n", ret));
+    return (db2ham(ret));
+  }
+
+  ret = m_db->open(m_db, 0, "test-berk.db", 0, DB_BTREE, 0, 0);
   if (ret) {
     ERROR(("db->open() failed w/ status %d\n", ret));
     return (db2ham(ret));

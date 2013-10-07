@@ -120,10 +120,9 @@ class Log
 
       ham_status_t st = os_get_filesize(m_fd, &size);
       if (st)
-        return (st ? false : true); // TODO
+        return (false); // TODO
       if (size && size != sizeof(Log::PEnvironmentHeader))
         return (false);
-
       return (true);
     }
 

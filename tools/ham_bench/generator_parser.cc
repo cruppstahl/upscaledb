@@ -344,7 +344,7 @@ ParserGenerator::generate_key(const char *keydata, char *buffer) const
       key.size = strlen(keydata) + 1;
       break;
     case Configuration::kKeyUint8:
-      key.data = (void *)keydata;
+      *(ham_u16_t *)buffer = (ham_u8_t)strtoul(keydata, 0, 0);
       key.size = 1;
       break;
     case Configuration::kKeyUint16:
@@ -398,38 +398,38 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
             const char **precdata)
 {
   // create a local copy because the string will be modified
-  std::vector<std::string> tokens = tokenize(m_lines[m_cur_line]);
-  if (tokens.empty())
+  m_tokens = tokenize(m_lines[m_cur_line]);
+  if (m_tokens.empty())
     return (kCommandNop);
   VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
-        m_db->get_id(), m_cur_line, tokens[0].c_str()));
-  if (tokens[0] == "BREAK") {
+        m_db->get_id(), m_cur_line, m_tokens[0].c_str()));
+  if (m_tokens[0] == "BREAK") {
     printf("[info] break at %s:%u\n", __FILE__, __LINE__);
     return (kCommandNop);
   }
-  if (tokens[0] == "--") {
+  if (m_tokens[0] == "--") {
     return (kCommandNop);
   }
-  if (tokens[0] == "CREATE") {
+  if (m_tokens[0] == "CREATE") {
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
     return (kCommandCreate);
   }
-  if (tokens[0] == "OPEN") {
+  if (m_tokens[0] == "OPEN") {
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
     return (kCommandOpen);
   }
-  if (tokens[0] == "INSERT") {
-    if (tokens.size() == 3) {
-      *pflags = tokens[1].c_str();
+  if (m_tokens[0] == "INSERT") {
+    if (m_tokens.size() == 3) {
+      *pflags = m_tokens[1].c_str();
       *pkeydata = "";
-      *precdata = tokens[2].c_str();
+      *precdata = m_tokens[2].c_str();
     }
-    else if (tokens.size() == 4) {
-      *pflags  = tokens[1].c_str();
-      *pkeydata = tokens[2].c_str();
-      *precdata = tokens[3].c_str();
+    else if (m_tokens.size() == 4) {
+      *pflags  = m_tokens[1].c_str();
+      *pkeydata = m_tokens[2].c_str();
+      *precdata = m_tokens[3].c_str();
     }
     else {
       ERROR(("line %d (INSERT): parser error\n", m_cur_line + 1));
@@ -439,44 +439,44 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
       *precdata = "";
     return (kCommandInsert);
   }
-  if (tokens[0] == "ERASE") {
-    if (tokens.size() < 3) {
+  if (m_tokens[0] == "ERASE") {
+    if (m_tokens.size() < 3) {
       ERROR(("line %d (ERASE): parser error\n", m_cur_line + 1));
       exit(-1);
     }
-    *pflags = tokens[1].c_str();
-    *pkeydata = tokens[2].c_str();
+    *pflags = m_tokens[1].c_str();
+    *pkeydata = m_tokens[2].c_str();
     return (kCommandErase);
   }
-  if (tokens[0] == "FIND") {
-    if (tokens.size() != 3) {
+  if (m_tokens[0] == "FIND") {
+    if (m_tokens.size() != 3) {
       ERROR(("line %d (FIND): parser error\n", m_cur_line + 1));
       exit(-1);
     }
-    *pflags = tokens[1].c_str();
-    *pkeydata = tokens[2].c_str();
+    *pflags = m_tokens[1].c_str();
+    *pkeydata = m_tokens[2].c_str();
     return (kCommandFind);
   }
-  if (tokens[0] == "FULLCHECK") {
+  if (m_tokens[0] == "FULLCHECK") {
     return (kCommandFullcheck);
   }
-  if (tokens[0] == "TABLESCAN") {
+  if (m_tokens[0] == "TABLESCAN") {
     return (kCommandTablescan);
   }
-  if (tokens[0] == "BEGIN_TXN") {
+  if (m_tokens[0] == "BEGIN_TXN") {
     return (kCommandBeginTransaction);
   }
-  if (tokens[0] == "CLOSE_TXN") {
+  if (m_tokens[0] == "CLOSE_TXN") {
     return (kCommandCommitTransaction);
   }
-  if (tokens[0] == "CLOSE") {
+  if (m_tokens[0] == "CLOSE") {
     return (kCommandClose);
   }
-  if (tokens[0] == "FLUSH") {
+  if (m_tokens[0] == "FLUSH") {
     return (kCommandFlush);
   }
 
-  ERROR(("line %d: invalid token '%s'\n", m_cur_line, tokens[0].c_str()));
+  ERROR(("line %d: invalid token '%s'\n", m_cur_line, m_tokens[0].c_str()));
   ::exit(-1);
   return (0);
 }

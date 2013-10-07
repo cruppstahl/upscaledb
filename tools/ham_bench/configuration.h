@@ -60,20 +60,25 @@ struct Configuration
     kMetricsAll
   };
 
+  enum {
+    kDefaultKeysize = 16,
+    kDefaultRecsize = 1024
+  };
+
   Configuration()
     : profile(true), verbose(0), no_progress(false), reopen(false), open(false),
       quiet(false), key_type(kKeyBinary), record_type(kRecordVariable),
       distribution(kDistributionRandom), seed(0), limit_ops(0),
-      limit_seconds(0), limit_bytes(0), key_size(16), btree_key_size(0),
-      key_is_fixed_size(false), rec_size(1024), erase_pct(0), find_pct(0),
-      table_scan_pct(0), use_encryption(false), use_remote(false),
-      duplicate(kDuplicateDisabled), overwrite(false), transactions_nth(0),
-      use_fsync(false), inmemory(false), use_recovery(false),
-      use_transactions(false), no_mmap(false), cacheunlimited(false),
-      cachesize(0), hints(0), pagesize(0), num_threads(1), use_cursors(false),
-      direct_access(false), use_berkeleydb(false), use_hamsterdb(true),
-      fullcheck(kFullcheckDefault), fullcheck_frequency(100),
-      metrics(kMetricsDefault) {
+      limit_seconds(0), limit_bytes(0), key_size(kDefaultKeysize),
+      btree_key_size(0), key_is_fixed_size(false), rec_size(kDefaultRecsize),
+      erase_pct(0), find_pct(0), table_scan_pct(0), use_encryption(false),
+      use_remote(false), duplicate(kDuplicateDisabled), overwrite(false),
+      transactions_nth(0), use_fsync(false), inmemory(false),
+      use_recovery(false), use_transactions(false), no_mmap(false),
+      cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
+      num_threads(1), use_cursors(false), direct_access(false),
+      use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
+      fullcheck_frequency(100), metrics(kMetricsDefault), extended_keys(false) {
   }
 
   void print() const {
@@ -95,9 +100,11 @@ struct Configuration
     if (overwrite)
       printf("--overwrite ");
     if (inmemory)
-      printf("--inmemory ");
+      printf("--inmemorydb ");
     if (no_mmap)
       printf("--no-mmap ");
+    if (extended_keys)
+      printf("--use-extended ");
     if (cacheunlimited)
       printf("--cache=unlimited ");
     if (cachesize)
@@ -144,7 +151,8 @@ struct Configuration
         printf("--key=uint32 ");
       else if (key_type == kKeyUint64)
         printf("--key=uint64 ");
-      printf("--keysize=%d ", key_size);
+      if (key_size != kDefaultKeysize)
+        printf("--keysize=%d ", key_size);
       if (btree_key_size)
         printf("--btree-keysize=%d ", btree_key_size);
       if (key_is_fixed_size)
@@ -220,6 +228,7 @@ struct Configuration
   int fullcheck_frequency;
   std::string tee_file;
   int metrics;
+  bool extended_keys;
 };
 
 #endif /* CONFIGURATION_H__ */

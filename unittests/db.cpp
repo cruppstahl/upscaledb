@@ -141,7 +141,6 @@ struct DbFixture {
     REQUIRE(0 == pm->fetch_page(&page, m_dbp, address));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
-    p = page->get_raw_payload();
     pm->test_get_cache()->remove_page(page);
     delete page;
   }

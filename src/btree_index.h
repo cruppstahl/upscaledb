@@ -15,6 +15,7 @@
 #include "endianswap.h"
 
 #include "db.h"
+#include "abi.h"
 #include "util.h"
 #include "btree_cursor.h"
 #include "btree_key.h"
@@ -195,8 +196,11 @@ class BtreeIndex
       return (m_maxkeys / 5);
     }
 
-    // Returns the default key size
-    virtual ham_u16_t get_default_keysize() const = 0;
+    // Returns the default key size (excluding overhead)
+    virtual ham_u16_t get_default_user_keysize() const = 0;
+
+    // Returns the actual key size (including overhead)
+    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const = 0;
 
     // Creates and initializes the btree
     //
@@ -253,6 +257,11 @@ class BtreeIndex
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->btree_smo_shift = ms_btree_smo_shift;
+    }
+
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const {
+      return ("BtreeIndex");
     }
 
   private:
@@ -360,9 +369,14 @@ class BtreeIndexImpl : public BtreeIndex
       : BtreeIndex(db, descriptor, flags) {
     }
 
-    // Returns the default key size
-    virtual ham_u16_t get_default_keysize() const {
-      return (NodeLayout::get_default_keysize());
+    // Returns the default key size (excluding overhead)
+    virtual ham_u16_t get_default_user_keysize() const {
+      return (NodeLayout::get_default_user_keysize());
+    }
+
+    // Returns the actual key size (including overhead)
+    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const {
+      return (NodeLayout::get_system_keysize(keysize));
     }
 
     // Compares two keys
@@ -374,10 +388,15 @@ class BtreeIndexImpl : public BtreeIndex
       return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
     }
 
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const {
+      return (get_classname(*this));
+    }
+
   private:
     // Implementation of get_node_from_page()
     virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) {
-      return new BtreeNodeProxyImpl<NodeLayout, Comparator>(page);
+      return (new BtreeNodeProxyImpl<NodeLayout, Comparator>(page));
     }
 };
 

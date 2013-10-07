@@ -29,6 +29,7 @@ class HamsterDatabase : public Database
   public:
     HamsterDatabase(int id, Configuration *config)
       : Database(id, config), m_env(0), m_db(0) {
+      memset(&m_hamster_metrics, 0, sizeof(m_hamster_metrics));
     }
 
     // Returns a descriptive name
