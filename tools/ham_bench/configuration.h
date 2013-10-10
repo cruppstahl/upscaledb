@@ -25,7 +25,9 @@ struct Configuration
     kKeyUint8,
     kKeyUint16,
     kKeyUint32,
-    kKeyUint64
+    kKeyUint64,
+    kKeyReal32,
+    kKeyReal64
   };
 
   enum {
@@ -151,6 +153,10 @@ struct Configuration
         printf("--key=uint32 ");
       else if (key_type == kKeyUint64)
         printf("--key=uint64 ");
+      else if (key_type == kKeyReal32)
+        printf("--key=real32 ");
+      else if (key_type == kKeyReal64)
+        printf("--key=real64 ");
       if (key_size != kDefaultKeysize)
         printf("--keysize=%d ", key_size);
       if (btree_key_size)

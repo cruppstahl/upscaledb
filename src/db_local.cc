@@ -671,24 +671,25 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
   BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
                   persistent_flags, keytype);
 
-  if (!keysize) {
-    switch (keytype) {
-      case HAM_TYPE_UINT8:
-        keysize = 1;
-        break;
-      case HAM_TYPE_UINT16:
-        keysize = 2;
-        break;
-      case HAM_TYPE_UINT32:
-        keysize = 4;
-        break;
-      case HAM_TYPE_UINT64:
-        keysize = 8;
-        break;
-      default:
+  switch (keytype) {
+    case HAM_TYPE_UINT8:
+      keysize = 1;
+      break;
+    case HAM_TYPE_UINT16:
+      keysize = 2;
+      break;
+    case HAM_TYPE_REAL32:
+    case HAM_TYPE_UINT32:
+      keysize = 4;
+      break;
+    case HAM_TYPE_REAL64:
+    case HAM_TYPE_UINT64:
+      keysize = 8;
+      break;
+    default:
+      if (!keysize)
         keysize = bt->get_default_user_keysize();
-        break;
-    }
+      break;
   }
 
   // make sure that the cooked pagesize is big enough for at least 10 keys

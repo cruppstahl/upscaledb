@@ -1959,11 +1959,11 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void uint32TypeTest() {
+  void fixedTypeTest(int type, int size, int maxkeys) {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t ps[] = {
-        { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
+        { HAM_PARAM_KEY_TYPE, type },
         { 0, 0 }
     };
 
@@ -1978,9 +1978,9 @@ struct HamsterdbFixture {
         {0, 0}
     };
     REQUIRE(0 == ham_db_get_parameters(db, query));
-    REQUIRE(HAM_TYPE_UINT32 == query[0].value);
-    REQUIRE(4 == query[1].value);
-    REQUIRE(1256 == query[2].value);
+    REQUIRE(type == (int)query[0].value);
+    REQUIRE(size == (int)query[1].value);
+    REQUIRE(maxkeys == (int)query[2].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s;
@@ -2358,10 +2358,40 @@ TEST_CASE("Hamsterdb/binaryTypeTest", "")
   f.binaryTypeTest();
 }
 
+TEST_CASE("Hamsterdb/uint8Type", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1634);
+}
+
+TEST_CASE("Hamsterdb/uint16Type", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1484);
+}
+
 TEST_CASE("Hamsterdb/uint32Type", "")
 {
   HamsterdbFixture f;
-  f.uint32TypeTest();
+  f.fixedTypeTest(HAM_TYPE_UINT32, 4, 1256);
+}
+
+TEST_CASE("Hamsterdb/uint64Type", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960);
+}
+
+TEST_CASE("Hamsterdb/real32Type", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_REAL32, 4, 1256);
+}
+
+TEST_CASE("Hamsterdb/real64Type", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960);
 }
 
 } // namespace hamsterdb

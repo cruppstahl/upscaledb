@@ -19,13 +19,14 @@
 #include "misc.h"
 #include "berkeleydb.h"
 
-static int
 #if DB_VERSION_MAJOR == 5
-compare_db8(DB *db, const DBT *dbt1, const DBT *dbt2)
+#  define COMP(name)  static int name(DB *db, const DBT *dbt1, const DBT *dbt2)
 #else
-compare_db8(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
+#  define COMP(name)  static int name(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
 #endif
-{
+
+
+COMP(compare_uint8) {
   uint8_t l = *(uint8_t *)dbt1->data;
   uint8_t r = *(uint8_t *)dbt2->data;
   if (l < r) return (-1);
@@ -33,13 +34,7 @@ compare_db8(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
   return (0);
 }
 
-static int
-#if DB_VERSION_MAJOR == 5
-compare_db16(DB *db, const DBT *dbt1, const DBT *dbt2)
-#else
-compare_db16(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
-#endif
-{
+COMP(compare_uint16) {
   uint16_t l = *(uint16_t *)dbt1->data;
   uint16_t r = *(uint16_t *)dbt2->data;
   if (l < r) return (-1);
@@ -47,13 +42,7 @@ compare_db16(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
   return (0);
 }
 
-static int
-#if DB_VERSION_MAJOR == 5
-compare_db32(DB *db, const DBT *dbt1, const DBT *dbt2)
-#else
-compare_db32(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
-#endif
-{
+COMP(compare_uint32) {
   uint32_t l = *(uint32_t *)dbt1->data;
   uint32_t r = *(uint32_t *)dbt2->data;
   if (l < r) return (-1);
@@ -61,15 +50,25 @@ compare_db32(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
   return (0);
 }
 
-static int
-#if DB_VERSION_MAJOR == 5
-compare_db64(DB *db, const DBT *dbt1, const DBT *dbt2)
-#else
-compare_db64(DB *db, const DBT *dbt1, const DBT *dbt2, size_t *)
-#endif
-{
+COMP(compare_uint64) {
   uint64_t l = *(uint64_t *)dbt1->data;
   uint64_t r = *(uint64_t *)dbt2->data;
+  if (l < r) return (-1);
+  if (r < l) return (+1);
+  return (0);
+}
+
+COMP(compare_real32) {
+  float l = *(float *)dbt1->data;
+  float r = *(float *)dbt2->data;
+  if (l < r) return (-1);
+  if (r < l) return (+1);
+  return (0);
+}
+
+COMP(compare_real64) {
+  double l = *(double *)dbt1->data;
+  double r = *(double *)dbt2->data;
   if (l < r) return (-1);
   if (r < l) return (+1);
   return (0);
@@ -156,16 +155,22 @@ BerkeleyDatabase::do_create_db(int id)
 
   switch (m_config->key_type) {
     case Configuration::kKeyUint8:
-      ret = m_db->set_bt_compare(m_db, compare_db8);
+      ret = m_db->set_bt_compare(m_db, compare_uint8);
       break;
     case Configuration::kKeyUint16:
-      ret = m_db->set_bt_compare(m_db, compare_db16);
+      ret = m_db->set_bt_compare(m_db, compare_uint16);
       break;
     case Configuration::kKeyUint32:
-      ret = m_db->set_bt_compare(m_db, compare_db32);
+      ret = m_db->set_bt_compare(m_db, compare_uint32);
       break;
     case Configuration::kKeyUint64:
-      ret = m_db->set_bt_compare(m_db, compare_db64);
+      ret = m_db->set_bt_compare(m_db, compare_uint64);
+      break;
+    case Configuration::kKeyReal32:
+      ret = m_db->set_bt_compare(m_db, compare_real32);
+      break;
+    case Configuration::kKeyReal64:
+      ret = m_db->set_bt_compare(m_db, compare_real64);
       break;
   }
   if (ret) {
@@ -212,16 +217,22 @@ BerkeleyDatabase::do_open_db(int id)
 
   switch (m_config->key_type) {
     case Configuration::kKeyUint8:
-      ret = m_db->set_bt_compare(m_db, compare_db8);
+      ret = m_db->set_bt_compare(m_db, compare_uint8);
       break;
     case Configuration::kKeyUint16:
-      ret = m_db->set_bt_compare(m_db, compare_db16);
+      ret = m_db->set_bt_compare(m_db, compare_uint16);
       break;
     case Configuration::kKeyUint32:
-      ret = m_db->set_bt_compare(m_db, compare_db32);
+      ret = m_db->set_bt_compare(m_db, compare_uint32);
       break;
     case Configuration::kKeyUint64:
-      ret = m_db->set_bt_compare(m_db, compare_db64);
+      ret = m_db->set_bt_compare(m_db, compare_uint64);
+      break;
+    case Configuration::kKeyReal32:
+      ret = m_db->set_bt_compare(m_db, compare_real32);
+      break;
+    case Configuration::kKeyReal64:
+      ret = m_db->set_bt_compare(m_db, compare_real64);
       break;
   }
 

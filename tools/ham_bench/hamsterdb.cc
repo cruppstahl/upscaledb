@@ -257,6 +257,14 @@ HamsterDatabase::do_create_db(int id)
       params[1].name = HAM_PARAM_KEY_TYPE;
       params[1].value = HAM_TYPE_UINT64;
       break;
+    case Configuration::kKeyReal32:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_REAL32;
+      break;
+    case Configuration::kKeyReal64:
+      params[1].name = HAM_PARAM_KEY_TYPE;
+      params[1].value = HAM_TYPE_REAL64;
+      break;
   }
 
   ham_u32_t flags = 0;

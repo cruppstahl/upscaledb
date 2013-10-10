@@ -261,7 +261,6 @@ class LegacyNodeLayout
     int compare(const ham_key_t *lhs, Iterator it, Cmp &cmp) {
       if (it->get_flags() & BtreeKey::kExtended) {
         ham_key_t tmp = {0};
-        ByteArray m_arena;
         copy_full_key(it, &m_arena, &tmp);
         return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
       }

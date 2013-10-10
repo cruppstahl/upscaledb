@@ -622,12 +622,13 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       int i, l = 1, r = get_count() - 1;
       int ret = 0, last = get_count() + 1;
       int cmp = -1;
+      Comparator comparator(m_page->get_db());
 
       ham_assert(get_count() > 0);
 
       /* only one element in this node? */
       if (r == 0) {
-        cmp = compare(key, 0);
+        cmp = m_layout.compare(key, m_layout.at(0), comparator);
         if (pcmp)
           *pcmp = cmp;
         return (cmp < 0 ? -1 : 0);
@@ -647,7 +648,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         }
 
         /* compare it against the key */
-        cmp = compare(key, i);
+        cmp = m_layout.compare(key, m_layout.at(i), comparator);
 
         /* found it? */
         if (cmp == 0) {

@@ -288,6 +288,10 @@ typedef struct {
 #define HAM_TYPE_UINT32                      7
 /** An unsigned 64-bit integer */
 #define HAM_TYPE_UINT64                      9
+/** An 32-bit float */
+#define HAM_TYPE_REAL32                     11
+/** An 64-bit double */
+#define HAM_TYPE_REAL64                     12
 
 /**
  * @}
@@ -736,6 +740,8 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *   <li>HAM_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer.
  *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer.
  *   <li>HAM_TYPE_UINT64</li> Key is a 64bit (8 byte) unsigned integer.
+ *   <li>HAM_TYPE_REAL32</li> Key is a 32bit (4 byte) float.
+ *   <li>HAM_TYPE_REAL64</li> Key is a 64bit (8 byte) real.
  * </ul>
  *
  * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.

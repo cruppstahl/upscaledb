@@ -74,7 +74,7 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new NumericDescendingDatasource<uint16_t>();
           break;
         case Configuration::kDistributionZipfian:
-          m_datasource = new NumericZipfianDatasource<uint8_t>(
+          m_datasource = new NumericZipfianDatasource<uint16_t>(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
@@ -92,7 +92,7 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new NumericDescendingDatasource<uint32_t>();
           break;
         case Configuration::kDistributionZipfian:
-          m_datasource = new NumericZipfianDatasource<uint8_t>(
+          m_datasource = new NumericZipfianDatasource<uint32_t>(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
@@ -110,7 +110,7 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new NumericDescendingDatasource<uint64_t>();
           break;
         case Configuration::kDistributionZipfian:
-          m_datasource = new NumericZipfianDatasource<uint8_t>(
+          m_datasource = new NumericZipfianDatasource<uint64_t>(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
@@ -135,6 +135,42 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new BinaryZipfianDatasource(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->key_size, conf->key_is_fixed_size, conf->seed);
+          break;
+      }
+      break;
+    case Configuration::kKeyReal32:
+      switch (conf->distribution) {
+        case Configuration::kDistributionRandom:
+          m_datasource = new NumericRandomDatasource<float>(conf->seed);
+          break;
+        case Configuration::kDistributionAscending:
+          m_datasource = new NumericAscendingDatasource<float>();
+          break;
+        case Configuration::kDistributionDescending:
+          m_datasource = new NumericDescendingDatasource<float>();
+          break;
+        case Configuration::kDistributionZipfian:
+          m_datasource = new NumericZipfianDatasource<float>(
+                          conf->limit_ops ? conf->limit_ops : kZipfianLimit,
+                          conf->seed);
+          break;
+      }
+      break;
+    case Configuration::kKeyReal64:
+      switch (conf->distribution) {
+        case Configuration::kDistributionRandom:
+          m_datasource = new NumericRandomDatasource<double>(conf->seed);
+          break;
+        case Configuration::kDistributionAscending:
+          m_datasource = new NumericAscendingDatasource<double>();
+          break;
+        case Configuration::kDistributionDescending:
+          m_datasource = new NumericDescendingDatasource<double>();
+          break;
+        case Configuration::kDistributionZipfian:
+          m_datasource = new NumericZipfianDatasource<double>(
+                          conf->limit_ops ? conf->limit_ops : kZipfianLimit,
+                          conf->seed);
           break;
       }
       break;
@@ -618,6 +654,12 @@ RuntimeGenerator::tee(const char *foo, const ham_key_t *key,
           break;
         case Configuration::kKeyUint64:
           ss << " (0, \"" << *(uint64_t *)key->data << '"';
+          break;
+        case Configuration::kKeyReal32:
+          ss << " (0, \"" << *(float *)key->data << '"';
+          break;
+        case Configuration::kKeyReal64:
+          ss << " (0, \"" << *(double *)key->data << '"';
           break;
         default:
           assert(!"shouldn't be here");

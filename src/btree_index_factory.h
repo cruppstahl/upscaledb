@@ -70,6 +70,22 @@ struct BtreeIndexFactory
         else
           return (new BtreeIndexImpl<PaxNodeLayout<ham_u64_t>,
                         NumericCompare<ham_u64_t> >(db, descriptor, flags));
+      // 32bit float
+      case HAM_TYPE_REAL32:
+        if (flags & HAM_ENABLE_DUPLICATES)
+          return (new BtreeIndexImpl<LegacyNodeLayout,
+                        NumericCompare<float> >(db, descriptor, flags));
+        else
+          return (new BtreeIndexImpl<PaxNodeLayout<float>,
+                        NumericCompare<float> >(db, descriptor, flags));
+      // 64bit double
+      case HAM_TYPE_REAL64:
+        if (flags & HAM_ENABLE_DUPLICATES)
+          return (new BtreeIndexImpl<LegacyNodeLayout,
+                        NumericCompare<double> >(db, descriptor, flags));
+        else
+          return (new BtreeIndexImpl<PaxNodeLayout<double>,
+                        NumericCompare<double> >(db, descriptor, flags));
       // BINARY is the default:
       case HAM_TYPE_BINARY:
         // Variable keys with non-constant size (not extended)

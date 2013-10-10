@@ -516,28 +516,43 @@ o use parameterized btree for fix sized POD types
                 binary type
             x multithreaded tests are failing b/c berkeleydb is enabled
                 -> remove them, they're not worthy
-            o make sure that all tests run fine
+            o monster.pl: also add tests for mixed workloads
+                o increase "max" back to 1 mio, but make it overwriteable
+                    through command line parameter
+                o add "--quiet" again
+            o monster.pl: add extended key tests for binaries w/ mixed workloads
+            o all tests need to run fine
 
         o how can we assure that after opening the file the identical Btree
             templates are selected??
 
     x use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
     x support these types in the new monster test
-    o legacy-layout:284: allocates m_arena on stack, should be member
+    x legacy-layout:284: allocates m_arena on stack, should be member
         to avoid frequent re-allocations
-    o support float (REAL32) and double (REAL64) type
-        o have 1 unittest per type
+    x support float (REAL32) and double (REAL64) type
+        x have 1 unittest per type
+        x support new types in ham_bench
+        x extend monster tests
+        x extend valgrind tests
+        x extend performance tests
+    o fixed length keys: disallow flag HAM_ENABLE_EXTENDED_KEYS
+    o enforce correkt key size in ham_db_insert, ham_cursor_insert
+    o use pax layout for fixed-size BINARY and CUSTOM
+        o run performance of pax vs. legacy (also with larger pagesizes)
+        o extend unittests
         o extend monster tests
         o extend valgrind tests
         o extend performance tests
-    o disallow flag HAM_ENABLE_EXTENDED_KEYS
-    o enforce correkt key size in ham_db_insert, ham_cursor_insert
     o compare performance vs. regular keys (2.1.2, w/o records)
-        o create a build script to build against 2.1.2
-    o use pax layout for fixed-size strings/binaries??
+        o create a script to build against 2.1.2
         o run performance test against 2.1.2
 
-    o once more review the code, esp. the "compare" should be in a really tight
+    o ham_info must show type information
+    o ham_dump must print the correctly formatted values
+    o ham_export/ham_import must create the correct databases
+
+    x once more review the code, esp. the "compare" should be in a really tight
         loop without branches
 
 x ham_dump: "tee" does not write FULLCHECKs
@@ -573,6 +588,7 @@ o update the documentation/changelog/README/tutorial
     o the prefix compare function API was removed
     o describe the new flags/options
     o announce the 3 new wiki pages (or better move them to hamsterdb.com?)
+    o update the samples and use the new types
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
@@ -587,6 +603,7 @@ high-level plan for 2.2.0-pre2 (unstable)
     (really?)
     ==> make sure this does not cause performance regressions
     ==> count number of overflow areas for statistics!
+    - monster.pl needs to create variable length extended keys for testing!
 - btree stores fixed-length records in the leaf
     also support record length of 0 ("key exists" vs "key does not exist")
     - not for internal nodes! they have a fixed record length of 8!

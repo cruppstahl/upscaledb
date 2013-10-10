@@ -421,6 +421,10 @@ parse_config(int argc, char **argv, Configuration *c)
         c->key_type = Configuration::kKeyUint32;
       else if (param && !strcmp(param, "uint64"))
         c->key_type = Configuration::kKeyUint64;
+      else if (param && !strcmp(param, "real32"))
+        c->key_type = Configuration::kKeyReal32;
+      else if (param && !strcmp(param, "real64"))
+        c->key_type = Configuration::kKeyReal64;
       else if (param && strcmp(param, "binary")) {
         printf("invalid parameter for --key\n");
         exit(-1);
@@ -952,6 +956,18 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
           printf("fullcheck %d/%d, keys %lu/%lu, blob size %d/%d\n", st1, st2,
                   key1.data ? *(uint64_t *)key1.data : 0,
                   key2.data ? *(uint64_t *)key2.data : 0,
+                  rec1.size, rec2.size);
+          break;
+        case Configuration::kKeyReal32:
+          printf("fullcheck %d/%d, keys %f/%f, blob size %d/%d\n", st1, st2,
+                  key1.data ? *(float *)key1.data : 0,
+                  key2.data ? *(float *)key2.data : 0,
+                  rec1.size, rec2.size);
+          break;
+        case Configuration::kKeyReal64:
+          printf("fullcheck %d/%d, keys %f/%f, blob size %d/%d\n", st1, st2,
+                  key1.data ? (float)*(double *)key1.data : 0,
+                  key2.data ? (float)*(double *)key2.data : 0,
                   rec1.size, rec2.size);
           break;
         default:
