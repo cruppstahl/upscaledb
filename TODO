@@ -536,24 +536,29 @@ o use parameterized btree for fix sized POD types
         x extend monster tests
         x extend valgrind tests
         x extend performance tests
-    o fixed length keys: disallow flag HAM_ENABLE_EXTENDED_KEYS
-    o enforce correkt key size in ham_db_insert, ham_cursor_insert
-    o use pax layout for fixed-size BINARY and CUSTOM
-        o run performance of pax vs. legacy (also with larger pagesizes)
-        o extend unittests
-        o extend monster tests
-        o extend valgrind tests
-        o extend performance tests
+    x fixed length keys: disallow flag HAM_ENABLE_EXTENDED_KEYS
+    x enforce correkt key size in ham_db_insert, ham_cursor_insert
+    x once more review the code, esp. the "compare" should be in a really tight
+        loop without branches
+
+    x ham_info must show type information
+    x ham_export/ham_import must create the correct databases
+    o ham_dump must print the correctly formatted values
+
     o compare performance vs. regular keys (2.1.2, w/o records)
         o create a script to build against 2.1.2
         o run performance test against 2.1.2
 
-    o ham_info must show type information
-    o ham_dump must print the correctly formatted values
-    o ham_export/ham_import must create the correct databases
-
-    x once more review the code, esp. the "compare" should be in a really tight
-        loop without branches
+o use pax layout for fixed-size BINARY and CUSTOM
+    -> a bit tricky because the current code is based on the fact that
+        type T is a POD
+    -> create a new Layout class, which reads the key size from a variable?
+    -> both Pax layouts could derive from a common base class
+    o run performance of pax vs. legacy (also with larger pagesizes)
+    o extend unittests
+    o extend monster tests
+    o extend valgrind tests
+    o extend performance tests
 
 x ham_dump: "tee" does not write FULLCHECKs
 

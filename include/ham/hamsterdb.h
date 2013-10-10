@@ -850,9 +850,6 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  * @param flags Optional flags for opening the Database, combined with
  *    bitwise OR. Possible flags are:
  *   <ul>
- *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
- *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEY_SIZE.
  *     <li>@ref HAM_READ_ONLY </li> Opens the Database for reading only.
  *      Operations that need write access (i.e. @ref ham_db_insert) will
  *      return @ref HAM_WRITE_PROTECTED.
@@ -1146,7 +1143,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 /* reserved                                         0x00000020 */
 
 /** Flag for @ref ham_env_create_db.
- * This flag is non persistent. */
+ * This flag is persisted in the Database. */
 #define HAM_DISABLE_VARIABLE_KEYS                   0x00000040
 /* deprecated */
 #define HAM_DISABLE_VAR_KEYLEN                      HAM_DISABLE_VARIABLE_KEYS

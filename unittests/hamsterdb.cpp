@@ -1959,7 +1959,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void fixedTypeTest(int type, int size, int maxkeys) {
+  void fixedTypeTest(int type, int size, int maxkeys, const char *abiname) {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t ps[] = {
@@ -1969,6 +1969,8 @@ struct HamsterdbFixture {
 
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(HAM_INV_PARAMETER
+           == ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, &ps[0]));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
 
     ham_parameter_t query[] = {
@@ -1983,9 +1985,44 @@ struct HamsterdbFixture {
     REQUIRE(maxkeys == (int)query[2].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string s;
-    s = ((LocalDatabase *)m_db)->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexImpl<hamsterdb::LegacyNodeLayout, hamsterdb::VariableSizeCompare>");
+    std::string abi;
+    abi = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi == abiname);
+#endif
+
+    // only keys with that specific length are allowed
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+    ham_record_t rec = {0};
+    ham_key_t key = {0};
+    char buffer[100] = {0};
+    key.data = (void *)buffer;
+    key.size = size + 1;
+    REQUIRE(HAM_INV_KEYSIZE == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(HAM_INV_KEYSIZE == ham_cursor_insert(cursor, &key, &rec, 0));
+    key.size = size - 1;
+    REQUIRE(HAM_INV_KEYSIZE == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(HAM_INV_KEYSIZE == ham_cursor_insert(cursor, &key, &rec, 0));
+    key.size = size;
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_OVERWRITE));
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    // reopen and check the demangled API string once more
+    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
+
+    REQUIRE(0 == ham_db_get_parameters(db, query));
+    REQUIRE(type == (int)query[0].value);
+    REQUIRE(size == (int)query[1].value);
+    REQUIRE(maxkeys == (int)query[2].value);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+    std::string abi2;
+    abi2 = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi2 == abi);
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -2361,37 +2398,43 @@ TEST_CASE("Hamsterdb/binaryTypeTest", "")
 TEST_CASE("Hamsterdb/uint8Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1634);
+  f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1634,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned char>, hamsterdb::NumericCompare<unsigned char> >");
 }
 
 TEST_CASE("Hamsterdb/uint16Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1484);
+  f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1484,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned short>, hamsterdb::NumericCompare<unsigned short> >");
 }
 
 TEST_CASE("Hamsterdb/uint32Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT32, 4, 1256);
+  f.fixedTypeTest(HAM_TYPE_UINT32, 4, 1256,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned int>, hamsterdb::NumericCompare<unsigned int> >");
 }
 
 TEST_CASE("Hamsterdb/uint64Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960);
+  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned long>, hamsterdb::NumericCompare<unsigned long> >");
 }
 
 TEST_CASE("Hamsterdb/real32Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_REAL32, 4, 1256);
+  f.fixedTypeTest(HAM_TYPE_REAL32, 4, 1256,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<float>, hamsterdb::NumericCompare<float> >");
 }
 
 TEST_CASE("Hamsterdb/real64Type", "")
 {
   HamsterdbFixture f;
-  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960);
+  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<double>, hamsterdb::NumericCompare<double> >");
 }
 
 } // namespace hamsterdb

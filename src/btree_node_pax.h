@@ -87,12 +87,12 @@ struct PaxIterator
               : ham_h2db_offset(ptr)));
     }
 
-    // Returns the size of an btree-entry
+    // Returns the size of a btree key
     ham_u16_t get_size() const {
       return (sizeof(T));
     }
 
-    // Sets the size of an btree-entry
+    // Sets the size of a btree key
     void set_size(ham_u16_t size) {
       ham_assert(size == get_size());
     }
@@ -215,8 +215,8 @@ class PaxNodeLayout
 
     // Returns the actual key size (including overhead)
     static ham_u16_t get_system_keysize(ham_size_t keysize) {
-      ham_assert(keysize == sizeof(T));
-      return ((ham_u16_t)(keysize + 1 + 8));
+      ham_assert(keysize == get_default_user_keysize());
+      return ((ham_u16_t)(keysize + 1 + sizeof(ham_u64_t)));
     }
 
     Iterator begin() {

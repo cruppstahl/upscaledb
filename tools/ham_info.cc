@@ -111,8 +111,36 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
   memset(&rec, 0, sizeof(rec));
 
   if (!quiet) {
+    const char *keytype = 0;
+    switch (be->get_keytype()) {
+      case HAM_TYPE_UINT8:
+        keytype = "HAM_TYPE_UINT8";
+        break;
+      case HAM_TYPE_UINT16:
+        keytype = "HAM_TYPE_UINT16";
+        break;
+      case HAM_TYPE_UINT32:
+        keytype = "HAM_TYPE_UINT32";
+        break;
+      case HAM_TYPE_UINT64:
+        keytype = "HAM_TYPE_UINT64";
+        break;
+      case HAM_TYPE_REAL32:
+        keytype = "HAM_TYPE_REAL32";
+        break;
+      case HAM_TYPE_REAL64:
+        keytype = "HAM_TYPE_REAL64";
+        break;
+      case HAM_TYPE_CUSTOM:
+        keytype = "HAM_TYPE_CUSTOM";
+        break;
+      default:
+        keytype = "HAM_TYPE_BINARY";
+        break;
+    }
     printf("\n");
     printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
+    printf("    key type:             %s\n", keytype);
     printf("    max key size:         %u\n", be->get_keysize());
     printf("    max keys per page:    %u\n", be->get_maxkeys());
     printf("    address of root page: %llu\n",

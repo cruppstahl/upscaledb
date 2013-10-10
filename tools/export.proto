@@ -26,6 +26,7 @@ message Database {
   required uint32 name = 1;
   required uint32 flags = 2;
   required uint32 keysize = 3;
+  required uint32 keytype = 4;
 };
 
 message Item {

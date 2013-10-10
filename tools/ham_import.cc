@@ -151,7 +151,8 @@ class BinaryImporter : public Importer {
 
       // create database (if it does not yet exist)
       ham_parameter_t params[] = {
-        { HAM_PARAM_KEYSIZE, db.keysize() },
+        { HAM_PARAM_KEY_SIZE, db.keysize() },
+        { HAM_PARAM_KEY_TYPE, db.keytype() },
         { 0, 0 },
       };
 

@@ -628,6 +628,25 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     }
   }
 
+  if (keytype == HAM_TYPE_UINT8
+        || keytype == HAM_TYPE_UINT16
+        || keytype == HAM_TYPE_UINT32
+        || keytype == HAM_TYPE_UINT64
+        || keytype == HAM_TYPE_REAL32
+        || keytype == HAM_TYPE_REAL64) {
+    if (flags & HAM_RECORD_NUMBER) {
+      ham_trace(("HAM_RECORD_NUMBER not allowed in combination with "
+                      "fixed length type"));
+      return (HAM_INV_PARAMETER);
+    }
+    if (flags & HAM_ENABLE_EXTENDED_KEYS) {
+      ham_trace(("HAM_ENABLE_EXTENDED_KEYS not allowed in combination with "
+                      "fixed length type"));
+      return (HAM_INV_PARAMETER);
+    }
+    flags |= HAM_DISABLE_VARIABLE_KEYS;
+  }
+
   if (flags & HAM_RECORD_NUMBER)
     keytype = HAM_TYPE_UINT64;
 
