@@ -249,6 +249,7 @@ message DbGetParametersReply {
   optional uint32 keysize = 4;
   optional uint32 dbname = 5;
   optional uint32 keys_per_page = 6;
+  optional uint32 keytype = 7;
 };
 
 message TxnBeginRequest {

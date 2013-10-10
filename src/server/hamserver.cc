@@ -420,8 +420,12 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
       reply.mutable_db_get_parameters_reply()->set_flags(
               (int)params[i].value);
       break;
-    case HAM_PARAM_KEYSIZE:
+    case HAM_PARAM_KEY_SIZE:
       reply.mutable_db_get_parameters_reply()->set_keysize(
+              (int)params[i].value);
+      break;
+    case HAM_PARAM_KEY_TYPE:
+      reply.mutable_db_get_parameters_reply()->set_keytype(
               (int)params[i].value);
       break;
     case HAM_PARAM_DATABASE_NAME:

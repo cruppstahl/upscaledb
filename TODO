@@ -594,10 +594,16 @@ o update the documentation/changelog/README/tutorial
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
-high-level plan for 2.2.0-pre2 (unstable)
+high-level plan for 2.2.0-pre2 (unstable)...................................
+- remove "shifts" from btree SMOs, only merge
 - btree understands variable-sized PODs
     - uses PAX layout with a small (in-memory) skiplist and linear search
         in this skiplist
+    - also use linear search with fixed length keys (if max-keys-per-page
+        is low enough)
+    - when cursors move forward: do not access "by random-access-index" but 
+        by incrementing the cursor! (this is not possible for moving backwards,
+        therefore both has to be supported)
 - completely rewrite handling of extended keys
     If the extended key does not fit into one page: allocate an overflow area,
     move the FULL key into that area. get rid of the prefix compare. compare
@@ -619,19 +625,25 @@ high-level plan for 2.2.0-pre2 (unstable)
     - needs new ham_bench enhancements to use actual strings instead of
         random garbage - see below
 - btree can compress records (prefix, dict, snappy) -> COMM
-- use SIMD for scans (if it makes sense!) -> COMM
+- use SIMD for fixed-length scans -> COMM
+    http://pcl.intel-research.net/publications/palm.pdf
 
-high-level plan for 2.2.0 (unstable)
+high-level plan for 2.2.0 (unstable).........................................
 - completely rewrite handling of duplicate keys
-    o store records inline; if there are too many then allocate an overflow
+    - store records inline; if there are too many then allocate an overflow
         extend
-- btree can handle delta updates
-- delta updates are merged when there are too many of them, or if a cursor
-        traverses the page (only if memcpy/memmove takes too much time)
 - lay the groundwork for concurrency -> LSS-streams, finalize the file format
     (every buffer needs stream descriptor, trailer)
 - cache-oblivious page distribution? (maybe write the LSS first?)
 - security? -> COMM
+
+revisit transaction trees and delta updates..................................
+- a transaction update is very similar to a delta update
+- both have to be consolidated
+- btree can handle delta updates
+    - (or postpone till concurrency?)
+    - delta updates are merged when there are too many of them, or if a cursor
+        traverses the page (only if memcpy/memmove takes too much time)
 
 o ham_bench improvements
     o have more data sources based on dict/words (concatenate, if there are
