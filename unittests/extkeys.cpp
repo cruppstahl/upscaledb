@@ -19,7 +19,7 @@
 #include "../src/extkeys.h"
 #include "../src/env.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct ExtendedKeyFixture {
   ham_db_t *m_db;
@@ -31,7 +31,7 @@ struct ExtendedKeyFixture {
 
     ExtKeyCache *c = new ExtKeyCache((LocalDatabase *)m_db);
     REQUIRE(c);
-    ((LocalDatabase *)m_db)->set_extkey_cache(c);
+    ((LocalDatabase *)m_db)->m_extkey_cache = c;
   }
 
   ~ExtendedKeyFixture() {
@@ -112,3 +112,4 @@ TEST_CASE("ExtKey/purge", "")
     REQUIRE(HAM_KEY_NOT_FOUND == c->fetch((ham_u64_t)i, &size, &pbuffer));
 }
 
+} // namespace hamsterdb

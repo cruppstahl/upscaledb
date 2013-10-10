@@ -144,12 +144,6 @@ class LocalDatabase : public Database {
       return (m_extkey_cache);
     }
 
-    // Sets the cache for extended keys
-    // TODO this should be private
-    void set_extkey_cache(ExtKeyCache *c) {
-      m_extkey_cache = c;
-    }
-
     // Removes an extendex key from the cache and the blob
     ham_status_t remove_extkey(ham_u64_t blobid);
 
@@ -188,6 +182,7 @@ class LocalDatabase : public Database {
   private:
     friend struct DbFixture;
     friend struct HamsterdbFixture;
+    friend struct ExtendedKeyFixture;
 
     // returns the next record number
     ham_u64_t get_incremented_recno() {

@@ -111,7 +111,8 @@ class Graph
         os << std::endl;
         os.close();
 
-        system("gnuplot gnuplot-lat > graph-lat.png");
+        int foo = system("gnuplot gnuplot-lat > graph-lat.png");
+        (void)foo;
       }
 
       if (m_opspersec_file) {
@@ -134,7 +135,8 @@ class Graph
         os << std::endl;
         os.close();
 
-        system("gnuplot gnuplot-ops > graph-ops.png");
+        int foo = system("gnuplot gnuplot-ops > graph-ops.png");
+        (void)foo;
       }
     }
 

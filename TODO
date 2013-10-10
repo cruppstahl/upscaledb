@@ -465,9 +465,28 @@ x ham_bench fixes
 x search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
     and fix it
 
-o use parameterized btree for fix sized POD types
+x use parameterized btree for fix sized POD types
     x if performance is fine: rebase/merge with v2
-    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
+    x use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
+    x support these types in the new monster test
+    x legacy-layout:284: allocates m_arena on stack, should be member
+        to avoid frequent re-allocations
+    x support float (REAL32) and double (REAL64) type
+        x have 1 unittest per type
+        x support new types in ham_bench
+        x extend monster tests
+        x extend valgrind tests
+        x extend performance tests
+    x fixed length keys: disallow flag HAM_ENABLE_EXTENDED_KEYS
+    x enforce correkt key size in ham_db_insert, ham_cursor_insert
+    x once more review the code, esp. the "compare" should be in a really tight
+        loop without branches
+
+    x ham_info must show type information
+    x ham_export/ham_import must create the correct databases
+    x ham_dump must print the correctly formatted values
+
+    x Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
         a new BtreeNodeProxy in the factory; add a new comparator and
         reimplement everything for a 32bit integer
         x need header flag and documentation in the header file
@@ -510,44 +529,29 @@ o use parameterized btree for fix sized POD types
                 x new tests should use randomly generated data
             x requires new performance tests
             x requires new valgrind tests
-        o fix outstanding bugs
-            x btree_index_factory has asserts if duplicates are enabled
-            x uintXX/duplicates are failing because duplicates enforce
-                binary type
-            x multithreaded tests are failing b/c berkeleydb is enabled
-                -> remove them, they're not worthy
-            o monster.pl: also add tests for mixed workloads
-                o increase "max" back to 1 mio, but make it overwriteable
-                    through command line parameter
-                o add "--quiet" again
-            o monster.pl: add extended key tests for binaries w/ mixed workloads
-            o all tests need to run fine
 
-        o how can we assure that after opening the file the identical Btree
-            templates are selected??
+    x how can we assure that after opening the file the identical Btree
+        templates are selected?? -> done in the tests
 
-    x use HAM_TYPE_UINT64 for record numbers (WITH endian conversion!)
-    x support these types in the new monster test
-    x legacy-layout:284: allocates m_arena on stack, should be member
-        to avoid frequent re-allocations
-    x support float (REAL32) and double (REAL64) type
-        x have 1 unittest per type
-        x support new types in ham_bench
-        x extend monster tests
-        x extend valgrind tests
-        x extend performance tests
-    x fixed length keys: disallow flag HAM_ENABLE_EXTENDED_KEYS
-    x enforce correkt key size in ham_db_insert, ham_cursor_insert
-    x once more review the code, esp. the "compare" should be in a really tight
-        loop without branches
+    x fix outstanding bugs
+        x btree_index_factory has asserts if duplicates are enabled
+        x uintXX/duplicates are failing because duplicates enforce
+            binary type
+        x multithreaded tests are failing b/c berkeleydb is enabled
+            -> remove them, they're not worthy
+        x monster.pl: also add tests for mixed workloads
+            x increase "max" back to 1 mio, but make it overwriteable
+                through command line parameter
+            x add "--quiet" again
+        x monster.pl: add extended key tests for binaries w/ mixed workloads
+        x all tests need to run fine
 
-    x ham_info must show type information
-    x ham_export/ham_import must create the correct databases
-    o ham_dump must print the correctly formatted values
+x ham_dump: "tee" does not write FULLCHECKs
 
-    o compare performance vs. regular keys (2.1.2, w/o records)
-        o create a script to build against 2.1.2
-        o run performance test against 2.1.2
+x db_local: create extkey-cache in constructor, not on demand (only if extended
+    keys are enabled and not inmemory)
+    -> remove set_extkey_cache
+    -> this cleans up some code
 
 o use pax layout for fixed-size BINARY and CUSTOM
     -> a bit tricky because the current code is based on the fact that
@@ -559,13 +563,6 @@ o use pax layout for fixed-size BINARY and CUSTOM
     o extend monster tests
     o extend valgrind tests
     o extend performance tests
-
-x ham_dump: "tee" does not write FULLCHECKs
-
-. db_local: create extkey-cache in constructor, not on demand (only if extended
-    keys are enabled and not inmemory)
-    -> remove set_extkey_cache
-    -> this cleans up some code
 
 o run static code analysis
     o coverity

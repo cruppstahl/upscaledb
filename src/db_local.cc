@@ -54,18 +54,6 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
 
   ham_assert(key_flags & BtreeKey::kExtended);
 
-  /*
-   * make sure that we have an extended key-cache
-   *
-   * in in-memory-db, the extkey-cache doesn't lead to performance
-   * advantages; it only duplicates the data and wastes memory.
-   * therefore we don't use it.
-   */
-  if (!(get_env()->get_flags() & HAM_IN_MEMORY)) {
-    if (!get_extkey_cache())
-      set_extkey_cache(new ExtKeyCache(this));
-  }
-
   /* almost the same as: blobid = key->get_extended_rid(db); */
   memcpy(&blobid, key_data + (get_keysize() - sizeof(ham_u64_t)),
       sizeof(blobid));
@@ -635,6 +623,9 @@ LocalDatabase::open(ham_u16_t descriptor)
    * the btree index */
   m_rt_flags = get_rt_flags(true) | bt->get_flags();
 
+  if (m_rt_flags & HAM_ENABLE_EXTENDED_KEYS)
+    m_extkey_cache = new ExtKeyCache(this);
+
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
 
@@ -710,6 +701,10 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
   m_btree_index = bt;
+
+  if (get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS
+      && !(get_local_env()->get_flags() & HAM_IN_MEMORY))
+    m_extkey_cache = new ExtKeyCache(this);
 
   return (0);
 }
@@ -1749,7 +1744,7 @@ LocalDatabase::close_impl(ham_u32_t flags)
   /* get rid of the extkey-cache */
   if (get_extkey_cache()) {
     delete get_extkey_cache();
-    set_extkey_cache(0);
+    m_extkey_cache = 0;
   }
 
   /* in-memory-database: free all allocated blobs */
