@@ -14,34 +14,33 @@
 
 #include <iostream>
 #include <stdlib.h> /* for exit() */
+#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.hpp>
 
-#define MAX_DBS       3
+#define MAX_DBS           3
 
 #define DBNAME_CUSTOMER   1
-#define DBNAME_ORDER    2
-#define DBNAME_C2O      3   /* C2O: Customer To Order */
+#define DBNAME_ORDER      2
+#define DBNAME_C2O        3   /* C2O: Customer To Order */
 
 #define DBIDX_CUSTOMER    0
-#define DBIDX_ORDER     1
-#define DBIDX_C2O       2
+#define DBIDX_ORDER       1
+#define DBIDX_C2O         2
 
 #define MAX_CUSTOMERS     4
-#define MAX_ORDERS      8
+#define MAX_ORDERS        8
 
 /* A structure for the "customer" database */
 typedef struct {
-  int id;         /* customer id - will be the key of the
-                 customer table */
-  char name[32];      /* customer name */
+  uint32_t id;          /* customer id; will be the key of the customer table */
+  char name[32];        /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  int id;         /* order id - will be the key of the
-                 order table */
-  int customer_id;    /* customer id */
+  uint32_t id;          /* order id; will be the key of the order table */
+  uint32_t customer_id; /* customer id */
   char assignee[32];    /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;
@@ -81,10 +80,17 @@ run_demo() {
    * has a name - the first is our "customer" Database, the second
    * is for the "orders"; the third manages our 1:n relation and
    * therefore needs to enable duplicate keys
+   *
+   * All database keys are uint32 types.
    */
-  db[DBIDX_CUSTOMER] = env.create_db(DBNAME_CUSTOMER);
-  db[DBIDX_ORDER]  = env.create_db(DBNAME_ORDER);
-  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATE_KEYS);
+  ham_parameter_t params[] = {
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, }
+  };
+
+  db[DBIDX_CUSTOMER] = env.create_db(DBNAME_CUSTOMER, 0, &params[0]);
+  db[DBIDX_ORDER]  = env.create_db(DBNAME_ORDER, 0, &params[0]);
+  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
 
   /* Create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++)

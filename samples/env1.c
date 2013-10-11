@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
+#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.h>
 
 void
@@ -34,28 +35,38 @@ error(const char *foo, ham_status_t st) {
 
 /* A structure for the "customer" database */
 typedef struct {
-  int id;         /* customer id */
+  uint32_t id;        /* customer id */
   char name[32];      /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  int id;         /* order id */
-  int customer_id;    /* customer id */
-  char assignee[32];    /* assigned to whom? */
+  uint32_t id;             /* order id */
+  uint32_t customer_id;    /* customer id */
+  char assignee[32];       /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;
 
 int
 main(int argc, char **argv) {
   int i;
-  ham_status_t st;    /* status variable */
-  ham_db_t *db[MAX_DBS];  /* hamsterdb database objects */
-  ham_env_t *env;     /* hamsterdb environment */
+  ham_status_t st;               /* status variable */
+  ham_db_t *db[MAX_DBS];         /* hamsterdb database objects */
+  ham_env_t *env;                /* hamsterdb environment */
   ham_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
-  ham_key_t key, cust_key, ord_key;
-  ham_record_t record, cust_record, ord_record;
+
+  ham_key_t key = {0};
+  ham_key_t cust_key = {0};
+  ham_key_t ord_key = {0};
+  ham_record_t record = {0};
+  ham_record_t cust_record = {0};
+  ham_record_t ord_record = {0};
+
+  ham_parameter_t params[] = {
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, }
+  };
 
   customer_t customers[MAX_CUSTOMERS] = {
     { 1, "Alan Antonov Corp." },
@@ -75,13 +86,6 @@ main(int argc, char **argv) {
     { 8, 1, "Ben" }
   };
 
-  memset(&key, 0, sizeof(key));
-  memset(&record, 0, sizeof(record));
-  memset(&cust_key, 0, sizeof(cust_key));
-  memset(&cust_record, 0, sizeof(cust_record));
-  memset(&ord_key, 0, sizeof(ord_key));
-  memset(&ord_record, 0, sizeof(ord_record));
-
   /* Now create a new hamsterdb Environment */
   st = ham_env_create(&env, "test.db", 0, 0664, 0);
   if (st != HAM_SUCCESS)
@@ -91,11 +95,13 @@ main(int argc, char **argv) {
    * Then create the two Databases in this Environment; each Database
    * has a name - the first is our "customer" Database, the second
    * is for the "orders"
+   *
+   * All database keys are uint32_t types.
    */
-  st = ham_env_create_db(env, &db[0], DBNAME_CUSTOMER, 0, 0);
+  st = ham_env_create_db(env, &db[0], DBNAME_CUSTOMER, 0, &params[0]);
   if (st != HAM_SUCCESS)
     error("ham_env_create_db (customer)", st);
-  st = ham_env_create_db(env, &db[1], DBNAME_ORDER, 0, 0);
+  st = ham_env_create_db(env, &db[1], DBNAME_ORDER, 0, &params[0]);
   if (st != HAM_SUCCESS)
     error("ham_env_create_db (order)", st);
 

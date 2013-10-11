@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
+#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.h>
 
 #define LOOP      10
@@ -28,20 +29,24 @@ error(const char *foo, ham_status_t st) {
 
 int
 main(int argc, char **argv) {
-  int i;
-  ham_status_t st;      /* status variable */
-  ham_env_t *env;       /* hamsterdb environment object */
-  ham_db_t *db;         /* hamsterdb database object */
-  ham_key_t key = {0};     /* the structure for a key */
+  uint32_t i;
+  ham_status_t st;             /* status variable */
+  ham_env_t *env;              /* hamsterdb environment object */
+  ham_db_t *db;                /* hamsterdb database object */
+  ham_key_t key = {0};         /* the structure for a key */
   ham_record_t record = {0};   /* the structure for a record */
+  ham_parameter_t params[] = { /* parameters for ham_env_create_db */
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, }
+  };
 
   /* create a new hamsterdb Environment */
   st = ham_env_create(&env, "test.db", 0, 0664, 0);
   if (st != HAM_SUCCESS)
     error("ham_create", st);
 
-  /* and in this Environment we create a new Database */
-  st = ham_env_create_db(env, &db, DATABASE_NAME, 0, 0);
+  /* and in this Environment we create a new Database for uint32-keys */
+  st = ham_env_create_db(env, &db, DATABASE_NAME, 0, &params[0]);
   if (st != HAM_SUCCESS)
     error("ham_create", st);
 
@@ -81,7 +86,7 @@ main(int argc, char **argv) {
     /*
      * check if the value is ok
      */
-    if (*(int *)record.data!=i) {
+    if (*(int *)record.data != i) {
       printf("ham_db_find() ok, but returned bad value\n");
       return (-1);
     }

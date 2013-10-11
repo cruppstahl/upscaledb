@@ -545,6 +545,7 @@ x use parameterized btree for fix sized POD types
             x add "--quiet" again
         x monster.pl: add extended key tests for binaries w/ mixed workloads
         x all tests need to run fine
+    x update the samples and use the new types
 
 x ham_dump: "tee" does not write FULLCHECKs
 
@@ -596,7 +597,6 @@ o update the documentation/changelog/README/tutorial
     o the prefix compare function API was removed
     o describe the new flags/options
     o announce the 3 new wiki pages (or better move them to hamsterdb.com?)
-    o update the samples and use the new types
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 

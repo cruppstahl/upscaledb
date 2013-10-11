@@ -21,14 +21,18 @@
 int
 run_demo() {
   int i;
-  hamsterdb::env env;      /* hamsterdb environment object */
-  hamsterdb::db db;      /* hamsterdb database object */
-  hamsterdb::key key;      /* a key */
-  hamsterdb::record record;  /* a record */
+  hamsterdb::env env;          /* hamsterdb environment object */
+  hamsterdb::db db;            /* hamsterdb database object */
+  hamsterdb::key key;          /* a key */
+  hamsterdb::record record;    /* a record */
+  ham_parameter_t params[] = { /* parameters for ham_env_create_db */
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, }
+  };
 
   /* Create a new environment file and a database in this environment */
   env.create("test.db");
-  db = env.create_db(1);
+  db = env.create_db(1, 0, &params[0]);
 
   /*
    * Now we can insert, delete or lookup values in the database
