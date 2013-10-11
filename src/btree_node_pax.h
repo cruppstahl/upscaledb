@@ -277,7 +277,6 @@ class PaxNodeLayout
 
     void split(PaxNodeLayout *other, int pivot) {
       ham_size_t count = m_node->get_count();
-      ham_size_t slot = pivot;
 
       /*
        * if a leaf page is split then the pivot element must be inserted in
@@ -287,17 +286,22 @@ class PaxNodeLayout
        * in internal nodes the pivot element is only propagated to the
        * parent node. the pivot element is skipped.
        */
-      if (!m_node->is_leaf()) {
-        slot -= 1;
-        count -= 1;
+      if (m_node->is_leaf()) {
+        memcpy(&other->m_keys[0], &m_keys[pivot],
+                    get_size() * (count - pivot));
+        memcpy(&other->m_flags[0], &m_flags[pivot],
+                    count - pivot);
+        memcpy(&other->m_record_ids[0], &m_record_ids[pivot],
+                    sizeof(ham_u64_t) * (count - pivot));
       }
-
-      memcpy(&other->m_keys[0], &m_keys[slot],
-                  get_size() * (count - pivot));
-      memcpy(&other->m_flags[0], &m_flags[slot],
-                  count - pivot);
-      memcpy(&other->m_record_ids[0], &m_record_ids[slot],
-                  sizeof(ham_u64_t) * (count - pivot));
+      else {
+        memcpy(&other->m_keys[0], &m_keys[pivot + 1],
+                    get_size() * (count - pivot - 1));
+        memcpy(&other->m_flags[0], &m_flags[pivot + 1],
+                    count - pivot - 1);
+        memcpy(&other->m_record_ids[0], &m_record_ids[pivot + 1],
+                    sizeof(ham_u64_t) * (count - pivot - 1));
+      }
     }
 
     Iterator insert(ham_u32_t slot, const ham_key_t *key) {

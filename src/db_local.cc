@@ -1004,6 +1004,11 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
+  if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
+      (key->size != get_keysize())) {
+    ham_trace(("database does not support variable length keys"));
+    return (HAM_INV_KEYSIZE);
+  }
 
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
@@ -1296,6 +1301,17 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   ham_u64_t recno = 0;
   Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
+
+  if ((get_keysize() < sizeof(ham_u64_t)) &&
+      (key->size > get_keysize())) {
+    ham_trace(("database does not support variable length keys"));
+    return (HAM_INV_KEYSIZE);
+  }
+  if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
+      (key->size != get_keysize())) {
+    ham_trace(("database does not support variable length keys"));
+    return (HAM_INV_KEYSIZE);
+  }
 
   /*
    * record number: make sure that we have a valid key structure,

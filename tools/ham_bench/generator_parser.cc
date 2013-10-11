@@ -401,21 +401,16 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
   m_tokens = tokenize(m_lines[m_cur_line]);
   if (m_tokens.empty())
     return (kCommandNop);
-  VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
-        m_db->get_id(), m_cur_line, m_tokens[0].c_str()));
-  if (m_tokens[0] == "BREAK") {
-    printf("[info] break at %s:%u\n", __FILE__, __LINE__);
-    return (kCommandNop);
-  }
-  if (m_tokens[0] == "--") {
-    return (kCommandNop);
-  }
   if (m_tokens[0] == "CREATE") {
+    VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
+          m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
     return (kCommandCreate);
   }
   if (m_tokens[0] == "OPEN") {
+    VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
+          m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
     return (kCommandOpen);
@@ -435,6 +430,8 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
       ERROR(("line %d (INSERT): parser error\n", m_cur_line + 1));
       exit(-1);
     }
+    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+          m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     if (!*precdata)
       *precdata = "";
     return (kCommandInsert);
@@ -446,6 +443,8 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
     }
     *pflags = m_tokens[1].c_str();
     *pkeydata = m_tokens[2].c_str();
+    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+          m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     return (kCommandErase);
   }
   if (m_tokens[0] == "FIND") {
@@ -455,7 +454,20 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
     }
     *pflags = m_tokens[1].c_str();
     *pkeydata = m_tokens[2].c_str();
+    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+          m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     return (kCommandFind);
+  }
+
+  VERBOSE(("%d: line %u: reading token '%s'........................\n", 
+        m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
+
+  if (m_tokens[0] == "BREAK") {
+    printf("[info] break at %s:%u\n", __FILE__, __LINE__);
+    return (kCommandNop);
+  }
+  if (m_tokens[0] == "--") {
+    return (kCommandNop);
   }
   if (m_tokens[0] == "FULLCHECK") {
     return (kCommandFullcheck);

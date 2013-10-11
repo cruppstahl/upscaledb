@@ -1,3 +1,6 @@
+Oct 11, 2013 - chris ---------------------------------------------------
+o Fixed a btree corruption during SMOs (internal shifts after underflow)
+
 Oct 5, 2013 - chris ---------------------------------------------------
 o Integrating "ham_bench" tool for benchmarking and testing
 

@@ -37,6 +37,11 @@ class HamsterDatabase : public Database
       return ("hamsterdb");
     }
 
+    // Returns true if the database is currently open
+    virtual bool is_open() const {
+      return (m_db != 0);
+    }
+
     // Fills |metrics| with additional metrics
     virtual void get_metrics(Metrics *metrics, bool live = false) {
       if (live)

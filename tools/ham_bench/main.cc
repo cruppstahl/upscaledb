@@ -561,10 +561,6 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_FULLCHECK_FREQUENCY) {
       c->fullcheck_frequency = strtoul(param, 0, 0);
-      if (!c->fullcheck_frequency) {
-        printf("[FAIL] invalid parameter for 'fullcheck-frequency'\n");
-        exit(-1);
-      }
     }
     else if (opt == ARG_ERASE_PCT) {
       c->erase_pct = strtoul(param, 0, 0);
@@ -913,11 +909,11 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
 
     // iterate over both databases
     if (conf->fullcheck == Configuration::kFullcheckFind) {
-      st1 = gen1->get_db()->cursor_get_next(c1, &key1, &rec1, false);
-      if (st1 == HAM_KEY_NOT_FOUND)
+      st2 = gen2->get_db()->cursor_get_next(c2, &key2, &rec2, false);
+      if (st2 == HAM_KEY_NOT_FOUND)
         goto bail;
-      st2 = gen2->get_db()->find(0, &key1, &rec2);
-      key2 = key1; // make sure are_keys_equal() returns true
+      st1 = gen1->get_db()->find(0, &key2, &rec1);
+      key1 = key2; // make sure are_keys_equal() returns true
     }
     else if (conf->fullcheck == Configuration::kFullcheckReverse) {
       st1 = gen1->get_db()->cursor_get_previous(c1, &key1, &rec1, false);
@@ -1026,7 +1022,11 @@ run_both_tests(Configuration *conf)
       fullcheck = true;
     }
     else if (conf->fullcheck != Configuration::kFullcheckNone) {
-      if (op > 0 && op % conf->fullcheck_frequency == 0)
+      if (op > 0
+            && conf->fullcheck_frequency != 0
+            && (op % conf->fullcheck_frequency) == 0
+            && generator1.get_db()->is_open()
+            && generator2.get_db()->is_open())
         fullcheck = true;
     }
 

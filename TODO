@@ -553,11 +553,17 @@ x db_local: create extkey-cache in constructor, not on demand (only if extended
     -> remove set_extkey_cache
     -> this cleans up some code
 
+x ham_find/ham_cursor_find: if keysize != fixed keysize: return error
+    (otherwise PAX asserts)
+
 o use pax layout for fixed-size BINARY and CUSTOM
     -> a bit tricky because the current code is based on the fact that
         type T is a POD
-    -> create a new Layout class, which reads the key size from a variable?
-    -> both Pax layouts could derive from a common base class
+    -> create a KeyProxy for POD types which wrapps m_keys
+        -> ham_size_t get_keysize() -> sizeof(T)
+        -> ham_u8_t *get_keyptr(int slot)
+        -> set_key(int slot, const void *value)
+    -> create a new KeyProxy for non-POD types
     o run performance of pax vs. legacy (also with larger pagesizes)
     o extend unittests
     o extend monster tests

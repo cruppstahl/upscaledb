@@ -49,6 +49,9 @@ class Database
       return (m_id);
     }
 
+    // Returns true if the database is currently open
+    virtual bool is_open() const = 0;
+
     // Returns a descriptive name
     virtual const char *get_name() const = 0;
 

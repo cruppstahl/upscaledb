@@ -492,12 +492,12 @@ class BtreeEraseAction
           if (st)
             return (st);
 
+          /* the pointer of this new node is ptr_down of the sibling */
+          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
+
           /* the key was appended, therefore the counter of the node must
            * be incremented */
           node->set_count(node->get_count() + 1);
-
-          /* the pointer of this new node is ptr_down of the sibling */
-          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
 
           /* new pointer left of the sibling is sibling[0].ptr */
           sibnode->set_ptr_down(sibnode->get_record_id(0));
@@ -544,7 +544,7 @@ class BtreeEraseAction
             slot = ancnode->get_slot(sibnode, 0);
 
             /* replace the key */
-            st = replace_key(ancpage, slot, sibpage, 0, true);
+            st = replace_key(sibpage, 0, ancpage, slot, true);
             if (st)
               return (st);
           }

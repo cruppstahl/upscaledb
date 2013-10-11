@@ -302,11 +302,6 @@ HamsterDatabase::do_open_db(int id)
 
   ham_parameter_t params[6] = {{0, 0}};
 
-  if (m_config->key_type == Configuration::kKeyCustom) {
-    params[0].name = HAM_PARAM_KEY_TYPE;
-    params[0].value = HAM_TYPE_CUSTOM;
-  }
-
   st = ham_env_open_db(m_env ? m_env : ms_env, &m_db, 1 + id, 0, &params[0]);
   if (st) {
     ERROR(("ham_env_open_db failed with error %d (%s)\n", st,
