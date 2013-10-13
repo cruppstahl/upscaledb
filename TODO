@@ -562,12 +562,13 @@ o use pax layout for fixed-size BINARY and CUSTOM
         type T is a POD
     x create a KeyProxy for POD types which wrapps arrays of T
         and replaces m_keys
-    o create a new KeyListProxy for non-POD types
+    x create a new KeyListProxy for non-POD types
+    x extend unittests
+    x extend ham_bench (needs a new parameter?)
+    x extend monster tests
+    x extend valgrind tests
+    x extend performance tests
     o run performance of pax vs. legacy (also with larger pagesizes)
-    o extend unittests
-    o extend monster tests
-    o extend valgrind tests
-    o extend performance tests
 
 o run static code analysis
     o coverity
@@ -600,6 +601,7 @@ o update the documentation/changelog/README/tutorial
 
 high-level plan for 2.2.0-pre2 (unstable)...................................
 - remove "shifts" from btree SMOs, only merge
+- replace 3rdparty/json with boost property_tree
 - btree understands variable-sized PODs
     - uses PAX layout with a small (in-memory) skiplist and linear search
         in this skiplist
@@ -616,6 +618,7 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
     ==> make sure this does not cause performance regressions
     ==> count number of overflow areas for statistics!
     - monster.pl needs to create variable length extended keys for testing!
+- omit flags if they are not required (fixed key, fixed record, no duplicates)
 - btree stores fixed-length records in the leaf
     also support record length of 0 ("key exists" vs "key does not exist")
     - not for internal nodes! they have a fixed record length of 8!
@@ -624,7 +627,6 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
         do not store 1 byte flag for each key
     - if page is large enough then store the record in the leaf, even
         if it's > 8 bytes
-- replace 3rdparty/json with boost property_tree
 - btree can compress keys (strings: prefix, everything: dict) -> COMM
     - needs new ham_bench enhancements to use actual strings instead of
         random garbage - see below
@@ -636,6 +638,8 @@ high-level plan for 2.2.0 (unstable).........................................
 - completely rewrite handling of duplicate keys
     - store records inline; if there are too many then allocate an overflow
         extend
+    - or store as linked list of blobs?
+- get rid of legacy btree layout
 - lay the groundwork for concurrency -> LSS-streams, finalize the file format
     (every buffer needs stream descriptor, trailer)
 - cache-oblivious page distribution? (maybe write the LSS first?)

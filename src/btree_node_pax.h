@@ -21,25 +21,25 @@
 
 namespace hamsterdb {
 
-template<class T>
+template<typename KeyList>
 class PaxNodeLayout;
 
 /*
  * A helper class to access (flags/key data/record data) values in a
  * BtreeNode with PAX-style layout
  */
-template<typename T>
+template<typename KeyList>
 struct PaxIterator
 {
   public:
     // Constructor
-    PaxIterator(PaxNodeLayout<T> *node, ham_size_t slot)
+    PaxIterator(PaxNodeLayout<KeyList> *node, ham_size_t slot)
       : m_node(node), m_slot(slot) {
     }
 
     // Constructor
-    PaxIterator(const PaxNodeLayout<T> *node, ham_size_t slot)
-      : m_node((PaxNodeLayout<T> *)node), m_slot(slot) {
+    PaxIterator(const PaxNodeLayout<KeyList> *node, ham_size_t slot)
+      : m_node((PaxNodeLayout<KeyList> *)node), m_slot(slot) {
     }
 
     // Returns the record id
@@ -89,7 +89,7 @@ struct PaxIterator
 
     // Returns the size of a btree key
     ham_u16_t get_size() const {
-      return (sizeof(T));
+      return (m_node->get_size());
     }
 
     // Sets the size of a btree key
@@ -156,38 +156,41 @@ struct PaxIterator
     }
 
     // Moves this Iterator to the next key
-    PaxIterator<T> next() {
-      return (PaxIterator<T>(m_node, m_slot + 1));
+    PaxIterator<KeyList> next() {
+      return (PaxIterator<KeyList>(m_node, m_slot + 1));
     }
 
     // Moves this Iterator to the next key
-    PaxIterator<T> next() const {
-      return (PaxIterator<T>(m_node, m_slot + 1));
+    PaxIterator<KeyList> next() const {
+      return (PaxIterator<KeyList>(m_node, m_slot + 1));
     }
 
     // Allows use of operator-> in the caller
-    PaxIterator<T> *operator->() {
+    PaxIterator<KeyList> *operator->() {
       return (this);
     }
 
     // Allows use of operator-> in the caller
-    const PaxIterator<T> *operator->() const {
+    const PaxIterator<KeyList> *operator->() const {
       return (this);
     }
 
   private:
     // The node of this iterator
-    PaxNodeLayout<T> *m_node;
+    PaxNodeLayout<KeyList> *m_node;
 
     // The current slot in the node
     ham_size_t m_slot;
 };
 
+//
+// A template class managing an array of POD types
+//
 template<typename T>
 class PodKeyList
 {
   public:
-    PodKeyList(ham_u8_t *data)
+    PodKeyList(LocalDatabase *db, ham_u8_t *data)
       : m_data((T *)data) {
     }
 
@@ -213,23 +216,57 @@ class PodKeyList
 };
 
 //
+// A template class managing an array of fixed length bytes
+//
+class BinaryKeyList
+{
+  public:
+    BinaryKeyList(LocalDatabase *db, ham_u8_t *data)
+      : m_data(data) {
+      m_key_size = db->get_keysize();
+      ham_assert(m_key_size != 0);
+    }
+
+    ham_size_t get_key_size() const {
+      return (m_key_size);
+    }
+
+    ham_u8_t *get_key_ptr(int slot) {
+      return (&m_data[slot * m_key_size]);
+    }
+
+    ham_u8_t *get_key_ptr(int slot) const {
+      return (&m_data[slot * m_key_size]);
+    }
+
+    void set_key(int slot, const void *ptr, ham_size_t size) {
+      ham_assert(size == get_key_size());
+      memcpy(&m_data[slot * m_key_size], ptr, size);
+    }
+
+  private:
+    ham_u8_t *m_data;
+    ham_size_t m_key_size;
+};
+
+//
 // A BtreeNodeProxy layout which stores key data, key flags and
 // and the record pointers in a PAX style layout.
 //
-template<typename T>
+template<typename KeyList>
 class PaxNodeLayout
 {
   public:
-    typedef PaxIterator<T> Iterator;
-    typedef const PaxIterator<T> ConstIterator;
+    typedef PaxIterator<KeyList> Iterator;
+    typedef const PaxIterator<KeyList> ConstIterator;
 
     PaxNodeLayout(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(page)),
-        m_keys(m_node->get_data()) {
+        m_keys(page->get_db(), m_node->get_data()) {
       ham_size_t usable_nodesize = page->get_env()->get_pagesize()
                     - PBtreeNode::get_entry_offset()
                     - Page::sizeof_persistent_header;
-      ham_size_t keysize = get_system_keysize(get_default_user_keysize());
+      ham_size_t keysize = get_system_keysize(m_keys.get_key_size());
       m_max_count = usable_nodesize / keysize;
 
       ham_u8_t *p = m_node->get_data();
@@ -237,14 +274,8 @@ class PaxNodeLayout
       m_record_ids = (ham_u64_t *)&p[m_max_count * (1 + get_size())];
     }
 
-    // Returns the default key size (excluding overhead)
-    static ham_u16_t get_default_user_keysize() {
-      return (sizeof(T));
-    }
-
     // Returns the actual key size (including overhead)
     static ham_u16_t get_system_keysize(ham_size_t keysize) {
-      ham_assert(keysize == get_default_user_keysize());
       return ((ham_u16_t)(keysize + 1 + sizeof(ham_u64_t)));
     }
 
@@ -424,7 +455,7 @@ class PaxNodeLayout
     }
 
   private:
-    friend class PaxIterator<T>;
+    friend class PaxIterator<KeyList>;
 
     // Returns the BtreeKey at index |i| in this node
     //
@@ -442,7 +473,7 @@ class PaxNodeLayout
 
     // Returns the key size
     ham_size_t get_size() const {
-      return (sizeof(T));
+      return (m_keys.get_key_size());
     }
 
     // Returns the flags of a key
@@ -453,11 +484,6 @@ class PaxNodeLayout
     // Sets the flags of a key
     void set_flags(int slot, ham_u8_t flags) {
       m_flags[slot] = flags;
-    }
-
-    // Returns the key data
-    const T &get_key(int slot) const {
-      return (*(T *)m_keys.get_key_ptr(slot));
     }
 
     // Returns a pointer to the key data
@@ -489,7 +515,7 @@ class PaxNodeLayout
     PBtreeNode *m_node;
     ham_size_t m_max_count;
     ham_u8_t *m_flags;
-    PodKeyList<T> m_keys;
+    KeyList m_keys;
     ham_u64_t *m_record_ids;
 };
 

@@ -1963,15 +1963,26 @@ struct HamsterdbFixture {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t ps[] = {
-        { HAM_PARAM_KEY_TYPE, type },
+        { HAM_PARAM_KEY_TYPE, (ham_u64_t)type },
+        { 0, 0 },
         { 0, 0 }
     };
 
+    if (type == HAM_TYPE_BINARY) {
+      ps[1].name = HAM_PARAM_KEY_SIZE;
+      ps[1].value = size;
+    }
+
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
-    REQUIRE(HAM_INV_PARAMETER
+    if (type != HAM_TYPE_BINARY)
+      REQUIRE(HAM_INV_PARAMETER
            == ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, &ps[0]));
-    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
+
+    int flags = 0;
+    if (type == HAM_TYPE_BINARY)
+      flags = HAM_DISABLE_VARIABLE_KEYS;
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, flags, &ps[0]));
 
     ham_parameter_t query[] = {
         {HAM_PARAM_KEY_TYPE, 0},
@@ -2399,42 +2410,49 @@ TEST_CASE("Hamsterdb/uint8Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1634,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned char>, hamsterdb::NumericCompare<unsigned char> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<unsigned char> >, hamsterdb::NumericCompare<unsigned char> >");
 }
 
 TEST_CASE("Hamsterdb/uint16Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1484,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned short>, hamsterdb::NumericCompare<unsigned short> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<unsigned short> >, hamsterdb::NumericCompare<unsigned short> >");
 }
 
 TEST_CASE("Hamsterdb/uint32Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_UINT32, 4, 1256,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned int>, hamsterdb::NumericCompare<unsigned int> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<unsigned int> >, hamsterdb::NumericCompare<unsigned int> >");
 }
 
 TEST_CASE("Hamsterdb/uint64Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<unsigned long>, hamsterdb::NumericCompare<unsigned long> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<unsigned long> >, hamsterdb::NumericCompare<unsigned long> >");
 }
 
 TEST_CASE("Hamsterdb/real32Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_REAL32, 4, 1256,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<float>, hamsterdb::NumericCompare<float> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<float> >, hamsterdb::NumericCompare<float> >");
 }
 
 TEST_CASE("Hamsterdb/real64Type", "")
 {
   HamsterdbFixture f;
   f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960,
-      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<double>, hamsterdb::NumericCompare<double> >");
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::PodKeyList<double> >, hamsterdb::NumericCompare<double> >");
+}
+
+TEST_CASE("Hamsterdb/fixedBinaryType", "")
+{
+  HamsterdbFixture f;
+  f.fixedTypeTest(HAM_TYPE_BINARY, 8, 960,
+      "hamsterdb::BtreeIndexImpl<hamsterdb::PaxNodeLayout<hamsterdb::BinaryKeyList>, hamsterdb::FixedSizeCompare>");
 }
 
 } // namespace hamsterdb

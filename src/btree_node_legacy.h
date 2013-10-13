@@ -154,11 +154,6 @@ class LegacyNodeLayout
       : m_page(page), m_node(PBtreeNode::from_page(page)) {
     }
 
-    // Returns the default key size (excluding overhead)
-    static ham_u16_t get_default_user_keysize() {
-      return ((ham_u16_t)(32 - (PBtreeKeyLegacy::kSizeofOverhead)));
-    }
-
     // Returns the actual key size (including overhead)
     static ham_u16_t get_system_keysize(ham_size_t keysize) {
       return ((ham_u16_t)(keysize + PBtreeKeyLegacy::kSizeofOverhead));

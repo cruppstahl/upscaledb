@@ -196,9 +196,6 @@ class BtreeIndex
       return (m_maxkeys / 5);
     }
 
-    // Returns the default key size (excluding overhead)
-    virtual ham_u16_t get_default_user_keysize() const = 0;
-
     // Returns the actual key size (including overhead)
     virtual ham_u16_t get_system_keysize(ham_size_t keysize) const = 0;
 
@@ -367,11 +364,6 @@ class BtreeIndexImpl : public BtreeIndex
     BtreeIndexImpl(LocalDatabase *db, ham_u32_t descriptor,
                     ham_u32_t flags = 0)
       : BtreeIndex(db, descriptor, flags) {
-    }
-
-    // Returns the default key size (excluding overhead)
-    virtual ham_u16_t get_default_user_keysize() const {
-      return (NodeLayout::get_default_user_keysize());
     }
 
     // Returns the actual key size (including overhead)

@@ -679,7 +679,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
       break;
     default:
       if (!keysize)
-        keysize = bt->get_default_user_keysize();
+        keysize = 32 - PBtreeKeyLegacy::kSizeofOverhead; // fits in 1 cache-line
       break;
   }
 
