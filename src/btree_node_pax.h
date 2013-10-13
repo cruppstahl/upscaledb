@@ -122,9 +122,9 @@ struct PaxIterator
     }
 
     // Overwrites the key data
-    void set_key(const void *ptr, ham_size_t len) {
-      ham_assert(len == get_size());
-      m_node->set_key(m_slot, *(T *)ptr);
+    void set_key(const void *ptr, ham_size_t size) {
+      ham_assert(size == get_size());
+      m_node->set_key(m_slot, ptr, size);
     }
 
     // Returns a pointer to the record ID
@@ -183,6 +183,35 @@ struct PaxIterator
     ham_size_t m_slot;
 };
 
+template<typename T>
+class PodKeyList
+{
+  public:
+    PodKeyList(ham_u8_t *data)
+      : m_data((T *)data) {
+    }
+
+    ham_size_t get_key_size() const {
+      return (sizeof(T));
+    }
+
+    ham_u8_t *get_key_ptr(int slot) {
+      return ((ham_u8_t *)&m_data[slot]);
+    }
+
+    ham_u8_t *get_key_ptr(int slot) const {
+      return ((ham_u8_t *)&m_data[slot]);
+    }
+
+    void set_key(int slot, const void *ptr, ham_size_t size) {
+      ham_assert(size == get_key_size());
+      m_data[slot] = *(T *)ptr;
+    }
+
+  private:
+    T *m_data;
+};
+
 //
 // A BtreeNodeProxy layout which stores key data, key flags and
 // and the record pointers in a PAX style layout.
@@ -195,7 +224,8 @@ class PaxNodeLayout
     typedef const PaxIterator<T> ConstIterator;
 
     PaxNodeLayout(Page *page)
-      : m_page(page), m_node(PBtreeNode::from_page(page)) {
+      : m_page(page), m_node(PBtreeNode::from_page(page)),
+        m_keys(m_node->get_data()) {
       ham_size_t usable_nodesize = page->get_env()->get_pagesize()
                     - PBtreeNode::get_entry_offset()
                     - Page::sizeof_persistent_header;
@@ -203,14 +233,13 @@ class PaxNodeLayout
       m_max_count = usable_nodesize / keysize;
 
       ham_u8_t *p = m_node->get_data();
-      m_keys = (T *)p;
       m_flags = &p[m_max_count * get_size()];
       m_record_ids = (ham_u64_t *)&p[m_max_count * (1 + get_size())];
     }
 
     // Returns the default key size (excluding overhead)
     static ham_u16_t get_default_user_keysize() {
-      return ((ham_u16_t)(sizeof(T)));
+      return (sizeof(T));
     }
 
     // Returns the actual key size (including overhead)
@@ -287,7 +316,7 @@ class PaxNodeLayout
        * parent node. the pivot element is skipped.
        */
       if (m_node->is_leaf()) {
-        memcpy(&other->m_keys[0], &m_keys[pivot],
+        memcpy(other->m_keys.get_key_ptr(0), m_keys.get_key_ptr(pivot),
                     get_size() * (count - pivot));
         memcpy(&other->m_flags[0], &m_flags[pivot],
                     count - pivot);
@@ -295,7 +324,7 @@ class PaxNodeLayout
                     sizeof(ham_u64_t) * (count - pivot));
       }
       else {
-        memcpy(&other->m_keys[0], &m_keys[pivot + 1],
+        memcpy(other->m_keys.get_key_ptr(0), m_keys.get_key_ptr(pivot + 1),
                     get_size() * (count - pivot - 1));
         memcpy(&other->m_flags[0], &m_flags[pivot + 1],
                     count - pivot - 1);
@@ -312,9 +341,9 @@ class PaxNodeLayout
       // make space for 1 additional element.
       // only store the key data; flags and record IDs are set by the caller
       if (count > slot) {
-        memmove(&m_keys[slot + 1], &m_keys[slot],
+        memmove(m_keys.get_key_ptr(slot + 1), m_keys.get_key_ptr(slot),
                         get_size() * (count - slot));
-        m_keys[slot] = *(T *)key->data;
+        m_keys.set_key(slot, key->data, key->size);
         memmove(&m_flags[slot + 1], &m_flags[slot],
                         count - slot);
         m_flags[slot] = 0;
@@ -323,7 +352,7 @@ class PaxNodeLayout
         m_record_ids[slot] = 0;
       }
       else {
-        m_keys[slot] = *(T *)key->data;
+        m_keys.set_key(slot, key->data, key->size);
         m_flags[slot] = 0;
         m_record_ids[slot] = 0;
       }
@@ -335,7 +364,7 @@ class PaxNodeLayout
       ham_size_t count = m_node->get_count();
 
       if (slot != count - 1) {
-        memmove(&m_keys[slot], &m_keys[slot + 1],
+        memmove(m_keys.get_key_ptr(slot), m_keys.get_key_ptr(slot + 1),
                 get_size() * (count - slot - 1));
         memmove(&m_flags[slot], &m_flags[slot + 1],
                 count - slot - 1);
@@ -348,7 +377,7 @@ class PaxNodeLayout
       ham_size_t count = m_node->get_count();
 
       /* shift items from the sibling to this page */
-      memcpy(&m_keys[count], &other->m_keys[0],
+      memcpy(m_keys.get_key_ptr(count), other->m_keys.get_key_ptr(0),
                       get_size() * other->m_node->get_count());
       memcpy(&m_flags[count], &other->m_flags[0],
                       other->m_node->get_count());
@@ -360,7 +389,7 @@ class PaxNodeLayout
       ham_size_t pos = m_node->get_count();
 
       // shift |count| elements from |other| to this page
-      memcpy(&m_keys[pos], &other->m_keys[0],
+      memcpy(m_keys.get_key_ptr(pos), other->m_keys.get_key_ptr(0),
                       get_size() * count);
       memcpy(&m_flags[pos], &other->m_flags[0],
                       count);
@@ -368,7 +397,7 @@ class PaxNodeLayout
                       sizeof(ham_u64_t) * count);
 
       // and reduce the other page
-      memmove(&other->m_keys[0], &other->m_keys[count],
+      memmove(other->m_keys.get_key_ptr(0), other->m_keys.get_key_ptr(count),
                       get_size() * (other->m_node->get_count() - count));
       memmove(&other->m_flags[0], &other->m_flags[count],
                       (other->m_node->get_count() - count));
@@ -378,7 +407,7 @@ class PaxNodeLayout
 
     void shift_to_right(PaxNodeLayout *other, int slot, int count) {
       // make room in the right sibling
-      memmove(&other->m_keys[count], &other->m_keys[0],
+      memmove(other->m_keys.get_key_ptr(count), other->m_keys.get_key_ptr(0),
                       get_size() * other->m_node->get_count());
       memmove(&other->m_flags[count], &other->m_flags[0],
                       other->m_node->get_count());
@@ -386,7 +415,7 @@ class PaxNodeLayout
                       sizeof(ham_u64_t) * other->m_node->get_count());
 
       // shift |count| elements from this page to |other|
-      memcpy(&other->m_keys[0], &m_keys[slot],
+      memcpy(other->m_keys.get_key_ptr(0), m_keys.get_key_ptr(slot),
                       get_size() * count);
       memcpy(&other->m_flags[0], &m_flags[slot],
                       count);
@@ -427,18 +456,18 @@ class PaxNodeLayout
     }
 
     // Returns the key data
-    T get_key(int slot) const {
-      return (m_keys[slot]);
+    const T &get_key(int slot) const {
+      return (*(T *)m_keys.get_key_ptr(slot));
     }
 
     // Returns a pointer to the key data
     ham_u8_t *get_key_ptr(int slot) const {
-      return ((ham_u8_t *)&m_keys[slot]);
+      return (m_keys.get_key_ptr(slot));
     }
 
     // Sets the key data
-    void set_key(int slot, T t) {
-      m_keys[slot] = t;
+    void set_key(int slot, const void *ptr, ham_size_t size) {
+      m_keys.set_key(slot, ptr, size);
     }
 
     // Returns a pointer to the record id
@@ -460,7 +489,7 @@ class PaxNodeLayout
     PBtreeNode *m_node;
     ham_size_t m_max_count;
     ham_u8_t *m_flags;
-    T *m_keys;
+    PodKeyList<T> m_keys;
     ham_u64_t *m_record_ids;
 };
 

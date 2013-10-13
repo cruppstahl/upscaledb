@@ -560,11 +560,9 @@ x ham_find/ham_cursor_find: if keysize != fixed keysize: return error
 o use pax layout for fixed-size BINARY and CUSTOM
     -> a bit tricky because the current code is based on the fact that
         type T is a POD
-    -> create a KeyProxy for POD types which wrapps m_keys
-        -> ham_size_t get_keysize() -> sizeof(T)
-        -> ham_u8_t *get_keyptr(int slot)
-        -> set_key(int slot, const void *value)
-    -> create a new KeyProxy for non-POD types
+    x create a KeyProxy for POD types which wrapps arrays of T
+        and replaces m_keys
+    o create a new KeyListProxy for non-POD types
     o run performance of pax vs. legacy (also with larger pagesizes)
     o extend unittests
     o extend monster tests
