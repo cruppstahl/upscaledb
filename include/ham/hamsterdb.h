@@ -726,8 +726,18 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * The data is described through flags and parameters. hamsterdb
  * differentiates between several data characteristics, and offers predefined
  * "types" to describe the keys. Numeric key types are stored in host endian
- * format and are NOT endian converted! The key type is set with
- * @ref HAM_PARAM_KEY_TYPE and can have either of the following values:
+ * format and are NOT endian converted! In general, the default key type
+ * (@ref HAM_TYPE_BINARY) is slower than the other types, and the
+ * fixed-length binary keys (@ref HAM_TYPE_BINARY in combination with
+ * @ref HAM_DISABLE_VARIABLE_KEYS) is faster than variable-length binary
+ * keys, especially if the application mostly inserts and looks up keys
+ * and not frequently deletes them. See the Wiki documentation for <a href=
+   "https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking">
+ * Evaluating and Benchmarking</a> on how to test different configurations and
+ * optimize for performance.
+ *
+ * The key type is set with @ref HAM_PARAM_KEY_TYPE and can have either
+ * of the following values:
  *
  * <ul>
  *   <li>HAM_TYPE_BINARY</li> This is the default key type: a binary blob.

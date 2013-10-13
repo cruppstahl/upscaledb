@@ -557,7 +557,7 @@ x db_local: create extkey-cache in constructor, not on demand (only if extended
 x ham_find/ham_cursor_find: if keysize != fixed keysize: return error
     (otherwise PAX asserts)
 
-o use pax layout for fixed-size BINARY and CUSTOM
+x use pax layout for fixed-size BINARY and CUSTOM
     -> a bit tricky because the current code is based on the fact that
         type T is a POD
     x create a KeyProxy for POD types which wrapps arrays of T
@@ -568,7 +568,9 @@ o use pax layout for fixed-size BINARY and CUSTOM
     x extend monster tests
     x extend valgrind tests
     x extend performance tests
-    o run performance of pax vs. legacy (also with larger pagesizes)
+    x run performance of pax vs. legacy (also with larger pagesizes)
+
+./ham_bench --quiet --use-berkeleydb=true --reopen=true --use-extended --use-transactions=tmp --pagesize=10240 ../testfiles/2/ext_060.tst
 
 o run static code analysis
     o coverity
@@ -602,6 +604,7 @@ o update the documentation/changelog/README/tutorial
 high-level plan for 2.2.0-pre2 (unstable)...................................
 - remove "shifts" from btree SMOs, only merge
 - replace 3rdparty/json with boost property_tree
+- ham_bench can use /opt/share/dict/words as data input
 - btree understands variable-sized PODs
     - uses PAX layout with a small (in-memory) skiplist and linear search
         in this skiplist
@@ -610,6 +613,7 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
     - when cursors move forward: do not access "by random-access-index" but 
         by incrementing the cursor! (this is not possible for moving backwards,
         therefore both has to be supported)
+    - this is not a PAX layout!
 - completely rewrite handling of extended keys
     If the extended key does not fit into one page: allocate an overflow area,
     move the FULL key into that area. get rid of the prefix compare. compare
