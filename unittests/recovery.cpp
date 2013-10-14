@@ -299,12 +299,12 @@ verify(int argc, char **argv) {
 
   int keysize = (int)strtol(argv[2], 0, 0);
   int recsize = (int)strtol(argv[3], 0, 0);
-  int i     = (int)strtol(argv[4], 0, 0);
+  int maxi    = (int)strtol(argv[4], 0, 0);
   int dupes   = (int)strtol(argv[5], 0, 0);
   int use_txn = (int)strtol(argv[6], 0, 0);
   int exist   = (int)strtol(argv[7], 0, 0);
   printf("verify: keysize=%d, recsize=%d, i=%d, dupes=%d, use_txn=%d, "
-       "exist=%d\n", keysize, recsize, i, dupes, use_txn, exist);
+       "exist=%d\n", keysize, recsize, maxi, dupes, use_txn, exist);
 
   ham_status_t st;
   ham_db_t *db;
@@ -338,35 +338,46 @@ verify(int argc, char **argv) {
     exit(-1);
   }
 
-  for (int j = 0; j < NUM_STEPS; j++) {
-    // modify key at end of buffer to make sure that extended keys
-    // are fully loaded
-    char *p = (char *)key.data;
-    if (dupes)
-      *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
-    else
-      *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
+  for (int i = 0; i <= maxi; i++) {
+    for (int j = 0; j < NUM_STEPS; j++) {
+      // modify key at end of buffer to make sure that extended keys
+      // are fully loaded
+      char *p = (char *)key.data;
+      if (dupes)
+        *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
+      else
+        *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
 
-    st = ham_db_find(db, 0, &key, &rec2, 0);
-    if (exist && st != 0) {
-      printf("ham_db_find failed but shouldn't: %d\n", (int)st);
-      exit(-1);
-    }
-    if (!exist && st != HAM_KEY_NOT_FOUND) {
-      printf("ham_db_find succeeded but shouldn't: %d\n", (int)st);
-      exit(-1);
-    }
-
-    if (exist) {
-      if (rec.size != rec2.size
-          || memcmp(rec.data, rec2.data, rec2.size)) {
-        printf("key mismatch\n");
+      st = ham_db_find(db, 0, &key, &rec2, 0);
+      if (i < maxi && st != 0) {
+        printf("ham_db_find failed but shouldn't: %d, i=%d, j=%d\n",
+                        (int)st, i, j);
         exit(-1);
       }
+      else if (i == maxi) {
+        if (exist && st != 0) {
+          printf("ham_db_find failed but shouldn't: %d, i=%d, j=%d\n",
+                          (int)st, i, j);
+          exit(-1);
+        }
+        if (!exist && st != HAM_KEY_NOT_FOUND) {
+          printf("ham_db_find succeeded but shouldn't: %d, i=%d, j=%d\n",
+                          (int)st, i, j);
+          exit(-1);
+        }
+      }
+
+      if (exist) {
+        if (rec.size != rec2.size
+            || memcmp(rec.data, rec2.data, rec2.size)) {
+          printf("key mismatch\n");
+          exit(-1);
+        }
+      }
+      // only loop once if transactions are disabled
+      if (!use_txn)
+        break;
     }
-    // only loop once if transactions are disabled
-    if (!use_txn)
-      break;
   }
 }
 

@@ -586,6 +586,21 @@ o a few tests are failing
             junit.framework.AssertionFailedError: expected:<4> but was:<0>
     x tools tests are currently failing
     o recovery tests are currently failing
+        x verify-tool should test ALL keys, not just those that were deleted!
+erase: keysize=8, i=47, dupes=0, use_txn=1, inducer=0
+recover: use_txn=1
+verify: keysize=8, recsize=8, i=47, dupes=0, use_txn=1, exist=0
+ham_db_find failed but shouldn't: -11, i=22, j=5
+cp rec-47.db recovery.db
+cp rec-47.db.log0 recovery.db.log0
+cp rec-47.db.jrn0 recovery.db.jrn0
+./recovery verify 8 8 47 0 1 1
+./recovery erase 8 47 0 1 0
+./recovery 1
+./recovery verify 8 8 47 0 1 0
+cp rec-47.db.jrn1 recovery.db.jrn1
+
+o rebase to v2
 
 o run static code analysis
     o coverity

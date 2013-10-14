@@ -28,6 +28,10 @@ sub simple_test {
 
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
+      # `cp recovery.db rec-$k.db`;
+      # `cp recovery.db.log0 rec-$k.db.log0`;
+      # `cp recovery.db.jrn0 rec-$k.db.jrn0`;
+      # `cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 8 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 8 8 $k 0 $txn 0"));

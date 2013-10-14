@@ -460,14 +460,18 @@ class BtreeEraseAction
       BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
       BtreeNodeProxy *ancnode = m_btree->get_node_from_page(ancpage);
 
+#if 0
       /* do not shift if both pages have (nearly) equal size; too much
        * effort for too little gain! */
-      if (std::max(node->get_count(), sibnode->get_count())
-                - std::min(node->get_count(), sibnode->get_count())
-            < 10) {
-        m_mergepage = 0;
-        return (0);
+      if (node->get_count() > 20 && sibnode->get_count() > 20) {
+        if (std::max(node->get_count(), sibnode->get_count())
+                  - std::min(node->get_count(), sibnode->get_count())
+              < 10) {
+          m_mergepage = 0;
+          return (0);
+        }
       }
+#endif
 
       /* uncouple all cursors */
       if ((st = BtreeCursor::uncouple_all_cursors(page)))

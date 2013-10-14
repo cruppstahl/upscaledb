@@ -193,7 +193,7 @@ class BtreeIndex
     // Returns the minimum number of keys per node - less keys require a
     // SMO (merge or shift)
     ham_u16_t get_minkeys() const {
-      return (m_maxkeys / 5);
+      return (std::max(3, m_maxkeys / 5));
     }
 
     // Returns the actual key size (including overhead)
