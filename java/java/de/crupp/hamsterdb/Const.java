@@ -180,10 +180,14 @@ public class Const {
     public final static int HAM_PARAM_PAGESIZE                  =    0x101;
 
     /** Parameter name for Database.create() */
+    public final static int HAM_PARAM_KEY_SIZE                  =    0x102;
     public final static int HAM_PARAM_KEYSIZE                   =    0x102;
 
     /** Parameter name for Environment.create() */
     public final static int HAM_PARAM_MAX_DATABASES             =    0x103;
+
+    /** Parameter name for Environment.create() */
+    public final static int HAM_PARAM_KEY_TYPE                  =    0x104;
 
     /** Parameter name for Environment.create(), Environment.open() */
     public final static int HAM_PARAM_NETWORK_TIMEOUT_SEC       =    0x107;
@@ -284,4 +288,20 @@ public class Const {
     public final static int HAM_FIND_NEAR_MATCH                 =
                 HAM_FIND_GEQ_MATCH|HAM_FIND_LEQ_MATCH;
 
+    /** A binary blob without type; sorted by memcmp */
+    public final static int HAM_TYPE_BINARY                     = 0;
+    /** A binary blob without type; sorted by callback function */
+    public final static int HAM_TYPE_CUSTOM                     = 1;
+    /** An unsigned 8-bit integer */
+    public final static int HAM_TYPE_UINT8                      = 3;
+    /** An unsigned 16-bit integer */
+    public final static int HAM_TYPE_UINT16                     = 5;
+    /** An unsigned 32-bit integer */
+    public final static int HAM_TYPE_UINT32                     = 7;
+    /** An unsigned 64-bit integer */
+    public final static int HAM_TYPE_UINT64                     = 9;
+    /** An 32-bit float */
+    public final static int HAM_TYPE_REAL32                     = 11;
+    /** An 64-bit double */
+    public final static int HAM_TYPE_REAL64                     = 12;
 }

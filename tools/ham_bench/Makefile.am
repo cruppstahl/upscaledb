@@ -24,8 +24,8 @@ ham_bench_SOURCES = berkeleydb.h \
 				  graph.h \
 				  hamsterdb.h \
 				  hamsterdb.cc \
-				  main.cc
-
+				  main.cc \
+				  metrics.h
 
 ham_bench_LDADD = $(top_builddir)/src/.libs/libhamsterdb.a \
 				  $(BOOST_CHRONO_LIBS) $(BOOST_SYSTEM_LIBS) \

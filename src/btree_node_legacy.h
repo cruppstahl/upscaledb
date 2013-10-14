@@ -27,7 +27,7 @@ namespace hamsterdb {
 /*
  * the internal representation of a serialized key
  */
-HAM_PACK_0 struct HAM_PACK_1 PBtreeKeyLegacy
+HAM_PACK_0 class HAM_PACK_1 PBtreeKeyLegacy
 {
   public:
     // Returns the record id

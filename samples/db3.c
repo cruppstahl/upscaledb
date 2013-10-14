@@ -34,23 +34,23 @@ my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length,
 
 int
 main(int argc, char **argv) {
-  ham_status_t st;    /* status variable */
-  ham_env_t *env;     /* hamsterdb environment object */
-  ham_db_t *db;     /* hamsterdb database object */
-  ham_cursor_t *cursor; /* a database cursor */
-  char line[1024 * 4];  /* a buffer for reading lines */
-  ham_key_t key;
-  ham_record_t record;
-
-  memset(&key, 0, sizeof(key));
-  memset(&record, 0, sizeof(record));
+  ham_status_t st;             /* status variable */
+  ham_env_t *env;              /* hamsterdb environment object */
+  ham_db_t *db;                /* hamsterdb database object */
+  ham_cursor_t *cursor;        /* a database cursor */
+  char line[1024 * 4];         /* a buffer for reading lines */
+  ham_key_t key = {0};
+  ham_record_t record = {0};
+  ham_parameter_t params[] = { /* parameters for ham_env_create_db */
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM},
+    {0, }
+  };
 
   printf("This sample uses hamsterdb to sort data.\n");
   printf("Reading from stdin...\n");
 
   /*
    * Create a new hamsterdb Environment.
-   * We could create an In-Memory-Environment to speed up the sorting.
    */
   st = ham_env_create(&env, "test.db", 0, 0664, 0);
   if (st != HAM_SUCCESS) {
@@ -58,8 +58,12 @@ main(int argc, char **argv) {
     return (-1);
   }
 
+  /*
+   * Create a new Database in the new Environment. The HAM_TYPE_CUSTOM
+   * parameter allows us to set a custom compare function.
+   */
   st = ham_env_create_db(env, &db, DATABASE_NAME,
-          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATE_KEYS, 0);
+          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
   if (st != HAM_SUCCESS) {
     printf("ham_env_create_db() failed with error %d\n", st);
     return (-1);

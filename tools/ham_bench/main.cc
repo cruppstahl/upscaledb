@@ -927,7 +927,22 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
     if (st1 == st2 && st1 == HAM_KEY_NOT_FOUND)
       break;
 
-    if (conf->verbose > 1) {
+    bool failed = false;
+
+    // compare status
+    if (st1 != st2) {
+      ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
+                              st1, st2));
+      failed = true;
+    }
+    // compare keys
+    if (!are_keys_equal(&key1, &key2))
+      failed = true;
+    // compare records
+    if (!are_records_equal(&rec1, &rec2))
+      failed = true;
+
+    if (failed || conf->verbose > 1) {
       std::string s1, s2;
       switch (conf->key_type) {
         case Configuration::kKeyUint8:
@@ -973,20 +988,10 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
                   s1.c_str(), s2.c_str(), rec1.size, rec2.size);
           break;
       }
-    }
 
-    // compare status
-    if (st1 != st2) {
-      ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
-                              st1, st2));
-      return (false);
+      if (failed)
+        return (false);
     }
-    // compare keys
-    if (!are_keys_equal(&key1, &key2))
-      return (false);
-    // compare records
-    if (!are_records_equal(&rec1, &rec2))
-      return (false);
   } while (st1 == 0 && st2 == 0);
 
 bail:

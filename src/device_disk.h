@@ -60,17 +60,13 @@ class DiskDevice : public Device {
       if (st)
         return (st);
 
+      // make sure we do not exceed the "real" size of the file, otherwise
+      // we run into issues when accessing that memory (at least on windows)
       ham_size_t granularity = os_get_granularity();
-      if (open_filesize == 0 || open_filesize < granularity)
+      if (open_filesize == 0 || open_filesize % granularity)
         return (0);
 
-      // align the filesize; make sure we do not exceed the "real"
-	  // size of the file, otherwise we run into issues when accessing
-	  // that memory (at least on windows)
-	  if (open_filesize % granularity)
-		m_mapped_size = (open_filesize / granularity) * granularity;
-      else
-        m_mapped_size = open_filesize;
+      m_mapped_size = open_filesize;
 
       return (os_mmap(m_fd, &m_win32mmap, 0, m_mapped_size,
                     (flags & HAM_READ_ONLY) != 0, &m_mmapptr));

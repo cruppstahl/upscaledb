@@ -328,12 +328,22 @@ public class CursorTest extends TestCase {
     }
   }
 
-  public void testSetComparator() {
+  public void testSetComparator() throws Exception {
     byte[] k = new byte[5];
     byte[] r = new byte[5];
     MyComparator cmp = new MyComparator();
     Cursor c;
+    Parameter[] params = new Parameter[1];
+    params[0] = new Parameter();
+    params[0].name = Const.HAM_PARAM_KEY_TYPE;
+    params[0].value = Const.HAM_TYPE_CUSTOM;
+
     try {
+      tearDown();
+      m_env = new Environment();
+      m_env.create("jtest.db");
+      m_db = m_env.createDatabase((short)1, Const.HAM_ENABLE_DUPLICATE_KEYS,
+                      params);
       c = new Cursor(m_db);
       m_db.setComparator(cmp);
       c.insert(k, r);

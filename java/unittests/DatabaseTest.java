@@ -99,7 +99,11 @@ public class DatabaseTest extends TestCase {
     MyComparator cmp = new MyComparator();
     try {
       env.create("jtest.db");
-      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS);
+      Parameter[] params = new Parameter[1];
+      params[0] = new Parameter();
+      params[0].name = Const.HAM_PARAM_KEY_TYPE;
+      params[0].value = Const.HAM_TYPE_CUSTOM;
+      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS, params);
       db.setComparator(cmp);
       db.insert(k, r);
       k[0] = 1;

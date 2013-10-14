@@ -570,7 +570,22 @@ x use pax layout for fixed-size BINARY and CUSTOM
     x extend performance tests
     x run performance of pax vs. legacy (also with larger pagesizes)
 
-./ham_bench --quiet --use-berkeleydb=true --reopen=true --use-extended --use-transactions=tmp --pagesize=10240 ../testfiles/2/ext_060.tst
+x fails: ./ham_bench --quiet --use-berkeleydb=true --reopen=true --use-extended
+    --use-transactions=tmp --pagesize=10240 ../testfiles/2/ext_060.tst
+
+o a few tests are failing
+    x samples are currently failing
+        [error] ./db3 < db3.c
+        This sample uses hamsterdb to sort data.
+        Reading from stdin...
+        ham_set_compare_func() failed with error -8
+    x java unittests are failing
+        1) testSetComparator(DatabaseTest)
+            junit.framework.AssertionFailedError: expected:<2> but was:<0>
+        2) testSetComparator(CursorTest)
+            junit.framework.AssertionFailedError: expected:<4> but was:<0>
+    x tools tests are currently failing
+    o recovery tests are currently failing
 
 o run static code analysis
     o coverity
@@ -602,6 +617,8 @@ o update the documentation/changelog/README/tutorial
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
 high-level plan for 2.2.0-pre2 (unstable)...................................
+- refactoring: sometimes, the BtreeNodeProxy updates node->count after an
+    operation; sometimes, this is handled in the Btree*Action class -> unify
 - remove "shifts" from btree SMOs, only merge
 - replace 3rdparty/json with boost property_tree
 - ham_bench can use /opt/share/dict/words as data input
@@ -609,7 +626,7 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
     - uses PAX layout with a small (in-memory) skiplist and linear search
         in this skiplist
     - also use linear search with fixed length keys (if max-keys-per-page
-        is low enough)
+        or the subrange in the binary search is low enough)
     - when cursors move forward: do not access "by random-access-index" but 
         by incrementing the cursor! (this is not possible for moving backwards,
         therefore both has to be supported)
@@ -622,7 +639,6 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
     ==> make sure this does not cause performance regressions
     ==> count number of overflow areas for statistics!
     - monster.pl needs to create variable length extended keys for testing!
-- omit flags if they are not required (fixed key, fixed record, no duplicates)
 - btree stores fixed-length records in the leaf
     also support record length of 0 ("key exists" vs "key does not exist")
     - not for internal nodes! they have a fixed record length of 8!
@@ -631,10 +647,25 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
         do not store 1 byte flag for each key
     - if page is large enough then store the record in the leaf, even
         if it's > 8 bytes
+- omit flags if they are not required (fixed key, fixed record, no duplicates)
+
+- introduce COMM version
+    - closed repository
+    - one source base with different licensing headers
+    - "hooks" for git to add changes without introducing conflicts
+    - API to get licensee information (already there)
+    - new release process
+    - prebuilt win32 files for each customer? (if required)
+    - extra documentation
+    - webpage changes, PR, mailings
+    - file format interoperability?
+ 
 - btree can compress keys (strings: prefix, everything: dict) -> COMM
     - needs new ham_bench enhancements to use actual strings instead of
         random garbage - see below
-- btree can compress records (prefix, dict, snappy) -> COMM
+    - dict is in-page, prepended
+    - each full string (incl. prefix) is indexed by the skiplist
+- btree can compress records (i.e. snappy) -> COMM
 - use SIMD for fixed-length scans -> COMM
     http://pcl.intel-research.net/publications/palm.pdf
 

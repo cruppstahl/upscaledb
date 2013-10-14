@@ -26,7 +26,6 @@ EXTRA_DIST = \
 	de_crupp_hamsterdb_ErrorHandler.h \
 	de_crupp_hamsterdb_License.h \
 	de_crupp_hamsterdb_Parameter.h \
-	de_crupp_hamsterdb_PrefixCompareCallback.h \
 	de_crupp_hamsterdb_Transaction.h \
 	de_crupp_hamsterdb_Version.h
 

@@ -6,6 +6,7 @@ endif # ENABLE_REMOTE
 lib_LTLIBRARIES = libhamsterdb.la
 
 libhamsterdb_la_SOURCES = \
+	abi.h \
 	aes.h \
 	blob_manager.h \
 	blob_manager_inmem.h \
@@ -27,6 +28,7 @@ libhamsterdb_la_SOURCES = \
 	btree_node.h \
 	btree_node_legacy.h \
 	btree_node_legacy.cc \
+	btree_node_pax.h \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \

@@ -31,8 +31,7 @@ InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   // have any gaps. In this case we just write the full record and ignore
   // the partial parameters.
   if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0
-        && record->partial_offset + record->partial_size == record->size)
+    if (record->partial_offset == 0 && record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }
 
@@ -140,8 +139,7 @@ InMemoryBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
   // have any gaps. In this case we just write the full record and ignore
   // the partial parameters.
   if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0
-          && record->partial_offset + record->partial_size == record->size)
+    if (record->partial_offset == 0 && record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }
 
