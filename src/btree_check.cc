@@ -183,7 +183,8 @@ class BtreeCheckAction
         }
       }
 
-      return (0);
+      // also check the last element
+      return (node->check_integrity(node->get_count() - 1));
     }
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {

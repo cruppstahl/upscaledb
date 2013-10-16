@@ -18,33 +18,15 @@ high-level plan for 2.2.0-pre1 (in decreasing priority)
 x refactoring of configure.ac -> topic/next
 x refactoring of the file format -> topic/next
 x make freelist statistics endian clean -> topic/next
-o btree understands fixed-size PODs -> topic/next
-    o support existing callbacks - everything should work as advertised
-    o support binary search only
-    o support POD types: int32, uint32, int64, uint64, float, double,
+x btree understands fixed-size PODs -> topic/next
+    x support existing callbacks - everything should work as advertised
+    x support binary search only
+    x support POD types: int32, uint32, int64, uint64, float, double,
         fixed length blobs, fixed length strings (?)
         (w/o duplicates and extended keys - they always enforce the
         default type based on the callback)
-o cache oblivious btree layout (if it makes sense!) -> COMM
-o specify timeout for remote client
-o monster test can create graphs
-
------------------------------------------------------------------------------
-
-high-level plan for 2.2.0-pre1 (in decreasing priority)
-x refactoring of configure.ac
-x refactoring of the file format
-x make freelist statistics endian clean
-o btree understands fixed-size PODs
-    o support existing callbacks - everything should work as advertised
-    o support binary search only
-    o support POD types: int32, uint32, int64, uint64, float, double,
-        fixed length blobs, fixed length strings (?)
-        (w/o duplicates and extended keys - they always enforce the
-        default type based on the callback)
-o cache oblivious btree layout (if it makes sense!) -> COMM
-o specify timeout for remote client
-o monster test can create graphs
+x specify timeout for remote client
+x monster test can create graphs
 
 -----------------------------------------------------------------------------
 
@@ -266,7 +248,7 @@ x hamsterdb.com performance improvements
         the frontpage
     x do not load presentation.css (or at least remove the fontfaces)
 
-o new monster test requirements
+x new monster test requirements
     -> the current test is difficult to modify when introducing new features
     like the btree layout; in addition, it would be nice to have different
     distributions (random insert/erase, zipfian etc).
@@ -573,6 +555,8 @@ x use pax layout for fixed-size BINARY and CUSTOM
 x fails: ./ham_bench --quiet --use-berkeleydb=true --reopen=true --use-extended
     --use-transactions=tmp --pagesize=10240 ../testfiles/2/ext_060.tst
 
+x rebase to v2
+
 o a few tests are failing
     x samples are currently failing
         [error] ./db3 < db3.c
@@ -587,20 +571,20 @@ o a few tests are failing
     x tools tests are currently failing
     o recovery tests are currently failing
         x verify-tool should test ALL keys, not just those that were deleted!
-erase: keysize=8, i=47, dupes=0, use_txn=1, inducer=0
-recover: use_txn=1
-verify: keysize=8, recsize=8, i=47, dupes=0, use_txn=1, exist=0
-ham_db_find failed but shouldn't: -11, i=22, j=5
-cp rec-47.db recovery.db
-cp rec-47.db.log0 recovery.db.log0
-cp rec-47.db.jrn0 recovery.db.jrn0
-./recovery verify 8 8 47 0 1 1
-./recovery erase 8 47 0 1 0
-./recovery 1
-./recovery verify 8 8 47 0 1 0
-cp rec-47.db.jrn1 recovery.db.jrn1
 
-o rebase to v2
+================
+recovery.cpp: hat temp. änderungen, NUM_blah = 1 -> 10
+================
+
+o make sure the release tests run valgrind without tcmalloc
+
+o ham_dump: the help screen lists wrong options (i.e. -key etc)
+
+o perftest: add more recovery-based tests
+    o extended keys
+    o small records
+    o big records
+    o big records + extended keys
 
 o run static code analysis
     o coverity

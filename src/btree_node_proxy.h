@@ -45,6 +45,7 @@ class BtreeNodeProxy
 
     // Sets the number of entries in the BtreeNode
     void set_count(ham_u32_t count) {
+      ham_assert(count <= m_page->get_db()->get_btree_index()->get_maxkeys());
       PBtreeNode::from_page(m_page)->set_count(count);
     }
 
@@ -512,7 +513,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
                 "has flags, but it's not a leaf page", m_page->get_address()));
         return (HAM_INTEGRITY_VIOLATED);
       }
-      return (m_layout.check_integrity(it));
+      return (m_layout.check_integrity(it,
+                  m_page->get_db()->get_local_env()->get_blob_manager()));
     }
 
     // Clears the header of a new node
@@ -936,10 +938,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       typename NodeLayout::Iterator dest = other->m_layout.at(dest_slot);
 
       // release the extended blob of the destination key (if there is one)
-      other->m_layout.release_key(dest);
+      if (dest_slot < (int)other->get_count())
+        other->m_layout.release_key(dest);
 
       dest->set_flags(src->get_flags());
-      dest->set_key(src->get_key(), src->get_size());
 
       /*
        * internal keys are not allowed to have blob-flags, because only the
@@ -959,6 +961,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
        * using the same blobid. this would be too complicated.
        */
       if (src->get_flags() & BtreeKey::kExtended) {
+        dest->set_key(src->get_key(),
+                        std::min(db->get_keysize(), src->get_size()));
+
         ham_record_t record = {0};
         ByteArray arena;
         ham_u64_t rhsblobid = src->get_extended_rid(db);
@@ -972,6 +977,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
           return (st);
         dest->set_extended_rid(db, lhsblobid);
       }
+      else
+        dest->set_key(src->get_key(), src->get_size());
 
       dest->set_size(src->get_size());
       return (0);

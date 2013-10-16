@@ -322,7 +322,7 @@ class PaxNodeLayout
       return (0);
     }
 
-    ham_status_t check_integrity(Iterator it) const {
+    ham_status_t check_integrity(Iterator it, BlobManager *bm) const {
       return (0);
     }
 

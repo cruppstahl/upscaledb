@@ -21,16 +21,18 @@
 #include "../src/errorinducer.h"
 #include "os.hpp"
 
-/* this function pointer is defined in changeset.c */
-extern "C" {
-typedef void (*hook_func_t)(void);
-  extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
-  extern hook_func_t g_BTREE_INSERT_SPLIT_HOOK;
-}
-
 using namespace hamsterdb;
 
-#define NUM_STEPS     10
+#define NUM_STEPS     1
+
+void
+create_key(ham_key_t *key, int i) {
+  char *p = (char *)key->data;
+  *(int *)&p[0] = i;
+  // also set at the end of the key to force reloading of extended key blobs
+  if (key->size > 8)
+    *(int *)&p[key->size - sizeof(int)] = i;
+}
 
 void
 usage() {
@@ -131,13 +133,7 @@ insert(int argc, char **argv) {
   ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {
-    // modify key at end of buffer to make sure that extended keys
-    // are fully loaded
-    char *p = (char *)key.data;
-    if (dupes)
-      *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
-    else
-      *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS)+j;
+    create_key(&key, i * NUM_STEPS + j);
     st = ham_db_insert(db, txn, &key, &rec, dupes ? HAM_DUPLICATE : 0);
     if (st) {
       if (st == HAM_INTERNAL_ERROR && !use_txn)
@@ -213,11 +209,8 @@ erase(int argc, char **argv) {
   ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {
-    // modify key at end of buffer to make sure that extended keys
-    // are fully loaded
-    char *p = (char *)key.data;
+    create_key(&key, i * NUM_STEPS + j);
     if (dupes) {
-      *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
       st = ham_db_erase(db, txn, &key, 0);
       if (st) {
         if (st == HAM_INTERNAL_ERROR && !use_txn)
@@ -225,10 +218,8 @@ erase(int argc, char **argv) {
         printf("ham_db_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
         exit(-1);
       }
-      break;
     }
     else {
-      *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
       st = ham_db_erase(db, txn, &key, 0);
       if (st) {
         if (st == HAM_INTERNAL_ERROR && !use_txn)
@@ -327,11 +318,13 @@ verify(int argc, char **argv) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
   }
+
   st = ham_env_open_db(env, &db, 1, 0, 0);
   if (st) {
     printf("ham_env_open_db failed: %d\n", (int)st);
     exit(-1);
   }
+
   st = ham_db_check_integrity(db, 0);
   if (st) {
     printf("ham_db_check_integrity failed: %d\n", (int)st);
@@ -340,13 +333,7 @@ verify(int argc, char **argv) {
 
   for (int i = 0; i <= maxi; i++) {
     for (int j = 0; j < NUM_STEPS; j++) {
-      // modify key at end of buffer to make sure that extended keys
-      // are fully loaded
-      char *p = (char *)key.data;
-      if (dupes)
-        *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
-      else
-        *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
+      create_key(&key, i * NUM_STEPS + j);
 
       st = ham_db_find(db, 0, &key, &rec2, 0);
       if (i < maxi && st != 0) {

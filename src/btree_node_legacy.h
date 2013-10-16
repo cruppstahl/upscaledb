@@ -236,12 +236,23 @@ class LegacyNodeLayout
       return (st);
     }
 
-    ham_status_t check_integrity(Iterator it) const {
+    ham_status_t check_integrity(Iterator it, BlobManager *bm) const {
       if (it->get_flags() & BtreeKey::kExtended) {
         ham_u64_t blobid = it->get_extended_rid(m_page->get_db());
         if (!blobid) {
           ham_log(("integrity check failed in page 0x%llx: item "
                   "is extended, but has no blob", m_page->get_address()));
+          return (HAM_INTEGRITY_VIOLATED);
+        }
+
+        // make sure that the extended blob can be loaded
+        ham_record_t record = {0};
+        ByteArray arena;
+        ham_status_t st = bm->read(m_page->get_db(), blobid, &record, 0, &arena);
+        if (st) {
+          ham_log(("integrity check failed in page 0x%llx: item "
+                  "is extended, but failed to read blob: %d",
+                  m_page->get_address(), st));
           return (HAM_INTEGRITY_VIOLATED);
         }
       }

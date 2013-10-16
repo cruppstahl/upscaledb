@@ -594,6 +594,7 @@ class BtreeEraseAction
 
           /* current page has now one item less */
           node->set_count(node->get_count() - 1);
+          sibnode->set_count(sibnode->get_count() + 1);
         }
 
         ham_size_t c = (node->get_count() - sibnode->get_count()) / 2;
