@@ -13,8 +13,8 @@
 #ifndef DATASOURCE_BINARY_H__
 #define DATASOURCE_BINARY_H__
 
-#include <limits>
 #include <string>
+#include <boost/limits.hpp>
 #include <boost/random.hpp>
 #include <boost/random/uniform_01.hpp>
 
@@ -196,7 +196,7 @@ class BinaryZipfianDatasource : public Datasource
       for (unsigned i = 0; i < (n * size); i++) {
         do {
           m_data[i] = m_rng() % 0xff;
-        } while (!std::isalnum(m_data[i]));
+        } while (!isalnum(m_data[i]));
       }
     }
 

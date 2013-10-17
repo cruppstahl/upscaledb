@@ -100,7 +100,7 @@ class ParserGenerator : public Generator
 
     // Returns the number of lines
     unsigned get_line_count() const {
-      return (m_lines.size());
+      return ((unsigned)m_lines.size());
     }
 
     // generates a key from a string

@@ -178,6 +178,7 @@
     <ClInclude Include="..\..\include\ham\hamsterdb.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
     <ClInclude Include="..\..\include\ham\types.h" />
+    <ClInclude Include="..\..\src\abi.h" />
     <ClInclude Include="..\..\src\aes.h" />
     <ClInclude Include="..\..\src\blob_manager.h" />
     <ClInclude Include="..\..\src\blob_manager_disk.h" />
@@ -185,8 +186,12 @@
     <ClInclude Include="..\..\src\blob_manager_inmem.h" />
     <ClInclude Include="..\..\src\btree_index.h" />
     <ClInclude Include="..\..\src\btree_cursor.h" />
+    <ClInclude Include="..\..\src\btree_index_factory.h" />
     <ClInclude Include="..\..\src\btree_key.h" />
     <ClInclude Include="..\..\src\btree_node.h" />
+    <ClInclude Include="..\..\src\btree_node_legacy.h" />
+    <ClInclude Include="..\..\src\btree_node_pax.h" />
+    <ClInclude Include="..\..\src\btree_node_proxy.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />
     <ClInclude Include="..\..\src\cache.h" />
     <ClInclude Include="..\..\src\changeset.h" />
@@ -239,7 +244,7 @@
     <ClCompile Include="..\..\src\btree_erase.cc" />
     <ClCompile Include="..\..\src\btree_find.cc" />
     <ClCompile Include="..\..\src\btree_insert.cc" />
-    <ClCompile Include="..\..\src\btree_key.cc" />
+    <ClCompile Include="..\..\src\btree_node_legacy.cc" />
     <ClCompile Include="..\..\src\btree_stats.cc" />
     <ClCompile Include="..\..\src\cache.cc" />
     <ClCompile Include="..\..\src\changeset.cc" />

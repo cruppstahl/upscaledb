@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.h>
 
 #define LOOP      10
@@ -29,7 +28,7 @@ error(const char *foo, ham_status_t st) {
 
 int
 main(int argc, char **argv) {
-  uint32_t i;
+  ham_u32_t i;
   ham_status_t st;             /* status variable */
   ham_env_t *env;              /* hamsterdb environment object */
   ham_db_t *db;                /* hamsterdb database object */

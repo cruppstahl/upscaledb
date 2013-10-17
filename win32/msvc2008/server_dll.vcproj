@@ -345,6 +345,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\server\hamserver.h"
+			>
+		</File>
+		<File
 			RelativePath=".\servicemsg.mc"
 			>
 		</File>

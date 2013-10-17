@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

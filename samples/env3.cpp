@@ -14,7 +14,6 @@
 
 #include <iostream>
 #include <stdlib.h> /* for exit() */
-#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.hpp>
 
 #define MAX_DBS           3
@@ -32,15 +31,15 @@
 
 /* A structure for the "customer" database */
 typedef struct {
-  uint32_t id;          /* customer id; will be the key of the customer table */
+  ham_u32_t id;         /* customer id; will be the key of the customer table */
   char name[32];        /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  uint32_t id;          /* order id; will be the key of the order table */
-  uint32_t customer_id; /* customer id */
+  ham_u32_t id;         /* order id; will be the key of the order table */
+  ham_u32_t customer_id;/* customer id */
   char assignee[32];    /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;

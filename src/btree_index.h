@@ -12,6 +12,8 @@
 #ifndef HAM_BTREE_INDEX_H__
 #define HAM_BTREE_INDEX_H__
 
+#include <algorithm>
+
 #include "endianswap.h"
 
 #include "db.h"
@@ -24,6 +26,8 @@
 namespace hamsterdb {
 
 #include "packstart.h"
+
+#undef max // avoid MSVC conflicts with std::max
 
 //
 // The persistent btree index descriptor. This structure manages the

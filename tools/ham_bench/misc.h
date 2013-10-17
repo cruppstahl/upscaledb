@@ -15,8 +15,8 @@
 
 #include <stdio.h>
 
-#define VERBOSE(x)  while (m_config->verbose) { printf x; break; }
-#define TRACE(x)    do { printf("[info] "); printf x; } while (0)
-#define ERROR(x)    do { printf("[error] "); printf x; } while (0)
+#define LOG_VERBOSE(x)  while (m_config->verbose) { printf x; break; }
+#define LOG_TRACE(x)    do { printf("[info] "); printf x; } while (0)
+#define LOG_ERROR(x)    do { printf("[error] "); printf x; } while (0)
 
 #endif /* MISC_HPP__ */

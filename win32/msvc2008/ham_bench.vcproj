@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;.."
 				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -123,7 +123,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;.."
 				PreprocessorDefinitions="WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -201,7 +201,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;.."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -279,7 +279,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;.."
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_CONSOLE;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -336,7 +336,95 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\ham_bench\aes.cpp"
+			RelativePath="..\..\tools\ham_bench\berkeleydb.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\berkeleydb.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\configuration.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\database.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\database.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\datasource.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\datasource_binary.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\datasource_numeric.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\generator.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\generator_parser.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\generator_parser.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\generator_runtime.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\generator_runtime.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\getopts.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\getopts.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\graph.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\hamsterdb.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\hamsterdb.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\main.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\metrics.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\misc.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\mutex.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\ham_bench\timer.h"
 			>
 		</File>
 	</Files>

@@ -20,6 +20,8 @@
 #include "duplicates.h"
 #include "env_local.h"
 
+#undef min  // avoid MSVC conflicts with std::min
+
 namespace hamsterdb {
 
 //

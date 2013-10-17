@@ -12,6 +12,10 @@
 #ifndef HAM_HAMSERVER_H__
 #define HAM_HAMSERVER_H__
 
+// otherwise uv.h includes <windows.h>, which includes
+// <winsock.h>, which conflicts with <winsock2.h>
+#define WIN32_LEAN_AND_MEAN
+
 #include <vector>
 #include <uv.h>
 

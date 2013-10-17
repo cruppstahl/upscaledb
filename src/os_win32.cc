@@ -12,8 +12,8 @@
 
 #include "config.h"
 
+#include <winsock2.h>
 #include <windows.h>
-#include <winsock.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -520,9 +520,10 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
     tv.tv_sec = timeout_sec;
     tv.tv_usec = 0;
     if (::setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv)) < 0) {
+      char buf[256];
       ham_log(("unable to set socket timeout to %u sec: %u/%s", timeout_sec,
                   WSAGetLastError(), DisplayError(buf, sizeof(buf),
-                      WSAGetLastError())));
+                  WSAGetLastError())));
       // fall through, this is not critical
     }
   }

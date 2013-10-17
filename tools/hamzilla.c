@@ -39,6 +39,7 @@
 #else
 #  include <process.h> /* _getpid() */
 #  include <tchar.h>
+#  include <winsock2.h>
 #  include <windows.h>
 #  include <winioctl.h>
 #  include <signal.h>
@@ -257,6 +258,7 @@ read_config(const char *configfile, config_table_t **params) {
   char *buf;
   FILE *fp;
   long len;
+  size_t r;
 
   hlog(LOG_DBG, "Parsing configuration file %s\n", configfile);
 
@@ -270,8 +272,8 @@ read_config(const char *configfile, config_table_t **params) {
   fseek(fp, 0, SEEK_END);
   len = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  buf=(char *)malloc(len + 1); /* for zero-terminating byte */
-  int r = fread(buf, 1, len, fp);
+  buf = (char *)malloc(len + 1); /* for zero-terminating byte */
+  r = fread(buf, 1, len, fp);
   fclose(fp);
 
   if (r < 0 || r != len) {

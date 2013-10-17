@@ -292,6 +292,10 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\..\src\abi.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\aes.h"
 			>
 		</File>
@@ -352,11 +356,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_insert.cc"
+			RelativePath="..\..\src\btree_index_factory.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_key.cc"
+			RelativePath="..\..\src\btree_insert.cc"
 			>
 		</File>
 		<File
@@ -365,6 +369,22 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_node.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_node_legacy.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_node_legacy.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_node_pax.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_node_proxy.h"
 			>
 		</File>
 		<File

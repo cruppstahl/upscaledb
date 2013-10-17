@@ -341,7 +341,7 @@ ParserGenerator::generate_key(const char *keydata, char *buffer) const
     case Configuration::kKeyBinary:
     case Configuration::kKeyCustom:
       key.data = (void *)keydata;
-      key.size = strlen(keydata) + 1;
+      key.size = (ham_u16_t)strlen(keydata) + 1;
       break;
     case Configuration::kKeyUint8:
       *(ham_u16_t *)buffer = (ham_u8_t)strtoul(keydata, 0, 0);
@@ -402,14 +402,14 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
   if (m_tokens.empty())
     return (kCommandNop);
   if (m_tokens[0] == "CREATE") {
-    VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
+    LOG_VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
           m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
     return (kCommandCreate);
   }
   if (m_tokens[0] == "OPEN") {
-    VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
+    LOG_VERBOSE(("%d: line %u: reading token '%s' .......................\n", 
           m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
     if (strstr(m_lines[m_cur_line].c_str(), "NUMERIC_KEY"))
       m_config->key_type = Configuration::kKeyUint32;
@@ -427,10 +427,10 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
       *precdata = m_tokens[3].c_str();
     }
     else {
-      ERROR(("line %d (INSERT): parser error\n", m_cur_line + 1));
+      LOG_ERROR(("line %d (INSERT): parser error\n", m_cur_line + 1));
       exit(-1);
     }
-    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+    LOG_VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
           m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     if (!*precdata)
       *precdata = "";
@@ -438,28 +438,28 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
   }
   if (m_tokens[0] == "ERASE") {
     if (m_tokens.size() < 3) {
-      ERROR(("line %d (ERASE): parser error\n", m_cur_line + 1));
+      LOG_ERROR(("line %d (ERASE): parser error\n", m_cur_line + 1));
       exit(-1);
     }
     *pflags = m_tokens[1].c_str();
     *pkeydata = m_tokens[2].c_str();
-    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+    LOG_VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
           m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     return (kCommandErase);
   }
   if (m_tokens[0] == "FIND") {
     if (m_tokens.size() != 3) {
-      ERROR(("line %d (FIND): parser error\n", m_cur_line + 1));
+      LOG_ERROR(("line %d (FIND): parser error\n", m_cur_line + 1));
       exit(-1);
     }
     *pflags = m_tokens[1].c_str();
     *pkeydata = m_tokens[2].c_str();
-    VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
+    LOG_VERBOSE(("%d: line %u: reading token '%s' (%s)...................\n", 
           m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str(), *pkeydata));
     return (kCommandFind);
   }
 
-  VERBOSE(("%d: line %u: reading token '%s'........................\n", 
+  LOG_VERBOSE(("%d: line %u: reading token '%s'........................\n", 
         m_db->get_id(), m_cur_line + 1, m_tokens[0].c_str()));
 
   if (m_tokens[0] == "BREAK") {
@@ -488,7 +488,7 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
     return (kCommandFlush);
   }
 
-  ERROR(("line %d: invalid token '%s'\n", m_cur_line, m_tokens[0].c_str()));
+  LOG_ERROR(("line %d: invalid token '%s'\n", m_cur_line, m_tokens[0].c_str()));
   ::exit(-1);
   return (0);
 }
@@ -501,7 +501,7 @@ ParserGenerator::read_file()
     f = fopen(m_config->filename.c_str(), "rt");
 
   if (!f) {
-    ERROR(("failed to open %s\n", m_config->filename.c_str()));
+    LOG_ERROR(("failed to open %s\n", m_config->filename.c_str()));
     exit(-1);
   }
 

@@ -15,7 +15,7 @@
 #include "database.h"
 #include "graph.h"
 
-class Configuration;
+struct Configuration;
 
 //
 // base class for generating test data

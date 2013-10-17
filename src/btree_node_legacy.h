@@ -12,6 +12,8 @@
 #ifndef HAM_BTREE_NODE_LEGACY_H__
 #define HAM_BTREE_NODE_LEGACY_H__
 
+#include <algorithm>
+
 #include "util.h"
 #include "page.h"
 #include "extkeys.h"
@@ -23,6 +25,8 @@
 namespace hamsterdb {
 
 #include "packstart.h"
+
+#undef min  // avoid MSVC conflicts with std::min
 
 /*
  * the internal representation of a serialized key
@@ -208,7 +212,7 @@ class LegacyNodeLayout
         dest->size = it->get_size();
       }
 
-      size_t size = std::min(it->get_size(), db->get_keysize());
+      size_t size = std::min((ham_u16_t)it->get_size(), (ham_u16_t)db->get_keysize());
       memcpy(dest->data, it->get_key(), size);
 
       // TODO not really efficient; get rid of Db::get_extended_key

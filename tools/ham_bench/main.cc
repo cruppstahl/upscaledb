@@ -19,7 +19,7 @@
 
 #include <ham/hamsterdb.h>
 
-#include "getopts.h"
+#include "../getopts.h"
 #include "configuration.h"
 #include "datasource.h"
 #include "datasource_numeric.h"
@@ -858,7 +858,7 @@ static bool
 are_keys_equal(ham_key_t *key1, ham_key_t *key2)
 {
   if (key1->size != key2->size) {
-    ERROR(("keys are not equal - hamsterdb size %u, berkeleydb %u\n",
+    LOG_ERROR(("keys are not equal - hamsterdb size %u, berkeleydb %u\n",
                             key1->size, key2->size));
     return (false);
   }
@@ -867,7 +867,7 @@ are_keys_equal(ham_key_t *key1, ham_key_t *key2)
     return (true);
 
   if (::memcmp(key1->data, key2->data, key1->size)) {
-    ERROR(("keys are not equal - data differs\n"));
+    LOG_ERROR(("keys are not equal - data differs\n"));
     return (false);
   }
   return (true);
@@ -877,7 +877,7 @@ static bool
 are_records_equal(const ham_record_t *rec1, const ham_record_t *rec2)
 {
   if (rec1->size != rec2->size) {
-    ERROR(("records are not equal - hamsterdb size %u, berkeleydb %u\n",
+    LOG_ERROR(("records are not equal - hamsterdb size %u, berkeleydb %u\n",
                             rec1->size, rec2->size));
     return (false);
   }
@@ -886,7 +886,7 @@ are_records_equal(const ham_record_t *rec1, const ham_record_t *rec2)
     return (true);
 
   if (::memcmp(rec1->data, rec2->data, rec1->size)) {
-    ERROR(("records are not equal - data differs\n"));
+    LOG_ERROR(("records are not equal - data differs\n"));
     return (false);
   }
   return (true);
@@ -931,7 +931,7 @@ run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
 
     // compare status
     if (st1 != st2) {
-      ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
+      LOG_ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
                               st1, st2));
       failed = true;
     }
@@ -1042,7 +1042,7 @@ run_both_tests(Configuration *conf)
     }
     else {
       if (generator1.get_status() != generator2.get_status()) {
-        ERROR(("Status mismatch - %d vs %d\n",
+        LOG_ERROR(("Status mismatch - %d vs %d\n",
               generator1.get_status(), generator2.get_status()));
         ok = false;
         break;
@@ -1050,7 +1050,7 @@ run_both_tests(Configuration *conf)
 
       if (!are_records_equal(generator1.get_record(),
                   generator2.get_record())) {
-        ERROR(("Record mismatch\n"));
+        LOG_ERROR(("Record mismatch\n"));
         ok = false;
         break;
       }

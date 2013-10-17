@@ -18,6 +18,8 @@
 
 #define kZipfianLimit       (1024 * 1024)
 
+#undef min // avoid MSVC conflicts with std::min
+
 RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                 bool show_progress)
   : Generator(id, conf, db), m_state(0), m_opcount(0),

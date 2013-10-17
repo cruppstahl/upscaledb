@@ -111,7 +111,7 @@ class Graph
         os << std::endl;
         os.close();
 
-        int foo = system("gnuplot gnuplot-lat > graph-lat.png");
+		int foo = ::system("gnuplot gnuplot-lat > graph-lat.png");
         (void)foo;
       }
 
@@ -135,7 +135,7 @@ class Graph
         os << std::endl;
         os.close();
 
-        int foo = system("gnuplot gnuplot-ops > graph-ops.png");
+		int foo = ::system("gnuplot gnuplot-ops > graph-ops.png");
         (void)foo;
       }
     }

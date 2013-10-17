@@ -13,6 +13,8 @@
 #define METRICS_H__
 
 #include <ham/hamsterdb_int.h>
+#include <boost/cstdint.hpp> // MSVC 2008 does not have stdint.h
+using namespace boost;
 
 struct Metrics {
   const char *name;

@@ -295,6 +295,10 @@
 			RelativePath="..\..\src\server\hamserver.cc"
 			>
 		</File>
+		<File
+			RelativePath="..\..\src\server\hamserver.h"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

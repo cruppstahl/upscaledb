@@ -34,6 +34,7 @@ main()
   ham_srv_config_t cfg;
   ham_status_t st;
   char input[1024];
+  int s;
 
   /* create a new Environment; this Environment will be attached to the
    * server */
@@ -85,7 +86,7 @@ main()
   /* See client1.c for the corresponding client */
   while (1) {
     printf("> ");
-    int s = scanf("%s", &input[0]);
+    s = scanf("%s", &input[0]);
     if (s == EOF || !strcmp(input, "exit")) {
       printf("exiting...\n");
       break;

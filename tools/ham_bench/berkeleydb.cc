@@ -92,7 +92,7 @@ BerkeleyDatabase::do_open_env()
 {
   int ret = db_create(&m_db, 0, 0);
   if (ret) {
-    ERROR(("db_create failed w/ status %d\n", ret));
+    LOG_ERROR(("db_create failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
@@ -103,7 +103,7 @@ BerkeleyDatabase::do_open_env()
 
   ret = m_db->set_cachesize(m_db, 0, m_config->cachesize, 1);
   if (ret) {
-    ERROR(("db->set_cachesize failed w/ status %d\n", ret));
+    LOG_ERROR(("db->set_cachesize failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
@@ -122,7 +122,7 @@ BerkeleyDatabase::do_open_env()
     if (pagesize) {
       ret = m_db->set_pagesize(m_db, pagesize);
       if (ret) {
-        ERROR(("db->set_pagesize failed w/ status %d\n", ret));
+        LOG_ERROR(("db->set_pagesize failed w/ status %d\n", ret));
         return (db2ham(ret));
       }
     }
@@ -139,7 +139,7 @@ BerkeleyDatabase::do_close_env()
   if (m_db) {
     ret = m_db->close(m_db, 0);
     if (ret) {
-      ERROR(("db->close() failed w/ status %d\n", ret));
+      LOG_ERROR(("db->close() failed w/ status %d\n", ret));
       return (db2ham(ret));
     }
     m_db = 0;
@@ -174,14 +174,14 @@ BerkeleyDatabase::do_create_db(int id)
       break;
   }
   if (ret) {
-    ERROR(("set_bt_compare failed w/ status %d\n", ret));
+    LOG_ERROR(("set_bt_compare failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
   if (m_config->duplicate) {
     ret = m_db->set_flags(m_db, DB_DUP);
     if (ret) {
-      ERROR(("db->set_flags(DB_DUP) failed w/ status %d\n", ret));
+      LOG_ERROR(("db->set_flags(DB_DUP) failed w/ status %d\n", ret));
       return (db2ham(ret));
     }
   }
@@ -197,13 +197,13 @@ BerkeleyDatabase::do_create_db(int id)
   ret = m_db->open(m_db, 0, m_config->inmemory ? 0 : "test-berk.db",
           0, DB_BTREE, DB_CREATE, 0644);
   if (ret) {
-    ERROR(("db->open() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->open() failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
   ret = m_db->cursor(m_db, 0, &m_cursor, 0);
   if (ret) {
-    ERROR(("db->cursor() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->cursor() failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
@@ -237,19 +237,19 @@ BerkeleyDatabase::do_open_db(int id)
   }
 
   if (ret) {
-    ERROR(("set_bt_compare failed w/ status %d\n", ret));
+    LOG_ERROR(("set_bt_compare failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
   ret = m_db->open(m_db, 0, "test-berk.db", 0, DB_BTREE, 0, 0);
   if (ret) {
-    ERROR(("db->open() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->open() failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
   ret = m_db->cursor(m_db, 0, &m_cursor, 0);
   if (ret) {
-    ERROR(("db->cursor() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->cursor() failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
 
@@ -264,7 +264,7 @@ BerkeleyDatabase::do_close_db()
   if (m_cursor) {
     ret = m_cursor->c_close(m_cursor);
     if (ret) {
-      ERROR(("cursor->c_close() failed w/ status %d\n", ret));
+      LOG_ERROR(("cursor->c_close() failed w/ status %d\n", ret));
       return (db2ham(ret));
     }
     m_cursor = 0;
@@ -278,7 +278,7 @@ BerkeleyDatabase::do_flush()
 {
   int ret = m_db->sync(m_db, 0);
   if (ret) {
-    ERROR(("db->sync() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->sync() failed w/ status %d\n", ret));
     return (db2ham(ret));
   }
   return (0);
@@ -373,7 +373,7 @@ BerkeleyDatabase::do_cursor_create(Transaction *txn)
 
   int ret = m_db->cursor(m_db, 0, &cursor, 0);
   if (ret) {
-    ERROR(("db->cursor() failed w/ status %d\n", ret));
+    LOG_ERROR(("db->cursor() failed w/ status %d\n", ret));
     exit(-1);
   }
 
@@ -505,7 +505,7 @@ BerkeleyDatabase::do_cursor_close(Cursor *cursor)
 
   int ret = c->c_close(c);
   if (ret) {
-    ERROR(("cursor->close() failed w/ status %d\n", ret));
+    LOG_ERROR(("cursor->close() failed w/ status %d\n", ret));
     exit(-1);
   }
 
@@ -521,7 +521,7 @@ BerkeleyDatabase::db2ham(int ret)
     case DB_NOTFOUND: return (HAM_KEY_NOT_FOUND);
   }
 
-  TRACE(("unknown berkeley return code %d\n", ret));
+  LOG_TRACE(("unknown berkeley return code %d\n", ret));
   return ((ham_status_t)ret);
 }
 

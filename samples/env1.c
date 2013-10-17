@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <stdint.h> /* for uint32_t */
 #include <ham/hamsterdb.h>
 
 void
@@ -35,15 +34,15 @@ error(const char *foo, ham_status_t st) {
 
 /* A structure for the "customer" database */
 typedef struct {
-  uint32_t id;        /* customer id */
+  ham_u32_t id;       /* customer id */
   char name[32];      /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  uint32_t id;             /* order id */
-  uint32_t customer_id;    /* customer id */
+  ham_u32_t id;            /* order id */
+  ham_u32_t customer_id;   /* customer id */
   char assignee[32];       /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;

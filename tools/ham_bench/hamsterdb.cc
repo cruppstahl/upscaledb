@@ -95,7 +95,7 @@ HamsterDatabase::do_create_env()
     st = ham_env_create(&ms_env, "test-ham.db", flags, 0664,
                   &params[0]);
     if (st) {
-      ERROR(("ham_env_create failed with error %d (%s)\n",
+      LOG_ERROR(("ham_env_create failed with error %d (%s)\n",
                               st, ham_strerror(st)));
       return (st);
     }
@@ -120,7 +120,7 @@ HamsterDatabase::do_create_env()
     // flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
     st = ham_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
     if (st)
-      ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
+      LOG_ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
   }
 #endif
 
@@ -154,7 +154,7 @@ HamsterDatabase::do_open_env()
 
     st = ham_env_open(&ms_env, "test-ham.db", flags, &params[0]);
     if (st) {
-      ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
+      LOG_ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
       return (st);
     }
   }
@@ -178,7 +178,7 @@ HamsterDatabase::do_open_env()
     // flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
     st = ham_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
     if (st)
-      ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
+      LOG_ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
   }
 #endif
 
@@ -280,7 +280,7 @@ HamsterDatabase::do_create_db(int id)
   st = ham_env_create_db(m_env ? m_env : ms_env, &m_db, 1 + id,
                   flags, &params[0]);
   if (st) {
-    ERROR(("ham_env_create_db failed with error %d (%s)\n", st,
+    LOG_ERROR(("ham_env_create_db failed with error %d (%s)\n", st,
                             ham_strerror(st)));
     exit(-1);
   }
@@ -288,7 +288,7 @@ HamsterDatabase::do_create_db(int id)
   if (m_config->key_type == Configuration::kKeyCustom) {
     st = ham_db_set_compare_func(m_db, compare_keys);
     if (st) {
-      ERROR(("ham_db_set_compare_func failed with error %d (%s)\n", st,
+      LOG_ERROR(("ham_db_set_compare_func failed with error %d (%s)\n", st,
                               ham_strerror(st)));
       exit(-1);
     }
@@ -306,7 +306,7 @@ HamsterDatabase::do_open_db(int id)
 
   st = ham_env_open_db(m_env ? m_env : ms_env, &m_db, 1 + id, 0, &params[0]);
   if (st) {
-    ERROR(("ham_env_open_db failed with error %d (%s)\n", st,
+    LOG_ERROR(("ham_env_open_db failed with error %d (%s)\n", st,
                             ham_strerror(st)));
     exit(-1);
   }
@@ -314,7 +314,7 @@ HamsterDatabase::do_open_db(int id)
   if (m_config->key_type == Configuration::kKeyCustom) {
     st = ham_db_set_compare_func(m_db, compare_keys);
     if (st) {
-      ERROR(("ham_db_set_compare_func failed with error %d (%s)\n", st,
+      LOG_ERROR(("ham_db_set_compare_func failed with error %d (%s)\n", st,
                               ham_strerror(st)));
       exit(-1);
     }
@@ -351,7 +351,7 @@ HamsterDatabase::do_insert(Transaction *txn, ham_key_t *key,
 
   ham_status_t st = ham_db_insert(m_db, (ham_txn_t *)txn, key, record, flags);
   if (st)
-     VERBOSE(("insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
+     LOG_VERBOSE(("insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -360,7 +360,7 @@ HamsterDatabase::do_erase(Transaction *txn, ham_key_t *key)
 {
   ham_status_t st = ham_db_erase(m_db, (ham_txn_t *)txn, key, 0);
   if (st)
-     VERBOSE(("erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
+     LOG_VERBOSE(("erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -381,7 +381,7 @@ HamsterDatabase::do_find(Transaction *txn, ham_key_t *key, ham_record_t *record)
 
   ham_status_t st = ham_db_find(m_db, (ham_txn_t *)txn, key, record, flags);
   if (st)
-     VERBOSE(("find: failed w/ %d (%s)\n", st, ham_strerror(st)));
+     LOG_VERBOSE(("find: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -397,7 +397,7 @@ HamsterDatabase::do_txn_begin()
   ham_txn_t *txn;
   ham_status_t st = ham_txn_begin(&txn, m_env ? m_env : ms_env, 0, 0, 0);
   if (st) {
-    ERROR(("ham_txn_begin failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_begin failed with error %d (%s)\n", st, ham_strerror(st)));
     return (0);
   }
   return ((Database::Transaction *)txn);
@@ -408,7 +408,7 @@ HamsterDatabase::do_txn_commit(Transaction *txn)
 {
   ham_status_t st = ham_txn_commit((ham_txn_t *)txn, 0);
   if (st)
-    ERROR(("ham_txn_commit failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_commit failed with error %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -417,7 +417,7 @@ HamsterDatabase::do_txn_abort(Transaction *txn)
 {
   ham_status_t st = ham_txn_abort((ham_txn_t *)txn, 0);
   if (st)
-    ERROR(("ham_txn_abort failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_abort failed with error %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -428,7 +428,7 @@ HamsterDatabase::do_cursor_create(Transaction *txn)
 
   ham_status_t st = ham_cursor_create(&cursor, m_db, (ham_txn_t *)txn, 0);
   if (st) {
-    ERROR(("ham_cursor_create failed with error %d (%s)\n", st,
+    LOG_ERROR(("ham_cursor_create failed with error %d (%s)\n", st,
                             ham_strerror(st)));
     exit(-1);
   }
@@ -452,7 +452,7 @@ HamsterDatabase::do_cursor_insert(Cursor *cursor, ham_key_t *key,
   ham_status_t st = ham_cursor_insert((ham_cursor_t *)cursor, key,
                   record, flags);
   if (st)
-     VERBOSE(("cursor_insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
+     LOG_VERBOSE(("cursor_insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -461,12 +461,12 @@ HamsterDatabase::do_cursor_erase(Cursor *cursor, ham_key_t *key)
 {
   ham_status_t st = ham_cursor_find((ham_cursor_t *)cursor, key, 0, 0);
   if (st) {
-    VERBOSE(("cursor_find: failed w/ %d (%s)\n", st, ham_strerror(st)));
+    LOG_VERBOSE(("cursor_find: failed w/ %d (%s)\n", st, ham_strerror(st)));
     return (st);
   }
   st = ham_cursor_erase((ham_cursor_t *)cursor, 0);
   if (st)
-    VERBOSE(("cursor_erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
+    LOG_VERBOSE(("cursor_erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -476,7 +476,7 @@ HamsterDatabase::do_cursor_find(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st = ham_cursor_find((ham_cursor_t *)cursor, key, record, 0);
   if (st)
-    VERBOSE(("cursor_erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
+    LOG_VERBOSE(("cursor_erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 

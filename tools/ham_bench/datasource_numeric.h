@@ -12,11 +12,13 @@
 #ifndef DATASOURCE_NUMERIC_H__
 #define DATASOURCE_NUMERIC_H__
 
-#include <limits>
+#include <boost/limits.hpp>
 #include <boost/random.hpp>
 #include <boost/random/uniform_01.hpp>
 
 #include "datasource.h"
+
+#undef max // avoid MSVC conflict with std::max
 
 //
 // abstract base class for a data source - generates test data
@@ -75,7 +77,7 @@ class NumericDescendingDatasource : public Datasource
 {
   public:
     NumericDescendingDatasource()
-      : m_value(std::numeric_limits<T>::max()) {
+      : m_value(boost::numeric_limits<T>::max()) {
     }
 
     // returns the next piece of data; underflows are ignored

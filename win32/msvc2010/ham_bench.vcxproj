@@ -78,7 +78,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -103,7 +103,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -124,7 +124,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -148,7 +148,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -178,7 +178,31 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\ham_bench\api110.cpp" />
+    <ClCompile Include="..\..\tools\getopts.c" />
+    <ClCompile Include="..\..\tools\ham_bench\berkeleydb.cc" />
+    <ClCompile Include="..\..\tools\ham_bench\database.cc" />
+    <ClCompile Include="..\..\tools\ham_bench\generator_parser.cc" />
+    <ClCompile Include="..\..\tools\ham_bench\generator_runtime.cc" />
+    <ClCompile Include="..\..\tools\ham_bench\hamsterdb.cc" />
+    <ClCompile Include="..\..\tools\ham_bench\main.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\tools\getopts.h" />
+    <ClInclude Include="..\..\tools\ham_bench\berkeleydb.h" />
+    <ClInclude Include="..\..\tools\ham_bench\configuration.h" />
+    <ClInclude Include="..\..\tools\ham_bench\database.h" />
+    <ClInclude Include="..\..\tools\ham_bench\datasource.h" />
+    <ClInclude Include="..\..\tools\ham_bench\datasource_binary.h" />
+    <ClInclude Include="..\..\tools\ham_bench\datasource_numeric.h" />
+    <ClInclude Include="..\..\tools\ham_bench\generator.h" />
+    <ClInclude Include="..\..\tools\ham_bench\generator_parser.h" />
+    <ClInclude Include="..\..\tools\ham_bench\generator_runtime.h" />
+    <ClInclude Include="..\..\tools\ham_bench\graph.h" />
+    <ClInclude Include="..\..\tools\ham_bench\hamsterdb.h" />
+    <ClInclude Include="..\..\tools\ham_bench\metrics.h" />
+    <ClInclude Include="..\..\tools\ham_bench\misc.h" />
+    <ClInclude Include="..\..\tools\ham_bench\mutex.h" />
+    <ClInclude Include="..\..\tools\ham_bench\timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

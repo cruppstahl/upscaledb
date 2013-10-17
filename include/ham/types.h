@@ -59,6 +59,7 @@ extern "C" {
  */
 #if defined(HAM_OS_WIN32)
 #  define WIN32_MEAN_AND_LEAN
+#  include <winsock2.h>
 #  include <windows.h>
 #endif
 

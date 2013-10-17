@@ -12,7 +12,8 @@
 #ifndef DATABASE_H__
 #define DATABASE_H__
 
-#include <stdint.h>
+#include <boost/cstdint.hpp>
+using namespace boost;
 
 #include <ham/hamsterdb.h>
 
