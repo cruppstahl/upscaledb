@@ -380,8 +380,11 @@ PageManager::close()
     if (st)
       return (st);
 
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY) {
       st = m_env->get_changeset().flush(m_env->get_incremented_lsn());
+      if (st)
+        return (st);
+    }
   }
 
   // flush again; there were pages fetched during reclaim, and they have

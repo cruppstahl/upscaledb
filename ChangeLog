@@ -1,3 +1,8 @@
+Oct 18, 2013 - chris ---------------------------------------------------
+o Introduced a new Btree node layout for fixed length keys types which
+	is better optimized for CPU caches and more compact then the
+	legacy format
+
 Oct 14, 2013 - chris ---------------------------------------------------
 o Fixed invalid memory access when using mmap on pagesizes which are not
 	a power of two

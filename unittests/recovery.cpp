@@ -23,7 +23,7 @@
 
 using namespace hamsterdb;
 
-#define NUM_STEPS     1
+#define NUM_STEPS     10
 
 void
 create_key(ham_key_t *key, int i) {

@@ -215,7 +215,7 @@ class BtreeEraseAction
                     ham_u64_t left, ham_u64_t right,
                     ham_u64_t lanchor, ham_u64_t ranchor, Page *parent) {
       int slot;
-      ham_status_t st;
+      ham_status_t st = 0;
       Page *newme;
       Page *child;
       Page *tempp = 0;
@@ -332,7 +332,6 @@ class BtreeEraseAction
       }
 
       /* no need to rebalance in case of an error */
-      ham_assert(!st);
       return (rebalance(page_ref, page, left, right, lanchor, ranchor, parent));
     }
 
@@ -460,7 +459,6 @@ class BtreeEraseAction
       BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
       BtreeNodeProxy *ancnode = m_btree->get_node_from_page(ancpage);
 
-#if 0
       /* do not shift if both pages have (nearly) equal size; too much
        * effort for too little gain! */
       if (node->get_count() > 20 && sibnode->get_count() > 20) {
@@ -471,7 +469,6 @@ class BtreeEraseAction
           return (0);
         }
       }
-#endif
 
       /* uncouple all cursors */
       if ((st = BtreeCursor::uncouple_all_cursors(page)))
@@ -616,6 +613,7 @@ class BtreeEraseAction
             return (st);
 
           sibnode->set_record_id(0, sibnode->get_ptr_down());
+          sibnode->set_count(sibnode->get_count() + 1);
         }
 
         ham_size_t s = node->get_count() - c - 1;
@@ -775,19 +773,12 @@ cleanup:
 
     ham_status_t replace_key(Page *src_page, int src_slot,
                     Page *dest_page, int dest_slot, bool dest_is_internal) {
-      LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
       BtreeNodeProxy *node = m_btree->get_node_from_page(src_page);
-      BtreeNodeProxy *dest= m_btree->get_node_from_page(dest_page);
-
-      /* uncouple all cursors */
-      ham_status_t st;
-      if ((st = BtreeCursor::uncouple_all_cursors(dest_page)))
-        return (st);
+      BtreeNodeProxy *dest = m_btree->get_node_from_page(dest_page);
 
       dest_page->set_dirty(true);
       return (node->replace_key(src_slot, dest, dest_slot, dest_is_internal,
-                              env->get_blob_manager()));
+                      m_btree->get_db()->get_local_env()->get_blob_manager()));
     }
 
     // the current btree

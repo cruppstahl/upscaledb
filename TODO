@@ -557,7 +557,17 @@ x fails: ./ham_bench --quiet --use-berkeleydb=true --reopen=true --use-extended
 
 x rebase to v2
 
-o a few tests are failing
+x ham_dump: the help screen lists wrong options (i.e. -key etc)
+
+x perftest: add more recovery-based tests
+    x extended keys
+    x small records
+    x big records
+    x big records + extended keys
+
+x make sure the release tests run valgrind without tcmalloc
+
+x a few tests are failing
     x samples are currently failing
         [error] ./db3 < db3.c
         This sample uses hamsterdb to sort data.
@@ -569,26 +579,12 @@ o a few tests are failing
         2) testSetComparator(CursorTest)
             junit.framework.AssertionFailedError: expected:<4> but was:<0>
     x tools tests are currently failing
-    o recovery tests are currently failing
+    x recovery tests are currently failing
         x verify-tool should test ALL keys, not just those that were deleted!
 
-================
-recovery.cpp: hat temp. änderungen, NUM_blah = 1 -> 10
-================
-
-o make sure the release tests run valgrind without tcmalloc
-
-o ham_dump: the help screen lists wrong options (i.e. -key etc)
-
-o perftest: add more recovery-based tests
-    o extended keys
-    o small records
-    o big records
-    o big records + extended keys
-
-o run static code analysis
-    o coverity
-    o clang
+x run static code analysis
+    x coverity
+    x clang
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -609,35 +605,27 @@ o specify timeout for remote client
 o win32: a few unimportant unittests are failing (2.1.2)
 
 o update the documentation/changelog/README/tutorial
-    o the prefix compare function API was removed
-    o describe the new flags/options
-    o announce the 3 new wiki pages (or better move them to hamsterdb.com?)
+    x the prefix compare function API was removed
+    x describe the new flags/options
+    x announce the 3 new wiki pages (or better move them to hamsterdb.com?)
+    x increase the libtool version
+    x make sure tarball filename contains "unstable" (also in
+        the unpacked directory)
+    x increase the file version
+    o update tutorial
+        o information about the schema types
+        o remove information about hamsterb 1.x
+    o update "features" on webpage
+    o add "design&architecture" to webpage
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------
 
 high-level plan for 2.2.0-pre2 (unstable)...................................
 - refactoring: sometimes, the BtreeNodeProxy updates node->count after an
     operation; sometimes, this is handled in the Btree*Action class -> unify
-- remove "shifts" from btree SMOs, only merge
-- replace 3rdparty/json with boost property_tree
-- ham_bench can use /opt/share/dict/words as data input
-- btree understands variable-sized PODs
-    - uses PAX layout with a small (in-memory) skiplist and linear search
-        in this skiplist
-    - also use linear search with fixed length keys (if max-keys-per-page
-        or the subrange in the binary search is low enough)
-    - when cursors move forward: do not access "by random-access-index" but 
-        by incrementing the cursor! (this is not possible for moving backwards,
-        therefore both has to be supported)
-    - this is not a PAX layout!
-- completely rewrite handling of extended keys
-    If the extended key does not fit into one page: allocate an overflow area,
-    move the FULL key into that area. get rid of the prefix compare. compare
-    functions no longer need to return errors. get rid of the extkey-cache.
-    (really?)
-    ==> make sure this does not cause performance regressions
-    ==> count number of overflow areas for statistics!
-    - monster.pl needs to create variable length extended keys for testing!
+- db_remote.cc has an evil cast which creates (currently suppressed) valgrind
+    errors, fix this (i.e. by introducing a RemoteCursor, LocalCursor)!
+      Cursor *c = new Cursor((LocalDatabase *)this); // TODO this cast is evil!!
 - btree stores fixed-length records in the leaf
     also support record length of 0 ("key exists" vs "key does not exist")
     - not for internal nodes! they have a fixed record length of 8!
@@ -646,37 +634,59 @@ high-level plan for 2.2.0-pre2 (unstable)...................................
         do not store 1 byte flag for each key
     - if page is large enough then store the record in the leaf, even
         if it's > 8 bytes
-- omit flags if they are not required (fixed key, fixed record, no duplicates)
-
+- completely rewrite handling of extended keys
+    If the extended key does not fit into 1/10th of the pagesize: allocate
+    an overflow area, move the FULL key into that area. no more prefix
+    compare. compare functions no longer need to return errors. get rid of
+    the extkey-cache. (really?)
+    - use new page layout for variable keys (non-PAX)
+    - use linear search
+    - count number of overflow areas for statistics!
+    - monster.pl needs to create variable length extended keys for testing!
+    - add (non-persistent) skiplist index
+        - built on request
+        - add every Nth element to the index (i.e. once per 2kb)
+        - update on insert and erase
+        - destroy after shift/merge
+    - also use linear search with fixed length keys (if max-keys-per-page
+        or the subrange in the binary search is low enough, and if the
+        performance makes sense)
+    - when merging make sure that the pages actually fit; minkey/maxkey
+        does not make much sense with variable keys
+- ham_bench uses /opt/share/dict/words as data input
 - introduce COMM version
     - closed repository
-    - one source base with different licensing headers
+    - one source base with different licensing headers, different licensing
+        string, different version tag
     - "hooks" for git to add changes without introducing conflicts
     - API to get licensee information (already there)
     - new release process
-    - prebuilt win32 files for each customer? (if required)
+    - prebuilt win32 files for each customer
     - extra documentation
-    - webpage changes, PR, mailings
+    - webpage updates, PR, mailings
     - file format interoperability?
- 
-- btree can compress keys (strings: prefix, everything: dict) -> COMM
+- COMM: btree can compress keys (strings: prefix, everything: dict)
     - needs new ham_bench enhancements to use actual strings instead of
         random garbage - see below
-    - dict is in-page, prepended
-    - each full string (incl. prefix) is indexed by the skiplist
-- btree can compress records (i.e. snappy) -> COMM
-- use SIMD for fixed-length scans -> COMM
+    - dict is in-page, persistent
+    - each 2kb have a full string (indexed by skiplist)
+    - try to reduce the changes to a new KeyProxy object
+    - get rid of the whole minkey/maxkey handling because these numbers
+        are irrelevant with compression
+- COMM: use SIMD for fixed-length scans
     http://pcl.intel-research.net/publications/palm.pdf
 
 high-level plan for 2.2.0 (unstable).........................................
+- replace 3rdparty/json with boost property_tree
 - completely rewrite handling of duplicate keys
     - store records inline; if there are too many then allocate an overflow
         extend
-    - or store as linked list of blobs?
 - get rid of legacy btree layout
 - lay the groundwork for concurrency -> LSS-streams, finalize the file format
     (every buffer needs stream descriptor, trailer)
 - cache-oblivious page distribution? (maybe write the LSS first?)
+- compress the whole LSS
+- hot backups -> COMM
 - security? -> COMM
 
 revisit transaction trees and delta updates..................................

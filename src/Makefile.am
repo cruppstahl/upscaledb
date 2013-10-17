@@ -99,7 +99,7 @@ libhamsterdb_la_SOURCES = \
 EXTRA_DIST = os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
-libhamsterdb_la_LDFLAGS = -version-info 4:0:0 $(BOOST_SYSTEM_LDFLAGS)
+libhamsterdb_la_LDFLAGS = -version-info 5:0:0 $(BOOST_SYSTEM_LDFLAGS)
 libhamsterdb_la_LIBADD = 
 
 if DARWIN

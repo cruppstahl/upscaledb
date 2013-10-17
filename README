@@ -11,27 +11,66 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-The new features in this release required several changes in the file format.
-I've taken the chance to clean up some parts of the file format. The new format
-is not backwards compatible, and 2.1.3 cannot open older databases. To migrate
-your databases, export the data with ham_export linked against 2.1.2
-(ham_export links statically and will NOT be confused if your system has a
-newer version of hamsterdb installed). Then import the data with 2.1.3. 
+This release comes with a major architectural change - the transformation
+towards a key/value engine with modern column-store features: cache-optimized,
+compressed data structures, reduced I/O and even basic schema support.
 
-    Example:
+hamsterdb is now able to create an optimized Btree for your key data. These
+Btrees require less space on disk and therefore less I/O. Also, their layout is
+better optimized for CPU caches, since keys and records are now stored
+separately from each other. More keys therefore fit into the CPU cache and
+lookup operations are faster. (This layout is similar to the "PAX" layout in
+the academic database literature.)
 
-    ham_export-2.1.2 input.db | ham_import --stdin output.db
+To use this functionality, application developers can now specify the type of
+key that they insert into a database (i.e. HAM_TYPE_UINT64, HAM_TYPE_REAL32)
+Under the hood, hamsterdb will create a Btree using C++ template policies
+and template types specifically for this key.
+
+Existing binary arrays are still supported (HAM_TYPE_BINARY), and can either
+have fixed length or variable length. This binary type uses a built-in compare
+function. For user-supplied callback functions, use HAM_TYPE_CUSTOM.
+
+See the documentation of ham_env_create_db in hamsterdb.h for more details.
+
+This release is the first of at least 3 unstable releases, in which the file
+format will frequently change. If this does not bother you, then feel free
+to upgrade. See the section "Migrating files from older versions" below on how
+to migrate database files from 2.1.2 and older to 2.1.3.
+
+The next few releases will rewrite the handling of extended keys and
+duplicate keys by providing a new Btree node layout for variable-length keys.
+Also, in-node compression will be implemented, i.e. for prefix compression
+and dictionary compression.
+
+This release also introduces the new tool "ham_bench" to benchmark and test
+hamsterdb configurations; see the wiki for documentation:
+https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking
 
 2. Changes
 
 New Features
-* 
+* Basic schema support in ham_env_create_db
+* Introduced a new Btree node layout for fixed length keys types which
+	is better optimized for CPU caches and more compact then the
+	legacy format
 
 Bugfixes
-*
+* Fixed invalid memory access when using mmap on pagesizes which are not
+	a power of two
+* Fixed a btree corruption during SMOs (internal shifts after underflow)
+* issue 27: No longer enabling AES encryption if openssl headers
+	are missing
 
 Other Changes
-*
+* File format is not backwards compatible, and files from 2.1.2 cannot be
+    opened
+* The prefix compare functions were removed.
+* Integrating "ham_bench" tool for benchmarking and testing
+* ham_db_set_compare_func is only allowed if the key type is HAM_TYPE_CUSTOM;
+	otherwise, an error is returned
+* For consistency reasons, some macros were renamed (see ChangeLog for more
+    details); the older macros are still working, though
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -51,6 +90,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Support for partial reading/writing of records
 - Support for network access (remote databases) via TCP/Protocol Buffers
 - Support for transparent AES encryption (using libcrypto)
+- Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
 - Very fast database cursors
 - Configurable page size, cache size and index key size
 - Runs on Linux, Unices, Microsoft Windows and other architectures
@@ -142,7 +182,22 @@ Other compiler- and OS-specific macros are in 'include/ham/types.h'.
 Most likely, these are the only files which have to be touched. Also see item
 9) for important macros.
 
-11. Licensing
+11. Migrating files from older versions
+
+Usually, hamsterdb releases are backwards compatible. There are some exceptions,
+though. In this case tools are provided to migrate the database. First, export
+your existing database with ham_export linked against the old version.
+(ham_export links statically and will NOT be confused if your system has a
+newer version of hamsterdb installed). Then use the newest version of
+ham_import to import the data into a new database. You can find ham_export
+and ham_import in the "tools" subdirectory.
+
+    Example (ham_export of 2.1.2 was renamed to ham_export-2.1.2 to document
+        that it's an older version):
+
+    ham_export-2.1.2 input.db | ham_import --stdin output.db
+
+12. Licensing
 
 hamsterdb Embedded Storage can be licensed on a per-developer basis for
 closed source applications. For more details, see
@@ -153,7 +208,7 @@ exceptions for other open source licenses (see
 http://hamsterdb.com/licensing/exceptions for legal information and a license
 list).
 
-12. Contact
+13. Contact
 
 Author of hamsterdb Embedded Storage is
     Christoph Rupp
@@ -162,7 +217,7 @@ Author of hamsterdb Embedded Storage is
     email: chris@crupp.de
     web: http://www.hamsterdb.com
 
-13. Other Copyrights
+14. Other Copyrights
 
 The Google Protocol Buffers ("protobuf") library is Copyright 2008, Google Inc.
 It has the following license:

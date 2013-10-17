@@ -323,9 +323,6 @@ main(int argc, char **argv) {
         printf("     -h:     this help screen (alias: --help)\n");
         printf("     -db DBNAME: only dump "
            "this database (alias: --dbname=<arg>)\n");
-        printf("     -key FMT:   specify format of the key "
-           "('string', 'binary' (default),\t    \t\t   'numeric')"
-           " (alias: --key-format=<arg>)\n");
         printf("     -maxkey N:  limit key length to N bytes "
            "(alias: --max-key-size=<arg>)\n");
         printf("     -rec FMT:   specify format of the record "

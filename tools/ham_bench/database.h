@@ -16,8 +16,8 @@
 
 #include <ham/hamsterdb.h>
 
-class Metrics;
-class Configuration;
+struct Metrics;
+struct Configuration;
 
 //
 // abstract base class wrapping a database backend (i.e. hamsterdb,

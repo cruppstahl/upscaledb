@@ -455,7 +455,7 @@ class PaxNodeLayout
     }
 
   private:
-    friend class PaxIterator<KeyList>;
+    friend struct PaxIterator<KeyList>;
 
     // Returns the BtreeKey at index |i| in this node
     //
