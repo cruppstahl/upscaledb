@@ -769,7 +769,7 @@ struct Callable
   Configuration *m_conf;
   Database *m_db;
   int m_id;
-  Generator *m_generator;
+  ::Generator *m_generator;
 };
 
 static void
@@ -893,7 +893,7 @@ are_records_equal(const ham_record_t *rec1, const ham_record_t *rec2)
 }
 
 static bool
-run_fullcheck(Configuration *conf, Generator *gen1, Generator *gen2)
+run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
 {
   ham_status_t st1, st2;
   Database::Cursor *c1 = gen1->get_db()->cursor_create(0);
@@ -1023,7 +1023,7 @@ run_both_tests(Configuration *conf)
     op++;
 
     bool fullcheck = false;
-    if (generator1.get_status() == Generator::kCommandFullcheck) {
+    if (generator1.get_status() == ::Generator::kCommandFullcheck) {
       fullcheck = true;
     }
     else if (conf->fullcheck != Configuration::kFullcheckNone) {

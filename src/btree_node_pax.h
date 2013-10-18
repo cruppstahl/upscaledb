@@ -391,6 +391,22 @@ class PaxNodeLayout
       return (at(slot));
     }
 
+    void make_space(ham_u32_t slot) {
+      ham_size_t count = m_node->get_count();
+
+      // make space for 1 additional element.
+      if (count > slot) {
+        memmove(m_keys.get_key_ptr(slot + 1), m_keys.get_key_ptr(slot),
+                        get_size() * (count - slot));
+        memmove(&m_flags[slot + 1], &m_flags[slot],
+                        count - slot);
+        m_flags[slot] = 0;
+        memmove(&m_record_ids[slot + 1], &m_record_ids[slot],
+                        sizeof(ham_u64_t) * (count - slot));
+        m_record_ids[slot] = 0;
+      }
+    }
+
     void remove(ham_u32_t slot) {
       ham_size_t count = m_node->get_count();
 

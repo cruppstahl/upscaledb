@@ -185,6 +185,9 @@ class BtreeNodeProxy
     virtual ham_status_t insert(ham_u32_t slot, const ham_key_t *key,
                     BlobManager *blob_manager) = 0;
 
+    // High level function to create space for a new key
+    virtual void make_space(ham_u32_t slot) = 0;
+
     // High level function to remove an existing key
     virtual void remove(ham_u32_t slot) = 0;
 
@@ -750,6 +753,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         it->set_extended_rid(db, blobid);
       }
       return (0);
+    }
+
+    // High level function to create space for a new key
+    virtual void make_space(ham_u32_t slot) {
+      m_layout.make_space(slot);
     }
 
     virtual void remove(ham_u32_t slot) {

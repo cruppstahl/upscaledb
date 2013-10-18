@@ -20,13 +20,13 @@
 
 #include "timer.h"
 #include "metrics.h"
-#include "generator.h"
 #include "database.h"
+#include "generator.h"
 
 //
 // executes test scripts
 //
-class ParserGenerator : public Generator
+class ParserGenerator : public ::Generator
 {
   public:
     // constructor

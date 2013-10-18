@@ -570,8 +570,7 @@ class BtreeEraseAction
           slot = ancnode->get_slot(sibnode, 0);
 
           /* shift entire sibling by 1 to the right */
-          ham_key_t dummy = {0};
-          sibnode->insert(0, &dummy, 0);
+          sibnode->make_space(0);
 
           /* copy the old anchor element to sibling[0] */
           st = replace_key(ancpage, slot, sibpage, 0, true);
@@ -605,8 +604,7 @@ class BtreeEraseAction
         /* internal pages: insert the anchor element */
         if (internal) {
           /* shift entire sibling by 1 to the right */
-          ham_key_t dummy = {0};
-          sibnode->insert(0, &dummy, 0);
+          sibnode->make_space(0);
 
           st = replace_key(ancpage, slot, sibpage, 0, true);
           if (st)

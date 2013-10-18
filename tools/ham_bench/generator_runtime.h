@@ -27,7 +27,7 @@
 //
 // generates data based on configuration settings
 //
-class RuntimeGenerator : public Generator
+class RuntimeGenerator : public ::Generator
 {
     enum {
       kStateRunning = 0,

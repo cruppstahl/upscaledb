@@ -322,6 +322,19 @@ class LegacyNodeLayout
       return (it);
     }
 
+    void make_space(ham_u32_t slot) {
+      Iterator it = at(slot);
+      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t count = m_node->get_count();
+
+      if (count > slot) {
+        memmove(((char *)it) + PBtreeKeyLegacy::kSizeofOverhead + keysize, it,
+                  (PBtreeKeyLegacy::kSizeofOverhead + keysize) * (count - slot));
+      }
+      /* if a new key is created or inserted: initialize it with zeroes */
+      memset(it, 0, PBtreeKeyLegacy::kSizeofOverhead + keysize);
+    }
+
     void remove(ham_u32_t slot) {
       LocalDatabase *db = m_page->get_db();
       Iterator lhs = at(slot);

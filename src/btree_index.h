@@ -154,10 +154,13 @@ class BtreeIndex
 {
   public:
     // Constructor; creates and initializes a new btree
-    BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags = 0);
+    BtreeIndex();
 
     // Virtual destructor
     virtual ~BtreeIndex() { }
+
+    // Initializes the fields
+    void initialize(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags);
 
     // Returns the database pointer
     LocalDatabase *get_db() {
@@ -367,7 +370,8 @@ class BtreeIndexImpl : public BtreeIndex
     // Constructor; creates and initializes a new btree
     BtreeIndexImpl(LocalDatabase *db, ham_u32_t descriptor,
                     ham_u32_t flags = 0)
-      : BtreeIndex(db, descriptor, flags) {
+      : BtreeIndex() {
+      initialize(db, descriptor, flags);
     }
 
     // Returns the actual key size (including overhead)
