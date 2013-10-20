@@ -17,8 +17,10 @@
 #include <stdio.h>
 
 #include "page.h"
+#include "db_local.h"
 #include "btree_stats.h"
 #include "btree_index.h"
+#include "btree_node_proxy.h"
 
 namespace hamsterdb {
 

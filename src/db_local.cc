@@ -595,8 +595,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
 
   /* create the BtreeIndex */
-  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
-                    flags | desc->get_flags(), desc->get_keytype());
+  BtreeIndex *bt = new BtreeIndex(this, descriptor, flags | desc->get_flags(),
+                            desc->get_keytype());
 
   ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
@@ -659,8 +659,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
             | HAM_ENABLE_TRANSACTIONS);
 
   // create the btree
-  BtreeIndex *bt = BtreeIndexFactory::create(this, descriptor,
-                  persistent_flags, keytype);
+  BtreeIndex *bt = new BtreeIndex(this, descriptor, persistent_flags, keytype);
 
   switch (keytype) {
     case HAM_TYPE_UINT8:

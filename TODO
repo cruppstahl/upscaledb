@@ -607,12 +607,18 @@ x a few monster tests are failing
     ./ham_bench --use-berkeleydb=true --pagesize=1024 --use-recovery --reopen 46.tst
 
 o port all changes to win32
+    x ham_bench currently does not compile because boost functions are
+        missing -> recompile boost for all platforms
     o unittests are currently crashing becase BtreeIndex contains garbage
-        o also with msvc2010?
+        x also with msvc2010? - yes
+========================
         o try to find a workaround
-    o ham_bench currently does not compile
-        o add error to the file which includes the (non-existing) boost file
-            and see where it was included
+            -> do not derive the BtreeIndex; instead, the BtreeIndex acts
+            as a factory for the BtreeTraits class, which manages the templates
+            and does NOT have any members!
+            BtreeTraits is a factory for BtreeNodeProxy and handles compare()
+            and size_...(), and nothing else.
+========================
     o test timeout for remote client
     o a few unimportant unittests were failing in 2.1.2
     . need a release-v2.pl which fully automates the various release steps
@@ -630,6 +636,7 @@ o update the documentation/changelog/README/tutorial
         o information about the schema types
         o remove information about hamsterb 1.x
     o update "features" on webpage
+    o update "performance guide", "faq" on webpage
     o add "design&architecture" to webpage
 
 ------------------- release 2.2.0-pre1 UNSTABLE!!! -----------------------------

@@ -23,6 +23,8 @@
 #include "cursor.h"
 #include "page_manager.h"
 #include "btree_index.h"
+#include "btree_index_factory.h"
+#include "btree_node_proxy.h"
 
 namespace hamsterdb {
 
@@ -30,18 +32,13 @@ ham_u64_t BtreeIndex::ms_btree_smo_split = 0;
 ham_u64_t BtreeIndex::ms_btree_smo_merge = 0;
 ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
 
-BtreeIndex::BtreeIndex()
-  : m_db(0), m_keysize(0), m_keytype(0), m_descriptor_index(0),
-    m_flags(0), m_root_address(0), m_maxkeys(0)
+BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
+                ham_u32_t keytype)
+  : m_db(db), m_keysize(0), m_keytype(keytype),
+    m_descriptor_index(descriptor), m_flags(flags), m_root_address(0),
+    m_maxkeys(0)
 {
-}
-
-void
-BtreeIndex::initialize(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
-{
-  m_db = db;
-  m_descriptor_index = descriptor;
-  m_flags = flags;
+  m_traits = BtreeIndexFactory::create(db, flags, keytype);
 }
 
 ham_status_t

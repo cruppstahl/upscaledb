@@ -18,7 +18,41 @@
 #include "btree_node_pax.h"
 #include "btree_node_proxy.h"
 
+
 namespace hamsterdb {
+
+//
+// A specialied Traits class using template parameters
+//
+template<class NodeLayout, class Comparator>
+class BtreeIndexTraitsImpl : public BtreeIndexTraits
+{
+  public:
+    // Returns the actual key size (including overhead)
+    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const {
+      return (NodeLayout::get_system_keysize(keysize));
+    }
+
+    // Compares two keys
+    // Returns -1, 0, +1 or higher positive values are the result of a
+    // successful key comparison (0 if both keys match, -1 when
+    // LHS < RHS key, +1 when LHS > RHS key).
+    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
+            ham_key_t *rhs) const {
+      Comparator cmp(db);
+      return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
+    }
+
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const {
+      return (get_classname(*this));
+    }
+
+    // Implementation of get_node_from_page()
+    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) const {
+      return (new BtreeNodeProxyImpl<NodeLayout, Comparator>(page));
+    }
+};
 
 //
 // A BtreeIndexFactory creates BtreeIndexProxy objects depending on the
@@ -26,69 +60,69 @@ namespace hamsterdb {
 //
 struct BtreeIndexFactory
 {
-  static BtreeIndex *create(LocalDatabase *db, ham_u32_t descriptor,
-                  ham_u32_t flags, ham_u16_t keytype) {
+  static BtreeIndexTraits *create(LocalDatabase *db, ham_u32_t flags,
+                ham_u16_t keytype) {
     // Record number database
     if (flags & HAM_RECORD_NUMBER)
-      return (new BtreeIndexImpl
+      return (new BtreeIndexTraitsImpl
                       < PaxNodeLayout<PodKeyList<ham_u64_t> >,
-                      RecordNumberCompare>(db, descriptor, flags));
+                      RecordNumberCompare>());
 
     switch (keytype) {
       // 8bit unsigned integer
       case HAM_TYPE_UINT8:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<ham_u8_t> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<ham_u8_t> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<ham_u8_t> >,
-                        NumericCompare<ham_u8_t> >(db, descriptor, flags));
+                        NumericCompare<ham_u8_t> >());
       // 16bit unsigned integer
       case HAM_TYPE_UINT16:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<ham_u16_t> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<ham_u16_t> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<ham_u16_t> >,
-                        NumericCompare<ham_u16_t> >(db, descriptor, flags));
+                        NumericCompare<ham_u16_t> >());
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<ham_u32_t> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<ham_u32_t> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<ham_u32_t> >,
-                        NumericCompare<ham_u32_t> >(db, descriptor, flags));
+                        NumericCompare<ham_u32_t> >());
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<ham_u64_t> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<ham_u64_t> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<ham_u64_t> >,
-                        NumericCompare<ham_u64_t> >(db, descriptor, flags));
+                        NumericCompare<ham_u64_t> >());
       // 32bit float
       case HAM_TYPE_REAL32:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<float> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<float> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<float> >,
-                        NumericCompare<float> >(db, descriptor, flags));
+                        NumericCompare<float> >());
       // 64bit double
       case HAM_TYPE_REAL64:
         if (flags & HAM_ENABLE_DUPLICATES)
-          return (new BtreeIndexImpl<LegacyNodeLayout,
-                        NumericCompare<double> >(db, descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        NumericCompare<double> >());
         else
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<PodKeyList<double> >,
-                        NumericCompare<double> >(db, descriptor, flags));
+                        NumericCompare<double> >());
       // Callback function provided by user?
       case HAM_TYPE_CUSTOM:
         // Fixed keys with constant size (not extended)
@@ -96,11 +130,11 @@ struct BtreeIndexFactory
         //   - HAM_PARAM_KEYSIZE to specify the constant size
         if (flags & HAM_DISABLE_VARIABLE_KEYS
                 && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0)
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<BinaryKeyList >,
-                        CallbackCompare>(db, descriptor, flags));
-        return (new BtreeIndexImpl<LegacyNodeLayout, CallbackCompare>(db,
-                                    descriptor, flags));
+                        CallbackCompare>());
+        return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        CallbackCompare>());
       // BINARY is the default:
       case HAM_TYPE_BINARY:
         // Variable keys with non-constant size (not extended)
@@ -108,28 +142,28 @@ struct BtreeIndexFactory
         //   - HAM_PARAM_KEYSIZE to specify the size limit
         if ((flags & HAM_DISABLE_VARIABLE_KEYS) == 0
                 && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0)
-          return (new BtreeIndexImpl<LegacyNodeLayout, VariableSizeCompare>(db,
-                                      descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        VariableSizeCompare>());
         // Fixed keys with constant size (not extended)
         //   - HAM_DISABLE_VARIABLE_KEYS
         //   - HAM_PARAM_KEYSIZE to specify the constant size
         if (flags & HAM_DISABLE_VARIABLE_KEYS
                 && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0)
-          return (new BtreeIndexImpl
+          return (new BtreeIndexTraitsImpl
                         < PaxNodeLayout<BinaryKeyList >,
-                        FixedSizeCompare>(db, descriptor, flags));
+                        FixedSizeCompare>());
         // Fixed keys with constant size (extended)
         //   - HAM_DISABLE_VARIABLE_KEYS
         //   - HAM_ENABLE_EXTENDED_KEYS
         if (flags & HAM_DISABLE_VARIABLE_KEYS
                 && flags & HAM_ENABLE_EXTENDED_KEYS)
-          return (new BtreeIndexImpl<LegacyNodeLayout, FixedSizeCompare>(db,
-                                        descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        FixedSizeCompare>());
         // Variable keys with non-constant size (extended)
         //   - HAM_ENABLE_EXTENDED_KEYS
         if (flags & HAM_ENABLE_EXTENDED_KEYS)
-          return (new BtreeIndexImpl<LegacyNodeLayout, VariableSizeCompare>(db,
-                                        descriptor, flags));
+          return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
+                        VariableSizeCompare>());
         break;
       default:
         break;

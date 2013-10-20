@@ -21,6 +21,7 @@
 #include "cursor.h"
 #include "btree_stats.h"
 #include "btree_index.h"
+#include "btree_node_proxy.h"
 #include "page_manager.h"
 #include "blob_manager.h"
 

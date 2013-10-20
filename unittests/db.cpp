@@ -171,12 +171,12 @@ struct DbFixture {
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
-    BtreeIndex *be = BtreeIndexFactory::create(&db, 0, 0, 0);
+    BtreeIndex be(&db, 0, 0, 0);
 
     page.set_address(1000);
     page.set_db(&db);
-    db.m_btree_index = be;
-    be->m_keysize = 666;
+    db.m_btree_index = &be;
+    be.m_keysize = 666;
     REQUIRE(Page::sizeof_persistent_header == 12);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
@@ -193,7 +193,6 @@ struct DbFixture {
     PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
     REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 12);
     hdrpage.set_data(0);
-    delete be;
   }
 
 };

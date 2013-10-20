@@ -22,6 +22,7 @@
 #include "page.h"
 #include "page_manager.h"
 #include "btree_index.h"
+#include "btree_node_proxy.h"
 
 namespace hamsterdb {
 

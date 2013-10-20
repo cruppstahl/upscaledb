@@ -23,6 +23,7 @@
 #include "../src/env.h"
 #include "../src/btree_index.h"
 #include "../src/btree_key.h"
+#include "../src/btree_node_proxy.h"
 
 namespace hamsterdb {
 

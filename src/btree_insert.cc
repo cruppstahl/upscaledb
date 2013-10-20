@@ -15,10 +15,6 @@
 #include <string.h>
 #include <algorithm>
 
-#include "blob_manager.h"
-#include "btree_index.h"
-#include "page_manager.h"
-#include "btree_cursor.h"
 #include "extkeys.h"
 #include "cursor.h"
 #include "cache.h"
@@ -28,8 +24,13 @@
 #include "mem.h"
 #include "util.h"
 #include "page.h"
+#include "blob_manager.h"
+#include "page_manager.h"
+#include "btree_index.h"
 #include "btree_key.h"
 #include "btree_stats.h"
+#include "btree_node_proxy.h"
+#include "btree_cursor.h"
 
 using namespace std;
 

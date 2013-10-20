@@ -147,6 +147,32 @@ struct BtreeVisitor {
 };
 
 //
+// Abstract base class, overwritten by a templated version
+//
+class BtreeIndexTraits
+{
+  public:
+    // virtual destructor
+    virtual ~BtreeIndexTraits() { }
+
+    // Returns the actual key size (including overhead)
+    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const = 0;
+
+    // Compares two keys
+    // Returns -1, 0, +1 or higher positive values are the result of a
+    // successful key comparison (0 if both keys match, -1 when
+    // LHS < RHS key, +1 when LHS > RHS key).
+    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
+            ham_key_t *rhs) const = 0;
+
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const = 0;
+
+    // Implementation of get_node_from_page()
+    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) const = 0;
+};
+
+//
 // The Btree. Derived by BtreeIndexImpl, which uses template policies to
 // define the btree node layout.
 //
@@ -154,13 +180,13 @@ class BtreeIndex
 {
   public:
     // Constructor; creates and initializes a new btree
-    BtreeIndex();
+    BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
+            ham_u32_t keytype);
 
-    // Virtual destructor
-    virtual ~BtreeIndex() { }
-
-    // Initializes the fields
-    void initialize(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags);
+    ~BtreeIndex() {
+      delete m_traits;
+      m_traits = 0;
+    }
 
     // Returns the database pointer
     LocalDatabase *get_db() {
@@ -204,7 +230,9 @@ class BtreeIndex
     }
 
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const = 0;
+    ham_u16_t get_system_keysize(ham_size_t keysize) const {
+      return (m_traits->get_system_keysize(keysize));
+    }
 
     // Creates and initializes the btree
     //
@@ -251,7 +279,9 @@ class BtreeIndex
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const = 0;
+    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
+      return (m_traits->compare_keys(m_db, lhs, rhs));
+    }
 
     // Returns a BtreeNodeProxy for a Page
     BtreeNodeProxy *get_node_from_page(Page *page);
@@ -264,8 +294,8 @@ class BtreeIndex
     }
 
     // Returns the class name (for testing)
-    virtual std::string test_get_classname() const {
-      return ("BtreeIndex");
+    std::string test_get_classname() const {
+      return (m_traits->test_get_classname());
     }
 
   private:
@@ -283,7 +313,9 @@ class BtreeIndex
     friend struct RecordNumberFixture;
 
     // Implementation of get_node_from_page()
-    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) = 0;
+    BtreeNodeProxy *get_node_from_page_impl(Page *page) const {
+      return (m_traits->get_node_from_page_impl(page));
+    }
 
     // Sets the address of the root page
     void set_root_address(ham_u64_t address) {
@@ -322,6 +354,9 @@ class BtreeIndex
     // pointer to the database object
     LocalDatabase *m_db;
 
+    // the Traits class wrapping the template parameters
+    BtreeIndexTraits *m_traits;
+
     // the keysize of this btree index
     ham_u16_t m_keysize;
 
@@ -351,53 +386,6 @@ class BtreeIndex
 
     // usage metrics - number of page shifts
     static ham_u64_t ms_btree_smo_shift;
-};
-
-} // namespace hamsterdb
-
-#include "btree_node_proxy.h"
-#include "btree_node_legacy.h"
-
-namespace hamsterdb {
-
-//
-// A Btree which uses template parameters to define the btree node layout.
-//
-template<class NodeLayout, class Comparator>
-class BtreeIndexImpl : public BtreeIndex
-{
-  public:
-    // Constructor; creates and initializes a new btree
-    BtreeIndexImpl(LocalDatabase *db, ham_u32_t descriptor,
-                    ham_u32_t flags = 0)
-      : BtreeIndex() {
-      initialize(db, descriptor, flags);
-    }
-
-    // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const {
-      return (NodeLayout::get_system_keysize(keysize));
-    }
-
-    // Compares two keys
-    // Returns -1, 0, +1 or higher positive values are the result of a
-    // successful key comparison (0 if both keys match, -1 when
-    // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
-      Comparator cmp(get_db());
-      return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
-    }
-
-    // Returns the class name (for testing)
-    virtual std::string test_get_classname() const {
-      return (get_classname(*this));
-    }
-
-  private:
-    // Implementation of get_node_from_page()
-    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) {
-      return (new BtreeNodeProxyImpl<NodeLayout, Comparator>(page));
-    }
 };
 
 } // namespace hamsterdb

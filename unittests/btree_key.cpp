@@ -19,6 +19,8 @@
 #include "../src/db.h"
 #include "../src/btree_index.h"
 #include "../src/btree_key.h"
+#include "../src/btree_node_proxy.h"
+#include "../src/btree_node_legacy.h"
 #include "../src/util.h"
 #include "../src/page.h"
 #include "../src/env_local.h"
