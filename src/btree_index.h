@@ -182,14 +182,11 @@ class BtreeIndex
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
             ham_u32_t keytype);
-<<<<<<< HEAD
 
     ~BtreeIndex() {
       delete m_traits;
       m_traits = 0;
     }
-=======
->>>>>>> Reorganizing BtreeIndex to avoid MSVC troubles
 
     // Returns the database pointer
     LocalDatabase *get_db() {

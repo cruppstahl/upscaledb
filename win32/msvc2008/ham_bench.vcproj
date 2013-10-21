@@ -65,8 +65,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="../../../hamsterdb-alien/boost/msvc2008/x86/libboost_thread-vc90-mt-gd-1_49.lib ../../../hamsterdb-alien/boost/msvc2008/x86/libboost_date_time-vc90-mt-gd-1_49.lib ../../../hamsterdb-alien/boost/msvc2008/x86/libboost_chrono-vc90-mt-gd-1_49.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost"
+				AdditionalLibraryDirectories="&quot;../../../hamsterdb-alien/boost/msvc2008/x86&quot;"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -145,7 +146,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="&quot;../../../hamsterdb-alien/boost/msvc2008/x64&quot;"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -221,7 +222,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost"
+				AdditionalLibraryDirectories="&quot;../../../hamsterdb-alien/boost/msvc2008/x86&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -299,7 +300,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="&quot;../../../hamsterdb-alien/boost/msvc2008/x64&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

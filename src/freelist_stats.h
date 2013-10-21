@@ -21,8 +21,6 @@ namespace hamsterdb {
 class Freelist;
 class PFreelistPayload;
 
-#include "packstart.h"
-
 /*
  * As we [can] support record sizes up to 4Gb, at least theoretically,
  * we can express this size range as a spanning aligned size range:
@@ -53,6 +51,7 @@ struct GlobalStatistics
 
   ham_u32_t first_page_with_free_space[HAM_FREELIST_SLOT_SPREAD];
 };
+
 
 #include "packstart.h"
 
@@ -254,4 +253,4 @@ class FreelistStatistics {
 
 } // namespace hamsterdb
 
-#endif /* HAM_FREELIST_H__ */
+#endif /* HAM_FREELIST_STATISTICS_H__ */
