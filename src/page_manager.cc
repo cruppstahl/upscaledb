@@ -122,7 +122,7 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
 
   *ppage = 0;
   ham_assert(0 == (flags & ~(PageManager::kIgnoreFreelist
-                  | PageManager::kClearWithZero)));
+                                | PageManager::kClearWithZero)));
 
   /* first, we ask the freelist for a page */
   if (!(flags & PageManager::kIgnoreFreelist) && m_freelist) {
@@ -165,14 +165,14 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
     return (st);
 
 done:
+  /* clear the page with zeroes?  */
+  if (flags & PageManager::kClearWithZero)
+    memset(page->get_data(), 0, m_env->get_pagesize());
+
   /* initialize the page; also set the 'dirty' flag to force logging */
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(db);
-
-  /* clear the page with zeroes?  */
-  if (flags & PageManager::kClearWithZero)
-    memset(page->get_data(), 0, m_env->get_pagesize());
 
   /* an allocated page is always flushed if recovery is enabled */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -182,10 +182,12 @@ done:
   m_cache->put_page(page);
 
   switch (page_type) {
-    case Page::kTypeBroot:
     case Page::kTypeBindex:
+    case Page::kTypeBroot: {
+      memset(page->get_payload(), 0, sizeof(PBtreeNode));
       m_page_count_index++;
       break;
+    }
     case Page::kTypeFreelist:
       m_page_count_freelist++;
       break;

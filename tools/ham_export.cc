@@ -122,6 +122,7 @@ class BinaryExporter : public Exporter {
         { HAM_PARAM_FLAGS, 0 },
         { HAM_PARAM_KEY_SIZE, 0 },
         { HAM_PARAM_KEY_TYPE, 0 },
+        { HAM_PARAM_RECORD_SIZE, 0 },
         { 0, 0 },
       };
       ham_status_t st = ham_db_get_parameters(db, params);
@@ -137,6 +138,7 @@ class BinaryExporter : public Exporter {
       pdb->set_flags((int)params[1].value);
       pdb->set_keysize((int)params[2].value);
       pdb->set_keytype((int)params[3].value);
+      pdb->set_recsize((int)params[4].value);
 
       std::string s;
       if (!d.SerializeToString(&s)) {

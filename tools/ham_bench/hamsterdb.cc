@@ -265,7 +265,11 @@ HamsterDatabase::do_create_db(int id)
       params[1].name = HAM_PARAM_KEY_TYPE;
       params[1].value = HAM_TYPE_REAL64;
       break;
+    default:
+      assert(!"shouldn't be here");
   }
+  params[2].name = HAM_PARAM_RECORD_SIZE;
+  params[2].value = m_config->rec_size_fixed;
 
   ham_u32_t flags = 0;
 
@@ -276,6 +280,8 @@ HamsterDatabase::do_create_db(int id)
     flags |= HAM_ENABLE_EXTENDED_KEYS;
   if (m_config->key_is_fixed_size)
     flags |= HAM_DISABLE_VARIABLE_KEYS;
+  if (m_config->force_records_inline)
+    flags |= HAM_FORCE_RECORDS_INLINE;
 
   st = ham_env_create_db(m_env ? m_env : ms_env, &m_db, 1 + id,
                   flags, &params[0]);

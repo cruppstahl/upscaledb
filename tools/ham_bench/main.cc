@@ -49,10 +49,11 @@
 #define ARG_KEYSIZE                 14
 #define ARG_KEYSIZE_FIXED           15
 #define ARG_RECSIZE                 16
-#define ARG_CACHE                   17
+#define ARG_RECSIZE_FIXED           17
+#define ARG_REC_INLINE              18
+#define ARG_CACHE                   19
 #define ARG_USE_CURSORS             23
 #define ARG_KEY                     24
-#define ARG_REC                     25
 #define ARG_DUPLICATE               26
 #define ARG_FULLCHECK               27
 #define ARG_FULLCHECK_FREQUENCY     28
@@ -179,12 +180,6 @@ static option_t opts[] = {
     "Describes the key type ('uint16', 'uint32', 'uint64', 'custom', 'binary' (default))",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_REC,
-    0,
-    "record",
-    "Describes the record type ('fixed' or 'variable' (default))",
-    GETOPTS_NEED_ARGUMENT },
-  {
     ARG_DISABLE_MMAP,
     0,
     "no-mmap",
@@ -239,8 +234,20 @@ static option_t opts[] = {
     ARG_RECSIZE,
     0,
     "recsize",
-    "Sets the record size (default is 1024)",
+    "Sets the logical record size of the generated test data (default is 1024)",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_RECSIZE_FIXED,
+    0,
+    "recsize-fixed",
+    "Sets the hamsterdb btree record size (default is UNLIMITED)",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_REC_INLINE,
+    0,
+    "force-records-inline",
+    "Forces hamsterdb to store records in the Btree leaf",
+    0 },
   {
     ARG_CACHE,
     0,
@@ -430,13 +437,12 @@ parse_config(int argc, char **argv, Configuration *c)
         exit(-1);
       }
     }
-    else if (opt == ARG_REC) {
-      if (param && !strcmp(param, "fixed"))
-        c->record_type = Configuration::kRecordFixed;
-      else if (param && strcmp(param, "variable")) {
-        printf("[FAIL] invalid parameter for --record\n");
-        exit(-1);
-      }
+    else if (opt == ARG_RECSIZE_FIXED) {
+      c->rec_size_fixed = strtoul(param, 0, 0);
+      c->rec_size = c->rec_size_fixed;
+    }
+    else if (opt == ARG_REC_INLINE) {
+      c->force_records_inline = true;
     }
     else if (opt == ARG_NO_PROGRESS) {
       c->no_progress = true;

@@ -118,7 +118,7 @@ BtreeCursor::overwrite(ham_record_t *record, ham_u32_t flags)
 
   // copy the key flags, and remove all flags concerning the key size
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  st = node->set_record(m_coupled_index, txn, record, m_duplicate_index,
+  st = node->set_record_data(m_coupled_index, txn, record, m_duplicate_index,
                     flags | HAM_OVERWRITE, 0);
   if (st)
     return (st);
@@ -180,7 +180,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
            ? &db->get_record_arena()
            : &txn->get_record_arena();
 
-    st = node->copy_full_record(m_coupled_index, arena, record, flags,
+    st = node->get_record_data(m_coupled_index, arena, record, flags,
                     m_duplicate_index, &m_dupe_cache);
     if (st)
       return (st);

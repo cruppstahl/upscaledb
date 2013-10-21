@@ -61,78 +61,160 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 struct BtreeIndexFactory
 {
   static BtreeIndexTraits *create(LocalDatabase *db, ham_u32_t flags,
-                ham_u16_t keytype) {
+                ham_u16_t keytype, bool is_leaf) {
+    bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
+
     // Record number database
-    if (flags & HAM_RECORD_NUMBER)
-      return (new BtreeIndexTraitsImpl
-                      < PaxNodeLayout<PodKeyList<ham_u64_t> >,
-                      RecordNumberCompare>());
+    if (flags & HAM_RECORD_NUMBER) {
+      if (!is_leaf)
+        return (new BtreeIndexTraitsImpl
+                    <PaxNodeLayout<PodKeyList<ham_u64_t>, InternalRecordList>,
+                    RecordNumberCompare>());
+      if (inline_records)
+        return (new BtreeIndexTraitsImpl
+                    <PaxNodeLayout<PodKeyList<ham_u64_t>, InlineRecordList>,
+                    RecordNumberCompare>());
+      else
+        return (new BtreeIndexTraitsImpl
+                    <PaxNodeLayout<PodKeyList<ham_u64_t>, DefaultRecordList>,
+                    RecordNumberCompare>());
+    }
 
     switch (keytype) {
       // 8bit unsigned integer
       case HAM_TYPE_UINT8:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
-                        NumericCompare<ham_u8_t> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<ham_u8_t> >,
-                        NumericCompare<ham_u8_t> >());
+                      NumericCompare<ham_u8_t> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u8_t>, InternalRecordList>,
+                      NumericCompare<ham_u8_t> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u8_t>, InlineRecordList>,
+                      NumericCompare<ham_u8_t> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u8_t>, DefaultRecordList>,
+                      NumericCompare<ham_u8_t> >());
+        }
       // 16bit unsigned integer
       case HAM_TYPE_UINT16:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         NumericCompare<ham_u16_t> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<ham_u16_t> >,
-                        NumericCompare<ham_u16_t> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u16_t>, InternalRecordList>,
+                      NumericCompare<ham_u16_t> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u16_t>, InlineRecordList>,
+                      NumericCompare<ham_u16_t> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u16_t>, DefaultRecordList>,
+                      NumericCompare<ham_u16_t> >());
+        }
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         NumericCompare<ham_u32_t> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<ham_u32_t> >,
-                        NumericCompare<ham_u32_t> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u32_t>, InternalRecordList>,
+                      NumericCompare<ham_u32_t> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u32_t>, InlineRecordList>,
+                      NumericCompare<ham_u32_t> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u32_t>, DefaultRecordList>,
+                      NumericCompare<ham_u32_t> >());
+        }
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         NumericCompare<ham_u64_t> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<ham_u64_t> >,
-                        NumericCompare<ham_u64_t> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u64_t>, InternalRecordList>,
+                      NumericCompare<ham_u64_t> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u64_t>, InlineRecordList>,
+                      NumericCompare<ham_u64_t> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<ham_u64_t>, DefaultRecordList>,
+                      NumericCompare<ham_u64_t> >());
+        }
       // 32bit float
       case HAM_TYPE_REAL32:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         NumericCompare<float> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<float> >,
-                        NumericCompare<float> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<float>, InternalRecordList>,
+                      NumericCompare<float> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<float>, InlineRecordList>,
+                      NumericCompare<float> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<float>, DefaultRecordList>,
+                      NumericCompare<float> >());
+        }
       // 64bit double
       case HAM_TYPE_REAL64:
         if (flags & HAM_ENABLE_DUPLICATES)
           return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         NumericCompare<double> >());
-        else
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<PodKeyList<double> >,
-                        NumericCompare<double> >());
+        else {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<double>, InternalRecordList>,
+                      NumericCompare<double> >());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<double>, InlineRecordList>,
+                      NumericCompare<double> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<PodKeyList<double>, DefaultRecordList>,
+                      NumericCompare<double> >());
+        }
       // Callback function provided by user?
       case HAM_TYPE_CUSTOM:
         // Fixed keys with constant size (not extended)
         //   - HAM_DISABLE_VARIABLE_KEYS
         //   - HAM_PARAM_KEYSIZE to specify the constant size
         if (flags & HAM_DISABLE_VARIABLE_KEYS
-                && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0)
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<BinaryKeyList >,
-                        CallbackCompare>());
+                && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0) {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, InternalRecordList>,
+                      CallbackCompare>());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, InlineRecordList>,
+                      CallbackCompare>());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, DefaultRecordList>,
+                      CallbackCompare>());
+        }
         return (new BtreeIndexTraitsImpl<LegacyNodeLayout,
                         CallbackCompare>());
       // BINARY is the default:
@@ -148,10 +230,20 @@ struct BtreeIndexFactory
         //   - HAM_DISABLE_VARIABLE_KEYS
         //   - HAM_PARAM_KEYSIZE to specify the constant size
         if (flags & HAM_DISABLE_VARIABLE_KEYS
-                && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0)
-          return (new BtreeIndexTraitsImpl
-                        < PaxNodeLayout<BinaryKeyList >,
-                        FixedSizeCompare>());
+                && (flags & HAM_ENABLE_EXTENDED_KEYS) == 0) {
+          if (!is_leaf)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, InternalRecordList>,
+                      FixedSizeCompare>());
+          if (inline_records)
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, InlineRecordList>,
+                      FixedSizeCompare>());
+          else
+            return (new BtreeIndexTraitsImpl
+                      <PaxNodeLayout<BinaryKeyList, DefaultRecordList>,
+                      FixedSizeCompare>());
+        }
         // Fixed keys with constant size (extended)
         //   - HAM_DISABLE_VARIABLE_KEYS
         //   - HAM_ENABLE_EXTENDED_KEYS

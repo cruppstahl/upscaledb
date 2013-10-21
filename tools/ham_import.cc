@@ -152,7 +152,10 @@ class BinaryImporter : public Importer {
       // create database (if it does not yet exist)
       ham_parameter_t params[] = {
         { HAM_PARAM_KEY_SIZE, db.keysize() },
-        { HAM_PARAM_KEY_TYPE, db.keytype() },
+        { HAM_PARAM_KEY_TYPE,
+                db.has_keytype()? db.keytype() : HAM_TYPE_BINARY },
+        { HAM_PARAM_RECORD_SIZE,
+                db.has_recsize()? db.recsize() : HAM_RECORD_SIZE_UNLIMITED },
         { 0, 0 },
       };
 

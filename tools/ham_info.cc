@@ -101,11 +101,12 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
   ham_status_t st;
   ham_key_t key;
   ham_record_t rec;
+  hamsterdb::LocalDatabase *ldb = (hamsterdb::LocalDatabase *)db;
   unsigned num_items = 0, ext_keys = 0, min_key_size = 0xffffffff,
       max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
       total_key_size = 0, total_rec_size = 0;
 
-  be = ((hamsterdb::LocalDatabase *)db)->get_btree_index();
+  be = ldb->get_btree_index();
 
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));
@@ -141,12 +142,19 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("\n");
     printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
     printf("    key type:             %s\n", keytype);
-    printf("    max key size:         %u\n", be->get_keysize());
+    printf("    max key size:         %u\n", be->get_key_size());
     printf("    max keys per page:    %u\n", be->get_maxkeys());
     printf("    address of root page: %llu\n",
         (long long unsigned int)be->get_root_address());
-    printf("    flags:                0x%04x\n",
-        ((hamsterdb::LocalDatabase *)db)->get_rt_flags());
+    printf("    flags:                0x%04x\n", ldb->get_rt_flags());
+    if (ldb->get_record_size() == HAM_RECORD_SIZE_UNLIMITED)
+      printf("    record size:          unlimited\n");
+    else
+      printf("    record size:          %d (inline: %s)\n",
+                      ldb->get_record_size(),
+                      ldb->get_rt_flags() & HAM_FORCE_RECORDS_INLINE
+                            ? "yes"
+                            : "no");
   }
 
   if (!full)
@@ -178,7 +186,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     if (rec.size > max_rec_size)
       max_rec_size = rec.size;
 
-    if (key.size > ((hamsterdb::LocalDatabase *)db)->get_keysize())
+    if (key.size > ((hamsterdb::LocalDatabase *)db)->get_key_size())
       ext_keys++;
 
     total_key_size += key.size;

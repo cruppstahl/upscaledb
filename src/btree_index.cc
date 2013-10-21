@@ -38,31 +38,37 @@ BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
     m_descriptor_index(descriptor), m_flags(flags), m_root_address(0),
     m_maxkeys(0)
 {
-  m_traits = BtreeIndexFactory::create(db, flags, keytype);
+  m_leaf_traits = BtreeIndexFactory::create(db, flags, keytype, true);
+  m_internal_traits = BtreeIndexFactory::create(db, flags, keytype, false);
 }
 
 ham_status_t
-BtreeIndex::create(ham_u16_t keysize, ham_u16_t keytype)
+BtreeIndex::create(ham_u16_t keytype, ham_u32_t keysize, ham_u32_t recsize)
 {
   ham_assert(keysize != 0);
 
   ham_size_t maxkeys = calc_maxkeys(m_db->get_local_env()->get_pagesize(),
-                  keysize);
+                                keysize,
+                                recsize == HAM_RECORD_SIZE_UNLIMITED
+                                  ? sizeof(ham_u64_t)
+                                  : recsize);
   if (maxkeys == 0) {
     ham_trace(("keysize too large for the current pagesize"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
 
   /* allocate a new root page */
   Page *root = 0;
   ham_status_t st = m_db->get_local_env()->get_page_manager()->alloc_page(&root,
-                        m_db, Page::kTypeBroot, PageManager::kIgnoreFreelist);
+                        m_db, Page::kTypeBroot,
+                        PageManager::kIgnoreFreelist
+                            | PageManager::kClearWithZero);
   if (st)
     return (st);
 
-  memset(root->get_raw_payload(), 0, sizeof(PBtreeNode) + sizeof(PPageData));
-  root->set_type(Page::kTypeBroot);
-  root->set_dirty(true);
+  // initialize the new page
+  PBtreeNode *node = PBtreeNode::from_page(root);
+  node->set_flags(PBtreeNode::kLeafNode);
 
   /*
    * calculate the maximum number of keys for this page,
@@ -71,6 +77,7 @@ BtreeIndex::create(ham_u16_t keysize, ham_u16_t keytype)
   m_maxkeys = (ham_u16_t)maxkeys;
   m_keysize = keysize;
   m_keytype = keytype;
+  m_recsize = recsize;
   m_root_address = root->get_address();
 
   flush_descriptor();
@@ -86,6 +93,7 @@ BtreeIndex::open()
   ham_u16_t keysize;
   ham_u16_t keytype;
   ham_u32_t flags;
+  ham_u32_t recsize;
   PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
   /*
@@ -93,8 +101,9 @@ BtreeIndex::open()
    * database name)
    */
   maxkeys = desc->get_maxkeys();
-  keysize = desc->get_keysize();
+  keysize = desc->get_key_size();
   keytype = desc->get_keytype();
+  recsize = desc->get_record_size();
   rootadd = desc->get_root_address();
   flags = desc->get_flags();
 
@@ -107,6 +116,7 @@ BtreeIndex::open()
   m_keysize = keysize;
   m_keytype = keytype;
   m_flags = flags;
+  m_recsize = recsize;
 
   return (0);
 }
@@ -123,7 +133,8 @@ BtreeIndex::flush_descriptor()
 
   desc->set_dbname(m_db->get_name());
   desc->set_maxkeys(m_maxkeys);
-  desc->set_keysize(get_keysize());
+  desc->set_keysize(get_key_size());
+  desc->set_recsize(get_record_size());
   desc->set_keytype(get_keytype());
   desc->set_root_address(get_root_address());
   desc->set_flags(get_flags());
@@ -400,14 +411,15 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_size_t
-BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
+BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
+                ham_size_t recsize)
 {
   /* adjust page size and key size by adding the overhead */
   pagesize -= PBtreeNode::get_entry_offset();
   pagesize -= Page::sizeof_persistent_header;
 
   /* and return an even number */
-  ham_size_t max = pagesize / get_system_keysize(keysize);
+  ham_size_t max = pagesize / (get_system_keysize(keysize) + recsize);
   return (max & 1 ? max - 1 : max);
 }
 
@@ -495,7 +507,14 @@ BtreeIndex::get_node_from_page(Page *page)
   if (page->get_node_proxy())
     return (page->get_node_proxy());
 
-  BtreeNodeProxy *proxy = get_node_from_page_impl(page);
+  BtreeNodeProxy *proxy;
+
+  PBtreeNode *node = PBtreeNode::from_page(page);
+  if (node->is_leaf())
+    proxy = get_leaf_node_from_page_impl(page);
+  else
+    proxy = get_internal_node_from_page_impl(page);
+
   page->set_node_proxy(proxy);
   return (proxy);
 }

@@ -55,7 +55,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   ham_assert(key_flags & BtreeKey::kExtended);
 
   /* almost the same as: blobid = key->get_extended_rid(db); */
-  memcpy(&blobid, key_data + (get_keysize() - sizeof(ham_u64_t)),
+  memcpy(&blobid, key_data + (get_key_size() - sizeof(ham_u64_t)),
       sizeof(blobid));
   blobid = ham_db2h_offset(blobid);
 
@@ -86,7 +86,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
    * The key is fetched in two parts: we already have the front
    * part of the key in key_data and now we only need to fetch the blob
    * remainder, which size is:
-   *  key_length - (get_keysize() - sizeof(ham_u64_t))
+   *  key_length - (get_key_size() - sizeof(ham_u64_t))
    *
    * To prevent another round of memcpy and heap allocation here, we
    * simply allocate sufficient space for the entire key as it should be
@@ -99,13 +99,13 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
       return (HAM_OUT_OF_MEMORY);
   }
 
-  memmove(ext_key->data, key_data, get_keysize() - sizeof(ham_u64_t));
+  memmove(ext_key->data, key_data, get_key_size() - sizeof(ham_u64_t));
 
   /* now read the remainder of the key */
   ham_record_t record = {0};
   record.data = (((ham_u8_t *)ext_key->data) +
-          get_keysize() - sizeof(ham_u64_t));
-  record.size = key_length - (get_keysize() - sizeof(ham_u64_t));
+          get_key_size() - sizeof(ham_u64_t));
+  record.size = key_length - (get_key_size() - sizeof(ham_u64_t));
   record.flags = HAM_RECORD_USER_ALLOC;
 
   st = get_local_env()->get_blob_manager()->read(this, blobid, &record, 0, 0);
@@ -644,8 +644,8 @@ LocalDatabase::open(ham_u16_t descriptor)
 }
 
 ham_status_t
-LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
-                ham_u16_t keytype)
+LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keytype,
+                        ham_u16_t keysize, ham_u32_t recsize)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
@@ -657,9 +657,6 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
             | HAM_ENABLE_RECOVERY
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
-
-  // create the btree
-  BtreeIndex *bt = new BtreeIndex(this, descriptor, persistent_flags, keytype);
 
   switch (keytype) {
     case HAM_TYPE_UINT8:
@@ -682,24 +679,48 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize,
       break;
   }
 
-  // make sure that the cooked pagesize is big enough for at least 10 keys
-  if (get_local_env()->get_pagesize() / keysize < 10) {
+  // if we cannot fit at least 10 keys in a page then refuse to continue
+  if (get_local_env()->get_pagesize() / (keysize + 8) < 10) {
     ham_trace(("keysize too large; either increase pagesize or decrease "
-                "keysize"));
-    delete bt;
-    return (HAM_INV_KEYSIZE);
+              "keysize"));
+    return (HAM_INV_KEY_SIZE);
   }
 
-  /* initialize the btree */
-  ham_status_t st = bt->create(keysize, keytype);
-  if (st) {
-    delete bt;
-    return (st);
+  ham_size_t inline_record_size = 8;
+
+  // if we can fit at least 500 keys AND records into the leaf then store
+  // the records in the leaf; otherwise they're allocated somewhere else 
+  if (recsize != HAM_RECORD_SIZE_UNLIMITED) {
+    if (m_rt_flags & HAM_FORCE_RECORDS_INLINE) {
+      inline_record_size = recsize;
+    }
+    else {
+      if (recsize <= kInlineRecordThreshold
+        && get_local_env()->get_pagesize() / (keysize + recsize) > 500) {
+        persistent_flags |= HAM_FORCE_RECORDS_INLINE;
+        m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
+        inline_record_size = recsize;
+      }
+    }
   }
+
+  if (get_local_env()->get_pagesize()
+                  / (keysize + inline_record_size) < 10) {
+    ham_trace(("keysize too large; either increase pagesize or decrease "
+              "keysize"));
+    return (HAM_INV_KEY_SIZE);
+  }
+
+  // create the btree
+  m_btree_index = new BtreeIndex(this, descriptor, persistent_flags, keytype);
+
+  /* initialize the btree */
+  ham_status_t st = m_btree_index->create(keytype, keysize, recsize);
+  if (st)
+    return (st);
 
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
-  m_btree_index = bt;
 
   if (get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS
       && !(get_local_env()->get_flags() & HAM_IN_MEMORY))
@@ -713,14 +734,19 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
 {
   ham_parameter_t *p = param;
 
+  ham_assert(get_btree_index() != 0);
+
   if (p) {
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_KEY_SIZE:
-        p->value = get_btree_index() ? get_keysize() : 21;
+        p->value = (ham_u64_t)get_key_size();
         break;
       case HAM_PARAM_KEY_TYPE:
-        p->value = get_btree_index() ? get_keytype() : 0;
+        p->value = (ham_u64_t)get_keytype();
+        break;
+      case HAM_PARAM_RECORD_SIZE:
+        p->value = (ham_u64_t)get_record_size();
         break;
       case HAM_PARAM_FLAGS:
         p->value = (ham_u64_t)get_rt_flags();
@@ -729,10 +755,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_u64_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        if (get_btree_index())
-          p->value = get_btree_index()->get_maxkeys();
-        else
-          p->value = 0;
+        p->value = get_btree_index()->get_maxkeys();
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
@@ -822,16 +845,22 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
             ? &get_key_arena()
             : &txn->get_key_arena();
 
-  if (key->size > get_keysize()
+  if (key->size > get_key_size()
       && !(get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS)) {
     ham_trace(("database does not support extended keys "
           "(see HAM_ENABLE_EXTENDED_KEYS)"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
+  }
+  if (get_record_size() != HAM_RECORD_SIZE_UNLIMITED
+      && record->size != get_record_size()) {
+    ham_trace(("invalid record size (%u instead of %u)",
+          record->size, get_record_size()));
+    return (HAM_INV_RECORD_SIZE);
   }
   if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
-      (key->size != get_keysize())) {
+      (key->size != get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
 
   /* purge cache if necessary */
@@ -998,15 +1027,15 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   if (st)
     return (st);
 
-  if ((get_keysize() < sizeof(ham_u64_t)) &&
-      (key->size > get_keysize())) {
+  if ((get_key_size() < sizeof(ham_u64_t)) &&
+      (key->size > get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
   if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
-      (key->size != get_keysize())) {
+      (key->size != get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
 
   /* if this database has duplicates, then we use ham_cursor_find
@@ -1096,16 +1125,22 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ? &get_key_arena()
             : &txn->get_key_arena();
 
-  if (key->size > get_keysize()
+  if (key->size > get_key_size()
       && !(get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS)) {
     ham_trace(("database does not support extended keys "
           "(see HAM_ENABLE_EXTENDED_KEYS)"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
+  }
+  if (get_record_size() != HAM_RECORD_SIZE_UNLIMITED
+      && record->size != get_record_size()) {
+    ham_trace(("invalid record size (%u instead of %u)",
+          record->size, get_record_size()));
+    return (HAM_INV_RECORD_SIZE);
   }
   if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
-      (key->size != get_keysize())) {
+      (key->size != get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
 
   /*
@@ -1301,15 +1336,15 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
-  if ((get_keysize() < sizeof(ham_u64_t)) &&
-      (key->size > get_keysize())) {
+  if ((get_key_size() < sizeof(ham_u64_t)) &&
+      (key->size > get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
   if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
-      (key->size != get_keysize())) {
+      (key->size != get_key_size())) {
     ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
+    return (HAM_INV_KEY_SIZE);
   }
 
   /*
@@ -1795,15 +1830,21 @@ LocalDatabase::close_impl(ham_u32_t flags)
 }
 
 ham_u16_t
-LocalDatabase::get_keysize()
+LocalDatabase::get_key_size()
 {
-  return (get_btree_index()->get_keysize());
+  return (get_btree_index()->get_key_size());
 }
 
 ham_u16_t
 LocalDatabase::get_keytype()
 {
   return (get_btree_index()->get_keytype());
+}
+
+ham_u32_t
+LocalDatabase::get_record_size()
+{
+  return (get_btree_index()->get_record_size());
 }
 
 void 

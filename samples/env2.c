@@ -25,18 +25,18 @@ error(const char *foo, ham_status_t st) {
   exit(-1);
 }
 
-#define MAX_DBS       3
+#define MAX_DBS           3
 
 #define DBNAME_CUSTOMER   1
-#define DBNAME_ORDER    2
-#define DBNAME_C2O      3   /* C2O: Customer To Order */
+#define DBNAME_ORDER      2
+#define DBNAME_C2O        3   /* C2O: Customer To Order */
 
 #define DBIDX_CUSTOMER    0
-#define DBIDX_ORDER     1
-#define DBIDX_C2O       2
+#define DBIDX_ORDER       1
+#define DBIDX_C2O         2
 
 #define MAX_CUSTOMERS     4
-#define MAX_ORDERS      8
+#define MAX_ORDERS        8
 
 /* A structure for the "customer" database */
 typedef struct {
@@ -71,6 +71,12 @@ main(int argc, char **argv) {
 
   ham_parameter_t params[] = {
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, }
+  };
+
+  ham_parameter_t c2o_params[] = {
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
     {0, }
   };
 
@@ -111,7 +117,7 @@ main(int argc, char **argv) {
   if (st != HAM_SUCCESS)
     error("ham_env_create_db(order)", st);
   st = ham_env_create_db(env, &db[DBIDX_C2O], DBNAME_C2O,
-                  HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
+                  HAM_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
   if (st != HAM_SUCCESS)
     error("ham_env_create_db(c2o)", st);
 

@@ -24,7 +24,7 @@ ham_u64_t
 PBtreeKeyLegacy::get_extended_rid(LocalDatabase *db) const
 {
   ham_u64_t rid;
-  memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
+  memcpy(&rid, get_key_data() + (db->get_key_size() - sizeof(ham_u64_t)),
           sizeof(rid));
   return (ham_db2h_offset(rid));
 }
@@ -33,7 +33,7 @@ void
 PBtreeKeyLegacy::set_extended_rid(LocalDatabase *db, ham_u64_t rid)
 {
   rid = ham_h2db_offset(rid);
-  memcpy(get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
+  memcpy(get_key_data() + (db->get_key_size() - sizeof(ham_u64_t)),
           &rid, sizeof(rid));
 }
 

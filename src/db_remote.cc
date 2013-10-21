@@ -69,6 +69,10 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
       ham_assert(reply->db_get_parameters_reply().has_keysize());
       p->value = reply->db_get_parameters_reply().keysize();
       break;
+    case HAM_PARAM_RECORD_SIZE:
+      ham_assert(reply->db_get_parameters_reply().has_recsize());
+      p->value = reply->db_get_parameters_reply().recsize();
+      break;
     case HAM_PARAM_KEY_TYPE:
       ham_assert(reply->db_get_parameters_reply().has_keytype());
       p->value = reply->db_get_parameters_reply().keytype();

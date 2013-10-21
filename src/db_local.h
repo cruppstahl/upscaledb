@@ -30,6 +30,11 @@ class LocalEnvironment;
 //
 class LocalDatabase : public Database {
   public:
+    enum {
+      // The default threshold for inline records
+      kInlineRecordThreshold = 32
+    };
+
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
@@ -55,8 +60,8 @@ class LocalDatabase : public Database {
     virtual ham_status_t open(ham_u16_t descriptor);
 
     // Creates a new Database
-    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keysize,
-                    ham_u16_t keytype);
+    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keytype,
+                        ham_u16_t keysize, ham_u32_t recsize);
 
     // Erases this Database
     ham_status_t erase_me();
@@ -152,11 +157,15 @@ class LocalDatabase : public Database {
     ham_status_t get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
                     ham_u32_t key_flags, ham_key_t *ext_key);
 
-    // Returns the key size of the btree
-    ham_u16_t get_keysize();
-
     // Returns the key type (set with HAM_PARAM_KEY_TYPE)
     ham_u16_t get_keytype();
+
+    // Returns the key size of the btree
+    ham_u16_t get_key_size();
+
+    // Returns the record size specified by the user (or
+    // HAM_RECORD_SIZE_UNLIMITED if none was specified)
+    ham_u32_t get_record_size();
 
     // Flushes a TransactionOperation to the btree
     ham_status_t flush_txn_operation(Transaction *txn,

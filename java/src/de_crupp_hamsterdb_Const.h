@@ -9,8 +9,12 @@ extern "C" {
 #endif
 #undef de_crupp_hamsterdb_Const_HAM_SUCCESS
 #define de_crupp_hamsterdb_Const_HAM_SUCCESS 0L
+#undef de_crupp_hamsterdb_Const_HAM_INV_RECORD_SIZE
+#define de_crupp_hamsterdb_Const_HAM_INV_RECORD_SIZE -2L
 #undef de_crupp_hamsterdb_Const_HAM_INV_KEYSIZE
 #define de_crupp_hamsterdb_Const_HAM_INV_KEYSIZE -3L
+#undef de_crupp_hamsterdb_Const_HAM_INV_KEY_SIZE
+#define de_crupp_hamsterdb_Const_HAM_INV_KEY_SIZE -3L
 #undef de_crupp_hamsterdb_Const_HAM_INV_PAGESIZE
 #define de_crupp_hamsterdb_Const_HAM_INV_PAGESIZE -4L
 #undef de_crupp_hamsterdb_Const_HAM_OUT_OF_MEMORY
@@ -115,10 +119,14 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_PARAM_CACHESIZE 256L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_PAGESIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_PAGESIZE 257L
+#undef de_crupp_hamsterdb_Const_HAM_PARAM_KEY_SIZE
+#define de_crupp_hamsterdb_Const_HAM_PARAM_KEY_SIZE 258L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_KEYSIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_KEYSIZE 258L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_MAX_DATABASES
 #define de_crupp_hamsterdb_Const_HAM_PARAM_MAX_DATABASES 259L
+#undef de_crupp_hamsterdb_Const_HAM_PARAM_RECORD_SIZE
+#define de_crupp_hamsterdb_Const_HAM_PARAM_RECORD_SIZE 0x107L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_FLAGS
 #define de_crupp_hamsterdb_Const_HAM_PARAM_FLAGS 512L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_FILEMODE

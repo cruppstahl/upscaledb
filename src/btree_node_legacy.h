@@ -34,55 +34,104 @@ namespace hamsterdb {
 HAM_PACK_0 class HAM_PACK_1 PBtreeKeyLegacy
 {
   public:
-    // Returns the record id
-    //
-    // !!!
-    // if TINY or SMALL is set, the key is actually a char*-pointer;
-    // in this case, we must not use endian-conversion!
-    ham_u64_t get_record_id() {
-      return (((m_flags8 & BtreeKey::kBlobSizeTiny)
-                              || (m_flags8 & BtreeKey::kBlobSizeSmall))
-              ? m_ptr
-              : ham_db2h_offset(m_ptr));
+    // Returns true if the record is inline
+    bool is_record_inline() const {
+      return ((m_flags8 & BtreeKey::kBlobSizeTiny)
+              || (m_flags8 & BtreeKey::kBlobSizeSmall)
+              || (m_flags8 & BtreeKey::kBlobSizeEmpty) != 0);
+    }
+
+    // Returns the size of the record, if inline
+    ham_size_t get_inline_record_size() const {
+      ham_assert(is_record_inline() == true);
+      if (m_flags8 & BtreeKey::kBlobSizeTiny) {
+        /* the highest byte of the record id is the size of the blob */
+        char *p = (char *)&m_ptr;
+        return (p[sizeof(ham_u64_t) - 1]);
+      }
+      else if (m_flags8 & BtreeKey::kBlobSizeSmall)
+        return (sizeof(ham_u64_t));
+      else if (m_flags8 & BtreeKey::kBlobSizeEmpty)
+        return (0);
+      else
+        ham_assert(!"shouldn't be here");
+      return (0);
+    }
+
+    // Returns a pointer to the record's inline data
+    void *get_inline_record_data() {
+      ham_assert(is_record_inline() == true);
+      return (&m_ptr);
+    }
+
+    // Returns the maximum size of inline records
+    ham_size_t get_max_inline_record_size() const {
+      return (sizeof(ham_u64_t));
+    }
+
+    // Removes an inline record
+    void remove_record_inline() {
+      ham_assert(is_record_inline() == true);
+      m_flags8 &= ~(BtreeKey::kBlobSizeSmall
+                      | BtreeKey::kBlobSizeTiny
+                      | BtreeKey::kBlobSizeEmpty
+                      | BtreeKey::kDuplicates);
+      m_ptr = 0;
+    }
+
+    // Returns a pointer to the record's inline data
+    const ham_u64_t *get_inline_record_data() const {
+      ham_assert(is_record_inline() == true);
+      return (&m_ptr);
+    }
+
+    // Sets the inline record data
+    void set_inline_record_data(const void *data, ham_size_t size) {
+      // make sure that the flags are zeroed out
+      m_flags8 &= ~(BtreeKey::kBlobSizeSmall
+                      | BtreeKey::kBlobSizeTiny
+                      | BtreeKey::kBlobSizeEmpty);
+      if (size == 0) {
+        m_flags8 |= BtreeKey::kBlobSizeEmpty;
+        return;
+      }
+      if (size < 8) {
+        m_flags8 |= BtreeKey::kBlobSizeTiny;
+        /* the highest byte of the record id is the size of the blob */
+        char *p = (char *)&m_ptr;
+        p[sizeof(ham_u64_t) - 1] = size;
+        memcpy(&m_ptr, data, size);
+        return;
+      }
+      if (size == 8) {
+        m_flags8 |= BtreeKey::kBlobSizeSmall;
+        memcpy(&m_ptr, data, size);
+        return;
+      }
+      ham_assert(!"shouldn't be here");
     }
 
     // Returns the record id
     ham_u64_t get_record_id() const {
-      return (((m_flags8 & BtreeKey::kBlobSizeTiny)
-                              || (m_flags8 & BtreeKey::kBlobSizeSmall))
-              ? m_ptr
-              : ham_db2h_offset(m_ptr));
-    }
-
-    // Same as above, but without endian conversion
-    ham_u64_t *get_rawptr() {
-      return (&m_ptr);
-    }
-
-    // Same as above, but without endian conversion
-    const ham_u64_t *get_rawptr() const {
-      return (&m_ptr);
+      return (ham_db2h_offset(m_ptr));
     }
 
     // Sets the record id
-    //
-    // !!! same problems as with get_record_id():
-    // if TINY or SMALL is set, the key is actually a char*-pointer;
-    // in this case, we must not use endian-conversion
     void set_record_id(ham_u64_t ptr) {
-      m_ptr = (((m_flags8 & BtreeKey::kBlobSizeTiny)
-                              || (m_flags8 & BtreeKey::kBlobSizeSmall))
-              ? ptr
-              : ham_h2db_offset(ptr));
+      // make sure that the flags are zeroed out
+      m_flags8 &= ~(BtreeKey::kBlobSizeSmall
+                      | BtreeKey::kBlobSizeTiny
+                      | BtreeKey::kBlobSizeEmpty);
+      m_ptr = ham_h2db_offset(ptr);
     }
 
     // Returns the size of an btree-entry
-    ham_u16_t get_size() const {
+    ham_u16_t get_key_size() const {
       return (ham_db2h16(m_keysize));
     }
 
     // Sets the size of an btree-entry
-    void set_size(ham_u16_t size) {
+    void set_key_size(ham_u16_t size) {
       m_keysize = ham_h2db16(size);
     }
 
@@ -101,17 +150,17 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeKeyLegacy
     }
 
     // Returns a pointer to the key data
-    ham_u8_t *get_key() {
+    ham_u8_t *get_key_data() {
       return (m_key);
     }
 
     // Returns a pointer to the key data
-    const ham_u8_t *get_key() const {
+    const ham_u8_t *get_key_data() const {
       return (m_key);
     }
 
     // Overwrites the key data
-    void set_key(const void *ptr, ham_size_t len) {
+    void set_key_data(const void *ptr, ham_size_t len) {
       memcpy(m_key, ptr, len);
     }
   
@@ -158,9 +207,9 @@ class LegacyNodeLayout
       : m_page(page), m_node(PBtreeNode::from_page(page)) {
     }
 
-    // Returns the actual key size (including overhead)
+    // Returns the actual key size (including overhead, without record)
     static ham_u16_t get_system_keysize(ham_size_t keysize) {
-      return ((ham_u16_t)(keysize + PBtreeKeyLegacy::kSizeofOverhead));
+      return ((ham_u16_t)(keysize + PBtreeKeyLegacy::kSizeofOverhead - 8));
     }
 
     Iterator begin() {
@@ -181,13 +230,13 @@ class LegacyNodeLayout
 
     Iterator next(Iterator it) {
       return (Iterator)(((const char *)it)
-                      + m_page->get_db()->get_keysize()
+                      + m_page->get_db()->get_key_size()
                       + PBtreeKeyLegacy::kSizeofOverhead);
     }
 
     Iterator next(ConstIterator it) const {
       return (Iterator)(((const char *)it)
-                      + m_page->get_db()->get_keysize()
+                      + m_page->get_db()->get_key_size()
                       + PBtreeKeyLegacy::kSizeofOverhead);
     }
 
@@ -206,21 +255,22 @@ class LegacyNodeLayout
       ham_status_t st = 0;
 
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-        if (!arena->resize(it->get_size()) && it->get_size() > 0)
+        if (!arena->resize(it->get_key_size()) && it->get_key_size() > 0)
           return (HAM_OUT_OF_MEMORY);
         dest->data = arena->get_ptr();
-        dest->size = it->get_size();
+        dest->size = it->get_key_size();
       }
 
-      size_t size = std::min((ham_u16_t)it->get_size(), (ham_u16_t)db->get_keysize());
-      memcpy(dest->data, it->get_key(), size);
+      size_t size = std::min((ham_u16_t)it->get_key_size(),
+                      (ham_u16_t)db->get_key_size());
+      memcpy(dest->data, it->get_key_data(), size);
 
       // TODO not really efficient; get rid of Db::get_extended_key
       // and rewrite this function.
       if (it->get_flags() & BtreeKey::kExtended) {
         ham_key_t key = {0};
         key.data = arena->get_ptr();
-        key.size = it->get_size();
+        key.size = it->get_key_size();
         key.flags = HAM_KEY_USER_ALLOC;
         key._flags = BtreeKey::kExtended;
 
@@ -263,10 +313,6 @@ class LegacyNodeLayout
       return (0);
     }
 
-    void initialize() {
-      memset(m_page->get_payload(), 0, sizeof(PBtreeNode));
-    }
-
     template<typename Cmp>
     int compare(const ham_key_t *lhs, Iterator it, Cmp &cmp) {
       if (it->get_flags() & BtreeKey::kExtended) {
@@ -274,13 +320,13 @@ class LegacyNodeLayout
         copy_full_key(it, &m_arena, &tmp);
         return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
       }
-      return (cmp(lhs->data, lhs->size, it->get_key(), it->get_size()));
+      return (cmp(lhs->data, lhs->size, it->get_key_data(), it->get_key_size()));
     }
 
     void split(LegacyNodeLayout *other, int pivot) {
       Iterator nit = other->begin();
       Iterator oit = at(pivot);
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
 
       /*
        * if we split a leaf, we'll insert the pivot element in the leaf
@@ -300,7 +346,7 @@ class LegacyNodeLayout
 
     Iterator insert(ham_u32_t slot, const ham_key_t *key) {
       Iterator it = at(slot);
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
       ham_size_t count = m_node->get_count();
 
       if (count > slot) {
@@ -310,21 +356,21 @@ class LegacyNodeLayout
       /* if a new key is created or inserted: initialize it with zeroes */
       memset(it, 0, PBtreeKeyLegacy::kSizeofOverhead + keysize);
 
-      it->set_size(key->size);
+      it->set_key_size(key->size);
 
       /* set a flag if the key is extended, and does not fit into the btree */
       if (key->size > keysize)
         it->set_flags(it->get_flags() | BtreeKey::kExtended);
 
       /* store the key */
-      it->set_key(key->data, std::min(keysize, (ham_size_t)key->size));
+      it->set_key_data(key->data, std::min(keysize, (ham_size_t)key->size));
 
       return (it);
     }
 
     void make_space(ham_u32_t slot) {
       Iterator it = at(slot);
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
       ham_size_t count = m_node->get_count();
 
       if (count > slot) {
@@ -350,7 +396,7 @@ class LegacyNodeLayout
 
       if (slot != m_node->get_count() - 1) {
         Iterator rhs = at(slot + 1);
-        memmove(lhs, rhs, ((PBtreeKeyLegacy::kSizeofOverhead + db->get_keysize()))
+        memmove(lhs, rhs, ((PBtreeKeyLegacy::kSizeofOverhead + db->get_key_size()))
                 * (m_node->get_count() - slot - 1));
       }
     }
@@ -360,7 +406,7 @@ class LegacyNodeLayout
       Iterator rhs = other->begin();
 
       /* shift items from the sibling to this page */
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
       memcpy(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize)
                       * other->m_node->get_count());
     }
@@ -368,7 +414,7 @@ class LegacyNodeLayout
     void shift_from_right(LegacyNodeLayout *other, int count) {
       Iterator lhs = at(m_node->get_count());
       Iterator rhs = other->begin();
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
       memmove(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize) * count);
 
       lhs = other->begin();
@@ -380,7 +426,7 @@ class LegacyNodeLayout
     void shift_to_right(LegacyNodeLayout *other, int slot, int count) {
       Iterator lhs = other->at(count);
       Iterator rhs = other->begin();
-      ham_size_t keysize = m_page->get_db()->get_keysize();
+      ham_size_t keysize = m_page->get_db()->get_key_size();
       memmove(lhs, rhs, (PBtreeKeyLegacy::kSizeofOverhead + keysize)
               * other->m_node->get_count());
 
@@ -397,13 +443,13 @@ class LegacyNodeLayout
     // elements "after" get_count()
     Iterator get_iterator(LocalDatabase *db, int i) {
       return ((PBtreeKeyLegacy *)&(m_node->get_data()
-                [(db->get_keysize() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
+                [(db->get_key_size() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
     }
 
     // Same as above, const flavor
     Iterator get_iterator(LocalDatabase *db, int i) const {
       return ((PBtreeKeyLegacy *)&(m_node->get_data()
-                [(db->get_keysize() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
+                [(db->get_key_size() + PBtreeKeyLegacy::kSizeofOverhead) * i]));
     }
 
     Page *m_page;

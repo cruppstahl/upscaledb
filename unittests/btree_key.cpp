@@ -92,17 +92,12 @@ struct BtreeKeyFixture {
     if (!flags)
       memset(m_page->get_raw_payload(), 0, 1024);
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
-    if (!(flags & HAM_DUPLICATE))
-      REQUIRE((ham_u64_t)0 == node->get_record_id(slot));
-
+    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE((ham_u8_t)BtreeKey::kBlobSizeEmpty
-                      == node->test_get_flags(slot));
+      REQUIRE((ham_u8_t)BtreeKey::kBlobSizeEmpty == node->test_get_flags(slot));
     }
     else {
-      REQUIRE((ham_u8_t)BtreeKey::kDuplicates
-                      == node->test_get_flags(slot));
+      REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(slot));
     }
   }
 
@@ -131,7 +126,7 @@ struct BtreeKeyFixture {
     rec.data = (void *)data;
     rec.size = size;
 
-    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE))
       REQUIRE((ham_u8_t)BtreeKey::kBlobSizeTiny ==
                       node->test_get_flags(slot));
@@ -140,7 +135,7 @@ struct BtreeKeyFixture {
                       node->test_get_flags(slot));
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->copy_full_record(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -172,7 +167,7 @@ struct BtreeKeyFixture {
     rec.data = (void *)data;
     rec.size = sizeof(ham_u64_t);
 
-    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
       REQUIRE((ham_u8_t)BtreeKey::kBlobSizeSmall ==
                       node->test_get_flags(slot));
@@ -183,7 +178,7 @@ struct BtreeKeyFixture {
     }
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->copy_full_record(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -214,13 +209,13 @@ struct BtreeKeyFixture {
     rec.data = (void *)data;
     rec.size = size;
 
-    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
     if (flags & HAM_DUPLICATE)
       REQUIRE((ham_u8_t)BtreeKey::kDuplicates ==
                       node->test_get_flags(slot));
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->copy_full_record(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -312,7 +307,7 @@ struct BtreeKeyFixture {
     memset(&rec, 0, sizeof(rec));
 
     ByteArray arena;
-    REQUIRE(0 == node->copy_full_record(slot, &arena, &rec, 0, position));
+    REQUIRE(0 == node->get_record_data(slot, &arena, &rec, 0, position));
     REQUIRE(rec.size == size);
     if (size)
       REQUIRE(0 == memcmp(rec.data, data, rec.size));

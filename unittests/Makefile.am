@@ -11,6 +11,7 @@ test_SOURCES    = aes.cpp \
 				  api110.cpp \
 			      approx.cpp \
                   blob_manager.cpp \
+                  btree.cpp \
                   btree_cursor.cpp \
                   btree_erase.cpp \
                   btree_insert.cpp \

@@ -21,9 +21,12 @@ namespace Hamster
     }
 
     /// <summary>Operation completed successfully</summary>
-    public const int HAM_SUCCESS            =    0;
+    public const int HAM_SUCCESS                =    0;
+    /// <summary>Invalid record size</summary>
+    public const int HAM_INV_RECORD_SIZE        =     -2;
     /// <summary>Invalid key size</summary>
-    public const int HAM_INV_KEYSIZE          =     -3;
+    public const int HAM_INV_KEY_SIZE           =     -3;
+    public const int HAM_INV_KEYSIZE            =     -3;
     /// <summary>Invalid page size (must be 1024 or a multiple of 2048)</summary>
     public const int HAM_INV_PAGESIZE           =     -4;
     /// <summary>Memory allocation failed - out of memory</summary>
@@ -33,13 +36,13 @@ namespace Hamster
     /// <summary>Invalid file header</summary>
     public const int HAM_INV_FILE_HEADER        =     -9;
     /// <summary>Invalid file version</summary>
-    public const int HAM_INV_FILE_VERSION         =    -10;
+    public const int HAM_INV_FILE_VERSION       =    -10;
     /// <summary>Key was not found</summary>
     public const int HAM_KEY_NOT_FOUND          =    -11;
     /// <summary>Tried to insert a key which already exists</summary>
     public const int HAM_DUPLICATE_KEY          =    -12;
     /// <summary>Internal Database integrity violated</summary>
-    public const int HAM_INTEGRITY_VIOLATED       =    -13;
+    public const int HAM_INTEGRITY_VIOLATED     =    -13;
     /// <summary>Internal hamsterdb error</summary>
     public const int HAM_INTERNAL_ERROR         =    -14;
     /// <summary>Tried to modify the Database, but the file was opened as read-only</summary>
@@ -47,29 +50,27 @@ namespace Hamster
     /// <summary>Database record not found</summary>
     public const int HAM_BLOB_NOT_FOUND         =    -16;
     /// <summary>Prefix comparison function needs more data</summary>
-    public const int HAM_PREFIX_REQUEST_FULLKEY     =    -17;
+    public const int HAM_PREFIX_REQUEST_FULLKEY =    -17;
     /// <summary>Generic file I/O error</summary>
-    public const int HAM_IO_ERROR             =    -18;
+    public const int HAM_IO_ERROR               =    -18;
     /// <summary>Database cache is full</summary>
-    public const int HAM_CACHE_FULL           =    -19;
+    public const int HAM_CACHE_FULL             =    -19;
     /// <summary>Function is not yet implemented</summary>
     public const int HAM_NOT_IMPLEMENTED        =    -20;
     /// <summary>File not found</summary>
     public const int HAM_FILE_NOT_FOUND         =    -21;
     /// <summary>Operation would block</summary>
-    public const int HAM_WOULD_BLOCK          =    -22;
+    public const int HAM_WOULD_BLOCK            =    -22;
     /// <summary>Object was not initialized correctly</summary>
-    public const int HAM_NOT_READY            =    -23;
+    public const int HAM_NOT_READY              =    -23;
     /// <summary>Database limits reached</summary>
     public const int HAM_LIMITS_REACHED         =    -24;
     /// <summary>Object was already initialized</summary>
-    public const int HAM_ALREADY_INITIALIZED      =    -27;
+    public const int HAM_ALREADY_INITIALIZED    =    -27;
     /// <summary>Database needs recovery</summary>
     public const int HAM_NEED_RECOVERY          =    -28;
     /// <summary>Cursor must be closed prior to Transaction abort/commit</summary>
-    public const int HAM_CURSOR_STILL_OPEN        =    -29;
-    /// <summary>Record filter or file filter not found</summary>
-    public const int HAM_FILTER_NOT_FOUND         =    -30;
+    public const int HAM_CURSOR_STILL_OPEN      =    -29;
     /// <summary>Operation conflicts with another Transaction</summary>
     public const int HAM_TXN_CONFLICT           =    -31;
     /// <summary>Database cannot be closed because it is modified in a Transaction</summary>
@@ -77,15 +78,15 @@ namespace Hamster
     /// <summary>Cursor does not point to a valid item</summary>
     public const int HAM_CURSOR_IS_NIL          =   -100;
     /// <summary>Database not found</summary>
-    public const int HAM_DATABASE_NOT_FOUND       =   -200;
+    public const int HAM_DATABASE_NOT_FOUND     =   -200;
     /// <summary>Database name already exists</summary>
     public const int HAM_DATABASE_ALREADY_EXISTS    =   -201;
     /// <summary>Database already open, or: Database handle is already initialized</summary>
-    public const int HAM_DATABASE_ALREADY_OPEN      =   -202;
+    public const int HAM_DATABASE_ALREADY_OPEN  =   -202;
     /// <summary>Environment already open, or: Environment handle is already initialized</summary>
-    public const int HAM_ENVIRONMENT_ALREADY_OPEN     =   -203;
+    public const int HAM_ENVIRONMENT_ALREADY_OPEN   =   -203;
     /// <summary>Invalid log file header</summary>
-    public const int HAM_LOG_INV_FILE_HEADER      =   -300;
+    public const int HAM_LOG_INV_FILE_HEADER    =   -300;
 
     // Error handling levels
     /// <summary>A debug message</summary>
@@ -137,11 +138,16 @@ namespace Hamster
     /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_PAGESIZE         =  0x00101;
     /// <summary>Parameter name for Database.Create</summary>
+    public const int HAM_PARAM_KEY_SIZE         =  0x00102;
     public const int HAM_PARAM_KEYSIZE          =  0x00102;
     /// <summary>Parameter name for Environment.Create</summary>
     public const int HAM_PARAM_MAX_DATABASES    =  0x00103;
+    /// <summary>Parameter name for Database.Create</summary>
+    public const int HAM_PARAM_KEY_TYPE         =  0x00104;
     /// <summary>Parameter name for Environment.Open, Environment.Create</summary>
     public const int HAM_PARAM_NETWORK_TIMEOUT_SEC = 0x00000107;
+    /// <summary>Parameter name for Database.Create</summary>
+    public const int HAM_PARAM_RECORD_SIZE      =  0x00108;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>

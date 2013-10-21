@@ -21,10 +21,12 @@ namespace hamsterdb {
 class BtreeKey
 {
   public:
-    // persisted PBtreeKeyLegacy flags; also used in combination with ham_key_t._flags
+    // persisted PBtreeKeyLegacy flags; also used in combination
+    // with ham_key_t._flags
     //
-    // NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
-    // 0x000000FF
+    // Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
+    // defined such that those can peacefully co-exist with these; that's why
+    // those public flags start at the value 0x1000 (4096).
     enum {
       // record size < 8; length is encoded at byte[7] of key->ptr
       kBlobSizeTiny         = 0x01,
@@ -42,7 +44,7 @@ class BtreeKey
       kDuplicates           = 0x10,
 
       // memory for a key was allocated in hamsterdb, not by caller
-      kAllocated           = 0x20
+      kAllocated            = 0x20
     };
 
     // flags used with the ham_key_t::_flags (note the underscore - this

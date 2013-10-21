@@ -28,9 +28,13 @@ main(int argc, char **argv) {
   ham_db_t *db;             /* hamsterdb database object */
   ham_cursor_t *cursor;     /* a database cursor */
   char line[1024 * 4];      /* a buffer for reading lines */
-  unsigned lineno = 0;      /* the current line number */
+  ham_u32_t lineno = 0;     /* the current line number */
   ham_key_t key;
   ham_record_t record;
+  ham_parameter_t params[] = {  /* we insert 4 byte records only */
+    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {0, 0}
+  };
 
   memset(&key, 0, sizeof(key));
   memset(&record, 0, sizeof(record));
@@ -46,7 +50,7 @@ main(int argc, char **argv) {
     return (-1);
   }
   st = ham_env_create_db(env, &db, DATABASE_NAME,
-          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATE_KEYS, 0);
+          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
   if (st != HAM_SUCCESS) {
     printf("ham_env_create_db() failed with error %d\n", st);
     return (-1);

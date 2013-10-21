@@ -61,13 +61,23 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the btree's max. keysize
-    ham_u16_t get_keysize() const {
+    ham_u16_t get_key_size() const {
       return (ham_db2h16(m_keysize));
     }
 
     // Sets the btree's max. keysize
     void set_keysize(ham_u16_t n) {
       m_keysize = ham_h2db16(n);
+    }
+
+    // Returns the record size (or 0 if none was specified)
+    ham_u32_t get_record_size() const {
+      return (ham_db2h32(m_recsize));
+    }
+
+    // Sets the record size
+    void set_recsize(ham_u32_t n) {
+      m_recsize = ham_h2db32(n);
     }
 
     // Returns the btree's key type
@@ -119,7 +129,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // key type
     ham_u16_t m_keytype;
 
-    // reserved for record size
+    // the record size
     ham_u32_t m_recsize;
 
     // start of reserved space for this index
@@ -179,13 +189,23 @@ class BtreeIndexTraits
 class BtreeIndex
 {
   public:
+    enum {
+      // for get_node_from_page(): Page is a leaf
+      kLeafPage = 1,
+
+      // for get_node_from_page(): Page is an internal node
+      kInternalPage = 2
+    };
+
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
             ham_u32_t keytype);
 
     ~BtreeIndex() {
-      delete m_traits;
-      m_traits = 0;
+      delete m_leaf_traits;
+      m_leaf_traits = 0;
+      delete m_internal_traits;
+      m_internal_traits = 0;
     }
 
     // Returns the database pointer
@@ -199,8 +219,13 @@ class BtreeIndex
     }
 
     // Returns the internal key size
-    ham_u16_t get_keysize() const {
+    ham_u16_t get_key_size() const {
       return (m_keysize);
+    }
+
+    // Returns the record size
+    ham_u32_t get_record_size() const {
+      return (m_recsize);
     }
 
     // Returns the internal key type
@@ -231,14 +256,15 @@ class BtreeIndex
 
     // Returns the actual key size (including overhead)
     ham_u16_t get_system_keysize(ham_size_t keysize) const {
-      return (m_traits->get_system_keysize(keysize));
+      return (m_leaf_traits->get_system_keysize(keysize));
     }
 
     // Creates and initializes the btree
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    ham_status_t create(ham_u16_t keysize, ham_u16_t keytype);
+    ham_status_t create(ham_u16_t keytype, ham_u32_t keysize,
+                    ham_u32_t recsize);
 
     // Opens and initializes the btree
     //
@@ -280,7 +306,7 @@ class BtreeIndex
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
     int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
-      return (m_traits->compare_keys(m_db, lhs, rhs));
+      return (m_leaf_traits->compare_keys(m_db, lhs, rhs));
     }
 
     // Returns a BtreeNodeProxy for a Page
@@ -295,7 +321,7 @@ class BtreeIndex
 
     // Returns the class name (for testing)
     std::string test_get_classname() const {
-      return (m_traits->test_get_classname());
+      return (m_leaf_traits->test_get_classname());
     }
 
   private:
@@ -312,9 +338,14 @@ class BtreeIndex
     friend struct DuplicateFixture;
     friend struct RecordNumberFixture;
 
-    // Implementation of get_node_from_page()
-    BtreeNodeProxy *get_node_from_page_impl(Page *page) const {
-      return (m_traits->get_node_from_page_impl(page));
+    // Implementation of get_node_from_page() (for leaf nodes)
+    BtreeNodeProxy *get_leaf_node_from_page_impl(Page *page) const {
+      return (m_leaf_traits->get_node_from_page_impl(page));
+    }
+
+    // Implementation of get_node_from_page() (for internal nodes)
+    BtreeNodeProxy *get_internal_node_from_page_impl(Page *page) const {
+      return (m_internal_traits->get_node_from_page_impl(page));
     }
 
     // Sets the address of the root page
@@ -324,7 +355,8 @@ class BtreeIndex
     }
 
     // Calculates the "maxkeys" values - the limit of keys per page
-    ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
+    ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
+                        ham_size_t recsize);
 
     // Flushes the PBtreeHeader to the Environment's header page
     void flush_descriptor();
@@ -354,14 +386,22 @@ class BtreeIndex
     // pointer to the database object
     LocalDatabase *m_db;
 
-    // the Traits class wrapping the template parameters
-    BtreeIndexTraits *m_traits;
+    // the Traits class wrapping the template parameters (factory for
+    // leaf nodes)
+    BtreeIndexTraits *m_leaf_traits;
+
+    // the Traits class wrapping the template parameters (factory for
+    // internal nodes)
+    BtreeIndexTraits *m_internal_traits;
 
     // the keysize of this btree index
     ham_u16_t m_keysize;
 
     // the keytype of this btree index
     ham_u16_t m_keytype;
+
+    // the record size (or 0 if none was specified)
+    ham_u32_t m_recsize;
 
     // the index of the PBtreeHeader in the Environment's header page
     ham_u32_t m_descriptor_index;

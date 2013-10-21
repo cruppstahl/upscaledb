@@ -87,9 +87,20 @@ run_demo() {
     {0, }
   };
 
+  /*
+   * The "mapping" between customers and orders stores uint32 customer IDs
+   * as a key and uint32 order IDs as a record
+   */
+  ham_parameter_t c2o_params[] = {
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {0, }
+  };
+
   db[DBIDX_CUSTOMER] = env.create_db(DBNAME_CUSTOMER, 0, &params[0]);
   db[DBIDX_ORDER]  = env.create_db(DBNAME_ORDER, 0, &params[0]);
-  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
+  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O,
+                  HAM_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
 
   /* Create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++)

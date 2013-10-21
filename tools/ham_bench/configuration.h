@@ -33,11 +33,6 @@ struct Configuration
   };
 
   enum {
-    kRecordVariable = 0,
-    kRecordFixed
-  };
-
-  enum {
     kFullcheckDefault = 0,
     kFullcheckFind,
     kFullcheckReverse,
@@ -71,7 +66,8 @@ struct Configuration
 
   Configuration()
     : profile(true), verbose(0), no_progress(false), reopen(false), open(false),
-      quiet(false), key_type(kKeyBinary), record_type(kRecordVariable),
+      quiet(false), key_type(kKeyBinary),
+      rec_size_fixed(HAM_RECORD_SIZE_UNLIMITED), force_records_inline(false),
       distribution(kDistributionRandom), seed(0), limit_ops(0),
       limit_seconds(0), limit_bytes(0), key_size(kDefaultKeysize),
       btree_key_size(0), key_is_fixed_size(false), rec_size(kDefaultRecsize),
@@ -165,8 +161,10 @@ struct Configuration
         printf("--btree-keysize=%d ", btree_key_size);
       if (key_is_fixed_size)
         printf("--keysize-fixed ");
-      if (record_type == kRecordFixed)
-        printf("--record=fixed ");
+      if (rec_size_fixed != HAM_RECORD_SIZE_UNLIMITED)
+        printf("--recsize-fixed=%d ", rec_size_fixed);
+      if (force_records_inline)
+        printf("--force-records-inline ");
       printf("--recsize=%d ", rec_size);
       if (distribution == kDistributionRandom)
         printf("--distribution=random ");
@@ -200,7 +198,8 @@ struct Configuration
   std::string filename;
   bool quiet;
   int key_type;
-  int record_type;
+  unsigned rec_size_fixed;
+  bool force_records_inline;
   int distribution;
   long seed;
   uint64_t limit_ops;

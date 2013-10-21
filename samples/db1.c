@@ -36,15 +36,17 @@ main(int argc, char **argv) {
   ham_record_t record = {0};   /* the structure for a record */
   ham_parameter_t params[] = { /* parameters for ham_env_create_db */
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
     {0, }
   };
 
-  /* create a new hamsterdb Environment */
+  /* First create a new hamsterdb Environment */
   st = ham_env_create(&env, "test.db", 0, 0664, 0);
   if (st != HAM_SUCCESS)
     error("ham_create", st);
 
-  /* and in this Environment we create a new Database for uint32-keys */
+  /* And in this Environment we create a new Database for uint32-keys
+   * and uint32-records. */
   st = ham_env_create_db(env, &db, DATABASE_NAME, 0, &params[0]);
   if (st != HAM_SUCCESS)
     error("ham_create", st);

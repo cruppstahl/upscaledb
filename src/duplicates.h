@@ -120,13 +120,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PDupeTable
 /** get a pointer to a duplicate entry @a i */
 #define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
 
-#if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
-#  undef alloc
-#  undef free
-#  undef realloc
-#  undef calloc
-#endif
-
 /**
  * The DuplicateManager manages duplicates (not a surprise)
  */

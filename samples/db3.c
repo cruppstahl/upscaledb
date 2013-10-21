@@ -43,6 +43,7 @@ main(int argc, char **argv) {
   ham_record_t record = {0};
   ham_parameter_t params[] = { /* parameters for ham_env_create_db */
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM},
+    {HAM_PARAM_RECORD_SIZE, 0}, /* we do not store records, only keys */
     {0, }
   };
 

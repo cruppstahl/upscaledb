@@ -205,18 +205,15 @@ class BtreeInsertAction
       /* allocate a new root page */
       Page *newroot;
       ham_status_t st = env->get_page_manager()->alloc_page(&newroot, db,
-                      Page::kTypeBroot, 0);
+                            Page::kTypeBroot, 0);
       if (st)
         return (st);
       ham_assert(newroot->get_db());
 
       m_btree->get_statistics()->reset_page(root);
 
-      // initialize the new page
+      /* insert the pivot element and set ptr_down */
       BtreeNodeProxy *node = m_btree->get_node_from_page(newroot);
-      node->initialize();
-
-      /* insert the pivot element and the ptr_down */
       node->set_ptr_down(m_btree->get_root_address());
 
       ham_key_t split_key = {0};
@@ -318,21 +315,23 @@ class BtreeInsertAction
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
+      BtreeNodeProxy *old_node = m_btree->get_node_from_page(page);
+
       /* allocate a new page */
       Page *new_page;
       ham_status_t st = env->get_page_manager()->alloc_page(&new_page, db,
-                      Page::kTypeBindex, 0);
+                            Page::kTypeBindex, 0);
       if (st)
         return st;
+      else {
+        PBtreeNode *node = PBtreeNode::from_page(new_page);
+        node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
+      }
 
       m_btree->get_statistics()->reset_page(page);
 
       BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_page);
-      BtreeNodeProxy *old_node = m_btree->get_node_from_page(page);
       ham_size_t count = old_node->get_count();
-
-      // initialize the new page
-      new_node->initialize();
 
       /*
        * for databases with sequential access (this includes recno databases):
@@ -501,7 +500,7 @@ class BtreeInsertAction
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
-          st = node->set_record(slot, m_txn, m_record,
+          st = node->set_record_data(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
@@ -526,7 +525,7 @@ class BtreeInsertAction
 
         if (node->is_leaf()) {
           // allocate record id
-          st = node->set_record(slot, m_txn, m_record,
+          st = node->set_record_data(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,

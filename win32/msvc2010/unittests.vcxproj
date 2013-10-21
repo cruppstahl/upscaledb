@@ -181,6 +181,7 @@
     <ClCompile Include="..\..\unittests\api110.cpp" />
     <ClCompile Include="..\..\unittests\approx.cpp" />
     <ClCompile Include="..\..\unittests\blob_manager.cpp" />
+    <ClCompile Include="..\..\unittests\btree.cpp" />
     <ClCompile Include="..\..\unittests\btree_cursor.cpp" />
     <ClCompile Include="..\..\unittests\btree_erase.cpp" />
     <ClCompile Include="..\..\unittests\btree_insert.cpp" />

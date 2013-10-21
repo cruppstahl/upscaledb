@@ -32,6 +32,11 @@ class PBtreeKeyLegacy;
 HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 {
   public:
+    enum {
+      // node is a leaf
+      kLeafNode = 1
+    };
+
     // Returns a PBtreeNode from a Page
     static PBtreeNode *from_page(Page *page) {
       return ((PBtreeNode *)page->get_payload());
@@ -40,6 +45,16 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     // Returns the offset (in bytes) of the member |m_data|
     static ham_size_t get_entry_offset() {
       return (OFFSETOF(PBtreeNode, m_data));
+    }
+
+    // Returns the flags
+    ham_u32_t get_flags() const {
+      return (ham_db2h32(m_flags));
+    }
+
+    // Sets the flags
+    void set_flags(ham_u32_t flags) {
+      m_flags = ham_h2db32(flags);
     }
 
     // Returns the number of entries in a BtreeNode
@@ -80,7 +95,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // Returns true if this btree node is a leaf node
     bool is_leaf() const {
-      return (m_ptr_down == 0);
+      return (m_flags & kLeafNode);
     }
 
     // Sets the ptr_down of this node
@@ -98,7 +113,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
   private:
-    // flags of this node - currently unused
+    // flags of this node
     ham_u32_t m_flags;
 
     // number of used entries in the node

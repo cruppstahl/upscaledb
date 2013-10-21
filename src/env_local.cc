@@ -591,8 +591,9 @@ ham_status_t
 LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u32_t flags, const ham_parameter_t *param)
 {
-  ham_u16_t keysize = 0;
+  ham_u32_t keysize = 0;
   ham_u16_t keytype = HAM_TYPE_BINARY;
+  ham_u32_t recsize = HAM_RECORD_SIZE_UNLIMITED;
   ham_u16_t dbi;
   std::string logdir;
 
@@ -616,10 +617,13 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
               if (keysize > 0 && keysize < sizeof(ham_u64_t)) {
                 ham_trace(("invalid keysize %u - must be 8 for "
                            "HAM_RECORD_NUMBER databases", (unsigned)keysize));
-                return (HAM_INV_KEYSIZE);
+                return (HAM_INV_KEY_SIZE);
               }
             }
           }
+          break;
+        case HAM_PARAM_RECORD_SIZE:
+          recsize = (ham_u32_t)param->value;
           break;
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
@@ -653,6 +657,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
                     | HAM_ENABLE_DUPLICATE_KEYS
                     | HAM_ENABLE_EXTENDED_KEYS
+                    | HAM_FORCE_RECORDS_INLINE
                     | HAM_RECORD_NUMBER;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
@@ -697,7 +702,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 #endif
 
   /* initialize the Database */
-  ham_status_t st = db->create(dbi, keysize, keytype);
+  ham_status_t st = db->create(dbi, keytype, keysize, recsize);
   if (st) {
     delete db;
     return (st);
@@ -735,6 +740,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
 
   ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
                     | HAM_ENABLE_EXTENDED_KEYS
+                    | HAM_FORCE_RECORDS_INLINE
                     | HAM_READ_ONLY;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));

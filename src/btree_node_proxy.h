@@ -12,6 +12,7 @@
 #ifndef HAM_BTREE_NODE_PROXY_H__
 #define HAM_BTREE_NODE_PROXY_H__
 
+#include "abi.h"
 #include "util.h"
 #include "page.h"
 #include "extkeys.h"
@@ -38,6 +39,19 @@ class BtreeNodeProxy
 
     // Destructor
     virtual ~BtreeNodeProxy() {
+    }
+
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const = 0;
+
+    // Returns the flags
+    ham_u32_t get_flags() const {
+      return (PBtreeNode::from_page(m_page)->get_flags());
+    }
+
+    // Sets the flags
+    void set_flags(ham_u32_t flags) {
+      PBtreeNode::from_page(m_page)->set_flags(flags);
     }
 
     // Returns the number of entries in the BtreeNode
@@ -78,7 +92,7 @@ class BtreeNodeProxy
 
     // Returns true if this btree node is a leaf node
     bool is_leaf() const {
-      return (get_ptr_down() == 0);
+      return (PBtreeNode::from_page(m_page)->is_leaf());
     }
 
     // Sets the ptr_down of this node
@@ -124,20 +138,8 @@ class BtreeNodeProxy
     virtual ham_status_t copy_full_key(int slot, ByteArray *arena,
                     ham_key_t *dest) const = 0;
 
-    // Returns the full record and stores it in |dest|. The record is identified
-    // by |slot| and |duplicate_index|. TINY and SMALL records are handled
-    // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual ham_status_t copy_full_record(int slot, ByteArray *arena,
-                    ham_record_t *record, ham_u32_t flags,
-                    ham_u32_t duplicate_index = 0,
-                    PDupeEntry *duplicate_entry = 0) const = 0;
-
-
     // Checks the integrity of the key at |slot|
     virtual ham_status_t check_integrity(int slot) const = 0;
-
-    // Clears the header of a new node
-    virtual void initialize() = 0;
 
     // Splits a page and moves all elements at a position >= |pivot|
     // to the |other| page. If the node is a leaf node then the pivot element
@@ -149,21 +151,11 @@ class BtreeNodeProxy
     virtual ham_status_t get_duplicate_count(int slot,
                     ham_size_t *pcount) const = 0;
 
-    // Returns the record size of a key or one of its duplicates
-    virtual ham_status_t get_record_size(int slot, int duplicate_index,
-                    ham_u64_t *psize) const = 0;
-
     // Returns true if the key at the given |slot| has duplicates
     virtual bool has_duplicates(ham_u32_t slot) const = 0;
 
     // Returns the flags of the key at the given |slot|; only for testing!
     virtual ham_u32_t test_get_flags(int slot) const = 0;
-
-    // Returns the record id of the key at the given |slot|
-    virtual ham_u64_t get_record_id(int slot) const = 0;
-
-    // Sets the record id of the key at the given |slot|
-    virtual void set_record_id(int slot, ham_u64_t id) = 0;
 
     // Searches the node for the key, and returns the slot of this key
     virtual int get_slot(ham_key_t *key, int *pcmp = 0) = 0;
@@ -191,6 +183,18 @@ class BtreeNodeProxy
     // High level function to remove an existing key
     virtual void remove(ham_u32_t slot) = 0;
 
+    // Returns the record size of a key or one of its duplicates
+    virtual ham_status_t get_record_size(int slot, int duplicate_index,
+                    ham_u64_t *psize) const = 0;
+
+    // Returns the record id of the key at the given |slot|
+    // Only for internal nodes!
+    virtual ham_u64_t get_record_id(int slot) const = 0;
+
+    // Sets the record id of the key at the given |slot|
+    // Only for internal nodes!
+    virtual void set_record_id(int slot, ham_u64_t id) = 0;
+
     // High-level function to set a new record
     //
     // flags can be
@@ -202,9 +206,24 @@ class BtreeNodeProxy
     // - HAM_DUPLICATE
     //
     // a previously existing blob will be deleted if necessary
-    virtual ham_status_t set_record(int slot, Transaction *txn,
-                    ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                    ham_size_t *new_position) = 0;
+    virtual ham_status_t set_record_data(int slot, Transaction *txn,
+                    ham_record_t *record, ham_size_t duplicate_position,
+                    ham_u32_t flags, ham_size_t *new_duplicate_position) = 0;
+
+    // Returns the full record and stores it in |dest|. The record is identified
+    // by |slot| and |duplicate_index|. TINY and SMALL records are handled
+    // correctly, as well as HAM_DIRECT_ACCESS.
+    virtual ham_status_t get_record_data(int slot, ByteArray *arena,
+                    ham_record_t *record, ham_u32_t flags,
+                    ham_u32_t duplicate_position = 0,
+                    PDupeEntry *duplicate_entry = 0) const = 0;
+
+    // Removes the record (or the duplicate of it, if |duplicate_id| is > 0).
+    // If |all_duplicates| is set then all duplicates of this key are deleted.
+    // |has_duplicates_left| will return true if there are more duplicates left
+    // after the current one was deleted.
+    virtual ham_status_t remove_record(int slot, int duplicate_id,
+                    bool all_duplicates, bool *has_duplicates_left) = 0;
 
     // Returns true if a node requires a split to insert |key|
     virtual bool requires_split(const ham_key_t *key) const = 0;
@@ -213,13 +232,6 @@ class BtreeNodeProxy
     virtual ham_status_t replace_key(int slot, BtreeNodeProxy *dest,
                     int dest_slot, bool dest_is_internal,
                     BlobManager *blob_manager) const = 0;
-
-    // Removes the record (or the duplicate of it, if |duplicate_id| is > 0).
-    // If |all_duplicates| is set then all duplicates of this key are deleted.
-    // |has_duplicates_left| will return true if there are more duplicates left
-    // after the current one was deleted.
-    virtual ham_status_t remove_record(int slot, int duplicate_id,
-                    bool all_duplicates, bool *has_duplicates_left) = 0;
 
     // Prints the node to stdout (for debugging)
     virtual void print() const = 0;
@@ -340,22 +352,27 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       : BtreeNodeProxy(page), m_layout(page) {
     }
 
+    // Returns the class name (for testing)
+    virtual std::string test_get_classname() const {
+      return (get_classname(*this));
+    }
+
     // Sets a key; only for testing
     virtual void test_set_key(int slot, const char *data, size_t data_size,
                     ham_u32_t flags, ham_u64_t record_id) {
       typename NodeLayout::Iterator it = m_layout.at(slot);
       it->set_record_id(record_id);
       it->set_flags(flags);
-      it->set_size(data_size);
-      it->set_key(data, data_size);
+      it->set_key_size(data_size);
+      it->set_key_data(data, data_size);
     }
 
     // Retrieves the key at the specific |slot|
     virtual void enumerate(BtreeVisitor &visitor) {
       typename NodeLayout::Iterator it = m_layout.begin();
       for (ham_size_t i = 0; i < get_count(); i++, it = m_layout.next(it)) {
-        if (!visitor(this, it->get_key(), it->get_flags(), it->get_size(),
-                                it->get_record_id()))
+        if (!visitor(this, it->get_key_data(), it->get_flags(),
+                                it->get_key_size(), it->get_record_id()))
           break;
       }
     }
@@ -368,14 +385,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       for (ham_size_t i = 0; i < get_count(); i++, it = m_layout.next(it)) {
         m_layout.release_key(it);
 
-        if (!is_leaf()
-           || (it->get_flags() & (BtreeKey::kBlobSizeTiny
-                  | BtreeKey::kBlobSizeSmall
-                  | BtreeKey::kBlobSizeEmpty)))
-          continue;
-
         /* if we're in the leaf page, delete the associated record */
-        remove_record(i, 0, true, 0);
+        if (is_leaf())
+          remove_record(i, 0, true, 0);
       }
     }
 
@@ -395,7 +407,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns true if the public key and an internal key are equal
     virtual bool equals(const ham_key_t *lhs, int rhs) {
       typename NodeLayout::Iterator it = m_layout.at(rhs);
-      if (it->get_size() != lhs->size)
+      if (it->get_key_size() != lhs->size)
         return (false);
       return (0 == compare(lhs, rhs));
     }
@@ -416,95 +428,96 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual ham_status_t copy_full_record(int slot, ByteArray *arena,
+    virtual ham_status_t get_record_data(int slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_index = 0,
                     PDupeEntry *duplicate_entry = 0) const {
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      ham_u64_t *ridptr = 0;
 
       typename NodeLayout::Iterator it = m_layout.at(slot);
 
-      record->_intflags = it->get_flags();
-      record->_rid = it->get_record_id();
-
-      bool noblob = false;
-      ham_size_t blobsize;
-
-      /* if this key has duplicates: fetch the duplicate entry */
-      if (record->_intflags & BtreeKey::kDuplicates) {
+      // handle duplicates - TODO clean this up, move to iterator
+      if (it->get_flags() & BtreeKey::kDuplicates) {
         PDupeEntry tmp;
         if (!duplicate_entry)
           duplicate_entry = &tmp;
-        ham_status_t st = env->get_duplicate_manager()->get(record->_rid,
+        ham_status_t st = env->get_duplicate_manager()->get(it->get_record_id(),
                         duplicate_index, duplicate_entry);
         if (st)
           return st;
         record->_intflags = dupe_entry_get_flags(duplicate_entry);
         record->_rid = dupe_entry_get_rid(duplicate_entry);
-        /* ridptr must not point to entry._rid because it's on the stack! */
-        ridptr = &record->_rid;
-      }
-      else {
-        ridptr = it->get_rawptr();
+
+        ham_size_t size = 0xffffffff;
+        if (record->_intflags & BtreeKey::kBlobSizeTiny) {
+          /* the highest byte of the record id is the size of the blob */
+          char *p = (char *)&record->_rid;
+          size = p[sizeof(ham_u64_t) - 1];
+        }
+        else if (record->_intflags & BtreeKey::kBlobSizeSmall)
+          size = sizeof(ham_u64_t);
+        else if (record->_intflags & BtreeKey::kBlobSizeEmpty)
+          size = 0;
+
+        if (size == 0) {
+          record->data = 0;
+          record->size = 0;
+          return (0);
+        }
+        if (size <= 8) {
+          if (flags & HAM_PARTIAL) {
+            ham_trace(("flag HAM_PARTIAL is not allowed if record->size <= 8"));
+            return (HAM_INV_PARAMETER);
+          }
+          if (!(record->flags & HAM_RECORD_USER_ALLOC)
+              && (flags & HAM_DIRECT_ACCESS)) {
+            record->data = &record->_rid;
+            record->size = size;
+            return (0);
+          }
+          if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+            arena->resize(size);
+            record->data = arena->get_ptr();
+          }
+          record->size = size;
+          memcpy(record->data, &record->_rid, size);
+          return (HAM_SUCCESS);
+        }
+        return (env->get_blob_manager()->read(db, record->_rid, record,
+                                flags, arena));
       }
 
-      /*
-       * if the record size is small enough there's
-       * no blob available, but the data is stored compressed in the record's
-       * offset.
-       */
-      if (record->_intflags & BtreeKey::kBlobSizeTiny) {
-        /* the highest byte of the record id is the size of the blob */
-        char *p = (char *)ridptr;
-        blobsize = p[sizeof(ham_u64_t) - 1];
-        noblob = true;
-      }
-      else if (record->_intflags & BtreeKey::kBlobSizeSmall) {
-        /* record size is sizeof(ham_u64_t) */
-        blobsize = sizeof(ham_u64_t);
-        noblob = true;
-      }
-      else if (record->_intflags & BtreeKey::kBlobSizeEmpty) {
-        /* record size is 0 */
-        blobsize = 0;
-        noblob = true;
-      }
-      else {
-        /* set to a dummy value, so the third if-branch is executed */
-        blobsize = 0xffffffff;
-      }
-
-      if (noblob && blobsize == 0) {
-        record->size = 0;
-        record->data = 0;
-      }
-      else if (noblob && blobsize > 0) {
+      // regular inline record, no duplicates
+      if (it->is_record_inline()) {
+        ham_size_t size = it->get_inline_record_size();
+        if (size == 0) {
+          record->data = 0;
+          record->size = 0;
+          return (0);
+        }
         if (flags & HAM_PARTIAL) {
           ham_trace(("flag HAM_PARTIAL is not allowed if record->size <= 8"));
           return (HAM_INV_PARAMETER);
         }
-
         if (!(record->flags & HAM_RECORD_USER_ALLOC)
             && (flags & HAM_DIRECT_ACCESS)) {
-          record->data = ridptr;
-          record->size = blobsize;
+          record->data = it->get_inline_record_data();
         }
         else {
           if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            arena->resize(blobsize);
+            arena->resize(size);
             record->data = arena->get_ptr();
           }
-          memcpy(record->data, ridptr, blobsize);
-          record->size = blobsize;
+          memcpy(record->data, it->get_inline_record_data(), size);
         }
+        record->size = size;
+        return (HAM_SUCCESS);
       }
-      else if (!noblob && blobsize != 0)
-        return (env->get_blob_manager()->read(db, record->_rid, record,
-                                flags, arena));
 
-      return (HAM_SUCCESS);
+      // non-inline record, no duplicates
+      return (env->get_blob_manager()->read(db, it->get_record_id(), record,
+                                flags, arena));
     }
 
     // Checks the integrity of the key at |slot|
@@ -522,14 +535,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
                   m_page->get_db()->get_local_env()->get_blob_manager()));
     }
 
-    // Clears the header of a new node
-    virtual void initialize() {
-      m_layout.initialize();
-    }
-
     // Splits the node
     virtual void split(BtreeNodeProxy *other_node, int pivot) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
+      ham_assert(other != 0);
 
       m_layout.split(&other->m_layout, pivot);
 
@@ -576,30 +585,32 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         keyflags = dupe_entry_get_flags(&dupeentry);
         ridptr = &dupeentry._rid;
         rid = dupeentry._rid;
-      }
-      else {
-        keyflags = it->get_flags();
-        ridptr = it->get_rawptr();
-        rid = it->get_record_id();
+
+        if (keyflags & BtreeKey::kBlobSizeTiny) {
+          // the highest byte of the record id is the size of the blob
+          char *p = (char *)ridptr;
+          *psize = p[sizeof(ham_u64_t) - 1];
+          return (0);
+        }
+        else if (keyflags & BtreeKey::kBlobSizeSmall) {
+          // record size is sizeof(ham_u64_t)
+          *psize = sizeof(ham_u64_t);
+          return (0);
+        }
+        else if (keyflags & BtreeKey::kBlobSizeEmpty) {
+          // record size is 0
+          *psize = 0;
+          return (0);
+        }
+        return (env->get_blob_manager()->get_datasize(db, rid, psize));
       }
 
-      if (keyflags & BtreeKey::kBlobSizeTiny) {
-        // the highest byte of the record id is the size of the blob
-        char *p = (char *)ridptr;
-        *psize = p[sizeof(ham_u64_t) - 1];
+      if (it->is_record_inline()) {
+        *psize = it->get_inline_record_size();
         return (0);
       }
-      else if (keyflags & BtreeKey::kBlobSizeSmall) {
-        // record size is sizeof(ham_u64_t)
-        *psize = sizeof(ham_u64_t);
-        return (0);
-      }
-      else if (keyflags & BtreeKey::kBlobSizeEmpty) {
-        // record size is 0
-        *psize = 0;
-        return (0);
-      }
-      return (env->get_blob_manager()->get_datasize(db, rid, psize));
+      return (env->get_blob_manager()->get_datasize(db,
+                              it->get_record_id(), psize));
     }
 
     // Returns true if the key at the given |slot| has duplicates
@@ -612,16 +623,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual ham_u32_t test_get_flags(int slot) const {
       typename NodeLayout::Iterator it = m_layout.at(slot);
       return (it->get_flags());
-    }
-
-    virtual ham_u64_t get_record_id(int slot) const {
-      typename NodeLayout::Iterator it = m_layout.at(slot);
-      return (it->get_record_id());
-    }
-
-    virtual void set_record_id(int slot, ham_u64_t id) {
-      typename NodeLayout::Iterator it = m_layout.at(slot);
-      it->set_record_id(id);
     }
 
     // Searches the node for the key, and returns the slot of this key
@@ -687,12 +688,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual int get_slot(BtreeNodeProxy *key_node, int key_slot,
                    int *pcmp = 0) {
       ClassType *other = dynamic_cast<ClassType *>(key_node);
+      ham_assert(other != 0);
+
       typename NodeLayout::Iterator it = other->m_layout.at(key_slot);
 
       ham_key_t key = {0};
       key._flags = it->get_flags();
-      key.data   = it->get_key();
-      key.size   = it->get_size();
+      key.data   = it->get_key_data();
+      key.size   = it->get_key_size();
 
       return (get_slot(&key, pcmp));
     }
@@ -700,6 +703,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Merges all keys from the |other| node into this node
     virtual void merge_from(BtreeNodeProxy *other_node) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
+      ham_assert(other != 0);
+
       m_layout.merge_from(&other->m_layout);
 
       set_count(get_count() + other->get_count());
@@ -709,6 +714,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Shifts |count| keys from the |other| node to this node
     virtual void shift_from_right(BtreeNodeProxy *other_node, int count) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
+      ham_assert(other != 0);
+
       m_layout.shift_from_right(&other->m_layout, count);
 
       set_count(get_count() + count);
@@ -719,6 +726,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void shift_to_right(BtreeNodeProxy *other_node,
                     int slot, int count) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
+      ham_assert(other != 0);
+
       m_layout.shift_to_right(&other->m_layout, slot, count);
 
       set_count(get_count() - count);
@@ -729,7 +738,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual ham_status_t insert(ham_u32_t slot, const ham_key_t *key,
                     BlobManager *blob_manager) {
       LocalDatabase *db = m_page->get_db();
-      ham_size_t keysize = db->get_keysize();
+      ham_size_t keysize = db->get_key_size();
 
       typename NodeLayout::Iterator it = m_layout.insert(slot, key);
 
@@ -765,113 +774,96 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       set_count(get_count() - 1);
     }
 
-    virtual ham_status_t set_record(int slot, Transaction *txn,
-                    ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                    ham_size_t *new_position) {
+    virtual ham_u64_t get_record_id(int slot) const {
+      typename NodeLayout::Iterator it = m_layout.at(slot);
+      return (it->get_record_id());
+    }
+
+    virtual void set_record_id(int slot, ham_u64_t id) {
+      typename NodeLayout::Iterator it = m_layout.at(slot);
+      it->set_record_id(id);
+    }
+
+    virtual ham_status_t set_record_data(int slot, Transaction *txn,
+                    ham_record_t *record, ham_size_t duplicate_position,
+                    ham_u32_t flags, ham_size_t *new_duplicate_position) {
       typename NodeLayout::Iterator it = m_layout.at(slot);
 
       ham_status_t st;
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      ham_u64_t rid = 0;
       ham_u64_t ptr = it->get_record_id();
       ham_u8_t oldflags = it->get_flags();
 
-      it->set_flags(oldflags & ~(BtreeKey::kBlobSizeSmall
-                              | BtreeKey::kBlobSizeTiny
-                              | BtreeKey::kBlobSizeEmpty));
+      // key does not yet exist
+      if (!ptr && !it->is_record_inline()) {
+        // a new inline key is inserted
+        if (record->size <= it->get_max_inline_record_size()) {
+          it->set_inline_record_data(record->data, record->size);
+          return (0);
+        }
 
-      /* no existing key, just create a new key (but not a duplicate)? */
-      if (!ptr && !(oldflags & (BtreeKey::kBlobSizeSmall
-                    | BtreeKey::kBlobSizeTiny
-                    | BtreeKey::kBlobSizeEmpty))) {
-        if (record->size <= sizeof(ham_u64_t)) {
-          if (record->data)
-            memcpy(&rid, record->data, record->size);
-          if (record->size == 0)
-            it->set_flags(it->get_flags() | BtreeKey::kBlobSizeEmpty);
-          else if (record->size < sizeof(ham_u64_t)) {
-            char *p = (char *)&rid;
-            p[sizeof(ham_u64_t) - 1] = (char)record->size;
-            it->set_flags(it->get_flags() | BtreeKey::kBlobSizeTiny);
-          }
-          else
-            it->set_flags(it->get_flags() | BtreeKey::kBlobSizeSmall);
-          it->set_record_id(rid);
-        }
-        else {
-          st = env->get_blob_manager()->allocate(db, record, flags, &rid);
-          if (st)
-            return (st);
-          it->set_record_id(rid);
-        }
+        // a new (non-inline) key is inserted
+        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
+        if (st)
+          return (st);
+        it->set_record_id(ptr);
+        return (0);
       }
-      else if (!(oldflags & BtreeKey::kDuplicates)
-          && record->size > sizeof(ham_u64_t)
-          && !(flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
+
+      bool insert_duplicate =
+              (flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
-                    | HAM_DUPLICATE_INSERT_LAST))) {
-        /*
-         * an existing key, which is overwritten with a big record
-         * Note that the case where old record is EMPTY (!ptr) or
-         * SMALL (size = 8, but content = 00000000 --> !ptr) are caught here
-         * and in the next branch, as they should.
-         */
-        if (oldflags & (BtreeKey::kBlobSizeSmall
-                                | BtreeKey::kBlobSizeTiny
-                                | BtreeKey::kBlobSizeEmpty)) {
-          rid = 0;
-          st = env->get_blob_manager()->allocate(db, record, flags, &rid);
-          if (st)
-            return (st);
-          if (rid)
-            it->set_record_id(rid);
+                    | HAM_DUPLICATE_INSERT_LAST)) != 0;
+      if (oldflags & BtreeKey::kDuplicates)
+        insert_duplicate = true;
+
+      // an inline key exists
+      if (!insert_duplicate && it->is_record_inline()) {
+        // ... and is overwritten with another inline key
+        if (record->size <= it->get_max_inline_record_size()) {
+          it->set_inline_record_data(record->data, record->size);
+          return (0);
         }
-        else {
-          st = env->get_blob_manager()->overwrite(db, ptr, record, flags, &rid);
-          if (st)
-            return (st);
-          it->set_record_id(rid);
-        }
+
+        // ... or with a (non-inline) key
+        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
+        if (st)
+          return (st);
+        it->set_record_id(ptr);
+        return (0);
       }
-      else if (!(oldflags & BtreeKey::kDuplicates)
-              && record->size <= sizeof(ham_u64_t)
-              && !(flags & (HAM_DUPLICATE
-                      | HAM_DUPLICATE_INSERT_BEFORE
-                      | HAM_DUPLICATE_INSERT_AFTER
-                      | HAM_DUPLICATE_INSERT_FIRST
-                      | HAM_DUPLICATE_INSERT_LAST))) {
-        /* an existing key which is overwritten with a small record */
-        if (!(oldflags & (BtreeKey::kBlobSizeSmall
-                        | BtreeKey::kBlobSizeTiny
-                        | BtreeKey::kBlobSizeEmpty))) {
-          st = env->get_blob_manager()->free(db, ptr, 0);
-          if (st)
-            return (st);
+
+      // a (non-inline) key exists
+      if (ptr && !insert_duplicate) {
+        // ... and is overwritten by a inline key
+        if (record->size <= it->get_max_inline_record_size()) {
+          env->get_blob_manager()->free(db, ptr);
+          it->set_inline_record_data(record->data, record->size);
+          return (0);
         }
-        if (record->data)
-          memcpy(&rid, record->data, record->size);
-        if (record->size == 0)
-          it->set_flags(it->get_flags() | BtreeKey::kBlobSizeEmpty);
-        else if (record->size < sizeof(ham_u64_t)) {
-          char *p = (char *)&rid;
-          p[sizeof(ham_u64_t) - 1] = (char)record->size;
-          it->set_flags(it->get_flags() | BtreeKey::kBlobSizeTiny);
-        }
-        else
-          it->set_flags(it->get_flags() | BtreeKey::kBlobSizeSmall);
-        it->set_record_id(rid);
+
+        // ... and is overwritten by a (non-inline) key
+        st = env->get_blob_manager()->overwrite(db, ptr, record, flags, &ptr);
+        if (st)
+          return (st);
+        if (ptr)
+          it->set_record_id(ptr);
+        return (0);
       }
+
+      /* the key is added as a duplicate
+       *
+       * a duplicate of an existing key - always insert it at the end of
+       * the duplicate list (unless the DUPLICATE flags say otherwise OR
+       * when we have a duplicate-record comparison function for
+       * ordered insertion of duplicate records)
+       *
+       * create a duplicate list, if it does not yet exist
+       */
       else {
-        /*
-         * a duplicate of an existing key - always insert it at the end of
-         * the duplicate list (unless the DUPLICATE flags say otherwise OR
-         * when we have a duplicate-record comparison function for
-         * ordered insertion of duplicate records)
-         *
-         * create a duplicate list, if it does not yet exist
-         */
         PDupeEntry entries[2];
+        ham_u64_t rid = 0;
         int i = 0;
         ham_assert((flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
@@ -912,9 +904,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         i++;
 
         rid = 0;
-        st = env->get_duplicate_manager()->insert(db, txn,
-                (i == 2 ? 0 : ptr), record, position,
-                flags, &entries[0], i, &rid, new_position);
+        st = env->get_duplicate_manager()->insert(db, 0,
+                (i == 2 ? 0 : ptr), record, duplicate_position,
+                flags, &entries[0], i, &rid, new_duplicate_position);
         if (st) {
           /* don't leak memory through the blob allocation above */
           if (record->size > sizeof(ham_u64_t)) {
@@ -944,6 +936,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       LocalDatabase *db = m_page->get_db();
 
       ClassType *other = dynamic_cast<ClassType *>(dest_node);
+      ham_assert(other != 0);
+
       typename NodeLayout::ConstIterator src = m_layout.at(slot);
       typename NodeLayout::Iterator dest = other->m_layout.at(dest_slot);
 
@@ -971,8 +965,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
        * using the same blobid. this would be too complicated.
        */
       if (src->get_flags() & BtreeKey::kExtended) {
-        dest->set_key(src->get_key(),
-                        std::min(db->get_keysize(), src->get_size()));
+        dest->set_key_data(src->get_key_data(),
+                        std::min(db->get_key_size(), src->get_key_size()));
 
         ham_record_t record = {0};
         ByteArray arena;
@@ -988,9 +982,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         dest->set_extended_rid(db, lhsblobid);
       }
       else
-        dest->set_key(src->get_key(), src->get_size());
+        dest->set_key_data(src->get_key_data(), src->get_key_size());
 
-      dest->set_size(src->get_size());
+      dest->set_key_size(src->get_key_size());
       return (0);
     }
 
@@ -1002,26 +996,26 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       ham_status_t st;
       LocalDatabase *db = m_page->get_db();
 
-      /* if the record is > 8 bytes then it needs to be freed explicitly */
-      if (!(it->get_flags() & (BtreeKey::kBlobSizeSmall
-                                      | BtreeKey::kBlobSizeTiny
-                                      | BtreeKey::kBlobSizeEmpty))) {
-        if (it->get_flags() & BtreeKey::kDuplicates) {
-          /* delete one (or all) duplicates */
-          st = db->get_local_env()->get_duplicate_manager()->erase(db,
-                            it->get_record_id(), duplicate_id,
-                            all_duplicates, &rid);
-          if (st)
-            return (st);
-          if (all_duplicates) {
-            it->set_flags(it->get_flags() & ~BtreeKey::kDuplicates);
-            it->set_record_id(0);
-          }
-          else {
-            it->set_record_id(rid);
-            if (!rid) /* rid == 0: the last duplicate was deleted */
-              it->set_flags(0);
-          }
+      /* delete one (or all) duplicates */
+      if (it->get_flags() & BtreeKey::kDuplicates) {
+        st = db->get_local_env()->get_duplicate_manager()->erase(db,
+                          it->get_record_id(), duplicate_id,
+                          all_duplicates, &rid);
+        if (st)
+          return (st);
+        if (all_duplicates) {
+          it->set_flags(it->get_flags() & ~BtreeKey::kDuplicates);
+          it->set_record_id(0);
+        }
+        else {
+          it->set_record_id(rid);
+          if (!rid) /* rid == 0: the last duplicate was deleted */
+            it->set_flags(0);
+        }
+      }
+      else {
+        if (it->is_record_inline()) {
+          it->remove_record_inline();
         }
         else {
           /* delete the blob */
@@ -1032,15 +1026,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
           it->set_record_id(0);
         }
       }
-      /* otherwise just reset the blob flags of the key and set the record
-       * pointer to 0 */
-      else {
-        it->set_flags(it->get_flags() & ~(BtreeKey::kBlobSizeSmall
-                                | BtreeKey::kBlobSizeTiny
-                                | BtreeKey::kBlobSizeEmpty
-                                | BtreeKey::kDuplicates));
-        it->set_record_id(0);
-      }
 
       if (has_duplicates_left)
         *has_duplicates_left = (it->get_flags() & BtreeKey::kDuplicates
@@ -1049,14 +1034,15 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     virtual void print() const {
-      printf("page %llu: %u elements (left: %llu, right: %llu, "
+      printf("page %llu: %u elements (leaf: %d, left: %llu, right: %llu, "
               "ptr_down: %llu)\n",
               (unsigned long long)m_page->get_address(), get_count(),
+              is_leaf() ? 1 : 0,
               (unsigned long long)get_left(), (unsigned long long)get_right(),
               (unsigned long long)get_ptr_down());
       typename NodeLayout::Iterator it = m_layout.begin();
       for (ham_size_t i = 0; i < get_count(); i++, it = m_layout.next(it)) {
-        printf("    %08d -> %08lld\n", *(int *)it->get_key(),
+        printf("    %08d -> %08lld\n", *(int *)it->get_key_data(),
                 (unsigned long long)it->get_record_id());
       }
     }

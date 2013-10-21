@@ -150,8 +150,10 @@ ham_strerror(ham_status_t result)
   switch (result) {
     case HAM_SUCCESS:
       return ("Success");
-    case HAM_INV_KEYSIZE:
+    case HAM_INV_KEY_SIZE:
       return ("Invalid key size");
+    case HAM_INV_RECORD_SIZE:
+      return ("Invalid record size");
     case HAM_INV_PAGESIZE:
       return ("Invalid page size");
     case HAM_OUT_OF_MEMORY:

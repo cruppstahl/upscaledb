@@ -322,7 +322,7 @@ class BtreeFindAction
                ? &db->get_record_arena()
                : &m_txn->get_record_arena();
 
-        st = node->copy_full_record(idx, arena, m_record, m_flags);
+        st = node->get_record_data(idx, arena, m_record, m_flags);
         if (st)
           return (st);
       }

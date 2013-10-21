@@ -17,7 +17,11 @@ public class Const {
     /** Operation completed successfully */
     public final static int HAM_SUCCESS                         =        0;
 
+    /** Invalid record size */
+    public final static int HAM_INV_RECORD_SIZE                 =       -2;
+
     /** Invalid key size */
+    public final static int HAM_INV_KEY_SIZE                    =       -3;
     public final static int HAM_INV_KEYSIZE                     =       -3;
 
     /** Invalid page size (must be a multiple of 1024) */
@@ -191,6 +195,9 @@ public class Const {
 
     /** Parameter name for Environment.create(), Environment.open() */
     public final static int HAM_PARAM_NETWORK_TIMEOUT_SEC       =    0x107;
+
+    /** Parameter name for Database.create() */
+    public final static int HAM_PARAM_RECORD_SIZE               =    0x108;
 
     /** Parameter name for Environment.getParameters(),... */
     public final static int HAM_PARAM_FLAGS                     =    0x200;
