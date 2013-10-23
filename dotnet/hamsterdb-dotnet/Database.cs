@@ -450,22 +450,14 @@ namespace Hamster
     /// Before closing the Database, the cache is flushed to Disk.
     /// </remarks>
     public void Close(int flags) {
-      if (handle == IntPtr.Zero)
-        return;
-      if (0 != (flags & HamConst.HAM_AUTO_CLEANUP)) {
-        while (cursors.Count > 0) {
-          Cursor c = cursors[0];
-          if (c != null)
-            c.Close();
-          RemoveCursor(c);
-        }
-        cursors.Clear();
-      }
       lock (this) {
+        if (handle == IntPtr.Zero)
+          return;
         int st = NativeMethods.Close(handle, flags);
         if (st != 0)
           throw new DatabaseException(st);
         handle = IntPtr.Zero;
+        cursors.Clear();
       }
     }
 

@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;&quot;../../../hamsterdb-alien/libuv/include&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -123,7 +123,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;&quot;../../../hamsterdb-alien/libuv/include&quot;;../../include;&quot;../../../hamsterdb-alien/boost&quot;"
 				PreprocessorDefinitions="WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,7 +145,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -221,7 +221,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -279,7 +279,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/libuv/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_CONSOLE;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -299,7 +299,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

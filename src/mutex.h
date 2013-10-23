@@ -12,6 +12,7 @@
 #ifndef HAM_MUTEX_H__
 #define HAM_MUTEX_H__
 
+#define BOOST_ALL_NO_LIB // disable MSVC auto-linking
 #include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>

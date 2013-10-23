@@ -87,12 +87,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protocol", "protocol.vcproj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lib", "server_lib.vcproj", "{11DCD767-DFBE-4196-9258-111D4CAF09B0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_dll", "server_dll.vcproj", "{B82D2DF8-F1B2-4331-86D2-508BBD806507}"
-	ProjectSection(ProjectDependencies) = postProject
-		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
-		{10DCD767-DFBE-4096-9258-111D4CF899B1} = {10DCD767-DFBE-4096-9258-111D4CF899B1}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hamzilla", "hamzilla.vcproj", "{D11CE719-716F-46B0-9DDA-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
@@ -118,8 +112,20 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_export", "ham_export.vc
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_bench", "ham_bench.vcproj", "{230CFE1D-A98A-1A4A-A954-EC15F8A611A6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
+		{11DCD767-DFBE-4196-9258-111D4CAF09B0} = {11DCD767-DFBE-4196-9258-111D4CAF09B0}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_dll", "server_dll.vcproj", "{B82D2DF8-F1B2-4331-86D2-508BBD806507}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
+	EndProjectSection
 EndProject
 Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = hamsterdb-dotnet1.vsmdi
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -271,12 +277,6 @@ Global
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|Win32.Build.0 = Release|Win32
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|x64.ActiveCfg = Release|x64
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|x64.Build.0 = Release|x64
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.ActiveCfg = Debug|Win32
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.Build.0 = Debug|Win32
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|x64.ActiveCfg = Debug|Win32
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.ActiveCfg = Release|Win32
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.Build.0 = Release|Win32
-		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|x64.ActiveCfg = Release|Win32
 		{D11CE719-716F-46B0-9DDA-74125DA7985A}.Debug|Win32.ActiveCfg = Debug|Win32
 		{D11CE719-716F-46B0-9DDA-74125DA7985A}.Debug|Win32.Build.0 = Debug|Win32
 		{D11CE719-716F-46B0-9DDA-74125DA7985A}.Debug|x64.ActiveCfg = Debug|x64
@@ -325,6 +325,14 @@ Global
 		{230CFE1D-A98A-1A4A-A954-EC15F8A611A6}.Release|Win32.Build.0 = Release|Win32
 		{230CFE1D-A98A-1A4A-A954-EC15F8A611A6}.Release|x64.ActiveCfg = Release|x64
 		{230CFE1D-A98A-1A4A-A954-EC15F8A611A6}.Release|x64.Build.0 = Release|x64
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.Build.0 = Debug|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|x64.ActiveCfg = Debug|x64
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|x64.Build.0 = Debug|x64
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.ActiveCfg = Release|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.Build.0 = Release|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|x64.ActiveCfg = Release|x64
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
