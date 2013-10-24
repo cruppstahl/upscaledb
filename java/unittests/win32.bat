@@ -3,7 +3,7 @@
 
 copy ..\..\win32\out\java_dll_debug\hamsterdb-java.dll .
 
-set CP=.;../java/hamsterdb-2.1.3.jar;junit-4.4.jar
+set CP=.;../java/hamsterdb-2.1.4.jar;junit-4.4.jar
 echo 1
 if ["%JDK%"] == [] goto l1
 goto start

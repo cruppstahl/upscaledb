@@ -21,7 +21,7 @@ namespace Unittests
     ///to contain all TransactionTest Unit Tests
     ///</summary>
     [TestClass()]
-    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.1.3.dll")]
+    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.1.4.dll")]
     public class TransactionTest
     {
         private Hamster.Environment env;

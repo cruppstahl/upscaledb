@@ -149,7 +149,7 @@ public class Database {
    * If <code>cmp</code> is null, hamsterdb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.3d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.4d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>
