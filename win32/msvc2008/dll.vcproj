@@ -565,14 +565,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\extkeys.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\extkeys.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\freelist.cc"
 			>
 		</File>
@@ -598,10 +590,6 @@
 		</File>
 		<File
 			RelativePath="..\..\include\ham\hamsterdb_int.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\hash-table.h"
 			>
 		</File>
 		<File

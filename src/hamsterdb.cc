@@ -33,7 +33,6 @@
 #include "env.h"
 #include "env_remote.h"
 #include "error.h"
-#include "extkeys.h"
 #include "log.h"
 #include "mem.h"
 #include "os.h"

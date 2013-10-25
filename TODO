@@ -79,8 +79,8 @@ o completely rewrite handling of extended keys
     If the extended key does not fit into 1/10th of the pagesize: allocate
     an overflow area, move the FULL key into that area.
     x remove prefix compare
-    o compare functions no longer needs to return errors
-    o get rid of the extkey-cache
+    x get rid of the extkey-cache
+    x compare functions no longer needs to return errors
     o add some unittests for extended keys (for TDD); these tests must continue
         to work after every! modification
         o inserts of variable length (with splits)

@@ -27,7 +27,6 @@ test_SOURCES    = aes.cpp \
 				  endian.cpp \
                   env.cpp \
                   error.cpp \
-                  extkeys.cpp \
                   freelist.cpp \
                   globals.h \
                   hamsterdb.cpp \

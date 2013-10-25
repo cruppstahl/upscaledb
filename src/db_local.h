@@ -38,7 +38,7 @@ class LocalDatabase : public Database {
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_txn_index(0), m_cmp_func(0), m_extkey_cache(0) {
+        m_txn_index(0), m_cmp_func(0) {
     }
 
     // Returns the btree index
@@ -144,14 +144,6 @@ class LocalDatabase : public Database {
       return (0);
     }
 
-    // Returns the cache for extended keys
-    ExtKeyCache *get_extkey_cache() {
-      return (m_extkey_cache);
-    }
-
-    // Removes an extendex key from the cache and the blob
-    ham_status_t remove_extkey(ham_u64_t blobid);
-
     // Returns an extended key
     // |ext_key| must have been initialized before calling this function.
     ham_status_t get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
@@ -237,9 +229,6 @@ class LocalDatabase : public Database {
 
     // the comparison function
     ham_compare_func_t m_cmp_func;
-
-    // the cache for extended keys
-    ExtKeyCache *m_extkey_cache;
 };
 
 } // namespace hamsterdb

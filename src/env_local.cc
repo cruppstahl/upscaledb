@@ -23,7 +23,6 @@
 #include "mem.h"
 #include "cursor.h"
 #include "txn_cursor.h"
-#include "extkeys.h"
 #include "page_manager.h"
 #include "log.h"
 #include "journal.h"
@@ -948,8 +947,6 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
   m_page_manager->get_metrics(metrics);
   // the BlobManagers
   m_blob_manager->get_metrics(metrics);
-  // accumulate for the extended key-caches
-  ExtKeyCache::get_metrics(metrics);
   // and of the btrees
   BtreeIndex::get_metrics(metrics);
 }

@@ -15,7 +15,6 @@
 #include <string.h>
 #include <algorithm>
 
-#include "extkeys.h"
 #include "cursor.h"
 #include "cache.h"
 #include "db.h"

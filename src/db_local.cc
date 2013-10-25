@@ -21,7 +21,6 @@
 #include "cursor.h"
 #include "db_local.h"
 #include "device.h"
-#include "extkeys.h"
 #include "journal.h"
 #include "mem.h"
 #include "os.h"
@@ -36,21 +35,11 @@ namespace hamsterdb {
 #define DUMMY_LSN                 1
 
 ham_status_t
-LocalDatabase::remove_extkey(ham_u64_t blobid)
-{
-  if (get_extkey_cache())
-    get_extkey_cache()->remove(blobid);
-  return (get_local_env()->get_blob_manager()->free(this, blobid, 0));
-}
-
-ham_status_t
 LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
             ham_u32_t key_flags, ham_key_t *ext_key)
 {
   ham_u64_t blobid;
   ham_status_t st;
-  ham_size_t temp;
-  ham_u8_t *ptr;
 
   ham_assert(key_flags & BtreeKey::kExtended);
 
@@ -59,27 +48,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
       sizeof(blobid));
   blobid = ham_db2h_offset(blobid);
 
-  /* fetch from the cache */
-  if (!(m_env->get_flags() & HAM_IN_MEMORY)) {
-    st = get_extkey_cache()->fetch(blobid, &temp, &ptr);
-    if (!st) {
-      ham_assert(temp == key_length);
-
-      if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-        ext_key->data = Memory::allocate<ham_u8_t>(key_length);
-        if (!ext_key->data)
-          return (HAM_OUT_OF_MEMORY);
-      }
-      memcpy(ext_key->data, ptr, key_length);
-      ext_key->size = (ham_u16_t)key_length;
-      return (0);
-    }
-    else if (st != HAM_KEY_NOT_FOUND)
-      return (st);
-  }
-
   /*
-   * not cached - fetch from disk;
    * we allocate the memory here to avoid that the global record
    * pointer is overwritten
    *
@@ -111,12 +80,6 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   st = get_local_env()->get_blob_manager()->read(this, blobid, &record, 0, 0);
   if (st)
     return (st);
-
-  // insert the FULL key in the extkey-cache
-  if (get_extkey_cache()) {
-    ExtKeyCache *cache = get_extkey_cache();
-    cache->insert(blobid, key_length, (ham_u8_t *)ext_key->data);
-  }
 
   ext_key->size = (ham_u16_t)key_length;
   return (0);
@@ -623,9 +586,6 @@ LocalDatabase::open(ham_u16_t descriptor)
    * the btree index */
   m_rt_flags = get_rt_flags(true) | bt->get_flags();
 
-  if (m_rt_flags & HAM_ENABLE_EXTENDED_KEYS)
-    m_extkey_cache = new ExtKeyCache(this);
-
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
 
@@ -721,10 +681,6 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keytype,
 
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
-
-  if (get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS
-      && !(get_local_env()->get_flags() & HAM_IN_MEMORY))
-    m_extkey_cache = new ExtKeyCache(this);
 
   return (0);
 }
@@ -1789,12 +1745,6 @@ LocalDatabase::close_impl(ham_u32_t flags)
       }
       node = node->get_next_sibling();
     }
-  }
-
-  /* get rid of the extkey-cache */
-  if (get_extkey_cache()) {
-    delete get_extkey_cache();
-    m_extkey_cache = 0;
   }
 
   /* in-memory-database: free all allocated blobs */

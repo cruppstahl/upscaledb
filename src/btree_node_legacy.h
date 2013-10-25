@@ -16,7 +16,6 @@
 
 #include "util.h"
 #include "page.h"
-#include "extkeys.h"
 #include "btree_node.h"
 #include "blob_manager.h"
 #include "duplicates.h"
@@ -245,7 +244,7 @@ class LegacyNodeLayout
       /* delete the extended key */
       if (it->get_flags() & BtreeKey::kExtended) {
         ham_u64_t blobid = it->get_extended_rid(db);
-        db->remove_extkey(blobid);
+        (void)db->get_local_env()->get_blob_manager()->free(db, blobid);
       }
     }
 
@@ -391,7 +390,7 @@ class LegacyNodeLayout
         ham_u64_t blobid = lhs->get_extended_rid(db);
         ham_assert(blobid);
 
-        (void)db->remove_extkey(blobid);
+        (void)db->get_local_env()->get_blob_manager()->free(db, blobid);
       }
 
       if (slot != m_node->get_count() - 1) {

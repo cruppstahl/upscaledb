@@ -62,14 +62,11 @@ libhamsterdb_la_SOURCES = \
 	error.cc \
 	error.h \
 	errorinducer.h \
-	extkeys.h \
-	extkeys.cc \
 	freelist.cc \
 	freelist.h \
 	freelist_stats.cc \
 	freelist_stats.h \
 	hamsterdb.cc \
-	hash-table.h \
 	journal.cc \
 	journal_entries.h \
 	journal.h \

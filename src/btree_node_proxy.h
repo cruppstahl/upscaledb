@@ -15,7 +15,6 @@
 #include "abi.h"
 #include "util.h"
 #include "page.h"
-#include "extkeys.h"
 #include "btree_node.h"
 #include "blob_manager.h"
 #include "duplicates.h"
@@ -753,10 +752,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         ham_status_t st;
         if ((st = blob_manager->allocate(db, &rec, 0, &blobid)))
           return (st);
-
-        if (db->get_extkey_cache())
-          db->get_extkey_cache()->insert(blobid, key->size,
-                            (ham_u8_t *)key->data);
 
         ham_assert(blobid != 0);
         it->set_extended_rid(db, blobid);

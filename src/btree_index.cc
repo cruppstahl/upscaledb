@@ -16,7 +16,6 @@
 #include "db.h"
 #include "env.h"
 #include "error.h"
-#include "extkeys.h"
 #include "mem.h"
 #include "page.h"
 #include "txn.h"
