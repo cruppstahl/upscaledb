@@ -200,4 +200,21 @@
    fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
    fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb15DiskBlobManager12write_chunksEPNS_13LocalDatabaseEPNS_4PageEmbbPPhPjj
+   fun:_ZN9hamsterdb15DiskBlobManager8allocateEPNS_13LocalDatabaseEP12ham_record_tjPm
+   fun:_ZN9hamsterdb15DiskBlobManager9overwriteEPNS_13LocalDatabaseEmP12ham_record_tjPm
+   fun:_ZN9hamsterdb16DuplicateManager6insertEPNS_13LocalDatabaseEPNS_11TransactionEmP12ham_record_tjjPNS_10PDupeEntryEjPmPj
+   fun:_ZN9hamsterdb18BtreeNodeProxyImplINS_16LegacyNodeLayoutENS_19VariableSizeCompareEE15set_record_dataEiPNS_11TransactionEP12ham_record_tjjPj
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_leafEPNS_4PageEP9ham_key_tmbb
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_pageEPNS_4PageEP9ham_key_tm
+   fun:_ZN9hamsterdb17BtreeInsertAction16insert_recursiveEPNS_4PageEP9ham_key_tm
+   fun:_ZN9hamsterdb17BtreeInsertAction6insertEv
+}
 

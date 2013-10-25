@@ -1,4 +1,4 @@
-Oct 24, 2013 - chris ---------------------------------------------------
+Oct 25, 2013 - chris ---------------------------------------------------
 o Added HAM_PARAM_RECORD_SIZE to specify a fixed record size; if it's small
 	enough, the records are stored in the leaf and not in a separately
 	allocated blob

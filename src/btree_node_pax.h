@@ -244,6 +244,11 @@ class DefaultRecordList
       : m_data(0) {
     }
 
+    // Does this RecordList manage fixed size records only?
+    static bool is_always_fixed_size() {
+      return (false);
+    }
+
     // Returns the maximum size of an inline record
     ham_size_t get_max_inline_record_size() const {
       return (sizeof(ham_u64_t));
@@ -350,6 +355,11 @@ class InternalRecordList
       : m_data(0) {
     }
 
+    // Does this RecordList manage fixed size records only?
+    static bool is_always_fixed_size() {
+      return (true);
+    }
+
     // Returns the maximum size of an inline record
     ham_size_t get_max_inline_record_size() const {
       return (sizeof(ham_u64_t));
@@ -431,6 +441,11 @@ class InlineRecordList
     InlineRecordList(LocalDatabase *db)
       : m_data(0), m_record_size(db->get_record_size()) {
       ham_assert(m_record_size != HAM_RECORD_SIZE_UNLIMITED);
+    }
+
+    // Does this RecordList manage fixed size records only?
+    static bool is_always_fixed_size() {
+      return (true);
     }
 
     // Returns the maximum size of an inline record
@@ -523,13 +538,21 @@ class PaxNodeLayout
       m_max_count = usable_nodesize / (keysize + m_records.get_record_size());
 
       ham_u8_t *p = m_node->get_data();
-      m_flags = &p[m_max_count * get_key_size()];
-      m_records.set_data_pointer(&p[m_max_count * (1 + get_key_size())]);
+      // if records are fixed then flags are not required
+      if (RecordList::is_always_fixed_size()) {
+        m_flags = 0;
+        m_records.set_data_pointer(&p[m_max_count * get_key_size()]);
+      }
+      else {
+        m_flags = &p[m_max_count * get_key_size()];
+        m_records.set_data_pointer(&p[m_max_count * (1 + get_key_size())]);
+      }
     }
 
     // Returns the actual key size (including overhead, without record)
     static ham_u16_t get_system_keysize(ham_size_t keysize) {
-      return ((ham_u16_t)(keysize + 1));
+      return ((ham_u16_t)(keysize
+                      + (RecordList::is_always_fixed_size() ? 0 : 1)));
     }
 
     Iterator begin() {
@@ -598,8 +621,9 @@ class PaxNodeLayout
       if (m_node->is_leaf()) {
         memcpy(other->m_keys.get_key_data(0), m_keys.get_key_data(pivot),
                     get_key_size() * (count - pivot));
-        memcpy(&other->m_flags[0], &m_flags[pivot],
-                    count - pivot);
+        if (!RecordList::is_always_fixed_size())
+          memcpy(&other->m_flags[0], &m_flags[pivot],
+                      count - pivot);
         memcpy(other->m_records.get_record_data(0),
                     m_records.get_record_data(pivot),
                     m_records.get_record_size() * (count - pivot));
@@ -607,7 +631,8 @@ class PaxNodeLayout
       else {
         memcpy(other->m_keys.get_key_data(0), m_keys.get_key_data(pivot + 1),
                     get_key_size() * (count - pivot - 1));
-        memcpy(&other->m_flags[0], &m_flags[pivot + 1],
+        if (!RecordList::is_always_fixed_size())
+          memcpy(&other->m_flags[0], &m_flags[pivot + 1],
                     count - pivot - 1);
         memcpy(other->m_records.get_record_data(0),
                     m_records.get_record_data(pivot + 1),
@@ -626,9 +651,11 @@ class PaxNodeLayout
         memmove(m_keys.get_key_data(slot + 1), m_keys.get_key_data(slot),
                         get_key_size() * (count - slot));
         m_keys.set_key_data(slot, key->data, key->size);
-        memmove(&m_flags[slot + 1], &m_flags[slot],
-                        count - slot);
-        m_flags[slot] = 0;
+        if (!RecordList::is_always_fixed_size()) {
+          memmove(&m_flags[slot + 1], &m_flags[slot],
+                          count - slot);
+          m_flags[slot] = 0;
+        }
         memmove(m_records.get_record_data(slot + 1),
                         m_records.get_record_data(slot),
                         m_records.get_record_size() * (count - slot));
@@ -636,7 +663,8 @@ class PaxNodeLayout
       }
       else {
         m_keys.set_key_data(slot, key->data, key->size);
-        m_flags[slot] = 0;
+        if (!RecordList::is_always_fixed_size())
+          m_flags[slot] = 0;
         m_records.reset(slot);
       }
 
@@ -650,9 +678,11 @@ class PaxNodeLayout
       if (count > slot) {
         memmove(m_keys.get_key_data(slot + 1), m_keys.get_key_data(slot),
                         get_key_size() * (count - slot));
-        memmove(&m_flags[slot + 1], &m_flags[slot],
-                        count - slot);
-        m_flags[slot] = 0;
+        if (!RecordList::is_always_fixed_size()) {
+          memmove(&m_flags[slot + 1], &m_flags[slot],
+                          count - slot);
+          m_flags[slot] = 0;
+        }
         memmove(m_records.get_record_data(slot + 1),
                         m_records.get_record_data(slot),
                         m_records.get_record_size() * (count - slot));
@@ -666,8 +696,10 @@ class PaxNodeLayout
       if (slot != count - 1) {
         memmove(m_keys.get_key_data(slot), m_keys.get_key_data(slot + 1),
                 get_key_size() * (count - slot - 1));
-        memmove(&m_flags[slot], &m_flags[slot + 1],
-                count - slot - 1);
+        if (!RecordList::is_always_fixed_size()) {
+          memmove(&m_flags[slot], &m_flags[slot + 1],
+                  count - slot - 1);
+        }
         memmove(m_records.get_record_data(slot),
                 m_records.get_record_data(slot + 1),
                 m_records.get_record_size() * (count - slot - 1));
@@ -680,8 +712,8 @@ class PaxNodeLayout
       /* shift items from the sibling to this page */
       memcpy(m_keys.get_key_data(count), other->m_keys.get_key_data(0),
                       get_key_size() * other->m_node->get_count());
-      memcpy(&m_flags[count], &other->m_flags[0],
-                      other->m_node->get_count());
+      if (!RecordList::is_always_fixed_size())
+        memcpy(&m_flags[count], &other->m_flags[0], other->m_node->get_count());
       memcpy(m_records.get_record_data(count),
                       other->m_records.get_record_data(0),
                       m_records.get_record_size() * other->m_node->get_count());
@@ -693,8 +725,8 @@ class PaxNodeLayout
       // shift |count| elements from |other| to this page
       memcpy(m_keys.get_key_data(pos), other->m_keys.get_key_data(0),
                       get_key_size() * count);
-      memcpy(&m_flags[pos], &other->m_flags[0],
-                      count);
+      if (!RecordList::is_always_fixed_size())
+        memcpy(&m_flags[pos], &other->m_flags[0], count);
       memcpy(m_records.get_record_data(pos),
                       other->m_records.get_record_data(0),
                       m_records.get_record_size() * count);
@@ -702,8 +734,9 @@ class PaxNodeLayout
       // and reduce the other page
       memmove(other->m_keys.get_key_data(0), other->m_keys.get_key_data(count),
                       get_key_size() * (other->m_node->get_count() - count));
-      memmove(&other->m_flags[0], &other->m_flags[count],
-                      (other->m_node->get_count() - count));
+      if (!RecordList::is_always_fixed_size())
+        memmove(&other->m_flags[0], &other->m_flags[count],
+                        (other->m_node->get_count() - count));
       memmove(other->m_records.get_record_data(0),
                       other->m_records.get_record_data(count),
                       m_records.get_record_size()
@@ -714,8 +747,9 @@ class PaxNodeLayout
       // make room in the right sibling
       memmove(other->m_keys.get_key_data(count), other->m_keys.get_key_data(0),
                       get_key_size() * other->m_node->get_count());
-      memmove(&other->m_flags[count], &other->m_flags[0],
-                      other->m_node->get_count());
+      if (!RecordList::is_always_fixed_size())
+        memmove(&other->m_flags[count], &other->m_flags[0],
+                        other->m_node->get_count());
       memmove(other->m_records.get_record_data(count),
                       other->m_records.get_record_data(0),
                       m_records.get_record_size() * other->m_node->get_count());
@@ -723,8 +757,8 @@ class PaxNodeLayout
       // shift |count| elements from this page to |other|
       memcpy(other->m_keys.get_key_data(0), m_keys.get_key_data(slot),
                       get_key_size() * count);
-      memcpy(&other->m_flags[0], &m_flags[slot],
-                      count);
+      if (!RecordList::is_always_fixed_size())
+        memcpy(&other->m_flags[0], &m_flags[slot], count);
       memcpy(other->m_records.get_record_data(0),
                       m_records.get_record_data(slot),
                       m_records.get_record_size() * count);
@@ -754,12 +788,16 @@ class PaxNodeLayout
 
     // Returns the flags of a key
     ham_u8_t get_flags(int slot) const {
-      return (m_flags[slot]);
+      if (RecordList::is_always_fixed_size())
+        return (0);
+      else
+        return (m_flags[slot]);
     }
 
     // Sets the flags of a key
     void set_flags(int slot, ham_u8_t flags) {
-      m_flags[slot] = flags;
+      if (!RecordList::is_always_fixed_size())
+        m_flags[slot] = flags;
     }
 
     // Returns a pointer to the key data
@@ -790,7 +828,10 @@ class PaxNodeLayout
 
     // Removes an inline record
     void remove_record_inline(int slot) {
-      m_flags[slot] = m_records.remove_record_inline(slot, m_flags[slot]);
+      if (RecordList::is_always_fixed_size())
+        m_records.remove_record_inline(slot, 0);
+      else
+        m_flags[slot] = m_records.remove_record_inline(slot, m_flags[slot]);
     }
 
     // Returns a pointer to the record id
@@ -810,7 +851,11 @@ class PaxNodeLayout
 
     // Sets the record data
     void set_record_data(int slot, const void *ptr, ham_size_t size) {
-      m_flags[slot] = m_records.set_record_data(slot, m_flags[slot], ptr, size);
+      if (RecordList::is_always_fixed_size())
+        m_records.set_record_data(slot, 0, ptr, size);
+      else
+        m_flags[slot] = m_records.set_record_data(slot, m_flags[slot],
+                        ptr, size);
     }
 
     Page *m_page;

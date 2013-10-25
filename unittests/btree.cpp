@@ -185,7 +185,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(4366 == (int)query[3].value);
+    REQUIRE(4678 == (int)query[3].value);
     REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
                    == (int)query[4].value);
 
@@ -198,7 +198,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(4366 == (int)query[3].value);
+    REQUIRE(4678 == (int)query[3].value);
     REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
                    == (int)query[4].value);
 
@@ -230,7 +230,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(1088 == (int)query[3].value);
+    REQUIRE(1166 == (int)query[3].value);
     REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
                    == (int)query[4].value);
 
