@@ -7,7 +7,7 @@ noinst_LTLIBRARIES     = libprotocol.la
 
 nodist_libprotocol_la_SOURCES = messages.pb.cc
 libprotocol_la_SOURCES = protocol.h
-libprotocol_la_LDFLAGS = -lprotobuf
+libprotocol_la_LIBADD = -lprotobuf
 
 EXTRA_DIST = messages.proto
 messages.pb.cc proto: $(srcdir)/messages.proto

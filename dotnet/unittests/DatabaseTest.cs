@@ -56,8 +56,7 @@ namespace Unittests
                         name = HamConst.HAM_PARAM_KEYSIZE, value = 32
                     }
                 };
-                using (Database db = env.CreateDatabase(13,
-                        HamConst.HAM_DISABLE_VARIABLE_KEYS, param)) { }
+                using (Database db = env.CreateDatabase(13, 0, param)) { }
             }
         }
 
@@ -67,8 +66,7 @@ namespace Unittests
             using (Hamster.Environment env = new Hamster.Environment())
             {
                 env.Create("ntest.db");
-                using (Database db = env.CreateDatabase(13,
-                           HamConst.HAM_DISABLE_VARIABLE_KEYS,
+                using (Database db = env.CreateDatabase(13, 0,
                            new Parameter[0])) { }
             }
         }

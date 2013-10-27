@@ -144,11 +144,6 @@ class LocalDatabase : public Database {
       return (0);
     }
 
-    // Returns an extended key
-    // |ext_key| must have been initialized before calling this function.
-    ham_status_t get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
-                    ham_u32_t key_flags, ham_key_t *ext_key);
-
     // Returns the key type (set with HAM_PARAM_KEY_TYPE)
     ham_u16_t get_keytype();
 

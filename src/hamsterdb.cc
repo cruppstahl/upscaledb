@@ -526,7 +526,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
   *hdb = 0;
 
-  if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME
+  if (!dbname || (dbname > HAM_DEFAULT_DATABASE_NAME
       && dbname != HAM_DUMMY_DATABASE_NAME)) {
     ham_trace(("invalid database name"));
     return (HAM_INV_PARAMETER);
@@ -630,13 +630,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   /* HAM_ENABLE_DUPLICATE_KEYS has to be specified in ham_create, not ham_open */
   if (flags & HAM_ENABLE_DUPLICATE_KEYS) {
     ham_trace(("invalid flag HAM_ENABLE_DUPLICATE_KEYS (only allowed when "
-        "creating a database"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  /* HAM_ENABLE_EXTENDED_KEYS has to be specified in ham_create, not ham_open */
-  if (flags & HAM_ENABLE_EXTENDED_KEYS) {
-    ham_trace(("invalid flag HAM_ENABLE_EXTENDED_KEYS (only allowed when "
         "creating a database"));
     return (HAM_INV_PARAMETER);
   }

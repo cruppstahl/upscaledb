@@ -135,11 +135,14 @@ struct BtreeCursorFixture {
     REQUIRE(0 == ham_cursor_create(&cursor2, m_db, 0, 0));
     REQUIRE(0 == ham_cursor_create(&cursor3, m_db, 0, 0));
 
+    char buffer[70] = {0};
+
     for (int i = 0; i < 64; i++) {
-      key.size = sizeof(i);
-      key.data = &i;
-      rec.size = sizeof(i);
-      rec.data = &i;
+      *(int *)&buffer[0] = i;
+      key.size = sizeof(buffer);
+      key.data = &buffer[0];
+      rec.size = sizeof(buffer);
+      rec.data = &buffer[0];
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }

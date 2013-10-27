@@ -65,9 +65,11 @@ struct BtreeInsertFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
 
+    char buffer[80] = {0};
     for (int i = 11; i >= 0; i--) {
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
@@ -100,9 +102,11 @@ struct BtreeInsertFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
 
+    char buffer[80] = {0};
     for (int i = 0; i < 11; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
@@ -135,9 +139,11 @@ struct BtreeInsertFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
 
+    char buffer[80] = {0};
     for (int i = 0; i < 11; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }

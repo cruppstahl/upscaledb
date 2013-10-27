@@ -590,8 +590,8 @@ ham_status_t
 LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u32_t flags, const ham_parameter_t *param)
 {
-  ham_u32_t keysize = 0;
   ham_u16_t keytype = HAM_TYPE_BINARY;
+  ham_u32_t keysize = HAM_KEY_SIZE_UNLIMITED;
   ham_u32_t recsize = HAM_RECORD_SIZE_UNLIMITED;
   ham_u16_t dbi;
   std::string logdir;
@@ -642,21 +642,13 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
                       "fixed length type"));
       return (HAM_INV_PARAMETER);
     }
-    if (flags & HAM_ENABLE_EXTENDED_KEYS) {
-      ham_trace(("HAM_ENABLE_EXTENDED_KEYS not allowed in combination with "
-                      "fixed length type"));
-      return (HAM_INV_PARAMETER);
-    }
-    flags |= HAM_DISABLE_VARIABLE_KEYS;
   }
 
   if (flags & HAM_RECORD_NUMBER)
     keytype = HAM_TYPE_UINT64;
 
-  ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
+  ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_ENABLE_DUPLICATE_KEYS
-                    | HAM_ENABLE_EXTENDED_KEYS
-                    | HAM_FORCE_RECORDS_INLINE
                     | HAM_RECORD_NUMBER;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
@@ -737,9 +729,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
 
   *pdb = 0;
 
-  ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
-                    | HAM_ENABLE_EXTENDED_KEYS
-                    | HAM_FORCE_RECORDS_INLINE
+  ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_READ_ONLY;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));

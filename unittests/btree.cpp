@@ -20,7 +20,7 @@
 #include "../src/page_manager.h"
 #include "../src/btree_index.h"
 #include "../src/btree_node_proxy.h"
-#include "../src/btree_node_legacy.h"
+#include "../src/btree_node_default.h"
 
 namespace hamsterdb {
 
@@ -63,14 +63,14 @@ struct BtreeFixture {
     };
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE(HAM_TYPE_BINARY == query[0].value);
-    REQUIRE(21 == query[1].value);
+    REQUIRE(HAM_KEY_SIZE_UNLIMITED == query[1].value);
     REQUIRE(510 == query[2].value);
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s;
     s = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::LegacyNodeLayout, hamsterdb::VariableSizeCompare>");
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short> >, hamsterdb::VariableSizeCompare>");
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -92,14 +92,7 @@ struct BtreeFixture {
 
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
-    if (type != HAM_TYPE_BINARY)
-      REQUIRE(HAM_INV_PARAMETER
-           == ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, &ps[0]));
-
-    int flags = 0;
-    if (type == HAM_TYPE_BINARY)
-      flags = HAM_DISABLE_VARIABLE_KEYS;
-    REQUIRE(0 == ham_env_create_db(env, &db, 1, flags, &ps[0]));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
 
     ham_parameter_t query[] = {
         {HAM_PARAM_KEY_TYPE, 0},
@@ -186,8 +179,7 @@ struct BtreeFixture {
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
     REQUIRE(4678 == (int)query[3].value);
-    REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
-                   == (int)query[4].value);
+    REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
@@ -199,8 +191,7 @@ struct BtreeFixture {
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
     REQUIRE(4678 == (int)query[3].value);
-    REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
-                   == (int)query[4].value);
+    REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -231,8 +222,7 @@ struct BtreeFixture {
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
     REQUIRE(1166 == (int)query[3].value);
-    REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
-                   == (int)query[4].value);
+    REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     // now insert a key
     ham_u32_t k = 33;
@@ -362,8 +352,7 @@ struct BtreeFixture {
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(512 == (int)query[2].value);
     REQUIRE(30 == (int)query[3].value);
-    REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
-                   == (int)query[4].value);
+    REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
@@ -375,8 +364,7 @@ struct BtreeFixture {
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(512 == (int)query[2].value);
     REQUIRE(30 == (int)query[3].value);
-    REQUIRE((HAM_DISABLE_VARIABLE_KEYS | HAM_FORCE_RECORDS_INLINE)
-                   == (int)query[4].value);
+    REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }

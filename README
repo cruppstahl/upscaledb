@@ -129,21 +129,18 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
 6.3 Dependencies
 
-hamsterdb will compile out of the box. On Unix, however, remote functionality
-will be disabled if libuv and Google protobuf SDKs are not installed. If
-you want to include remote functionality, then you have to download the
-dependencies from here:
-    http://code.google.com/p/protobuf/
-    https://github.com/joyent/libuv
-    http://www.boost.org
+On Ubuntu, the following packages are required:
+  - libdb-dev (optional)
+  - protobuf-compiler
+  - libprotobuf-dev
+  - libgoogle-perftools-dev
+  - libboost-system-dev
+  - libboost-thread-dev
+  - libboost-dev
+  - (libuv needs to be installed from sources - see
+      https://github.com/joyent/libuv)
 
-On Ubuntu, you can install the following packages:
-    protobuf-compiler
-    libprotobuf-dev
-    libboost-dev
-    (libuv needs to be installed from sources - see above)
-
-For Windows, precompiled libraries are available here:
+For Windows, precompiled dependencies are available here:
 https://github.com/cruppstahl/hamsterdb-alien
 
 7. Testing and Example Code

@@ -145,9 +145,6 @@ public class Const {
     public final static int HAM_READ_ONLY                       =    0x004;
 
     /** Flag for Database.create() */
-    public final static int HAM_DISABLE_VARIABLE_KEYS           =    0x040;
-
-    /** Flag for Database.create() */
     public final static int HAM_IN_MEMORY_DB                    =    0x080;
 
     /** Flag for Database.open(), Database.create() */
@@ -174,9 +171,6 @@ public class Const {
     /** Flag for Database.create, Database.open(), ... */
     public final static int HAM_CACHE_UNLIMITED                 =  0x40000;
 
-    /** Flag for Database.create() */
-    public final static int HAM_ENABLE_EXTENDED_KEYS            =  0x80000;
-
     /** Parameter name for Database.open(), Database.create() */
     public final static int HAM_PARAM_CACHESIZE                 =    0x100;
 
@@ -198,6 +192,12 @@ public class Const {
 
     /** Parameter name for Database.create() */
     public final static int HAM_PARAM_RECORD_SIZE               =    0x108;
+
+    /** Value for unlimited record sizes */
+    public final static int HAM_RECORD_SIZE_UNLIMITED           =    0xffffffff;
+
+    /** Value for unlimited key sizes */
+    public final static int HAM_KEY_SIZE_UNLIMITED              =    0xffff;
 
     /** Parameter name for Environment.getParameters(),... */
     public final static int HAM_PARAM_FLAGS                     =    0x200;

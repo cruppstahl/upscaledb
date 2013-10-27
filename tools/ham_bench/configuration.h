@@ -71,7 +71,7 @@ struct Configuration
       rec_size_fixed(HAM_RECORD_SIZE_UNLIMITED), force_records_inline(false),
       distribution(kDistributionRandom), seed(0), limit_ops(0),
       limit_seconds(0), limit_bytes(0), key_size(kDefaultKeysize),
-      btree_key_size(0), key_is_fixed_size(false), rec_size(kDefaultRecsize),
+      key_is_fixed_size(false), rec_size(kDefaultRecsize),
       erase_pct(0), find_pct(0), table_scan_pct(0), use_encryption(false),
       use_remote(false), duplicate(kDuplicateDisabled), overwrite(false),
       transactions_nth(0), use_fsync(false), inmemory(false),
@@ -79,7 +79,8 @@ struct Configuration
       cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
       num_threads(1), use_cursors(false), direct_access(false),
       use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
-      fullcheck_frequency(100), metrics(kMetricsDefault), extended_keys(false) {
+      fullcheck_frequency(100), metrics(kMetricsDefault),
+      extkey_threshold(256) {
   }
 
   void print() const {
@@ -104,8 +105,6 @@ struct Configuration
       printf("--inmemorydb ");
     if (no_mmap)
       printf("--no-mmap ");
-    if (extended_keys)
-      printf("--use-extended ");
     if (cacheunlimited)
       printf("--cache=unlimited ");
     if (cachesize)
@@ -138,6 +137,8 @@ struct Configuration
       printf("--fullcheck=reverse ");
     if (fullcheck == kFullcheckNone)
       printf("--fullcheck=none ");
+    if (extkey_threshold != 256)
+      printf("--extkey-threshold=%d ", extkey_threshold);
     if (!filename.empty()) {
       printf("%s\n", filename.c_str());
     }
@@ -158,8 +159,6 @@ struct Configuration
         printf("--key=real64 ");
       if (key_size != kDefaultKeysize)
         printf("--keysize=%d ", key_size);
-      if (btree_key_size)
-        printf("--btree-keysize=%d ", btree_key_size);
       if (key_is_fixed_size)
         printf("--keysize-fixed ");
       if (rec_size_fixed != HAM_RECORD_SIZE_UNLIMITED)
@@ -207,7 +206,6 @@ struct Configuration
   uint64_t limit_seconds;
   uint64_t limit_bytes;
   int key_size;
-  int btree_key_size;
   bool key_is_fixed_size;
   int rec_size;
   int erase_pct;
@@ -236,7 +234,7 @@ struct Configuration
   int fullcheck_frequency;
   std::string tee_file;
   int metrics;
-  bool extended_keys;
+  int extkey_threshold;
 };
 
 #endif /* CONFIGURATION_H__ */

@@ -59,8 +59,7 @@ class BtreeEraseAction
 
           BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
           ham_assert(node->is_leaf());
-          if (coupled_index > 0
-              && node->get_count() > m_btree->get_minkeys()) {
+          if (coupled_index > 0 && node->requires_merge()) {
             /* yes, we can remove the key */
             return (remove_entry(coupled_page, coupled_index));
           }
@@ -135,11 +134,10 @@ class BtreeEraseAction
       if (node->is_leaf()) {
         // only delete a duplicate?
         if (m_dupe_id > 0)
-          st = node->remove_record(slot, m_dupe_id - 1, false,
+          st = node->erase_record(slot, m_dupe_id - 1, false,
                   &has_duplicates_left);
         else {
-          st = node->remove_record(slot, 0, true,
-                  &has_duplicates_left);
+          st = node->erase_record(slot, 0, true, &has_duplicates_left);
           ham_assert(has_duplicates_left == false);
         }
       }
@@ -200,7 +198,7 @@ class BtreeEraseAction
       }
 
       // now remove the key
-      node->remove(slot);
+      node->erase(slot);
 
       page->set_dirty(true);
       return (0);
@@ -235,7 +233,7 @@ class BtreeEraseAction
       if (m_btree->get_root_address() == page->get_address())
         isfew = (node->get_count() <= 1);
       else
-        isfew = (node->get_count() < m_btree->get_minkeys());
+        isfew = node->requires_merge();
 
       if (!isfew)
         m_mergepage = 0;
@@ -248,7 +246,7 @@ class BtreeEraseAction
           return (st);
       }
       else {
-        slot = node->get_slot(m_key);
+        slot = node->find(m_key);
         child = 0;
       }
 
@@ -353,7 +351,6 @@ class BtreeEraseAction
       LocalEnvironment *env = db->get_local_env();
       bool fewleft = false;
       bool fewright = false;
-      ham_size_t minkeys = m_btree->get_minkeys();
 
       ham_assert(page->get_db());
 
@@ -369,7 +366,7 @@ class BtreeEraseAction
           return (st);
         if (leftpage) {
           leftnode = m_btree->get_node_from_page(leftpage);
-          fewleft  = (leftnode->get_count() <= minkeys);
+          fewleft  = leftnode->requires_merge();
         }
       }
       if (right) {
@@ -379,7 +376,7 @@ class BtreeEraseAction
           return (st);
         if (rightpage) {
           rightnode = m_btree->get_node_from_page(rightpage);
-          fewright  = (rightnode->get_count() <= minkeys);
+          fewright  = rightnode->requires_merge();
         }
       }
 
@@ -487,10 +484,10 @@ class BtreeEraseAction
       if (sibnode->get_count() >= node->get_count()) {
         /* internal node: append the anchornode separator value to this node */
         if (internal) {
-          slot = ancnode->get_slot(sibnode, 0);
+          slot = ancnode->find(sibnode, 0);
 
           /* append the anchor node to the page */
-          st = replace_key(ancpage, slot, page, node->get_count(), true);
+          st = ancnode->replace_key(slot, node, node->get_count(), true);
           if (st)
             return (st);
 
@@ -505,12 +502,12 @@ class BtreeEraseAction
           sibnode->set_ptr_down(sibnode->get_record_id(0));
 
           /* update the anchor node with sibling[0] */
-          st = replace_key(sibpage, 0, ancpage, slot, true);
+          st = sibnode->replace_key(0, ancnode, slot, true);
           if (st)
             return (st);
 
           /* and remove this key from the sibling */
-          sibnode->remove(0);
+          sibnode->erase(0);
         }
 
         ham_size_t c = (sibnode->get_count() - node->get_count()) / 2;
@@ -523,13 +520,17 @@ class BtreeEraseAction
 
         /* internal node: append the anchor key to the page */
         if (internal) {
-          st = replace_key(ancpage, slot, page, node->get_count(), true);
+          st = ancnode->replace_key(slot, node, node->get_count(), true);
           if (st)
             return (st);
 
           node->set_record_id(node->get_count(), sibnode->get_ptr_down());
           node->set_count(node->get_count() + 1);
         }
+
+        /* get the slot in the anchor node BEFORE the keys are shifted
+         * (it will be required later) */
+        slot = ancnode->find(sibnode, 0);
 
         /* shift |c| items from the right sibling to this page, then
          * delete the shifted items */
@@ -543,23 +544,21 @@ class BtreeEraseAction
           sibnode->set_ptr_down(sibnode->get_record_id(0));
 
           if (anchor) {
-            slot = ancnode->get_slot(sibnode, 0);
-
+            //slot = ancnode->find(sibnode, 0);
             /* replace the key */
-            st = replace_key(sibpage, 0, ancpage, slot, true);
+            st = sibnode->replace_key(0, ancnode, slot, true);
             if (st)
               return (st);
           }
 
           /* shift once more */
-          sibnode->remove(0);
+          sibnode->erase(0);
         }
         else {
           /* in a leaf - update the anchor */
-          slot = ancnode->get_slot(sibnode, 0);
-
+          //slot = ancnode->find(sibnode, 0);
           /* replace the key */
-          st = replace_key(sibpage, 0, ancpage, slot, true);
+          st = sibnode->replace_key(0, ancnode, slot, true);
           if (st)
             return (st);
         }
@@ -568,13 +567,10 @@ class BtreeEraseAction
       else {
         /* internal node: insert the anchornode separator value to this node */
         if (internal) {
-          slot = ancnode->get_slot(sibnode, 0);
-
-          /* shift entire sibling by 1 to the right */
-          sibnode->make_space(0);
+          slot = ancnode->find(sibnode, 0);
 
           /* copy the old anchor element to sibling[0] */
-          st = replace_key(ancpage, slot, sibpage, 0, true);
+          st = sibnode->insert(0, ancnode, slot);
           if (st)
             return (st);
 
@@ -585,7 +581,7 @@ class BtreeEraseAction
           sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
           /* new anchor element is node[node.count-1].key */
-          st = replace_key(page, node->get_count() - 1, ancpage, slot, true);
+          st = node->replace_key(node->get_count() - 1, ancnode, slot, true);
           if (st)
             return (st);
 
@@ -605,9 +601,7 @@ class BtreeEraseAction
         /* internal pages: insert the anchor element */
         if (internal) {
           /* shift entire sibling by 1 to the right */
-          sibnode->make_space(0);
-
-          st = replace_key(ancpage, slot, sibpage, 0, true);
+          st = sibnode->insert(0, ancnode, slot);
           if (st)
             return (st);
 
@@ -629,18 +623,21 @@ class BtreeEraseAction
           sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
           /* free the greatest key */
-          node->remove(node->get_count() - 1);
+          node->erase(node->get_count() - 1);
         }
 
         /* replace the old anchor key with the new anchor key */
         if (anchor) {
           if (internal) {
-            slot = ancnode->get_slot(node, s);
-            st = replace_key(page, s, ancpage, slot + 1, true);
+            // TODO slot rausziehen und VOR shift berechnen, wie in zeile 533?
+            slot = ancnode->find(node, s);
+            st = node->replace_key(s, ancnode, slot + 1, true);
           }
           else {
-            slot = ancnode->get_slot(sibnode, 0);
-            st = replace_key(sibpage, 0, ancpage, slot + 1, true);
+            // TODO slot rausziehen und VOR shift berechnen, wie in zeile 533?
+            // TODO dann weiterschauen ob es noch ähnliche stellen gibt
+            slot = ancnode->find(sibnode, 0);
+            st = sibnode->replace_key(0, ancnode, slot + 1, true);
           }
           if (st)
             return (st);
@@ -694,9 +691,9 @@ cleanup:
        * this node
        */
       if (!node->is_leaf()) {
-        int slot = ancnode->get_slot(sibnode, 0);
+        int slot = ancnode->find(sibnode, 0);
 
-        st = replace_key(ancpage, slot, page, node->get_count(), true);
+        st = ancnode->replace_key(slot, node, node->get_count(), true);
         if (st)
           return (st);
 
@@ -709,6 +706,8 @@ cleanup:
  
       page->set_dirty(true);
       sibpage->set_dirty(true);
+      if (ancpage)
+        ancpage->set_dirty(true);
 
       /* update the linked list of pages */
       if (node->get_left() == sibpage->get_address()) {
@@ -768,16 +767,6 @@ cleanup:
 
       newroot->set_type(Page::kTypeBroot);
       return (0);
-    }
-
-    ham_status_t replace_key(Page *src_page, int src_slot,
-                    Page *dest_page, int dest_slot, bool dest_is_internal) {
-      BtreeNodeProxy *node = m_btree->get_node_from_page(src_page);
-      BtreeNodeProxy *dest = m_btree->get_node_from_page(dest_page);
-
-      dest_page->set_dirty(true);
-      return (node->replace_key(src_slot, dest, dest_slot, dest_is_internal,
-                      m_btree->get_db()->get_local_env()->get_blob_manager()));
     }
 
     // the current btree

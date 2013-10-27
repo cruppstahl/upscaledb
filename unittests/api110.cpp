@@ -223,7 +223,7 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)36 ==
+    REQUIRE((ham_u64_t)38 ==
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
@@ -265,7 +265,7 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)36 ==
+    REQUIRE((ham_u64_t)38 ==
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));

@@ -9,7 +9,7 @@ hamzilla_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                       $(top_builddir)/src/server/libhamserver.la
 
 ham_info_SOURCES    = ham_info.cc getopts.c getopts.h
-ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la
+ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la $(BOOST_SYSTEM_LIBS)
 
 ham_dump_SOURCES    = ham_dump.cc getopts.c getopts.h
 ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la

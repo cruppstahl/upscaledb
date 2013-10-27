@@ -207,12 +207,6 @@ typedef struct ham_env_metrics_t {
   // number of direct I/O bytes allocated (disk only)
   ham_u64_t blob_direct_allocated;
 
-  // (global) number of successful extended-key cache hits
-  ham_u64_t extkey_cache_hits;
-
-  // (global) number of extended-key cache misses
-  ham_u64_t extkey_cache_misses;
-
   // (global) number of btree page splits
   ham_u64_t btree_smo_split;
 

@@ -16,8 +16,6 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/btree_index.h"
-#include "../src/db_local.h"
 #include "../src/env_local.h"
 
 #include "getopts.h"
@@ -83,8 +81,6 @@ print_environment(ham_env_t *env) {
             lenv->get_header()->get_version(1),
             lenv->get_header()->get_version(2),
             lenv->get_header()->get_version(3));
-    printf("  serialno:           %u\n",
-            lenv->get_header()->get_serialno());
     printf("  max databases:        %u\n",
             lenv->get_header()->get_max_databases());
   }
@@ -96,24 +92,33 @@ print_environment(ham_env_t *env) {
 
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full) {
-  hamsterdb::BtreeIndex *be;
   ham_cursor_t *cursor;
   ham_status_t st;
   ham_key_t key;
   ham_record_t rec;
-  hamsterdb::LocalDatabase *ldb = (hamsterdb::LocalDatabase *)db;
-  unsigned num_items = 0, ext_keys = 0, min_key_size = 0xffffffff,
-      max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
-      total_key_size = 0, total_rec_size = 0;
-
-  be = ldb->get_btree_index();
-
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));
 
+  // get the database information
+  ham_parameter_t params[] = {
+    {HAM_PARAM_KEY_TYPE, 0},
+    {HAM_PARAM_KEY_SIZE, 0},
+    {HAM_PARAM_RECORD_SIZE, 0},
+    {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
+    {HAM_PARAM_FLAGS, 0},
+    {0, 0}
+  };
+
+  st = ham_db_get_parameters(db, &params[0]);
+    error("ham_db_get_parameters", st);
+
+  unsigned num_items = 0, min_key_size = 0xffffffff,
+      max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
+      total_key_size = 0, total_rec_size = 0, extended_keys = 0;
+
   if (!quiet) {
     const char *keytype = 0;
-    switch (be->get_keytype()) {
+    switch (params[0].value) {
       case HAM_TYPE_UINT8:
         keytype = "HAM_TYPE_UINT8";
         break;
@@ -142,17 +147,15 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("\n");
     printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
     printf("    key type:             %s\n", keytype);
-    printf("    max key size:         %u\n", be->get_key_size());
-    printf("    max keys per page:    %u\n", be->get_maxkeys());
-    printf("    address of root page: %llu\n",
-        (long long unsigned int)be->get_root_address());
-    printf("    flags:                0x%04x\n", ldb->get_rt_flags());
-    if (ldb->get_record_size() == HAM_RECORD_SIZE_UNLIMITED)
+    printf("    max key size:         %u\n", (unsigned)params[1].value);
+    printf("    max keys per page:    %u\n", (unsigned)params[3].value);
+    printf("    flags:                0x%04x\n", (unsigned)params[4].value);
+    if (params[2].value == HAM_RECORD_SIZE_UNLIMITED)
       printf("    record size:          unlimited\n");
     else
       printf("    record size:          %d (inline: %s)\n",
-                      ldb->get_record_size(),
-                      ldb->get_rt_flags() & HAM_FORCE_RECORDS_INLINE
+                      (unsigned)params[2].value,
+                      params[4].value & HAM_FORCE_RECORDS_INLINE
                             ? "yes"
                             : "no");
   }
@@ -180,14 +183,13 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
       min_key_size = key.size;
     if (key.size > max_key_size)
       max_key_size = key.size;
+    if (key.size > 256)
+      extended_keys++;
 
     if (rec.size < min_rec_size)
       min_rec_size = rec.size;
     if (rec.size > max_rec_size)
       max_rec_size = rec.size;
-
-    if (key.size > ((hamsterdb::LocalDatabase *)db)->get_key_size())
-      ext_keys++;
 
     total_key_size += key.size;
     total_rec_size += rec.size;
@@ -202,8 +204,9 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    average key size:     %u\n", total_key_size / num_items);
     printf("    minimum key size:     %u\n", min_key_size);
     printf("    maximum key size:     %u\n", max_key_size);
-    printf("    number of extended keys:%u\n", ext_keys);
     printf("    total keys (bytes):   %u\n", total_key_size);
+    if (extended_keys)
+      printf("    extended keys   :   %u\n", extended_keys);
     printf("    average record size:  %u\n", total_rec_size / num_items);
     printf("    minimum record size:  %u\n", min_rec_size);
     printf("    maximum record size:  %u\n", min_rec_size);

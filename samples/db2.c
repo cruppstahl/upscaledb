@@ -107,7 +107,7 @@ main(int argc, char **argv) {
 
   /* create the destination database */
   st = ham_env_create_db(env, &dest_db, dest_name,
-          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATE_KEYS, 0);
+                  HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st)
     error("ham_env_create_db", st);
 

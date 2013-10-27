@@ -1,3 +1,13 @@
+Nov 22, 2013 - chris ---------------------------------------------------
+o Default Btree node layout for variable length keys and duplicate keys
+	was completely rewritten and now uses an up-front index in the
+	node
+
+Nov 05, 2013 - chris ---------------------------------------------------
+o Removed HAM_DISABLE_VARIABLE_KEYS, HAM_ENABLE_EXTENDED_KEYS; they're no
+	longer required. Introduced HAM_KEY_SIZE_UNLIMITED for unlimited/variable
+	length keys (the default)
+
 Oct 31, 2013 - chris ---------------------------------------------------
 o ham_bench now can generate keys from /usr/share/dict/words
 

@@ -333,17 +333,10 @@ namespace Hamster
     /// <param name="flags">Optional flags for creating the Database,
     /// combined with bitwise OR. Possible values are:
     ///   <list>
-    ///   <item><see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />
-    ///     Do not allow the use of variable length keys. Inserting
-    ///     a key, which is larger than the B+Tree index key size,
-    ///     returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item><br />
     ///   <item><see cref="HamConst.HAM_RECORD_NUMBER" />
     ///     Creates an "auto-increment" Database. Keys in Record
     ///     Number Databases are automatically assigned an incrementing
     ///     64bit value.</item>
-    ///   <item><see cref="HamConst.HAM_ENABLE_EXTENDED_KEYS" />
-    ///     Enable extended keys for this Database. By default,
-    ///     extended keys are disabled.</item><br />
     ///   </list>
     /// </param>
     /// <param name="parameters">An array of <see cref="Parameter" />
@@ -419,10 +412,8 @@ namespace Hamster
     /// <param name="flags">Optional flags for this operation, combined
     /// with bitwise OR. Possible flags are:
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />
-    ///     Do not allow the use of variable length keys. Inserting
-    ///     a key, which is larger than the B+Tree index key size,
-    ///     returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item>
+    ///   <item><see cref="HamConst.HAM_READ_ONLY" />
+    ///     Opens the database for reading.</item>
     ///   </list>
     /// </param>
     /// <param name="parameters">An array of <see cref="Parameter" />

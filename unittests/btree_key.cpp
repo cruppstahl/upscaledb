@@ -20,7 +20,7 @@
 #include "../src/btree_index.h"
 #include "../src/btree_key.h"
 #include "../src/btree_node_proxy.h"
-#include "../src/btree_node_legacy.h"
+#include "../src/btree_node_default.h"
 #include "../src/util.h"
 #include "../src/page.h"
 #include "../src/env_local.h"
@@ -45,8 +45,10 @@ struct BtreeKeyFixture {
     m_page = new Page((LocalEnvironment *)m_env);
     m_page->set_db(m_dbp);
     REQUIRE(0 == m_page->allocate());
+
     // make sure that the node is properly initialized
-    memset(m_page->get_raw_payload(), 0, 1024);
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
+    node->test_clear_page();
   }
 
   ~BtreeKeyFixture() {
@@ -56,43 +58,15 @@ struct BtreeKeyFixture {
 	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void endianTest() {
-    ham_u8_t buffer[64] = {
-        0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
-        0x00, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
-
-    PBtreeKeyLegacy *key = (PBtreeKeyLegacy *)&buffer[0];
-
-    REQUIRE((ham_u64_t)0x0123456789abcdefull == key->get_record_id());
-    REQUIRE((ham_u8_t)0xf0 == key->get_flags());
-    REQUIRE((ham_u64_t)0xfedcba9876543210ull == key->get_extended_rid(m_dbp));
-  }
-
-  void getSetExtendedKeyTest() {
-    char buffer[32];
-    PBtreeKeyLegacy *key = (PBtreeKeyLegacy *)buffer;
-    memset(buffer, 0, sizeof(buffer));
-
-    key->set_extended_rid(m_dbp, 0x12345);
-    REQUIRE((ham_u64_t)0x12345 == key->get_extended_rid(m_dbp));
-  }
-
   void insertEmpty(ham_u32_t flags) {
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     int slot = 0;
     ham_record_t rec;
 
     if (!flags)
-      memset(m_page->get_raw_payload(), 0, 1024);
+      node->test_clear_page();
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
       REQUIRE((ham_u8_t)BtreeKey::kBlobSizeEmpty == node->test_get_flags(slot));
     }
@@ -115,18 +89,19 @@ struct BtreeKeyFixture {
 
   void insertTiny(const char *data, ham_size_t size, ham_u32_t flags) {
     ByteArray arena;
-    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     ham_record_t rec, rec2;
     int slot = 0;
 
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     if (!flags)
-      memset(m_page->get_raw_payload(), 0, 1024);
+      node->test_clear_page();
+
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = size;
 
-    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE))
       REQUIRE((ham_u8_t)BtreeKey::kBlobSizeTiny ==
                       node->test_get_flags(slot));
@@ -135,7 +110,7 @@ struct BtreeKeyFixture {
                       node->test_get_flags(slot));
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -161,13 +136,13 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
 
     if (!flags)
-      memset(m_page->get_raw_payload(), 0, 1024);
+      node->test_clear_page();
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = sizeof(ham_u64_t);
 
-    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
       REQUIRE((ham_u8_t)BtreeKey::kBlobSizeSmall ==
                       node->test_get_flags(slot));
@@ -178,7 +153,7 @@ struct BtreeKeyFixture {
     }
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -203,19 +178,19 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
 
     if (!flags)
-      memset(m_page->get_raw_payload(), 0, 1024);
+      node->test_clear_page();
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = size;
 
-    REQUIRE(0 == node->set_record_data(slot, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == node->set_record(slot, 0, &rec, 0, flags, 0));
     if (flags & HAM_DUPLICATE)
       REQUIRE((ham_u8_t)BtreeKey::kDuplicates ==
                       node->test_get_flags(slot));
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE(0 == node->get_record_data(slot, &arena, &rec2, 0));
+      REQUIRE(0 == node->get_record(slot, &arena, &rec2, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -307,7 +282,7 @@ struct BtreeKeyFixture {
     memset(&rec, 0, sizeof(rec));
 
     ByteArray arena;
-    REQUIRE(0 == node->get_record_data(slot, &arena, &rec, 0, position));
+    REQUIRE(0 == node->get_record(slot, &arena, &rec, 0, position));
     REQUIRE(rec.size == size);
     if (size)
       REQUIRE(0 == memcmp(rec.data, data, rec.size));
@@ -418,25 +393,25 @@ struct BtreeKeyFixture {
 
     /* insert empty key, then delete it */
     prepareEmpty();
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert tiny key, then delete it */
     prepareTiny("1234", 4);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert small key, then delete it */
     prepareSmall("12345678");
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert normal key, then delete it */
     prepareNormal("1234123456785678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
@@ -449,7 +424,7 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, 0, 0);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, true, 0));
+    REQUIRE(0 == node->erase_record(0, 0, true, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -458,7 +433,7 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "1234", 4);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, true, 0));
+    REQUIRE(0 == node->erase_record(0, 0, true, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -467,7 +442,7 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "12345678", 8);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, true, 0));
+    REQUIRE(0 == node->erase_record(0, 0, true, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -476,7 +451,7 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, true, 0));
+    REQUIRE(0 == node->erase_record(0, 0, true, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
@@ -490,10 +465,10 @@ struct BtreeKeyFixture {
     checkDupe(0, 0, 0);
     checkDupe(1, "abc4567812345678", 16);
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(0));
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(0));
     checkDupe(0, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -502,10 +477,10 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "1234", 4);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 1, false, 0));
+    REQUIRE(0 == node->erase_record(0, 1, false, 0));
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(0));
     checkDupe(0, "1234", 4);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -514,10 +489,10 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "12345678", 8);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(0));
     checkDupe(0, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
@@ -526,26 +501,14 @@ struct BtreeKeyFixture {
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, "abc4567812345678", 16);
-    REQUIRE(0 == node->remove_record(0, 1, false, 0));
+    REQUIRE(0 == node->erase_record(0, 1, false, 0));
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(0));
     checkDupe(0, "1234123456785678", 16);
-    REQUIRE(0 == node->remove_record(0, 0, false, 0));
+    REQUIRE(0 == node->erase_record(0, 0, false, 0));
     REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
 };
-
-TEST_CASE("BtreeKey/endian", "")
-{
-  BtreeKeyFixture f;
-  f.endianTest();
-}
-
-TEST_CASE("BtreeKey/getSetExtendedKey", "")
-{
-  BtreeKeyFixture f;
-  f.getSetExtendedKeyTest();
-}
 
 TEST_CASE("BtreeKey/setRecord", "")
 {

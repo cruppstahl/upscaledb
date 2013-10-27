@@ -148,14 +148,13 @@ class BtreeCheckAction
         ham_key_t key1 = {0};
         ham_key_t key2 = {0};
 
-        st = node->check_integrity(0);
+        st = node->check_integrity();
         if (st)
           return (st);
-        st = sibnode->copy_full_key(sibnode->get_count() - 1, &m_barray1,
-                        &key1);
+        st = sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
         if (st)
           return (st);
-        st = node->copy_full_key(0, &m_barray2, &key2);
+        st = node->get_key(0, &m_barray2, &key2);
         if (st)
           return (st);
 
@@ -171,11 +170,11 @@ class BtreeCheckAction
       if (node->get_count() == 1)
         return (0);
 
-      for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
-        st = node->check_integrity(i);
-        if (st)
-          return (st);
+      st = node->check_integrity();
+      if (st)
+        return (st);
 
+      for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
         int cmp = compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i + 1));
         if (cmp >= 0) {
           ham_log(("integrity check failed in page 0x%llx: item #%d "
@@ -184,8 +183,7 @@ class BtreeCheckAction
         }
       }
 
-      // also check the last element
-      return (node->check_integrity(node->get_count() - 1));
+      return (0);
     }
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
@@ -194,10 +192,10 @@ class BtreeCheckAction
       ham_key_t key1 = {0};
       ham_key_t key2 = {0};
 
-      st = node->copy_full_key(lhs, &m_barray1, &key1);
+      st = node->get_key(lhs, &m_barray1, &key1);
       if (st)
         return (st);
-      st = node->copy_full_key(rhs, &m_barray2, &key2);
+      st = node->get_key(rhs, &m_barray2, &key2);
       if (st)
         return (st);
 

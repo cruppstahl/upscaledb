@@ -39,9 +39,7 @@
 #define ARG_NO_PROGRESS             4
 #define ARG_REOPEN                  5
 #define ARG_METRICS                 6
-#define ARG_KEYSIZE_BTREE           7
 #define ARG_OPEN                    8
-#define ARG_USE_EXTENDED            9
 #define ARG_INMEMORY                10
 #define ARG_OVERWRITE               11
 #define ARG_DISABLE_MMAP            12
@@ -76,6 +74,7 @@
 #define ARG_TEE                     54
 #define ARG_SEED                    55
 #define ARG_DISTRIBUTION            56
+#define ARG_EXTKEY_THRESHOLD        57
 
 /*
  * command line parameters
@@ -212,19 +211,6 @@ static option_t opts[] = {
     "Sets the key size (use 0 for default)",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_KEYSIZE_BTREE,
-    0,
-    "btree-keysize",
-    "Sets the key size of the btree; if < --keysize: extended keys are enabled."
-            "\n\tif not specified: will use same size as for --keysize",
-    GETOPTS_NEED_ARGUMENT },
-  {
-    ARG_USE_EXTENDED,
-    0,
-    "use-extended",
-    "Sets the HAM_ENABLE_EXTENDED_KEYS flags",
-    0 },
-  {
     ARG_KEYSIZE_FIXED,
     0,
     "keysize-fixed",
@@ -348,6 +334,12 @@ static option_t opts[] = {
     "use-remote",
     "Runs test in remote client/server scenario",
     0 },
+  {
+    ARG_EXTKEY_THRESHOLD,
+    0,
+    "extkey-threshold",
+    "Keys > threshold are moved to a blob",
+    GETOPTS_NEED_ARGUMENT },
   { 0, 0, 0, 0, 0 }
 };
 
@@ -457,12 +449,6 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_KEYSIZE) {
       c->key_size = strtoul(param, 0, 0);
-    }
-    else if (opt == ARG_KEYSIZE_BTREE) {
-      c->btree_key_size = strtoul(param, 0, 0);
-    }
-    else if (opt == ARG_USE_EXTENDED) {
-      c->extended_keys = true;
     }
     else if (opt == ARG_KEYSIZE_FIXED) {
       c->key_is_fixed_size = true;
@@ -630,6 +616,13 @@ parse_config(int argc, char **argv, Configuration *c)
       c->use_remote = true;
 #endif
     }
+    else if (opt == ARG_EXTKEY_THRESHOLD) {
+      c->extkey_threshold = strtoul(param, 0, 0);
+      if (!c->extkey_threshold) {
+        printf("[FAIL] invalid parameter for 'extkey-threshold'\n");
+        exit(-1);
+      }
+    }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
     }
@@ -737,10 +730,6 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.blob_direct_written);
   printf("\thamsterdb blob_direct_allocated       %lu\n",
           metrics->hamster_metrics.blob_direct_allocated);
-  printf("\thamsterdb extkey_cache_hits           %lu\n",
-          metrics->hamster_metrics.extkey_cache_hits);
-  printf("\thamsterdb extkey_cache_misses         %lu\n",
-          metrics->hamster_metrics.extkey_cache_misses);
   printf("\thamsterdb btree_smo_split             %lu\n",
           metrics->hamster_metrics.btree_smo_split);
   printf("\thamsterdb btree_smo_merge             %lu\n",
@@ -917,7 +906,7 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
 
     // iterate over both databases
     if (conf->fullcheck == Configuration::kFullcheckFind) {
-      st2 = gen2->get_db()->cursor_get_next(c2, &key2, &rec2, false);
+      st2 = gen2->get_db()->cursor_get_next(c2, &key2, &rec2, true);
       if (st2 == HAM_KEY_NOT_FOUND)
         goto bail;
       st1 = gen1->get_db()->find(0, &key2, &rec1);
@@ -1154,9 +1143,6 @@ main(int argc, char **argv)
   // set a limit
   if (!c.limit_bytes && !c.limit_seconds && !c.limit_ops)
     c.limit_ops = 1000000;
-
-  if (c.btree_key_size == 0)
-    c.btree_key_size = c.key_size;
 
   if (c.verbose && c.metrics == Configuration::kMetricsDefault)
     c.metrics = Configuration::kMetricsAll;

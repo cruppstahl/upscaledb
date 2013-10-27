@@ -22,6 +22,7 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 #include "btree_stats.h"
+#include "btree_node.h"
 
 namespace hamsterdb {
 
@@ -48,16 +49,6 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // Sets the database name
     void set_dbname(ham_u16_t n) {
       m_dbname = ham_h2db16(n);
-    }
-
-    // Returns the max. number of keys in a page
-    ham_u16_t get_maxkeys() const {
-      return (ham_db2h16(m_maxkeys));
-    }
-
-    // Returns the max. number of keys in a page
-    void set_maxkeys(ham_u16_t maxkeys) {
-      m_maxkeys = ham_h2db16(maxkeys);
     }
 
     // Returns the btree's max. keysize
@@ -120,27 +111,17 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // The name of the database
     ham_u16_t m_dbname;
 
-    // maximum keys in an internal page
-    ham_u16_t m_maxkeys;
-
     // key size used in the pages
     ham_u16_t m_keysize;
 
     // key type
     ham_u16_t m_keytype;
 
-    // the record size
-    ham_u32_t m_recsize;
-
-    // start of reserved space for this index
-    ham_u64_t m_reserved_start;
-
-    // number of reserved pages for this index
-    ham_u16_t m_reserved_pages;
-
     // reserved for padding
     ham_u16_t m_padding1;
-    ham_u32_t m_padding2;
+
+    // the record size
+    ham_u32_t m_recsize;
 
 } HAM_PACK_2;
 
@@ -199,7 +180,7 @@ class BtreeIndex
 
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-            ham_u32_t keytype);
+            ham_u32_t keytype, ham_u32_t keysize);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -243,16 +224,9 @@ class BtreeIndex
       return (m_flags);
     }
 
-    // Returns maximum number of keys per (internal) node
-    ham_u16_t get_maxkeys() const {
-      return (m_maxkeys);
-    }
-
-    // Returns the minimum number of keys per node - less keys require a
-    // SMO (merge or shift)
-    ham_u16_t get_minkeys() const {
-      return (std::max(3, m_maxkeys / 5));
-    }
+    // Calculates the "maxkeys" values - the limit of keys per page
+    ham_size_t get_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
+                        ham_size_t recsize) const;
 
     // Returns the actual key size (including overhead)
     ham_u16_t get_system_keysize(ham_size_t keysize) const {
@@ -310,7 +284,20 @@ class BtreeIndex
     }
 
     // Returns a BtreeNodeProxy for a Page
-    BtreeNodeProxy *get_node_from_page(Page *page);
+    BtreeNodeProxy *get_node_from_page(Page *page) {
+      if (page->get_node_proxy())
+        return (page->get_node_proxy());
+
+      BtreeNodeProxy *proxy;
+      PBtreeNode *node = PBtreeNode::from_page(page);
+      if (node->is_leaf())
+        proxy = get_leaf_node_from_page_impl(page);
+      else
+        proxy = get_internal_node_from_page_impl(page);
+
+      page->set_node_proxy(proxy);
+      return (proxy);
+    }
 
     // Returns the usage metrics
     static void get_metrics(ham_env_metrics_t *metrics) {
@@ -353,10 +340,6 @@ class BtreeIndex
       m_root_address = address;
       flush_descriptor();
     }
-
-    // Calculates the "maxkeys" values - the limit of keys per page
-    ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
-                        ham_size_t recsize);
 
     // Flushes the PBtreeHeader to the Environment's header page
     void flush_descriptor();
@@ -411,9 +394,6 @@ class BtreeIndex
 
     // address of the root-page
     ham_u64_t m_root_address;
-
-    // maximum keys in an internal page
-    ham_u16_t m_maxkeys;
 
     // the btree statistics
     BtreeStatistics m_statistics;

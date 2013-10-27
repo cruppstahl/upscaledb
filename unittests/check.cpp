@@ -76,13 +76,15 @@ struct CheckIntegrityFixture {
     teardown();
     setup(env_params, db_params);
 
+    char buffer[80] = {0};
     for (int i = 0; i < 100; i++) {
-      key.size = sizeof(i);
-      key.data = &i;
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-    }
+      *(int *)&buffer[0] = i;
+      key.size = sizeof(buffer);
+      key.data = &buffer[0];
 
-    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+    }
   }
 };
 

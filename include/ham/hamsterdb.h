@@ -712,7 +712,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
 /**
  * Creates a new Database in a Database Environment
  *
- * An Environment can handle up to 16 Databases, unless higher values are
+ * An Environment can contain up to 16 Databases, unless higher values are
  * configured when the Environment is created (see @sa ham_env_create).
  *
  * Each Database in an Environment is identified by a positive 16bit
@@ -729,12 +729,11 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * differentiates between several data characteristics, and offers predefined
  * "types" to describe the keys. Numeric key types are stored in host endian
  * format and are NOT endian converted! In general, the default key type
- * (@ref HAM_TYPE_BINARY) is slower than the other types, and the
+ * (@ref HAM_TYPE_BINARY) is slower than the other types, and
  * fixed-length binary keys (@ref HAM_TYPE_BINARY in combination with
- * @ref HAM_DISABLE_VARIABLE_KEYS) is faster than variable-length binary
- * keys, especially if the application mostly inserts and looks up keys
- * and not frequently deletes them. It is therefore recommended to
- * set the key size and record size, although it is not required.
+ * @ref HAM_PARAM_KEY_SIZE) is faster than variable-length binary
+ * keys. It is therefore recommended to set the key size and record size,
+ * although it is not required.
  * See the Wiki documentation for <a href=
    "https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking">
  * Evaluating and Benchmarking</a> on how to test different configurations and
@@ -745,52 +744,28 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *
  * <ul>
  *   <li>HAM_TYPE_BINARY</li> This is the default key type: a binary blob.
- *   Internally, hamsterdb uses memcmp for the sort order. Key size depends
- *   on additional flags.
+ *   Internally, hamsterdb uses memcmp(3) for the sort order. Key size depends
+ *   on @ref HAM_PARAM_KEY_SIZE and is unlimited (@ref HAM_KEY_SIZE_UNLIMITED)
+ *   by default.
  *   <li>HAM_TYPE_CUSTOM</li> Similar to @ref HAM_TYPE_BINARY, but
  *   uses a callback function for the sort order. This function is supplied
- *   with @sa ham_db_set_compare_func.
- *   <li>HAM_TYPE_UINT8</li> Key is a 8bit (1 byte) unsigned integer.
- *   <li>HAM_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer.
- *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer.
- *   <li>HAM_TYPE_UINT64</li> Key is a 64bit (8 byte) unsigned integer.
- *   <li>HAM_TYPE_REAL32</li> Key is a 32bit (4 byte) float.
- *   <li>HAM_TYPE_REAL64</li> Key is a 64bit (8 byte) real.
+ *   by the application with @sa ham_db_set_compare_func.
+ *   <li>HAM_TYPE_UINT8</li> Key is a 8bit (1 byte) unsigned integer
+ *   <li>HAM_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer
+ *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer
+ *   <li>HAM_TYPE_UINT64</li> Key is a 64bit (8 byte) unsigned integer
+ *   <li>HAM_TYPE_REAL32</li> Key is a 32bit (4 byte) float
+ *   <li>HAM_TYPE_REAL64</li> Key is a 64bit (8 byte) doubles
  * </ul>
  *
  * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.
  *
- * Additional flags are available for custom key types
- * (@ref HAM_TYPE_CUSTOM) and binary blobs (@ref HAM_TYPE_BINARY):
- * <ul>
- *   <li>Fixed keys with constant size (not extended)</li>
- *     <ul>
- *        <li>@a HAM_DISABLE_VARIABLE_KEYS
- *        <li>@a HAM_PARAM_KEY_SIZE to specify the key size
- *     </ul>
- *   <li>Variable keys with non-constant size (not extended)</li>
- *     This is the default!
- *     <ul>
- *        <li>@a HAM_PARAM_KEY_SIZE to specify the key size
- *     </ul>
- *   <li>Fixed keys with constant size (extended)
- *     <ul>
- *        <li>@a HAM_DISABLE_VARIABLE_KEYS
- *        <li>@a HAM_ENABLE_EXTENDED_KEYS
- *     </ul>
- *   <li>Variable keys with non-constant size (extended)</li>
- *     <ul>
- *        <li>@a HAM_ENABLE_EXTENDED_KEYS
- *     </ul>
- * </ul>
- *
- * "Extended" keys are so big that they cannot be stored in the Btree
- * (they exceed the size specified with @a HAM_PARAM_KEY_SIZE). In this case
- * portions of the key might be stored in an overflow area, which has
+ * If binary/custom keys are so big that they cannot be stored in the Btree,
+ * then the full key will be stored in an overflow area, which has
  * performance implications when accessing such keys.
  *
  * In addition to the flags above, you can specify @a HAM_ENABLE_DUPLICATE_KEYS
- * to insert duplicate keys, i.e. to model n:m relationships.
+ * to insert duplicate keys, i.e. to model 1:n or n:m relationships.
  *
  * If the size of the records is always constant, then
  * @ref HAM_PARAM_RECORD_SIZE should be used to specify this size. This allows
@@ -811,13 +786,8 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @param flags Optional flags for creating the Database, combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
- *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEY_SIZE.
  *     <li>@ref HAM_ENABLE_DUPLICATE_KEYS </li> Enable duplicate keys for this
  *      Database. By default, duplicate keys are disabled.
- *     <li>@ref HAM_ENABLE_EXTENDED_KEYS</li> Enable extended keys for this
- *      Database. By default, extended keys are disabled.
  *     <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
  *      Keys in Record Number Databases are automatically assigned an
  *      incrementing 64bit value. If key->data is not NULL
@@ -834,8 +804,9 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <li>@ref HAM_PARAM_KEY_TYPE </li> The type of the keys in the B+Tree
  *      index. The default is @ref HAM_TYPE_BINARY. See above for more
  *      information.
- *    <li>@ref HAM_PARAM_KEY_SIZE </li> The size of the keys in the B+Tree
- *      index. The default size is 21 bytes. See above for more information.
+ *    <li>@ref HAM_PARAM_KEY_SIZE </li> The (fixed) size of the keys in
+ *      the B+Tree index; or @ref HAM_KEY_SIZE_UNLIMITED for unlimited and
+ *      variable keys (this is the default).
  *    <li>@ref HAM_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref HAM_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
@@ -1165,11 +1136,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /* reserved                                         0x00000020 */
 
-/** Flag for @ref ham_env_create_db.
- * This flag is persisted in the Database. */
-#define HAM_DISABLE_VARIABLE_KEYS                   0x00000040
-/* deprecated */
-#define HAM_DISABLE_VAR_KEYLEN                      HAM_DISABLE_VARIABLE_KEYS
+/* unused                                           0x00000040 */
 
 /** Flag for @ref ham_env_create.
  * This flag is non persistent. */
@@ -1211,9 +1178,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * This flag is non persistent. */
 #define HAM_CACHE_UNLIMITED                         0x00040000
 
-/** Flag for @ref ham_env_create_db.
- * This flag is persisted in the Database. */
-#define HAM_ENABLE_EXTENDED_KEYS                    0x00080000
+/* unused                                           0x00080000 */
 
 /* internal use only! (not persistent) */
 #define HAM_IS_REMOTE_INTERNAL                      0x00200000
@@ -1472,13 +1437,9 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        @a HAM_PARAMETER_KEY_SIZE parameter specified for
  *        @ref ham_env_create_db
  *        OR if the key's size is greater than the Btree key size (see
- *        @ref HAM_PARAM_KEY_SIZE) and extended keys are not enabled (see
- *        @ref HAM_ENABLE_EXTENDED_KEYS).
+ *        @ref HAM_PARAM_KEY_SIZE).
  * @return @ref HAM_INV_RECORD_SIZE if the record size is different from
  *        the one specified with @a HAM_PARAM_RECORD_SIZE
- *
- * @sa HAM_DISABLE_VARIABLE_KEYS
- * @sa HAM_ENABLE_EXTENDED_KEYS
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
@@ -1619,11 +1580,14 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_DATABASE_NAME</li> returns the Database name
  *    <li>HAM_PARAM_KEY_TYPE</li> returns the Btree key type
  *    <li>HAM_PARAM_KEY_SIZE</li> returns the Btree key size
+ *        or @ref HAM_KEY_SIZE_UNLIMITED if there was no fixed key size
+ *        specified.
  *    <li>HAM_PARAM_RECORD_SIZE</li> returns the record size,
  *        or @ref HAM_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *        specified.
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
- *        of keys per page
+ *        of keys per page. This number is precise if the key size is fixed
+ *        and duplicates are disabled; otherwise it's an estimate.
  *    </ul>
  *
  * @param db A valid Database handle
@@ -1677,6 +1641,9 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Value for unlimited record sizes */
 #define HAM_RECORD_SIZE_UNLIMITED       ((ham_u32_t)-1)
 
+/** Value for unlimited key sizes */
+#define HAM_KEY_SIZE_UNLIMITED          ((ham_u16_t)-1)
+
 /** Retrieves the Database/Environment flags as were specified at the time of
  * @ref ham_env_create/@ref ham_env_open invocation. */
 #define HAM_PARAM_FLAGS                 0x00000200
@@ -1705,11 +1672,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * Retrieve the maximum number of keys per page; this number depends on the
- * currently active page and key sizes.
- *
- * When no Database or Environment is specified with the request, the default
- * settings for all of these will be assumed in order to produce a viable
- * ball park value for this one.
+ * currently active page and key sizes. Can be an estimate.
  */
 #define HAM_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 
@@ -2349,19 +2312,13 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *        flag @ref HAM_ENABLE_DUPLICATE_KEYS.
  * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key to a read-only
  *        Database.
- * @return @ref HAM_INV_KEY_SIZE if the key's size is larger than the @a keysize
- *        parameter specified for @ref ham_env_create and variable
- *        key sizes are disabled (see @ref HAM_DISABLE_VARIABLE_KEYS)
- *        OR if the key's size is greater than the Btree key size (see
- *        @ref HAM_PARAM_KEY_SIZE) and extended keys are not enabled (see
- *        @ref HAM_ENABLE_EXTENDED_KEYS).
+ * @return @ref HAM_INV_KEY_SIZE if the key size is different from
+ *        the one specified with @a HAM_PARAM_KEY_SIZE
  * @return @ref HAM_INV_RECORD_SIZE if the record size is different from
  *        the one specified with @a HAM_PARAM_RECORD_SIZE
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
- *
- * @sa HAM_DISABLE_VARIABLE_KEYS
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,

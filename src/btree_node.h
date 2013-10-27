@@ -21,7 +21,7 @@
 
 namespace hamsterdb {
 
-class PBtreeKeyLegacy;
+class PBtreeKeyDefault;
 
 /*
  * A BtreeNode structure spans the persistent part of a Page

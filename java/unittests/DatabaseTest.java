@@ -103,7 +103,7 @@ public class DatabaseTest extends TestCase {
       params[0] = new Parameter();
       params[0].name = Const.HAM_PARAM_KEY_TYPE;
       params[0].value = Const.HAM_TYPE_CUSTOM;
-      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS, params);
+      db = env.createDatabase((short)1, 0, params);
       db.setComparator(cmp);
       db.insert(k, r);
       k[0] = 1;
@@ -141,7 +141,7 @@ public class DatabaseTest extends TestCase {
     catch (DatabaseException err) {
       fail("Exception " + err);
     }
-    assertEquals(21, params[0].value);
+    assertEquals(Const.HAM_KEY_SIZE_UNLIMITED, params[0].value);
     assertEquals(1, params[1].value);
     assertEquals(0, params[2].value);
     assertEquals(510, params[3].value);

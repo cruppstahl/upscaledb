@@ -272,6 +272,9 @@ public class Environment {
    * <p>
    * This method wraps the native ham_env_create_db function.
    *
+   * See the documentation of ham_env_create_db (C API) for details about
+   * supported key types, key sizes and record sizes.
+   *
    * @param name the name of the Database. If a Database with this name
    *      already exists, the function will fail with
    *      <code>Const.HAM_DATABASE_ALREADY_EXISTS</code>.
@@ -279,10 +282,6 @@ public class Environment {
    * @param flags optional flags for creating the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_DISABLE_VARIABLE_KEYS</const></li>
-   *      Do not allow the use of variable length keys.
-   *      Inserting a key, which is larger than the B+Tree index
-   *      key size, returns <code>Const.HAM_INV_KEYSIZE</code>.
    *     <li><code>Const.HAM_RECORD_NUMBER</code></li>
    *      Creates an "auto-increment" Database. Keys in Record
    *      Number Databases are automatically assigned an incrementing
@@ -290,9 +289,6 @@ public class Environment {
    *     <li><code>Const.HAM_ENABLE_DUPLICATE_KEYS</code></li>
    *      Enable duplicate keys for this Database. By default,
    *      duplicate keys are disabled.
-   *     <li><code>Const.HAM_ENABLE_EXTENDED_KEYS</code></li>
-   *      Enable extended keys for this Database. By default,
-   *      extended keys are disabled.
    *    </ul>
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
@@ -349,10 +345,8 @@ public class Environment {
    * @param flags optional flags for opening the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_DISABLE_VARIABLE_KEYS</code></li>
-   *      Do not allow the use of variable length keys. Inserting
-   *      a key, which is larger than the B+Tree index key size,
-   *      returns <code>Const.HAM_INV_KEYSIZE</code>.
+   *     <li><code>Const.HAM_READ_ONLY</code> opens the database for
+   *        reading only</li>
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:

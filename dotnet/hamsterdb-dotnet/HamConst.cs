@@ -108,8 +108,6 @@ namespace Hamster
     /// <summary>Flag for Database.Open</summary>
     public const int HAM_READ_ONLY              =  0x004;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_DISABLE_VARIABLE_KEYS  =  0x040;
-    /// <summary>Flag for Database.Create</summary>
     public const int HAM_IN_MEMORY              =  0x00080;
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_MMAP           =  0x00200;
@@ -129,8 +127,6 @@ namespace Hamster
     public const int HAM_ENABLE_TRANSACTIONS    =  0x20000;
     /// <summary>Flag for Database.Create, Database.Open</summary>
     public const int HAM_CACHE_UNLIMITED        =  0x40000;
-    /// <summary>Flag for Database.Create</summary>
-    public const int HAM_ENABLE_EXTENDED_KEYS   =  0x80000;
 
     // Extended parameters
     /// <summary>Parameter name for Database.Open, Database.Create</summary>
@@ -151,15 +147,19 @@ namespace Hamster
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FLAGS           = 0x00000200;
+    public const int HAM_PARAM_FLAGS                = 0x00000200;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FILEMODE        = 0x00000201;
+    public const int HAM_PARAM_FILEMODE             = 0x00000201;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FILENAME        = 0x00000202;
+    public const int HAM_PARAM_FILENAME             = 0x00000202;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_DATABASE_NAME   = 0x00000203;
+    public const int HAM_PARAM_DATABASE_NAME        = 0x00000203;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_MAX_KEYS_PER_PAGE = 0x00000204;
+    public const int HAM_PARAM_MAX_KEYS_PER_PAGE    = 0x00000204;
+    /// <summary>Value for HAM_PARAM_KEY_SIZE</summary>
+    public const int HAM_KEY_SIZE_UNLIMITED         = 0xffff;
+    /// <summary>Value for HAM_PARAM_RECORD_SIZE</summary>
+    public const int HAM_RECORD_SIZE_UNLIMITED      = 0xffffffff;
 
     // Database operations
     /// <summary>Flag for Database.Insert, Cursor.Insert</summary>

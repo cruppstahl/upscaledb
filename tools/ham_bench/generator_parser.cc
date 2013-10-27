@@ -341,7 +341,7 @@ ParserGenerator::generate_key(const char *keydata, char *buffer) const
     case Configuration::kKeyBinary:
     case Configuration::kKeyCustom:
       key.data = (void *)keydata;
-      key.size = (ham_u16_t)strlen(keydata) + 1;
+      key.size = (ham_u16_t)strlen(keydata);
       break;
     case Configuration::kKeyUint8:
       *(ham_u16_t *)buffer = (ham_u8_t)strtoul(keydata, 0, 0);

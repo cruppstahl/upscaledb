@@ -201,7 +201,7 @@
     <ClInclude Include="..\..\src\btree_index_factory.h" />
     <ClInclude Include="..\..\src\btree_key.h" />
     <ClInclude Include="..\..\src\btree_node.h" />
-    <ClInclude Include="..\..\src\btree_node_legacy.h" />
+    <ClInclude Include="..\..\src\btree_node_default.h" />
     <ClInclude Include="..\..\src\btree_node_pax.h" />
     <ClInclude Include="..\..\src\btree_node_proxy.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />
@@ -253,7 +253,6 @@
     <ClCompile Include="..\..\src\btree_erase.cc" />
     <ClCompile Include="..\..\src\btree_find.cc" />
     <ClCompile Include="..\..\src\btree_insert.cc" />
-    <ClCompile Include="..\..\src\btree_node_legacy.cc" />
     <ClCompile Include="..\..\src\btree_stats.cc" />
     <ClCompile Include="..\..\src\cache.cc" />
     <ClCompile Include="..\..\src\changeset.cc" />

@@ -327,10 +327,8 @@ namespace Hamster
     ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
     ///   <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
-    ///     if key size is larger than the key size parameter
-    ///     specified for Database.Create, and variable
-    ///     length keys are disabled (see
-    ///     <see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />).</item>
+    ///     if key size is different than than the key size parameter
+    ///     specified for Database.Create.</item>
     ///   </list>
     /// </exception>
     public void Insert(Transaction txn, byte[] key, byte[] record,

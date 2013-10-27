@@ -62,11 +62,13 @@ struct BtreeEraseFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
 
+    char buffer[80] = {0};
     for (int i = 0; i < num_inserts * 10; i += 10) {
-      key.data = &i;
-      rec.data = &i;
-      key.size = sizeof(i);
-      rec.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      rec.data = &buffer[0];
+      key.size = sizeof(buffer);
+      rec.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
@@ -77,11 +79,13 @@ struct BtreeEraseFixture {
 
     prepare(8);
 
-    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(HAM_INV_KEY_SIZE == ham_db_erase(m_db, 0, &key, 0));
 
+    char buffer[80] = {0};
     for (int i = 0; i < 80; i += 10) {
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
     }
@@ -93,8 +97,10 @@ struct BtreeEraseFixture {
 
     prepare(8);
 
-    key.data = &i;
-    key.size = sizeof(i);
+    char buffer[80] = {0};
+    *(int *)&buffer[0] = i;
+    key.data = &buffer[0];
+    key.size = sizeof(buffer);
 
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
   }
@@ -102,42 +108,30 @@ struct BtreeEraseFixture {
   void shiftFromLeftTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    int i;
 
     prepare(8);
 
-    i = 21;
-    key.data = &i;
-    key.size = sizeof(i);
-    rec.data = &i;
-    rec.size = sizeof(i);
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-    i = 22;
-    key.data = &i;
-    key.size = sizeof(i);
-    rec.data = &i;
-    rec.size = sizeof(i);
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-    i = 23;
-    key.data = &i;
-    key.size = sizeof(i);
-    rec.data = &i;
-    rec.size = sizeof(i);
+    char buffer[80] = {0};
+    *(int *)&buffer[0] = 21;
+    key.data = &buffer[0];
+    key.size = sizeof(buffer);
+    rec.data = &buffer[0];
+    rec.size = sizeof(buffer);
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
-    i = 70;
-    key.data = &i;
-    key.size = sizeof(i);
+    *(int *)&buffer[0] = 22;
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+
+    *(int *)&buffer[0] = 23;
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+
+    *(int *)&buffer[0] = 70;
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
 
-    i = 60;
-    key.data = &i;
-    key.size = sizeof(i);
+    *(int *)&buffer[0] = 60;
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
 
-    i = 50;
-    key.data = &i;
-    key.size = sizeof(i);
+    *(int *)&buffer[0] = 50;
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
   }
 
@@ -145,10 +139,12 @@ struct BtreeEraseFixture {
     ham_key_t key = {};
 
     prepare(8);
+    char buffer[80] = {0};
 
     for (int i = 70; i >= 50; i -= 10) {
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
 
       REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
     }

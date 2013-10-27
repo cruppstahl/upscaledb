@@ -27,6 +27,10 @@ ham_srv_t *HamsterDatabase::ms_srv = 0;
 Mutex      HamsterDatabase::ms_mutex;
 int        HamsterDatabase::ms_refcount;
 
+namespace hamsterdb {
+  extern ham_u32_t g_extended_threshold;
+};
+
 static int 
 compare_keys(ham_db_t *db,
       const ham_u8_t *lhs_data, ham_size_t lhs_size, 
@@ -70,6 +74,8 @@ HamsterDatabase::do_create_env()
   ScopedLock lock(ms_mutex);
 
   ms_refcount++;
+
+  hamsterdb::g_extended_threshold = m_config->extkey_threshold;
 
   if (ms_env == 0) {
     params[0].name = HAM_PARAM_CACHESIZE;
@@ -137,6 +143,8 @@ HamsterDatabase::do_open_env()
   ScopedLock lock(ms_mutex);
 
   ms_refcount++;
+
+  hamsterdb::g_extended_threshold = m_config->extkey_threshold;
 
   // check if another thread was faster
   if (ms_env == 0) {
@@ -234,13 +242,16 @@ HamsterDatabase::do_create_db(int id)
   params[0].value = 0;
   switch (m_config->key_type) {
     case Configuration::kKeyCustom:
-      params[0].value = m_config->btree_key_size;
+      params[0].value = m_config->key_is_fixed_size
+                            ? m_config->key_size
+                            : HAM_KEY_SIZE_UNLIMITED;
       params[1].name = HAM_PARAM_KEY_TYPE;
       params[1].value = HAM_TYPE_CUSTOM;
       break;
     case Configuration::kKeyBinary:
-    case Configuration::kKeyString:
-      params[0].value = m_config->btree_key_size;
+      params[0].value = m_config->key_is_fixed_size
+                            ? m_config->key_size
+                            : HAM_KEY_SIZE_UNLIMITED;
       break;
     case Configuration::kKeyUint8:
       params[1].name = HAM_PARAM_KEY_TYPE;
@@ -275,12 +286,6 @@ HamsterDatabase::do_create_db(int id)
   ham_u32_t flags = 0;
 
   flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
-  if (m_config->btree_key_size < m_config->key_size)
-    flags |= HAM_ENABLE_EXTENDED_KEYS;
-  if (m_config->extended_keys)
-    flags |= HAM_ENABLE_EXTENDED_KEYS;
-  if (m_config->key_is_fixed_size)
-    flags |= HAM_DISABLE_VARIABLE_KEYS;
   if (m_config->force_records_inline)
     flags |= HAM_FORCE_RECORDS_INLINE;
 

@@ -325,16 +325,19 @@ struct EnvFixture {
     REQUIRE(0 ==
       ham_env_create(&env, Globals::opath(".test"), m_flags, 0644, parameters2));
 
+    char buffer[20] = {0};
+
     // create DBs
     for (i = 0; i < MAX; i++) {
       REQUIRE(0 ==
           ham_env_create_db(env, &db[i], i + 1, 0, parameters));
       memset(&key, 0, sizeof(key));
       memset(&rec, 0, sizeof(rec));
-      key.data = &i;
-      key.size = sizeof(i);
-      rec.data = &i;
-      rec.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
+      rec.data = &buffer[0];
+      rec.size = sizeof(buffer);
       REQUIRE(0 == ham_db_insert(db[i], 0, &key, &rec, 0));
       if (!(m_flags & HAM_IN_MEMORY))
         REQUIRE(0 == ham_db_close(db[i], 0));
@@ -361,49 +364,13 @@ struct EnvFixture {
       }
       memset(&key, 0, sizeof(key));
       memset(&rec, 0, sizeof(rec));
-      key.data = &i;
-      key.size = sizeof(i);
+      *(int *)&buffer[0] = i;
+      key.data = &buffer[0];
+      key.size = sizeof(buffer);
       REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-      REQUIRE(key.data == &i);
-      REQUIRE((rec.data != 0) == !0);
-      REQUIRE((rec.data != 0
-          ? ((int *)rec.data)[0] == i
-          : !0));
+      REQUIRE(*(int *)key.data == i);
+      REQUIRE(*(int *)rec.data == i);
       REQUIRE(0 == ham_db_close(db[i], 0));
-    }
-
-    REQUIRE(0 == ham_env_close(env, 0));
-  }
-
-  void disableVarkeyTests() {
-    ham_env_t *env;
-    ham_db_t *db;
-    ham_key_t key;
-    ham_record_t rec;
-
-    memset(&key, 0, sizeof(key));
-    memset(&rec, 0, sizeof(rec));
-    key.data = (void *)
-      "19823918723018702931780293710982730918723091872309187230918";
-    key.size = (ham_u16_t)strlen((char *)key.data);
-    rec.data = (void *)
-      "19823918723018702931780293710982730918723091872309187230918";
-    rec.size = (ham_u16_t)strlen((char *)rec.data);
-
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0644, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 333, HAM_DISABLE_VARIABLE_KEYS, 0));
-    REQUIRE(HAM_INV_KEYSIZE ==
-        ham_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ham_db_close(db, 0));
-
-    if (!(m_flags & HAM_IN_MEMORY)) {
-      REQUIRE(0 ==
-          ham_env_open_db(env, &db, 333, HAM_DISABLE_VARIABLE_KEYS, 0));
-      REQUIRE(HAM_INV_KEYSIZE ==
-          ham_db_insert(db, 0, &key, &rec, 0));
-      REQUIRE(0 == ham_db_close(db, 0));
     }
 
     REQUIRE(0 == ham_env_close(env, 0));
@@ -543,8 +510,7 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -617,8 +583,7 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -813,8 +778,7 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++)
-      REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       for (int j = 0; j < MAX_ITEMS; j++) {
@@ -1076,8 +1040,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 ==
-        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1,
-            HAM_ENABLE_EXTENDED_KEYS, 0));
+        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
       for (j = 0; j < MAX_ITEMS; j++) {
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
@@ -1211,12 +1174,12 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));
 
-    ps[0].value = 405;
+    ps[0].value = 675;
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));
 
-    ps[0].value = 507;
+    ps[0].value = 676;
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
   }
@@ -1353,12 +1316,6 @@ TEST_CASE("Env/createAndOpenMultiDbTest", "")
 {
   EnvFixture f;
   f.createAndOpenMultiDbTest();
-}
-
-TEST_CASE("Env/disableVarkeyTests", "")
-{
-  EnvFixture f;
-  f.disableVarkeyTests();
 }
 
 TEST_CASE("Env/multiDbTest", "")
@@ -1504,12 +1461,6 @@ TEST_CASE("Env-inmem/createAndOpenMultiDbTest", "")
 {
   EnvFixture f(HAM_IN_MEMORY);
   f.createAndOpenMultiDbTest();
-}
-
-TEST_CASE("Env-inmem/disableVarkeyTests", "")
-{
-  EnvFixture f(HAM_IN_MEMORY);
-  f.disableVarkeyTests();
 }
 
 TEST_CASE("Env-inmem/autoCleanupTest", "")

@@ -26,8 +26,7 @@ libhamsterdb_la_SOURCES = \
 	btree_insert.cc \
 	btree_key.h \
 	btree_node.h \
-	btree_node_legacy.h \
-	btree_node_legacy.cc \
+	btree_node_default.h \
 	btree_node_pax.h \
 	btree_node_proxy.h \
 	btree_stats.cc \
@@ -97,11 +96,7 @@ EXTRA_DIST = os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:0:0 $(BOOST_SYSTEM_LDFLAGS)
-libhamsterdb_la_LIBADD = 
-
-if DARWIN
-libhamsterdb_la_LIBADD += $(BOOST_SYSTEM_LIBS)
-endif
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
 
 if ENABLE_ENCRYPTION
 AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION

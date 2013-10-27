@@ -216,8 +216,8 @@ class BtreeInsertAction
       node->set_ptr_down(m_btree->get_root_address());
 
       ham_key_t split_key = {0};
-      split_key.data = m_split_key.get_ptr();
-      split_key.size = m_split_key.get_size();
+      split_key.data = m_split_key_arena.get_ptr();
+      split_key.size = m_split_key_arena.get_size();
       st = insert_in_leaf(newroot, &split_key, m_split_rid);
       /* don't overwrite cursor if insert_in_leaf is called again */
       m_cursor = 0;
@@ -267,8 +267,8 @@ class BtreeInsertAction
           m_hints.flags |= HAM_OVERWRITE;
           m_cursor = 0;
           ham_key_t split_key = {0};
-          split_key.data = m_split_key.get_ptr();
-          split_key.size = m_split_key.get_size();
+          split_key.data = m_split_key_arena.get_ptr();
+          split_key.size = m_split_key_arena.get_size();
           st = insert_in_page(page, &split_key, m_split_rid);
 
           m_hints.flags = m_hints.original_flags;
@@ -288,8 +288,6 @@ class BtreeInsertAction
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
       ham_status_t st;
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-
-      ham_assert(m_btree->get_maxkeys() > 5);
 
       /*
        * if we can insert the new key without splitting the page then
@@ -368,16 +366,13 @@ class BtreeInsertAction
       if (st)
         return (st);
 
-      /* move some of the key/rid-tuples to the new page */
-      old_node->split(new_node, pivot);
-
-      /* Store the pivot element to propagate it to the parent page.
-       * This requires a separate ByteArray because key->data might
-       * point to m_split_key, and overwriting m_split_key will effectively
-       * change key->data. */
-      ByteArray pivot_key;
-      ham_key_t tmpkey = {0};
-      st = old_node->copy_full_key(pivot, &pivot_key, &tmpkey);
+      // Store the pivot key so it can be propagated to the parent page.
+      // This requires a separate ByteArray because key->data might
+      // point to m_split_key_arena, and overwriting m_split_key_arena
+      // will effectively change key->data.
+      ByteArray split_key_arena;
+      ham_key_t split_key = {0};
+      st = old_node->get_key(pivot, &split_key_arena, &split_key);
       if (st)
         return (st);
       m_split_rid = new_page->get_address();
@@ -387,12 +382,17 @@ class BtreeInsertAction
       if (!old_node->is_leaf())
         new_node->set_ptr_down(old_node->get_record_id(pivot));
 
-      /* insert the new element */
-      int cmp = old_node->compare(key, pivot);
+      /* now move some of the key/rid-tuples to the new page */
+      old_node->split(new_node, pivot);
+
+      /* insert the new element in the old or the new page? */
+      // TODO compare is not required if pivot_at_end is true
+      int cmp = old_node->compare(key, &split_key);
       if (cmp >= 0)
         st = insert_in_leaf(new_page, key, rid);
       else
         st = insert_in_leaf(page, key, rid);
+      ham_assert(pivot_at_end ? cmp >= 0 : true);
 
       // continue if the key is a duplicate; we nevertheless have to
       // finish the SMO (but make sure we do not lose the return value)
@@ -426,10 +426,10 @@ class BtreeInsertAction
       new_page->set_dirty(true);
       page->set_dirty(true);
 
-      // assign the previously stored pivot key to m_split_key
-      m_split_key.clear();
-      m_split_key = pivot_key;
-      pivot_key.disown();
+      // assign the previously stored pivot key to m_split_key_arena
+      m_split_key_arena.clear();
+      m_split_key_arena = split_key_arena;
+      split_key_arena.disown();
 
       BtreeIndex::ms_btree_smo_split++;
 
@@ -442,23 +442,21 @@ class BtreeInsertAction
                 bool force_prepend = false, bool force_append = false) {
       ham_status_t st;
       ham_size_t new_dupe_id = 0;
-      LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
       bool exists = false;
       ham_s32_t slot;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       int count = node->get_count();
 
-      if (node->get_count() == 0)
+      if (count == 0)
         slot = 0;
       else if (force_prepend)
         slot = 0;
       else if (force_append)
-        slot = node->get_count();
+        slot = count;
       else {
         int cmp;
-        slot = node->get_slot(key, &cmp);
+        slot = node->find(key, &cmp);
 
         /* insert the new key at the beginning? */
         if (slot == -1)
@@ -499,7 +497,7 @@ class BtreeInsertAction
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
-          st = node->set_record_data(slot, m_txn, m_record,
+          st = node->set_record(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
@@ -518,13 +516,15 @@ class BtreeInsertAction
       // key does not exist and has to be inserted or appended
       else {
         // actually insert the key
-        st = node->insert(slot, key, env->get_blob_manager());
+        st = node->insert(slot, key);
         if (st)
           return (st);
 
+        node->set_count(count + 1);
+
         if (node->is_leaf()) {
           // allocate record id
-          st = node->set_record_data(slot, m_txn, m_record,
+          st = node->set_record(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
@@ -539,7 +539,6 @@ class BtreeInsertAction
           // set the internal record id
           node->set_record_id(slot, rid);
         }
-        node->set_count(count + 1);
       }
       page->set_dirty(true);
 
@@ -570,7 +569,7 @@ class BtreeInsertAction
     ham_record_t *m_record;
 
     // the pivot key for SMOs and splits
-    ByteArray m_split_key;
+    ByteArray m_split_key_arena;
 
     // the pivot record ID for SMOs and splits
     ham_u64_t m_split_rid;

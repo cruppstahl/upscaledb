@@ -688,7 +688,7 @@ struct HamsterdbFixture {
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), 0, 0644, &ps[0]));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, &params[0]));
+        ham_env_create_db(env, &db, 1, 0, &params[0]));
     keycount = 8;
     REQUIRE(0 == ham_db_set_compare_func(db, &my_compare_func_u32));
 
@@ -1039,23 +1039,25 @@ struct HamsterdbFixture {
   }
 
   void negativeInsertBigKeyTest() {
-    ham_key_t key;
-    ham_record_t rec;
-    char buffer[0xffff];
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    ::memset(buffer, 0, sizeof(buffer));
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
+    char buffer[0xff] = {0};
     key.size = sizeof(buffer);
     key.data = buffer;
 
-    REQUIRE(HAM_INV_KEY_SIZE ==
-            ham_db_insert(m_db, 0, &key, &rec, 0));
+    ham_parameter_t p[] = {
+        { HAM_PARAM_KEY_SIZE, 10 },
+        { 0, 0 }
+    };
+    ham_db_t *db;
+    REQUIRE(0 == ham_env_create_db(m_env, &db, 13, 0, &p[0]));
+    REQUIRE(HAM_INV_KEY_SIZE == ham_db_insert(db, 0, &key, &rec, 0));
 
     ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(HAM_INV_KEY_SIZE ==
-            ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(HAM_INV_KEY_SIZE == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_db_close(db, 0));
   }
 
   void insertBigKeyTest() {
@@ -1071,7 +1073,7 @@ struct HamsterdbFixture {
     teardown();
     REQUIRE(0 == ham_env_create(&m_env, "test.db", 0, 0644, 0));
     REQUIRE(0 ==
-            ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+            ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
@@ -1091,7 +1093,7 @@ struct HamsterdbFixture {
 
     REQUIRE(0 == ham_env_open(&m_env, "test.db", 0, 0));
     REQUIRE(0 ==
-            ham_env_open_db(m_env, &m_db, 1, HAM_ENABLE_EXTENDED_KEYS, 0));
+            ham_env_open_db(m_env, &m_db, 1, 0, 0));
     teardown();
     REQUIRE(0 == ham_env_open(&m_env, "test.db", 0, 0));
     REQUIRE(0 ==
@@ -1881,9 +1883,7 @@ struct HamsterdbFixture {
         { HAM_PARAM_RECORD_SIZE, 22 },
         { 0, 0 }
     };
-    ham_u32_t flags = HAM_ENABLE_EXTENDED_KEYS
-                    | HAM_ENABLE_DUPLICATE_KEYS
-                    | HAM_DISABLE_VARIABLE_KEYS;
+    ham_u32_t flags = HAM_ENABLE_DUPLICATE_KEYS;
 
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
@@ -1901,7 +1901,7 @@ struct HamsterdbFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = ldb->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::LegacyNodeLayout, hamsterdb::CallbackCompare>");
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::FixedLayoutImpl<unsigned short> >, hamsterdb::CallbackCompare>");
 #endif
 
     ham_parameter_t query[] = {
@@ -1920,11 +1920,14 @@ struct HamsterdbFixture {
     ham_key_t key = {0};
     key.data = (void *)"12345678";
     key.size = 4;
-    REQUIRE(HAM_INV_RECORD_SIZE == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(HAM_INV_KEY_SIZE == ham_db_insert(db, 0, &key, &rec, 0));
     rec.size = 22;
     rec.data = (void *)"1234567890123456789012";
     REQUIRE(HAM_INV_KEY_SIZE == ham_cursor_insert(cursor, &key, &rec, 0));
     key.size = 8;
+    rec.size = 12;
+    REQUIRE(HAM_INV_RECORD_SIZE == ham_db_insert(db, 0, &key, &rec, 0));
+    rec.size = 22;
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_OVERWRITE));
 

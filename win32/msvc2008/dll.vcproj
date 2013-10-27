@@ -421,11 +421,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_node_legacy.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_node_legacy.h"
+			RelativePath="..\..\src\btree_node_default.h"
 			>
 		</File>
 		<File

@@ -21,7 +21,7 @@ namespace hamsterdb {
 class BtreeKey
 {
   public:
-    // persisted PBtreeKeyLegacy flags; also used in combination
+    // persisted PBtreeKeyDefault flags; also used in combination
     // with ham_key_t._flags
     //
     // Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
@@ -41,17 +41,14 @@ class BtreeKey
       kExtended             = 0x08,
 
       // key has duplicates
-      kDuplicates           = 0x10,
-
-      // memory for a key was allocated in hamsterdb, not by caller
-      kAllocated            = 0x20
+      kDuplicates           = 0x10
     };
 
     // flags used with the ham_key_t::_flags (note the underscore - this
     // field is for INTERNAL USE!)
     //
     // Note: these flags should NOT overlap with the persisted flags for
-    // PBtreeKeyLegacy
+    // PBtreeKeyDefault
     //
     // As these flags NEVER will be persisted, they should be located outside
     // the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.

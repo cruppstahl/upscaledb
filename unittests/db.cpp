@@ -151,16 +151,14 @@ struct DbFixture {
     REQUIRE(sizeof(PBlobHeader) == 28);
     REQUIRE(sizeof(PDupeEntry) == 16);
     REQUIRE(sizeof(PDupeTable) == 8 + sizeof(PDupeEntry));
-    REQUIRE(sizeof(PBtreeNode) == 21 + sizeof(PBtreeKeyLegacy));
-    REQUIRE(sizeof(PBtreeKeyLegacy) == 12);
+    REQUIRE(sizeof(PBtreeNode) == 33);
     REQUIRE(sizeof(PEnvironmentHeader) == 20);
-    REQUIRE(sizeof(PBtreeHeader) == 40);
+    REQUIRE(sizeof(PBtreeHeader) == 24);
     REQUIRE(sizeof(PFreelistPayload) == 3 * 8 + 4 + 1);
     REQUIRE(sizeof(PFreelistPageStatistics) ==
         4 + 8 + 4 * HAM_FREELIST_SLOT_SPREAD);
     REQUIRE(HAM_FREELIST_SLOT_SPREAD == 16 - 5 + 1);
     REQUIRE(PFreelistPayload::get_bitmap_offset() == 28);
-    REQUIRE(PBtreeKeyLegacy::kSizeofOverhead == 11);
     REQUIRE(sizeof(Log::PEnvironmentHeader) == 16);
     REQUIRE(sizeof(Log::PEntry) == 32);
     REQUIRE(sizeof(PPageData) == 13);
@@ -171,7 +169,7 @@ struct DbFixture {
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
-    BtreeIndex be(&db, 0, 0, 0);
+    BtreeIndex be(&db, 0, 0, 0, HAM_KEY_SIZE_UNLIMITED);
 
     page.set_address(1000);
     page.set_db(&db);

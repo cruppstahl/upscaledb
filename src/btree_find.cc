@@ -311,7 +311,7 @@ class BtreeFindAction
               ? &db->get_key_arena()
               : &m_txn->get_key_arena();
 
-        st = node->copy_full_key(idx, arena, m_key);
+        st = node->get_key(idx, arena, m_key);
         if (st)
           return (st);
       }
@@ -322,7 +322,7 @@ class BtreeFindAction
                ? &db->get_record_arena()
                : &m_txn->get_record_arena();
 
-        st = node->get_record_data(idx, arena, m_record, m_flags);
+        st = node->get_record(idx, arena, m_record, m_flags);
         if (st)
           return (st);
       }

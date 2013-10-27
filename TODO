@@ -17,16 +17,16 @@ to scale with the number of cores.
 high-level plan for 2.2.0-pre2 (unstable)...................................
 x refactoring: sometimes, the BtreeNodeProxy updates node->count after an
     operation; sometimes, this is handled in the Btree*Action class -> unify
+x btree stores fixed-length records in the leaf
+x PAX layout: if record size is fix then do not store 1 byte flag for each key
+x ham_bench uses /opt/share/dict/words as data input
+o completely rewrite handling of extended keys
+o introduce commercial PRO version
+o PRO: btree can compress keys (strings: prefix, everything: dict)
+o PRO: use SIMD for fixed-length scans
 . db_remote.cc has an evil cast which creates (currently suppressed) valgrind
     errors, fix this (i.e. by introducing a RemoteCursor, LocalCursor)!
       Cursor *c = new Cursor((LocalDatabase *)this); // TODO this cast is evil!!
-x btree stores fixed-length records in the leaf
-x PAX layout: if record size is fix then do not store 1 byte flag for each key
-o completely rewrite handling of extended keys
-x ham_bench uses /opt/share/dict/words as data input
-o introduce COMM version
-o COMM: btree can compress keys (strings: prefix, everything: dict)
-o COMM: use SIMD for fixed-length scans
 
 .............................................................................
 
@@ -75,7 +75,15 @@ x clean up PageManager::allocate_page and node initialization;
     the page is initialized. No further initialization is required
     in the btree or anywhere else.
 
-o completely rewrite handling of extended keys
+x ham_bench improvements
+    x have more data sources based on dict/words (concatenate, if there are
+        not enough or if they are too short)
+      x StringRandomSource(max)
+      x StringAscendingSource(max)
+      x StringDescendingSource(max)
+      x StringZipfianSource(max)
+
+x completely rewrite handling of extended keys
     If the extended key does not fit into 1/10th of the pagesize: allocate
     an overflow area, move the FULL key into that area.
     x remove prefix compare
@@ -89,33 +97,236 @@ o completely rewrite handling of extended keys
         x lookups with ham_db_find
         x same with random access
         x deleting keys
-    o create a new page layout for variable keys (non-PAX), start by
+    x create a new page layout for variable keys (non-PAX), start by
         copying the legacy layout
-    o BtreeIndexFactory uses this layout for all keys that have variable
-        length (but not for duplicates)
-    o use linear search instead of binary search
-    o make sure iterators move forward with O(1)
-    o if length exceeds a threshold then move it to a blob
-    o a lot of btree code directly accesses the btree "by slot"; how can we
-        avoid non-linear access in this case? can this code use iterators
-        instead?
-    o when merging/shifting make sure that the pages actually fit; minkey/maxkey
-        does not make much sense with variable keys
-    o monster.pl needs to create variable length extended keys for testing!
-        the --btree-key-size is no longer required
-    o add (non-persistent) skiplist index
-        o built on request
-        o add every Nth element to the index (i.e. once per 2kb)
-        o update on insert and erase
-        o destroy after shift/merge
-    o support fixed-length records
-    o also use linear search with fixed length keys (if max-keys-per-page
-        or the subrange in the binary search is low enough, and if the
-        performance makes sense)
-    o count number of overflow areas for statistics!
-    o play around with various skiplist bucket sizes - which one works best?
+    x BtreeIndexFactory uses this layout for all keys that have variable
+        length
+    x move some functions of BtreeNodeProxy down to the layout
+    x get rid of btree_node_legacy.cc and btree_node_linear.cc
+    x replace btree_node_legacy.h with btree_node_linear.h!
+    x move extkey handling "down" to the node layout, remove from proxy
+    x proxy: move get_duplicate_count() "down"
+    x proxy: move get_record_data() "down"
+    x proxy: move get_record_size() "down"
+    x proxy: move set_record_data() "down"
+    x proxy: try to merge release_key() and remove_record(), move "down"
+    x move duplicate handling "down" to the node layout, remove from proxy
+    x clean up proxy and the layouts; clean up interfaces, list them in the
+        same order, remove unused stuff, combine functions
+        (set_record_data+set_record_size, get_record_data+get_record_size etc)
+    x design the new layout:
+        - with extended keys
+        - with inline records
+        - with duplicates (later)
+        1 byte flags (kBlobEmpty, -Small, -Tiny, -ExtendedKey,
+                -HasDuplicates1,-2,-4,-ExtendedDuplicates)
+        2 byte key size (optional)
+        n byte duplicate counter (size depends on flags - optional)
+        n byte key data (optional)
+        m byte record data, repeated (optional)
+    x rewrite the whole minkeys/maxkeys-handling, it does not make sense with
+        variable length keys (and compressed ones, too)
+        x keep track of end() iterator in linear layout
+        x move "minkeys" calculation to the layout
+        x do not store maxkeys in btree; calculate on the fly
+        x document that ham_db_get_parameters returns an estimate
 
-o improve integration of static code analysis in release process
+    x revert use of "end" cursor - no longer required
+    x Iterator must become a real object, not just a casted pointer
+    x btree_*: change layout and optimize it for access through slots by
+        separating the key data and the record data from the flags, and
+        addressing through an index
+        F1S1D1I1|F2S2D2I2|...|FnSnDnIn|<..>|K1   R1|K2R2R2|...|K3 R3...
+        F: Flags
+        S: Key size (optional)
+        D: Duplicate counter (1 byte - if more then use overflow page)
+        I: Index in page (2 byte if pagesize <= 64k, otherwise 4 byte)
+        x cursor does not access key through pointer but through node (w/ slot)
+            -> same as pax-layout
+        x F/S/D/I start at beginning of page, keys/records start in the middle
+            x implement the layout for fixed size slots with variable keys
+            x all tests must work!
+            x fixed key size: no key size, no dup-counter, no index pointer
+                x if key size is fix then do not store it in the layout
+                    -> this layout is for fixed length keys WITH duplicates!
+                    x adjust factory to use this layout
+                    x needs new unittest (added, but also check the class name!)
+                x all tests must work!
+                x make sure this is covered in monster tests/valgrind/perftest
+                    (fixed length binaries w/ duplicates)
+            x remove the PLinearKey structure, it's no longer required
+                x introduce a new key size HAM_KEY_SIZE_UNLIMITED
+                    x make this the default
+                x remove HAM_ENABLE_EXTENDED_KEYS
+                x remove HAM_DISABLE_VARIABLE_KEYS
+                x fix Java wrapper
+                x fix .NET wrapper
+                x make sure that samples still run
+                x fix ham_bench
+                    x remove DISABLE_VARIABLE_KEYS
+                    x remove ENABLE_EXTENDED_KEYS
+                    x remove --btree-key-size
+                    x remove --key-is-fixed-size
+                    x use: keysize = logical key size, limit
+                    x use: keysize-fixed = HAM_PARAM_KEY_SIZE parameter
+                x update monster tests, valgrind tests, performance tests
+            x variable key size: w/ key size, no dup-counter, w/ index pointer
+                x factory creates this layout when required
+                x stores the key size
+                x stores an index offset
+                x sets index offset to a fixed-slot-address
+                x if key size exceeds a threshold then completely move it to
+                        a blob
+                    x get rid of db->get_extended_key(), handle in layout
+                x needs a freelist
+                    the basic layout is: |m_max_count| slots for keys;
+                    the |count| keys at the beginning are used, all others
+                    are unused (freelist)
+                    x store m_max_count persistently
+                    x if a key is inserted: check the freelist,
+                        otherwise append the key data
+                    x if a key is deleted: move descriptor to freelist
+                    x if a key is overwritten/replaced: check if key space
+                        is large enough; if not then move space to freelist,
+                        check freelist for a different one (or append to
+                        end)
+                    x re-implement all functions; use index offsets to fetch
+                        the key data
+                    x all unittests must work
+                x add tests (insert/erase) with extended keys
+                x add tests with big keys (variable length, up to 1024 bytes)
+                    -> also for perftests
+                x all acceptance tests must work
+                x fix remaining TODOs
+                    x implement freelist_collapse() - no, not required
+                    x the name "Linear" does not fit anymore because linear
+                        search is not used; rename to "Default"
+                    x fix all other TODOs
+                    x reorg node in split_required(): if there's enough space
+                        between the last key and the end of the page then
+                        increase m_capacity (as much as possible) and shift the
+                        keys to the right
+                        otherwise try to decrease capacity and shift the keys
+                        to the left (if the current capacity is not exceeded)
+                        x make sure that m_capacity is persisted!
+
+    x run performance tests and profiling; try to find bottlenecks and
+        optimize expensive functions
+        ==> NOT GOOD! 17% in get_highest_key_data_index (called from
+            requires_split()), 9% in rearrange()
+        x instead of the index, could we also cached the offset of the last
+            used byte? seems like this is easier to maintain
+        x m_next_offset: could even make it persistent if it shows up
+            during profiling - no, it does not
+        x make the layout constructor extremely cheap
+            currently 25% of the time is spent in allocating new
+            BtreeNodeProxys! 2.1.3 did not have this issue
+            x m_capacity should only be accessed through getters and setters
+            x m_freelist_count should only be accessed through getters and
+                setters (currently it's not correctly persisted)
+            x try removing m_arena
+            x db->get_keysize/db->get_recsize should be inline
+            x do not call btree->get_maxkeys, calculate inline (or always start
+                with a capacity of 510)
+            x check if the PaxLayout has similar problems? - no
+            x does m_layout really require state? can it be static? - not req.
+        x move ByteArray back to object scope
+        x make requires_split() extremely cheap
+            x only rearrange() if freelist_count < threshold,
+                otherwise split immediately
+            x or not? try to remove kRearrangeThreshold - does it really
+                make things worse? - nope...
+            x but call resize() nevertheless
+            x why are there still 11% wasted in rearrange()? the test does
+                not delete anything. the freelist should always be
+                empty! -> it happens after splits!
+        x rearrange() is required, but way too expensive
+            make a copy of the (used) indices, sort them, then shift
+        x can we somehow compress the key indices? i.e. the offset requires
+            4 bytes, but 2 should be enough for page sizes up to 64kb
+            (make a separate layout for bigger sizes?)
+            x this needs monster tests, valgrind tests, perftest
+
+    x a few things that i noticed...
+        x check_index_integrity can check the sizes (> threshold -> extkey-flag
+                must be set)
+        x check for performance regressions of extended keys; if necessary,
+                implement a simple extkey-cache (i.e. based on
+                a std::map<ham_u64_t, ByteArray>)
+                This cache should be *per node*!
+        x review append_key - what happens if a key is extended?
+                or if an extended key is merged/copied? - it's ok
+        x need more tests with extended keys
+            x reduce extkey-threshold with undocumented global variable
+            x add this (undocumented) option to ham_bench
+            x add to monster test and valgrind test (with erase/lookups)
+
+    x document the different node layouts in the header files
+
+    x pax AND linear: cursor->next should not return anything but increment
+        the internal slot ONLY!! this must be as cheap as possible.
+
+    x update ChangeLog, merge with v2
+
+x BtreeCursor: use memory arena for uncoupling the key
+    -> better wait till extended keys are gone
+
+x ham_bench: do not allow fullcheck-find with duplicates (or skip duplicates
+    in bdb when performing the fullcheck)
+
+o release-v2.pl: add test without berkeleydb (currently fails)
+
+o pax: also use extended keys if key is too big?? or fallback to linear
+    layout?
+
+o c++ API: allow use of ham_db_find with HAM_RECORD_USER_ALLOC
+
+o btree_erase.cc: do not shift elements if there are not at least 20 elements
+    to be shifted
+
+o btree_erase.cc has TODOs...
+
+o run performance tests with several million inserts; but only track the
+    performance after the first million was inserted! can we make things
+    scale better?
+
+o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
+    splits and try to reduce shifts and lookups (pivot_at_end -> no compare for
+    pivot key required)
+    o is it possible to work with Node pointers instead of Page pointers?
+        this would reduce boilerplate code in EVERY function
+    o when a page is split and the new key is inserted to the new page,
+        then all keys in the new page have to be shifted twice (1: the split,
+        2: inserting the new key at the front). can we improve this?
+
+o replace ham_size_t with ham_u32_t (it's anyway the same)
+
+o increase file version, libtool version (if necessary)
+
+o remove BtreeIndex::get_max_keys, move to node layout; remove
+    get_system_keysize()
+
+o improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
+        CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
+        more??
+
+o keysize is sometimes 16bit, sometimes 32bit; use 32 bit consistently
+    o make sure HAM_PARAM_KEY_SIZE is < 0xffff!
+    o make ham_key_t::size a ham_u32_t?
+
+o default layout: handle fixed length inline records > 8 bytes (non-duplicates)
+    o does not require flags!
+    o internal pages: use a different layout than leaf pages (inline
+        8 byte fixed length records, no duplicates)
+    o make sure this is covered by monster/valgrind/perftest
+
+o use linear search with fixed length keys (if max-keys-per-page
+    or the subrange in the binary search is low enough, and if the
+    performance makes sense)
+    o if both layouts use binary search then move it back to the proxy!
+    o maybe this only makes sense with PAX, and could be combined with SIMD
+
+. improve integration of static code analysis in release process
     o add AddressSanitizer (http://clang.llvm.org/docs/AddressSanitizer.html)
     o look at ThreadSanitizer (http://clang.llvm.org/docs/ThreadSanitizer.html)
     o look at MemorySanitizer
@@ -123,51 +334,96 @@ o improve integration of static code analysis in release process
     o try to become "oclint-clean"
     o try to become "coverity-clean"
 
-o introduce COMM version
-    o closed repository
-    o one source base with different licensing headers, different licensing
-        string, different version tag
-    o "hooks" for git to add changes without introducing conflicts
-    o API to get licensee information (already there)
-    o new release process
-    o prebuilt win32 files for each customer
-    o extra documentation
-    o webpage updates, PR, mailings
-    o file format interoperability?
-
-x ham_bench improvements
-    x have more data sources based on dict/words (concatenate, if there are
-        not enough or if they are too short)
-      x StringRandomSource(max)
-      x StringAscendingSource(max)
-      x StringDescendingSource(max)
-      x StringZipfianSource(max)
-
-o COMM: btree can compress keys
-    o try to reduce the changes to a new KeyProxy object
-    o get rid of the whole minkey/maxkey handling because these numbers
-        are irrelevant with compression
-    o dictionary-compression for every data type
-        o dict is in-page, persistent
-    o prefix-compression for strings
-        o each 2kb have a full string (indexed by skiplist)
-    o do we need delta updates for efficient inserts?
-
-. COMM: use SIMD for fixed-length scans
-    http://pcl.intel-research.net/publications/palm.pdf
-
-x BtreeCursor: use memory arena for uncoupling the key
-    -> better wait till extended keys are gone
-
-. remove libjson, use boost::property_tree instead!
-    o also on Windows!
-
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
         o use ham_info to see if the record is inline
         o update "performance" wiki
         o update "ham_bench" wiki (new "string" keys)
+    o HAM_KEY_SIZE_UNLIMITED etc
+    o removed HAM_ENABLE_EXTENDED_KEYS
+    o removed HAM_DISABLE_VARIABLE_KEYS
+
+o evaluate use of endian-independence
+    o ask on mailing list
+    o ask in README
+    o check target platforms (ARMs for Android/iOS...)
+
+. start redesigning code towards exceptions; this will reduce the code a lot
+    and we can get rid on those annoying error checks and returns
+    x evaluate performance of exception handling code vs. non-exception handling
+        -> it's ok, but only use for exceptions, not for normal
+            return statements
+    o ALL resources must be managed RAII style; identify those which don't
+    o hamsterdb.cc: wrap all high-level functions in try/catch
+    o then start rewriting low level modules (os, mem, device, page,
+        page_manager, blob_manager...)
+    o define and document the terminology and check the code for inconsistencies
+        - Environment, Database, Cursor, Transaction, Key, Record
+        - blob vs record
+        - inline record
+        - extended key
+        - duplicate key
+        - constant-length key vs. variable-length key
+        - constant-length record vs. variable-length record
+        - page, node, btree node, iterator, layout, slot/index/position
+        - freelist
+
+. remove libjson, use boost::property_tree instead!
+    o also on Windows!
+
+o introduce PRO version
+    o start a closed repository
+    o one source base with different licensing headers, different licensing
+        string (also for tools), different version tag
+    o API to get licensee information (is_pro_version())
+    o new release process
+    o prebuilt win32 files
+    o get rid of serial.h - it's not really required and only creates efforts
+    o how to share files with customers? need a login area,
+        downloadable, customized files (win32, serial.h, tarballs...)
+        -> send out mails if a new file is available
+    o evaluation license: build binaries for the most common architectures
+        o insert expiration date checks
+        o special copyright strings
+        o prebuilt for win32/win64
+        o unix: obfuscated source code
+        o need an automated flow for signups, for evaluation licenses etc
+    o extra documentation
+    o define file format interoperability?
+    o what are the minimum features required for the first release?
+        - (evaluation licenses)
+        - prefix compression for strings
+        - lightweight compression for binary keys
+        - SIMD for searches
+        - AES encryption
+        - hot backups
+
+o PRO: btree can compress keys
+    x get rid of the whole minkey/maxkey handling because these numbers
+        are irrelevant with compression
+    o try to reduce the changes to a new KeyProxy object
+    o prefix-compression for strings
+        o each 2kb have a full string (indexed by skiplist)
+    o delta-compression for numeric data types (>= 32bit)
+        (can this be combined with a bitmap compression? the deltas are
+        compressed in a bit-stream? but then we end up with variable
+        length encodings...)
+    o lightweight compression for keys
+        http://oldhome.schmorp.de/marc/liblzf.html
+        http://lzop.org
+    o record compression for blobs (lzop.org? snappy?)
+        better postpone this and compress all pages in the lss
+    o do we need delta updates for efficient inserts? - i think not yet...
+
+o PRO: use SIMD for fixed-length scans and __builtin_prefetch
+    o use valgrind to track cache misses
+    http://pcl.intel-research.net/publications/palm.pdf
+    http://www.cs.toronto.edu/~ryanjohn/teaching/csc2531-f11/slides/Ioan-SIMD-DBMS.pdf
+    http://gcc.gnu.org/onlinedocs/gcc-3.3.6/gcc/Other-Builtins.html
+    http://stackoverflow.com/questions/8460563/builtin-prefetch-how-much-does-it-read
+    http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/prefetch.h
+    http://stackoverflow.com/questions/7327994/prefetching-examples
 
 ---------------------- release 2.1.4 (unstable) -----------------------------
 
@@ -175,24 +431,36 @@ high-level plan for 2.2.0 (stable)...........................................
 - completely rewrite handling of duplicate keys
     - replaces the legacy btree layout
     - store record list in leaf, not in overflow area; if there are too
-        many then allocate an overflow extend
+        many (> 256) then allocate an overflow extend
     - support inline records
     - move the whole record handling from the proxy down to the layout
 - lay the groundwork for concurrency -> LSS-streams, finalize the file format
     (every buffer needs stream descriptor, trailer)
-- metadata changes (= creating a new database header) is its own stream
+    - metadata changes (= modifying the header page) is its own stream
+    - virtual page IDs, variable page sizes
+    - grow/shrink pages
+    - delta updates
+- compress the whole LSS -> PRO
+- hot backups -> PRO
 - cache-oblivious page distribution? (maybe write the LSS first?)
-- compress the whole LSS -> COMM
-- hot backups -> COMM
-- first COMM release
+    http://supertech.csail.mit.edu/cacheObliviousBTree.html
+- move AES encryption to PRO?
+- first PRO release
+    o webpage updates, PR, mailings
 
 high-level plan for 2.2.1 ...................................................
-- a transaction update is very similar to a delta update
-- both have to be consolidated
 - btree can handle delta updates
     - (or postpone till concurrency?)
+    - a transaction update is very similar to a delta update
+        - can both be consolidated?
     - delta updates are merged when there are too many of them, or if a cursor
         traverses the page (only if memcpy/memmove takes too much time)
+- concurrency
+- bulk updates? (-> PRO)
+- operations on compressed data (COUNT(), MIN(), MAX(), ...)?
+- C-Store style projections? (requires complex schema types)
+    - introduce a new library with complex schema types, projections,
+        high level operations?
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -209,6 +477,27 @@ o use cache-oblivious b-tree layout
     . try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages (if the database is big enough)
 
+. clean up approx. matching
+    o ONLY for cursors
+    o Flags: HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | HAM_FIND_EQ_MATCH (default)
+    o lookup: the cursor is coupled to the key, even if the lookup fails
+        then perform a lookup:
+            found_key == requested_key:
+                HAM_FIND_EQ_MATCH: ok
+                HAM_FIND_LT_MATCH: return move_prev()
+                HAM_FIND_GT_MATCH: return move_next()
+            found_key < requested_key:
+                HAM_FIND_LT_MATCH: ok
+                HAM_FIND_GT_MATCH: return move_next()
+                HAM_FIND_EQ_MATCH: key not found
+            found_key > requested_key:
+                HAM_FIND_GT_MATCH: ok
+                HAM_FIND_LT_MATCH: return move_prev()
+                HAM_FIND_EQ_MATCH: key not found
+    o must work with transactions
+    o do not store key flags; the caller has to compare the key
+    o remove ham_key_set_intflags, ham_key_get_intflags, key->_flags (?)
+
 . win32: need a release-v2.pl which fully automates the various release steps
     o delete all generated protobuf files
     o build for msvc 2008
@@ -219,10 +508,6 @@ o use cache-oblivious b-tree layout
     o run unittests for debug and release
     o run samples
     o build release package
-
-. it would be interesting to know the distribution of changelog "sizes" during
-    a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
-    and how many operations actually require the WAL
 
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
@@ -290,9 +575,6 @@ o is there a way to group all changeset flushes of a Transaction into one
     frequent syncs and performance would be improved
     o would have to remove all of assert(changeset.is_empty())
     o but we can use that assert prior to txn_begin
-
-o BtreeFindAction: always use a cursor, and when doing approx matching
-    then simply move left or right with that cursor
 
 o flush in background (asynchronously)
     o need new flag file HAM_DISABLE_ASYNCHRONOUS_FLUSH

@@ -79,13 +79,9 @@ test_SOURCES    = aes.cpp \
                   txn.cpp \
                   txn_cursor.cpp
 
-test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a -lpthread -ldl
-test_LDFLAGS    =
-
-if DARWIN
-test_LDADD     += $(BOOST_SYSTEM_LIBS)
-test_LDFLAGS   += $(BOOST_SYSTEM_LDFLAGS)
-endif
+test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
+				  $(BOOST_SYSTEM_LIBS) -lpthread -ldl
+test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS)
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
