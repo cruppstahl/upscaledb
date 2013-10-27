@@ -37,11 +37,11 @@
 #define ARG_VERBOSE                 2
 #define ARG_QUIET                   3
 #define ARG_NO_PROGRESS             4
-#define ARG_OPEN                    8
 #define ARG_REOPEN                  5
 #define ARG_METRICS                 6
 #define ARG_KEYSIZE_BTREE           7
-#define ARG_USE_EXTENDED            8
+#define ARG_OPEN                    8
+#define ARG_USE_EXTENDED            9
 #define ARG_INMEMORY                10
 #define ARG_OVERWRITE               11
 #define ARG_DISABLE_MMAP            12
