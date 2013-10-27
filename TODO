@@ -81,14 +81,14 @@ o completely rewrite handling of extended keys
     x remove prefix compare
     x get rid of the extkey-cache
     x compare functions no longer needs to return errors
-    o add some unittests for extended keys (for TDD); these tests must continue
+    x add some unittests for extended keys (for TDD); these tests must continue
         to work after every! modification
-        o inserts of variable length (with splits)
-        o lookups with ham_db_find
-        o iterating forward with a cursor
-        o iterating backwards with a cursor
-        o deleting keys
-        o inserts/deletes with splits/merges
+        x inserts of variable length (with splits)
+        x iterating forward with a cursor
+        x iterating backwards with a cursor
+        x lookups with ham_db_find
+        x same with random access
+        x deleting keys
     o create a new page layout for variable keys (non-PAX), start by
         copying the legacy layout
     o BtreeIndexFactory uses this layout for all keys that have variable
@@ -151,6 +151,7 @@ o COMM: btree can compress keys
         o dict is in-page, persistent
     o prefix-compression for strings
         o each 2kb have a full string (indexed by skiplist)
+    o do we need delta updates for efficient inserts?
 
 . COMM: use SIMD for fixed-length scans
     http://pcl.intel-research.net/publications/palm.pdf
