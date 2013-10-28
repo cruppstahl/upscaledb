@@ -129,7 +129,7 @@ class NumericZipfianDatasource : public Datasource
         z = m_u01();
 
       // Map z to the value
-      for (uint64_t i = 1; i <= m_values.size(); i++) {
+      for (uint64_t i = 0; i < m_values.size(); i++) {
         if (m_values[i] >= z)
           return ((T)(m_values[i] * m_values.size()));
       }

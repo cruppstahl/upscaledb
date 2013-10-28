@@ -45,8 +45,7 @@ class Changeset
     }
 
     ~Changeset() {
-      if (m_inducer)
-        delete m_inducer;
+      delete m_inducer;
       if (m_blobs)
         ::free(m_blobs);
       if (m_freelists)

@@ -139,14 +139,14 @@ class DupeCacheLine
     }
 
   private:
-    // using btree or txn duplicates?
-    bool m_use_btree;
-
     // The btree duplicate index (of the original btree dupe table)
     ham_u64_t m_btree_dupeidx;
 
     // The txn op structure that we refer to
     TransactionOperation *m_op;
+
+    // using btree or txn duplicates?
+    bool m_use_btree;
 };
 
 

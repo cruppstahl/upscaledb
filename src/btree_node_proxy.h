@@ -439,15 +439,15 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
       // handle duplicates - TODO clean this up, move to iterator
       if (it->get_flags() & BtreeKey::kDuplicates) {
-        PDupeEntry tmp;
-        if (!duplicate_entry)
-          duplicate_entry = &tmp;
+        PDupeEntry tmp, *pentry = duplicate_entry;
+        if (!pentry)
+          pentry = &tmp;
         ham_status_t st = env->get_duplicate_manager()->get(it->get_record_id(),
-                        duplicate_index, duplicate_entry);
+                        duplicate_index, pentry);
         if (st)
           return st;
-        record->_intflags = dupe_entry_get_flags(duplicate_entry);
-        record->_rid = dupe_entry_get_rid(duplicate_entry);
+        record->_intflags = dupe_entry_get_flags(pentry);
+        record->_rid = dupe_entry_get_rid(pentry);
 
         ham_size_t size = 0xffffffff;
         if (record->_intflags & BtreeKey::kBlobSizeTiny) {

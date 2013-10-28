@@ -115,6 +115,14 @@ o completely rewrite handling of extended keys
     o count number of overflow areas for statistics!
     o play around with various skiplist bucket sizes - which one works best?
 
+o improve integration of static code analysis in release process
+    o add AddressSanitizer (http://clang.llvm.org/docs/AddressSanitizer.html)
+    o look at ThreadSanitizer (http://clang.llvm.org/docs/ThreadSanitizer.html)
+    o look at MemorySanitizer
+    o look at UndefinedBehaviorSanitizer
+    o try to become "oclint-clean"
+    o try to become "coverity-clean"
+
 o introduce COMM version
     o closed repository
     o one source base with different licensing headers, different licensing

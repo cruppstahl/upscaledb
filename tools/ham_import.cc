@@ -314,10 +314,12 @@ main(int argc, char **argv) {
   unsigned magic;
   if (sizeof(unsigned) < fread(&magic, 1, sizeof(unsigned), f)) {
     fprintf(stderr, "Cannot read input file: %s\n", strerror(errno));
+    fclose(f);
     return (-1);
   }
   if (magic != 0x1234321) {
     fprintf(stderr, "Unknown binary format\n");
+    fclose(f);
     return (-1);
   }
 
@@ -327,11 +329,13 @@ main(int argc, char **argv) {
   if (st == 0) {
     if (merge == false) {
       fprintf(stderr, "File %s already exists, aborting...\n", envfilename);
+      fclose(f);
       return (-1);
     }
   }
   else if (st != HAM_FILE_NOT_FOUND) {
     fprintf(stderr, "Error opening %s: %s\n", envfilename, ham_strerror(st));
+    fclose(f);
     return (-1);
   }
 
@@ -339,6 +343,7 @@ main(int argc, char **argv) {
   Importer *importer = new BinaryImporter(f, env, envfilename);
   importer->run();
   delete importer;
+  fclose(f);
 
   return (0);
 }
