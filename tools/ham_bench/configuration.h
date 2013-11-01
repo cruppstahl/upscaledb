@@ -23,6 +23,7 @@ struct Configuration
 {
   enum {
     kKeyBinary = 0,
+    kKeyString,
     kKeyCustom,
     kKeyUint8,
     kKeyUint16,

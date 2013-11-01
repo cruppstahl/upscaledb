@@ -177,7 +177,7 @@ static option_t opts[] = {
     ARG_KEY,
     0,
     "key",
-    "Describes the key type ('uint16', 'uint32', 'uint64', 'custom', 'binary' (default))",
+    "Describes the key type ('uint16', 'uint32', 'uint64', 'custom', 'string', 'binary' (default))",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_DISABLE_MMAP,
@@ -432,6 +432,8 @@ parse_config(int argc, char **argv, Configuration *c)
         c->key_type = Configuration::kKeyReal32;
       else if (param && !strcmp(param, "real64"))
         c->key_type = Configuration::kKeyReal64;
+      else if (param && !strcmp(param, "string"))
+        c->key_type = Configuration::kKeyString;
       else if (param && strcmp(param, "binary")) {
         printf("invalid parameter for --key\n");
         exit(-1);

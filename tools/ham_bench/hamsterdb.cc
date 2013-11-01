@@ -239,6 +239,7 @@ HamsterDatabase::do_create_db(int id)
       params[1].value = HAM_TYPE_CUSTOM;
       break;
     case Configuration::kKeyBinary:
+    case Configuration::kKeyString:
       params[0].value = m_config->btree_key_size;
       break;
     case Configuration::kKeyUint8:

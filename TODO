@@ -23,7 +23,7 @@ x refactoring: sometimes, the BtreeNodeProxy updates node->count after an
 x btree stores fixed-length records in the leaf
 x PAX layout: if record size is fix then do not store 1 byte flag for each key
 o completely rewrite handling of extended keys
-o ham_bench uses /opt/share/dict/words as data input
+x ham_bench uses /opt/share/dict/words as data input
 o introduce COMM version
 o COMM: btree can compress keys (strings: prefix, everything: dict)
 o COMM: use SIMD for fixed-length scans
@@ -135,13 +135,13 @@ o introduce COMM version
     o webpage updates, PR, mailings
     o file format interoperability?
 
-o ham_bench improvements
-    o have more data sources based on dict/words (concatenate, if there are
+x ham_bench improvements
+    x have more data sources based on dict/words (concatenate, if there are
         not enough or if they are too short)
-      o StringRandomSource(max)
-      o StringAscendingSource(max)
-      o StringDescendingSource(max)
-      o StringZipfianSource(max)
+      x StringRandomSource(max)
+      x StringAscendingSource(max)
+      x StringDescendingSource(max)
+      x StringZipfianSource(max)
 
 o COMM: btree can compress keys
     o try to reduce the changes to a new KeyProxy object
@@ -166,7 +166,7 @@ o extend the documentation
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
         o use ham_info to see if the record is inline
         o update "performance" wiki
-        o update "ham_bench" wiki
+        o update "ham_bench" wiki (new "string" keys)
 
 ---------------------- release 2.1.4 (unstable) -----------------------------
 

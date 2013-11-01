@@ -14,6 +14,7 @@
 #include "configuration.h"
 #include "datasource_numeric.h"
 #include "datasource_binary.h"
+#include "datasource_string.h"
 #include "generator_runtime.h"
 
 #define kZipfianLimit       (1024 * 1024)
@@ -135,6 +136,27 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           break;
         case Configuration::kDistributionZipfian:
           m_datasource = new BinaryZipfianDatasource(
+                          conf->limit_ops ? conf->limit_ops : kZipfianLimit,
+                          conf->key_size, conf->key_is_fixed_size, conf->seed);
+          break;
+      }
+      break;
+    case Configuration::kKeyString:
+      switch (conf->distribution) {
+        case Configuration::kDistributionRandom:
+          m_datasource = new StringRandomDatasource(conf->key_size,
+                          conf->key_is_fixed_size, conf->seed);
+          break;
+        case Configuration::kDistributionAscending:
+          m_datasource = new StringAscendingDatasource(conf->key_size,
+                          conf->key_is_fixed_size);
+          break;
+        case Configuration::kDistributionDescending:
+          m_datasource = new StringDescendingDatasource(conf->key_size,
+                          conf->key_is_fixed_size);
+          break;
+        case Configuration::kDistributionZipfian:
+          m_datasource = new StringZipfianDatasource(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->key_size, conf->key_is_fixed_size, conf->seed);
           break;
@@ -662,6 +684,9 @@ RuntimeGenerator::tee(const char *foo, const ham_key_t *key,
           break;
         case Configuration::kKeyReal64:
           ss << " (0, \"" << *(double *)key->data << '"';
+          break;
+        case Configuration::kKeyString:
+          ss << " (0, \"" << (const char *)key->data << '"';
           break;
         default:
           assert(!"shouldn't be here");
