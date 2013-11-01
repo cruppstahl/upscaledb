@@ -97,12 +97,12 @@ class DupeCacheLine
 {
   public:
     DupeCacheLine(bool use_btree = true, ham_u64_t btree_dupeidx = 0)
-      : m_use_btree(use_btree), m_btree_dupeidx(btree_dupeidx), m_op(0) {
+      : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
       ham_assert(use_btree == true);
     }
 
     DupeCacheLine(bool use_btree, TransactionOperation *op)
-      : m_use_btree(use_btree), m_btree_dupeidx(0), m_op(op) {
+      : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
       ham_assert(use_btree == false);
     }
 
