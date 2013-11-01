@@ -155,7 +155,7 @@ o COMM: btree can compress keys
 . COMM: use SIMD for fixed-length scans
     http://pcl.intel-research.net/publications/palm.pdf
 
-. BtreeCursor: use memory arena for uncoupling the key
+x BtreeCursor: use memory arena for uncoupling the key
     -> better wait till extended keys are gone
 
 . remove libjson, use boost::property_tree instead!
