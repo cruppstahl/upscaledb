@@ -69,19 +69,19 @@ class DiskBlobManager : public BlobManager
     // on a per-page basis.
     ham_status_t write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
                     bool allocated, bool freshly_created,
-                    ham_u8_t **chunk_data, ham_size_t *chunk_size,
-                    ham_size_t chunks);
+                    ham_u8_t **chunk_data, ham_u32_t *chunk_size,
+                    ham_u32_t chunks);
 
     // same as above, but for reading chunks from the file
     ham_status_t read_chunk(Page *page, Page **fpage, ham_u64_t addr,
-                    LocalDatabase *db, ham_u8_t *data, ham_size_t size);
+                    LocalDatabase *db, ham_u8_t *data, ham_u32_t size);
 
     // if the blob is small enough (or if logging is enabled) then go through
     // the cache. otherwise use direct I/O
-    bool blob_from_cache(ham_size_t size) {
+    bool blob_from_cache(ham_u32_t size) {
       if (m_env->get_log())
         return (size < (m_env->get_usable_pagesize()));
-      return (size < (ham_size_t)(m_env->get_pagesize() >> 3));
+      return (size < (ham_u32_t)(m_env->get_pagesize() >> 3));
     }
 };
 

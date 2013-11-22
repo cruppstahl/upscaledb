@@ -445,7 +445,7 @@ Freelist::free_page(Page *page)
 }
 
 ham_status_t
-Freelist::free_area(ham_u64_t address, ham_size_t size)
+Freelist::free_area(ham_u64_t address, ham_u32_t size)
 {
   ham_status_t st;
   Page *page = 0;
@@ -493,8 +493,8 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
     ham_assert(address >= fp->get_start_address());
 
     /* set the bits and update the values in the cache and the fp */
-    ham_size_t s = set_bits(entry, fp,
-        (ham_size_t)(address - fp->get_start_address())
+    ham_u32_t s = set_bits(entry, fp,
+        (ham_u32_t)(address - fp->get_start_address())
             / kBlobAlignment,
         size / kBlobAlignment, true, &hints);
 
@@ -518,7 +518,7 @@ Freelist::alloc_page(ham_u64_t *paddr)
 }
 
 ham_status_t
-Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
+Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
                 ham_u64_t lower_bound_address)
 {
   ham_status_t st;
@@ -606,10 +606,10 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
        * BM to see if we have a sufficiently large sequence of
        * completely freed freelist entries.
        */
-      ham_size_t pagecount_required = hints.page_span_width;
-      ham_size_t start_idx;
-      ham_size_t end_idx;
-      ham_size_t available = entry->free_bits;
+      ham_u32_t pagecount_required = hints.page_span_width;
+      ham_u32_t start_idx;
+      ham_u32_t end_idx;
+      ham_u32_t available = entry->free_bits;
 
       ham_assert(entry->free_bits <= entry->max_bits);
       if (i < (ham_s32_t)hints.page_span_width) {
@@ -678,7 +678,7 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
         FreelistStatistics::globalhints_no_hit(this, entry, &hints);
       }
       else {
-        ham_size_t len;
+        ham_u32_t len;
         ham_u64_t addr = 0;
 
         /* we have a hit! */
@@ -686,7 +686,7 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
 
         start_idx = 0;
         for (len = hints.size_bits; len > 0; i++, start_idx++) {
-          ham_size_t fl;
+          ham_u32_t fl;
 
           ham_assert(i < (ham_s32_t)m_entries.size());
 
@@ -790,8 +790,8 @@ Freelist::is_page_free(ham_u64_t address)
 {
   ham_status_t st;
 
-  ham_size_t pagesize = m_env->get_pagesize();
-  ham_size_t size_bits = pagesize / kBlobAlignment;
+  ham_u32_t pagesize = m_env->get_pagesize();
+  ham_u32_t size_bits = pagesize / kBlobAlignment;
   ham_assert(address % pagesize == 0);
 
   if (m_entries.empty()) {
@@ -832,8 +832,8 @@ Freelist::is_page_free(ham_u64_t address)
 
   /* check the bits */
   if (check_bits(entry, fp,
-         (ham_size_t)(address - fp->get_start_address()) / kBlobAlignment,
-         size_bits) == (ham_size_t)-1)
+         (ham_u32_t)(address - fp->get_start_address()) / kBlobAlignment,
+         size_bits) == (ham_u32_t)-1)
     return (false);
 
   return (true);
@@ -844,8 +844,8 @@ Freelist::truncate_page(ham_u64_t address)
 {
   ham_status_t st;
 
-  ham_size_t pagesize = m_env->get_pagesize();
-  ham_size_t size_bits = pagesize / kBlobAlignment;
+  ham_u32_t pagesize = m_env->get_pagesize();
+  ham_u32_t size_bits = pagesize / kBlobAlignment;
   ham_assert(address % pagesize == 0);
   ham_assert(!m_entries.empty());
 
@@ -883,7 +883,7 @@ Freelist::truncate_page(ham_u64_t address)
   /* actually mark the bits as "not free", which is the default for
    * unallocated space */
   set_bits(entry, fp,
-        (ham_size_t)(address - fp->get_start_address()) / kBlobAlignment,
+        (ham_u32_t)(address - fp->get_start_address()) / kBlobAlignment,
         pagesize / kBlobAlignment, false, 0);
 
   /* |mark_dirty| stores the page in the changeset if recovery is enabled */
@@ -894,7 +894,7 @@ Freelist::truncate_page(ham_u64_t address)
 
 ham_s32_t
 Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
-        ham_size_t size_bits, FreelistStatistics::Hints *hints)
+        ham_u32_t size_bits, FreelistStatistics::Hints *hints)
 {
   ham_assert(hints->cost == 1);
   ham_u64_t *p64 = (ham_u64_t *)f->get_bitmap();
@@ -2722,7 +2722,7 @@ Freelist::initialize()
 
   /* add the header page to the freelist */
   entry.start_address = m_env->get_pagesize();
-  ham_size_t size;
+  ham_u32_t size;
   PFreelistPayload *fp = m_env->get_freelist_payload(&size);
 
   ham_assert((size % sizeof(ham_u64_t)) == 0);
@@ -2740,7 +2740,7 @@ Freelist::initialize()
 
   /* now load all other freelist pages */
   while (fp->get_overflow()) {
-    resize((ham_size_t)m_entries.size() + 1);
+    resize((ham_u32_t)m_entries.size() + 1);
 
     Page *page;
     ham_status_t st = m_env->get_page_manager()->fetch_page(&page, 0,
@@ -2761,7 +2761,7 @@ Freelist::initialize()
 FreelistEntry *
 Freelist::get_entry_for_address(ham_u64_t address)
 {
-  ham_size_t i;
+  ham_u32_t i;
 
   while (true) {
     for (i = 0; i < m_entries.size(); i++) {
@@ -2779,12 +2779,12 @@ Freelist::get_entry_for_address(ham_u64_t address)
      * 'address' is going to land within the freelist...
      */
     ham_assert(i == m_entries.size());
-    ham_size_t add = (ham_size_t)(address - m_entries[i - 1].start_address
+    ham_u32_t add = (ham_u32_t)(address - m_entries[i - 1].start_address
               - m_entries[i - 1].max_bits);
     add += kBlobAlignment - 1;
     add /= kBlobAlignment;
 
-    ham_size_t single_size_bits = get_entry_maxspan();
+    ham_u32_t single_size_bits = get_entry_maxspan();
 
     add += single_size_bits - 1;
     add /= single_size_bits;
@@ -2794,23 +2794,23 @@ Freelist::get_entry_for_address(ham_u64_t address)
   }
 }
 
-ham_size_t
+ham_u32_t
 Freelist::get_entry_maxspan()
 {
-  ham_size_t size = m_env->get_usable_pagesize()
+  ham_u32_t size = m_env->get_usable_pagesize()
           - PFreelistPayload::get_bitmap_offset();
   ham_assert((size % sizeof(ham_u64_t)) == 0);
   size -= size % sizeof(ham_u64_t);
 
   /* the multiplication is very important for pre-v1.1.0 databases as those
    * have an integer overflow issue right here. */
-  return (ham_size_t)(size * 8);
+  return (ham_u32_t)(size * 8);
 }
 
 void
-Freelist::resize(ham_size_t new_count)
+Freelist::resize(ham_u32_t new_count)
 {
-  ham_size_t size_bits = get_entry_maxspan();
+  ham_u32_t size_bits = get_entry_maxspan();
   ham_assert(((size_bits / 8) % sizeof(ham_u64_t)) == 0);
 
   ham_assert(new_count > m_entries.size());
@@ -2833,7 +2833,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
   FreelistEntry *entries = &m_entries[0];
   Page *page = 0;
   PFreelistPayload *fp;
-  ham_size_t size_bits = get_entry_maxspan();
+  ham_u32_t size_bits = get_entry_maxspan();
 
   ham_assert(((size_bits / 8) % sizeof(ham_u64_t)) == 0);
 
@@ -2852,7 +2852,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
    *
    * we can skip the first element - it's the root page and always exists
    */
-  for (ham_size_t i = 1; ; i++) {
+  for (ham_u32_t i = 1; ; i++) {
     ham_assert(i < m_entries.size());
 
     if (!entries[i].pageid) {
@@ -2907,17 +2907,17 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
   }
 }
 
-ham_size_t
+ham_u32_t
 Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
-            ham_size_t start_bit, ham_size_t size_bits,
+            ham_u32_t start_bit, ham_u32_t size_bits,
             bool set, FreelistStatistics::Hints *hints)
 {
-  ham_size_t i;
+  ham_u32_t i;
   ham_u8_t *p = fp->get_bitmap();
 
-  ham_size_t qw_offset = start_bit & (64 - 1);
-  ham_size_t qw_start = (start_bit + 64 - 1) >> 6;   /* ROUNDUP(S DIV 64) */
-  ham_size_t qw_end;
+  ham_u32_t qw_offset = start_bit & (64 - 1);
+  ham_u32_t qw_start = (start_bit + 64 - 1) >> 6;   /* ROUNDUP(S DIV 64) */
+  ham_u32_t qw_end;
 
   ham_assert(start_bit < fp->get_max_bits());
 
@@ -2937,7 +2937,7 @@ Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
         p[start_bit >> 3] |= 1 << (start_bit & (8 - 1));
     }
     else {
-      ham_size_t n = size_bits;
+      ham_u32_t n = size_bits;
       ham_u64_t *p64 = (ham_u64_t *)fp->get_bitmap();
       p64 += qw_start;
 
@@ -2969,7 +2969,7 @@ Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
         p[start_bit >> 3] &= ~(1 << (start_bit & (8 - 1)));
     }
     else {
-      ham_size_t n = size_bits;
+      ham_u32_t n = size_bits;
       ham_u64_t *p64 = (ham_u64_t *)fp->get_bitmap();
       p64 += qw_start;
 
@@ -2998,16 +2998,16 @@ Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
   return (size_bits);
 }
 
-ham_size_t
+ham_u32_t
 Freelist::check_bits(FreelistEntry *entry, PFreelistPayload *fp,
-            ham_size_t start_bit, ham_size_t size_bits)
+            ham_u32_t start_bit, ham_u32_t size_bits)
 {
-  ham_size_t i;
+  ham_u32_t i;
   ham_u8_t *p = fp->get_bitmap();
 
-  ham_size_t qw_offset = start_bit & (64 - 1);
-  ham_size_t qw_start = (start_bit + 64 - 1) >> 6;   /* ROUNDUP(S DIV 64) */
-  ham_size_t qw_end;
+  ham_u32_t qw_offset = start_bit & (64 - 1);
+  ham_u32_t qw_start = (start_bit + 64 - 1) >> 6;   /* ROUNDUP(S DIV 64) */
+  ham_u32_t qw_end;
 
   ham_assert(start_bit < fp->get_max_bits());
 
@@ -3024,7 +3024,7 @@ Freelist::check_bits(FreelistEntry *entry, PFreelistPayload *fp,
     }
   }
   else {
-    ham_size_t n = size_bits;
+    ham_u32_t n = size_bits;
     ham_u64_t *p64 = (ham_u64_t *)fp->get_bitmap();
     p64 += qw_start;
 

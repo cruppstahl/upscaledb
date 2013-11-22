@@ -85,10 +85,10 @@ enable_largefile(int fd)
 #endif
 }
 
-ham_size_t
+ham_u32_t
 os_get_granularity()
 {
-  return ((ham_size_t)sysconf(_SC_PAGE_SIZE));
+  return ((ham_u32_t)sysconf(_SC_PAGE_SIZE));
 }
 
 ham_status_t
@@ -143,7 +143,7 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
   os_log(("_os_read: fd=%d, size=%lld", fd, bufferlen));
 
   int r;
-  ham_size_t total = 0;
+  ham_u32_t total = 0;
 
   while (total < bufferlen) {
     r = read(fd, &buffer[total], bufferlen - total);
@@ -277,7 +277,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
   struct iovec vec[5];
 
   int c = 0;
-  ham_size_t s = 0;
+  ham_u32_t s = 0;
   if (buffer1) {
     vec[c].iov_base = buffer1;
     vec[c].iov_len = buffer1_len;
@@ -546,13 +546,13 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
 }
 
 ham_status_t
-os_socket_send(ham_fd_t socket, const ham_u8_t *data, ham_size_t data_size)
+os_socket_send(ham_fd_t socket, const ham_u8_t *data, ham_u32_t data_size)
 {
   return (os_write(socket, data, data_size));
 }
 
 ham_status_t
-os_socket_recv(ham_fd_t socket, ham_u8_t *data, ham_size_t data_size)
+os_socket_recv(ham_fd_t socket, ham_u8_t *data, ham_u32_t data_size)
 {
   return (os_read(socket, data, data_size));
 }

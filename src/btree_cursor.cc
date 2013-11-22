@@ -260,7 +260,7 @@ BtreeCursor::points_to(ham_key_t *key)
 }
 
 ham_status_t
-BtreeCursor::get_duplicate_count(ham_size_t *count, ham_u32_t flags)
+BtreeCursor::get_duplicate_count(ham_u32_t *count, ham_u32_t flags)
 {
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled) {
@@ -483,7 +483,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
   // if duplicates are enabled: move to the end of the duplicate-list
   if (node->has_duplicates(m_coupled_index)
       && !(flags & HAM_SKIP_DUPLICATES)) {
-    ham_size_t count;
+    ham_u32_t count;
     st = env->get_duplicate_manager()->get_count(node->get_record_id(
                             m_coupled_index),
                     &count, &m_dupe_cache);
@@ -537,7 +537,7 @@ BtreeCursor::move_last(ham_u32_t flags)
 
   // if duplicates are enabled: move to the end of the duplicate-list
   if (node->has_duplicates(m_coupled_index) && !(flags & HAM_SKIP_DUPLICATES)) {
-    ham_size_t count;
+    ham_u32_t count;
     st = env->get_duplicate_manager()->get_count(
                     node->get_record_id(m_coupled_index),
                     &count, &m_dupe_cache);
@@ -550,7 +550,7 @@ BtreeCursor::move_last(ham_u32_t flags)
 }
 
 void
-BtreeCursor::couple_to_page(Page *page, ham_size_t index)
+BtreeCursor::couple_to_page(Page *page, ham_u32_t index)
 {
   m_coupled_index = index;
   m_state = kStateCoupled;
@@ -594,7 +594,7 @@ BtreeCursor::remove_cursor_from_page(Page *page)
 }
 
 ham_status_t
-BtreeCursor::uncouple_all_cursors(Page *page, ham_size_t start)
+BtreeCursor::uncouple_all_cursors(Page *page, ham_u32_t start)
 {
   ham_status_t st;
   bool skipped = false;

@@ -680,7 +680,7 @@ class env {
 
     /** Get all Database names. */
     std::vector<ham_u16_t> get_database_names() {
-      ham_size_t count = 32;
+      ham_u32_t count = 32;
       ham_status_t st;
       std::vector<ham_u16_t> v(count);
 

@@ -111,13 +111,13 @@ class LocalEnvironment : public Environment
     }
 
     // Returns the pagesize as specified in ham_env_create
-    ham_size_t get_pagesize() const {
+    ham_u32_t get_pagesize() const {
       return (m_pagesize);
     }
 
     // Returns the size of the usable persistent payload of a page
     // (pagesize minus the overhead of the page header)
-    ham_size_t get_usable_pagesize() const {
+    ham_u32_t get_usable_pagesize() const {
       return (get_pagesize() - Page::sizeof_persistent_header);
     }
 
@@ -136,7 +136,7 @@ class LocalEnvironment : public Environment
 
     // Returns the freelist payload stored in the header page.
     // |psize| will contain the payload size, unless the pointer is NULL.
-    PFreelistPayload *get_freelist_payload(ham_size_t *psize = 0);
+    PFreelistPayload *get_freelist_payload(ham_u32_t *psize = 0);
 
     // Returns the logfile directory
     const std::string &get_log_directory() {
@@ -166,12 +166,12 @@ class LocalEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+            ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
             ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            ham_size_t cachesize);
+            ham_u32_t cachesize);
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
@@ -182,7 +182,7 @@ class LocalEnvironment : public Environment
 
     // Returns all database names (ham_env_get_database_names)
     virtual ham_status_t get_database_names(ham_u16_t *names,
-            ham_size_t *count);
+            ham_u32_t *count);
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -262,7 +262,7 @@ class LocalEnvironment : public Environment
     ham_u8_t m_encryption_key[16];
 
     // The pagesize which was specified when the env was created
-    ham_size_t m_pagesize;
+    ham_u32_t m_pagesize;
 };
 
 } // namespace hamsterdb

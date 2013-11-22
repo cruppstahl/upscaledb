@@ -28,11 +28,11 @@ using namespace hamsterdb;
 ham_status_t
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
-  ham_size_t count;
+  ham_u32_t count;
   ham_status_t st = btc->get_duplicate_count(&count, 0);
   if (st)
     return (st);
-  for (ham_size_t i = 0; i < count; i++)
+  for (ham_u32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 
   m_db->get_local_env()->get_changeset().clear();
@@ -170,7 +170,7 @@ Cursor::couple_to_dupe(ham_u32_t dupe_id)
   if (e->use_btree()) {
     BtreeCursor *btc = get_btree_cursor();
     couple_to_btree();
-    btc->set_duplicate_index((ham_size_t)e->get_btree_dupe_idx());
+    btc->set_duplicate_index((ham_u32_t)e->get_btree_dupe_idx());
   }
   else {
     ham_assert(e->get_txn_op() != 0);

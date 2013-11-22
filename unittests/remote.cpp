@@ -138,7 +138,7 @@ struct RemoteFixture {
   void getDatabaseNamesTest() {
     ham_env_t *env;
     ham_u16_t names[15];
-    ham_size_t max_names = 15;
+    ham_u32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -168,7 +168,7 @@ struct RemoteFixture {
   void renameDbTest() {
     ham_env_t *env;
     ham_u16_t names[15];
-    ham_size_t max_names = 15;
+    ham_u32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -246,7 +246,7 @@ struct RemoteFixture {
   void eraseDbTest() {
     ham_env_t *env;
     ham_u16_t names[15];
-    ham_size_t max_names = 15;
+    ham_u32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -888,7 +888,7 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     rec.data = (void *)data;
-    rec.size = (ham_size_t)::strlen(data)+1;
+    rec.size = (ham_u32_t)::strlen(data)+1;
     key.data = (void *)k;
     key.size = (ham_u16_t)(k ? ::strlen(k)+1 : 0);
 
@@ -899,7 +899,7 @@ struct RemoteFixture {
   void cursorGetDuplicateCountTest() {
     ham_db_t *db;
     ham_env_t *env;
-    ham_size_t count;
+    ham_u32_t count;
     ham_cursor_t *c;
     ham_txn_t *txn;
 
@@ -916,22 +916,22 @@ struct RemoteFixture {
         ham_cursor_get_duplicate_count(c, 0, 0));
     REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_size_t)0 == count);
+    REQUIRE((ham_u32_t)0 == count);
 
     insertData(c, 0, "1111111111");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_size_t)1 == count);
+    REQUIRE((ham_u32_t)1 == count);
 
     insertData(c, 0, "2222222222");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_size_t)2 == count);
+    REQUIRE((ham_u32_t)2 == count);
 
     insertData(c, 0, "3333333333");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_size_t)3 == count);
+    REQUIRE((ham_u32_t)3 == count);
 
     REQUIRE(0 == ham_cursor_erase(c, 0));
     REQUIRE(HAM_CURSOR_IS_NIL ==
@@ -943,7 +943,7 @@ struct RemoteFixture {
         ham_cursor_find(c, &key, 0, 0));
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_size_t)2 == count);
+    REQUIRE((ham_u32_t)2 == count);
 
     REQUIRE(0 == ham_cursor_close(c));
     REQUIRE(0 == ham_txn_abort(txn, 0));

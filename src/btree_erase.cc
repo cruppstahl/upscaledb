@@ -510,7 +510,7 @@ class BtreeEraseAction
           sibnode->erase(0);
         }
 
-        ham_size_t c = (sibnode->get_count() - node->get_count()) / 2;
+        ham_u32_t c = (sibnode->get_count() - node->get_count()) / 2;
         if (c == 0)
           goto cleanup;
         if (internal)
@@ -590,7 +590,7 @@ class BtreeEraseAction
           sibnode->set_count(sibnode->get_count() + 1);
         }
 
-        ham_size_t c = (node->get_count() - sibnode->get_count()) / 2;
+        ham_u32_t c = (node->get_count() - sibnode->get_count()) / 2;
         if (c == 0)
           goto cleanup;
         if (internal)
@@ -609,7 +609,7 @@ class BtreeEraseAction
           sibnode->set_count(sibnode->get_count() + 1);
         }
 
-        ham_size_t s = node->get_count() - c - 1;
+        ham_u32_t s = node->get_count() - c - 1;
 
         /* shift items from this page to the right sibling, then delete the
          * items from this page */

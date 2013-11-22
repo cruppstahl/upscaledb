@@ -62,7 +62,7 @@ class DiskDevice : public Device {
 
       // make sure we do not exceed the "real" size of the file, otherwise
       // we run into issues when accessing that memory (at least on windows)
-      ham_size_t granularity = os_get_granularity();
+      ham_u32_t granularity = os_get_granularity();
       if (open_filesize == 0 || open_filesize % granularity)
         return (0);
 
@@ -206,7 +206,7 @@ class DiskDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
-    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) {
+    virtual ham_status_t alloc(ham_u32_t size, ham_u64_t *address) {
       ham_status_t st = os_get_filesize(m_fd, address);
       if (st)
         return (st);
@@ -217,7 +217,7 @@ class DiskDevice : public Device {
     // will *NOT* return mmapped memory
     virtual ham_status_t alloc_page(Page *page) {
       ham_u64_t pos;
-      ham_size_t size = m_pagesize;
+      ham_u32_t size = m_pagesize;
 
       ham_status_t st = os_get_filesize(m_fd, &pos);
       if (st)

@@ -42,7 +42,7 @@ class InMemoryBlobManager : public BlobManager {
     ham_status_t get_datasize(LocalDatabase *db, ham_u64_t blobid,
                     ham_u64_t *size) {
       PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
-      *size = (ham_size_t)blob_header->get_size();
+      *size = (ham_u32_t)blob_header->get_size();
       return (0);
     }
 

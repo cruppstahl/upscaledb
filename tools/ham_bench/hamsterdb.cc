@@ -33,8 +33,8 @@ namespace hamsterdb {
 
 static int 
 compare_keys(ham_db_t *db,
-      const ham_u8_t *lhs_data, ham_size_t lhs_size, 
-      const ham_u8_t *rhs_data, ham_size_t rhs_size)
+      const ham_u8_t *lhs_data, ham_u32_t lhs_size, 
+      const ham_u8_t *rhs_data, ham_u32_t rhs_size)
 {
   (void)db;
 

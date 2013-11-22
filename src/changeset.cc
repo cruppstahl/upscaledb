@@ -68,10 +68,10 @@ Changeset::clear()
 }
 
 ham_status_t
-Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
-            ham_u64_t lsn, ham_size_t &page_count)
+Changeset::log_bucket(Page **bucket, ham_u32_t bucket_size,
+            ham_u64_t lsn, ham_u32_t &page_count)
 {
-  for (ham_size_t i = 0; i < bucket_size; i++) {
+  for (ham_u32_t i = 0; i < bucket_size; i++) {
     ham_assert(bucket[i]->is_dirty());
 
     Log *log = m_env->get_log();
@@ -99,7 +99,7 @@ ham_status_t
 Changeset::flush(ham_u64_t lsn)
 {
   ham_status_t st;
-  ham_size_t page_count = 0;
+  ham_u32_t page_count = 0;
   Page *n, *p = m_head;
   if (!p)
     return (0);

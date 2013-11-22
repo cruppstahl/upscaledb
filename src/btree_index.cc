@@ -48,7 +48,7 @@ BtreeIndex::create(ham_u16_t keytype, ham_u32_t keysize, ham_u32_t recsize)
 {
   ham_assert(keysize != 0);
 
-  ham_size_t maxkeys = get_maxkeys(m_db->get_local_env()->get_pagesize(),
+  ham_u32_t maxkeys = get_maxkeys(m_db->get_local_env()->get_pagesize(),
                                 keysize,
                                 recsize == HAM_RECORD_SIZE_UNLIMITED
                                   ? sizeof(ham_u64_t)
@@ -396,16 +396,16 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
   return (slot);
 }
 
-ham_size_t
-BtreeIndex::get_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
-                ham_size_t recsize) const
+ham_u32_t
+BtreeIndex::get_maxkeys(ham_u32_t pagesize, ham_u16_t keysize,
+                ham_u32_t recsize) const
 {
   /* adjust page size and key size by adding the overhead */
   pagesize -= PBtreeNode::get_entry_offset();
   pagesize -= Page::sizeof_persistent_header;
 
   /* and return an even number */
-  ham_size_t max;
+  ham_u32_t max;
   if (recsize == HAM_RECORD_SIZE_UNLIMITED)
     max = pagesize / (get_system_keysize(keysize) + 8);
   else
@@ -425,7 +425,7 @@ class CalcKeysVisitor : public BtreeVisitor {
     virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
                   ham_u8_t key_flags, ham_u32_t key_size, 
                   ham_u64_t record_id) {
-      ham_size_t dupcount = 1;
+      ham_u32_t dupcount = 1;
 
       if (m_flags & HAM_SKIP_DUPLICATES
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {

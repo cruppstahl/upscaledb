@@ -961,7 +961,7 @@ ham_env_flush(ham_env_t *env, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
-            ham_size_t *count);
+            ham_u32_t *count);
 
 /**
  * Closes the Database Environment
@@ -1210,8 +1210,8 @@ ham_db_get_error(ham_db_t *db);
  * is larger than @a rhs.
  */
 typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
-                  const ham_u8_t *lhs, ham_size_t lhs_length,
-                  const ham_u8_t *rhs, ham_size_t rhs_length);
+                  const ham_u8_t *lhs, ham_u32_t lhs_length,
+                  const ham_u8_t *rhs, ham_u32_t rhs_length);
 
 /**
  * Sets the comparison function
@@ -2367,7 +2367,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
-            ham_size_t *count, ham_u32_t flags);
+            ham_u32_t *count, ham_u32_t flags);
 
 /**
  * Returns the record size of the current key

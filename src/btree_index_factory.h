@@ -29,7 +29,7 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 {
   public:
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const {
+    virtual ham_u16_t get_system_keysize(ham_u32_t keysize) const {
       return (NodeLayout::get_system_keysize(keysize));
     }
 
@@ -64,7 +64,7 @@ struct BtreeIndexFactory
                 ham_u16_t keytype, ham_u16_t keysize, bool is_leaf) {
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
     bool fixed_keys = (keysize != HAM_KEY_SIZE_UNLIMITED);
-    ham_size_t pagesize = db->get_local_env()->get_pagesize();
+    ham_u32_t pagesize = db->get_local_env()->get_pagesize();
 
     // Record number database
     if (flags & HAM_RECORD_NUMBER) {

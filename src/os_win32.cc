@@ -26,7 +26,7 @@
 namespace hamsterdb {
 
 static const char *
-DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
+DisplayError(char* buf, ham_u32_t buflen, DWORD errorcode)
 {
   size_t len;
 
@@ -80,12 +80,12 @@ calc_wlen4str(const char *str)
   return (int)len;
 }
 
-ham_size_t
+ham_u32_t
 os_get_granularity()
 {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
-  return ((ham_size_t)info.dwAllocationGranularity);
+  return ((ham_u32_t)info.dwAllocationGranularity);
 }
 
 ham_status_t
@@ -534,7 +534,7 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
 }
 
 ham_status_t
-os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_size_t data_size)
+os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size)
 {
   int sent = 0;
   char buf[256];
@@ -554,7 +554,7 @@ os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_size_t data_size)
 }
 
 ham_status_t
-os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_size_t data_size)
+os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size)
 {
   int read = 0;
   char buf[256];

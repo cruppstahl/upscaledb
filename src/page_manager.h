@@ -43,7 +43,7 @@ class PageManager {
     // Default constructor
     //
     // The cache size is specified in bytes!
-    PageManager(LocalEnvironment *env, ham_size_t cachesize);
+    PageManager(LocalEnvironment *env, ham_u32_t cachesize);
 
     // Destructor
     ~PageManager();
@@ -87,7 +87,7 @@ class PageManager {
     // @param size The requested size (in bytes)
     // @param address Will return the address of the space
     // @param allocated Will return whether the space is newly allocated
-    ham_status_t alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
+    ham_status_t alloc_blob(Database *db, ham_u32_t size, ham_u64_t *address,
                     bool *allocated);
 
     // Flush all pages, and clear the cache.
@@ -117,7 +117,7 @@ class PageManager {
     // Adds an area to the freelist; used for blobs, but make sure to add
     // sizeof(PBlobHeader) to the blob's payload size!
     ham_status_t add_to_freelist(Database *db, ham_u64_t address,
-                    ham_size_t size) {
+                    ham_u32_t size) {
       Freelist *f = get_freelist();
       return (f ? f->free_area(address, size) : 0);
     }

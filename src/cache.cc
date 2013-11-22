@@ -35,14 +35,14 @@ Cache::Cache(LocalEnvironment *env, ham_u64_t capacity_bytes)
   if (m_capacity == 0)
     m_capacity = HAM_DEFAULT_CACHESIZE;
 
-  for (ham_size_t i = 0; i < CACHE_BUCKET_SIZE; i++)
+  for (ham_u32_t i = 0; i < CACHE_BUCKET_SIZE; i++)
     m_buckets.push_back(0);
 }
 
 ham_status_t
 Cache::check_integrity()
 {
-  ham_size_t elements = 0;
+  ham_u32_t elements = 0;
   Page *head;
   Page *tail = m_totallist_tail;
 

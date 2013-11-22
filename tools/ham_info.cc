@@ -222,7 +222,7 @@ main(int argc, char **argv) {
   int full = 0;
 
   ham_u16_t names[1024];
-  ham_size_t i, names_count = 1024;
+  ham_u32_t i, names_count = 1024;
   ham_status_t st;
   ham_env_t *env;
   ham_db_t *db;

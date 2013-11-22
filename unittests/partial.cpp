@@ -25,12 +25,12 @@
 using namespace hamsterdb;
 
 struct PartialWriteFixture {
-  ham_size_t m_pagesize;
+  ham_u32_t m_pagesize;
   bool m_inmemory;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialWriteFixture(ham_size_t pagesize = 0, bool inmemory = false)
+  PartialWriteFixture(ham_u32_t pagesize = 0, bool inmemory = false)
     : m_pagesize(pagesize), m_inmemory(inmemory) {
     setup();
   }
@@ -61,8 +61,8 @@ struct PartialWriteFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size) {
-    for (ham_size_t i = 0; i < size; i++)
+  void fillBuffer(ham_u8_t *ptr, ham_u32_t offset, ham_u32_t size) {
+    for (ham_u32_t i = 0; i < size; i++)
       ptr[offset + i] = (ham_u8_t)i;
   }
 
@@ -214,17 +214,17 @@ struct PartialWriteFixture {
   }
 
   void insertGapsTestPagesize() {
-    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps, ps, ps * 2);
   }
 
   void insertGapsTestPagesize2() {
-    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps * 2, ps * 2, ps * 4);
   }
 
   void insertGapsTestPagesize4() {
-    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps * 4, ps * 4, ps * 8);
   }
 };
@@ -243,12 +243,12 @@ struct PartialWriteFixture {
 
 
 struct OverwritePartialWriteFixture : public PartialWriteFixture {
-  OverwritePartialWriteFixture(ham_size_t pagesize, bool inmemory = false)
+  OverwritePartialWriteFixture(ham_u32_t pagesize, bool inmemory = false)
     : PartialWriteFixture(pagesize, inmemory) {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_size_t size) {
-    for (ham_size_t i = 0; i < size; i++)
+  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
+    for (ham_u32_t i = 0; i < size; i++)
       ptr[i] = (ham_u8_t)(0xff - i);
   }
 
@@ -305,8 +305,8 @@ struct ShrinkPartialWriteFixture : public PartialWriteFixture {
   ShrinkPartialWriteFixture() {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_size_t size) {
-    for (ham_size_t i = 0; i < size; i++)
+  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
+    for (ham_u32_t i = 0; i < size; i++)
       ptr[i] = (ham_u8_t)(0xff - i);
   }
 
@@ -560,8 +560,8 @@ struct GrowPartialWriteFixture : public PartialWriteFixture {
   GrowPartialWriteFixture() {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_size_t size) {
-    for (ham_size_t i = 0; i < size; i++)
+  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
+    for (ham_u32_t i = 0; i < size; i++)
       ptr[i] = (ham_u8_t)(0xff - i);
   }
 
@@ -811,13 +811,13 @@ TEST_CASE("Partial-grow/insertGapsTestPagesize4", "")
 }
 
 struct PartialReadFixture {
-  ham_size_t m_pagesize;
+  ham_u32_t m_pagesize;
   bool m_inmemory;
   ham_u32_t m_find_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialReadFixture(ham_size_t pagesize = 0, bool inmemory = false,
+  PartialReadFixture(ham_u32_t pagesize = 0, bool inmemory = false,
                   ham_u32_t find_flags = 0)
     : m_pagesize(pagesize), m_inmemory(inmemory), m_find_flags(find_flags) {
     ham_parameter_t params[] = {
@@ -841,8 +841,8 @@ struct PartialReadFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size) {
-    for (ham_size_t i = 0; i < size; i++)
+  void fillBuffer(ham_u8_t *ptr, ham_u32_t offset, ham_u32_t size) {
+    for (ham_u32_t i = 0; i < size; i++)
       ptr[i] = (ham_u8_t)(offset + i);
   }
 

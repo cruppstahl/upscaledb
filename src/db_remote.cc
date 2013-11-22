@@ -526,7 +526,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 
 ham_status_t
 RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
-                ham_size_t *count, ham_u32_t flags)
+                ham_u32_t *count, ham_u32_t flags)
 {
   ham_status_t st;
   RemoteEnvironment *env = get_remote_env();

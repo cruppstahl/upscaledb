@@ -164,8 +164,8 @@ jni_errhandler(int level, const char *message)
 
 static int
 jni_compare_func(ham_db_t *db,
-    const ham_u8_t *lhs, ham_size_t lhs_length,
-    const ham_u8_t *rhs, ham_size_t rhs_length)
+        const ham_u8_t *lhs, ham_u32_t lhs_length,
+        const ham_u8_t *rhs, ham_u32_t rhs_length)
 {
   jobject jcmpobj;
   jclass jcls, jcmpcls;
@@ -243,8 +243,8 @@ jni_compare_func(ham_db_t *db,
 #if 0 /* unused */
 static int
 jni_duplicate_compare_func(ham_db_t *db,
-    const ham_u8_t *lhs, ham_size_t lhs_length,
-    const ham_u8_t *rhs, ham_size_t rhs_length)
+        const ham_u8_t *lhs, ham_u32_t lhs_length,
+        const ham_u8_t *rhs, ham_u32_t rhs_length)
 {
   jobject jcmpobj;
   jclass jcls, jcmpcls;
@@ -513,7 +513,7 @@ Java_de_crupp_hamsterdb_Database_ham_1db_1find(JNIEnv *jenv, jobject jobj,
   memset(&hrec, 0, sizeof(hrec));
 
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jkey);
 
   st = ham_db_find((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
             &hkey, &hrec, (ham_u32_t)jflags);
@@ -545,9 +545,9 @@ Java_de_crupp_hamsterdb_Database_ham_1db_1insert(JNIEnv *jenv, jobject jobj,
   memset(&hrec, 0, sizeof(hrec));
 
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jkey);
   hrec.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
-  hrec.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jrecord);
+  hrec.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jrecord);
 
   st = ham_db_insert((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
             &hkey, &hrec, (ham_u32_t)jflags);
@@ -570,7 +570,7 @@ Java_de_crupp_hamsterdb_Database_ham_1db_1erase(JNIEnv *jenv, jobject jobj,
   memset(&hkey, 0, sizeof(hkey));
 
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jkey);
 
   st = ham_db_erase((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
             &hkey, (ham_u32_t)jflags);
@@ -697,7 +697,7 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1overwrite(JNIEnv *jenv,
     return (st);
 
   hrec.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrec, 0);
-  hrec.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jrec);
+  hrec.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jrec);
 
   st=ham_cursor_overwrite((ham_cursor_t *)jhandle, &hrec, (ham_u32_t)jflags);
 
@@ -720,7 +720,7 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1find(JNIEnv *jenv, jobject jobj,
     return (st);
 
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jkey);
 
   st = ham_cursor_find((ham_cursor_t *)jhandle, &hkey, 0, (ham_u32_t)jflags);
 
@@ -745,9 +745,9 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1insert(JNIEnv *jenv, jobject jobj,
     return (st);
 
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jkey);
   hrec.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
-  hrec.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jrecord);
+  hrec.size = (ham_u32_t)(*jenv)->GetArrayLength(jenv, jrecord);
 
   st = ham_cursor_insert((ham_cursor_t *)jhandle, &hkey, &hrec,
       (ham_u32_t)jflags);
@@ -774,7 +774,7 @@ JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
-  ham_size_t count;
+  ham_u32_t count;
   ham_status_t st;
   jnipriv p;
 
@@ -971,7 +971,7 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1get_1database_1names(JNIEnv *jenv,
 {
   ham_status_t st;
   jshortArray ret;
-  ham_size_t num_dbs = 128;
+  ham_u32_t num_dbs = 128;
   ham_u16_t *dbs = 0;
 
   while (1) {

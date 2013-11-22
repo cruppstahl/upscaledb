@@ -40,7 +40,7 @@ static void
 send_wrapper(ServerContext *srv, uv_stream_t *tcp, Protocol *reply)
 {
   ham_u8_t *data;
-  ham_size_t data_size;
+  ham_u32_t data_size;
 
   if (!reply->pack(&data, &data_size))
     return;
@@ -92,7 +92,7 @@ static void
 handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
-  ham_size_t i;
+  ham_u32_t i;
   ham_status_t st = 0;
   Environment *env = 0;
   ham_parameter_t params[100]; /* 100 should be enough... */
@@ -103,7 +103,7 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
   /* initialize the ham_parameters_t array */
   memset(&params[0], 0, sizeof(params));
   for (i = 0;
-      i < (ham_size_t)request->env_get_parameters_request().names().size()
+      i < (ham_u32_t)request->env_get_parameters_request().names().size()
         && i < 100; i++)
     params[i].name = request->mutable_env_get_parameters_request()->mutable_names()->mutable_data()[i];
 
@@ -121,7 +121,7 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
 
   /* initialize the reply package */
   for (i = 0;
-      i < (ham_size_t)request->env_get_parameters_request().names().size();
+      i < (ham_u32_t)request->env_get_parameters_request().names().size();
       i++) {
     switch (params[i].name) {
     case HAM_PARAM_CACHESIZE:
@@ -162,7 +162,7 @@ static void
 handle_env_get_database_names(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
-  ham_size_t num_names = 1024;
+  ham_u32_t num_names = 1024;
   ham_u16_t names[1024]; /* should be enough */
   Environment *env = 0;
 
@@ -241,8 +241,8 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
 
   /* convert parameters */
   ham_assert(request->env_create_db_request().param_names().size() < 100);
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->env_create_db_request().param_names().size();
+  for (ham_u32_t i = 0;
+      i < (ham_u32_t)request->env_create_db_request().param_names().size();
       i++) {
     params[i].name  = request->mutable_env_create_db_request()->mutable_param_names()->data()[i];
     params[i].value = request->mutable_env_create_db_request()->mutable_param_values()->data()[i];
@@ -286,8 +286,8 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp,
 
   /* convert parameters */
   ham_assert(request->env_open_db_request().param_names().size() < 100);
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->env_open_db_request().param_names().size();
+  for (ham_u32_t i = 0;
+      i < (ham_u32_t)request->env_open_db_request().param_names().size();
       i++) {
     params[i].name  = request->mutable_env_open_db_request()->mutable_param_names()->data()[i];
     params[i].value = request->mutable_env_open_db_request()->mutable_param_values()->data()[i];
@@ -389,8 +389,8 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
 
   /* initialize the ham_parameters_t array */
   memset(&params[0], 0, sizeof(params));
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->db_get_parameters_request().names().size()
+  for (ham_u32_t i = 0;
+      i < (ham_u32_t)request->db_get_parameters_request().names().size()
         && i < 100; i++)
     params[i].name = request->mutable_db_get_parameters_request()->mutable_names()->mutable_data()[i];
 
@@ -410,8 +410,8 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
   }
 
   /* initialize the reply package */
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->db_get_parameters_request().names().size();
+  for (ham_u32_t i = 0;
+      i < (ham_u32_t)request->db_get_parameters_request().names().size();
       i++) {
     switch (params[i].name) {
     case 0:
@@ -554,7 +554,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       memset(&rec, 0, sizeof(rec));
       if (request->db_insert_request().has_record()) {
-        rec.size = (ham_size_t)request->db_insert_request().record().data().size();
+        rec.size = (ham_u32_t)request->db_insert_request().record().data().size();
         if (rec.size)
           rec.data = (void *)&request->db_insert_request().record().data()[0];
         rec.partial_size = request->db_insert_request().record().partial_size();
@@ -615,7 +615,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
                   & (~HAM_KEY_USER_ALLOC);
 
       rec.data = (void *)&request->db_find_request().record().data()[0];
-      rec.size = (ham_size_t)request->db_find_request().record().data().size();
+      rec.size = (ham_u32_t)request->db_find_request().record().data().size();
       rec.partial_size = request->db_find_request().record().partial_size();
       rec.partial_offset = request->db_find_request().record().partial_offset();
       rec.flags = request->db_find_request().record().flags()
@@ -865,7 +865,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
   memset(&rec, 0, sizeof(rec));
   if (request->cursor_insert_request().has_record()) {
-    rec.size = (ham_size_t)request->cursor_insert_request().record().data().size();
+    rec.size = (ham_u32_t)request->cursor_insert_request().record().data().size();
     if (rec.size)
       rec.data = (void *)&request->cursor_insert_request().record().data()[0];
     rec.partial_size = request->cursor_insert_request().record().partial_size();
@@ -944,7 +944,7 @@ handle_cursor_find(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_find_request().record().data()[0];
-    rec.size = (ham_size_t)request->cursor_find_request().record().data().size();
+    rec.size = (ham_u32_t)request->cursor_find_request().record().data().size();
     rec.partial_size = request->cursor_find_request().record().partial_size();
     rec.partial_offset = request->cursor_find_request().record().partial_offset();
     rec.flags = request->cursor_find_request().record().flags()
@@ -977,7 +977,7 @@ handle_cursor_get_duplicate_count(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
   ham_status_t st = 0;
-  ham_size_t count = 0;
+  ham_u32_t count = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_get_duplicate_count_request());
@@ -1014,7 +1014,7 @@ handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
 
   memset(&rec, 0, sizeof(rec));
   rec.data = (void *)&request->cursor_overwrite_request().record().data()[0];
-  rec.size = (ham_size_t)request->cursor_overwrite_request().record().data().size();
+  rec.size = (ham_u32_t)request->cursor_overwrite_request().record().data().size();
   rec.partial_size = request->cursor_overwrite_request().record().partial_size();
   rec.partial_offset = request->cursor_overwrite_request().record().partial_offset();
   rec.flags = request->cursor_overwrite_request().record().flags()
@@ -1063,7 +1063,7 @@ handle_cursor_move(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_move_request().record().data()[0];
-    rec.size = (ham_size_t)request->cursor_move_request().record().data().size();
+    rec.size = (ham_u32_t)request->cursor_move_request().record().data().size();
     rec.partial_size = request->cursor_move_request().record().partial_size();
     rec.partial_offset = request->cursor_move_request().record().partial_offset();
     rec.flags = request->cursor_move_request().record().flags()
@@ -1114,7 +1114,7 @@ handle_cursor_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 }
 
 static bool
-dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u8_t *data, ham_size_t size)
+dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u8_t *data, ham_u32_t size)
 {
   // returns false if client should be closed, otherwise true
   Protocol *wrapper = Protocol::unpack(data, size);
@@ -1235,7 +1235,7 @@ static void
 on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
 {
   ham_assert(tcp != 0);
-  ham_size_t size = 0;
+  ham_u32_t size = 0;
   bool close_client = false;
   ClientContext *context = (ClientContext *)tcp->data;
   ByteArray *buffer = &context->buffer;
@@ -1251,7 +1251,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
       // for each full package in the buffer...
       while (buffer->get_size() > 8) {
         ham_u8_t *p = (ham_u8_t *)buffer->get_ptr();
-        size = 8 + *(ham_size_t *)(p + 4);
+        size = 8 + *(ham_u32_t *)(p + 4);
         // still not enough data? then return immediately
         if (buffer->get_size() < size)
           goto bail;
@@ -1263,7 +1263,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
           goto bail;
         }
         else {
-          ham_size_t new_size = buffer->get_size() - size;
+          ham_u32_t new_size = buffer->get_size() - size;
           memmove(p, p + size, new_size);
           buffer->set_size(new_size);
           // fall through and repeat the loop
@@ -1276,7 +1276,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
     // current network packet
     ham_u8_t *p = (ham_u8_t *)buf.base;
     while (p < (ham_u8_t *)buf.base + nread) {
-      size = 8 + *(ham_size_t *)(p + 4);
+      size = 8 + *(ham_u32_t *)(p + 4);
       if (size <= nread) {
         close_client = !dispatch(context->srv, tcp, p, size);
         if (close_client)

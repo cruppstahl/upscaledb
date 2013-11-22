@@ -1102,7 +1102,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
       /* if duplicate keys are enabled: set the duplicate index of
        * the new key  */
       if (st == 0 && cursor->get_dupecache_count()) {
-        ham_size_t i;
+        ham_u32_t i;
         TransactionCursor *txnc = cursor->get_txn_cursor();
         TransactionOperation *op = txnc->get_coupled_op();
         ham_assert(op != 0);
@@ -1404,7 +1404,7 @@ bail:
 
 ham_status_t
 LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
-          ham_size_t *count, ham_u32_t flags)
+          ham_u32_t *count, ham_u32_t flags)
 {
   ham_status_t st = 0;
   Transaction *local_txn = 0;

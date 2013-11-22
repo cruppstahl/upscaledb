@@ -237,19 +237,19 @@ struct LogFixture {
 
     REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     checkLogEntry(log, &entry, 5, buffer.get_ptr());
-    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(m_lenv->get_pagesize() == (ham_u32_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     checkLogEntry(log, &entry, 4, buffer.get_ptr());
-    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(m_lenv->get_pagesize() == (ham_u32_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     checkLogEntry(log, &entry, 3, buffer.get_ptr());
-    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(m_lenv->get_pagesize() == (ham_u32_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     checkLogEntry(log, &entry, 2, buffer.get_ptr());
-    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(m_lenv->get_pagesize() == (ham_u32_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     checkLogEntry(log, &entry, 1, buffer.get_ptr());
-    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(m_lenv->get_pagesize() == (ham_u32_t)entry.data_size);
   }
 };
 
@@ -392,7 +392,7 @@ struct LogHighLevelFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     ham_u8_t *buffer = (ham_u8_t *)malloc(m_lenv->get_pagesize());
     memset(buffer, 0, m_lenv->get_pagesize());
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
 
     REQUIRE(0 ==
           m_lenv->get_log()->append_write(2, 0, ps, buffer, ps));
@@ -570,7 +570,7 @@ struct LogHighLevelFixture {
 #ifndef WIN32
     LocalDatabase *db = (LocalDatabase *)m_db;
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
     Page *page;
 
     REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page, db,
@@ -618,7 +618,7 @@ struct LogHighLevelFixture {
   void recoverAllocateMultiplePageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 
@@ -674,7 +674,7 @@ struct LogHighLevelFixture {
   void recoverModifiedPageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
     Page *page;
     LocalDatabase *db = (LocalDatabase *)m_db;
 
@@ -723,7 +723,7 @@ struct LogHighLevelFixture {
   void recoverModifiedMultiplePageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 
@@ -782,7 +782,7 @@ struct LogHighLevelFixture {
   void recoverMixedAllocatedModifiedPageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-    ham_size_t ps = m_lenv->get_pagesize();
+    ham_u32_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 

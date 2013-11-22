@@ -36,10 +36,10 @@ struct FreelistEntry {
   ham_u64_t start_address;
 
   // maximum bits in this page
-  ham_size_t max_bits;
+  ham_u32_t max_bits;
 
   // free bits in this page
-  ham_size_t free_bits;
+  ham_u32_t free_bits;
 
   // the page ID
   ham_u64_t pageid;
@@ -76,7 +76,7 @@ class Freelist
 
     // Adds an arbitrary file area to the freelist
     // Asserts that address and size are aligned to |kBlobAlignment|!
-    ham_status_t free_area(ham_u64_t address, ham_size_t size);
+    ham_status_t free_area(ham_u64_t address, ham_u32_t size);
 
     // Tries to allocate an (aligned) page from the freelist.
     // Returns 0 in |paddress| if there was not enough free space to satisfy
@@ -87,7 +87,7 @@ class Freelist
     // Returns 0 in |paddress| if there was not enough free space to satisfy
     // the request.
     // Asserts that size is aligned to |kBlobAlignment|.
-    ham_status_t alloc_area(ham_size_t size, ham_u64_t *paddress) {
+    ham_status_t alloc_area(ham_u32_t size, ham_u64_t *paddress) {
       return (alloc_area_impl(size, paddress, false, 0));
     }
 
@@ -113,7 +113,7 @@ class Freelist
 
     // Actual implementation for the alloc*-functions.
     // The lower_bound_address is assumed to be aligned.
-    ham_status_t alloc_area_impl(ham_size_t size, ham_u64_t *paddr,
+    ham_status_t alloc_area_impl(ham_u32_t size, ham_u64_t *paddr,
                 bool aligned, ham_u64_t lower_bound_address);
 
     // Returns the first freelist entry
@@ -142,27 +142,27 @@ class Freelist
     FreelistEntry *get_entry_for_address(ham_u64_t address);
 
     // Returns the maximum bits that fit in a regular page
-    ham_size_t get_entry_maxspan();
+    ham_u32_t get_entry_maxspan();
 
     // Resizes the cache and adds |new_count| entries
-    void resize(ham_size_t new_count);
+    void resize(ham_u32_t new_count);
 
     // Allocates a freelist page for the specified |entry|
     ham_status_t alloc_freelist_page(Page **ppage, FreelistEntry *entry);
 
     // Sets (or resets) all bits in a given range, depending on |set|
-    ham_size_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,
-                    ham_size_t start_bit, ham_size_t size_bits,
+    ham_u32_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,
+                    ham_u32_t start_bit, ham_u32_t size_bits,
                     bool set, FreelistStatistics::Hints *hints);
 
     // Checks if the specified bits are set; if not, returns -1. Otherwise
     // returns the number of checked bits (= |size_bits|)
-    ham_size_t check_bits(FreelistEntry *entry, PFreelistPayload *fp,
-                    ham_size_t start_bit, ham_size_t size_bits);
+    ham_u32_t check_bits(FreelistEntry *entry, PFreelistPayload *fp,
+                    ham_u32_t start_bit, ham_u32_t size_bits);
 
     // Searches for a free bit array in the whole list
     ham_s32_t search_bits(FreelistEntry *entry, PFreelistPayload *f,
-                    ham_size_t size_bits, FreelistStatistics::Hints *hints);
+                    ham_u32_t size_bits, FreelistStatistics::Hints *hints);
 
     // Report if the requested size can be obtained from the given freelist
     // page.
@@ -216,7 +216,7 @@ HAM_PACK_0 class HAM_PACK_1 PFreelistPayload
     }
 
     // Returns the offset of the persistent freelist header
-    static ham_size_t get_bitmap_offset() {
+    static ham_u32_t get_bitmap_offset() {
       return (OFFSETOF(PFreelistPayload, m_bitmap));
     }
 

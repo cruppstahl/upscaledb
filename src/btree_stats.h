@@ -62,10 +62,10 @@ class BtreeStatistics {
       ham_u16_t processed_slot;
 
       // count the number of appends
-      ham_size_t append_count;
+      ham_u32_t append_count;
 
       // count the number of prepends
-      ham_size_t prepend_count;
+      ham_u32_t prepend_count;
     };
 
     // Constructor
@@ -103,13 +103,13 @@ class BtreeStatistics {
     ham_u64_t m_last_leaf_pages[kOperationMax];
 
     // count of how often this leaf page was used
-    ham_size_t m_last_leaf_count[kOperationMax];
+    ham_u32_t m_last_leaf_count[kOperationMax];
 
     // count the number of appends
-    ham_size_t m_append_count;
+    ham_u32_t m_append_count;
 
     // count the number of prepends
-    ham_size_t m_prepend_count;
+    ham_u32_t m_prepend_count;
 };
 
 } // namespace hamsterdb

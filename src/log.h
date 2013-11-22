@@ -127,7 +127,7 @@ class Log
     }
 
     // Adds the write-ahead information of a page
-    ham_status_t append_page(Page *page, ham_u64_t lsn, ham_size_t page_count);
+    ham_status_t append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count);
 
     // Retrieves the current lsn
     ham_u64_t get_lsn() {
@@ -187,13 +187,13 @@ class Log
     // Invoked by |Log::append_page()| to save the new
     // content of the specified page.
     ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags,
-                    ham_u64_t offset, ham_u8_t *data, ham_size_t size);
+                    ham_u64_t offset, ham_u8_t *data, ham_u32_t size);
 
     // Returns the path of the log file
     std::string get_path();
 
     // Writes a byte buffer to the log file
-    ham_status_t append_entry(Log::PEntry *entry, ham_size_t size);
+    ham_status_t append_entry(Log::PEntry *entry, ham_u32_t size);
 
     // References the Environment this log file is for
     LocalEnvironment *m_env;

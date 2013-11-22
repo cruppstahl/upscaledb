@@ -572,7 +572,7 @@ class Transaction
     std::string m_name;
 
     // reference counter for cursors (number of cursors attached to this txn)
-    ham_size_t m_cursor_refcount;
+    ham_u32_t m_cursor_refcount;
 
     // index of the log file descriptor for this transaction [0..1]
     int m_log_desc;

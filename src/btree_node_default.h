@@ -136,7 +136,7 @@ class DefaultIterator
     }
 
     // Overwrites the key data
-    void set_key_data(const void *ptr, ham_size_t len) {
+    void set_key_data(const void *ptr, ham_u32_t len) {
       return (m_node->set_key_data(m_slot, ptr, len));
     }
   
@@ -182,7 +182,7 @@ class DefaultIterator
     }
 
     // Sets the inline record data
-    void set_inline_record_data(const void *data, ham_size_t size) {
+    void set_inline_record_data(const void *data, ham_u32_t size) {
       ham_u32_t flags = get_key_flags();
       // make sure that the flags are zeroed out
       flags &= ~(BtreeKey::kBlobSizeSmall
@@ -209,7 +209,7 @@ class DefaultIterator
     }
 
     // Returns the size of the record, if inline
-    ham_size_t get_inline_record_size() const {
+    ham_u32_t get_inline_record_size() const {
       ham_assert(is_record_inline() == true);
       if (get_key_flags() & BtreeKey::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
@@ -226,7 +226,7 @@ class DefaultIterator
     }
 
     // Returns the maximum size of inline records
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
@@ -263,7 +263,7 @@ class FixedLayoutImpl
     };
 
   public:
-    void initialize(ham_u8_t *dataptr, ham_size_t key_size) {
+    void initialize(ham_u8_t *dataptr, ham_u32_t key_size) {
       m_dataptr = dataptr;
       m_key_size = key_size;
       // this layout only works with fixed sizes!
@@ -276,7 +276,7 @@ class FixedLayoutImpl
     }
 
     // Returns the memory span from one key to the next
-    ham_size_t get_key_index_span() const {
+    ham_u32_t get_key_index_span() const {
       return (kSpan);
     }
 
@@ -338,7 +338,7 @@ class DefaultLayoutImpl
     };
 
   public:
-    void initialize(ham_u8_t *dataptr, ham_size_t key_size) {
+    void initialize(ham_u8_t *dataptr, ham_u32_t key_size) {
       m_dataptr = dataptr;
       // this layout only works with unlimited/variable sizes!
       ham_assert(key_size == HAM_KEY_SIZE_UNLIMITED);
@@ -350,7 +350,7 @@ class DefaultLayoutImpl
     }
 
     // Returns the memory span from one key to the next
-    ham_size_t get_key_index_span() const {
+    ham_u32_t get_key_index_span() const {
       return (kSpan);
     }
 
@@ -446,7 +446,7 @@ class DefaultNodeLayout
     }
 
     // Returns the actual key size (including overhead, without record)
-    static ham_u16_t get_system_keysize(ham_size_t keysize) {
+    static ham_u16_t get_system_keysize(ham_u32_t keysize) {
       // unlimited/variable keys require 5 bytes for flags + key size + offset;
       // assume an average key size of 32 bytes (this is a random guess, but
       // will be good enough)
@@ -483,7 +483,7 @@ class DefaultNodeLayout
       ByteArray arena;
       ham_u32_t count = m_node->get_count();
       Iterator it = begin();
-      for (ham_size_t i = 0; i < count; i++, it->next()) {
+      for (ham_u32_t i = 0; i < count; i++, it->next()) {
         // internal nodes: only allowed flag is kExtended
         if ((it->get_key_flags() != 0
             && it->get_key_flags() != BtreeKey::kExtended)
@@ -554,7 +554,7 @@ class DefaultNodeLayout
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
     int find(ham_key_t *key, Cmp &comparator, int *pcmp = 0) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
       int i, l = 1, r = count - 1;
       int ret = 0, last = count + 1;
       int cmp = -1;
@@ -650,7 +650,7 @@ class DefaultNodeLayout
 
     ham_status_t get_duplicate_count(Iterator it,
                     DuplicateManager *duplicate_manager,
-                    ham_size_t *pcount) const {
+                    ham_u32_t *pcount) const {
       if (!(it->get_key_flags() & BtreeKey::kDuplicates)) {
         *pcount = 1;
         return (0);
@@ -680,7 +680,7 @@ class DefaultNodeLayout
         record->_intflags = dupe_entry_get_flags(duplicate_entry);
         record->_rid = dupe_entry_get_rid(duplicate_entry);
 
-        ham_size_t size = 0xffffffff;
+        ham_u32_t size = 0xffffffff;
         if (record->_intflags & BtreeKey::kBlobSizeTiny) {
           /* the highest byte of the record id is the size of the blob */
           char *p = (char *)&record->_rid;
@@ -721,7 +721,7 @@ class DefaultNodeLayout
 
       // regular inline record, no duplicates
       if (it->is_record_inline()) {
-        ham_size_t size = it->get_inline_record_size();
+        ham_u32_t size = it->get_inline_record_size();
         if (size == 0) {
           record->data = 0;
           record->size = 0;
@@ -752,8 +752,8 @@ class DefaultNodeLayout
     }
 
     ham_status_t set_record(Iterator it, Transaction *txn,
-                    ham_record_t *record, ham_size_t duplicate_position,
-                    ham_u32_t flags, ham_size_t *new_duplicate_position) {
+                    ham_record_t *record, ham_u32_t duplicate_position,
+                    ham_u32_t flags, ham_u32_t *new_duplicate_position) {
       ham_status_t st;
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
@@ -1024,7 +1024,7 @@ class DefaultNodeLayout
     }
 
     ham_status_t insert(ham_u32_t slot, const ham_key_t *key) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
 
       ham_assert(0 == check_index_integrity(count));
 
@@ -1283,8 +1283,8 @@ class DefaultNodeLayout
     }
 
     void merge_from(DefaultNodeLayout *other) {
-      ham_size_t count = m_node->get_count();
-      ham_size_t other_count = other->m_node->get_count();
+      ham_u32_t count = m_node->get_count();
+      ham_u32_t other_count = other->m_node->get_count();
 
       ham_assert(0 == check_index_integrity(count));
       ham_assert(0 == other->check_index_integrity(other_count));
@@ -1301,7 +1301,7 @@ class DefaultNodeLayout
                       m_layout.get_key_index_span() * other_count);
 
       // for each new key: copy the key data
-      for (ham_size_t i = 0; i < other_count; i++) {
+      for (ham_u32_t i = 0; i < other_count; i++) {
         ham_u32_t size = other->get_key_data_size(i);
         ham_u8_t *data = other->get_key_data(i);
         ham_u32_t offset = append_key(count + i, count + i, data, size, false);
@@ -1324,7 +1324,7 @@ class DefaultNodeLayout
 
       other->clear_extkey_cache();
 
-      ham_size_t pos = m_node->get_count();
+      ham_u32_t pos = m_node->get_count();
 
       // shift |count| indices from |other| to this page
       memcpy(m_layout.get_key_index_ptr(pos),
@@ -1389,7 +1389,7 @@ class DefaultNodeLayout
 
     // Clears the page with zeroes and reinitializes it
     void test_clear_page() {
-      ham_size_t pagesize = m_page->get_db()->get_local_env()->get_pagesize();
+      ham_u32_t pagesize = m_page->get_db()->get_local_env()->get_pagesize();
       memset(m_page->get_raw_payload(), 0, pagesize);
       initialize();
     }
@@ -1399,13 +1399,13 @@ class DefaultNodeLayout
 
     void initialize() {
       LocalDatabase *db = m_page->get_db();
-      ham_size_t keysize = db->get_btree_index()->get_key_size();
+      ham_u32_t keysize = db->get_btree_index()->get_key_size();
 
       m_layout.initialize(m_node->get_data() + kPayloadOffset, keysize);
 
       if (m_node->get_count() == 0) {
-        ham_size_t recsize = db->get_btree_index()->get_record_size();
-        ham_size_t pagesize = db->get_local_env()->get_pagesize()
+        ham_u32_t recsize = db->get_btree_index()->get_record_size();
+        ham_u32_t pagesize = db->get_local_env()->get_pagesize()
                 - kPayloadOffset;
         /* adjust page size and key size by adding the overhead */
         pagesize -= PBtreeNode::get_entry_offset();
@@ -1527,19 +1527,19 @@ class DefaultNodeLayout
     }
 
     ham_u8_t *get_key_data(int slot) {
-      ham_size_t offset = m_layout.get_key_data_offset(slot)
+      ham_u32_t offset = m_layout.get_key_data_offset(slot)
               + m_layout.get_key_index_span() * get_capacity();
       return (m_node->get_data() + kPayloadOffset + offset);
     }
 
     ham_u8_t *get_key_data(int slot) const {
-      ham_size_t offset = m_layout.get_key_data_offset(slot)
+      ham_u32_t offset = m_layout.get_key_data_offset(slot)
               + m_layout.get_key_index_span() * get_capacity();
       return (m_node->get_data() + kPayloadOffset + offset);
     }
 
-    void set_key_data(int slot, const void *ptr, ham_size_t len) {
-      ham_size_t offset = m_layout.get_key_data_offset(slot)
+    void set_key_data(int slot, const void *ptr, ham_u32_t len) {
+      ham_u32_t offset = m_layout.get_key_data_offset(slot)
               + m_layout.get_key_index_span() * get_capacity();
       memcpy(m_node->get_data() + kPayloadOffset + offset, ptr, len);
     }
@@ -1564,7 +1564,7 @@ class DefaultNodeLayout
 
     // Searches for a freelist index with at least |size| bytes; returns
     // its index
-    int freelist_find(ham_u32_t count, ham_size_t key_size) const {
+    int freelist_find(ham_u32_t count, ham_u32_t key_size) const {
       ham_u32_t freelist_count = get_freelist_count();
       for (ham_u32_t i = 0; i < freelist_count; i++) {
         if (get_key_data_size(count + i) >= key_size)
@@ -1577,7 +1577,7 @@ class DefaultNodeLayout
     void freelist_remove(int index) {
       ham_assert(get_freelist_count() > 0);
 
-      if ((ham_size_t)index < m_node->get_count() + get_freelist_count() - 1) {
+      if ((ham_u32_t)index < m_node->get_count() + get_freelist_count() - 1) {
         memmove(m_layout.get_key_index_ptr(index),
                         m_layout.get_key_index_ptr(index + 1),
                         m_layout.get_key_index_span()
@@ -1623,8 +1623,8 @@ class DefaultNodeLayout
     // Appends a key to the key space; if |use_freelist| is true, it will
     // first search for a sufficiently large freelist entry. Returns the
     // offset of the new key.
-    int append_key(ham_u32_t slot, ham_size_t count,
-                    const void *key_data, ham_size_t key_size,
+    int append_key(ham_u32_t slot, ham_u32_t count,
+                    const void *key_data, ham_u32_t key_size,
                     bool use_freelist) {
       // search the freelist for free key space
       int idx = -1;
@@ -1703,7 +1703,7 @@ class DefaultNodeLayout
       RangeVec ranges;
       ranges.reserve(total);
       ham_u32_t next_offset = 0;
-      for (ham_size_t i = 0; i < total; i++) {
+      for (ham_u32_t i = 0; i < total; i++) {
         ham_u32_t next = m_layout.get_key_data_offset(i)
                     + get_key_data_size(i)
                     + sizeof(ham_u64_t);
@@ -1713,7 +1713,7 @@ class DefaultNodeLayout
                              get_key_data_size(i)));
       }
       std::sort(ranges.begin(), ranges.end());
-      for (ham_size_t i = 0; i < ranges.size() - 1; i++) {
+      for (ham_u32_t i = 0; i < ranges.size() - 1; i++) {
         if (ranges[i].first + ranges[i].second + sizeof(ham_u64_t)
                         > ranges[i + 1].first) {
           ham_trace(("integrity violated: index %u/%u + 8 overlaps with %lu",
@@ -1755,7 +1755,7 @@ class DefaultNodeLayout
       // shift all keys to the left, get rid of all gaps at the front of the
       // key data or between the keys
       ham_u32_t next_offset = 0;
-      ham_size_t start = kPayloadOffset
+      ham_u32_t start = kPayloadOffset
                        + m_layout.get_key_index_span() * get_capacity();
       for (ham_u32_t i = 0; i < count; i++) {
         ham_u32_t offset = s[i].offset;

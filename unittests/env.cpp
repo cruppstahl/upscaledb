@@ -538,7 +538,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
         REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_size_t)sizeof(buffer) == rec.size);
+        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -558,7 +558,7 @@ struct EnvFixture {
           sprintf(buffer, "%08x%08x", j, i+1);
 
           REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-          REQUIRE((ham_size_t)sizeof(buffer) == rec.size);
+          REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
           REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
         }
       }
@@ -611,7 +611,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
         REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_size_t)sizeof(buffer) == rec.size);
+        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -647,7 +647,7 @@ struct EnvFixture {
           if (j & 1) { // must exist
             REQUIRE(0 ==
                 ham_db_find(db[i], 0, &key, &rec, 0));
-            REQUIRE((ham_size_t)sizeof(buffer) == rec.size);
+            REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
             REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
           }
           else { // was deleted
@@ -702,13 +702,13 @@ struct EnvFixture {
 
       REQUIRE(0 == ham_cursor_move(cursor[i], &key, &rec, HAM_CURSOR_FIRST));
       sprintf(buffer, "%08x%08x", 0, i+1);
-      REQUIRE((ham_size_t)(strlen(buffer) + 1) == rec.size);
+      REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
       REQUIRE(0 == strcmp(buffer, (char *)rec.data));
 
       for (int j = 1; j < MAX_ITEMS; j++) {
         REQUIRE(0 == ham_cursor_move(cursor[i], &key, &rec, HAM_CURSOR_NEXT));
         sprintf(buffer, "%08x%08x", j, i+1);
-        REQUIRE((ham_size_t)(strlen(buffer) + 1) == rec.size);
+        REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
         REQUIRE(0 == strcmp(buffer, (char *)rec.data));
       }
     }
@@ -745,7 +745,7 @@ struct EnvFixture {
                 ham_cursor_find(cursor[i], &key, 0, 0));
             REQUIRE(0 ==
                 ham_cursor_move(cursor[i], 0, &rec, 0));
-            REQUIRE((ham_size_t)(strlen(buffer) + 1) == rec.size);
+            REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
             REQUIRE(0 == strcmp(buffer, (char *)rec.data));
           }
           else { // was deleted
@@ -818,7 +818,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
 		REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_size_t)sizeof(buffer) == rec.size);
+        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -1100,7 +1100,7 @@ struct EnvFixture {
     ham_env_t *env;
     ham_db_t *db1, *db2, *db3;
     ham_u16_t names[5];
-    ham_size_t names_size = 0;
+    ham_u32_t names_size = 0;
 
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, 0));
@@ -1115,7 +1115,7 @@ struct EnvFixture {
     names_size = 1;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_size_t)0 == names_size);
+    REQUIRE((ham_u32_t)0 == names_size);
 
     REQUIRE(0 ==
         ham_env_create_db(env, &db1, 111, 0, 0));
@@ -1126,7 +1126,7 @@ struct EnvFixture {
     names_size = 1;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_size_t)1 == names_size);
+    REQUIRE((ham_u32_t)1 == names_size);
     REQUIRE((ham_u16_t)111 == names[0]);
 
     REQUIRE(0 ==
@@ -1140,7 +1140,7 @@ struct EnvFixture {
     names_size = 5;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_size_t)3 == names_size);
+    REQUIRE((ham_u32_t)3 == names_size);
     REQUIRE((ham_u16_t)111 == names[0]);
     REQUIRE((ham_u16_t)222 == names[1]);
     REQUIRE((ham_u16_t)333 == names[2]);
@@ -1151,7 +1151,7 @@ struct EnvFixture {
       names_size = 5;
       REQUIRE(0 ==
           ham_env_get_database_names(env, names, &names_size));
-      REQUIRE((ham_size_t)2 == names_size);
+      REQUIRE((ham_u32_t)2 == names_size);
       REQUIRE((ham_u16_t)111 == names[0]);
       REQUIRE((ham_u16_t)333 == names[1]);
     }

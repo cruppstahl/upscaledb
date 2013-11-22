@@ -91,7 +91,7 @@ class Device {
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.
-    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) = 0;
+    virtual ham_status_t alloc(ham_u32_t size, ham_u64_t *address) = 0;
 
     // allocate storage for a page from this device; this function
     // can use mmap if available
@@ -111,7 +111,7 @@ class Device {
     }
 
     // set the pagesize for this device 
-    void set_pagesize(ham_size_t pagesize) {
+    void set_pagesize(ham_u32_t pagesize) {
       m_pagesize = pagesize;
     }
 
@@ -128,7 +128,7 @@ class Device {
     ham_u32_t m_flags;
 
     // the page size 
-    ham_size_t m_pagesize;
+    ham_u32_t m_pagesize;
 
     friend class DeviceTest;
     friend class InMemoryDeviceTest;

@@ -91,8 +91,8 @@ class Changeset
     LocalEnvironment *m_env;
 
     /** write all pages in a bucket to the log file */
-    ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,
-                            ham_u64_t lsn, ham_size_t &page_count) ;
+    ham_status_t log_bucket(Page **bucket, ham_u32_t bucket_size,
+                            ham_u64_t lsn, ham_u32_t &page_count) ;
 
     /** the head of our linked list */
     Page *m_head;
@@ -104,20 +104,20 @@ class Changeset
      *   http://social.msdn.microsoft.com/Forums/en-us/vcgeneral/thread/1bf2b062-150f-4f86-8081-d4d5dd0d1956
      */
     Page **m_blobs;
-    ham_size_t m_blobs_size;
-    ham_size_t m_blobs_capacity;
+    ham_u32_t m_blobs_size;
+    ham_u32_t m_blobs_capacity;
 
     Page **m_freelists;
-    ham_size_t m_freelists_size;
-    ham_size_t m_freelists_capacity;
+    ham_u32_t m_freelists_size;
+    ham_u32_t m_freelists_capacity;
 
     Page **m_indices;
-    ham_size_t m_indices_size;
-    ham_size_t m_indices_capacity;
+    ham_u32_t m_indices_size;
+    ham_u32_t m_indices_capacity;
 
     Page **m_others;
-    ham_size_t m_others_size;
-    ham_size_t m_others_capacity;
+    ham_u32_t m_others_size;
+    ham_u32_t m_others_capacity;
 
   public:
     /** an error inducer - required for testing */

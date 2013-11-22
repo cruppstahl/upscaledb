@@ -147,7 +147,7 @@ class BtreeIndexTraits
     virtual ~BtreeIndexTraits() { }
 
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_size_t keysize) const = 0;
+    virtual ham_u16_t get_system_keysize(ham_u32_t keysize) const = 0;
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
@@ -225,11 +225,11 @@ class BtreeIndex
     }
 
     // Calculates the "maxkeys" values - the limit of keys per page
-    ham_size_t get_maxkeys(ham_size_t pagesize, ham_u16_t keysize,
-                        ham_size_t recsize) const;
+    ham_u32_t get_maxkeys(ham_u32_t pagesize, ham_u16_t keysize,
+                        ham_u32_t recsize) const;
 
     // Returns the actual key size (including overhead)
-    ham_u16_t get_system_keysize(ham_size_t keysize) const {
+    ham_u16_t get_system_keysize(ham_u32_t keysize) const {
       return (m_leaf_traits->get_system_keysize(keysize));
     }
 

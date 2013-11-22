@@ -207,11 +207,11 @@ class Journal
 
     // Appends an entry to the journal
     ham_status_t append_entry(int fdidx,
-                void *ptr1 = 0, ham_size_t ptr1_size = 0,
-                void *ptr2 = 0, ham_size_t ptr2_size = 0,
-                void *ptr3 = 0, ham_size_t ptr3_size = 0,
-                void *ptr4 = 0, ham_size_t ptr4_size = 0,
-                void *ptr5 = 0, ham_size_t ptr5_size = 0) {
+                void *ptr1 = 0, ham_u32_t ptr1_size = 0,
+                void *ptr2 = 0, ham_u32_t ptr2_size = 0,
+                void *ptr3 = 0, ham_u32_t ptr3_size = 0,
+                void *ptr4 = 0, ham_u32_t ptr4_size = 0,
+                void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
       return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
                   ptr2, ptr2_size, ptr3, ptr3_size,
                   ptr4, ptr4_size, ptr5, ptr5_size));
@@ -224,16 +224,16 @@ class Journal
     LocalEnvironment *m_env;
 
     // The index of the file descriptor we are currently writing to
-    ham_size_t m_current_fd;
+    ham_u32_t m_current_fd;
 
     // The two file descriptors
     ham_fd_t m_fd[2];
 
     // For counting all open transactions in the files
-    ham_size_t m_open_txn[2];
+    ham_u32_t m_open_txn[2];
 
     // For counting all closed transactions in the files
-    ham_size_t m_closed_txn[2];
+    ham_u32_t m_closed_txn[2];
 
     // The last used lsn
     ham_u64_t m_lsn;
@@ -243,7 +243,7 @@ class Journal
 
     // When having more than these Transactions in one file, we
     // swap the files
-    ham_size_t m_threshold;
+    ham_u32_t m_threshold;
 
     // Set to false to disable logging; used during recovery
     bool m_disable_logging;

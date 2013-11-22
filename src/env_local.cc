@@ -43,13 +43,13 @@ LocalEnvironment::get_btree_descriptor(int i)
 }
 
 PFreelistPayload *
-LocalEnvironment::get_freelist_payload(ham_size_t *psize)
+LocalEnvironment::get_freelist_payload(ham_u32_t *psize)
 {
-  ham_size_t header_size = (sizeof(PEnvironmentHeader)
+  ham_u32_t header_size = (sizeof(PEnvironmentHeader)
                   + m_header->get_max_databases() * sizeof(PBtreeHeader));
 
   if (psize) {
-    ham_size_t size = get_usable_pagesize();
+    ham_u32_t size = get_usable_pagesize();
     size -= header_size;
     size -= PFreelistPayload::get_bitmap_offset();
     size -= size % sizeof(ham_u64_t);
@@ -72,7 +72,7 @@ LocalEnvironment::~LocalEnvironment()
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
-        ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+        ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
         ham_u16_t max_databases)
 {
   ham_status_t st = 0;
@@ -154,7 +154,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-        ham_size_t cachesize)
+        ham_u32_t cachesize)
 {
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
@@ -381,11 +381,11 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t
-LocalEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
+LocalEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
 {
   ham_u16_t name;
-  ham_size_t i = 0;
-  ham_size_t max_names = 0;
+  ham_u32_t i = 0;
+  ham_u32_t max_names = 0;
 
   max_names = *count;
   *count = 0;
@@ -660,7 +660,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 
   /* check if this database name is unique */
   ham_assert(m_header->get_max_databases() > 0);
-  for (ham_size_t i = 0; i < m_header->get_max_databases(); i++) {
+  for (ham_u32_t i = 0; i < m_header->get_max_databases(); i++) {
     ham_u16_t name = get_btree_descriptor(i)->get_dbname();
     if (!name)
       continue;

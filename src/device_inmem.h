@@ -117,7 +117,7 @@ class InMemoryDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
-    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) {
+    virtual ham_status_t alloc(ham_u32_t size, ham_u64_t *address) {
       ham_assert(!"can't alloc from an in-memory-device");
       return (HAM_NOT_IMPLEMENTED);
     }

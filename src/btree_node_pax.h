@@ -57,12 +57,12 @@ struct PaxIterator
 {
   public:
     // Constructor
-    PaxIterator(PaxNodeLayout<KeyList, RecordList> *node, ham_size_t slot)
+    PaxIterator(PaxNodeLayout<KeyList, RecordList> *node, ham_u32_t slot)
       : m_node(node), m_slot(slot) {
     }
 
     // Constructor
-    PaxIterator(const PaxNodeLayout<KeyList, RecordList> *node, ham_size_t slot)
+    PaxIterator(const PaxNodeLayout<KeyList, RecordList> *node, ham_u32_t slot)
       : m_node((PaxNodeLayout<KeyList, RecordList> *)node), m_slot(slot) {
     }
 
@@ -97,7 +97,7 @@ struct PaxIterator
     }
 
     // Overwrites the key data
-    void set_key_data(const void *ptr, ham_size_t size) {
+    void set_key_data(const void *ptr, ham_u32_t size) {
       ham_assert(size == get_key_size());
       m_node->set_key_data(m_slot, ptr, size);
     }
@@ -143,17 +143,17 @@ struct PaxIterator
     }
 
     // Sets the record data
-    void set_inline_record_data(const void *ptr, ham_size_t size) {
+    void set_inline_record_data(const void *ptr, ham_u32_t size) {
       m_node->set_record_data(m_slot, ptr, size);
     }
 
     // Returns the size of the record, if inline
-    ham_size_t get_inline_record_size() const {
+    ham_u32_t get_inline_record_size() const {
       return (m_node->get_inline_record_size(m_slot));
     }
 
     // Returns the maximum size of inline records
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (m_node->get_max_inline_record_size());
     }
 
@@ -183,7 +183,7 @@ struct PaxIterator
     PaxNodeLayout<KeyList, RecordList> *m_node;
 
     // The current slot in the node
-    ham_size_t m_slot;
+    ham_u32_t m_slot;
 };
 
 //
@@ -197,7 +197,7 @@ class PodKeyList
       : m_data((T *)data) {
     }
 
-    ham_size_t get_key_size() const {
+    ham_u32_t get_key_size() const {
       return (sizeof(T));
     }
 
@@ -209,7 +209,7 @@ class PodKeyList
       return ((ham_u8_t *)&m_data[slot]);
     }
 
-    void set_key_data(int slot, const void *ptr, ham_size_t size) {
+    void set_key_data(int slot, const void *ptr, ham_u32_t size) {
       ham_assert(size == get_key_size());
       m_data[slot] = *(T *)ptr;
     }
@@ -230,7 +230,7 @@ class BinaryKeyList
       ham_assert(m_key_size != 0);
     }
 
-    ham_size_t get_key_size() const {
+    ham_u32_t get_key_size() const {
       return (m_key_size);
     }
 
@@ -242,14 +242,14 @@ class BinaryKeyList
       return (&m_data[slot * m_key_size]);
     }
 
-    void set_key_data(int slot, const void *ptr, ham_size_t size) {
+    void set_key_data(int slot, const void *ptr, ham_u32_t size) {
       ham_assert(size == get_key_size());
       memcpy(&m_data[slot * m_key_size], ptr, size);
     }
 
   private:
     ham_u8_t *m_data;
-    ham_size_t m_key_size;
+    ham_u32_t m_key_size;
 };
 
 
@@ -269,7 +269,7 @@ class DefaultRecordList
     }
 
     // Returns the maximum size of an inline record
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
@@ -281,7 +281,7 @@ class DefaultRecordList
     }
 
     // Returns the size of an inline record
-    ham_size_t get_inline_record_size(int slot, ham_u32_t flags) const {
+    ham_u32_t get_inline_record_size(int slot, ham_u32_t flags) const {
       ham_assert(is_record_inline(slot, flags));
       if (flags & BtreeKey::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
@@ -303,7 +303,7 @@ class DefaultRecordList
     }
 
     // Returns the fixed record size
-    ham_size_t get_record_size() const {
+    ham_u32_t get_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
@@ -324,7 +324,7 @@ class DefaultRecordList
 
     // Sets record data; returns the new flags
     ham_u32_t set_record_data(int slot, ham_u32_t flags, const void *ptr,
-                    ham_size_t size) {
+                    ham_u32_t size) {
       flags &= ~(BtreeKey::kBlobSizeSmall
                       | BtreeKey::kBlobSizeTiny
                       | BtreeKey::kBlobSizeEmpty);
@@ -380,7 +380,7 @@ class InternalRecordList
     }
 
     // Returns the maximum size of an inline record
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
@@ -390,7 +390,7 @@ class InternalRecordList
     }
 
     // Returns the size of an inline record
-    ham_size_t get_inline_record_size(int slot, ham_u32_t flags) const {
+    ham_u32_t get_inline_record_size(int slot, ham_u32_t flags) const {
       return (get_record_size());
     }
 
@@ -400,7 +400,7 @@ class InternalRecordList
     }
 
     // Returns the fixed record size
-    ham_size_t get_record_size() const {
+    ham_u32_t get_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
@@ -431,7 +431,7 @@ class InternalRecordList
 
     // Sets record data
     ham_u32_t set_record_data(int slot, ham_u32_t flags, const void *ptr,
-                    ham_size_t size) {
+                    ham_u32_t size) {
       flags &= ~(BtreeKey::kBlobSizeSmall
                       | BtreeKey::kBlobSizeTiny
                       | BtreeKey::kBlobSizeEmpty);
@@ -468,7 +468,7 @@ class InlineRecordList
     }
 
     // Returns the maximum size of an inline record
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (m_record_size);
     }
 
@@ -478,7 +478,7 @@ class InlineRecordList
     }
 
     // Returns the size of an inline record
-    ham_size_t get_inline_record_size(int slot, ham_u32_t flags) const {
+    ham_u32_t get_inline_record_size(int slot, ham_u32_t flags) const {
       return (get_record_size());
     }
 
@@ -488,7 +488,7 @@ class InlineRecordList
     }
 
     // Returns the fixed record size
-    ham_size_t get_record_size() const {
+    ham_u32_t get_record_size() const {
       return (m_record_size);
     }
 
@@ -509,7 +509,7 @@ class InlineRecordList
 
     // Sets record data
     ham_u32_t set_record_data(int slot, ham_u32_t flags, const void *ptr,
-                    ham_size_t size) {
+                    ham_u32_t size) {
       ham_assert(size == get_record_size());
       if (size)
         memcpy(&m_data[m_record_size * slot], ptr, size);
@@ -531,7 +531,7 @@ class InlineRecordList
 
   private:
     ham_u8_t *m_data;
-    ham_size_t m_record_size;
+    ham_u32_t m_record_size;
 };
 
 
@@ -550,10 +550,10 @@ class PaxNodeLayout
       : m_page(page), m_node(PBtreeNode::from_page(page)),
         m_keys(page->get_db(), m_node->get_data()),
         m_records(page->get_db()) {
-      ham_size_t usable_nodesize = page->get_env()->get_pagesize()
+      ham_u32_t usable_nodesize = page->get_env()->get_pagesize()
                     - PBtreeNode::get_entry_offset()
                     - Page::sizeof_persistent_header;
-      ham_size_t keysize = get_system_keysize(m_keys.get_key_size());
+      ham_u32_t keysize = get_system_keysize(m_keys.get_key_size());
       m_max_count = usable_nodesize / (keysize + m_records.get_record_size());
 
       ham_u8_t *p = m_node->get_data();
@@ -569,7 +569,7 @@ class PaxNodeLayout
     }
 
     // Returns the actual key size (including overhead, without record)
-    static ham_u16_t get_system_keysize(ham_size_t keysize) {
+    static ham_u16_t get_system_keysize(ham_u32_t keysize) {
       ham_assert(keysize != HAM_KEY_SIZE_UNLIMITED);
       return ((ham_u16_t)(keysize
                       + (RecordList::is_always_fixed_size() ? 0 : 1)));
@@ -603,7 +603,7 @@ class PaxNodeLayout
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
     int find(ham_key_t *key, Cmp &comparator, int *pcmp = 0) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
       int i, l = 1, r = count - 1;
       int ret = 0, last = count + 1;
       int cmp = -1;
@@ -678,7 +678,7 @@ class PaxNodeLayout
 
     ham_status_t get_duplicate_count(Iterator it,
                     DuplicateManager *duplicate_manager,
-                    ham_size_t *pcount) const {
+                    ham_u32_t *pcount) const {
       *pcount = 1;
       return (0);
     }
@@ -695,7 +695,7 @@ class PaxNodeLayout
 
       // regular inline record, no duplicates
       if (it->is_record_inline()) {
-        ham_size_t size = it->get_inline_record_size();
+        ham_u32_t size = it->get_inline_record_size();
         if (size == 0) {
           record->data = 0;
           record->size = 0;
@@ -742,8 +742,8 @@ class PaxNodeLayout
     }
 
     ham_status_t set_record(Iterator it, Transaction *txn,
-                    ham_record_t *record, ham_size_t duplicate_position,
-                    ham_u32_t flags, ham_size_t *new_duplicate_position) {
+                    ham_record_t *record, ham_u32_t duplicate_position,
+                    ham_u32_t flags, ham_u32_t *new_duplicate_position) {
       ham_status_t st;
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
@@ -830,7 +830,7 @@ class PaxNodeLayout
     }
 
     void erase(ham_u32_t slot) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
 
       if (slot != count - 1) {
         memmove(m_keys.get_key_data(slot), m_keys.get_key_data(slot + 1),
@@ -876,7 +876,7 @@ class PaxNodeLayout
     ham_status_t insert(ham_u32_t slot, const ham_key_t *key) {
       ham_assert(key->size == get_key_size());
 
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
 
       // make space for 1 additional element.
       // only store the key data; flags and record IDs are set by the caller
@@ -915,7 +915,7 @@ class PaxNodeLayout
     }
 
     void split(PaxNodeLayout *other, int pivot) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
 
       /*
        * if a leaf page is split then the pivot element must be inserted in
@@ -948,7 +948,7 @@ class PaxNodeLayout
     }
 
     void merge_from(PaxNodeLayout *other) {
-      ham_size_t count = m_node->get_count();
+      ham_u32_t count = m_node->get_count();
 
       /* shift items from the sibling to this page */
       memcpy(m_keys.get_key_data(count), other->m_keys.get_key_data(0),
@@ -961,7 +961,7 @@ class PaxNodeLayout
     }
 
     void shift_from_right(PaxNodeLayout *other, int count) {
-      ham_size_t pos = m_node->get_count();
+      ham_u32_t pos = m_node->get_count();
 
       // shift |count| elements from |other| to this page
       memcpy(m_keys.get_key_data(pos), other->m_keys.get_key_data(0),
@@ -1015,7 +1015,7 @@ class PaxNodeLayout
     friend struct PaxIterator<KeyList, RecordList>;
 
     // Returns the key size
-    ham_size_t get_key_size() const {
+    ham_u32_t get_key_size() const {
       return (m_keys.get_key_size());
     }
 
@@ -1039,7 +1039,7 @@ class PaxNodeLayout
     }
 
     // Sets the key data
-    void set_key_data(int slot, const void *ptr, ham_size_t size) {
+    void set_key_data(int slot, const void *ptr, ham_u32_t size) {
       m_keys.set_key_data(slot, ptr, size);
     }
 
@@ -1049,12 +1049,12 @@ class PaxNodeLayout
     }
 
     // Returns the maximum size of an inline record
-    ham_size_t get_max_inline_record_size() const {
+    ham_u32_t get_max_inline_record_size() const {
       return (m_records.get_max_inline_record_size());
     }
 
     // Returns the size of an inline record
-    ham_size_t get_inline_record_size(int slot) const {
+    ham_u32_t get_inline_record_size(int slot) const {
       ham_assert(is_record_inline(slot) == true);
       return (m_records.get_inline_record_size(slot, get_key_flags(slot)));
     }
@@ -1083,7 +1083,7 @@ class PaxNodeLayout
     }
 
     // Sets the record data
-    void set_record_data(int slot, const void *ptr, ham_size_t size) {
+    void set_record_data(int slot, const void *ptr, ham_u32_t size) {
       if (RecordList::is_always_fixed_size())
         m_records.set_record_data(slot, 0, ptr, size);
       else
@@ -1093,7 +1093,7 @@ class PaxNodeLayout
 
     Page *m_page;
     PBtreeNode *m_node;
-    ham_size_t m_max_count;
+    ham_u32_t m_max_count;
     ham_u8_t *m_flags;
     KeyList m_keys;
     RecordList m_records;

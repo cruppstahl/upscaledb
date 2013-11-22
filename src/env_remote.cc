@@ -72,7 +72,7 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 
 ham_status_t
 RemoteEnvironment::create(const char *url, ham_u32_t flags,
-        ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+        ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
         ham_u16_t maxdbs)
 {
   // the 'create' operation is identical to 'open'
@@ -81,7 +81,7 @@ RemoteEnvironment::create(const char *url, ham_u32_t flags,
 
 ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
-        ham_size_t cachesize)
+        ham_u32_t cachesize)
 {
   (void)cachesize;
 
@@ -194,7 +194,7 @@ RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t
-RemoteEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
+RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
 {
   Protocol *reply = 0;
 
@@ -218,9 +218,9 @@ RemoteEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
   }
 
   /* copy the retrieved names */
-  ham_size_t i;
+  ham_u32_t i;
   for (i = 0;
-      i < (ham_size_t)reply->env_get_database_names_reply().names_size()
+      i < (ham_u32_t)reply->env_get_database_names_reply().names_size()
         && i < *count;
       i++) {
     names[i] = (ham_u16_t)*(reply->mutable_env_get_database_names_reply()->mutable_names()->mutable_data() + i);

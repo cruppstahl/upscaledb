@@ -328,7 +328,7 @@ class BtreeInsertAction
       m_btree->get_statistics()->reset_page(page);
 
       BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_page);
-      ham_size_t count = old_node->get_count();
+      ham_u32_t count = old_node->get_count();
 
       /*
        * for databases with sequential access (this includes recno databases):
@@ -441,7 +441,7 @@ class BtreeInsertAction
     ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_u64_t rid,
                 bool force_prepend = false, bool force_append = false) {
       ham_status_t st;
-      ham_size_t new_dupe_id = 0;
+      ham_u32_t new_dupe_id = 0;
       bool exists = false;
       ham_s32_t slot;
 

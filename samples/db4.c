@@ -73,7 +73,7 @@ main(int argc, char **argv) {
       key.size = sizeof(recno);
 
       record.data = p;
-      record.size = (ham_size_t)strlen(p) + 1; /* also store
+      record.size = (ham_u32_t)strlen(p) + 1; /* also store
                             * terminating 0 */
 
       st = ham_db_insert(db, 0, &key, &record, 0);

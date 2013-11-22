@@ -70,7 +70,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
 #endif
 
 // get the page allocation granularity of the operating system
-extern ham_size_t
+extern ham_u32_t
 os_get_granularity(void);
 
 // seek position in a file
@@ -112,12 +112,12 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
 
 // (blocking) writes |data_size| bytes in |data| to the socket
 extern ham_status_t
-os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_size_t data_size);
+os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size);
 
 // (blocking) reads |data_size| bytes from |socket|, stores the data
 // in |data|
 extern ham_status_t
-os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_size_t data_size);
+os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size);
 
 // closes the socket, then sets |*socket| to HAM_INVALID_FD
 extern ham_status_t

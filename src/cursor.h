@@ -162,8 +162,8 @@ class DupeCache {
     }
 
     // Returns the number of elements in the cache
-    ham_size_t get_count() const {
-      return ((ham_size_t)m_elements.size());
+    ham_u32_t get_count() const {
+      return ((ham_u32_t)m_elements.size());
     }
 
     // Returns an element from the cache
@@ -362,7 +362,7 @@ class Cursor
 
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
-    ham_size_t get_dupecache_count() {
+    ham_u32_t get_dupecache_count() {
       if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
         return (0);
 
@@ -425,12 +425,12 @@ class Cursor
     }
 
     // Returns the current index in the dupe cache
-    ham_size_t get_dupecache_index() const {
+    ham_u32_t get_dupecache_index() const {
       return (m_dupecache_index);
     }
 
     // Sets the current index in the dupe cache
-    void set_dupecache_index(ham_size_t index) {
+    void set_dupecache_index(ham_u32_t index) {
       m_dupecache_index = index;
     }
 

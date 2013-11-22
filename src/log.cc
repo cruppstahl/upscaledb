@@ -120,10 +120,10 @@ Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ByteArray *buffer)
     ham_u64_t pos = (*iter) - entry->data_size;
     pos -= (pos % 8);
 
-    if (!buffer->resize((ham_size_t)entry->data_size))
+    if (!buffer->resize((ham_u32_t)entry->data_size))
       return (HAM_OUT_OF_MEMORY);
 
-    st = os_pread(m_fd, pos, buffer->get_ptr(), (ham_size_t)entry->data_size);
+    st = os_pread(m_fd, pos, buffer->get_ptr(), (ham_u32_t)entry->data_size);
     if (st) {
       buffer->clear();
       return (st);
@@ -163,11 +163,11 @@ Log::close(bool noclear)
 }
 
 ham_status_t
-Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
+Log::append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count)
 {
   ham_status_t st = 0;
   ham_u8_t *p = (ham_u8_t *)page->get_raw_payload();
-  ham_size_t size = m_env->get_pagesize();
+  ham_u32_t size = m_env->get_pagesize();
 
   if (st == 0)
     st = append_write(lsn, page_count == 0 ? kChangesetIsComplete : 0,
@@ -284,7 +284,7 @@ bail:
 
 ham_status_t
 Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
-                ham_u8_t *data, ham_size_t size)
+                ham_u8_t *data, ham_u32_t size)
 {
   Log::PEntry entry;
 

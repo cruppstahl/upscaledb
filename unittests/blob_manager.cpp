@@ -30,12 +30,12 @@ struct BlobManagerFixture {
   ham_env_t *m_env;
   bool m_inmemory;
   bool m_use_txn;
-  ham_size_t m_cachesize;
-  ham_size_t m_pagesize;
+  ham_u32_t m_cachesize;
+  ham_u32_t m_pagesize;
   BlobManager *m_blob_manager;
 
   BlobManagerFixture(bool inmemory = false, bool use_txn = false,
-        ham_size_t cachesize = 0, ham_size_t pagesize = 0)
+        ham_u32_t cachesize = 0, ham_u32_t pagesize = 0)
     : m_db(0), m_inmemory(inmemory), m_use_txn(use_txn),
       m_cachesize(cachesize), m_pagesize(pagesize) {
     ham_parameter_t params[3] = {
@@ -119,7 +119,7 @@ struct BlobManagerFixture {
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db,
                 blobid, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
     REQUIRE(0 == m_blob_manager->free((LocalDatabase *)m_db, blobid, 0));
@@ -142,7 +142,7 @@ struct BlobManagerFixture {
     ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
     record.size = sizeof(buffer2);
@@ -153,7 +153,7 @@ struct BlobManagerFixture {
 
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid2, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer2));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
     REQUIRE(0 == m_blob_manager->free((LocalDatabase *)m_db, blobid2, 0));
@@ -176,7 +176,7 @@ struct BlobManagerFixture {
     ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
     record.size = sizeof(buffer2);
@@ -187,7 +187,7 @@ struct BlobManagerFixture {
 
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid2, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer2));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
     REQUIRE(0 == m_blob_manager->free((LocalDatabase *)m_db, blobid2, 0));
@@ -210,7 +210,7 @@ struct BlobManagerFixture {
     ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
     record.size = sizeof(buffer2);
@@ -221,7 +221,7 @@ struct BlobManagerFixture {
 
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid2, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)sizeof(buffer2));
+    REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
     /* make sure that at least 64bit are in the freelist */
@@ -264,7 +264,7 @@ struct BlobManagerFixture {
     ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
     REQUIRE(0 ==
         m_blob_manager->read((LocalDatabase *)m_db, blobid, &record, 0, arena));
-    REQUIRE(record.size == (ham_size_t)ps * BLOCKS * 2);
+    REQUIRE(record.size == (ham_u32_t)ps * BLOCKS * 2);
 
     /* and erase it */
     REQUIRE(0 == m_blob_manager->free((LocalDatabase *)m_db, blobid, 0));
@@ -308,7 +308,7 @@ struct BlobManagerFixture {
 
       ham_record_t rec = {0};
       rec.data = buffer;
-      rec.size = (ham_size_t)((i + 1) * factor);
+      rec.size = (ham_u32_t)((i + 1) * factor);
       REQUIRE(0 == m_blob_manager->allocate((LocalDatabase *)m_db, &rec,
                   0, &blobid[i]));
       REQUIRE(blobid[i] != 0ull);
@@ -324,7 +324,7 @@ struct BlobManagerFixture {
 
       REQUIRE(0 == m_blob_manager->read((LocalDatabase *)m_db, blobid[i],
                               &record, 0, arena));
-      REQUIRE(record.size == (ham_size_t)(i + 1) * factor);
+      REQUIRE(record.size == (ham_u32_t)(i + 1) * factor);
       REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
       ::free(buffer);

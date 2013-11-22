@@ -110,8 +110,8 @@ class BtreeCursor
 
     // Couples the cursor to a key directly in a page. Also sets the
     // duplicate index.
-    void couple_to_page(Page *page, ham_size_t index,
-                    ham_size_t duplicate_index) {
+    void couple_to_page(Page *page, ham_u32_t index,
+                    ham_u32_t duplicate_index) {
       couple_to_page(page, index);
       m_duplicate_index = duplicate_index;
     }
@@ -122,7 +122,7 @@ class BtreeCursor
     }
 
     // Sets the duplicate key we're pointing to
-    void set_duplicate_index(ham_size_t duplicate_index) {
+    void set_duplicate_index(ham_u32_t duplicate_index) {
       m_duplicate_index = duplicate_index;
       memset(&m_dupe_cache, 0, sizeof(m_dupe_cache));
     }
@@ -151,7 +151,7 @@ class BtreeCursor
     ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     // Returns the number of duplicates of the referenced key
-    ham_status_t get_duplicate_count(ham_size_t *count, ham_u32_t flags);
+    ham_status_t get_duplicate_count(ham_u32_t *count, ham_u32_t flags);
 
     // Overwrite the record of this cursor
     ham_status_t overwrite(ham_record_t *record, ham_u32_t flags);
@@ -166,12 +166,12 @@ class BtreeCursor
 
     // Uncouples all cursors from a page
     // This method is called whenever the page is deleted or becomes invalid
-    static ham_status_t uncouple_all_cursors(Page *page, ham_size_t start = 0);
+    static ham_status_t uncouple_all_cursors(Page *page, ham_u32_t start = 0);
 
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
     // links the Cursor with |page| (and vice versa).
-    void couple_to_page(Page *page, ham_size_t index);
+    void couple_to_page(Page *page, ham_u32_t index);
 
     // Removes this cursor from a page
     void remove_cursor_from_page(Page *page);
@@ -207,7 +207,7 @@ class BtreeCursor
     int m_state;
 
     // the id of the duplicate key to which this cursor is coupled
-    ham_size_t m_duplicate_index;
+    ham_u32_t m_duplicate_index;
 
     // cached flags and record ID of the current duplicate
     PDupeEntry m_dupe_cache;
@@ -216,7 +216,7 @@ class BtreeCursor
     Page *m_coupled_page;
 
     // ... and the index of the key in that page
-    ham_size_t m_coupled_index;
+    ham_u32_t m_coupled_index;
 
     // for uncoupled cursors: a copy of the key at which we're pointing
     ham_key_t m_uncoupled_key;

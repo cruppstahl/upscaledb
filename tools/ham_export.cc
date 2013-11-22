@@ -296,13 +296,13 @@ main(int argc, char **argv) {
 
   /* get a list of all databases */
   ham_u16_t names[1024];
-  ham_size_t names_count = 1024;
+  ham_u32_t names_count = 1024;
   st = ham_env_get_database_names(env, names, &names_count);
   if (st != HAM_SUCCESS)
     error("ham_env_get_database_names", st);
 
   /* for each database: print information about the database */
-  for (ham_size_t i = 0; i < names_count; i++) {
+  for (ham_u32_t i = 0; i < names_count; i++) {
     st = ham_env_open_db(env, &db, names[i], 0, 0);
     if (st)
       error("ham_env_open_db", st);

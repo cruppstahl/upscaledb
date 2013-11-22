@@ -44,7 +44,7 @@ TEST_CASE("OsTest/openReadOnlyClose",
   const char *p = "# XXXXXXXXX ERROR\n";
 
   REQUIRE(0 == os_open("Makefile.am", HAM_READ_ONLY, &fd));
-  REQUIRE(HAM_IO_ERROR == os_pwrite(fd, 0, p, (ham_size_t)strlen(p)));
+  REQUIRE(HAM_IO_ERROR == os_pwrite(fd, 0, p, (ham_u32_t)strlen(p)));
   REQUIRE(0 == os_close(fd));
 }
 
@@ -138,7 +138,7 @@ TEST_CASE("OsTest/mmapTest",
            "Tests the operating system functions in os*")
 {
   ham_fd_t fd, mmaph;
-  ham_size_t ps = os_get_granularity();
+  ham_u32_t ps = os_get_granularity();
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
@@ -161,7 +161,7 @@ TEST_CASE("OsTest/mmapAbortTest",
            "Tests the operating system functions in os*")
 {
   ham_fd_t fd, mmaph;
-  ham_size_t ps = os_get_granularity();
+  ham_u32_t ps = os_get_granularity();
   ham_u8_t *page, *mapped;
   page = (ham_u8_t *)malloc(ps);
 
@@ -189,7 +189,7 @@ TEST_CASE("OsTest/mmapReadOnlyTest",
 {
   int i;
   ham_fd_t fd, mmaph;
-  ham_size_t ps = os_get_granularity();
+  ham_u32_t ps = os_get_granularity();
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
@@ -215,7 +215,7 @@ TEST_CASE("OsTest/multipleMmapTest",
            "Tests the operating system functions in os*")
 {
   ham_fd_t fd, mmaph;
-  ham_size_t ps = os_get_granularity();
+  ham_u32_t ps = os_get_granularity();
   ham_u8_t *p1, *p2;
   ham_u64_t addr = 0, size;
 
@@ -225,7 +225,7 @@ TEST_CASE("OsTest/multipleMmapTest",
 
     p1 = (ham_u8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    REQUIRE(0 == os_pwrite(fd, addr, p1, (ham_size_t)size));
+    REQUIRE(0 == os_pwrite(fd, addr, p1, (ham_u32_t)size));
     free(p1);
     addr += size;
   }
@@ -236,9 +236,9 @@ TEST_CASE("OsTest/multipleMmapTest",
 
     p1 = (ham_u8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    REQUIRE(0 == os_mmap(fd, &mmaph, addr, (ham_size_t)size, 0, &p2));
+    REQUIRE(0 == os_mmap(fd, &mmaph, addr, (ham_u32_t)size, 0, &p2));
     REQUIRE(0 == memcmp(p1, p2, (size_t)size));
-    REQUIRE(0 == os_munmap(&mmaph, p2, (ham_size_t)size));
+    REQUIRE(0 == os_munmap(&mmaph, p2, (ham_u32_t)size));
     free(p1);
     addr += size;
   }

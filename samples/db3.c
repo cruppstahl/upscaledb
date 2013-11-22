@@ -21,8 +21,8 @@
 #define DATABASE_NAME       1
 
 static int
-my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length,
-          const ham_u8_t *rhs, ham_size_t rhs_length) {
+my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_u32_t lhs_length,
+          const ham_u8_t *rhs, ham_u32_t rhs_length) {
   int s = strncmp((const char *)lhs, (const char *)rhs,
       lhs_length < rhs_length ? lhs_length : rhs_length);
   if (s < 0)
@@ -93,7 +93,7 @@ main(int argc, char **argv) {
      */
     while ((p = strtok(start, " \t\r\n"))) {
       key.data = p;
-      key.size = (ham_size_t)strlen(p) + 1; /* also store the terminating
+      key.size = (ham_u32_t)strlen(p) + 1; /* also store the terminating
                            * 0-byte */
 
       st = ham_db_insert(db, 0, &key, &record, 0);

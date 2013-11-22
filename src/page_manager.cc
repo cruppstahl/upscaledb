@@ -21,7 +21,7 @@
 
 namespace hamsterdb {
 
-PageManager::PageManager(LocalEnvironment *env, ham_size_t cachesize)
+PageManager::PageManager(LocalEnvironment *env, ham_u32_t cachesize)
   : m_env(env), m_cache(0), m_freelist(0), m_page_count_fetched(0),
     m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
     m_page_count_freelist(0)
@@ -203,7 +203,7 @@ done:
 }
 
 ham_status_t
-PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
+PageManager::alloc_blob(Database *db, ham_u32_t size, ham_u64_t *address,
                         bool *allocated)
 {
   *address = 0;
@@ -278,7 +278,7 @@ PageManager::reclaim_space()
 
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
 
-  ham_size_t pagesize = m_env->get_pagesize();
+  ham_u32_t pagesize = m_env->get_pagesize();
   ham_u64_t filesize;
   ham_status_t st = m_env->get_device()->get_filesize(&filesize);
   if (st)

@@ -305,7 +305,7 @@ ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
-  ham_size_t pagesize = HAM_DEFAULT_PAGESIZE;
+  ham_u32_t pagesize = HAM_DEFAULT_PAGESIZE;
   ham_u64_t cachesize = 0;
   ham_u16_t maxdbs = 0;
   ham_u32_t timeout = 0;
@@ -382,10 +382,10 @@ ham_env_create(ham_env_t **henv, const char *filename,
           ham_trace(("invalid pagesize - must be 1024 or a multiple of 2048"));
           return (HAM_INV_PAGESIZE);
         }
-        pagesize = (ham_size_t)param->value;
+        pagesize = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_MAX_DATABASES:
-        maxdbs = (ham_size_t)param->value;
+        maxdbs = (ham_u32_t)param->value;
         if (maxdbs == 0) {
           ham_trace(("invalid value %u for parameter HAM_PARAM_MAX_DATABASES",
                  (unsigned)param->value));
@@ -445,7 +445,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
    * leave at least 128 bytes for the freelist and the other header data
    */
   {
-    ham_size_t l = pagesize - sizeof(PEnvironmentHeader)
+    ham_u32_t l = pagesize - sizeof(PEnvironmentHeader)
         - PFreelistPayload::get_bitmap_offset() - 128;
 
     l /= sizeof(PBtreeHeader);
@@ -780,7 +780,7 @@ ham_env_erase_db(ham_env_t *henv, ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_size_t *count)
+ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_u32_t *count)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -1610,7 +1610,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
-        ham_size_t *count, ham_u32_t flags)
+        ham_u32_t *count, ham_u32_t flags)
 {
   Database *db;
 

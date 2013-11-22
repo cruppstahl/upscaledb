@@ -371,7 +371,7 @@ ParserGenerator::generate_record(const char *recdata)
   ham_record_t rec = {0};
 
   /* allocate and initialize data */
-  ham_size_t data_size = (ham_size_t)strtoul(recdata, 0, 0);
+  ham_u32_t data_size = (ham_u32_t)strtoul(recdata, 0, 0);
 
   if (data_size) {
     if (data_size > m_data_size) {
@@ -381,7 +381,7 @@ ParserGenerator::generate_record(const char *recdata)
     /* always start with a random number - otherwise berkeleydb fails
      * too often when duplicate keys are inserted with duplicate
      * records */
-    for (ham_size_t i = 0; i < data_size; i++)
+    for (ham_u32_t i = 0; i < data_size; i++)
       ((char *)m_data_ptr)[i] = (m_cur_line + i) & 0xff;
     if (data_size >= sizeof(unsigned))
       *(unsigned *)m_data_ptr = m_cur_line;

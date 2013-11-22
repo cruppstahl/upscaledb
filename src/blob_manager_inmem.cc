@@ -85,7 +85,7 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
     return (0);
   }
 
-  ham_size_t blobsize = (ham_size_t)blob_header->get_size();
+  ham_u32_t blobsize = (ham_u32_t)blob_header->get_size();
 
   record->size = blobsize;
 

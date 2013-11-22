@@ -139,7 +139,7 @@ class BtreeNodeProxy
 
     // Returns the number of duplicates of a key at the given |slot|
     virtual ham_status_t get_duplicate_count(int slot,
-                    ham_size_t *pcount) const = 0;
+                    ham_u32_t *pcount) const = 0;
 
     // Returns true if the key at the given |slot| has duplicates
     virtual bool has_duplicates(ham_u32_t slot) const = 0;
@@ -172,8 +172,8 @@ class BtreeNodeProxy
     //
     // a previously existing blob will be deleted if necessary
     virtual ham_status_t set_record(int slot, Transaction *txn,
-                    ham_record_t *record, ham_size_t duplicate_position,
-                    ham_u32_t flags, ham_size_t *new_duplicate_position) = 0;
+                    ham_record_t *record, ham_u32_t duplicate_position,
+                    ham_u32_t flags, ham_u32_t *new_duplicate_position) = 0;
 
     // Removes the record (or the duplicate of it, if |duplicate_id| is > 0).
     // If |all_duplicates| is set then all duplicates of this key are deleted.
@@ -227,7 +227,7 @@ class BtreeNodeProxy
     virtual void shift_to_right(BtreeNodeProxy *other, int slot, int count) = 0;
 
     // Prints the node to stdout (for debugging)
-    virtual void print(ham_size_t count = 0) = 0;
+    virtual void print(ham_u32_t count = 0) = 0;
 
     // Returns the flags of the key at the given |slot|; only for testing!
     virtual ham_u32_t test_get_flags(int slot) const = 0;
@@ -252,8 +252,8 @@ struct CallbackCompare
     : m_db(db) {
   }
 
-  int operator()(const void *lhs_data, ham_size_t lhs_size,
-          const void *rhs_data, ham_size_t rhs_size) const {
+  int operator()(const void *lhs_data, ham_u32_t lhs_size,
+          const void *rhs_data, ham_u32_t rhs_size) const {
     return (m_db->get_compare_func()((::ham_db_t *)m_db, (ham_u8_t *)lhs_data,
                             lhs_size, (ham_u8_t *)rhs_data, rhs_size));
   }
@@ -267,8 +267,8 @@ struct RecordNumberCompare
   RecordNumberCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_size_t lhs_size,
-          const void *rhs_data, ham_size_t rhs_size) const {
+  int operator()(const void *lhs_data, ham_u32_t lhs_size,
+          const void *rhs_data, ham_u32_t rhs_size) const {
     ham_assert(lhs_size == rhs_size);
     ham_assert(lhs_size == sizeof(ham_u64_t));
     ham_u64_t l = ham_db2h64(*(ham_u64_t *)lhs_data);
@@ -284,8 +284,8 @@ struct NumericCompare
   NumericCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_size_t lhs_size,
-          const void *rhs_data, ham_size_t rhs_size) const {
+  int operator()(const void *lhs_data, ham_u32_t lhs_size,
+          const void *rhs_data, ham_u32_t rhs_size) const {
     ham_assert(lhs_size == rhs_size);
     ham_assert(lhs_size == sizeof(T));
     T l = *(T *)lhs_data;
@@ -301,8 +301,8 @@ struct FixedSizeCompare
   FixedSizeCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_size_t lhs_size,
-          const void *rhs_data, ham_size_t rhs_size) const {
+  int operator()(const void *lhs_data, ham_u32_t lhs_size,
+          const void *rhs_data, ham_u32_t rhs_size) const {
     ham_assert(lhs_size == rhs_size);
     return (::memcmp(lhs_data, rhs_data, lhs_size));
   }
@@ -316,8 +316,8 @@ struct VariableSizeCompare
   VariableSizeCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_size_t lhs_size,
-          const void *rhs_data, ham_size_t rhs_size) const {
+  int operator()(const void *lhs_data, ham_u32_t lhs_size,
+          const void *rhs_data, ham_u32_t rhs_size) const {
     if (lhs_size < rhs_size) {
       int m = ::memcmp(lhs_data, rhs_data, lhs_size);
       if (m < 0)
@@ -368,7 +368,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void enumerate(BtreeVisitor &visitor) {
       typename NodeLayout::Iterator it = m_layout.begin();
       ham_u32_t count = get_count();
-      for (ham_size_t i = 0; i < count; i++, it->next()) {
+      for (ham_u32_t i = 0; i < count; i++, it->next()) {
         if (!visitor(this, it->get_key_data(), it->get_key_flags(),
                                 it->get_key_size(), it->get_record_id()))
           break;
@@ -440,7 +440,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns the number of duplicates of a key at the given |slot|
     virtual ham_status_t get_duplicate_count(int slot,
-                    ham_size_t *pcount) const {
+                    ham_u32_t *pcount) const {
       typename NodeLayout::Iterator it = m_layout.at(slot);
       return (m_layout.get_duplicate_count(it,
                     m_page->get_db()->get_local_env()->get_duplicate_manager(),
@@ -466,8 +466,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     virtual ham_status_t set_record(int slot, Transaction *txn,
-                    ham_record_t *record, ham_size_t duplicate_position,
-                    ham_u32_t flags, ham_size_t *new_duplicate_position) {
+                    ham_record_t *record, ham_u32_t duplicate_position,
+                    ham_u32_t flags, ham_u32_t *new_duplicate_position) {
       typename NodeLayout::Iterator it = m_layout.at(slot);
       return (m_layout.set_record(it, txn, record, duplicate_position,
                               flags, new_duplicate_position));
@@ -522,7 +522,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void remove_all_entries() {
       typename NodeLayout::Iterator it = m_layout.begin();
       ham_u32_t count = get_count();
-      for (ham_size_t i = 0; i < count; i++, it->next()) {
+      for (ham_u32_t i = 0; i < count; i++, it->next()) {
         m_layout.erase_key(it);
 
         /* if we're in the leaf page, delete the associated record */
@@ -632,7 +632,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Prints the node to stdout (for debugging)
-    virtual void print(ham_size_t count = 0) {
+    virtual void print(ham_u32_t count = 0) {
       printf("page %llu: %u elements (leaf: %d, left: %llu, right: %llu, "
               "ptr_down: %llu)\n",
               (unsigned long long)m_page->get_address(), get_count(),
@@ -643,7 +643,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       ByteArray arena;
       if (!count)
         count = get_count();
-      for (ham_size_t i = 0; i < count; i++, it->next()) {
+      for (ham_u32_t i = 0; i < count; i++, it->next()) {
         if (it->get_key_flags() & BtreeKey::kExtended) {
           ham_key_t key = {0};
           get_key(i, &arena, &key);
@@ -654,7 +654,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
           //printf("    %08d -> %08llx\n", *(int *)it->get_key_data(),
                   //(unsigned long long)it->get_record_id());
          printf("%03u:    ", i);
-         for (ham_size_t j = 0; j < it->get_key_size(); j++)
+         for (ham_u32_t j = 0; j < it->get_key_size(); j++)
            printf("%c", ((const char *)it->get_key_data())[j]);
           printf(" (%d) -> %08llx\n", it->get_key_size(),
                           (unsigned long long)it->get_record_id());

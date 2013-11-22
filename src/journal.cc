@@ -30,8 +30,8 @@
 
 namespace hamsterdb {
 
-static ham_size_t
-__get_aligned_entry_size(ham_size_t s)
+static ham_u32_t
+__get_aligned_entry_size(ham_u32_t s)
 {
   s += 8 - 1;
   s -= (s % 8);
@@ -198,11 +198,11 @@ Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env,
   int cur = txn->get_log_desc();
 
   if (txn->get_name().size())
-    st = append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
+    st = append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
                 (void *)txn->get_name().c_str(),
-                (ham_size_t)txn->get_name().size() + 1);
+                (ham_u32_t)txn->get_name().size() + 1);
   else
-    st = append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
+    st = append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry));
 
   if (st)
     return (st);
@@ -278,8 +278,8 @@ Journal::append_insert(Database *db, Transaction *txn,
   char padding[16] = {0};
   PJournalEntry entry;
   PJournalEntryInsert insert;
-  ham_size_t size = sizeof(PJournalEntryInsert) + key->size + record->size - 1;
-  ham_size_t padding_size = __get_aligned_entry_size(size) - size;
+  ham_u32_t size = sizeof(PJournalEntryInsert) + key->size + record->size - 1;
+  ham_u32_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
@@ -312,8 +312,8 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
   char padding[16] = {0};
   PJournalEntry entry;
   PJournalEntryErase erase;
-  ham_size_t size = sizeof(PJournalEntryErase) + key->size - 1;
-  ham_size_t padding_size = __get_aligned_entry_size(size) - size;
+  ham_u32_t size = sizeof(PJournalEntryErase) + key->size - 1;
+  ham_u32_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
@@ -388,7 +388,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 
   // read auxiliary data if it's available
   if (entry->followup_size) {
-    if (!auxbuffer->resize((ham_size_t)entry->followup_size))
+    if (!auxbuffer->resize((ham_u32_t)entry->followup_size))
       return (HAM_OUT_OF_MEMORY);
 
     st = os_pread(m_fd[iter->fdidx], iter->offset, auxbuffer->get_ptr(),

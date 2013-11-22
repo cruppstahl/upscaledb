@@ -66,7 +66,7 @@ struct PageFixture {
   void multipleAllocFreeTest() {
     int i;
     Page *page;
-    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
 
     for (i = 0; i < 10; i++) {
       page = new Page((LocalEnvironment *)m_env);
@@ -81,7 +81,7 @@ struct PageFixture {
 
   void fetchFlushTest() {
     Page *page, *temp;
-    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
 
     page = new Page((LocalEnvironment *)m_env);
     temp = new Page((LocalEnvironment *)m_env);

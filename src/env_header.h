@@ -94,7 +94,7 @@ class EnvironmentHeader
 
     // Returns byte |i| of the 'version'-header
     // TODO use a logical structure 'Version'
-    ham_u8_t get_version(ham_size_t idx) {
+    ham_u8_t get_version(ham_u32_t idx) {
       return (get_header()->_version[idx]);
     }
 
@@ -128,12 +128,12 @@ class EnvironmentHeader
     }
 
     // Returns the page size from the header page
-    ham_size_t get_pagesize() {
+    ham_u32_t get_pagesize() {
       return (ham_db2h32(get_header()->_pagesize));
     }
 
     // Sets the page size in the header page
-    void set_pagesize(ham_size_t ps) {
+    void set_pagesize(ham_u32_t ps) {
       get_header()->_pagesize = ham_h2db32(ps);
     }
 

@@ -19,8 +19,8 @@
 
 static int
 my_compare_func(ham_db_t *db,
-    const ham_u8_t *lhs, ham_size_t lhs_length,
-    const ham_u8_t *rhs, ham_size_t rhs_length) {
+    const ham_u8_t *lhs, ham_u32_t lhs_length,
+    const ham_u8_t *rhs, ham_u32_t rhs_length) {
   (void)db;
   (void)lhs;
   (void)rhs;
@@ -74,28 +74,28 @@ TEST_CASE("CppApi/recordTest", "")
   hamsterdb::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
 
   REQUIRE((void *)0 == r1.get_data());
-  REQUIRE((ham_size_t)0 == r1.get_size());
+  REQUIRE((ham_u32_t)0 == r1.get_size());
   REQUIRE((ham_u32_t)0 == r1.get_flags());
 
   REQUIRE(p == r2.get_data());
-  REQUIRE((ham_size_t)4 == r2.get_size());
+  REQUIRE((ham_u32_t)4 == r2.get_size());
   REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r2.get_flags());
 
   r1=r2;
   REQUIRE(p == r1.get_data());
-  REQUIRE((ham_size_t)4 == r1.get_size());
+  REQUIRE((ham_u32_t)4 == r1.get_size());
   REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r1.get_flags());
 
   hamsterdb::record r3(r1);
   REQUIRE(p == r3.get_data());
-  REQUIRE((ham_size_t)4 == r3.get_size());
+  REQUIRE((ham_u32_t)4 == r3.get_size());
   REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r3.get_flags());
 
   r1.set_data(q);
   r1.set_size(2);
   r1.set_flags(0);
   REQUIRE(q == r1.get_data());
-  REQUIRE((ham_size_t)2 == r1.get_size());
+  REQUIRE((ham_u32_t)2 == r1.get_size());
   REQUIRE((ham_u32_t)0 == r1.get_flags());
 }
 
@@ -351,11 +351,11 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
   env.create(Globals::opath(".test"));
 
   v = env.get_database_names();
-  REQUIRE((ham_size_t)0 == (ham_size_t)v.size());
+  REQUIRE((ham_u32_t)0 == (ham_u32_t)v.size());
 
   hamsterdb::db db1 = env.create_db(1);
   v = env.get_database_names();
-  REQUIRE((ham_size_t)1 == (ham_size_t)v.size());
+  REQUIRE((ham_u32_t)1 == (ham_u32_t)v.size());
   REQUIRE((ham_u16_t)1 == v[0]);
   env.close();
 }

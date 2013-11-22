@@ -167,19 +167,19 @@ class FreelistStatistics {
     ham_u64_t lower_bound_address;
 
     // [input] the size of the slot we're looking for
-    ham_size_t size_bits;
+    ham_u32_t size_bits;
 
     // [input] the size of a freelist page (in chunks)
-    ham_size_t freelist_pagesize_bits;
+    ham_u32_t freelist_pagesize_bits;
 
     // [input] the number of (rounded up) pages we need to fulfill the
     // request;
     // 1 for 'regular' (non-huge) requests.
     // Cannot be 0, as that is only correct for a zero-length request.
-    ham_size_t page_span_width;
+    ham_u32_t page_span_width;
 
     // [feedback] cost tracking for our statistics
-    ham_size_t cost;
+    ham_u32_t cost;
   };
 
   struct GlobalHints {
@@ -213,7 +213,7 @@ class FreelistStatistics {
     // of (rounded up) pages we need to fulfill the request; 1 for
     // 'regular' (non-huge) requests.
     // Cannot be 0, as that is only correct for a zero-length request.
-    ham_size_t page_span_width;
+    ham_u32_t page_span_width;
 
     // [input] whether or not we are looking for aligned storage
     bool aligned;
@@ -223,10 +223,10 @@ class FreelistStatistics {
     ham_u64_t lower_bound_address;
 
     // [input] the size of the slot we're looking for
-    ham_size_t size_bits;
+    ham_u32_t size_bits;
 
     // [input] the size of a freelist page (in chunks)
-    ham_size_t freelist_pagesize_bits;
+    ham_u32_t freelist_pagesize_bits;
   };
 
   static void globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
@@ -234,7 +234,7 @@ class FreelistStatistics {
 
   static void edit(Freelist *fl, FreelistEntry *entry,
                 PFreelistPayload *f, ham_u32_t position,
-                ham_size_t size_bits, bool free_these,
+                ham_u32_t size_bits, bool free_these,
                 FreelistStatistics::Hints *hints);
 
   static void fail(Freelist *fl, FreelistEntry *entry,

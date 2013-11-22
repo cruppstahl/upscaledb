@@ -87,7 +87,7 @@ struct BtreeKeyFixture {
     insertEmpty(HAM_DUPLICATE);
   }
 
-  void insertTiny(const char *data, ham_size_t size, ham_u32_t flags) {
+  void insertTiny(const char *data, ham_u32_t size, ham_u32_t flags) {
     ByteArray arena;
     ham_record_t rec, rec2;
     int slot = 0;
@@ -116,16 +116,16 @@ struct BtreeKeyFixture {
     }
   }
 
-  void prepareTiny(const char *data, ham_size_t size) {
+  void prepareTiny(const char *data, ham_u32_t size) {
     ByteArray arena;
     insertTiny(data, size, 0);
   }
 
-  void overwriteTiny(const char *data, ham_size_t size) {
+  void overwriteTiny(const char *data, ham_u32_t size) {
     insertTiny(data, size, HAM_OVERWRITE);
   }
 
-  void duplicateTiny(const char *data, ham_size_t size) {
+  void duplicateTiny(const char *data, ham_u32_t size) {
     insertTiny(data, size, HAM_DUPLICATE);
   }
 
@@ -171,7 +171,7 @@ struct BtreeKeyFixture {
     insertSmall(data, HAM_DUPLICATE);
   }
 
-  void insertNormal(const char *data, ham_size_t size, ham_u32_t flags) {
+  void insertNormal(const char *data, ham_u32_t size, ham_u32_t flags) {
     ByteArray arena;
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     int slot = 0;
@@ -196,15 +196,15 @@ struct BtreeKeyFixture {
     }
   }
 
-  void prepareNormal(const char *data, ham_size_t size) {
+  void prepareNormal(const char *data, ham_u32_t size) {
     insertNormal(data, size, 0);
   }
 
-  void overwriteNormal(const char *data, ham_size_t size) {
+  void overwriteNormal(const char *data, ham_u32_t size) {
     insertNormal(data, size, HAM_OVERWRITE);
   }
 
-  void duplicateNormal(const char *data, ham_size_t size) {
+  void duplicateNormal(const char *data, ham_u32_t size) {
     insertNormal(data, size, HAM_DUPLICATE);
   }
 
@@ -268,7 +268,7 @@ struct BtreeKeyFixture {
     overwriteNormal("1234123456785678", 16);
   }
 
-  void checkDupe(int position, const char *data, ham_size_t size) {
+  void checkDupe(int position, const char *data, ham_u32_t size) {
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     int slot = 0;
     REQUIRE((ham_u8_t)BtreeKey::kDuplicates == node->test_get_flags(slot));
@@ -276,7 +276,7 @@ struct BtreeKeyFixture {
     PDupeEntry entry;
     DuplicateManager *dm = ((LocalEnvironment *)m_env)->get_duplicate_manager();
     REQUIRE(0 == dm->get(node->get_record_id(slot),
-                            (ham_size_t)position, &entry));
+                            (ham_u32_t)position, &entry));
 
     ham_record_t rec;
     memset(&rec, 0, sizeof(rec));

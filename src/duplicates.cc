@@ -64,13 +64,13 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
   }
 
   /* otherwise allocate memory for the table */
-  table = Memory::allocate<PDupeTable>((ham_size_t)hdr.get_size());
+  table = Memory::allocate<PDupeTable>((ham_u32_t)hdr.get_size());
   if (!table)
     return (HAM_OUT_OF_MEMORY);
 
   /* then read the rest of the blob */
   st = dbm->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
-                    0, (ham_u8_t *)table, (ham_size_t)hdr.get_size());
+                    0, (ham_u8_t *)table, (ham_u32_t)hdr.get_size());
   if (st)
     return (st);
 
@@ -80,9 +80,9 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
 
 ham_status_t
 DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
-                ham_u64_t table_id, ham_record_t *record, ham_size_t position,
-                ham_u32_t flags, PDupeEntry *entries, ham_size_t num_entries,
-                ham_u64_t *rid, ham_size_t *new_position)
+                ham_u64_t table_id, ham_record_t *record, ham_u32_t position,
+                ham_u32_t flags, PDupeEntry *entries, ham_u32_t num_entries,
+                ham_u64_t *rid, ham_u32_t *new_position)
 {
   ham_status_t st = 0;
   PDupeTable *table = 0;
@@ -125,7 +125,7 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
   if (!(flags & HAM_OVERWRITE)
         && dupe_table_get_count(table) + 1 >= dupe_table_get_capacity(table)) {
     PDupeTable *old = table;
-    ham_size_t new_cap = dupe_table_get_capacity(table);
+    ham_u32_t new_cap = dupe_table_get_capacity(table);
 
     if (new_cap < 3 * 8)
       new_cap += 8;
@@ -224,7 +224,7 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
 
 ham_status_t
 DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
-            ham_size_t position, bool erase_all_duplicates,
+            ham_u32_t position, bool erase_all_duplicates,
             ham_u64_t *new_table_id)
 {
   ham_record_t rec = {0};
@@ -248,7 +248,7 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
    */
   if (erase_all_duplicates
           || (position == 0 && dupe_table_get_count(table) == 1)) {
-    for (ham_size_t i = 0; i < dupe_table_get_count(table); i++) {
+    for (ham_u32_t i = 0; i < dupe_table_get_count(table); i++) {
       PDupeEntry *e = dupe_table_get_entry(table, i);
       if (!(dupe_entry_get_flags(e) & (BtreeKey::kBlobSizeSmall
                                     | BtreeKey::kBlobSizeTiny
@@ -307,7 +307,7 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
 }
 
 ham_status_t
-DuplicateManager::get_count(ham_u64_t table_id, ham_size_t *count,
+DuplicateManager::get_count(ham_u64_t table_id, ham_u32_t *count,
                 PDupeEntry *entry)
 {
   PDupeTable *table;
@@ -330,7 +330,7 @@ DuplicateManager::get_count(ham_u64_t table_id, ham_size_t *count,
 }
 
 ham_status_t
-DuplicateManager::get(ham_u64_t table_id, ham_size_t position,
+DuplicateManager::get(ham_u64_t table_id, ham_u32_t position,
                 PDupeEntry *entry)
 {
   ham_status_t st;

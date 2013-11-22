@@ -65,7 +65,7 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Factory function; creates a new Protocol structure from a serialized
      * buffer
      */
-    static Protocol *unpack(const ham_u8_t *buf, ham_size_t size) {
+    static Protocol *unpack(const ham_u8_t *buf, ham_u32_t size) {
       if (*(ham_u32_t *)&buf[0] != ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
         ham_trace(("invalid protocol version"));
         return (0);
@@ -83,8 +83,8 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Packs the Protocol structure into a memory buffer and returns
      * a pointer to the buffer and the buffer size
      */
-    bool pack(ham_u8_t **data, ham_size_t *size) {
-      ham_size_t packed_size = ByteSize();
+    bool pack(ham_u8_t **data, ham_u32_t *size) {
+      ham_u32_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
       ham_u8_t *p = Memory::allocate<ham_u8_t>(packed_size + 8);
       if (!p)
@@ -109,7 +109,7 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Packs the Protocol structure into a ByteArray
      */
     bool pack(ByteArray *barray) {
-      ham_size_t packed_size = ByteSize();
+      ham_u32_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
       ham_u8_t *p = (ham_u8_t *)barray->resize(packed_size + 8);
       if (!p)

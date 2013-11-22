@@ -173,18 +173,18 @@ struct JournalFixture {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(true == j->is_empty());
 
-    REQUIRE((ham_size_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, "name", 0, 0));
 
-    REQUIRE((ham_size_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
@@ -200,19 +200,19 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
-    REQUIRE((ham_size_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     REQUIRE(0 == j->append_txn_abort((Transaction *)txn, lsn));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
-    REQUIRE((ham_size_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)1 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -225,19 +225,19 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
-    REQUIRE((ham_size_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     REQUIRE(0 == j->append_txn_commit((Transaction *)txn, lsn));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
-    REQUIRE((ham_size_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_size_t)1 == j->m_closed_txn[0]);
-    REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
+    REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
+    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
+    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }

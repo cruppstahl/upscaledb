@@ -37,14 +37,14 @@ split_hook()
 struct BtreeDefaultFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  ham_size_t m_keysize;
+  ham_u32_t m_keysize;
   bool m_duplicates;
 
   typedef std::vector<int> IntVector;
 
   BtreeDefaultFixture(bool duplicates = false,
                   ham_u16_t keysize = HAM_KEY_SIZE_UNLIMITED,
-                  ham_size_t pagesize = 1024 * 16)
+                  ham_u32_t pagesize = 1024 * 16)
     : m_db(0), m_env(0), m_keysize(keysize), m_duplicates(duplicates) {
     os::unlink(Globals::opath(".test"));
     ham_parameter_t p1[] = {

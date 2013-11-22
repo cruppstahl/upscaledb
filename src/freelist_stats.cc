@@ -140,7 +140,7 @@ ham_log2(ham_u64_t v)
 }
 
 static __inline ham_u16_t
-size2bucket(ham_size_t size)
+size2bucket(ham_u32_t size)
 {
   ham_u16_t bucket = ham_log2(size);
   if (bucket >= HAM_FREELIST_SLOT_SPREAD)
@@ -155,7 +155,7 @@ size2bucket(ham_size_t size)
  * converting a bucket index number to the maximum possible size for
  * that bucket.
  */
-static __inline ham_size_t
+static __inline ham_u32_t
 ham_bucket_index2bitcount(ham_u16_t bucket)
 {
   return (1U << (bucket * 1)) - 1;
@@ -289,7 +289,7 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
  */
 void
 FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
-    PFreelistPayload *f, ham_u32_t position, ham_size_t size_bits,
+    PFreelistPayload *f, ham_u32_t position, ham_u32_t size_bits,
     bool free_these, FreelistStatistics::Hints *hints)
 {
   /*
@@ -488,7 +488,7 @@ FreelistStatistics::get_global_hints(Freelist *fl,
   GlobalStatistics *globalstats = fl->get_global_statistics();
 
   ham_u32_t offset;
-  ham_size_t pos;
+  ham_u32_t pos;
   ham_u16_t bucket = size2bucket(dst->size_bits);
   ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
   ham_assert(dst);
@@ -557,7 +557,7 @@ FreelistStatistics::get_global_hints(Freelist *fl,
   */
   ham_assert(HAM_MAX_U32 >= dst->lower_bound_address
                   / (Freelist::kBlobAlignment * dst->freelist_pagesize_bits));
-  pos = (ham_size_t)(dst->lower_bound_address / (Freelist::kBlobAlignment
+  pos = (ham_u32_t)(dst->lower_bound_address / (Freelist::kBlobAlignment
                           * dst->freelist_pagesize_bits));
   if (dst->start_entry < pos)
     dst->start_entry = pos;

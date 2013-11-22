@@ -286,9 +286,9 @@ o improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
         CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
         more??
 
-o keysize is sometimes 16bit, sometimes 32bit; use 32 bit consistently
+o keysize is sometimes 16bit, sometimes 32bit; use 16 bit consistently
+    x make ham_key_t::size a ham_u32_t? - no!
     o make sure HAM_PARAM_KEY_SIZE is < 0xffff!
-    o make ham_key_t::size a ham_u32_t?
 
 o replace ham_size_t with ham_u32_t (it's anyway the same)
 
