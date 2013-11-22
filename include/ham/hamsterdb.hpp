@@ -337,6 +337,17 @@ class db {
     }
 
     /** Finds a record by looking up the key. */
+    record &find(txn *t, key *k, record *r, ham_u32_t flags = 0) {
+      ham_status_t st = ham_db_find(m_db,
+                t ? t->get_handle() : 0,
+                k ? k->get_handle() : 0,
+                r->get_handle(), flags);
+      if (st)
+        throw error(st);
+      return (*r);
+    }
+
+    /** Finds a record by looking up the key. */
     record find(key *k, ham_u32_t flags = 0) {
       return (find(0, k, flags));
     }

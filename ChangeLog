@@ -2,6 +2,8 @@ Nov 22, 2013 - chris ---------------------------------------------------
 o Default Btree node layout for variable length keys and duplicate keys
 	was completely rewritten and now uses an up-front index in the
 	node
+o C++ API: Can now specify HAM_RECORD_USER_ALLOC when retrieving keys
+	with ham_db_find
 
 Nov 05, 2013 - chris ---------------------------------------------------
 o Removed HAM_DISABLE_VARIABLE_KEYS, HAM_ENABLE_EXTENDED_KEYS; they're no

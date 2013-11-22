@@ -274,12 +274,25 @@ x BtreeCursor: use memory arena for uncoupling the key
 x ham_bench: do not allow fullcheck-find with duplicates (or skip duplicates
     in bdb when performing the fullcheck)
 
-o release-v2.pl: add test without berkeleydb (currently fails)
+x pax: also use extended keys if key is too big?? or fallback to linear
+    layout? -> will just fail if not enough keys fit
 
-o pax: also use extended keys if key is too big?? or fallback to linear
-    layout?
+x c++ API: allow use of ham_db_find with HAM_RECORD_USER_ALLOC
 
-o c++ API: allow use of ham_db_find with HAM_RECORD_USER_ALLOC
+o remove BtreeIndex::get_max_keys, move to node layout; remove
+    get_system_keysize()
+
+o improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
+        CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
+        more??
+
+o keysize is sometimes 16bit, sometimes 32bit; use 32 bit consistently
+    o make sure HAM_PARAM_KEY_SIZE is < 0xffff!
+    o make ham_key_t::size a ham_u32_t?
+
+o replace ham_size_t with ham_u32_t (it's anyway the same)
+
+o increase file version, libtool version (if necessary)
 
 o btree_erase.cc: do not shift elements if there are not at least 20 elements
     to be shifted
@@ -298,21 +311,8 @@ o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
     o when a page is split and the new key is inserted to the new page,
         then all keys in the new page have to be shifted twice (1: the split,
         2: inserting the new key at the front). can we improve this?
-
-o replace ham_size_t with ham_u32_t (it's anyway the same)
-
-o increase file version, libtool version (if necessary)
-
-o remove BtreeIndex::get_max_keys, move to node layout; remove
-    get_system_keysize()
-
-o improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
-        CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
-        more??
-
-o keysize is sometimes 16bit, sometimes 32bit; use 32 bit consistently
-    o make sure HAM_PARAM_KEY_SIZE is < 0xffff!
-    o make ham_key_t::size a ham_u32_t?
+    o try to make the insert the role model for all other operations:
+        very short code paths, no boilerplate etc
 
 o default layout: handle fixed length inline records > 8 bytes (non-duplicates)
     o does not require flags!
@@ -326,30 +326,7 @@ o use linear search with fixed length keys (if max-keys-per-page
     o if both layouts use binary search then move it back to the proxy!
     o maybe this only makes sense with PAX, and could be combined with SIMD
 
-. improve integration of static code analysis in release process
-    o add AddressSanitizer (http://clang.llvm.org/docs/AddressSanitizer.html)
-    o look at ThreadSanitizer (http://clang.llvm.org/docs/ThreadSanitizer.html)
-    o look at MemorySanitizer
-    o look at UndefinedBehaviorSanitizer
-    o try to become "oclint-clean"
-    o try to become "coverity-clean"
-
-o extend the documentation
-    o HAM_PARAM_RECORD_SIZE
-        o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
-        o use ham_info to see if the record is inline
-        o update "performance" wiki
-        o update "ham_bench" wiki (new "string" keys)
-    o HAM_KEY_SIZE_UNLIMITED etc
-    o removed HAM_ENABLE_EXTENDED_KEYS
-    o removed HAM_DISABLE_VARIABLE_KEYS
-
-o evaluate use of endian-independence
-    o ask on mailing list
-    o ask in README
-    o check target platforms (ARMs for Android/iOS...)
-
-. start redesigning code towards exceptions; this will reduce the code a lot
+o start redesigning code towards exceptions; this will reduce the code a lot
     and we can get rid on those annoying error checks and returns
     x evaluate performance of exception handling code vs. non-exception handling
         -> it's ok, but only use for exceptions, not for normal
@@ -369,8 +346,24 @@ o evaluate use of endian-independence
         - page, node, btree node, iterator, layout, slot/index/position
         - freelist
 
-. remove libjson, use boost::property_tree instead!
-    o also on Windows!
+o extend the documentation
+    o HAM_PARAM_RECORD_SIZE
+        o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
+        o use ham_info to see if the record is inline
+        o update "performance" wiki
+        o update "ham_bench" wiki (new "string" keys)
+    o HAM_KEY_SIZE_UNLIMITED etc
+    o removed HAM_ENABLE_EXTENDED_KEYS
+    o removed HAM_DISABLE_VARIABLE_KEYS
+
+o evaluate use of endian-independence
+    o ask on mailing list
+    o ask in README
+    o check target platforms (ARMs for Android/iOS...)
+
+. improve integration of static code analysis in release process
+    o try to become "oclint-clean"
+    o try to become "coverity-clean"
 
 o introduce PRO version
     o start a closed repository
@@ -424,6 +417,8 @@ o PRO: use SIMD for fixed-length scans and __builtin_prefetch
     http://stackoverflow.com/questions/8460563/builtin-prefetch-how-much-does-it-read
     http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/prefetch.h
     http://stackoverflow.com/questions/7327994/prefetching-examples
+
+o release-v2.pl: add test without berkeleydb (currently fails)
 
 ---------------------- release 2.1.4 (unstable) -----------------------------
 
