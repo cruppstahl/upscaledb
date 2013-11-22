@@ -29,8 +29,8 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 {
   public:
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_u32_t keysize) const {
-      return (NodeLayout::get_system_keysize(keysize));
+    virtual ham_u16_t get_actual_key_size(ham_u32_t key_size) const {
+      return (NodeLayout::get_actual_key_size(key_size));
     }
 
     // Compares two keys
@@ -61,10 +61,10 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 struct BtreeIndexFactory
 {
   static BtreeIndexTraits *create(LocalDatabase *db, ham_u32_t flags,
-                ham_u16_t keytype, ham_u16_t keysize, bool is_leaf) {
+                ham_u16_t key_type, ham_u16_t key_size, bool is_leaf) {
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
-    bool fixed_keys = (keysize != HAM_KEY_SIZE_UNLIMITED);
-    ham_u32_t pagesize = db->get_local_env()->get_pagesize();
+    bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
+    ham_u32_t page_size = db->get_local_env()->get_page_size();
 
     // Record number database
     if (flags & HAM_RECORD_NUMBER) {
@@ -82,11 +82,11 @@ struct BtreeIndexFactory
                     RecordNumberCompare>());
     }
 
-    switch (keytype) {
+    switch (key_type) {
       // 8bit unsigned integer
       case HAM_TYPE_UINT8:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<ham_u8_t> >());
@@ -112,7 +112,7 @@ struct BtreeIndexFactory
       // 16bit unsigned integer
       case HAM_TYPE_UINT16:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<ham_u16_t> >());
@@ -138,7 +138,7 @@ struct BtreeIndexFactory
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<ham_u32_t> >());
@@ -164,7 +164,7 @@ struct BtreeIndexFactory
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<ham_u64_t> >());
@@ -190,7 +190,7 @@ struct BtreeIndexFactory
       // 32bit float
       case HAM_TYPE_REAL32:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<float> >());
@@ -216,7 +216,7 @@ struct BtreeIndexFactory
       // 64bit double
       case HAM_TYPE_REAL64:
         if (flags & HAM_ENABLE_DUPLICATES) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       NumericCompare<double> >());
@@ -258,7 +258,7 @@ struct BtreeIndexFactory
         }
         // Fixed keys WITH duplicates
         if (fixed_keys && (flags & HAM_ENABLE_DUPLICATES) != 0) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       CallbackCompare >());
@@ -268,7 +268,7 @@ struct BtreeIndexFactory
                       CallbackCompare >());
         }
         // Variable keys with or without duplicates
-        if (pagesize <= 64 * 1024)
+        if (page_size <= 64 * 1024)
           return (new BtreeIndexTraitsImpl<
                     DefaultNodeLayout< DefaultLayoutImpl<ham_u16_t> >,
                         CallbackCompare>());
@@ -295,7 +295,7 @@ struct BtreeIndexFactory
         }
         // fixed keys with duplicates
         if (fixed_keys && (flags & HAM_ENABLE_DUPLICATES) != 0) {
-          if (pagesize <= 64 * 1024)
+          if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
                       DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
                       FixedSizeCompare >());
@@ -304,7 +304,7 @@ struct BtreeIndexFactory
                       DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
                       FixedSizeCompare >());
         }
-        if (pagesize <= 64 * 1024)
+        if (page_size <= 64 * 1024)
           return (new BtreeIndexTraitsImpl<
                     DefaultNodeLayout< DefaultLayoutImpl<ham_u16_t> >,
                         VariableSizeCompare>());

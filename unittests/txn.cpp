@@ -1414,9 +1414,9 @@ struct InMemoryTxnFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
 
-    ham_u64_t recsize;
-    REQUIRE(0 == ham_cursor_get_record_size(cursor, &recsize));
-    REQUIRE(6ull == recsize);
+    ham_u64_t rec_size;
+    REQUIRE(0 == ham_cursor_get_record_size(cursor, &rec_size));
+    REQUIRE(6ull == rec_size);
 
     REQUIRE(0 == ham_cursor_close(cursor));
     REQUIRE(0 == ham_txn_commit(txn, 0));

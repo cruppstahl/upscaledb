@@ -32,11 +32,11 @@ class Device {
   public:
     // Constructor
     //
-    // initialize the pagesize with a default value - this will be
-    // overwritten i.e. by ham_env_open, ham_env_create when the pagesize
+    // initialize the page_size with a default value - this will be
+    // overwritten i.e. by ham_env_open, ham_env_create when the page_size
     // of the file is known
     Device(LocalEnvironment *env, ham_u32_t flags)
-      : m_env(env), m_flags(flags), m_pagesize(HAM_DEFAULT_PAGESIZE) {
+      : m_env(env), m_flags(flags), m_page_size(HAM_DEFAULT_PAGESIZE) {
     }
 
     // virtual destructor
@@ -110,9 +110,9 @@ class Device {
       return (m_env);
     }
 
-    // set the pagesize for this device 
-    void set_pagesize(ham_u32_t pagesize) {
-      m_pagesize = pagesize;
+    // set the page_size for this device 
+    void set_page_size(ham_u32_t page_size) {
+      m_page_size = page_size;
     }
 
     // disable memory mapped I/O - used for testing
@@ -128,7 +128,7 @@ class Device {
     ham_u32_t m_flags;
 
     // the page size 
-    ham_u32_t m_pagesize;
+    ham_u32_t m_page_size;
 
     friend class DeviceTest;
     friend class InMemoryDeviceTest;

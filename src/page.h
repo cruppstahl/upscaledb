@@ -33,7 +33,7 @@ class LocalEnvironment;
  * kNpersNoHeader is not set! Blob pages do not have this header.
  *
  * !!
- * if this structure is changed, env->get_usable_pagesize has
+ * if this structure is changed, env->get_usable_page_size has
  * to be changed as well!
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {

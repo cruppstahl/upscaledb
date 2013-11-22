@@ -18,16 +18,16 @@ message Datum {
 
 message Environment {
   required uint32 flags = 1;
-  required uint32 pagesize = 2;
+  required uint32 page_size = 2;
   required uint32 max_databases = 3;
 };
 
 message Database {
   required uint32 name = 1;
   required uint32 flags = 2;
-  required uint32 keysize = 3;
-  optional uint32 keytype = 4;
-  optional uint32 recsize = 5;
+  required uint32 key_size = 3;
+  optional uint32 key_type = 4;
+  optional uint32 record_size = 5;
 };
 
 message Item {

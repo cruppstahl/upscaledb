@@ -305,8 +305,8 @@ ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
-  ham_u32_t pagesize = HAM_DEFAULT_PAGESIZE;
-  ham_u64_t cachesize = 0;
+  ham_u32_t page_size = HAM_DEFAULT_PAGESIZE;
+  ham_u64_t cache_size = 0;
   ham_u16_t maxdbs = 0;
   ham_u32_t timeout = 0;
   std::string logdir;
@@ -370,19 +370,19 @@ ham_env_create(ham_env_t **henv, const char *filename,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_CACHESIZE:
-        cachesize = param->value;
-        if (flags & HAM_IN_MEMORY && cachesize != 0) {
-          ham_trace(("combination of HAM_IN_MEMORY and cachesize != 0 "
+        cache_size = param->value;
+        if (flags & HAM_IN_MEMORY && cache_size != 0) {
+          ham_trace(("combination of HAM_IN_MEMORY and cache_size != 0 "
                 "not allowed"));
           return (HAM_INV_PARAMETER);
         }
         break;
       case HAM_PARAM_PAGESIZE:
         if (param->value != 1024 && param->value % 2048 != 0) {
-          ham_trace(("invalid pagesize - must be 1024 or a multiple of 2048"));
+          ham_trace(("invalid page_size - must be 1024 or a multiple of 2048"));
           return (HAM_INV_PAGESIZE);
         }
-        pagesize = (ham_u32_t)param->value;
+        page_size = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_MAX_DATABASES:
         maxdbs = (ham_u32_t)param->value;
@@ -422,17 +422,17 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
   /* don't allow cache limits with unlimited cache */
   if (flags & HAM_CACHE_UNLIMITED) {
-    if ((flags & HAM_CACHE_STRICT) || cachesize != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
+    if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
+      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache_size != 0 "
             "or HAM_CACHE_STRICT not allowed"));
       return (HAM_INV_PARAMETER);
     }
   }
 
-  if (cachesize == 0)
-    cachesize = HAM_DEFAULT_CACHESIZE;
-  if (pagesize == 0)
-    pagesize = HAM_DEFAULT_PAGESIZE;
+  if (cache_size == 0)
+    cache_size = HAM_DEFAULT_CACHESIZE;
+  if (page_size == 0)
+    page_size = HAM_DEFAULT_PAGESIZE;
 
   if (!filename && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));
@@ -445,13 +445,13 @@ ham_env_create(ham_env_t **henv, const char *filename,
    * leave at least 128 bytes for the freelist and the other header data
    */
   {
-    ham_u32_t l = pagesize - sizeof(PEnvironmentHeader)
+    ham_u32_t l = page_size - sizeof(PEnvironmentHeader)
         - PFreelistPayload::get_bitmap_offset() - 128;
 
     l /= sizeof(PBtreeHeader);
     if (maxdbs > l) {
       ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
-            "this pagesize; the maximum allowed is %u",
+            "this page_size; the maximum allowed is %u",
             (unsigned)l));
       return (HAM_INV_PARAMETER);
     }
@@ -489,7 +489,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #endif
 
   /* and finish the initialization of the Environment */
-  ham_status_t st = env->create(filename, flags, mode, pagesize, cachesize,
+  ham_status_t st = env->create(filename, flags, mode, page_size, cache_size,
           maxdbs);
   if (st)
     goto bail;
@@ -609,7 +609,7 @@ ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         const ham_parameter_t *param)
 {
-  ham_u64_t cachesize = 0;
+  ham_u64_t cache_size = 0;
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
@@ -651,7 +651,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_CACHESIZE:
-        cachesize = param->value;
+        cache_size = param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
@@ -677,15 +677,15 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 
   /* don't allow cache limits with unlimited cache */
   if (flags & HAM_CACHE_UNLIMITED) {
-    if ((flags & HAM_CACHE_STRICT) || cachesize != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
+    if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
+      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache_size != 0 "
             "or HAM_CACHE_STRICT not allowed"));
       return (HAM_INV_PARAMETER);
     }
   }
 
-  if (cachesize == 0)
-    cachesize = HAM_DEFAULT_CACHESIZE;
+  if (cache_size == 0)
+    cache_size = HAM_DEFAULT_CACHESIZE;
 
   Environment *env;
   if (__filename_is_local(filename)) {
@@ -712,7 +712,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #endif
 
   /* and finish the initialization of the Environment */
-  ham_status_t st = env->open(filename, flags, cachesize);
+  ham_status_t st = env->open(filename, flags, cache_size);
   if (st)
     goto bail;
 

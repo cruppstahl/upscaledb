@@ -125,11 +125,11 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
       i++) {
     switch (params[i].name) {
     case HAM_PARAM_CACHESIZE:
-      reply.mutable_env_get_parameters_reply()->set_cachesize(
+      reply.mutable_env_get_parameters_reply()->set_cache_size(
               (int)params[i].value);
       break;
     case HAM_PARAM_PAGESIZE:
-      reply.mutable_env_get_parameters_reply()->set_pagesize(
+      reply.mutable_env_get_parameters_reply()->set_page_size(
               (int)params[i].value);
       break;
     case HAM_PARAM_MAX_DATABASES:
@@ -421,15 +421,15 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
               (int)params[i].value);
       break;
     case HAM_PARAM_KEY_SIZE:
-      reply.mutable_db_get_parameters_reply()->set_keysize(
+      reply.mutable_db_get_parameters_reply()->set_key_size(
               (int)params[i].value);
       break;
     case HAM_PARAM_RECORD_SIZE:
-      reply.mutable_db_get_parameters_reply()->set_recsize(
+      reply.mutable_db_get_parameters_reply()->set_record_size(
               (int)params[i].value);
       break;
     case HAM_PARAM_KEY_TYPE:
-      reply.mutable_db_get_parameters_reply()->set_keytype(
+      reply.mutable_db_get_parameters_reply()->set_key_type(
               (int)params[i].value);
       break;
     case HAM_PARAM_DATABASE_NAME:

@@ -33,30 +33,20 @@ ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
 ham_u32_t g_extended_threshold = 256;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-                ham_u32_t keytype, ham_u32_t keysize)
-  : m_db(db), m_keysize(0), m_keytype(keytype),
+                ham_u32_t key_type, ham_u32_t key_size)
+  : m_db(db), m_key_size(0), m_key_type(key_type),
     m_descriptor_index(descriptor), m_flags(flags), m_root_address(0)
 {
-  m_leaf_traits = BtreeIndexFactory::create(db, flags, keytype,
-                  keysize, true);
-  m_internal_traits = BtreeIndexFactory::create(db, flags, keytype,
-                  keysize, false);
+  m_leaf_traits = BtreeIndexFactory::create(db, flags, key_type,
+                  key_size, true);
+  m_internal_traits = BtreeIndexFactory::create(db, flags, key_type,
+                  key_size, false);
 }
 
 ham_status_t
-BtreeIndex::create(ham_u16_t keytype, ham_u32_t keysize, ham_u32_t recsize)
+BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
 {
-  ham_assert(keysize != 0);
-
-  ham_u32_t maxkeys = get_maxkeys(m_db->get_local_env()->get_pagesize(),
-                                keysize,
-                                recsize == HAM_RECORD_SIZE_UNLIMITED
-                                  ? sizeof(ham_u64_t)
-                                  : recsize);
-  if (maxkeys == 0) {
-    ham_trace(("keysize too large for the current pagesize"));
-    return (HAM_INV_KEY_SIZE);
-  }
+  ham_assert(key_size != 0);
 
   /* allocate a new root page */
   Page *root = 0;
@@ -71,9 +61,9 @@ BtreeIndex::create(ham_u16_t keytype, ham_u32_t keysize, ham_u32_t recsize)
   PBtreeNode *node = PBtreeNode::from_page(root);
   node->set_flags(PBtreeNode::kLeafNode);
 
-  m_keysize = keysize;
-  m_keytype = keytype;
-  m_recsize = recsize;
+  m_key_size = key_size;
+  m_key_type = key_type;
+  m_rec_size = rec_size;
   m_root_address = root->get_address();
 
   flush_descriptor();
@@ -85,26 +75,26 @@ ham_status_t
 BtreeIndex::open()
 {
   ham_u64_t rootadd;
-  ham_u16_t keysize;
-  ham_u16_t keytype;
+  ham_u16_t key_size;
+  ham_u16_t key_type;
   ham_u32_t flags;
-  ham_u32_t recsize;
+  ham_u32_t rec_size;
   PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
-  keysize = desc->get_key_size();
-  keytype = desc->get_keytype();
-  recsize = desc->get_record_size();
+  key_size = desc->get_key_size();
+  key_type = desc->get_key_type();
+  rec_size = desc->get_record_size();
   rootadd = desc->get_root_address();
   flags = desc->get_flags();
 
-  ham_assert(keysize > 0);
+  ham_assert(key_size > 0);
   ham_assert(rootadd > 0);
 
   m_root_address = rootadd;
-  m_keysize = keysize;
-  m_keytype = keytype;
+  m_key_size = key_size;
+  m_key_type = key_type;
   m_flags = flags;
-  m_recsize = recsize;
+  m_rec_size = rec_size;
 
   return (0);
 }
@@ -120,9 +110,9 @@ BtreeIndex::flush_descriptor()
   PBtreeHeader *desc = env->get_btree_descriptor(m_descriptor_index);
 
   desc->set_dbname(m_db->get_name());
-  desc->set_keysize(get_key_size());
-  desc->set_recsize(get_record_size());
-  desc->set_keytype(get_keytype());
+  desc->set_key_size(get_key_size());
+  desc->set_rec_size(get_record_size());
+  desc->set_key_type(get_key_type());
   desc->set_root_address(get_root_address());
   desc->set_flags(get_flags());
 
@@ -397,19 +387,26 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_u32_t
-BtreeIndex::get_maxkeys(ham_u32_t pagesize, ham_u16_t keysize,
-                ham_u32_t recsize) const
+BtreeIndex::get_max_keys_per_page() const
 {
+  ham_u32_t page_size = m_db->get_local_env()->get_page_size();
+  ham_u16_t key_size = get_key_size();
+  ham_u32_t rec_size = get_record_size() == HAM_RECORD_SIZE_UNLIMITED
+                            ? sizeof(ham_u64_t)
+                            : get_record_size();
+
   /* adjust page size and key size by adding the overhead */
-  pagesize -= PBtreeNode::get_entry_offset();
-  pagesize -= Page::sizeof_persistent_header;
+  page_size -= PBtreeNode::get_entry_offset();
+  page_size -= Page::sizeof_persistent_header;
+
+  ham_u32_t actual_key_size = m_leaf_traits->get_actual_key_size(key_size);
 
   /* and return an even number */
   ham_u32_t max;
-  if (recsize == HAM_RECORD_SIZE_UNLIMITED)
-    max = pagesize / (get_system_keysize(keysize) + 8);
+  if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
+    max = page_size / (actual_key_size + 8);
   else
-    max = pagesize / (get_system_keysize(keysize) + recsize);
+    max = page_size / (actual_key_size + rec_size);
   return (max & 1 ? max - 1 : max);
 }
 

@@ -37,7 +37,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   ham_u32_t _serialno;
 
   /** size of the page */
-  ham_u32_t _pagesize;
+  ham_u32_t _page_size;
 
   /** maximum number of databases for this environment */
   ham_u16_t _max_databases;
@@ -128,13 +128,13 @@ class EnvironmentHeader
     }
 
     // Returns the page size from the header page
-    ham_u32_t get_pagesize() {
-      return (ham_db2h32(get_header()->_pagesize));
+    ham_u32_t get_page_size() {
+      return (ham_db2h32(get_header()->_page_size));
     }
 
     // Sets the page size in the header page
-    void set_pagesize(ham_u32_t ps) {
-      get_header()->_pagesize = ham_h2db32(ps);
+    void set_page_size(ham_u32_t ps) {
+      get_header()->_page_size = ham_h2db32(ps);
     }
 
     // Returns the header page with persistent configuration settings

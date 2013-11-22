@@ -31,14 +31,14 @@ struct BtreeCursorFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   bool m_inmemory;
-  ham_u32_t m_pagesize;
+  ham_u32_t m_page_size;
 
-  BtreeCursorFixture(bool inmemory = false, ham_u32_t pagesize = 0)
-    : m_db(0), m_inmemory(inmemory), m_pagesize(pagesize) {
+  BtreeCursorFixture(bool inmemory = false, ham_u32_t page_size = 0)
+    : m_db(0), m_inmemory(inmemory), m_page_size(page_size) {
     ham_parameter_t params[] = {
-      // set pagesize, otherwise 16-bit limit bugs in freelist
+      // set page_size, otherwise 16-bit limit bugs in freelist
       // will fire on Win32
-      { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },
+      { HAM_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
       { 0, 0 }
     };
 

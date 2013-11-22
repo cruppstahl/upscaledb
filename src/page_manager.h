@@ -43,7 +43,7 @@ class PageManager {
     // Default constructor
     //
     // The cache size is specified in bytes!
-    PageManager(LocalEnvironment *env, ham_u32_t cachesize);
+    PageManager(LocalEnvironment *env, ham_u32_t cache_size);
 
     // Destructor
     ~PageManager();

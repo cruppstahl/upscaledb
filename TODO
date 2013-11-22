@@ -279,29 +279,25 @@ x pax: also use extended keys if key is too big?? or fallback to linear
 
 x c++ API: allow use of ham_db_find with HAM_RECORD_USER_ALLOC
 
-o remove BtreeIndex::get_max_keys, move to node layout; remove
-    get_system_keysize()
+x replace ham_size_t with ham_u32_t (it's anyway the same)
 
-o improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
+x improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
         CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
         more??
 
-o keysize is sometimes 16bit, sometimes 32bit; use 16 bit consistently
+x keysize is sometimes 16bit, sometimes 32bit; use 16 bit consistently
     x make ham_key_t::size a ham_u32_t? - no!
-    o make sure HAM_PARAM_KEY_SIZE is < 0xffff!
+    x make sure HAM_PARAM_KEY_SIZE is < 0xffff!
 
-o replace ham_size_t with ham_u32_t (it's anyway the same)
+x remove BtreeIndex::get_max_keys, move to node layout; remove
+    get_system_keysize()
 
-o increase file version, libtool version (if necessary)
+x increase file version, libtool version (if necessary)
 
 o btree_erase.cc: do not shift elements if there are not at least 20 elements
     to be shifted
 
 o btree_erase.cc has TODOs...
-
-o run performance tests with several million inserts; but only track the
-    performance after the first million was inserted! can we make things
-    scale better?
 
 o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
     splits and try to reduce shifts and lookups (pivot_at_end -> no compare for
@@ -313,6 +309,10 @@ o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
         2: inserting the new key at the front). can we improve this?
     o try to make the insert the role model for all other operations:
         very short code paths, no boilerplate etc
+
+o run performance tests with several million inserts; but only track the
+    performance after the first million was inserted! can we make things
+    scale better?
 
 o default layout: handle fixed length inline records > 8 bytes (non-duplicates)
     o does not require flags!

@@ -93,11 +93,11 @@ class Freelist
 
     // Truncates the page at the given |address| and removes it
     // from the freelist.
-    // Asserts that |address| is pagesize-aligned.
+    // Asserts that |address| is page_size-aligned.
     ham_status_t truncate_page(ham_u64_t address);
 
     // Returns true if the page at |address| is free, otherwise false
-    // Asserts that |address| is pagesize-aligned.
+    // Asserts that |address| is page_size-aligned.
     bool is_page_free(ham_u64_t address);
 
     // Fills in the collected metrics and usage statistics

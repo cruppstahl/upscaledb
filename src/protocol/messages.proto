@@ -153,8 +153,8 @@ message EnvGetParametersRequest {
 
 message EnvGetParametersReply {
   required sint32 status = 1;
-  optional uint32 cachesize = 2;
-  optional uint32 pagesize = 3;
+  optional uint32 cache_size = 2;
+  optional uint32 page_size = 3;
   optional uint32 max_env_databases = 4;
   optional uint32 flags = 5;
   optional uint32 filemode = 6;
@@ -246,11 +246,11 @@ message DbGetParametersReply {
   required sint32 status = 1;
   optional uint32 max_env_databases = 2;
   optional uint32 flags = 3;
-  optional uint32 keysize = 4;
+  optional uint32 key_size = 4;
   optional uint32 dbname = 5;
   optional uint32 keys_per_page = 6;
-  optional uint32 keytype = 7;
-  optional uint32 recsize = 8;
+  optional uint32 key_type = 7;
+  optional uint32 record_size = 8;
 };
 
 message TxnBeginRequest {

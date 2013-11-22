@@ -31,7 +31,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
         ham_u32_t *chunk_size, ham_u32_t chunks)
 {
   ham_status_t st;
-  ham_u32_t pagesize = m_env->get_pagesize();
+  ham_u32_t page_size = m_env->get_page_size();
 
   ham_assert(freshly_created ? allocated : 1);
 
@@ -39,7 +39,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
   for (ham_u32_t i = 0; i < chunks; i++) {
     while (chunk_size[i]) {
       // get the page-id from this chunk
-      ham_u64_t pageid = addr - (addr % pagesize);
+      ham_u64_t pageid = addr - (addr % page_size);
 
       // is this the current page? if yes then continue working with this page
       if (page && page->get_address() != pageid)
@@ -53,8 +53,8 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
         //
         // exception: if logging is enabled then always use the cache.
         bool at_blob_edge = (blob_from_cache(chunk_size[i])
-                            || (addr % pagesize) != 0
-                            || chunk_size[i] < pagesize);
+                            || (addr % page_size) != 0
+                            || chunk_size[i] < page_size);
         bool cache_only = (!at_blob_edge
                             && (!m_env->get_log()
                                 || freshly_created));
@@ -72,7 +72,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
       // to the device
       if (page) {
         ham_u32_t writestart = (ham_u32_t)(addr - page->get_address());
-        ham_u32_t writesize = (ham_u32_t)(pagesize - writestart);
+        ham_u32_t writesize = (ham_u32_t)(page_size - writestart);
         if (writesize > chunk_size[i])
           writesize = chunk_size[i];
         memcpy(&page->get_raw_payload()[writestart], chunk_data[i], writesize);
@@ -84,8 +84,8 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
       else {
         ham_u32_t s = chunk_size[i];
         // limit to the next page boundary
-        if (s > pageid + pagesize - addr)
-          s = (ham_u32_t)(pageid + pagesize - addr);
+        if (s > pageid + page_size - addr)
+          s = (ham_u32_t)(pageid + page_size - addr);
 
         m_blob_direct_written++;
 
@@ -107,11 +107,11 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
         LocalDatabase *db, ham_u8_t *data, ham_u32_t size)
 {
   ham_status_t st;
-  ham_u32_t pagesize = m_env->get_pagesize();
+  ham_u32_t page_size = m_env->get_page_size();
 
   while (size) {
     // get the page-id from this chunk
-    ham_u64_t pageid = addr - (addr % pagesize);
+    ham_u64_t pageid = addr - (addr % page_size);
 
     if (page && page->get_address() != pageid)
       page = 0;
@@ -133,7 +133,7 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
     // from the device
     if (page) {
       ham_u32_t readstart = (ham_u32_t)(addr - page->get_address());
-      ham_u32_t readsize = (ham_u32_t)(pagesize - readstart);
+      ham_u32_t readsize = (ham_u32_t)(page_size - readstart);
       if (readsize > size)
         readsize = size;
       memcpy(data, &page->get_raw_payload()[readstart], readsize);
@@ -142,12 +142,12 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
       size -= readsize;
     }
     else {
-      ham_u32_t s = (size < pagesize
+      ham_u32_t s = (size < page_size
                     ? size
-                    : m_env->get_pagesize());
+                    : m_env->get_page_size());
       // limit to the next page boundary
-      if (s > pageid + pagesize - addr)
-        s = (ham_u32_t)(pageid + pagesize - addr);
+      if (s > pageid + page_size - addr)
+        s = (ham_u32_t)(pageid + page_size - addr);
 
       m_blob_direct_read++;
 
@@ -219,14 +219,14 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
       addr = page->get_address();
       // move the remaining space to the freelist
       m_env->get_page_manager()->add_to_freelist(db, addr + alloc_size,
-                    m_env->get_pagesize() - alloc_size);
+                    m_env->get_page_size() - alloc_size);
       blob_header.set_alloc_size(alloc_size);
     }
     else {
       // otherwise use direct IO to allocate the space
       ham_u32_t aligned = alloc_size;
-      aligned += m_env->get_pagesize() - 1;
-      aligned -= aligned % m_env->get_pagesize();
+      aligned += m_env->get_page_size() - 1;
+      aligned -= aligned % m_env->get_page_size();
 
       m_blob_direct_allocated++;
 
@@ -264,8 +264,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   if ((flags & HAM_PARTIAL) && (record->partial_offset)) {
     ham_u32_t gapsize = record->partial_offset;
 
-    ham_u8_t *ptr = (ham_u8_t *)zeroes.resize(gapsize > m_env->get_pagesize()
-                          ? m_env->get_pagesize()
+    ham_u8_t *ptr = (ham_u8_t *)zeroes.resize(gapsize > m_env->get_page_size()
+                          ? m_env->get_page_size()
                           : gapsize,
                        0);
     if (!ptr)
@@ -281,17 +281,17 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 
     addr += sizeof(blob_header);
 
-    // now fill the gap; if the gap is bigger than a pagesize we'll
+    // now fill the gap; if the gap is bigger than a page_size we'll
     // split the gap into smaller chunks
-    while (gapsize >= m_env->get_pagesize()) {
+    while (gapsize >= m_env->get_page_size()) {
       chunk_data[0] = ptr;
-      chunk_size[0] = m_env->get_pagesize();
+      chunk_size[0] = m_env->get_page_size();
       st = write_chunks(db, page, addr, true, freshly_created,
                         chunk_data, chunk_size, 1);
       if (st)
         break;
-      gapsize -= m_env->get_pagesize();
-      addr += m_env->get_pagesize();
+      gapsize -= m_env->get_page_size();
+      addr += m_env->get_page_size();
     }
 
     // fill the remaining gap
@@ -348,32 +348,32 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
         ham_u32_t gapsize = record->size
                         - (record->partial_offset + record->partial_size);
 
-        // now fill the gap; if the gap is bigger than a pagesize we'll
+        // now fill the gap; if the gap is bigger than a page_size we'll
         // split the gap into smaller chunks
         //
         // we split this loop in two - the outer loop will allocate the
         // memory buffer, thus saving some allocations
-        while (gapsize > m_env->get_pagesize()) {
-          ptr = (ham_u8_t *)zeroes.resize(m_env->get_pagesize(), 0);
+        while (gapsize > m_env->get_page_size()) {
+          ptr = (ham_u8_t *)zeroes.resize(m_env->get_page_size(), 0);
           if (!ptr)
             return (HAM_OUT_OF_MEMORY);
 
-          while (gapsize > m_env->get_pagesize()) {
+          while (gapsize > m_env->get_page_size()) {
             chunk_data[0] = ptr;
-            chunk_size[0] = m_env->get_pagesize();
+            chunk_size[0] = m_env->get_page_size();
             st = write_chunks(db, page, addr, true,
                           freshly_created, chunk_data, chunk_size, 1);
             if (st)
               break;
-            gapsize -= m_env->get_pagesize();
-            addr += m_env->get_pagesize();
+            gapsize -= m_env->get_page_size();
+            addr += m_env->get_page_size();
           }
           if (st)
             return (st);
         }
 
-        // now write the remainder, which is less than a pagesize
-        ham_assert(gapsize < m_env->get_pagesize());
+        // now write the remainder, which is less than a page_size
+        ham_assert(gapsize < m_env->get_page_size());
 
         ptr = chunk_data[0] = (ham_u8_t *)zeroes.resize(gapsize, 0);
         if (!ptr)

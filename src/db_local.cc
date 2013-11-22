@@ -508,7 +508,7 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   /* create the BtreeIndex */
   BtreeIndex *bt = new BtreeIndex(this, descriptor, flags | desc->get_flags(),
-                            desc->get_keytype(), desc->get_key_size());
+                            desc->get_key_type(), desc->get_key_size());
 
   ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
@@ -553,8 +553,8 @@ LocalDatabase::open(ham_u16_t descriptor)
 }
 
 ham_status_t
-LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keytype,
-                        ham_u16_t keysize, ham_u32_t recsize)
+LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
+                        ham_u16_t key_size, ham_u32_t rec_size)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
@@ -567,38 +567,38 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keytype,
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
-  switch (keytype) {
+  switch (key_type) {
     case HAM_TYPE_UINT8:
-      keysize = 1;
+      key_size = 1;
       break;
     case HAM_TYPE_UINT16:
-      keysize = 2;
+      key_size = 2;
       break;
     case HAM_TYPE_REAL32:
     case HAM_TYPE_UINT32:
-      keysize = 4;
+      key_size = 4;
       break;
     case HAM_TYPE_REAL64:
     case HAM_TYPE_UINT64:
-      keysize = 8;
+      key_size = 8;
       break;
   }
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
-  if (keysize != HAM_KEY_SIZE_UNLIMITED) {
-    if (get_local_env()->get_pagesize() / (keysize + 8) < 10) {
-      ham_trace(("keysize too large; either increase pagesize or decrease "
-                "keysize"));
+  if (key_size != HAM_KEY_SIZE_UNLIMITED) {
+    if (get_local_env()->get_page_size() / (key_size + 8) < 10) {
+      ham_trace(("key size too large; either increase page_size or decrease "
+                "key size"));
       return (HAM_INV_KEY_SIZE);
     }
   }
 
   // if we can fit at least 500 keys AND records into the leaf then store
   // the records in the leaf; otherwise they're allocated somewhere else 
-  if (recsize != HAM_RECORD_SIZE_UNLIMITED) {
+  if (rec_size != HAM_RECORD_SIZE_UNLIMITED) {
     if (!(m_rt_flags & HAM_FORCE_RECORDS_INLINE)
-          && recsize <= kInlineRecordThreshold
-          && get_local_env()->get_pagesize() / (keysize + recsize) > 500) {
+          && rec_size <= kInlineRecordThreshold
+          && get_local_env()->get_page_size() / (key_size + rec_size) > 500) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
       m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
     }
@@ -606,10 +606,10 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keytype,
 
   // create the btree
   m_btree_index = new BtreeIndex(this, descriptor, persistent_flags,
-                        keytype, keysize);
+                        key_type, key_size);
 
   /* initialize the btree */
-  ham_status_t st = m_btree_index->create(keytype, keysize, recsize);
+  ham_status_t st = m_btree_index->create(key_type, key_size, rec_size);
   if (st)
     return (st);
 
@@ -633,7 +633,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_u64_t)get_key_size();
         break;
       case HAM_PARAM_KEY_TYPE:
-        p->value = (ham_u64_t)get_keytype();
+        p->value = (ham_u64_t)get_key_type();
         break;
       case HAM_PARAM_RECORD_SIZE:
         p->value = (ham_u64_t)get_record_size();
@@ -645,9 +645,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_u64_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        p->value = get_btree_index()->get_maxkeys(
-                        get_local_env()->get_pagesize(),
-                        get_key_size(), get_record_size());
+        p->value = get_btree_index()->get_max_keys_per_page();
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
@@ -1724,9 +1722,9 @@ LocalDatabase::get_key_size()
 }
 
 ham_u16_t
-LocalDatabase::get_keytype()
+LocalDatabase::get_key_type()
 {
-  return (get_btree_index()->get_keytype());
+  return (get_btree_index()->get_key_type());
 }
 
 ham_u32_t

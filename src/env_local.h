@@ -110,15 +110,15 @@ class LocalEnvironment : public Environment
       m_txn_id = id;
     }
 
-    // Returns the pagesize as specified in ham_env_create
-    ham_u32_t get_pagesize() const {
-      return (m_pagesize);
+    // Returns the page_size as specified in ham_env_create
+    ham_u32_t get_page_size() const {
+      return (m_page_size);
     }
 
     // Returns the size of the usable persistent payload of a page
-    // (pagesize minus the overhead of the page header)
-    ham_u32_t get_usable_pagesize() const {
-      return (get_pagesize() - Page::sizeof_persistent_header);
+    // (page_size minus the overhead of the page header)
+    ham_u32_t get_usable_page_size() const {
+      return (get_page_size() - Page::sizeof_persistent_header);
     }
 
     // Sets the dirty-flag of the header page and adds the header page
@@ -166,12 +166,12 @@ class LocalEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
+            ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
             ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            ham_u32_t cachesize);
+            ham_u32_t cache_size);
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
@@ -261,8 +261,8 @@ class LocalEnvironment : public Environment
     // The AES encryption key
     ham_u8_t m_encryption_key[16];
 
-    // The pagesize which was specified when the env was created
-    ham_u32_t m_pagesize;
+    // The page_size which was specified when the env was created
+    ham_u32_t m_page_size;
 };
 
 } // namespace hamsterdb

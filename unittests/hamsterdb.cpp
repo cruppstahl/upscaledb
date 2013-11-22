@@ -259,7 +259,7 @@ struct HamsterdbFixture {
 
     p2[0].value = 15;
 
-    // only pagesize of 1k, 2k, multiples of 2k are allowed
+    // only page_size of 1k, 2k, multiples of 2k are allowed
     p1[0].value = 1024;
     REQUIRE(0 == ham_env_close(env, 0));
     REQUIRE(0 ==
@@ -1934,6 +1934,19 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
+  void invalidKeySizeTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_parameter_t ps[] = {
+        { HAM_PARAM_KEY_SIZE, 0xffff + 1 },
+        { 0, 0 }
+    };
+
+    // create the database with flags and parameters
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(HAM_INV_KEY_SIZE == ham_env_create_db(env, &db, 1, 0, &ps[0]));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Hamsterdb/versionTest", "")
@@ -2294,6 +2307,12 @@ TEST_CASE("Hamsterdb/persistentFlagsTest", "")
 {
   HamsterdbFixture f;
   f.persistentFlagsTest();
+}
+
+TEST_CASE("Hamsterdb/invalidKeySizeTest", "")
+{
+  HamsterdbFixture f;
+  f.invalidKeySizeTest();
 }
 
 } // namespace hamsterdb

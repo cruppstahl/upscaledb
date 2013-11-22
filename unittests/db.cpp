@@ -174,7 +174,7 @@ struct DbFixture {
     page.set_address(1000);
     page.set_db(&db);
     db.m_btree_index = &be;
-    be.m_keysize = 666;
+    be.m_key_size = 666;
     REQUIRE(Page::sizeof_persistent_header == 12);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...

@@ -550,11 +550,11 @@ class PaxNodeLayout
       : m_page(page), m_node(PBtreeNode::from_page(page)),
         m_keys(page->get_db(), m_node->get_data()),
         m_records(page->get_db()) {
-      ham_u32_t usable_nodesize = page->get_env()->get_pagesize()
+      ham_u32_t usable_nodesize = page->get_env()->get_page_size()
                     - PBtreeNode::get_entry_offset()
                     - Page::sizeof_persistent_header;
-      ham_u32_t keysize = get_system_keysize(m_keys.get_key_size());
-      m_max_count = usable_nodesize / (keysize + m_records.get_record_size());
+      ham_u32_t key_size = get_actual_key_size(m_keys.get_key_size());
+      m_max_count = usable_nodesize / (key_size + m_records.get_record_size());
 
       ham_u8_t *p = m_node->get_data();
       // if records are fixed then flags are not required
@@ -569,9 +569,9 @@ class PaxNodeLayout
     }
 
     // Returns the actual key size (including overhead, without record)
-    static ham_u16_t get_system_keysize(ham_u32_t keysize) {
-      ham_assert(keysize != HAM_KEY_SIZE_UNLIMITED);
-      return ((ham_u16_t)(keysize
+    static ham_u16_t get_actual_key_size(ham_u32_t key_size) {
+      ham_assert(key_size != HAM_KEY_SIZE_UNLIMITED);
+      return ((ham_u16_t)(key_size
                       + (RecordList::is_always_fixed_size() ? 0 : 1)));
     }
 

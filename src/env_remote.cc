@@ -72,18 +72,18 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 
 ham_status_t
 RemoteEnvironment::create(const char *url, ham_u32_t flags,
-        ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
+        ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
         ham_u16_t maxdbs)
 {
   // the 'create' operation is identical to 'open'
-  return (open(url, flags, cachesize));
+  return (open(url, flags, cache_size));
 }
 
 ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
-        ham_u32_t cachesize)
+        ham_u32_t cache_size)
 {
-  (void)cachesize;
+  (void)cache_size;
 
   if (m_socket != HAM_INVALID_FD)
     (void)os_socket_close(&m_socket);
@@ -268,12 +268,12 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
   while (p && p->name) {
     switch (p->name) {
     case HAM_PARAM_CACHESIZE:
-      ham_assert(reply->env_get_parameters_reply().has_cachesize());
-      p->value = reply->env_get_parameters_reply().cachesize();
+      ham_assert(reply->env_get_parameters_reply().has_cache_size());
+      p->value = reply->env_get_parameters_reply().cache_size();
       break;
     case HAM_PARAM_PAGESIZE:
-      ham_assert(reply->env_get_parameters_reply().has_pagesize());
-      p->value = reply->env_get_parameters_reply().pagesize();
+      ham_assert(reply->env_get_parameters_reply().has_page_size());
+      p->value = reply->env_get_parameters_reply().page_size();
       break;
     case HAM_PARAM_MAX_DATABASES:
       ham_assert(reply->env_get_parameters_reply().has_max_env_databases());

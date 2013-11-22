@@ -49,7 +49,7 @@ LocalEnvironment::get_freelist_payload(ham_u32_t *psize)
                   + m_header->get_max_databases() * sizeof(PBtreeHeader));
 
   if (psize) {
-    ham_u32_t size = get_usable_pagesize();
+    ham_u32_t size = get_usable_page_size();
     size -= header_size;
     size -= PFreelistPayload::get_bitmap_offset();
     size -= size % sizeof(ham_u64_t);
@@ -61,7 +61,7 @@ LocalEnvironment::get_freelist_payload(ham_u32_t *psize)
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_header(0), m_device(0), m_changeset(this),
     m_blob_manager(0), m_page_manager(0), m_duplicate_manager(this), m_log(0),
-    m_journal(0), m_txn_id(0), m_encryption_enabled(false), m_pagesize(0)
+    m_journal(0), m_txn_id(0), m_encryption_enabled(false), m_page_size(0)
 {
 }
 
@@ -72,7 +72,7 @@ LocalEnvironment::~LocalEnvironment()
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
-        ham_u32_t mode, ham_u32_t pagesize, ham_u32_t cachesize,
+        ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
         ham_u16_t max_databases)
 {
   ham_status_t st = 0;
@@ -81,12 +81,12 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   if (filename)
     m_filename = filename;
   m_file_mode = mode;
-  m_pagesize = pagesize;
+  m_page_size = page_size;
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
-  m_device->set_pagesize(m_pagesize);
+  m_device->set_page_size(m_page_size);
 
   /* create the file */
   st = m_device->create(filename, flags, mode);
@@ -107,7 +107,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
       delete page;
       return (st);
     }
-    memset(page->get_data(), 0, m_pagesize);
+    memset(page->get_data(), 0, m_page_size);
     page->set_type(Page::kTypeHeader);
     m_header->set_header_page(page);
 
@@ -116,14 +116,14 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
             HAM_FILE_VERSION);
     m_header->set_serialno(HAM_SERIALNO);
-    m_header->set_pagesize(m_pagesize);
+    m_header->set_page_size(m_page_size);
     m_header->set_max_databases(max_databases);
 
     page->set_dirty(true);
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager = new PageManager(this, cachesize);
+  m_page_manager = new PageManager(this, cache_size);
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -154,12 +154,12 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-        ham_u32_t cachesize)
+        ham_u32_t cache_size)
 {
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
-  m_device->set_pagesize(m_pagesize);
+  m_device->set_page_size(m_page_size);
 
   if (filename)
     m_filename = filename;
@@ -208,8 +208,8 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     if (st)
       goto fail_with_fake_cleansing;
 
-    m_pagesize = m_header->get_pagesize();
-    m_device->set_pagesize(m_pagesize);
+    m_page_size = m_header->get_page_size();
+    m_device->set_page_size(m_page_size);
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -261,7 +261,7 @@ fail_with_fake_cleansing:
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager = new PageManager(this, cachesize);
+  m_page_manager = new PageManager(this, cache_size);
 
   /*
    * open the logfile and check if we need recovery. first open the
@@ -516,7 +516,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
         p->value = get_page_manager()->get_cache_capacity();
         break;
       case HAM_PARAM_PAGESIZE:
-        p->value = m_pagesize;
+        p->value = m_page_size;
         break;
       case HAM_PARAM_MAX_DATABASES:
         p->value = m_header->get_max_databases();
@@ -590,9 +590,9 @@ ham_status_t
 LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u32_t flags, const ham_parameter_t *param)
 {
-  ham_u16_t keytype = HAM_TYPE_BINARY;
-  ham_u32_t keysize = HAM_KEY_SIZE_UNLIMITED;
-  ham_u32_t recsize = HAM_RECORD_SIZE_UNLIMITED;
+  ham_u16_t key_type = HAM_TYPE_BINARY;
+  ham_u32_t key_size = HAM_KEY_SIZE_UNLIMITED;
+  ham_u32_t rec_size = HAM_RECORD_SIZE_UNLIMITED;
   ham_u16_t dbi;
   std::string logdir;
 
@@ -607,22 +607,26 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_KEY_TYPE:
-          keytype = (ham_u16_t)param->value;
+          key_type = (ham_u16_t)param->value;
           break;
         case HAM_PARAM_KEY_SIZE:
           if (param->value != 0) {
-            keysize = (ham_u16_t)param->value;
+            if (param->value > 0xffff) {
+              ham_trace(("invalid key size %u - must be < 0xffff"));
+              return (HAM_INV_KEY_SIZE);
+            }
+            key_size = (ham_u16_t)param->value;
             if (flags & HAM_RECORD_NUMBER) {
-              if (keysize > 0 && keysize < sizeof(ham_u64_t)) {
-                ham_trace(("invalid keysize %u - must be 8 for "
-                           "HAM_RECORD_NUMBER databases", (unsigned)keysize));
+              if (key_size > 0 && key_size < sizeof(ham_u64_t)) {
+                ham_trace(("invalid key size %u - must be 8 for "
+                           "HAM_RECORD_NUMBER databases", (unsigned)key_size));
                 return (HAM_INV_KEY_SIZE);
               }
             }
           }
           break;
         case HAM_PARAM_RECORD_SIZE:
-          recsize = (ham_u32_t)param->value;
+          rec_size = (ham_u32_t)param->value;
           break;
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
@@ -631,12 +635,12 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     }
   }
 
-  if (keytype == HAM_TYPE_UINT8
-        || keytype == HAM_TYPE_UINT16
-        || keytype == HAM_TYPE_UINT32
-        || keytype == HAM_TYPE_UINT64
-        || keytype == HAM_TYPE_REAL32
-        || keytype == HAM_TYPE_REAL64) {
+  if (key_type == HAM_TYPE_UINT8
+        || key_type == HAM_TYPE_UINT16
+        || key_type == HAM_TYPE_UINT32
+        || key_type == HAM_TYPE_UINT64
+        || key_type == HAM_TYPE_REAL32
+        || key_type == HAM_TYPE_REAL64) {
     if (flags & HAM_RECORD_NUMBER) {
       ham_trace(("HAM_RECORD_NUMBER not allowed in combination with "
                       "fixed length type"));
@@ -645,7 +649,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   }
 
   if (flags & HAM_RECORD_NUMBER)
-    keytype = HAM_TYPE_UINT64;
+    key_type = HAM_TYPE_UINT64;
 
   ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_ENABLE_DUPLICATE_KEYS
@@ -693,7 +697,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 #endif
 
   /* initialize the Database */
-  ham_status_t st = db->create(dbi, keytype, keysize, recsize);
+  ham_status_t st = db->create(dbi, key_type, key_size, rec_size);
   if (st) {
     delete db;
     return (st);

@@ -36,12 +36,12 @@ create_key(ham_key_t *key, int i) {
 
 void
 usage() {
-  printf("usage: ./recovery insert <keysize> <recsize> <i> <dupes> "
+  printf("usage: ./recovery insert <key_size> <rec_size> <i> <dupes> "
        "<use_txn> <inducer>\n");
-  printf("usage: ./recovery erase <keysize> <i> <dupes> "
+  printf("usage: ./recovery erase <key_size> <i> <dupes> "
        "<use_txn> <inducer>\n");
   printf("usage: ./recovery recover <use_txn>\n");
-  printf("usage: ./recovery verify <keysize> <recsize> <i> <dupes> "
+  printf("usage: ./recovery verify <key_size> <rec_size> <i> <dupes> "
        "<use_txn> <exist>\n");
 }
 
@@ -56,23 +56,23 @@ insert(int argc, char **argv) {
   ham_db_t *db;
   ham_env_t *env;
 
-  int keysize = (int)strtol(argv[2], 0, 0);
-  int recsize = (int)strtol(argv[3], 0, 0);
+  int key_size = (int)strtol(argv[2], 0, 0);
+  int rec_size = (int)strtol(argv[3], 0, 0);
   int i     = (int)strtol(argv[4], 0, 0);
   int dupes   = (int)strtol(argv[5], 0, 0);
   int use_txn = (int)strtol(argv[6], 0, 0);
   int inducer = (int)strtol(argv[7], 0, 0);
-  printf("insert: keysize=%d, recsize=%d, i=%d, dupes=%d, use_txn=%d, "
-       "inducer=%d\n", keysize, recsize, i, dupes, use_txn, inducer);
+  printf("insert: key_size=%d, rec_size=%d, i=%d, dupes=%d, use_txn=%d, "
+       "inducer=%d\n", key_size, rec_size, i, dupes, use_txn, inducer);
 
   ham_key_t key = {0};
-  key.data = malloc(keysize);
-  key.size = keysize;
+  key.data = malloc(key_size);
+  key.size = key_size;
   memset(key.data, 0, key.size);
 
   ham_record_t rec = {0};
-  rec.data = malloc(recsize);
-  rec.size = keysize;
+  rec.data = malloc(rec_size);
+  rec.size = key_size;
   memset(rec.data, 0, rec.size);
 
   // if db does not yet exist: create it, otherwise open it
@@ -167,17 +167,17 @@ erase(int argc, char **argv) {
   ham_db_t *db;
   ham_env_t *env;
 
-  int keysize = (int)strtol(argv[2], 0, 0);
+  int key_size = (int)strtol(argv[2], 0, 0);
   int i     = (int)strtol(argv[3], 0, 0);
   int dupes   = (int)strtol(argv[4], 0, 0);
   int use_txn = (int)strtol(argv[5], 0, 0);
   int inducer = (int)strtol(argv[6], 0, 0);
-  printf("erase: keysize=%d, i=%d, dupes=%d, use_txn=%d, inducer=%d\n",
-      keysize, i, dupes, use_txn, inducer);
+  printf("erase: key_size=%d, i=%d, dupes=%d, use_txn=%d, inducer=%d\n",
+      key_size, i, dupes, use_txn, inducer);
 
   ham_key_t key = {0};
-  key.data = malloc(keysize);
-  key.size = keysize;
+  key.data = malloc(key_size);
+  key.size = key_size;
   memset(key.data, 0, key.size);
 
   st = ham_env_open(&env, "recovery.db",
@@ -288,27 +288,27 @@ verify(int argc, char **argv) {
     exit(-1);
   }
 
-  int keysize = (int)strtol(argv[2], 0, 0);
-  int recsize = (int)strtol(argv[3], 0, 0);
+  int key_size = (int)strtol(argv[2], 0, 0);
+  int rec_size = (int)strtol(argv[3], 0, 0);
   int maxi    = (int)strtol(argv[4], 0, 0);
   int dupes   = (int)strtol(argv[5], 0, 0);
   int use_txn = (int)strtol(argv[6], 0, 0);
   int exist   = (int)strtol(argv[7], 0, 0);
-  printf("verify: keysize=%d, recsize=%d, i=%d, dupes=%d, use_txn=%d, "
-       "exist=%d\n", keysize, recsize, maxi, dupes, use_txn, exist);
+  printf("verify: key_size=%d, rec_size=%d, i=%d, dupes=%d, use_txn=%d, "
+       "exist=%d\n", key_size, rec_size, maxi, dupes, use_txn, exist);
 
   ham_status_t st;
   ham_db_t *db;
   ham_env_t *env;
 
   ham_key_t key = {0};
-  key.data = malloc(keysize);
-  key.size = keysize;
+  key.data = malloc(key_size);
+  key.size = key_size;
   memset(key.data, 0, key.size);
 
   ham_record_t rec = {0};
-  rec.data = malloc(recsize);
-  rec.size = keysize;
+  rec.data = malloc(rec_size);
+  rec.size = key_size;
   memset(rec.data, 0, rec.size);
 
   ham_record_t rec2 = {0};

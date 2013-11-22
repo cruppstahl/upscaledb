@@ -103,7 +103,7 @@ class BinaryExporter : public Exporter {
       d.set_type(HamsterTool::Datum::ENVIRONMENT);
       HamsterTool::Environment *e = d.mutable_env();
       e->set_flags((int)params[0].value);
-      e->set_pagesize((int)params[1].value);
+      e->set_page_size((int)params[1].value);
       e->set_max_databases((int)params[2].value);
 
       std::string s;
@@ -136,9 +136,9 @@ class BinaryExporter : public Exporter {
       HamsterTool::Database *pdb = d.mutable_db();
       pdb->set_name(params[0].value);
       pdb->set_flags((int)params[1].value);
-      pdb->set_keysize((int)params[2].value);
-      pdb->set_keytype((int)params[3].value);
-      pdb->set_recsize((int)params[4].value);
+      pdb->set_key_size((int)params[2].value);
+      pdb->set_key_type((int)params[3].value);
+      pdb->set_record_size((int)params[4].value);
 
       std::string s;
       if (!d.SerializeToString(&s)) {

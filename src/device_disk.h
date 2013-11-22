@@ -135,8 +135,8 @@ class DiskDevice : public Device {
 #ifdef HAM_ENABLE_ENCRYPTION
       if (m_env->is_encryption_enabled()) {
         // encryption disables direct I/O -> only full pages are allowed
-        ham_assert(size == m_pagesize);
-        ham_assert(offset % m_pagesize == 0);
+        ham_assert(size == m_page_size);
+        ham_assert(offset % m_page_size == 0);
 
         m_encryption_buffer.resize(size);
         AesCipher aes(m_env->get_encryption_key(), offset);
@@ -174,7 +174,7 @@ class DiskDevice : public Device {
 
       // this page is not in the mapped area; allocate a buffer
       if (page->get_data() == 0) {
-        ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
+        ham_u8_t *p = Memory::allocate<ham_u8_t>(m_page_size);
         if (!p)
           return (HAM_OUT_OF_MEMORY);
         page->set_data((PPageData *)p);
@@ -182,13 +182,13 @@ class DiskDevice : public Device {
       }
 
       ham_status_t st = os_pread(m_fd, page->get_address(), page->get_data(),
-                      m_pagesize);
+                      m_page_size);
       if (st == 0) {
 #ifdef HAM_ENABLE_ENCRYPTION
         if (m_env->is_encryption_enabled()) {
           AesCipher aes(m_env->get_encryption_key(), page->get_address());
           aes.decrypt((ham_u8_t *)page->get_data(),
-                          (ham_u8_t *)page->get_data(), m_pagesize);
+                          (ham_u8_t *)page->get_data(), m_page_size);
         }
 #endif
         return (0);
@@ -201,7 +201,7 @@ class DiskDevice : public Device {
 
     // writes a page to the device
     virtual ham_status_t write_page(Page *page) {
-      return (write(page->get_address(), page->get_data(), m_pagesize));
+      return (write(page->get_address(), page->get_data(), m_page_size));
     }
 
     // allocate storage from this device; this function
@@ -217,7 +217,7 @@ class DiskDevice : public Device {
     // will *NOT* return mmapped memory
     virtual ham_status_t alloc_page(Page *page) {
       ham_u64_t pos;
-      ham_u32_t size = m_pagesize;
+      ham_u32_t size = m_page_size;
 
       ham_status_t st = os_get_filesize(m_fd, &pos);
       if (st)

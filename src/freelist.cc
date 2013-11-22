@@ -65,7 +65,7 @@ namespace hamsterdb {
  *   can get away here by NOT scanning at bit level, but at QWORD level only.
  *
  *   EDIT v1.1.1: This has been augmented by a BYTE-level search as
- *        odd-Kb pagesizes do exist (e.g. 1K pages) and these
+ *        odd-Kb page_sizes do exist (e.g. 1K pages) and these
  *        are NOT aligned to the QWORD boundary of
  *        <code>64 * kBlobAlignment</code> = 2Kbytes (this is the
  *        amount of storage space covered by a single QWORD
@@ -325,7 +325,7 @@ namespace hamsterdb {
  *
  *   This is a major important bit of info, as it
  *   essentially serves as both a sentinel, which
- *   has a pagesize, i.e. is a sentinel as large
+ *   has a page_size, i.e. is a sentinel as large
  *   as the largest freelist request (as those
  *   come in one page or smaller at a time).
  *
@@ -441,7 +441,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 ham_status_t
 Freelist::free_page(Page *page)
 {
-  return (free_area(page->get_address(), m_env->get_pagesize()));
+  return (free_area(page->get_address(), m_env->get_page_size()));
 }
 
 ham_status_t
@@ -469,7 +469,7 @@ Freelist::free_area(ham_u64_t address, ham_u32_t size)
 
     /* allocate a new page if necessary */
     if (!entry->pageid) {
-      if (entry->start_address == m_env->get_pagesize()) {
+      if (entry->start_address == m_env->get_page_size()) {
         fp = m_env->get_freelist_payload();
         ham_assert(fp->get_start_address() != 0);
       }
@@ -514,7 +514,7 @@ Freelist::free_area(ham_u64_t address, ham_u32_t size)
 ham_status_t
 Freelist::alloc_page(ham_u64_t *paddr)
 {
-  return (alloc_area_impl(m_env->get_pagesize(), paddr, true, 0));
+  return (alloc_area_impl(m_env->get_page_size(), paddr, true, 0));
 }
 
 ham_status_t
@@ -643,12 +643,12 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
        * so we need to properly calculate the number of freelist
        * entries that we need more:
        */
-      ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1
+      ham_assert(hints.size_bits + hints.freelist_page_size_bits - 1
               >= available);
       pagecount_required = hints.size_bits - available;
       /* round up: */
-      pagecount_required += hints.freelist_pagesize_bits - 1;
-      pagecount_required /= hints.freelist_pagesize_bits;
+      pagecount_required += hints.freelist_page_size_bits - 1;
+      pagecount_required /= hints.freelist_page_size_bits;
       FreelistEntry *e = entry + 1;
       for (end_idx = 1;
           end_idx < pagecount_required
@@ -790,9 +790,9 @@ Freelist::is_page_free(ham_u64_t address)
 {
   ham_status_t st;
 
-  ham_u32_t pagesize = m_env->get_pagesize();
-  ham_u32_t size_bits = pagesize / kBlobAlignment;
-  ham_assert(address % pagesize == 0);
+  ham_u32_t page_size = m_env->get_page_size();
+  ham_u32_t size_bits = page_size / kBlobAlignment;
+  ham_assert(address % page_size == 0);
 
   if (m_entries.empty()) {
     st = initialize();
@@ -812,7 +812,7 @@ Freelist::is_page_free(ham_u64_t address)
 
   /* if page does not exist then the space is not free */
   if (!entry->pageid) {
-    if (entry->start_address == m_env->get_pagesize()) {
+    if (entry->start_address == m_env->get_page_size()) {
       fp = m_env->get_freelist_payload();
       ham_assert(fp->get_start_address() != 0);
     }
@@ -844,9 +844,9 @@ Freelist::truncate_page(ham_u64_t address)
 {
   ham_status_t st;
 
-  ham_u32_t pagesize = m_env->get_pagesize();
-  ham_u32_t size_bits = pagesize / kBlobAlignment;
-  ham_assert(address % pagesize == 0);
+  ham_u32_t page_size = m_env->get_page_size();
+  ham_u32_t size_bits = page_size / kBlobAlignment;
+  ham_assert(address % page_size == 0);
   ham_assert(!m_entries.empty());
 
   /* get the cache entry of this address */
@@ -857,7 +857,7 @@ Freelist::truncate_page(ham_u64_t address)
 
   /* page is the Environment's header page? */
   if (!entry->pageid) {
-    if (entry->start_address == m_env->get_pagesize()) {
+    if (entry->start_address == m_env->get_page_size()) {
       fp = m_env->get_freelist_payload();
       ham_assert(fp->get_start_address() != 0);
     }
@@ -884,7 +884,7 @@ Freelist::truncate_page(ham_u64_t address)
    * unallocated space */
   set_bits(entry, fp,
         (ham_u32_t)(address - fp->get_start_address()) / kBlobAlignment,
-        pagesize / kBlobAlignment, false, 0);
+        page_size / kBlobAlignment, false, 0);
 
   /* |mark_dirty| stores the page in the changeset if recovery is enabled */
   mark_dirty(page);
@@ -922,7 +922,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
    *
    * Hence we can speed up matters a bit by quick-scanning for the
    * end of the occupied zone: from the end of the freelist we descend
-   * by pagesize/CHUNK steps probing for free slots. A special case:
+   * by page_size/CHUNK steps probing for free slots. A special case:
    * when none are found, the total range is still assumed to be the
    * entire freelist page, in order to prevent permanent gaps which
    * will never be filled. Of course, this choice is mode-dependent: in
@@ -955,11 +955,11 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
   /* determine the first aligned starting point: */
   if (hints->aligned) {
-    ham_u32_t chunked_pagesize = m_env->get_pagesize() / kBlobAlignment;
+    ham_u32_t chunked_page_size = m_env->get_page_size() / kBlobAlignment;
     ham_u32_t offset = (ham_u32_t)(f->get_start_address() / kBlobAlignment);
-    offset %= chunked_pagesize;
-    offset = chunked_pagesize - offset;
-    offset %= chunked_pagesize;
+    offset %= chunked_page_size;
+    offset = chunked_page_size - offset;
+    offset %= chunked_page_size;
 
     /*
      * now calculate the aligned start position
@@ -971,8 +971,8 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
       start = offset;
     else {
       start -= offset;
-      start += chunked_pagesize - 1;
-      start -= start % chunked_pagesize;
+      start += chunked_page_size - 1;
+      start -= start % chunked_page_size;
       start += offset;
     }
 
@@ -989,10 +989,10 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
      * single freelist page. This is okay; huge blobs are the only
      * possible exception and as far as I gathered those are handled
      * on a page-at-a-time basis anyway, reducing them to multiple
-     * 'unrelated' pagesized free zone queries to us here.
+     * 'unrelated' page_sized free zone queries to us here.
      *
      * Note that freelist pages do NOT have to start their bitarray
-     * at a pagesize-aligned address, at least not theoretically. We
+     * at a page_size-aligned address, at least not theoretically. We
      * resolve this here by aligning the 'end' by first converting
      * it to a fake address of sorts by subtracting 'offset'. When
      * we have done that, we can align it to a page boundary like
@@ -1003,15 +1003,15 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
      */
     ham_assert(end >= offset);
     end -= offset;
-    end -= end % chunked_pagesize; /* round DOWN to boundary */
+    end -= end % chunked_page_size; /* round DOWN to boundary */
     end += offset;
 
     /*
      * adjust minimum step size also: it's no use scanning the
      * non-aligned spots after all
      */
-    min_slice_width += chunked_pagesize - 1;
-    min_slice_width -= min_slice_width % chunked_pagesize;
+    min_slice_width += chunked_page_size - 1;
+    min_slice_width -= min_slice_width % chunked_page_size;
 
     /*
      * make sure the starting point is a valid sample spot:
@@ -2665,7 +2665,7 @@ Freelist::locate_sufficient_free_space(FreelistStatistics::Hints *dst,
     dst->aligned = hints->aligned;
     dst->lower_bound_address = hints->lower_bound_address;
     dst->size_bits = hints->size_bits;
-    dst->freelist_pagesize_bits = hints->freelist_pagesize_bits;
+    dst->freelist_page_size_bits = hints->freelist_page_size_bits;
     dst->page_span_width = hints->page_span_width;
 
     dst->cost = 1;
@@ -2721,7 +2721,7 @@ Freelist::initialize()
   ham_assert(m_entries.empty());
 
   /* add the header page to the freelist */
-  entry.start_address = m_env->get_pagesize();
+  entry.start_address = m_env->get_page_size();
   ham_u32_t size;
   PFreelistPayload *fp = m_env->get_freelist_payload(&size);
 
@@ -2731,7 +2731,7 @@ Freelist::initialize()
 
   /* initialize the header page, if we have read/write access */
   if (!(m_env->get_flags() & HAM_READ_ONLY)) {
-    fp->set_start_address(m_env->get_pagesize());
+    fp->set_start_address(m_env->get_page_size());
     ham_assert((size * 8 % sizeof(ham_u64_t)) == 0);
     fp->set_max_bits(size * 8);
   }
@@ -2797,7 +2797,7 @@ Freelist::get_entry_for_address(ham_u64_t address)
 ham_u32_t
 Freelist::get_entry_maxspan()
 {
-  ham_u32_t size = m_env->get_usable_pagesize()
+  ham_u32_t size = m_env->get_usable_page_size()
           - PFreelistPayload::get_bitmap_offset();
   ham_assert((size % sizeof(ham_u64_t)) == 0);
   size -= size % sizeof(ham_u64_t);

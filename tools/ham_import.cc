@@ -135,7 +135,7 @@ class BinaryImporter : public Importer {
 
       // create environment (if it does not yet exist)
       ham_parameter_t params[] = {
-        { HAM_PARAM_PAGESIZE, e.pagesize() },
+        { HAM_PARAM_PAGESIZE, e.page_size() },
         { HAM_PARAM_MAX_DATABASES, e.max_databases() },
         { 0, 0 },
       };
@@ -151,11 +151,15 @@ class BinaryImporter : public Importer {
 
       // create database (if it does not yet exist)
       ham_parameter_t params[] = {
-        { HAM_PARAM_KEY_SIZE, db.keysize() },
+        { HAM_PARAM_KEY_SIZE, db.key_size() },
         { HAM_PARAM_KEY_TYPE,
-                db.has_keytype()? db.keytype() : HAM_TYPE_BINARY },
+                db.has_key_type()
+                    ? db.key_type()
+                    : HAM_TYPE_BINARY },
         { HAM_PARAM_RECORD_SIZE,
-                db.has_recsize()? db.recsize() : HAM_RECORD_SIZE_UNLIMITED },
+                db.has_record_size()
+                    ? db.record_size()
+                    : HAM_RECORD_SIZE_UNLIMITED },
         { 0, 0 },
       };
 

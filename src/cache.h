@@ -237,7 +237,7 @@ class Cache
 
     /** returns true if the caller should purge the cache */
     bool is_too_big() {
-      return (m_alloc_elements * m_env->get_pagesize() > m_capacity);
+      return (m_alloc_elements * m_env->get_page_size() > m_capacity);
     }
 
     /** get the capacity (in bytes) */

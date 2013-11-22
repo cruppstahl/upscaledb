@@ -307,7 +307,7 @@ struct EnvFixture {
       REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, Globals::opath(".test"),
             m_flags, 0644, parameters2));
-      parameters2[1].value = 0; // pagesize := 0
+      parameters2[1].value = 0; // page_size := 0
     }
     else {
       REQUIRE(HAM_INV_PARAMETER ==
@@ -315,12 +315,12 @@ struct EnvFixture {
           m_flags | HAM_CACHE_UNLIMITED, 0644, parameters2));
       REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, Globals::opath(".test"),
-          m_flags, 0644, parameters2)); // pagesize too small for DB#
-      parameters2[1].value = 65536; // pagesize := 64K
+          m_flags, 0644, parameters2)); // page_size too small for DB#
+      parameters2[1].value = 65536; // page_size := 64K
     }
 
     if (m_flags & HAM_IN_MEMORY)
-      parameters2[0].value = 0; // cachesize := 0
+      parameters2[0].value = 0; // cache_size := 0
 
     REQUIRE(0 ==
       ham_env_create(&env, Globals::opath(".test"), m_flags, 0644, parameters2));
@@ -347,12 +347,12 @@ struct EnvFixture {
       REQUIRE(0 == ham_env_close(env, 0));
 
       // open DBs
-      // pagesize param not allowed
+      // page_size param not allowed
       REQUIRE(HAM_INV_PARAMETER ==
         ham_env_open(&env, Globals::opath(".test"), m_flags, parameters2));
       REQUIRE(0 ==
         ham_env_open(&env, Globals::opath(".test"), m_flags, parameters3));
-      // keysize param not allowed
+      // key_size param not allowed
       REQUIRE(HAM_INV_PARAMETER ==
         ham_env_open_db(env, &db[0], 1, 0, parameters));
     }

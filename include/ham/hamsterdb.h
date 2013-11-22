@@ -515,14 +515,14 @@ ham_get_license(const char **licensee, const char **product);
  *      file will be created, and the Database contents are lost after
  *      the Environment is closed. The @a filename parameter can
  *      be NULL. Do <b>NOT</b> use in combination with
- *      @ref HAM_CACHE_STRICT and do <b>NOT</b> specify @a cachesize
+ *      @ref HAM_CACHE_STRICT and do <b>NOT</b> specify @a cache_size
  *      other than 0.
  *     <li>@ref HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *      By default, hamsterdb checks if it can use mmap,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
  *     <li>@ref HAM_CACHE_STRICT</li> Do not allow the cache to grow larger
- *      than @a cachesize. If a Database operation needs to resize the
+ *      than @a cache_size. If a Database operation needs to resize the
  *      cache, it will return @ref HAM_CACHE_FULL.
  *      If the flag is not set, the cache is allowed to allocate
  *      more pages than the maximum cache size, but only if it's
@@ -572,9 +572,9 @@ ham_get_license(const char **licensee, const char **product);
  * @return @ref HAM_INV_FILE_VERSION if the Environment version is not
  *        compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_INV_PAGE_SIZE if @a pagesize is not 1024 or
+ * @return @ref HAM_INV_PAGE_SIZE if @a page_size is not 1024 or
  *        a multiple of 2048
- * @return @ref HAM_INV_KEY_SIZE if @a keysize is too large (at least 4
+ * @return @ref HAM_INV_KEY_SIZE if @a key_size is too large (at least 4
  *        keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
@@ -625,7 +625,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
  *     <li>@ref HAM_CACHE_STRICT </li> Do not allow the cache to grow larger
- *      than @a cachesize. If a Database operation needs to resize the
+ *      than @a cache_size. If a Database operation needs to resize the
  *      cache, it will return @ref HAM_CACHE_FULL.
  *      If the flag is not set, the cache is allowed to allocate
  *      more pages than the maximum cache size, but only if it's
@@ -1672,7 +1672,8 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * Retrieve the maximum number of keys per page; this number depends on the
- * currently active page and key sizes. Can be an estimate.
+ * currently active page and key sizes. Can be an estimate if keys do not
+ * have constant sizes or if duplicate keys are used.
  */
 #define HAM_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 

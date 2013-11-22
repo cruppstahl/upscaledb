@@ -126,7 +126,7 @@ class InMemoryDevice : public Device {
     virtual ham_status_t alloc_page(Page *page) {
       ham_assert(page->get_data() == 0);
 
-      ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
+      ham_u8_t *p = Memory::allocate<ham_u8_t>(m_page_size);
       if (!p)
         return (HAM_OUT_OF_MEMORY);
       page->set_data((PPageData *)p);

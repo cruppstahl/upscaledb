@@ -25,13 +25,13 @@
 using namespace hamsterdb;
 
 struct PartialWriteFixture {
-  ham_u32_t m_pagesize;
+  ham_u32_t m_page_size;
   bool m_inmemory;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialWriteFixture(ham_u32_t pagesize = 0, bool inmemory = false)
-    : m_pagesize(pagesize), m_inmemory(inmemory) {
+  PartialWriteFixture(ham_u32_t page_size = 0, bool inmemory = false)
+    : m_page_size(page_size), m_inmemory(inmemory) {
     setup();
   }
 
@@ -45,9 +45,9 @@ struct PartialWriteFixture {
       { 0, 0 }
     };
 
-    if (m_pagesize) {
+    if (m_page_size) {
       params[0].name = HAM_PARAM_PAGESIZE;
-      params[0].value = m_pagesize;
+      params[0].value = m_page_size;
     }
 
     REQUIRE(0 ==
@@ -214,17 +214,17 @@ struct PartialWriteFixture {
   }
 
   void insertGapsTestPagesize() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps, ps, ps * 2);
   }
 
   void insertGapsTestPagesize2() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps * 2, ps * 2, ps * 4);
   }
 
   void insertGapsTestPagesize4() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps * 4, ps * 4, ps * 8);
   }
 };
@@ -243,8 +243,8 @@ struct PartialWriteFixture {
 
 
 struct OverwritePartialWriteFixture : public PartialWriteFixture {
-  OverwritePartialWriteFixture(ham_u32_t pagesize, bool inmemory = false)
-    : PartialWriteFixture(pagesize, inmemory) {
+  OverwritePartialWriteFixture(ham_u32_t page_size, bool inmemory = false)
+    : PartialWriteFixture(page_size, inmemory) {
   }
 
   void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
@@ -811,23 +811,23 @@ TEST_CASE("Partial-grow/insertGapsTestPagesize4", "")
 }
 
 struct PartialReadFixture {
-  ham_u32_t m_pagesize;
+  ham_u32_t m_page_size;
   bool m_inmemory;
   ham_u32_t m_find_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialReadFixture(ham_u32_t pagesize = 0, bool inmemory = false,
+  PartialReadFixture(ham_u32_t page_size = 0, bool inmemory = false,
                   ham_u32_t find_flags = 0)
-    : m_pagesize(pagesize), m_inmemory(inmemory), m_find_flags(find_flags) {
+    : m_page_size(page_size), m_inmemory(inmemory), m_find_flags(find_flags) {
     ham_parameter_t params[] = {
       { 0, 0 },
       { 0, 0 }
     };
 
-    if (m_pagesize) {
+    if (m_page_size) {
       params[0].name = HAM_PARAM_PAGESIZE;
-      params[0].value = m_pagesize;
+      params[0].value = m_page_size;
     }
 
     REQUIRE(0 ==

@@ -21,12 +21,12 @@
 
 namespace hamsterdb {
 
-PageManager::PageManager(LocalEnvironment *env, ham_u32_t cachesize)
+PageManager::PageManager(LocalEnvironment *env, ham_u32_t cache_size)
   : m_env(env), m_cache(0), m_freelist(0), m_page_count_fetched(0),
     m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
     m_page_count_freelist(0)
 {
-  m_cache = new Cache(env, cachesize);
+  m_cache = new Cache(env, cache_size);
 }
 
 PageManager::~PageManager()
@@ -129,7 +129,7 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
     if ((st = m_freelist->alloc_page(&tellpos)))
       return (st);
     if (tellpos > 0) {
-      ham_assert(tellpos % m_env->get_pagesize() == 0);
+      ham_assert(tellpos % m_env->get_page_size() == 0);
       /* try to fetch the page from the cache */
       page = m_cache->get_page(tellpos, 0);
       if (page)
@@ -167,7 +167,7 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
 done:
   /* clear the page with zeroes?  */
   if (flags & PageManager::kClearWithZero)
-    memset(page->get_data(), 0, m_env->get_pagesize());
+    memset(page->get_data(), 0, m_env->get_page_size());
 
   /* initialize the page; also set the 'dirty' flag to force logging */
   page->set_type(page_type);
@@ -278,7 +278,7 @@ PageManager::reclaim_space()
 
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
 
-  ham_u32_t pagesize = m_env->get_pagesize();
+  ham_u32_t page_size = m_env->get_page_size();
   ham_u64_t filesize;
   ham_status_t st = m_env->get_device()->get_filesize(&filesize);
   if (st)
@@ -286,9 +286,9 @@ PageManager::reclaim_space()
 
   ham_u64_t new_size = filesize;
   while (true) {
-    if (!m_freelist->is_page_free(new_size - pagesize))
+    if (!m_freelist->is_page_free(new_size - page_size))
       break;
-    new_size -= pagesize;
+    new_size -= page_size;
     st = m_freelist->truncate_page(new_size);
     if (st)
       return (st);

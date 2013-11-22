@@ -556,9 +556,9 @@ FreelistStatistics::get_global_hints(Freelist *fl,
   freelist page.
   */
   ham_assert(HAM_MAX_U32 >= dst->lower_bound_address
-                  / (Freelist::kBlobAlignment * dst->freelist_pagesize_bits));
+                  / (Freelist::kBlobAlignment * dst->freelist_page_size_bits));
   pos = (ham_u32_t)(dst->lower_bound_address / (Freelist::kBlobAlignment
-                          * dst->freelist_pagesize_bits));
+                          * dst->freelist_page_size_bits));
   if (dst->start_entry < pos)
     dst->start_entry = pos;
 
@@ -576,8 +576,8 @@ FreelistStatistics::get_global_hints(Freelist *fl,
    * number of full pages that we'll need for this one.
    */
   dst->page_span_width =
-    (dst->size_bits + dst->freelist_pagesize_bits - 1)
-      / dst->freelist_pagesize_bits;
+    (dst->size_bits + dst->freelist_page_size_bits - 1)
+      / dst->freelist_page_size_bits;
   ham_assert(dst->page_span_width >= 1);
 
   /*
@@ -800,7 +800,7 @@ FreelistStatistics::get_entry_hints(Freelist *fl,
 
     /* take alignment into account as well! */
     if (dst->aligned) {
-      ham_u32_t alignment = fl->get_env()->get_pagesize()
+      ham_u32_t alignment = fl->get_env()->get_page_size()
               / Freelist::kBlobAlignment;
       dst->startpos += alignment - 1;
       dst->startpos -= dst->startpos % alignment;

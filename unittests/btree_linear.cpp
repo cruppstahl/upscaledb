@@ -37,22 +37,22 @@ split_hook()
 struct BtreeDefaultFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  ham_u32_t m_keysize;
+  ham_u32_t m_key_size;
   bool m_duplicates;
 
   typedef std::vector<int> IntVector;
 
   BtreeDefaultFixture(bool duplicates = false,
-                  ham_u16_t keysize = HAM_KEY_SIZE_UNLIMITED,
-                  ham_u32_t pagesize = 1024 * 16)
-    : m_db(0), m_env(0), m_keysize(keysize), m_duplicates(duplicates) {
+                  ham_u16_t key_size = HAM_KEY_SIZE_UNLIMITED,
+                  ham_u32_t page_size = 1024 * 16)
+    : m_db(0), m_env(0), m_key_size(key_size), m_duplicates(duplicates) {
     os::unlink(Globals::opath(".test"));
     ham_parameter_t p1[] = {
-      { HAM_PARAM_PAGESIZE, pagesize },
+      { HAM_PARAM_PAGESIZE, page_size },
       { 0, 0 }
     };
     ham_parameter_t p2[] = {
-      { HAM_PARAM_KEY_SIZE, keysize },
+      { HAM_PARAM_KEY_SIZE, key_size },
       { 0, 0 }
     };
     REQUIRE(0 ==
@@ -78,8 +78,8 @@ struct BtreeDefaultFixture {
     sprintf(buffer, "%08d", i);
     ham_key_t key = {0};
     key.data = &buffer[0];
-    if (m_keysize != HAM_KEY_SIZE_UNLIMITED)
-      key.size = m_keysize;
+    if (m_key_size != HAM_KEY_SIZE_UNLIMITED)
+      key.size = m_key_size;
     else
       key.size = std::min(BUFFER, 10 + ((i % 30) * 3));
     return (key);

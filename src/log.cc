@@ -167,7 +167,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count)
 {
   ham_status_t st = 0;
   ham_u8_t *p = (ham_u8_t *)page->get_raw_payload();
-  ham_u32_t size = m_env->get_pagesize();
+  ham_u32_t size = m_env->get_page_size();
 
   if (st == 0)
     st = append_write(lsn, page_count == 0 ? kChangesetIsComplete : 0,
@@ -249,7 +249,7 @@ Log::recover()
     }
 
     ham_assert(page->get_address() == entry.offset);
-    ham_assert(m_env->get_pagesize() == entry.data_size);
+    ham_assert(m_env->get_page_size() == entry.data_size);
 
     // overwrite the page data
     memcpy(page->get_data(), buffer.get_ptr(), entry.data_size);

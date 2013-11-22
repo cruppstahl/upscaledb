@@ -30,19 +30,19 @@ struct BlobManagerFixture {
   ham_env_t *m_env;
   bool m_inmemory;
   bool m_use_txn;
-  ham_u32_t m_cachesize;
-  ham_u32_t m_pagesize;
+  ham_u32_t m_cache_size;
+  ham_u32_t m_page_size;
   BlobManager *m_blob_manager;
 
   BlobManagerFixture(bool inmemory = false, bool use_txn = false,
-        ham_u32_t cachesize = 0, ham_u32_t pagesize = 0)
+        ham_u32_t cache_size = 0, ham_u32_t page_size = 0)
     : m_db(0), m_inmemory(inmemory), m_use_txn(use_txn),
-      m_cachesize(cachesize), m_pagesize(pagesize) {
+      m_cache_size(cache_size), m_page_size(page_size) {
     ham_parameter_t params[3] = {
-      { HAM_PARAM_CACHESIZE, m_cachesize },
-      // set pagesize, otherwise 16-bit limit bugs in freelist
+      { HAM_PARAM_CACHESIZE, m_cache_size },
+      // set page_size, otherwise 16-bit limit bugs in freelist
       // will fire on Win32
-      { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },
+      { HAM_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
       { 0, 0 }
     };
 
@@ -245,7 +245,7 @@ struct BlobManagerFixture {
 
   void replaceBiggerAndBiggerTest() {
     const int BLOCKS = 32;
-    unsigned ps = ((LocalEnvironment *)m_env)->get_pagesize();
+    unsigned ps = ((LocalEnvironment *)m_env)->get_page_size();
     ham_u8_t *buffer = (ham_u8_t *)malloc(ps * BLOCKS * 2);
     ham_u64_t blobid, blobid2;
     ham_record_t record;

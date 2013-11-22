@@ -51,34 +51,34 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
       m_dbname = ham_h2db16(n);
     }
 
-    // Returns the btree's max. keysize
+    // Returns the btree's max. key_size
     ham_u16_t get_key_size() const {
-      return (ham_db2h16(m_keysize));
+      return (ham_db2h16(m_key_size));
     }
 
-    // Sets the btree's max. keysize
-    void set_keysize(ham_u16_t n) {
-      m_keysize = ham_h2db16(n);
+    // Sets the btree's max. key_size
+    void set_key_size(ham_u16_t n) {
+      m_key_size = ham_h2db16(n);
     }
 
     // Returns the record size (or 0 if none was specified)
     ham_u32_t get_record_size() const {
-      return (ham_db2h32(m_recsize));
+      return (ham_db2h32(m_rec_size));
     }
 
     // Sets the record size
-    void set_recsize(ham_u32_t n) {
-      m_recsize = ham_h2db32(n);
+    void set_rec_size(ham_u32_t n) {
+      m_rec_size = ham_h2db32(n);
     }
 
     // Returns the btree's key type
-    ham_u16_t get_keytype() const {
-      return (ham_db2h16(m_keytype));
+    ham_u16_t get_key_type() const {
+      return (ham_db2h16(m_key_type));
     }
 
     // Sets the btree's key type
-    void set_keytype(ham_u16_t type) {
-      m_keytype = ham_h2db16(type);
+    void set_key_type(ham_u16_t type) {
+      m_key_type = ham_h2db16(type);
     }
 
     // Returns the address of the btree's root page.
@@ -112,16 +112,16 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     ham_u16_t m_dbname;
 
     // key size used in the pages
-    ham_u16_t m_keysize;
+    ham_u16_t m_key_size;
 
     // key type
-    ham_u16_t m_keytype;
+    ham_u16_t m_key_type;
 
     // reserved for padding
     ham_u16_t m_padding1;
 
     // the record size
-    ham_u32_t m_recsize;
+    ham_u32_t m_rec_size;
 
 } HAM_PACK_2;
 
@@ -147,7 +147,7 @@ class BtreeIndexTraits
     virtual ~BtreeIndexTraits() { }
 
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_system_keysize(ham_u32_t keysize) const = 0;
+    virtual ham_u16_t get_actual_key_size(ham_u32_t key_size) const = 0;
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
@@ -180,7 +180,7 @@ class BtreeIndex
 
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-            ham_u32_t keytype, ham_u32_t keysize);
+            ham_u32_t key_type, ham_u32_t key_size);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -201,17 +201,17 @@ class BtreeIndex
 
     // Returns the internal key size
     ham_u16_t get_key_size() const {
-      return (m_keysize);
+      return (m_key_size);
     }
 
     // Returns the record size
     ham_u32_t get_record_size() const {
-      return (m_recsize);
+      return (m_rec_size);
     }
 
     // Returns the internal key type
-    ham_u16_t get_keytype() const {
-      return (m_keytype);
+    ham_u16_t get_key_type() const {
+      return (m_key_type);
     }
 
     // Returns the address of the root page
@@ -224,21 +224,15 @@ class BtreeIndex
       return (m_flags);
     }
 
-    // Calculates the "maxkeys" values - the limit of keys per page
-    ham_u32_t get_maxkeys(ham_u32_t pagesize, ham_u16_t keysize,
-                        ham_u32_t recsize) const;
-
-    // Returns the actual key size (including overhead)
-    ham_u16_t get_system_keysize(ham_u32_t keysize) const {
-      return (m_leaf_traits->get_system_keysize(keysize));
-    }
+    // Calculates the answer for "HAM_PARAM_MAX_KEYS_PER_PAGE"
+    ham_u32_t get_max_keys_per_page() const;
 
     // Creates and initializes the btree
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    ham_status_t create(ham_u16_t keytype, ham_u32_t keysize,
-                    ham_u32_t recsize);
+    ham_status_t create(ham_u16_t key_type, ham_u32_t key_size,
+                    ham_u32_t rec_size);
 
     // Opens and initializes the btree
     //
@@ -377,14 +371,14 @@ class BtreeIndex
     // internal nodes)
     BtreeIndexTraits *m_internal_traits;
 
-    // the keysize of this btree index
-    ham_u16_t m_keysize;
+    // the key_size of this btree index
+    ham_u16_t m_key_size;
 
-    // the keytype of this btree index
-    ham_u16_t m_keytype;
+    // the key_type of this btree index
+    ham_u16_t m_key_type;
 
     // the record size (or 0 if none was specified)
-    ham_u32_t m_recsize;
+    ham_u32_t m_rec_size;
 
     // the index of the PBtreeHeader in the Environment's header page
     ham_u32_t m_descriptor_index;

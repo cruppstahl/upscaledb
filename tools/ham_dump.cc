@@ -73,15 +73,15 @@ error(const char *foo, ham_status_t st)
 }
 
 static void
-dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
-                int rec_fmt, int max_recsize)
+dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_key_size,
+                int rec_fmt, int max_rec_size)
 {
   int i, ok = 0;
 
   printf("key: ");
 
-  if (!max_keysize)
-    max_keysize = key->size;
+  if (!max_key_size)
+    max_key_size = key->size;
 
   if (!key->data || !key->size)
     printf("(null)");
@@ -106,9 +106,9 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
       printf("%f", (float)*(double *)key->data);
       break;
     default:
-      if (key->size < max_keysize)
-        max_keysize = key->size;
-      for (i = 0; i < max_keysize; i++)
+      if (key->size < max_key_size)
+        max_key_size = key->size;
+      for (i = 0; i < max_key_size; i++)
         printf("%02x ", ((unsigned char *)key->data)[i]);
       break;
     }
@@ -118,8 +118,8 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
 
   ok = 0;
 
-  if (!max_recsize)
-    max_recsize = rec->size;
+  if (!max_rec_size)
+    max_rec_size = rec->size;
 
   char *zterm = 0;
 
@@ -136,8 +136,8 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         memcpy(zterm, rec->data, rec->size);
         zterm[key->size] = 0;
       }
-      if (rec->size > (unsigned)max_recsize)
-        ((char *)rec->data)[max_recsize] = 0;
+      if (rec->size > (unsigned)max_rec_size)
+        ((char *)rec->data)[max_rec_size] = 0;
       printf("%s", zterm ? zterm : (const char *)rec->data);
       break;
     case FMT_NUMERIC:
@@ -166,9 +166,9 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         break;
       break;
     case FMT_BINARY:
-      if (rec->size < (unsigned)max_recsize)
-        max_recsize = rec->size;
-      for (i = 0; i < max_recsize; i++)
+      if (rec->size < (unsigned)max_rec_size)
+        max_rec_size = rec->size;
+      for (i = 0; i < max_rec_size; i++)
         printf("%02x ", ((unsigned char *)rec->data)[i]);
       break;
     }
@@ -183,8 +183,8 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
 }
 
 static void
-dump_database(ham_db_t *db, ham_u16_t dbname, int max_keysize,
-        int rec_fmt, int max_recsize)
+dump_database(ham_db_t *db, ham_u16_t dbname, int max_key_size,
+        int rec_fmt, int max_rec_size)
 {
   ham_cursor_t *cursor;
   ham_status_t st;
@@ -220,7 +220,7 @@ dump_database(ham_db_t *db, ham_u16_t dbname, int max_keysize,
         error("ham_cursor_next", st);
     }
 
-    dump_item(&key, &rec, key_fmt, max_keysize, rec_fmt, max_recsize);
+    dump_item(&key, &rec, key_fmt, max_key_size, rec_fmt, max_rec_size);
   }
 
   ham_cursor_close(cursor);
@@ -231,7 +231,7 @@ int
 main(int argc, char **argv) {
   unsigned opt;
   char *param, *filename = 0, *endptr = 0;
-  int rec = FMT_BINARY, keysize = 16, recsize = 16;
+  int rec = FMT_BINARY, key_size = 16, rec_size = 16;
   unsigned short dbname = 0xffff;
 
   ham_u16_t names[1024];
@@ -276,7 +276,7 @@ main(int argc, char **argv) {
         }
         break;
       case ARG_KEY_MAX_SIZE:
-        keysize = (short)strtoul(param, &endptr, 0);
+        key_size = (short)strtoul(param, &endptr, 0);
         if (endptr && *endptr) {
           printf("Invalid parameter `max-key-size'; numerical value "
              "expected.\n");
@@ -284,7 +284,7 @@ main(int argc, char **argv) {
         }
         break;
       case ARG_REC_MAX_SIZE:
-        recsize = (short)strtoul(param, &endptr, 0);
+        rec_size = (short)strtoul(param, &endptr, 0);
         if (endptr && *endptr) {
           printf("Invalid parameter `max-rec-size'; numerical value "
              "expected.\n");
@@ -374,7 +374,7 @@ main(int argc, char **argv) {
     else if (st)
       error("ham_env_open_db", st);
 
-    dump_database(db, dbname, keysize, rec, recsize);
+    dump_database(db, dbname, key_size, rec, rec_size);
 
     st = ham_db_close(db, 0);
     if (st)
@@ -387,7 +387,7 @@ main(int argc, char **argv) {
       if (st)
         error("ham_env_open_db", st);
 
-      dump_database(db, names[i], keysize, rec, recsize);
+      dump_database(db, names[i], key_size, rec, rec_size);
 
       st = ham_db_close(db, 0);
       if (st)

@@ -75,7 +75,7 @@ print_environment(ham_env_t *env) {
   hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
   if (!quiet) {
     printf("environment\n");
-    printf("  pagesize:           %u\n", lenv->get_pagesize());
+    printf("  page_size:           %u\n", lenv->get_page_size());
     printf("  version:          %u.%u.%u.%u\n",
             lenv->get_header()->get_version(0),
             lenv->get_header()->get_version(1),
@@ -117,36 +117,36 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
       total_key_size = 0, total_rec_size = 0, extended_keys = 0;
 
   if (!quiet) {
-    const char *keytype = 0;
+    const char *key_type = 0;
     switch (params[0].value) {
       case HAM_TYPE_UINT8:
-        keytype = "HAM_TYPE_UINT8";
+        key_type = "HAM_TYPE_UINT8";
         break;
       case HAM_TYPE_UINT16:
-        keytype = "HAM_TYPE_UINT16";
+        key_type = "HAM_TYPE_UINT16";
         break;
       case HAM_TYPE_UINT32:
-        keytype = "HAM_TYPE_UINT32";
+        key_type = "HAM_TYPE_UINT32";
         break;
       case HAM_TYPE_UINT64:
-        keytype = "HAM_TYPE_UINT64";
+        key_type = "HAM_TYPE_UINT64";
         break;
       case HAM_TYPE_REAL32:
-        keytype = "HAM_TYPE_REAL32";
+        key_type = "HAM_TYPE_REAL32";
         break;
       case HAM_TYPE_REAL64:
-        keytype = "HAM_TYPE_REAL64";
+        key_type = "HAM_TYPE_REAL64";
         break;
       case HAM_TYPE_CUSTOM:
-        keytype = "HAM_TYPE_CUSTOM";
+        key_type = "HAM_TYPE_CUSTOM";
         break;
       default:
-        keytype = "HAM_TYPE_BINARY";
+        key_type = "HAM_TYPE_BINARY";
         break;
     }
     printf("\n");
     printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
-    printf("    key type:             %s\n", keytype);
+    printf("    key type:             %s\n", key_type);
     printf("    max key size:         %u\n", (unsigned)params[1].value);
     printf("    max keys per page:    %u\n", (unsigned)params[3].value);
     printf("    flags:                0x%04x\n", (unsigned)params[4].value);

@@ -80,8 +80,8 @@ class DiskBlobManager : public BlobManager
     // the cache. otherwise use direct I/O
     bool blob_from_cache(ham_u32_t size) {
       if (m_env->get_log())
-        return (size < (m_env->get_usable_pagesize()));
-      return (size < (ham_u32_t)(m_env->get_pagesize() >> 3));
+        return (size < (m_env->get_usable_page_size()));
+      return (size < (ham_u32_t)(m_env->get_page_size() >> 3));
     }
 };
 

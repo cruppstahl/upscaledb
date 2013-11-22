@@ -446,15 +446,15 @@ class DefaultNodeLayout
     }
 
     // Returns the actual key size (including overhead, without record)
-    static ham_u16_t get_system_keysize(ham_u32_t keysize) {
+    static ham_u16_t get_actual_key_size(ham_u32_t key_size) {
       // unlimited/variable keys require 5 bytes for flags + key size + offset;
       // assume an average key size of 32 bytes (this is a random guess, but
       // will be good enough)
-      if (keysize == HAM_KEY_SIZE_UNLIMITED)
+      if (key_size == HAM_KEY_SIZE_UNLIMITED)
         return ((ham_u16_t)32 - 8);// + 5 - 8
 
       // otherwise 1 byte for flags
-      return ((ham_u16_t)(keysize + 1));
+      return ((ham_u16_t)(key_size + 1));
     }
 
     Iterator begin() {
@@ -1389,8 +1389,8 @@ class DefaultNodeLayout
 
     // Clears the page with zeroes and reinitializes it
     void test_clear_page() {
-      ham_u32_t pagesize = m_page->get_db()->get_local_env()->get_pagesize();
-      memset(m_page->get_raw_payload(), 0, pagesize);
+      ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
+      memset(m_page->get_raw_payload(), 0, page_size);
       initialize();
     }
 
@@ -1399,24 +1399,24 @@ class DefaultNodeLayout
 
     void initialize() {
       LocalDatabase *db = m_page->get_db();
-      ham_u32_t keysize = db->get_btree_index()->get_key_size();
+      ham_u32_t key_size = db->get_btree_index()->get_key_size();
 
-      m_layout.initialize(m_node->get_data() + kPayloadOffset, keysize);
+      m_layout.initialize(m_node->get_data() + kPayloadOffset, key_size);
 
       if (m_node->get_count() == 0) {
-        ham_u32_t recsize = db->get_btree_index()->get_record_size();
-        ham_u32_t pagesize = db->get_local_env()->get_pagesize()
+        ham_u32_t rec_size = db->get_btree_index()->get_record_size();
+        ham_u32_t page_size = db->get_local_env()->get_page_size()
                 - kPayloadOffset;
         /* adjust page size and key size by adding the overhead */
-        pagesize -= PBtreeNode::get_entry_offset();
-        pagesize -= Page::sizeof_persistent_header;
+        page_size -= PBtreeNode::get_entry_offset();
+        page_size -= Page::sizeof_persistent_header;
 
         /* this calculation is identical to BtreeIndex::get_maxkeys() */
         ham_u32_t capacity;
-        if (recsize == HAM_RECORD_SIZE_UNLIMITED)
-          capacity = pagesize / (get_system_keysize(keysize) + 8);
+        if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
+          capacity = page_size / (get_actual_key_size(key_size) + 8);
         else
-          capacity = pagesize / (get_system_keysize(keysize) + recsize);
+          capacity = page_size / (get_actual_key_size(key_size) + rec_size);
         capacity = (capacity & 1 ? capacity - 1 : capacity);
 
         set_capacity(capacity);
@@ -1781,8 +1781,8 @@ class DefaultNodeLayout
     bool resize(ham_u32_t new_count, const ham_key_t *key) {
       ham_u32_t count = m_node->get_count();
 
-      // the usable pagesize
-      ham_u32_t pagesize = m_page->get_db()->get_local_env()->get_pagesize()
+      // the usable page_size
+      ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size()
                   - PBtreeNode::get_entry_offset()
                   - Page::sizeof_persistent_header
                   - kPayloadOffset;
@@ -1797,7 +1797,7 @@ class DefaultNodeLayout
                 + sizeof(ham_u64_t);
         offset += m_layout.get_key_index_span() * get_capacity();
 
-        if (offset >= pagesize)
+        if (offset >= page_size)
           return (true);
 
         ham_u32_t capacity = get_capacity();
@@ -1873,7 +1873,7 @@ class DefaultNodeLayout
                       : key->size)
               + sizeof(ham_u64_t);
       offset += kPayloadOffset + m_layout.get_key_index_span() * get_capacity();
-      if (offset >= m_page->get_db()->get_local_env()->get_pagesize()
+      if (offset >= m_page->get_db()->get_local_env()->get_page_size()
                     - PBtreeNode::get_entry_offset()
                     - Page::sizeof_persistent_header)
         return (true);

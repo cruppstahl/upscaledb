@@ -170,7 +170,7 @@ class FreelistStatistics {
     ham_u32_t size_bits;
 
     // [input] the size of a freelist page (in chunks)
-    ham_u32_t freelist_pagesize_bits;
+    ham_u32_t freelist_page_size_bits;
 
     // [input] the number of (rounded up) pages we need to fulfill the
     // request;
@@ -226,7 +226,7 @@ class FreelistStatistics {
     ham_u32_t size_bits;
 
     // [input] the size of a freelist page (in chunks)
-    ham_u32_t freelist_pagesize_bits;
+    ham_u32_t freelist_page_size_bits;
   };
 
   static void globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
