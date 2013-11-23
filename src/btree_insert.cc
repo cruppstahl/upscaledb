@@ -386,13 +386,13 @@ class BtreeInsertAction
       old_node->split(new_node, pivot);
 
       /* insert the new element in the old or the new page? */
-      // TODO compare is not required if pivot_at_end is true
-      int cmp = old_node->compare(key, &split_key);
+      int cmp = pivot_at_end
+                    ? 1
+                    : old_node->compare(key, &split_key);
       if (cmp >= 0)
         st = insert_in_leaf(new_page, key, rid);
       else
         st = insert_in_leaf(page, key, rid);
-      ham_assert(pivot_at_end ? cmp >= 0 : true);
 
       // continue if the key is a duplicate; we nevertheless have to
       // finish the SMO (but make sure we do not lose the return value)

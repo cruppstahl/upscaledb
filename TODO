@@ -299,16 +299,7 @@ x btree_erase.cc has TODOs... - no, they're already fixed
 x btree_erase.cc: do not shift elements if there are not at least 20 elements
     to be shifted
 
-o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
-    splits and try to reduce shifts and lookups (pivot_at_end -> no compare for
-    pivot key required)
-    o is it possible to work with Node pointers instead of Page pointers?
-        this would reduce boilerplate code in EVERY function
-    o when a page is split and the new key is inserted to the new page,
-        then all keys in the new page have to be shifted twice (1: the split,
-        2: inserting the new key at the front). can we improve this?
-    o try to make the insert the role model for all other operations:
-        very short code paths, no boilerplate etc
+x btree_insert.cc has a TODO
 
 o run performance tests with several million inserts; but only track the
     performance after the first million was inserted! can we make things
