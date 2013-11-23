@@ -32,6 +32,10 @@ namespace hamsterdb {
  */
 class BtreeEraseAction
 {
+    enum {
+      kShiftThreshold = 50 // only shift if at least x keys will be shifted
+    };
+
   public:
     BtreeEraseAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_u32_t dupe_id = 0, ham_u32_t flags = 0)
@@ -462,7 +466,7 @@ class BtreeEraseAction
       if (node->get_count() > 20 && sibnode->get_count() > 20) {
         if (std::max(node->get_count(), sibnode->get_count())
                   - std::min(node->get_count(), sibnode->get_count())
-              < 10) {
+              < kShiftThreshold) {
           m_mergepage = 0;
           return (0);
         }
@@ -629,13 +633,10 @@ class BtreeEraseAction
         /* replace the old anchor key with the new anchor key */
         if (anchor) {
           if (internal) {
-            // TODO slot rausziehen und VOR shift berechnen, wie in zeile 533?
             slot = ancnode->find(node, s);
             st = node->replace_key(s, ancnode, slot + 1, true);
           }
           else {
-            // TODO slot rausziehen und VOR shift berechnen, wie in zeile 533?
-            // TODO dann weiterschauen ob es noch ähnliche stellen gibt
             slot = ancnode->find(sibnode, 0);
             st = sibnode->replace_key(0, ancnode, slot + 1, true);
           }

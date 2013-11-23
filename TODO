@@ -294,10 +294,10 @@ x remove BtreeIndex::get_max_keys, move to node layout; remove
 
 x increase file version, libtool version (if necessary)
 
-o btree_erase.cc: do not shift elements if there are not at least 20 elements
-    to be shifted
+x btree_erase.cc has TODOs... - no, they're already fixed
 
-o btree_erase.cc has TODOs...
+x btree_erase.cc: do not shift elements if there are not at least 20 elements
+    to be shifted
 
 o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
     splits and try to reduce shifts and lookups (pivot_at_end -> no compare for
@@ -313,6 +313,14 @@ o btree_insert.cc: refactor; reduce call stack depth and recursion; optimize
 o run performance tests with several million inserts; but only track the
     performance after the first million was inserted! can we make things
     scale better?
+    - less seeks, better cache usage; always cache index pages, avoid CPU
+        cache misses and get prepared for variable-sized pages
+    - a sparse matrix of <ID -> page_proxy> mappings with metadata information
+        directly in the page_proxy structure:
+            - last access
+            - pointer to the actual page
+            - ...?
+    - add results to roadmap
 
 o default layout: handle fixed length inline records > 8 bytes (non-duplicates)
     o does not require flags!
@@ -333,8 +341,9 @@ o start redesigning code towards exceptions; this will reduce the code a lot
             return statements
     o ALL resources must be managed RAII style; identify those which don't
     o hamsterdb.cc: wrap all high-level functions in try/catch
-    o then start rewriting low level modules (os, mem, device, page,
-        page_manager, blob_manager...)
+    o then start rewriting everything (start with the level modules abi, aes,
+        os, mem, util, device, error, config, freelist, changeset, cache,
+        page, page_manager, blob_manager, ...)
     o define and document the terminology and check the code for inconsistencies
         - Environment, Database, Cursor, Transaction, Key, Record
         - blob vs record
