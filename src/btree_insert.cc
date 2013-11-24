@@ -104,7 +104,6 @@ class BtreeInsertAction
     // Appends a key at the "end" of the btree, or prepends it at the
     // "beginning"
     ham_status_t append_or_prepend_key() {
-      ham_status_t st = 0;
       Page *page;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
@@ -118,10 +117,8 @@ class BtreeInsertAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      st = env->get_page_manager()->fetch_page(&page, db,
-                      m_hints.leaf_page_addr, true);
-      if (st)
-        return st;
+      page = env->get_page_manager()->fetch_page(db,
+                    m_hints.leaf_page_addr, true);
       /* if the page is not in cache: do a regular insert */
       if (!page)
         return (insert());
@@ -178,14 +175,11 @@ class BtreeInsertAction
       LocalEnvironment *env = db->get_local_env();
 
       /* get the root-page...  */
-      Page *root;
-      ham_status_t st = env->get_page_manager()->fetch_page(&root, db,
-                      m_btree->get_root_address());
-      if (st)
-        return (st);
+      Page *root = env->get_page_manager()->fetch_page(db,
+                    m_btree->get_root_address());
 
       /* ... and start the recursion */
-      st = insert_recursive(root, m_key, 0);
+      ham_status_t st = insert_recursive(root, m_key, 0);
 
       /* create a new root page if it needs to be split */
       if (st == kSplitRequired) {
@@ -202,11 +196,8 @@ class BtreeInsertAction
       LocalEnvironment *env = db->get_local_env();
 
       /* allocate a new root page */
-      Page *newroot;
-      ham_status_t st = env->get_page_manager()->alloc_page(&newroot, db,
+      Page *newroot = env->get_page_manager()->alloc_page(db,
                             Page::kTypeBroot, 0);
-      if (st)
-        return (st);
       ham_assert(newroot->get_db());
 
       m_btree->get_statistics()->reset_page(root);
@@ -218,7 +209,7 @@ class BtreeInsertAction
       ham_key_t split_key = {0};
       split_key.data = m_split_key_arena.get_ptr();
       split_key.size = m_split_key_arena.get_size();
-      st = insert_in_leaf(newroot, &split_key, m_split_rid);
+      ham_status_t st = insert_in_leaf(newroot, &split_key, m_split_rid);
       /* don't overwrite cursor if insert_in_leaf is called again */
       m_cursor = 0;
       if (st)
@@ -315,12 +306,9 @@ class BtreeInsertAction
       BtreeNodeProxy *old_node = m_btree->get_node_from_page(page);
 
       /* allocate a new page */
-      Page *new_page;
-      ham_status_t st = env->get_page_manager()->alloc_page(&new_page, db,
+      Page *new_page = env->get_page_manager()->alloc_page(db,
                             Page::kTypeBindex, 0);
-      if (st)
-        return st;
-      else {
+      {
         PBtreeNode *node = PBtreeNode::from_page(new_page);
         node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
       }
@@ -361,8 +349,9 @@ class BtreeInsertAction
       else
         pivot = count / 2;
       ham_assert(pivot > 0 && pivot <= (int)count - 2);
+
       /* uncouple all cursors */
-      st = BtreeCursor::uncouple_all_cursors(page, pivot);
+      ham_status_t st = BtreeCursor::uncouple_all_cursors(page, pivot);
       if (st)
         return (st);
 
@@ -409,10 +398,8 @@ class BtreeInsertAction
       /* fix the double-linked list of pages, and mark the pages as dirty */
       Page *sib_page = 0;
       if (old_node->get_right()) {
-        st = env->get_page_manager()->fetch_page(&sib_page, db,
+        sib_page = env->get_page_manager()->fetch_page(db,
                         old_node->get_right());
-        if (st)
-          return (st);
       }
 
       new_node->set_left(page->get_address());

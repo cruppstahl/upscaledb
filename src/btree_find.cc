@@ -47,7 +47,7 @@ class BtreeFindAction
       LocalEnvironment *env = db->get_local_env();
       ham_status_t st = 0;
       Page *page = 0;
-      ham_s32_t idx = -1;
+      int slot = -1;
       BtreeNodeProxy *node = 0;
 
       BtreeStatistics *stats = m_btree->get_statistics();
@@ -62,13 +62,13 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        st = env->get_page_manager()->fetch_page(&page, db,
-                        hints.leaf_page_addr, true);
-        if (st == 0 && page) {
+        page = env->get_page_manager()->fetch_page(db, hints.leaf_page_addr,
+                true);
+        if (page) {
           node = m_btree->get_node_from_page(page);
           ham_assert(node->is_leaf());
 
-          idx = m_btree->find_leaf(page, m_key, hints.flags);
+          slot = m_btree->find_leaf(page, m_key, hints.flags);
 
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
@@ -76,8 +76,8 @@ class BtreeFindAction
            * signal a match far away from the current node, so we need
            * the full tree traversal then.
            */
-          if (idx <= 0 || idx >= (int)node->get_count() - 1)
-            idx = -1;
+          if (slot <= 0 || slot >= (int)node->get_count() - 1)
+            slot = -1;
 
           /*
            * else: we landed in the middle of the node, so we don't need to
@@ -86,16 +86,14 @@ class BtreeFindAction
         }
       }
 
-      if (idx == -1) {
+      if (slot == -1) {
         /* get the address of the root page */
         if (!m_btree->get_root_address())
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
-        st = env->get_page_manager()->fetch_page(&page, db,
-                        m_btree->get_root_address());
-        if (st)
-          return (st);
+        page = env->get_page_manager()->fetch_page(db,
+                m_btree->get_root_address());
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
         node = m_btree->get_node_from_page(page);
@@ -119,10 +117,10 @@ class BtreeFindAction
         }
 
         /* check the leaf page for the key */
-        idx = m_btree->find_leaf(page, m_key, hints.flags);
-        if (idx < -1) {
+        slot = m_btree->find_leaf(page, m_key, hints.flags);
+        if (slot < -1) {
           stats->find_failed();
-          return ((ham_status_t)idx);
+          return ((ham_status_t)slot);
         }
       } /* end of regular search */
 
@@ -140,20 +138,20 @@ class BtreeFindAction
        * we need to traverse a multi-page btree -- where this worst-case
        * scenario can happen -- and adjusted the flags to accept
        * both LT and GT approximate matches so that find_leaf()
-       * will be hard pressed to return a 'key not found' signal (idx==-1),
+       * will be hard pressed to return a 'key not found' signal (slot==-1),
        * instead delivering the nearest LT or GT match; all we need to
        * do now is ensure we've got the right one and if not,
        * shift by one.
        */
-      if (idx >= 0) {
+      if (slot >= 0) {
         if ((ham_key_get_intflags(m_key) & BtreeKey::kApproximate)
             && (hints.original_flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 != (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) {
           if ((ham_key_get_intflags(m_key) & BtreeKey::kGreater)
               && (hints.original_flags & HAM_FIND_LT_MATCH)) {
             /* if the index-1 is still in the page, just decrement the index */
-            if (idx > 0)
-              idx--;
+            if (slot > 0)
+              slot--;
             else {
               /* otherwise load the left sibling page */
               if (!node->get_left()) {
@@ -161,12 +159,9 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = env->get_page_manager()->fetch_page(&page, db,
-                              node->get_left());
-              if (st)
-                return (st);
+              page = env->get_page_manager()->fetch_page(db, node->get_left());
               node = m_btree->get_node_from_page(page);
-              idx = node->get_count() - 1;
+              slot = node->get_count() - 1;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
                         & ~BtreeKey::kApproximate) | BtreeKey::kLower);
@@ -174,8 +169,8 @@ class BtreeFindAction
           else if ((ham_key_get_intflags(m_key) & BtreeKey::kLower)
               && (hints.original_flags & HAM_FIND_GT_MATCH)) {
             /* if the index+1 is still in the page, just increment the index */
-            if (idx + 1 < (int)node->get_count())
-              idx++;
+            if (slot + 1 < (int)node->get_count())
+              slot++;
             else {
               /* otherwise load the right sibling page */
               if (!node->get_right()) {
@@ -183,12 +178,9 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = env->get_page_manager()->fetch_page(&page, db,
-                              node->get_right());
-              if (st)
-                return (st);
+              page = env->get_page_manager()->fetch_page(db, node->get_right());
               node = m_btree->get_node_from_page(page);
-              idx = 0;
+              slot = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
                         & ~BtreeKey::kApproximate) | BtreeKey::kGreater);
@@ -215,8 +207,8 @@ class BtreeFindAction
            */
           if (hints.original_flags & HAM_FIND_LT_MATCH) {
             /* if the index-1 is still in the page, just decrement the index */
-            if (idx > 0) {
-              idx--;
+            if (slot > 0) {
+              slot--;
               ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
                           & ~BtreeKey::kApproximate) | BtreeKey::kLower);
             }
@@ -227,8 +219,8 @@ class BtreeFindAction
                  * we have an escape route through GT? */
                 if (hints.original_flags & HAM_FIND_GT_MATCH) {
                   /* if the index+1 is still in the page, just increment it */
-                  if (idx + 1 < (int)node->get_count())
-                    idx++;
+                  if (slot + 1 < (int)node->get_count())
+                    slot++;
                   else {
                     /* otherwise load the right sibling page */
                     if (!node->get_right()) {
@@ -236,12 +228,10 @@ class BtreeFindAction
                       return (HAM_KEY_NOT_FOUND);
                     }
 
-                    st = env->get_page_manager()->fetch_page(&page, db,
+                    page = env->get_page_manager()->fetch_page(db,
                                     node->get_right());
-                    if (st)
-                      return (st);
                     node = m_btree->get_node_from_page(page);
-                    idx = 0;
+                    slot = 0;
                   }
                   ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key) &
                               ~BtreeKey::kApproximate) | BtreeKey::kGreater);
@@ -252,12 +242,10 @@ class BtreeFindAction
                 }
               }
               else {
-                st = env->get_page_manager()->fetch_page(&page, db,
+                page = env->get_page_manager()->fetch_page(db,
                                 node->get_left());
-                if (st)
-                  return (st);
                 node = m_btree->get_node_from_page(page);
-                idx = node->get_count() - 1;
+                slot = node->get_count() - 1;
 
                 ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
                               & ~BtreeKey::kApproximate) | BtreeKey::kLower);
@@ -266,8 +254,8 @@ class BtreeFindAction
           }
           else if (hints.original_flags & HAM_FIND_GT_MATCH) {
             /* if index+1 is still in the page, just increment it */
-            if (idx + 1 < (int)node->get_count())
-              idx++;
+            if (slot + 1 < (int)node->get_count())
+              slot++;
             else {
               /* otherwise load the right sibling page */
               if (!node->get_right()) {
@@ -275,12 +263,9 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = env->get_page_manager()->fetch_page(&page, db,
-                              node->get_right());
-              if (st)
-                return (st);
+              page = env->get_page_manager()->fetch_page(db, node->get_right());
               node = m_btree->get_node_from_page(page);
-              idx = 0;
+              slot = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
                                 & ~BtreeKey::kApproximate)
@@ -289,7 +274,7 @@ class BtreeFindAction
         }
       }
 
-      if (idx < 0) {
+      if (slot < 0) {
         stats->find_failed();
         return (HAM_KEY_NOT_FOUND);
       }
@@ -299,7 +284,7 @@ class BtreeFindAction
       /* set the cursor-position to this key */
       if (m_cursor) {
         ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
-        m_cursor->couple_to_page(page, idx, 0);
+        m_cursor->couple_to_page(page, slot, 0);
       }
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
@@ -311,7 +296,7 @@ class BtreeFindAction
               ? &db->get_key_arena()
               : &m_txn->get_key_arena();
 
-        st = node->get_key(idx, arena, m_key);
+        st = node->get_key(slot, arena, m_key);
         if (st)
           return (st);
       }
@@ -322,7 +307,7 @@ class BtreeFindAction
                ? &db->get_record_arena()
                : &m_txn->get_record_arena();
 
-        st = node->get_record(idx, arena, m_record, m_flags);
+        st = node->get_record(slot, arena, m_record, m_flags);
         if (st)
           return (st);
       }

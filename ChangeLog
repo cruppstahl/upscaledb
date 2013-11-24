@@ -1,3 +1,8 @@
+Nov 23, 2013 - chris ---------------------------------------------------
+o Default Btree node layout for variable length keys can now store
+	fixed length records inline if they're small enough (and if duplicate
+	keys are disabled)
+
 Nov 22, 2013 - chris ---------------------------------------------------
 o Default Btree node layout for variable length keys and duplicate keys
 	was completely rewritten and now uses an up-front index in the

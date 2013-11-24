@@ -26,21 +26,23 @@ namespace hamsterdb {
 
 class LocalEnvironment;
 
-/** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in
- * a MODULO hash scheme */
-#define CACHE_BUCKET_SIZE    10317
-
 /**
  * the cache manager
  */
 class Cache
 {
+    enum {
+      // bucket size should be a prime number or similar, as it is used in
+      // a MODULO hash scheme
+      kCacheBucketSize = 10317
+    };
+
   public:
     /** don't remove the page from the cache */
     static const int NOREMOVE = 1;
 
     /** the default constructor
-     * @remark max_size is in bytes!
+     * @remark capacity_Bytes is in bytes!
      */
     Cache(LocalEnvironment *env,
             ham_u64_t capacity_bytes = HAM_DEFAULT_CACHESIZE);
@@ -122,7 +124,9 @@ class Cache
       if (!m_totallist_tail)
         m_totallist_tail = page;
 
-      ham_assert(check_integrity() == 0);
+#ifdef HAM_DEBUG
+      check_integrity();
+#endif
     }
 
     /** remove a page from the cache */
@@ -155,10 +159,12 @@ class Cache
           m_alloc_elements--;
       }
 
-      ham_assert(check_integrity() == 0);
+#ifdef HAM_DEBUG
+      check_integrity();
+#endif
     }
 
-    typedef ham_status_t (*PurgeCallback)(Page *page);
+    typedef void (*PurgeCallback)(Page *page);
 
     /**
      * purges the cache; the callback is called for every page that needs
@@ -167,9 +173,9 @@ class Cache
      * By default this is capped to 20 pages to avoid I/O spikes.
      * In benchmarks this has proven to be a good limit.
      */
-    ham_status_t purge(PurgeCallback cb, bool strict, unsigned limit = 20) {
+    void purge(PurgeCallback cb, bool strict, unsigned limit = 20) {
       if (!is_too_big())
-        return (0);
+        return;
 
       unsigned i = 0;
       unsigned max_pages = (unsigned)m_cur_elements;
@@ -185,8 +191,11 @@ class Cache
 
       /* get the chronologically oldest page */
       Page *oldest = m_totallist_tail;
-      if (!oldest)
-        return (strict ? HAM_CACHE_FULL : 0);
+      if (!oldest) {
+        if (strict)
+          throw Exception(HAM_CACHE_FULL);
+        return;
+      }
 
       /* now iterate through all pages, starting from the oldest
        * (which is the tail of the "totallist", the list of ALL cached
@@ -198,9 +207,7 @@ class Cache
             && !m_env->get_changeset().contains(page)) {
           remove_page(page);
           Page *prev = page->get_previous(Page::kListCache);
-          ham_status_t st = cb(page);
-          if (st)
-            return (st);
+          cb(page);
           i++;
           page = prev;
         }
@@ -210,9 +217,7 @@ class Cache
       } while (i < max_pages && page && page != oldest);
 
       if (i == 0 && strict)
-        return (HAM_CACHE_FULL);
-
-      return (0);
+        throw Exception(HAM_CACHE_FULL);
     }
 
     /** the visitor callback returns true if the page should be removed from
@@ -221,7 +226,7 @@ class Cache
 
     /** visits all pages in the "totallist"; this is used by the Environment
      * to flush (and delete) pages */
-    ham_status_t visit(VisitCallback cb, Database *db, ham_u32_t flags) {
+    void visit(VisitCallback cb, Database *db, ham_u32_t flags) {
       Page *head = m_totallist;
       while (head) {
         Page *next = head->get_next(Page::kListCache);
@@ -232,11 +237,10 @@ class Cache
         }
         head = next;
       }
-      return (0);
     }
 
     /** returns true if the caller should purge the cache */
-    bool is_too_big() {
+    bool is_too_big() const {
       return (m_alloc_elements * m_env->get_page_size() > m_capacity);
     }
 
@@ -251,7 +255,7 @@ class Cache
     }
 
     /** check the cache integrity */
-    ham_status_t check_integrity();
+    void check_integrity();
 
     // Fills in the current metrics
     void get_metrics(ham_env_metrics_t *metrics) const {
@@ -262,7 +266,7 @@ class Cache
   private:
     /** calculate the hash of a page address */
     ham_u64_t calc_hash(ham_u64_t o) const {
-      return (o % CACHE_BUCKET_SIZE);
+      return (o % kCacheBucketSize);
     }
 
     /** set the HEAD of the global page list */

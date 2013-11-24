@@ -47,10 +47,9 @@ class BtreeCheckAction
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      ham_status_t st = env->get_page_manager()->fetch_page(&page, db,
-                                    m_btree->get_root_address());
-      if (st)
-        return (st);
+      ham_status_t st;
+      page = env->get_page_manager()->fetch_page(db,
+              m_btree->get_root_address());
 
       // for each level...
       while (page) {
@@ -64,11 +63,8 @@ class BtreeCheckAction
         parent = page;
 
         // follow the pointer to the smallest child
-        if (ptr_down) {
-          st = env->get_page_manager()->fetch_page(&page, db, ptr_down);
-          if (st)
-            return (st);
-        }
+        if (ptr_down)
+          page = env->get_page_manager()->fetch_page(db, ptr_down);
         else
           page = 0;
 
@@ -108,12 +104,8 @@ class BtreeCheckAction
 
         // follow the right sibling
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        if (node->get_right()) {
-          st = env->get_page_manager()->fetch_page(&child,
-                            db, node->get_right());
-          if (st)
-            return (st);
-        }
+        if (node->get_right())
+          child = env->get_page_manager()->fetch_page(db, node->get_right());
         else
           child = 0;
 

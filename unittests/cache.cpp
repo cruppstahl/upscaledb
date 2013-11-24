@@ -45,9 +45,9 @@ struct CacheFixture {
       REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  ham_status_t alloc_page(Page **p) {
-    return ((LocalEnvironment *)m_env)->get_page_manager()->alloc_page(p,
-           (LocalDatabase *)m_db, 0, 0);
+  Page *alloc_page() {
+    return ((LocalEnvironment *)m_env)->get_page_manager()->alloc_page(
+                (LocalDatabase *)m_db, 0, 0);
   }
 };
 
@@ -239,11 +239,11 @@ TEST_CASE("Cache/strict", "Tests the Cache")
   unsigned int max_pages = HAM_DEFAULT_CACHESIZE / (1024 * 128);
   unsigned int i;
   for (i = 0; i < max_pages; i++)
-    REQUIRE(0 == f.alloc_page(&p[i]));
+    REQUIRE((p[i] = f.alloc_page()));
 
-  REQUIRE(HAM_CACHE_FULL == f.alloc_page(&p[i]));
-  REQUIRE(0 == ((LocalEnvironment *)f.m_env)->get_page_manager()->purge_cache());
-  REQUIRE(0 == f.alloc_page(&p[i]));
+  REQUIRE_CATCH(f.alloc_page(), HAM_CACHE_FULL);
+  ((LocalEnvironment *)f.m_env)->get_page_manager()->purge_cache();
+  REQUIRE((p[i] = f.alloc_page()));
 }
 
 TEST_CASE("Cache/setSizeEnvCreate", "Tests the Cache")

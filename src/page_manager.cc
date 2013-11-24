@@ -58,23 +58,18 @@ PageManager::get_metrics(ham_env_metrics_t *metrics) const
     m_freelist->get_metrics(metrics);
 }
 
-ham_status_t
-PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
+Page *
+PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
                 bool only_from_cache)
 {
-  ham_status_t st;
-
-  *ppage = 0;
-
   /* fetch the page from the cache */
   Page *page = m_cache->get_page(address, Cache::NOREMOVE);
   if (page) {
-    *ppage = page;
     ham_assert(page->get_data());
     /* store the page in the changeset if recovery is enabled */
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().add_page(page);
-    return (0);
+    return (page);
   }
 
   if (only_from_cache || m_env->get_flags() & HAM_IN_MEMORY)
@@ -85,15 +80,11 @@ PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
   /* can we allocate a new page for the cache? */
   if (m_cache->is_too_big()) {
     if (m_env->get_flags() & HAM_CACHE_STRICT)
-      return (HAM_CACHE_FULL);
+      throw Exception(HAM_CACHE_FULL);
   }
 
   page = new Page(m_env, db);
-  st = page->fetch(address);
-  if (st) {
-    delete page;
-    return (st);
-  }
+  page->fetch(address);
 
   ham_assert(page->get_data());
 
@@ -104,30 +95,26 @@ PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
     m_env->get_changeset().add_page(page);
 
-  *ppage = page;
-
   m_page_count_fetched++;
 
-  return (0);
+  return (page);
 }
 
-ham_status_t
-PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
-                ham_u32_t flags)
+Page *
+PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
 {
   ham_status_t st;
   ham_u64_t tellpos = 0;
   Page *page = 0;
   bool allocated_by_me = false;
 
-  *ppage = 0;
   ham_assert(0 == (flags & ~(PageManager::kIgnoreFreelist
                                 | PageManager::kClearWithZero)));
 
   /* first, we ask the freelist for a page */
   if (!(flags & PageManager::kIgnoreFreelist) && m_freelist) {
     if ((st = m_freelist->alloc_page(&tellpos)))
-      return (st);
+      return (0);
     if (tellpos > 0) {
       ham_assert(tellpos % m_env->get_page_size() == 0);
       /* try to fetch the page from the cache */
@@ -136,11 +123,7 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
         goto done;
       /* allocate a new page structure and read the page from disk */
       page = new Page(m_env, db);
-      st = page->fetch(tellpos);
-      if (st) {
-        delete page;
-        return (st);
-      }
+      page->fetch(tellpos);
       goto done;
     }
   }
@@ -155,14 +138,12 @@ PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
     if (m_env->get_flags() & HAM_CACHE_STRICT) {
       if (allocated_by_me)
         delete page;
-      return (HAM_CACHE_FULL);
+      throw Exception(HAM_CACHE_FULL);
     }
   }
 
   ham_assert(tellpos == 0);
-  st = page->allocate();
-  if (st)
-    return (st);
+  page->allocate();
 
 done:
   /* clear the page with zeroes?  */
@@ -198,27 +179,25 @@ done:
       break;
   }
 
-  *ppage = page;
-  return (0);
+  return (page);
 }
 
-ham_status_t
-PageManager::alloc_blob(Database *db, ham_u32_t size, ham_u64_t *address,
-                        bool *allocated)
+ham_u64_t
+PageManager::alloc_blob(Database *db, ham_u32_t size, bool *pallocated)
 {
-  *address = 0;
-  *allocated = false;
+  ham_u64_t address = 0;
+
+  if (pallocated)
+    *pallocated = false;
 
   // first check the freelist
   if (m_freelist) {
-    ham_status_t st = m_freelist->alloc_area(size, address);
+    ham_status_t st = m_freelist->alloc_area(size, &address);
     if (st)
-      return (st);
-    if (*address)
-      return (0);
+      throw Exception(st);
   }
 
-  return (0);
+  return (address);
 }
 
 static bool
@@ -238,65 +217,61 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
   return (false);
 }
 
-ham_status_t
+void
 PageManager::flush_all_pages(bool nodelete)
 {
-  return (m_cache->visit(flush_all_pages_callback, 0, nodelete ? 1 : 0));
+  m_cache->visit(flush_all_pages_callback, 0, nodelete ? 1 : 0);
 }
 
-static ham_status_t
+static void
 purge_callback(Page *page)
 {
   ham_status_t st = BtreeCursor::uncouple_all_cursors(page);
   if (st)
-    return (st);
+    throw Exception(st);
 
-  st = page->get_env()->get_page_manager()->flush_page(page);
-  if (st)
-    return (st);
-
+  page->get_env()->get_page_manager()->flush_page(page);
   delete page;
-  return (0);
 }
 
-ham_status_t
+void
 PageManager::purge_cache()
 {
   /* in-memory-db: don't remove the pages or they would be lost */
-  if (m_env->get_flags() & HAM_IN_MEMORY)
-    return (0);
-
-  return (m_cache->purge(purge_callback,
-              (m_env->get_flags() & HAM_CACHE_STRICT) != 0));
+  if (!(m_env->get_flags() & HAM_IN_MEMORY))
+    m_cache->purge(purge_callback,
+            (m_env->get_flags() & HAM_CACHE_STRICT) != 0);
 }
 
-ham_status_t
+void
 PageManager::reclaim_space()
 {
   if (!m_freelist)
-    return (0);
+    return;
 
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
 
   ham_u32_t page_size = m_env->get_page_size();
-  ham_u64_t filesize;
-  ham_status_t st = m_env->get_device()->get_filesize(&filesize);
-  if (st)
-    return (st);
+  ham_u64_t filesize = m_env->get_device()->get_filesize();
 
-  ham_u64_t new_size = filesize;
-  while (true) {
-    if (!m_freelist->is_page_free(new_size - page_size))
-      break;
-    new_size -= page_size;
-    st = m_freelist->truncate_page(new_size);
-    if (st)
-      return (st);
+  // ignore subsequent errors - we're closing the database, and if
+  // reclaiming fails then this is not a tragedy
+  try {
+    ham_u64_t new_size = filesize;
+    while (true) {
+      if (!m_freelist->is_page_free(new_size - page_size))
+        break;
+      new_size -= page_size;
+      ham_status_t st = m_freelist->truncate_page(new_size);
+      if (st)
+        throw Exception(st);
+    }
+    if (new_size == filesize)
+      return;
+    m_env->get_device()->truncate(new_size);
   }
-
-  if (new_size == filesize)
-    return (0);
-  return (m_env->get_device()->truncate(new_size));
+  catch (Exception &ex) {
+  }
 }
 
 static bool
@@ -305,7 +280,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
   LocalEnvironment *env = page->get_env();
 
   if (page->get_db() == db && page->get_address() != 0) {
-    (void)env->get_page_manager()->flush_page(page);
+    env->get_page_manager()->flush_page(page);
 
     /*
      * TODO is this really necessary?? i don't think so
@@ -314,7 +289,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
         (!(page->get_flags() & Page::kNpersNoHeader)) &&
           (page->get_type() == Page::kTypeBroot ||
             page->get_type() == Page::kTypeBindex)) {
-      (void)BtreeCursor::uncouple_all_cursors(page);
+      BtreeCursor::uncouple_all_cursors(page);
     }
 
     return (true);
@@ -323,12 +298,11 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
   return (false);
 }
 
-ham_status_t
+void
 PageManager::check_integrity()
 {
   if (m_cache)
-    return (m_cache->check_integrity());
-  return (0);
+    m_cache->check_integrity();
 }
 
 ham_u64_t
@@ -341,10 +315,10 @@ void
 PageManager::close_database(Database *db)
 {
   if (m_cache)
-    (void)m_cache->visit(db_close_callback, db, 0);
+    m_cache->visit(db_close_callback, db, 0);
 }
 
-ham_status_t
+void
 PageManager::add_to_freelist(Page *page)
 {
   Freelist *f = get_freelist();
@@ -354,15 +328,14 @@ PageManager::add_to_freelist(Page *page)
     page->set_node_proxy(0);
   }
 
-  return (f ? f->free_page(page) : 0);
+  if (f)
+    f->free_page(page);
 }
 
-ham_status_t
+void
 PageManager::close()
 {
-  ham_status_t st = flush_all_pages();
-  if (st)
-    return (st);
+  flush_all_pages();
 
   // reclaim unused disk space
   // if logging is enabled: also flush the changeset to write back the
@@ -378,24 +351,15 @@ PageManager::close()
 #endif
 
   if (try_reclaim) {
-    st = reclaim_space();
-    if (st)
-      return (st);
+    reclaim_space();
 
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY) {
-      st = m_env->get_changeset().flush(m_env->get_incremented_lsn());
-      if (st)
-        return (st);
-    }
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+      m_env->get_changeset().flush(m_env->get_incremented_lsn());
   }
 
   // flush again; there were pages fetched during reclaim, and they have
   // to be released now
-  st = flush_all_pages();
-  if (st)
-    return (st);
-
-  return (st);
+  flush_all_pages();
 }
 
 } // namespace hamsterdb

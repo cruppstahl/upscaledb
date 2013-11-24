@@ -252,7 +252,6 @@ class BinaryKeyList
     ham_u32_t m_key_size;
 };
 
-
 //
 // A proxy class handling access to records of non-fixed size//
 //
@@ -363,7 +362,6 @@ class DefaultRecordList
     ham_u64_t *m_data;
 };
 
-
 //
 // A proxy class handling access to inline records of internal nodes
 //
@@ -449,7 +447,6 @@ class InternalRecordList
     ham_u64_t *m_data;
 };
 
-
 //
 // A proxy class handling access to inline records with fixed length (for btree
 // leafs storing the actual record data)
@@ -533,7 +530,6 @@ class InlineRecordList
     ham_u8_t *m_data;
     ham_u32_t m_record_size;
 };
-
 
 //
 // A BtreeNodeProxy layout which stores key data, key flags and

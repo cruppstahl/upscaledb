@@ -59,7 +59,7 @@ struct PageFixture {
   void allocFreeTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     delete page;
   }
 
@@ -70,7 +70,7 @@ struct PageFixture {
 
     for (i = 0; i < 10; i++) {
       page = new Page((LocalEnvironment *)m_env);
-      REQUIRE(0 == page->allocate());
+      page->allocate();
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
       if (!m_inmemory)
@@ -85,16 +85,16 @@ struct PageFixture {
 
     page = new Page((LocalEnvironment *)m_env);
     temp = new Page((LocalEnvironment *)m_env);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     REQUIRE(page->get_address() == ps * 2);
 
-    REQUIRE(0 == page->fetch(page->get_address()));
+    page->fetch(page->get_address());
     memset(page->get_data(), 0x13, ps);
     page->set_dirty(true);
-    REQUIRE(0 == page->flush());
+    page->flush();
 
     REQUIRE(false == page->is_dirty());
-    REQUIRE(0 == temp->fetch(ps * 2));
+    temp->fetch(ps * 2);
     REQUIRE(0 == memcmp(page->get_data(), temp->get_data(), ps));
 
     delete temp;

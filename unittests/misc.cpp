@@ -53,7 +53,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     memset(page->get_raw_payload(), 0, 4096);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -73,7 +73,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     memset(page->get_raw_payload(), 0, 4096);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -93,7 +93,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     memset(page->get_raw_payload(), 0, 4096);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -113,7 +113,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    REQUIRE(0 == page->allocate());
+    page->allocate();
     memset(page->get_raw_payload(), 0, 4096);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 

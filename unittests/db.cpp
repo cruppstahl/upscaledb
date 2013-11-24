@@ -126,7 +126,7 @@ struct DbFixture {
 
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
 
-    REQUIRE(0 == pm->alloc_page(&page, m_dbp, 0, PageManager::kIgnoreFreelist));
+    REQUIRE((page = pm->alloc_page(m_dbp, 0, PageManager::kIgnoreFreelist)));
 
     REQUIRE(m_dbp == page->get_db());
     p = page->get_raw_payload();
@@ -134,11 +134,11 @@ struct DbFixture {
       p[i] = (ham_u8_t)i;
     page->set_dirty(true);
     address = page->get_address();
-    REQUIRE(0 == page->flush());
+    page->flush();
     pm->test_get_cache()->remove_page(page);
     delete page;
 
-    REQUIRE(0 == pm->fetch_page(&page, m_dbp, address));
+    REQUIRE((page = pm->fetch_page(m_dbp, address)));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
     pm->test_get_cache()->remove_page(page);

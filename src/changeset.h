@@ -57,7 +57,7 @@ class Changeset
     }
 
     /** is the changeset empty? */
-    bool is_empty() {
+    bool is_empty() const {
       return (m_head == 0);
     }
 
@@ -79,7 +79,7 @@ class Changeset
      *
      * on success: will clear the changeset and the log
      */
-    ham_status_t flush(ham_u64_t lsn);
+    void flush(ham_u64_t lsn);
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {
@@ -91,8 +91,8 @@ class Changeset
     LocalEnvironment *m_env;
 
     /** write all pages in a bucket to the log file */
-    ham_status_t log_bucket(Page **bucket, ham_u32_t bucket_size,
-                            ham_u64_t lsn, ham_u32_t &page_count) ;
+    void log_bucket(Page **bucket, ham_u32_t bucket_size, ham_u64_t lsn,
+                ham_u32_t &page_count) ;
 
     /** the head of our linked list */
     Page *m_head;

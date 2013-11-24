@@ -53,31 +53,26 @@ Page::~Page()
   ham_assert(m_cursor_list == 0);
 }
 
-ham_status_t
+void
 Page::allocate()
 {
-  return (m_env->get_device()->alloc_page(this));
+  m_env->get_device()->alloc_page(this);
 }
 
-ham_status_t
+void
 Page::fetch(ham_u64_t address)
 {
   set_address(address);
-  return (m_env->get_device()->read_page(this));
+  m_env->get_device()->read_page(this);
 }
 
-ham_status_t
+void
 Page::flush()
 {
-  if (!is_dirty())
-    return (HAM_SUCCESS);
-
-  ham_status_t st = m_env->get_device()->write_page(this);
-  if (st)
-    return (st);
-
-  set_dirty(false);
-  return (HAM_SUCCESS);
+  if (is_dirty()) {
+    m_env->get_device()->write_page(this);
+    set_dirty(false);
+  }
 }
 
 } // namespace hamsterdb

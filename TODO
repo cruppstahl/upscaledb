@@ -307,51 +307,139 @@ x run performance tests with several million inserts; but only track the
     performance after the first million was inserted! can we make things
     scale better? - 50% used by freelist
 
-o default layout: handle fixed length inline records > 8 bytes
+x default layout: handle fixed length inline records > 8 bytes
     -> only if duplicates are disabled!
     x ham_db_insert/ham_cursor_insert: check record size if record size is
         fixed length (already implemented)
     x move the current functionality to a template class
-    o only use fixed record length-layout if duplicates are DISABLED!
-    o always store record inline if size is <= 16 byte, or more if
-        pagesize is higher
-    o internal pages: use a different layout than leaf pages (inline
+    x only use fixed record length-layout if duplicates are DISABLED!
+    x add new test and make sure it uses the correct template classes
+    x internal pages: use a different layout than leaf pages (inline
         8 byte fixed length records, no duplicates)
-    o add persistent flag to force records inline (already exists?)
-    o ham_info: show if record is inline
-    o make sure this is covered by monster/valgrind/perftest
+    x add persistent flag to force records inline (already exists?)
+    x ham_info: show if record is inline
+    x make sure this is covered by monster/valgrind/perftest
 
-o use linear search with fixed length keys (if max-keys-per-page
-    or the subrange in the binary search is low enough, and if the
-    performance makes sense)
-    o if both layouts use binary search then move it back to the proxy!
-    o maybe this only makes sense with PAX, and could be combined with SIMD
+x the following tests are failing:
+    x --use-berkeleydb=true --reopen=true --pagesize=1024 ../../../hamsterdb-tests/testfiles/1/ext_021.tst
+    x --use-berkeleydb=true --reopen=true --pagesize=2048 ../../../hamsterdb-tests/testfiles/1/ext_021.tst
+    x --use-berkeleydb=true --reopen=true --pagesize=1024 ../../../hamsterdb-tests/testfiles/3/ext_023.tst
+    x --use-berkeleydb=true --reopen=true --pagesize=1024 --overwrite ../../../hamsterdb-tests/testfiles/1/ext_021.tst
+    x --use-berkeleydb=true --reopen=true --pagesize=1024 --overwrite ../../../hamsterdb-tests/testfiles/3/ext_023.tst
+
+x define and document the terminology and check the code for inconsistencies
+    -> Wiki
+    x review code and make sure it's consistent
 
 o start redesigning code towards exceptions; this will reduce the code a lot
     and we can get rid on those annoying error checks and returns
     x evaluate performance of exception handling code vs. non-exception handling
         -> it's ok, but only use for exceptions, not for normal
             return statements
-    o ALL resources must be managed RAII style; identify those which don't
-    o hamsterdb.cc: wrap all high-level functions in try/catch
+    x hamsterdb.cc: wrap all high-level functions in try/catch
     o then start rewriting everything (start with the level modules abi, aes,
         os, mem, util, device, error, config, freelist, changeset, cache,
         page, page_manager, blob_manager, ...)
-    o define and document the terminology and check the code for inconsistencies
-        - Environment, Database, Cursor, Transaction, Key, Record
-        - blob vs record
-        - inline record
-        - extended key
-        - duplicate key
-        - constant-length key vs. variable-length key
-        - constant-length record vs. variable-length record
-        - page, node, btree node, iterator, layout, slot/index/position
-        - freelist
+      x packstart.h
+      x packstop.h
+      x endianswap.h
+      x serial.h
+      x version.h
+      x config.h
+      x abi.h
+      x aes.h
+      x error.cc
+      x error.h
+      x mutex.h
+      x util.cc
+      x util.h
+      x mem.cc
+      x mem.h
+      x os.h
+      x os_posix.cc
+      x os_win32.cc
+      x device_disk.h
+      x device_factory.h
+      x device.h
+      x device_inmem.h
+      x log.cc
+      x log.h
+      x journal.cc
+      x journal_entries.h
+      x journal.h
+
+      x cache.cc
+      x cache.h
+      x changeset.cc
+      x changeset.h
+      x errorinducer.h - must throw?
+      x page.cc
+      x page.h
+      x page_manager.cc
+      x page_manager.h
+
+      o freelist.cc
+      o freelist.h
+      o freelist_stats.cc
+      o freelist_stats.h
+      o blob_manager_disk.cc
+      o blob_manager_disk.h
+      o blob_manager_factory.h
+      o blob_manager.h
+      o blob_manager_inmem.cc
+      o blob_manager_inmem.h
+
+      o btree_check.cc
+      o btree_cursor.cc
+      o btree_cursor.h
+      o btree_enum.cc
+      o btree_erase.cc
+      o btree_find.cc
+      o btree_index.cc
+      o btree_index_factory.h
+      o btree_index.h
+      o btree_insert.cc
+      o btree_key.h
+      o btree_node_default.h
+      o btree_node.h
+      o btree_node_pax.h
+      o btree_node_proxy.h
+      o btree_stats.cc
+      o btree_stats.h
+
+      o duplicates.cc
+      o duplicates.h
+      o cursor.cc
+      o cursor.h
+      o db.cc
+      o db.h
+      o db_local.cc
+      o db_local.h
+      o db_remote.cc
+      o db_remote.h
+      o env.cc
+      o env.h
+      o env_header.h
+      o env_local.cc
+      o env_local.h
+      o env_remote.cc
+            -> reopen connection in case of network errors
+      o env_remote.h
+      o txn.cc
+      o txn_cursor.cc
+      o txn_cursor.h
+      o txn.h
+      o hamsterdb.cc
+
+o merge everything with v2
 
 o completely rewrite handling of duplicate keys
-    - store record list in leaf, not in overflow area; if there are too
+    o store record list in leaf, not in overflow area; if there are too
         many (> 256) then allocate an overflow extend
-    - support inline records
+    o support inline records
+    o can we unify the whole record handling from both layouts?
+        - at least fix the naming to make clear whether a class is for
+            PAX or for Default
 
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
@@ -451,6 +539,10 @@ o PRO: use SIMD for fixed-length scans and __builtin_prefetch
     http://stackoverflow.com/questions/8460563/builtin-prefetch-how-much-does-it-read
     http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/prefetch.h
     http://stackoverflow.com/questions/7327994/prefetching-examples
+    o use linear search with fixed length keys (if max-keys-per-page
+        or the subrange in the binary search is low enough, and if the
+        performance makes sense) -> also for MIT
+    o if both layouts use binary search then move it back to the proxy!
 
 o release-v2.pl: add test without berkeleydb
 

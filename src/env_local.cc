@@ -75,8 +75,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
         ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
         ham_u16_t max_databases)
 {
-  ham_status_t st = 0;
-
   set_flags(flags);
   if (filename)
     m_filename = filename;
@@ -89,12 +87,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   m_device->set_page_size(m_page_size);
 
   /* create the file */
-  st = m_device->create(filename, flags, mode);
-  if (st) {
-    delete m_device;
-    m_device = 0;
-    return (st);
-  }
+  m_device->create(filename, flags, mode);
 
   /* create the configuration object */
   m_header = new EnvironmentHeader(m_device);
@@ -102,11 +95,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* allocate the header page */
   {
     Page *page = new Page(this);
-    st = page->allocate();
-    if (st) {
-      delete page;
-      return (st);
-    }
+    page->allocate();
     memset(page->get_data(), 0, m_page_size);
     page->set_type(Page::kTypeHeader);
     m_header->set_header_page(page);
@@ -127,27 +116,17 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
-    hamsterdb::Log *log = new hamsterdb::Log(this);
-    st = log->create();
-    if (st) {
-      delete log;
-      return (st);
-    }
-    m_log = log;
+    m_log = new hamsterdb::Log(this);
+    m_log->create();
 
-    Journal *journal = new Journal(this);
-    st = journal->create();
-    if (st) {
-      delete journal;
-      return (st);
-    }
-    m_journal = journal;
+    m_journal = new Journal(this);
+    m_journal->create();
   }
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    return (m_page_manager->flush_page(m_header->get_header_page()));
+    m_page_manager->flush_page(m_header->get_header_page());
 
   return (0);
 }
@@ -156,6 +135,8 @@ ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
         ham_u32_t cache_size)
 {
+  ham_status_t st;
+
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
@@ -166,12 +147,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   set_flags(flags);
 
   /* open the file */
-  ham_status_t st = m_device->open(filename, flags);
-  if (st) {
-    delete m_device;
-    m_device = 0;
-    return (st);
-  }
+  m_device->open(filename, flags);
 
   /* create the configuration object */
   m_header = new EnvironmentHeader(m_device);
@@ -204,9 +180,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
      * now fetch the header data we need to get an estimate of what
      * the database is made of really.
      */
-    st = m_device->read(0, hdrbuf, sizeof(hdrbuf));
-    if (st)
-      goto fail_with_fake_cleansing;
+    m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
     m_page_size = m_header->get_page_size();
     m_device->set_page_size(m_page_size);
@@ -252,11 +226,7 @@ fail_with_fake_cleansing:
 
     /* now read the "real" header page and store it in the Environment */
     page = new Page(this);
-    st = page->fetch(0);
-    if (st) {
-      delete page;
-      return (st);
-    }
+    page->fetch(0);
     m_header->set_header_page(page);
   }
 
@@ -313,7 +283,7 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
 
   /* flush the header page if logging is enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    st = get_changeset().flush(get_incremented_lsn());
+    get_changeset().flush(get_incremented_lsn());
 
   return (st);
 }
@@ -375,7 +345,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   /* if logging is enabled: flush the changeset because the header page
    * was modified */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
-    st = get_changeset().flush(get_incremented_lsn());
+    get_changeset().flush(get_incremented_lsn());
 
   return (st);
 }
@@ -436,11 +406,8 @@ LocalEnvironment::close(ham_u32_t flags)
     return (st);
 
   /* flush all pages and the freelist, reduce the file size */
-  if (m_page_manager) {
-    st = m_page_manager->close();
-    if (st)
-      return (st);
-  }
+  if (m_page_manager)
+    m_page_manager->close();
 
   /* if we're not in read-only mode, and not an in-memory-database,
    * and the dirty-flag is true: flush the page-header to disk
@@ -567,21 +534,14 @@ LocalEnvironment::flush(ham_u32_t flags)
     return (st);
 
   /* flush the header page, if necessary */
-  if (m_header->get_header_page()->is_dirty()) {
-    st = get_page_manager()->flush_page(m_header->get_header_page());
-    if (st)
-      return st;
-  }
+  if (m_header->get_header_page()->is_dirty())
+    get_page_manager()->flush_page(m_header->get_header_page());
 
   /* flush all open pages to disk */
-  st = get_page_manager()->flush_all_pages(true);
-  if (st)
-    return st;
+  get_page_manager()->flush_all_pages(true);
 
   /* flush the device - this usually causes a fsync() */
-  st = device->flush();
-  if (st)
-    return st;
+  device->flush();
 
   return (HAM_SUCCESS);
 }
@@ -706,13 +666,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   mark_header_page_dirty();
 
   /* if logging is enabled: flush the changeset and the header page */
-  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    st = get_changeset().flush(get_incremented_lsn());
-    if (st) {
-      delete db;
-      return (st);
-    }
-  }
+  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
+    get_changeset().flush(get_incremented_lsn());
 
   /*
    * on success: store the open database in the environment's list of
@@ -802,7 +757,7 @@ LocalEnvironment::txn_begin(Transaction **txn, const char *name,
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    st = get_journal()->append_txn_begin(t, this, name, get_incremented_lsn());
+    get_journal()->append_txn_begin(t, this, name, get_incremented_lsn());
   }
 
   /* link this txn with the Environment */
@@ -829,7 +784,7 @@ LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    st = get_journal()->append_txn_commit(txn, get_incremented_lsn());
+    get_journal()->append_txn_commit(txn, get_incremented_lsn());
     if (st)
       return (st);
   }
@@ -852,7 +807,7 @@ LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    st = get_journal()->append_txn_abort(txn, get_incremented_lsn());
+    get_journal()->append_txn_abort(txn, get_incremented_lsn());
     if (st)
       return (st);
   }
@@ -870,25 +825,28 @@ LocalEnvironment::recover(ham_u32_t flags)
   ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
 
   /* open the log and the journal (if transactions are enabled) */
-  st = m_log->open();
-  if (st == HAM_FILE_NOT_FOUND)
-    st = m_log->create();
-  if (st)
-    goto bail;
+  try {
+    m_log->open();
+  }
+  catch (Exception &ex) {
+    if (ex.code == HAM_FILE_NOT_FOUND)
+      m_log->create();
+  }
+
   if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    st = m_journal->open();
-    if (st == HAM_FILE_NOT_FOUND)
-      st = m_journal->create();
-    if (st)
-      goto bail;
+    try {
+      m_journal->open();
+    }
+    catch (Exception &ex) {
+      if (ex.code == HAM_FILE_NOT_FOUND)
+      m_journal->create();
+    }
   }
 
   /* success - check if we need recovery */
   if (!m_log->is_empty()) {
     if (flags & HAM_AUTO_RECOVERY) {
-      st = m_log->recover();
-      if (st)
-        goto bail;
+      m_log->recover();
     }
     else {
       st = HAM_NEED_RECOVERY;
@@ -899,9 +857,7 @@ LocalEnvironment::recover(ham_u32_t flags)
   if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
     if (!m_journal->is_empty()) {
       if (flags & HAM_AUTO_RECOVERY) {
-        st = m_journal->recover();
-        if (st)
-          goto bail;
+        m_journal->recover();
       }
       else {
         st = HAM_NEED_RECOVERY;
@@ -1009,14 +965,8 @@ LocalEnvironment::flush_txn(Transaction *txn)
     }
 
     /* now flush the changeset to disk */
-    if (get_flags() & HAM_ENABLE_RECOVERY) {
-      st = get_changeset().flush(op->get_lsn());
-      if (st) {
-        ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
-        get_changeset().clear();
-        return (st);
-      }
-    }
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      get_changeset().flush(op->get_lsn());
 
     /*
      * this op is about to be flushed!

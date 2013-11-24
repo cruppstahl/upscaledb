@@ -224,7 +224,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
     Journal *j = get_local_env()->get_journal();
-    st = j->append_insert(this, txn, key, record,
+    j->append_insert(this, txn, key, record,
               flags & HAM_DUPLICATE ? flags : flags | HAM_OVERWRITE,
               op->get_lsn());
   }
@@ -479,7 +479,7 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
     Journal *j = get_local_env()->get_journal();
-    st = j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
+    j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
               op->get_lsn());
   }
 
@@ -593,12 +593,15 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
     }
   }
 
-  // if we can fit at least 500 keys AND records into the leaf then store
-  // the records in the leaf; otherwise they're allocated somewhere else 
+  // fixed length records:
+  //
+  // if records are <= 8 bytes OR if we can fit at least 500 keys AND
+  // records into the leaf then store the records in the leaf;
+  // otherwise they're allocated as a blob
   if (rec_size != HAM_RECORD_SIZE_UNLIMITED) {
-    if (!(m_rt_flags & HAM_FORCE_RECORDS_INLINE)
-          && rec_size <= kInlineRecordThreshold
-          && get_local_env()->get_page_size() / (key_size + rec_size) > 500) {
+    if (rec_size <= 8
+        || (rec_size <= kInlineRecordThreshold
+          && get_local_env()->get_page_size() / (key_size + rec_size) > 500)) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
       m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
     }
@@ -663,16 +666,11 @@ LocalDatabase::check_integrity(Transaction *txn)
   ham_status_t st;
 
   /* check the cache integrity */
-  if (!(get_rt_flags() & HAM_IN_MEMORY)) {
-    st = get_local_env()->get_page_manager()->check_integrity();
-    if (st)
-      return (st);
-  }
+  if (!(get_rt_flags() & HAM_IN_MEMORY))
+    get_local_env()->get_page_manager()->check_integrity();
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /* call the btree function */
   st = m_btree_index->check_integrity();
@@ -694,9 +692,7 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
   }
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /*
    * call the btree function - this will retrieve the number of keys
@@ -756,9 +752,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
     get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
@@ -839,10 +833,11 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   if (local_txn)
     return (local_txn->commit());
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -905,10 +900,11 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -928,9 +924,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
@@ -988,10 +982,11 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   if (local_txn)
     return (local_txn->commit());
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 Cursor *
@@ -1075,9 +1070,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -1164,10 +1157,11 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1217,10 +1211,11 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1254,9 +1249,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -1394,10 +1387,11 @@ bail:
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1409,9 +1403,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
@@ -1450,10 +1442,11 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1464,9 +1457,7 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
@@ -1506,10 +1497,11 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1520,9 +1512,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -1556,10 +1546,11 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    return (get_local_env()->get_changeset().flush(DUMMY_LSN));
-  else
-    return (st);
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    return (0);
+  }
+  return (st);
 }
 
 ham_status_t
@@ -1570,9 +1561,7 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = get_local_env()->get_page_manager()->purge_cache();
-  if (st)
-    return (st);
+  get_local_env()->get_page_manager()->purge_cache();
 
   /*
    * if the cursor was never used before and the user requests a NEXT then

@@ -22,7 +22,7 @@
   while (m_inducer) {                                               \
     ham_status_t st = m_inducer->induce(id);                        \
     if (st)                                                         \
-      return (st);                                                  \
+      throw Exception(st);                                          \
     break;                                                          \
   }
 
@@ -67,7 +67,7 @@ Changeset::clear()
     m_head = m_head->list_remove(m_head, Page::kListChangeset);
 }
 
-ham_status_t
+void
 Changeset::log_bucket(Page **bucket, ham_u32_t bucket_size,
             ham_u64_t lsn, ham_u32_t &page_count)
 {
@@ -75,17 +75,10 @@ Changeset::log_bucket(Page **bucket, ham_u32_t bucket_size,
     ham_assert(bucket[i]->is_dirty());
 
     Log *log = m_env->get_log();
-
     INDUCE(ErrorInducer::kChangesetFlush);
-
     ham_assert(page_count > 0);
-
-    ham_status_t st = log->append_page(bucket[i], lsn, --page_count);
-    if (st)
-      return (st);
+    log->append_page(bucket[i], lsn, --page_count);
   }
-
-  return (0);
 }
 
 #define append(b, bs, bc, p)                                          \
@@ -95,14 +88,13 @@ Changeset::log_bucket(Page **bucket, ham_u32_t bucket_size,
   }                                                                   \
   b[bs++] = p;
 
-ham_status_t
+void
 Changeset::flush(ham_u64_t lsn)
 {
-  ham_status_t st;
   ham_u32_t page_count = 0;
   Page *n, *p = m_head;
   if (!p)
-    return (0);
+    return;
 
   INDUCE(ErrorInducer::kChangesetFlush);
 
@@ -153,7 +145,7 @@ Changeset::flush(ham_u64_t lsn)
   if (page_count == 0) {
     INDUCE(ErrorInducer::kChangesetFlush);
     clear();
-    return (0);
+    return;
   }
 
   INDUCE(ErrorInducer::kChangesetFlush);
@@ -169,14 +161,10 @@ Changeset::flush(ham_u64_t lsn)
   // - if there's more than one index operation then the operation must
   //   be atomic
   if (m_others_size || m_indices_size > 1 || m_freelists_size > 1) {
-    if ((st = log_bucket(m_blobs, m_blobs_size, lsn, page_count)))
-      return (st);
-    if ((st = log_bucket(m_freelists, m_freelists_size, lsn, page_count)))
-      return (st);
-    if ((st = log_bucket(m_indices, m_indices_size, lsn, page_count)))
-      return (st);
-    if ((st = log_bucket(m_others, m_others_size, lsn, page_count)))
-      return (st);
+    log_bucket(m_blobs, m_blobs_size, lsn, page_count);
+    log_bucket(m_freelists, m_freelists_size, lsn, page_count);
+    log_bucket(m_indices, m_indices_size, lsn, page_count);
+    log_bucket(m_others, m_others_size, lsn, page_count);
     log_written = true;
   }
 
@@ -201,11 +189,8 @@ Changeset::flush(ham_u64_t lsn)
 
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
-  PageManager *pm = m_env->get_page_manager();
   while (p) {
-    st = pm->flush_page(p);
-    if (st)
-      return (st);
+    m_env->get_page_manager()->flush_page(p);
     p = p->get_next(Page::kListChangeset);
 
     INDUCE(ErrorInducer::kChangesetFlush);
@@ -217,7 +202,7 @@ Changeset::flush(ham_u64_t lsn)
 
   /* done - we can now clear the changeset and the log */
   clear();
-  return (log->clear());
+  log->clear();
 }
 
 } // namespace hamsterdb

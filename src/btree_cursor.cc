@@ -329,11 +329,8 @@ BtreeCursor::move_first(ham_u32_t flags)
   if (!m_btree->get_root_address())
     return (HAM_KEY_NOT_FOUND);
 
-  Page *page;
-  ham_status_t st = env->get_page_manager()->fetch_page(&page, db,
-                  m_btree->get_root_address());
-  if (st)
-    return (st);
+  Page *page = env->get_page_manager()->fetch_page(db,
+          m_btree->get_root_address());
 
   // while we've not reached the leaf: pick the smallest element
   // and traverse down
@@ -346,10 +343,7 @@ BtreeCursor::move_first(ham_u32_t flags)
     if (node->is_leaf())
       break;
 
-    st = env->get_page_manager()->fetch_page(&page, db,
-                  node->get_ptr_down());
-    if (st)
-      return (st);
+    page = env->get_page_manager()->fetch_page(db, node->get_ptr_down());
   }
 
   // couple this cursor to the smallest key in this page
@@ -408,10 +402,7 @@ BtreeCursor::move_next(ham_u32_t flags)
 
   remove_cursor_from_page(m_coupled_page);
 
-  Page *page;
-  st = env->get_page_manager()->fetch_page(&page, db, node->get_right());
-  if (st)
-    return (st);
+  Page *page = env->get_page_manager()->fetch_page(db, node->get_right());
 
   // couple this cursor to the smallest key in this page
   couple_to_page(page, 0, 0);
@@ -469,10 +460,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
 
     remove_cursor_from_page(m_coupled_page);
 
-    Page *page;
-    st = env->get_page_manager()->fetch_page(&page, db, node->get_left());
-    if (st)
-      return (st);
+    Page *page = env->get_page_manager()->fetch_page(db, node->get_left());
     node = m_btree->get_node_from_page(page);
 
     // couple this cursor to the highest key in this page
@@ -508,11 +496,8 @@ BtreeCursor::move_last(ham_u32_t flags)
   if (!m_btree->get_root_address())
     return (HAM_KEY_NOT_FOUND);
 
-  Page *page;
-  ham_status_t st = env->get_page_manager()->fetch_page(&page, db,
-                        m_btree->get_root_address());
-  if (st)
-    return (st);
+  Page *page = env->get_page_manager()->fetch_page(db,
+          m_btree->get_root_address());
 
   // while we've not reached the leaf: pick the largest element
   // and traverse down
@@ -526,10 +511,8 @@ BtreeCursor::move_last(ham_u32_t flags)
     if (node->is_leaf())
       break;
 
-    st = env->get_page_manager()->fetch_page(&page, db,
-                    node->get_record_id(node->get_count() - 1));
-    if (st)
-      return (st);
+    page = env->get_page_manager()->fetch_page(db,
+            node->get_record_id(node->get_count() - 1));
   }
 
   // couple this cursor to the largest key in this page
@@ -538,7 +521,7 @@ BtreeCursor::move_last(ham_u32_t flags)
   // if duplicates are enabled: move to the end of the duplicate-list
   if (node->has_duplicates(m_coupled_index) && !(flags & HAM_SKIP_DUPLICATES)) {
     ham_u32_t count;
-    st = env->get_duplicate_manager()->get_count(
+    ham_status_t st = env->get_duplicate_manager()->get_count(
                     node->get_record_id(m_coupled_index),
                     &count, &m_dupe_cache);
     if (st)

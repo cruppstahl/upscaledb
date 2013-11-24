@@ -38,14 +38,17 @@ struct BtreeDefaultFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   ham_u32_t m_key_size;
+  ham_u32_t m_rec_size;
   bool m_duplicates;
 
   typedef std::vector<int> IntVector;
 
   BtreeDefaultFixture(bool duplicates = false,
                   ham_u16_t key_size = HAM_KEY_SIZE_UNLIMITED,
+                  ham_u32_t rec_size = HAM_RECORD_SIZE_UNLIMITED,
                   ham_u32_t page_size = 1024 * 16)
-    : m_db(0), m_env(0), m_key_size(key_size), m_duplicates(duplicates) {
+    : m_db(0), m_env(0), m_key_size(key_size), m_rec_size(rec_size),
+      m_duplicates(duplicates) {
     os::unlink(Globals::opath(".test"));
     ham_parameter_t p1[] = {
       { HAM_PARAM_PAGESIZE, page_size },
@@ -53,6 +56,7 @@ struct BtreeDefaultFixture {
     };
     ham_parameter_t p2[] = {
       { HAM_PARAM_KEY_SIZE, key_size },
+      { HAM_PARAM_RECORD_SIZE, rec_size },
       { 0, 0 }
     };
     REQUIRE(0 ==
@@ -93,6 +97,10 @@ struct BtreeDefaultFixture {
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       key = makeKey(*it, buffer);
+      if (m_rec_size != HAM_RECORD_SIZE_UNLIMITED) {
+        rec.data = &buffer[0];
+        rec.size = m_rec_size;
+      }
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec,
                               m_duplicates ? HAM_DUPLICATE : 0));
     }
@@ -104,7 +112,10 @@ struct BtreeDefaultFixture {
       ham_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
       REQUIRE(0 == strcmp((const char *)key.data, buffer));
-      REQUIRE(0 == rec.size);
+      if (m_rec_size != HAM_RECORD_SIZE_UNLIMITED)
+        REQUIRE(m_rec_size == rec.size);
+      else
+        REQUIRE(0 == rec.size);
       REQUIRE(key.size == expected.size);
     }
 
@@ -115,7 +126,10 @@ struct BtreeDefaultFixture {
             it != inserts.rend(); it++) {
       ham_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
-      REQUIRE(0 == rec.size);
+      if (m_rec_size != HAM_RECORD_SIZE_UNLIMITED)
+        REQUIRE(m_rec_size == rec.size);
+      else
+        REQUIRE(0 == rec.size);
       REQUIRE(0 == strcmp((const char *)key.data, buffer));
       REQUIRE(key.size == expected.size);
     }
@@ -499,6 +513,23 @@ TEST_CASE("BtreeDefault/eraseReverseKeySplitTest", "")
   REQUIRE(g_split_count == 4);
   std::reverse(ivec.begin(), ivec.end());
   f.eraseCursorTest(ivec);
+}
+
+TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
+{
+  BtreeDefaultFixture::IntVector ivec;
+  for (int i = 0; i < 100; i++) {
+    ivec.push_back(i);
+  }
+
+  BtreeDefaultFixture f(false, HAM_KEY_SIZE_UNLIMITED, 5);
+  f.insertCursorTest(ivec);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short> > >, hamsterdb::VariableSizeCompare>");
+#endif
 }
 
 } // namespace hamsterdb

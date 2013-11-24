@@ -360,6 +360,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\unittests\btree_default.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\btree_erase.cpp"
 			>
 		</File>

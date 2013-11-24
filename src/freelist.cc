@@ -483,9 +483,7 @@ Freelist::free_area(ham_u64_t address, ham_u32_t size)
     }
     /* otherwise just fetch the page from the cache or the disk */
     else {
-      st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
-      if (st)
-        return (st);
+      page = m_env->get_page_manager()->fetch_page(0, entry->pageid);
       fp = PFreelistPayload::from_page(page);
       ham_assert(fp->get_start_address() != 0);
     }
@@ -696,9 +694,7 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
             fp = m_env->get_freelist_payload();
           }
           else {
-            st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
-            if (st)
-              return (st);
+            page = m_env->get_page_manager()->fetch_page(0, entry->pageid);
             fp = PFreelistPayload::from_page(page);
           }
           ham_assert(entry->free_bits == entry->max_bits);
@@ -748,9 +744,7 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
         page = 0;
       }
       else {
-        st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
-        if (st)
-          return (st);
+        page = m_env->get_page_manager()->fetch_page(0, entry->pageid);
         fp = PFreelistPayload::from_page(page);
       }
 
@@ -821,9 +815,7 @@ Freelist::is_page_free(ham_u64_t address)
   }
   /* otherwise just fetch the page from the cache or the disk */
   else {
-    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
-    if (st)
-      return (false);
+    page = m_env->get_page_manager()->fetch_page(0, entry->pageid);
     fp = PFreelistPayload::from_page(page);
     ham_assert(fp->get_start_address() != 0);
   }
@@ -842,8 +834,6 @@ Freelist::is_page_free(ham_u64_t address)
 ham_status_t
 Freelist::truncate_page(ham_u64_t address)
 {
-  ham_status_t st;
-
   ham_u32_t page_size = m_env->get_page_size();
   ham_u32_t size_bits = page_size / kBlobAlignment;
   ham_assert(address % page_size == 0);
@@ -864,9 +854,7 @@ Freelist::truncate_page(ham_u64_t address)
   }
   /* otherwise just fetch the page from the cache or the disk */
   else {
-    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
-    if (st)
-      return (st);
+    page = m_env->get_page_manager()->fetch_page(0, entry->pageid);
     fp = PFreelistPayload::from_page(page);
     ham_assert(fp->get_start_address() != 0);
   }
@@ -2742,12 +2730,7 @@ Freelist::initialize()
   while (fp->get_overflow()) {
     resize((ham_u32_t)m_entries.size() + 1);
 
-    Page *page;
-    ham_status_t st = m_env->get_page_manager()->fetch_page(&page, 0,
-            fp->get_overflow());
-    if (st)
-      return (st);
-
+    Page *page = m_env->get_page_manager()->fetch_page(0, fp->get_overflow());
     fp = PFreelistPayload::from_page(page);
     FreelistEntry *pentry = &m_entries[m_entries.size() - 1];
     ham_assert(pentry->start_address == fp->get_start_address());
@@ -2856,7 +2839,6 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
     ham_assert(i < m_entries.size());
 
     if (!entries[i].pageid) {
-      ham_status_t st;
       Page *prev_page = 0;
 
       /*
@@ -2868,23 +2850,16 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
         mark_dirty(0);
       }
       else {
-        st = m_env->get_page_manager()->fetch_page(&prev_page, 0,
-                entries[i - 1].pageid);
-        if (st)
-          return (st);
+        prev_page = m_env->get_page_manager()->fetch_page(0,
+                        entries[i - 1].pageid);
         // mark previous page as dirty
         mark_dirty(prev_page);
         fp = PFreelistPayload::from_page(prev_page);
       }
 
       /* allocate a new page, fix the linked list */
-      st = m_env->get_page_manager()->alloc_page(&page, 0, Page::kTypeFreelist,
+      page = m_env->get_page_manager()->alloc_page(0, Page::kTypeFreelist,
                     PageManager::kIgnoreFreelist | PageManager::kClearWithZero);
-      if (!page) {
-        ham_assert(st != 0);
-        return (st);
-      }
-      ham_assert(st == 0);
 
       // set the link to the next page
       fp->set_overflow(page->get_address());

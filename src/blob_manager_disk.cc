@@ -30,7 +30,6 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
         bool allocated, bool freshly_created, ham_u8_t **chunk_data,
         ham_u32_t *chunk_size, ham_u32_t chunks)
 {
-  ham_status_t st;
   ham_u32_t page_size = m_env->get_page_size();
 
   ham_assert(freshly_created ? allocated : 1);
@@ -59,13 +58,10 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = m_env->get_page_manager()->fetch_page(&page, db,
-                            pageid, cache_only);
+        page = m_env->get_page_manager()->fetch_page(db, pageid, cache_only);
         /* blob pages don't have a page header */
         if (page)
           page->set_flags(page->get_flags() | Page::kNpersNoHeader);
-        else if (st)
-          return (st);
       }
 
       // if we have a page pointer: use it; otherwise write directly
@@ -89,9 +85,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
 
         m_blob_direct_written++;
 
-        st = m_env->get_device()->write(addr, chunk_data[i], s);
-        if (st)
-          return st;
+        m_env->get_device()->write(addr, chunk_data[i], s);
         addr += s;
         chunk_data[i] += s;
         chunk_size[i] -= s;
@@ -106,7 +100,6 @@ ham_status_t
 DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
         LocalDatabase *db, ham_u8_t *data, ham_u32_t size)
 {
-  ham_status_t st;
   ham_u32_t page_size = m_env->get_page_size();
 
   while (size) {
@@ -120,10 +113,8 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
     // the cache - but only read the page from disk if the
     // chunk is small
     if (!page) {
-      st = m_env->get_page_manager()->fetch_page(&page, db,
-                          pageid, !blob_from_cache(size));
-      if (st)
-        return st;
+      page = m_env->get_page_manager()->fetch_page(db, pageid,
+              !blob_from_cache(size));
       // blob pages don't have a page header
       if (page)
         page->set_flags(page->get_flags() | Page::kNpersNoHeader);
@@ -151,9 +142,7 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
 
       m_blob_direct_read++;
 
-      st = m_env->get_device()->read(addr, data, s);
-      if (st)
-        return st;
+      m_env->get_device()->read(addr, data, s);
       addr += s;
       data += s;
       size -= s;
@@ -200,20 +189,13 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   alloc_size -= alloc_size % Freelist::kBlobAlignment;
 
   // check if we have space in the freelist
-  bool tmp;
-  ham_status_t st = m_env->get_page_manager()->alloc_blob(db,
-                  alloc_size, &addr, &tmp);
-  if (st)
-    return (st);
-
+  addr = m_env->get_page_manager()->alloc_blob(db, alloc_size);
   if (!addr) {
     // if the blob is small AND if logging is disabled: load the page
     // through the cache
     if (blob_from_cache(alloc_size)) {
-      st = m_env->get_page_manager()->alloc_page(&page, db, Page::kTypeBlob,
+      page = m_env->get_page_manager()->alloc_page(db, Page::kTypeBlob,
                       PageManager::kIgnoreFreelist);
-      if (st)
-          return (st);
       // blob pages don't have a page header
       page->set_flags(page->get_flags() | Page::kNpersNoHeader);
       addr = page->get_address();
@@ -230,9 +212,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 
       m_blob_direct_allocated++;
 
-      st = m_env->get_device()->alloc(aligned, &addr);
-      if (st)
-          return (st);
+      addr = m_env->get_device()->alloc(aligned);
 
       // if aligned!=size, and the remaining chunk is large enough:
       // move it to the freelist
@@ -251,7 +231,6 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     }
   }
   else {
-    ham_assert(st == 0);
     blob_header.set_alloc_size(alloc_size);
   }
 
@@ -274,7 +253,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     // first: write the header
     chunk_data[0] = (ham_u8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    st = write_chunks(db, page, addr, true, freshly_created,
+    ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
     if (st)
       return (st);
@@ -325,7 +304,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
                         ? record->partial_size
                         : record->size;
 
-    st = write_chunks(db, page, addr, true, freshly_created,
+    ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 2);
     if (st)
       return (st);
@@ -355,21 +334,17 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
         // memory buffer, thus saving some allocations
         while (gapsize > m_env->get_page_size()) {
           ptr = (ham_u8_t *)zeroes.resize(m_env->get_page_size(), 0);
-          if (!ptr)
-            return (HAM_OUT_OF_MEMORY);
 
           while (gapsize > m_env->get_page_size()) {
             chunk_data[0] = ptr;
             chunk_size[0] = m_env->get_page_size();
-            st = write_chunks(db, page, addr, true,
+            ham_status_t st = write_chunks(db, page, addr, true,
                           freshly_created, chunk_data, chunk_size, 1);
             if (st)
-              break;
+              return (st);
             gapsize -= m_env->get_page_size();
             addr += m_env->get_page_size();
           }
-          if (st)
-            return (st);
         }
 
         // now write the remainder, which is less than a page_size
@@ -380,7 +355,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
           return (HAM_OUT_OF_MEMORY);
         chunk_size[0] = gapsize;
 
-        st = write_chunks(db, page, addr, true, freshly_created,
+        ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
         if (st)
           return (st);

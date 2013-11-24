@@ -16,6 +16,18 @@
 
 namespace hamsterdb {
 
+//
+// A generic exception for storing a status code
+//
+struct Exception
+{
+  Exception(ham_status_t st)
+    : code(st) {
+  }
+
+  ham_status_t code;
+};
+
 // the global error handler function
 extern ham_errhandler_fun g_handler;
 

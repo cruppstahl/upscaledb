@@ -88,7 +88,7 @@ os_get_granularity()
   return ((ham_u32_t)info.dwAllocationGranularity);
 }
 
-ham_status_t
+void
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
             ham_u64_t size, bool readonly, ham_u8_t **buffer)
 {
@@ -105,7 +105,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
     st = (ham_status_t)GetLastError();
     ham_log(("CreateFileMapping failed with OS status %u (%s)",
             st, DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
   *buffer = (ham_u8_t *)MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart,
@@ -119,13 +119,12 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
     ham_log(("MapViewOfFile failed with OS status %u (%s)",
         st, DisplayError(buf, sizeof(buf), st)));
     if (st == ERROR_NOT_ENOUGH_QUOTA) // not enough resources - fallback to r/w
-      return (HAM_LIMITS_REACHED);
-    return (HAM_IO_ERROR);
+      throw Exception(HAM_LIMITS_REACHED);
+    throw Exception(HAM_IO_ERROR);
   }
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 {
   ham_status_t st;
@@ -135,7 +134,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
     st = (ham_status_t)GetLastError();
     ham_log(("UnMapViewOfFile failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
   if (!CloseHandle(*mmaph)) {
@@ -143,15 +142,13 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
     st = (ham_status_t)GetLastError();
     ham_log(("CloseHandle failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
   *mmaph = 0;
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
@@ -165,21 +162,22 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
       st = (ham_status_t)GetLastError();
       ham_log(("ReadFile failed with OS status %u (%s)",
             st, DisplayError(buf, sizeof(buf), st)));
-      return (HAM_IO_ERROR);
+      throw Exception(HAM_IO_ERROR);
     }
     if (!::GetOverlappedResult(fd, &ov, &read, TRUE)) {
       char buf[256];
       st = (ham_status_t)GetLastError();
       ham_log(("GetOverlappedResult failed with OS status %u (%s)",
             st, DisplayError(buf, sizeof(buf), st)));
-      return (HAM_IO_ERROR);
+      throw Exception(HAM_IO_ERROR);
     }
   }
 
-  return (read == bufferlen ? 0 : HAM_IO_ERROR);
+  if (read != bufferlen)
+    throw Exception(HAM_IO_ERROR);
 }
 
-ham_status_t
+void
 os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
     ham_u64_t bufferlen)
 {
@@ -194,21 +192,22 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
       st = (ham_status_t)GetLastError();
       ham_log(("WriteFile failed with OS status %u (%s)",
             st, DisplayError(buf, sizeof(buf), st)));
-      return (HAM_IO_ERROR);
+      throw Exception(HAM_IO_ERROR);
     }
     if (!::GetOverlappedResult(fd, &ov, &written, TRUE)) {
       char buf[256];
       st = (ham_status_t)GetLastError();
       ham_log(("GetOverlappedResult failed with OS status %u (%s)",
             st, DisplayError(buf, sizeof(buf), st)));
-      return (HAM_IO_ERROR);
+      throw Exception(HAM_IO_ERROR);
     }
   }
 
-  return (written == bufferlen ? 0 : HAM_IO_ERROR);
+  if (written != bufferlen)
+    throw Exception(HAM_IO_ERROR);
 }
 
-ham_status_t
+void
 os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
@@ -219,13 +218,14 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
     st = (ham_status_t)GetLastError();
     ham_log(("WriteFile failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
-  return (written == bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
+  if (written != bufferlen)
+    throw Exception(HAM_IO_ERROR);
 }
 
-ham_status_t
+void
 os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
             void *buffer2, ham_u64_t buffer2_len,
             void *buffer3, ham_u64_t buffer3_len,
@@ -236,50 +236,31 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
    * Win32 has a writev implementation, but it requires the pointers
    * to be memory page aligned
    */
-  ham_status_t st;
-  ham_u64_t rollback;
+  ham_u64_t rollback = os_tell(fd);
 
-  st = os_tell(fd, &rollback);
-  if (st)
-    return (st);
-
-  st = os_write(fd, buffer1, buffer1_len);
-  if (st)
-    return (st);
-  if (buffer2) {
-    st = os_write(fd, buffer2, buffer2_len);
-    if (st)
-      goto bail;
+  try {
+    os_write(fd, buffer1, buffer1_len);
+    if (buffer2)
+      os_write(fd, buffer2, buffer2_len);
+    if (buffer3)
+      os_write(fd, buffer3, buffer3_len);
+    if (buffer4)
+      os_write(fd, buffer4, buffer4_len);
+    if (buffer5)
+      os_write(fd, buffer5, buffer5_len);
   }
-  if (buffer3) {
-    st = os_write(fd, buffer3, buffer3_len);
-    if (st)
-      goto bail;
-  }
-  if (buffer4) {
-    st = os_write(fd, buffer4, buffer4_len);
-    if (st)
-      goto bail;
-  }
-  if (buffer5) {
-    st = os_write(fd, buffer5, buffer5_len);
-    if (st)
-      goto bail;
-  }
-
-bail:
-  if (st) {
+  catch (Exception &ex) {
     /* rollback the previous change */
-    (void)os_seek(fd, rollback, HAM_OS_SEEK_SET);
+    os_seek(fd, rollback, HAM_OS_SEEK_SET);
+    throw ex;
   }
-  return (st);
 }
 
 #ifndef INVALID_SET_FILE_POINTER
 #   define INVALID_SET_FILE_POINTER  ((DWORD)-1)
 #endif
 
-ham_status_t
+void
 os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
 {
   DWORD st;
@@ -292,14 +273,12 @@ os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
     char buf[256];
     ham_log(("SetFilePointer failed with OS status %u (%s)", st,
                 DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
-
-  return (0);
 }
 
-ham_status_t
-os_tell(ham_fd_t fd, ham_u64_t *offset)
+ham_u64_t
+os_tell(ham_fd_t fd)
 {
   DWORD st;
   LARGE_INTEGER i;
@@ -312,19 +291,18 @@ os_tell(ham_fd_t fd, ham_u64_t *offset)
     char buf[256];
     ham_log(("SetFilePointer failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
-  *offset = (ham_u64_t)i.QuadPart;
-  return (0);
+  return ((ham_u64_t)i.QuadPart);
 }
 
 #ifndef INVALID_FILE_SIZE
 #   define INVALID_FILE_SIZE   ((DWORD)-1)
 #endif
 
-ham_status_t
-os_get_filesize(ham_fd_t fd, ham_u64_t *size)
+ham_u64_t
+os_get_filesize(ham_fd_t fd)
 {
   ham_status_t st;
   LARGE_INTEGER i;
@@ -336,14 +314,13 @@ os_get_filesize(ham_fd_t fd, ham_u64_t *size)
     char buf[256];
     ham_log(("GetFileSize failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
-  *size = (ham_u64_t)i.QuadPart;
-  return (0);
+  return ((ham_u64_t)i.QuadPart);
 }
 
-ham_status_t
+void
 os_truncate(ham_fd_t fd, ham_u64_t newsize)
 {
   ham_status_t st = os_seek(fd, newsize, HAM_OS_SEEK_SET);
@@ -355,13 +332,11 @@ os_truncate(ham_fd_t fd, ham_u64_t newsize)
     st = (ham_status_t)GetLastError();
     ham_log(("SetEndOfFile failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
   ham_status_t st;
@@ -369,41 +344,40 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
   DWORD access = ((flags & HAM_READ_ONLY)
           ? GENERIC_READ
           : (GENERIC_READ | GENERIC_WRITE));
+  ham_fd_t fd;
 
 #ifdef UNICODE
   int fnameWlen = calc_wlen4str(filename);
   WCHAR *wfilename = (WCHAR *)malloc(fnameWlen * sizeof(wfilename[0]));
   if (!wfilename)
-    return (HAM_OUT_OF_MEMORY);
+    throw Exception(HAM_OUT_OF_MEMORY);
 
   /* translate ASCII filename to unicode */
   utf8_string(filename, wfilename, fnameWlen);
-  *fd = (ham_fd_t)CreateFileW(wfilename, access,
+  fd = (ham_fd_t)CreateFileW(wfilename, access,
         share, NULL, CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, 0);
   free(wfilename);
 #else
-  *fd = (ham_fd_t)CreateFileA(filename, access,
+  fd = (ham_fd_t)CreateFileA(filename, access,
         share, NULL, CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, 0);
 #endif
 
-  if (*fd == INVALID_HANDLE_VALUE) {
+  if (fd == INVALID_HANDLE_VALUE) {
     char buf[256];
-    *fd = HAM_INVALID_FD;
+    fd = HAM_INVALID_FD;
     st = (ham_status_t)GetLastError();
     if (st == ERROR_SHARING_VIOLATION)
-      return (HAM_WOULD_BLOCK);
+      throw Exception(HAM_WOULD_BLOCK);
     ham_log(("CreateFile(%s, %x, %x, ...) (create) failed with OS status "
             "%u (%s)", filename, access, share, st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_flush(ham_fd_t fd)
 {
   ham_status_t st;
@@ -413,14 +387,12 @@ os_flush(ham_fd_t fd)
     st = (ham_status_t)GetLastError();
     ham_log(("FlushFileBuffers failed with OS status %u (%s)",
         st, DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
-os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
+ham_fd_t
+os_open(const char *filename, ham_u32_t flags)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
@@ -429,42 +401,42 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
           : (GENERIC_READ | GENERIC_WRITE));
   DWORD dispo = OPEN_EXISTING;
   DWORD osflags = 0;
-
+  ham_fd_t fd;
 
 #ifdef UNICODE
   {
     int fnameWlen = calc_wlen4str(filename);
     WCHAR *wfilename = (WCHAR *)malloc(fnameWlen * sizeof(wfilename[0]));
     if (!wfilename)
-      return (HAM_OUT_OF_MEMORY);
+      throw Exception(HAM_OUT_OF_MEMORY);
 
     /* translate ASCII filename to unicode */
     utf8_string(filename, wfilename, fnameWlen);
-    *fd = (ham_fd_t)CreateFileW(wfilename, access, share, NULL,
+    fd = (ham_fd_t)CreateFileW(wfilename, access, share, NULL,
               dispo, osflags, 0);
     free(wfilename);
   }
 #else
-  *fd = (ham_fd_t)CreateFileA(filename, access, share, NULL,
+  fd = (ham_fd_t)CreateFileA(filename, access, share, NULL,
             dispo, osflags, 0);
 #endif
 
-  if (*fd == INVALID_HANDLE_VALUE) {
+  if (fd == INVALID_HANDLE_VALUE) {
     char buf[256];
-    *fd = HAM_INVALID_FD;
+    fd = HAM_INVALID_FD;
     st = (ham_status_t)GetLastError();
     ham_log(("CreateFile(%s, %x, %x, ...) (open) failed with OS status "
             "%u (%s)", filename, access, share,
             st, DisplayError(buf, sizeof(buf), st)));
     if (st == ERROR_SHARING_VIOLATION)
-      return (HAM_WOULD_BLOCK);
-    return (st == ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
+      throw Exception(HAM_WOULD_BLOCK);
+    throw Exception(st == ERROR_FILE_NOT_FOUND
+                        ? HAM_FILE_NOT_FOUND
+                        : HAM_IO_ERROR);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_close(ham_fd_t fd)
 {
   ham_status_t st;
@@ -474,18 +446,13 @@ os_close(ham_fd_t fd)
     st = (ham_status_t)GetLastError();
     ham_log(("CloseHandle failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
-            ham_socket_t *socket)
+ham_socket_t
+os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 {
-  *socket = HAM_INVALID_FD;
-
   WORD sockVersion = MAKEWORD(1, 1);
   WSADATA wsaData;
   WSAStartup(sockVersion, &wsaData);
@@ -493,14 +460,14 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
   ham_socket_t s = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s < 0) {
     ham_log(("failed creating socket: %s", strerror(errno)));
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_IO_ERROR);
   }
 
   LPHOSTENT server = ::gethostbyname(hostname);
   if (!server) {
     ham_log(("unable to resolve hostname %s", hostname));
     ::closesocket(s);
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_NETWORK_ERROR);
   }
 
   SOCKADDR_IN addr;
@@ -512,7 +479,7 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
     ham_log(("unable to connect to %s:%d: %s", hostname, (int)port,
                 strerror(errno)));
     ::closesocket(s);
-    return (HAM_IO_ERROR);
+    throw Exception(HAM_NETWORK_ERROR);
   }
 
   if (timeout_sec) {
@@ -528,12 +495,10 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
     }
   }
 
-  *socket = s;
-
-  return (HAM_SUCCESS);
+  return (s);
 }
 
-ham_status_t
+void
 os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size)
 {
   int sent = 0;
@@ -546,14 +511,13 @@ os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size)
       st = (ham_status_t)GetLastError();
       ham_log(("send failed with OS status %u (%s)", st,
               DisplayError(buf, sizeof(buf), st)));
-	  return (HAM_IO_ERROR);
+	  throw Exception(HAM_IO_ERROR);
 	}
 	sent += s;
   }
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size)
 {
   int read = 0;
@@ -566,14 +530,13 @@ os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size)
       st = (ham_status_t)GetLastError();
       ham_log(("recv failed with OS status %u (%s)", st,
               DisplayError(buf, sizeof(buf), st)));
-	  return (HAM_IO_ERROR);
+	  throw Exception(HAM_IO_ERROR);
 	}
 	read += r;
   }
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 os_socket_close(ham_socket_t *socket)
 {
   if (*socket != HAM_INVALID_FD) {
@@ -581,6 +544,6 @@ os_socket_close(ham_socket_t *socket)
       return (HAM_IO_ERROR);
     *socket = HAM_INVALID_FD;
   }
-  return (0);
 }
+
 } // namespace hamsterdb

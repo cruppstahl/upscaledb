@@ -25,6 +25,7 @@
 #endif
 
 #include "ham/hamsterdb.h"
+#include "error.h"
 
 struct ham_env_metrics_t;
 
@@ -54,10 +55,13 @@ class Memory {
       ms_current_allocations++;
 
 #ifdef HAM_USE_TCMALLOC
-      return ((T *)::tc_malloc(size));
+      T *t = (T *)::tc_malloc(size);
 #else
-      return ((T *)::malloc(size));
+      T *t = (T *)::malloc(size);
 #endif
+      if (!t)
+        throw Exception(HAM_OUT_OF_MEMORY);
+      return (t);
     }
 
     // allocation function; returns null if out of memory. initializes
@@ -72,10 +76,13 @@ class Memory {
       ms_current_allocations++;
 
 #ifdef HAM_USE_TCMALLOC
-      return ((T *)::tc_calloc(1, size));
+      T *t = (T *)::tc_calloc(1, size);
 #else
-      return ((T *)::calloc(1, size));
+      T *t = (T *)::calloc(1, size);
 #endif
+      if (!t)
+        throw Exception(HAM_OUT_OF_MEMORY);
+      return (t);
     }
 
     // re-allocation function; returns null if out of memory.
@@ -91,10 +98,13 @@ class Memory {
         ms_current_allocations++;
       }
 #ifdef HAM_USE_TCMALLOC
-      return ((T *)::tc_realloc(ptr, size));
+      T *t = (T *)::tc_realloc(ptr, size);
 #else
-      return ((T *)::realloc(ptr, size));
+      T *t = (T *)::realloc(ptr, size);
 #endif
+      if (!t)
+        throw Exception(HAM_OUT_OF_MEMORY);
+      return (t);
     }
 
     // releases a memory block; can deal with NULL pointers.

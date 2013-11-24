@@ -34,15 +34,12 @@ class BtreeEnumAction
     }
 
     ham_status_t run() {
-      Page *page;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
       // get the root page of the tree
-      ham_status_t st = env->get_page_manager()->fetch_page(&page,
-                                db, m_btree->get_root_address());
-      if (st)
-        return (st);
+      Page *page = env->get_page_manager()->fetch_page(db,
+          m_btree->get_root_address());
 
       // go down to the leaf
       while (page) {
@@ -57,22 +54,16 @@ class BtreeEnumAction
 
             // load the right sibling
             ham_u64_t right = node->get_right();
-            if (right) {
-              st = env->get_page_manager()->fetch_page(&page, db, right);
-              if (st)
-                return (st);
-            }
+            if (right)
+              page = env->get_page_manager()->fetch_page(db, right);
             else
               page = 0;
           }
         }
 
         // follow the pointer to the smallest child
-        if (ptr_down) {
-          st = env->get_page_manager()->fetch_page(&page, db, ptr_down);
-          if (st)
-            return (st);
-        }
+        if (ptr_down)
+          page = env->get_page_manager()->fetch_page(db, ptr_down);
         else
           break;
       }
@@ -87,16 +78,13 @@ class BtreeEnumAction
         node->enumerate(m_visitor);
 
         /* follow the pointer to the right sibling */
-        if (right) {
-          st = env->get_page_manager()->fetch_page(&page, db, right);
-          if (st)
-            return (st);
-        }
+        if (right)
+          page = env->get_page_manager()->fetch_page(db, right);
         else
           break;
       }
 
-      return (st);
+      return (0);
     }
 
   private:

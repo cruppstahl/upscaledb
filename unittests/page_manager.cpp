@@ -59,11 +59,11 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE(0 == pm->fetch_page(&page, 0, 16 * 1024ull, false));
+    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull, false)));
     REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
-    REQUIRE(0 == pm->fetch_page(&page, 0, 16 * 1024ull, true));
+    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull, true)));
     REQUIRE(page->get_address() == 16 * 1024ull);
     REQUIRE(page);
   }
@@ -73,9 +73,8 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE(0 ==
-            pm->alloc_page(&page, 0, Page::kTypeFreelist,
-                PageManager::kClearWithZero));
+    REQUIRE((page = pm->alloc_page(0, Page::kTypeFreelist,
+                PageManager::kClearWithZero)));
     if (m_inmemory == false)
       REQUIRE(page->get_address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
@@ -84,13 +83,7 @@ struct PageManagerFixture {
 
   void fetchInvalidPageTest() {
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
-    Page *page;
-
-    page = 0;
-    REQUIRE(HAM_IO_ERROR ==
-            pm->fetch_page(&page, 0, 1024 * 1024 * 200, false));
-
-    REQUIRE(page == (Page *)0);
+    REQUIRE_CATCH(pm->fetch_page(0, 1024 * 1024 * 200, false), HAM_IO_ERROR);
   }
 };
 

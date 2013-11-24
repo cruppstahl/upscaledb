@@ -248,13 +248,13 @@ class Page {
     }
 
     // Allocates a new page from the device
-    ham_status_t allocate();
+    void allocate();
 
     // Reads a page from the device
-    ham_status_t fetch(ham_u64_t address);
+    void fetch(ham_u64_t address);
 
     // Writes the page to the device
-    ham_status_t flush();
+    void flush();
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int which) {

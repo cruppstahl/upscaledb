@@ -110,6 +110,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
   };
 
   st = ham_db_get_parameters(db, &params[0]);
+  if (st != 0)
     error("ham_db_get_parameters", st);
 
   unsigned num_items = 0, min_key_size = 0xffffffff,

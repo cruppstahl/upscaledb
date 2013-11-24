@@ -44,11 +44,15 @@ struct BtreeKeyFixture {
 
     m_page = new Page((LocalEnvironment *)m_env);
     m_page->set_db(m_dbp);
-    REQUIRE(0 == m_page->allocate());
+    m_page->allocate();
+
+    // this is a leaf page! internal pages cause different behavior... 
+    PBtreeNode *node = PBtreeNode::from_page(m_page);
+    node->set_flags(PBtreeNode::kLeafNode);
 
     // make sure that the node is properly initialized
-    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    node->test_clear_page();
+    BtreeNodeProxy *proxy = m_dbp->get_btree_index()->get_node_from_page(m_page);
+    proxy->test_clear_page();
   }
 
   ~BtreeKeyFixture() {

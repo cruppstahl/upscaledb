@@ -105,29 +105,29 @@ class Log
       : m_env(env), m_lsn(0), m_fd(HAM_INVALID_FD) {
     }
 
+    ~Log() {
+      close(true);
+    }
+
     // Creates a new log
-    ham_status_t create();
+    void create();
 
     // Opens an existing log
-    ham_status_t open();
+    void open();
 
     // Checks if the log is empty
     bool is_empty() {
-      ham_u64_t size;
-
       if (m_fd == HAM_INVALID_FD)
         return (true);
 
-      ham_status_t st = os_get_filesize(m_fd, &size);
-      if (st)
-        return (false); // TODO
+      ham_u64_t size = os_get_filesize(m_fd);
       if (size && size != sizeof(Log::PEnvironmentHeader))
         return (false);
       return (true);
     }
 
     // Adds the write-ahead information of a page
-    ham_status_t append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count);
+    void append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count);
 
     // Retrieves the current lsn
     ham_u64_t get_lsn() {
@@ -143,31 +143,29 @@ class Log
     //
     // This is called after every checkpoint (which is immediately after each
     // txn_commit or txn_abort)
-    ham_status_t clear() {
-      ham_status_t st = os_truncate(m_fd, sizeof(Log::PEnvironmentHeader));
-      if (st)
-        return (st);
+    void clear() {
+      os_truncate(m_fd, sizeof(Log::PEnvironmentHeader));
 
       // after truncate, the file pointer is far beyond the new end of file;
       // reset the file pointer, or the next write will resize the file to
       // the original size
-      return (os_seek(m_fd, sizeof(Log::PEnvironmentHeader), HAM_OS_SEEK_SET));
+      os_seek(m_fd, sizeof(Log::PEnvironmentHeader), HAM_OS_SEEK_SET);
     }
 
     // Flushes the log file to disk
-    ham_status_t flush() {
-      return (os_flush(m_fd));
+    void flush() {
+      os_flush(m_fd);
     }
 
     // Closes the log, frees all allocated resources.
     //
     // If |noclear| is true then the log will not be clear()ed. This is
     // required for debugging.
-    ham_status_t close(bool noclear = false);
+    void close(bool noclear = false);
 
     // Performs the recovery by walking through the log from start to end
     // and writing all modified pages.
-    ham_status_t recover();
+    void recover();
 
   private:
 	friend struct LogFixture;
@@ -179,21 +177,20 @@ class Log
     // |data| returns the data of the entry.
     //
     // Returns SUCCESS and an empty entry (lsn is zero) after the last element.
-    ham_status_t get_entry(Log::Iterator *iter, Log::PEntry *entry,
-                         ByteArray *buffer);
+    void get_entry(Log::Iterator *iter, Log::PEntry *entry, ByteArray *buffer);
 
     // Appends a log entry for a page modification
     //
     // Invoked by |Log::append_page()| to save the new
     // content of the specified page.
-    ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags,
-                    ham_u64_t offset, ham_u8_t *data, ham_u32_t size);
+    void append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
+                    ham_u8_t *data, ham_u32_t size);
 
     // Returns the path of the log file
     std::string get_path();
 
     // Writes a byte buffer to the log file
-    ham_status_t append_entry(Log::PEntry *entry, ham_u32_t size);
+    void append_entry(Log::PEntry *entry, ham_u32_t size);
 
     // References the Environment this log file is for
     LocalEnvironment *m_env;

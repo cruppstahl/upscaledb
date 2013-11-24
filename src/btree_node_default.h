@@ -362,10 +362,9 @@ class DefaultLayoutImpl
     ham_u8_t *m_dataptr;
 };
 
-
 struct SortHelper {
   ham_u32_t offset;
-  ham_u32_t index;
+  ham_u32_t slot;
 
   bool operator<(const SortHelper &rhs) const {
     return (offset < rhs.offset);
@@ -389,11 +388,11 @@ class DefaultInlineRecordImpl
     typedef DefaultNodeLayout<LayoutImpl, DefaultInlineRecordImpl> NodeType;
 
   public:
-    DefaultInlineRecordImpl(NodeType *layout)
+    DefaultInlineRecordImpl(NodeType *layout, ham_u32_t record_size)
       : m_layout(layout) {
     }
 
-    DefaultInlineRecordImpl(const NodeType *layout)
+    DefaultInlineRecordImpl(const NodeType *layout, ham_u32_t record_size)
       : m_layout((NodeType *)layout) {
     }
 
@@ -461,6 +460,96 @@ class DefaultInlineRecordImpl
 };
 
 //
+// A RecordProxy for fixed length inline records
+//
+template<typename LayoutImpl>
+class FixedInlineRecordImpl
+{
+    typedef DefaultNodeLayout<LayoutImpl, FixedInlineRecordImpl> NodeType;
+
+  public:
+    FixedInlineRecordImpl(NodeType *layout, ham_u32_t record_size)
+      : m_layout(layout), m_record_size(record_size) {
+    }
+
+    FixedInlineRecordImpl(const NodeType *layout, ham_u32_t record_size)
+      : m_layout((NodeType *)layout), m_record_size(record_size) {
+    }
+
+    // Returns true if the record is inline
+    bool is_record_inline(ham_u32_t slot) const {
+      return (true);
+    }
+
+    // Sets the inline record data
+    void set_inline_record_data(ham_u32_t slot, const void *data,
+                    ham_u32_t size) {
+      ham_assert(size == m_record_size);
+      char *p = (char *)m_layout->get_inline_record_data(slot);
+      memcpy(p, data, size);
+    }
+
+    // Returns the size of the record, if inline
+    ham_u32_t get_inline_record_size(ham_u32_t slot) const {
+      return (m_record_size);
+    }
+
+    // Returns the maximum size of inline records
+    ham_u32_t get_max_inline_record_size() const {
+      return (m_record_size);
+    }
+
+  private:
+    NodeType *m_layout;
+    ham_u32_t m_record_size;
+};
+
+//
+// A RecordProxy for fixed length inline records of size 8 (for internal
+// nodes)
+//
+template<typename LayoutImpl>
+class InternalInlineRecordImpl
+{
+    typedef DefaultNodeLayout<LayoutImpl, InternalInlineRecordImpl> NodeType;
+
+  public:
+    InternalInlineRecordImpl(NodeType *layout, ham_u32_t record_size)
+      : m_layout(layout) {
+    }
+
+    InternalInlineRecordImpl(const NodeType *layout, ham_u32_t record_size)
+      : m_layout((NodeType *)layout) {
+    }
+
+    // Returns true if the record is inline
+    bool is_record_inline(ham_u32_t slot) const {
+      return (true);
+    }
+
+    // Sets the inline record data
+    void set_inline_record_data(ham_u32_t slot, const void *data,
+                    ham_u32_t size) {
+      ham_assert(size == sizeof(ham_u64_t));
+      char *p = (char *)m_layout->get_inline_record_data(slot);
+      memcpy(p, data, size);
+    }
+
+    // Returns the size of the record, if inline
+    ham_u32_t get_inline_record_size(ham_u32_t slot) const {
+      return (sizeof(ham_u64_t));
+    }
+
+    // Returns the maximum size of inline records
+    ham_u32_t get_max_inline_record_size() const {
+      return (sizeof(ham_u64_t));
+    }
+
+  private:
+    NodeType *m_layout;
+};
+
+//
 // A BtreeNodeProxy layout which stores key flags, key size, key data
 // and the record pointer next to each other.
 // This is the format used since the initial hamsterdb version.
@@ -481,7 +570,8 @@ class DefaultNodeLayout
 
     DefaultNodeLayout(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(m_page)),
-        m_record_proxy(this), m_extkey_cache(0) {
+        m_record_proxy(this, m_page->get_db()->get_record_size()),
+        m_extkey_cache(0) {
       initialize();
     }
 
@@ -1096,7 +1186,9 @@ class DefaultNodeLayout
           freelist_remove(idx);
           // adjust the next key offset, if required
           if (get_next_offset() == offset + size + sizeof(ham_u64_t))
-            set_next_offset(offset + key->size + sizeof(ham_u64_t));
+            set_next_offset(offset
+                        + (extended_key ? sizeof(ham_u64_t) : key->size)
+                        + sizeof(ham_u64_t));
         }
       }
       // not found: append at the end
@@ -1104,16 +1196,37 @@ class DefaultNodeLayout
         if (count == 0) {
           idx = 0;
           offset = 0;
-          set_next_offset((extended_key ? sizeof(ham_u64_t) : key->size)
-                                + sizeof(ham_u64_t));
         }
         else {
           offset = get_next_offset();
-          set_next_offset(offset
-                          + (extended_key ? sizeof(ham_u64_t) : key->size)
-                          + sizeof(ham_u64_t));
         }
+        // make sure that the key really fits! if not then use an extended key.
+        // this can happen if a page is split, but the new key still doesn't
+        // fit into the splitted page.
+        if (!extended_key) {
+          if (offset + kPayloadOffset
+              + m_layout.get_key_index_span() * get_capacity()
+              + key->size + sizeof(ham_u64_t)
+                  >= m_page->get_db()->get_local_env()->get_page_size()
+                      - PBtreeNode::get_entry_offset()
+                      - Page::sizeof_persistent_header) {
+            extended_key = true;
+          }
+        }
+
+        set_next_offset(offset
+                        + (extended_key ? sizeof(ham_u64_t) : key->size)
+                        + sizeof(ham_u64_t));
       }
+
+      // once more assert that the new key fits
+      ham_assert(offset + kPayloadOffset
+              + m_layout.get_key_index_span() * get_capacity()
+              + (extended_key ? sizeof(ham_u64_t) : key->size)
+              + sizeof(ham_u64_t)
+                  <= m_page->get_db()->get_local_env()->get_page_size()
+                      - PBtreeNode::get_entry_offset()
+                      - Page::sizeof_persistent_header);
 
       // make space for the new index
       if (slot < count || get_freelist_count() > 0) {
@@ -1318,11 +1431,11 @@ class DefaultNodeLayout
       // m_node->get_count() and increase freelist_count simultaneously
       // (m_node->get_count() is decreased by the caller).
       set_freelist_count(get_freelist_count() + count);
-      set_next_offset(calc_next_offset(start_slot));
+      set_next_offset(calc_next_offset(pivot));
       if (get_freelist_count() > kRearrangeThreshold)
-        rearrange(start_slot);
+        rearrange(pivot);
 
-      ham_assert(0 == check_index_integrity(start_slot));
+      ham_assert(0 == check_index_integrity(pivot));
       ham_assert(0 == other->check_index_integrity(count));
     }
 
@@ -1441,6 +1554,8 @@ class DefaultNodeLayout
   private:
     friend class DefaultIterator<LayoutImpl, RecordImpl>;
     friend class DefaultInlineRecordImpl<LayoutImpl>;
+    friend class FixedInlineRecordImpl<LayoutImpl>;
+    friend class InternalInlineRecordImpl<LayoutImpl>;
 
     void initialize() {
       LocalDatabase *db = m_page->get_db();
@@ -1618,16 +1733,16 @@ class DefaultNodeLayout
       return (-1);
     }
 
-    // Removes a freelist entry at |index|
-    void freelist_remove(int index) {
+    // Removes a freelist entry at |slot|
+    void freelist_remove(int slot) {
       ham_assert(get_freelist_count() > 0);
 
-      if ((ham_u32_t)index < m_node->get_count() + get_freelist_count() - 1) {
-        memmove(m_layout.get_key_index_ptr(index),
-                        m_layout.get_key_index_ptr(index + 1),
+      if ((ham_u32_t)slot < m_node->get_count() + get_freelist_count() - 1) {
+        memmove(m_layout.get_key_index_ptr(slot),
+                        m_layout.get_key_index_ptr(slot + 1),
                         m_layout.get_key_index_span()
                               * (m_node->get_count() + get_freelist_count()
-                                      - index - 1));
+                                      - slot - 1));
       }
 
       set_freelist_count(get_freelist_count() - 1);
@@ -1653,11 +1768,11 @@ class DefaultNodeLayout
                       <= get_capacity());
     }
 
-    // Adds the index at |index| to the freelist
-    void freelist_add(int index) {
+    // Adds the index at |slot| to the freelist
+    void freelist_add(int slot) {
       memcpy(m_layout.get_key_index_ptr(m_node->get_count()
                               + get_freelist_count()),
-                      m_layout.get_key_index_ptr(index),
+                      m_layout.get_key_index_ptr(slot),
                       m_layout.get_key_index_span());
 
       set_freelist_count(get_freelist_count() + 1);
@@ -1761,7 +1876,7 @@ class DefaultNodeLayout
       for (ham_u32_t i = 0; i < ranges.size() - 1; i++) {
         if (ranges[i].first + ranges[i].second + sizeof(ham_u64_t)
                         > ranges[i + 1].first) {
-          ham_trace(("integrity violated: index %u/%u + 8 overlaps with %lu",
+          ham_trace(("integrity violated: slot %u/%u + 8 overlaps with %lu",
                       ranges[i].first, ranges[i].second, ranges[i + 1].first));
           return (HAM_INTEGRITY_VIOLATED);
         }
@@ -1790,7 +1905,7 @@ class DefaultNodeLayout
       // make a copy of all indices (excluding the freelist)
       SortHelper *s = (SortHelper *)m_arena.resize(count * sizeof(SortHelper));
       for (ham_u32_t i = 0; i < count; i++) {
-        s[i].index = i;
+        s[i].slot = i;
         s[i].offset = m_layout.get_key_data_offset(i);
       }
 
@@ -1804,16 +1919,16 @@ class DefaultNodeLayout
                        + m_layout.get_key_index_span() * get_capacity();
       for (ham_u32_t i = 0; i < count; i++) {
         ham_u32_t offset = s[i].offset;
-        ham_u32_t index = s[i].index;
+        ham_u32_t slot = s[i].slot;
         if (offset != next_offset) {
           // shift key to the left
           memmove(m_node->get_data() + start + next_offset,
-                          get_key_data(index),
-                          get_key_data_size(index) + sizeof(ham_u64_t));
+                          get_key_data(slot),
+                          get_key_data_size(slot) + sizeof(ham_u64_t));
           // store the new offset
-          m_layout.set_key_data_offset(index, next_offset);
+          m_layout.set_key_data_offset(slot, next_offset);
         }
-        next_offset += get_key_data_size(index) + sizeof(ham_u64_t);
+        next_offset += get_key_data_size(slot) + sizeof(ham_u64_t);
       }
 
       set_next_offset(next_offset);

@@ -85,13 +85,11 @@ class BtreeEraseAction
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }
-      ham_status_t st = env->get_page_manager()->fetch_page(&root,
-                                db, rootaddr);
-      if (st)
-        return (st);
+
+      root = env->get_page_manager()->fetch_page(db, rootaddr);
 
       /* ... and start the recursion */
-      st = erase_recursive(&p, root, 0, 0, 0, 0, 0);
+      ham_status_t st = erase_recursive(&p, root, 0, 0, 0, 0, 0);
       if (st) {
         m_btree->get_statistics()->erase_failed();
         return (st);
@@ -266,9 +264,7 @@ class BtreeEraseAction
           if (!left)
             next_left = 0;
           else {
-            st = env->get_page_manager()->fetch_page(&tempp, db, left);
-            if (st)
-              return (st);
+            tempp = env->get_page_manager()->fetch_page(db, left);
             BtreeNodeProxy *n = m_btree->get_node_from_page(tempp);
             next_left = n->get_record_id(n->get_count() - 1);
           }
@@ -277,9 +273,8 @@ class BtreeEraseAction
         else {
           if (slot == 0)
             next_left = node->get_ptr_down();
-          else {
+          else
             next_left = node->get_record_id(slot - 1);
-          }
           next_lanchor = page->get_address();
         }
 
@@ -287,9 +282,7 @@ class BtreeEraseAction
           if (!right)
             next_right = 0;
           else {
-            st = env->get_page_manager()->fetch_page(&tempp, db, right);
-            if (st)
-              return (st);
+            tempp = env->get_page_manager()->fetch_page(db, right);
             BtreeNodeProxy *n = m_btree->get_node_from_page(tempp);
             next_right = n->get_record_id(0);
           }
@@ -342,10 +335,9 @@ class BtreeEraseAction
      * rebalance a page - either shifts elements to a sibling, or merges
      * the page with a sibling
      */
-    ham_status_t rebalance(Page **newpage_ref, Page *page, ham_u64_t left,
+    ham_status_t rebalance(Page **pnewpage, Page *page, ham_u64_t left,
                     ham_u64_t right, ham_u64_t lanchor,
                     ham_u64_t ranchor, Page *parent) {
-      ham_status_t st;
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       Page *leftpage = 0;
       Page *rightpage = 0;
@@ -358,26 +350,20 @@ class BtreeEraseAction
 
       ham_assert(page->get_db());
 
-      *newpage_ref = 0;
+      *pnewpage = 0;
       if (!m_mergepage)
         return (0);
 
       /* get the left and the right sibling of this page */
       if (left) {
-        st = env->get_page_manager()->fetch_page(&leftpage,
-                      db, node->get_left());
-        if (st)
-          return (st);
+        leftpage = env->get_page_manager()->fetch_page(db, node->get_left());
         if (leftpage) {
           leftnode = m_btree->get_node_from_page(leftpage);
           fewleft  = leftnode->requires_merge();
         }
       }
       if (right) {
-        st = env->get_page_manager()->fetch_page(&rightpage,
-                      db, node->get_right());
-        if (st)
-          return (st);
+        rightpage = env->get_page_manager()->fetch_page(db, node->get_right());
         if (rightpage) {
           rightnode = m_btree->get_node_from_page(rightpage);
           fewright  = rightnode->requires_merge();
@@ -386,11 +372,10 @@ class BtreeEraseAction
 
       /* if we have no siblings, then we're rebalancing the root page */
       if (!leftpage && !rightpage) {
-        if (node->is_leaf())
-          return (0);
-        else
-          return (env->get_page_manager()->fetch_page(newpage_ref,
-                      db, node->get_ptr_down()));
+        if (!node->is_leaf())
+          *pnewpage = env->get_page_manager()->fetch_page(db,
+                  node->get_ptr_down());
+        return (0);
       }
 
       /*
@@ -399,10 +384,10 @@ class BtreeEraseAction
        */
       if ((!leftpage || fewleft) && (!rightpage || fewright)) {
         if (parent && lanchor != parent->get_address()) {
-          return (merge_pages(newpage_ref, page, rightpage, ranchor));
+          return (merge_pages(pnewpage, page, rightpage, ranchor));
         }
         else {
-          return (merge_pages(newpage_ref, leftpage, page, lanchor));
+          return (merge_pages(pnewpage, leftpage, page, lanchor));
         }
       }
 
@@ -410,7 +395,7 @@ class BtreeEraseAction
       if (leftpage && fewleft && rightpage && !fewright) {
         if (parent && (!(ranchor == parent->get_address()) &&
             (page->get_address() == m_mergepage->get_address()))) {
-          return (merge_pages(newpage_ref, leftpage, page, lanchor));
+          return (merge_pages(pnewpage, leftpage, page, lanchor));
         }
         else {
           return (shift_pages(page, rightpage, ranchor));
@@ -421,7 +406,7 @@ class BtreeEraseAction
       if (leftpage && !fewleft && rightpage && fewright) {
         if (parent && (!(lanchor == parent->get_address()) &&
                 (page->get_address() == m_mergepage->get_address())))
-          return (merge_pages(newpage_ref, page, rightpage, ranchor));
+          return (merge_pages(pnewpage, page, rightpage, ranchor));
         else
           return (shift_pages(leftpage, page, lanchor));
       }
@@ -451,11 +436,8 @@ class BtreeEraseAction
       LocalEnvironment *env = db->get_local_env();
       int slot = 0;
 
-      Page *ancpage;
-      ham_status_t st = env->get_page_manager()->fetch_page(&ancpage,
-                                db, anchor);
-      if (st)
-        return (st);
+      ham_status_t st = 0;
+      Page *ancpage = env->get_page_manager()->fetch_page(db, anchor);
 
       BtreeNodeProxy *node    = m_btree->get_node_from_page(page);
       BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
@@ -659,14 +641,14 @@ cleanup:
     }
 
     /* merge two pages */
-    ham_status_t merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
+    ham_status_t merge_pages(Page **pnewpage, Page *page, Page *sibpage,
                         ham_u64_t anchor) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-      *newpage_ref = 0;
+      *pnewpage = 0;
 
       /* uncouple all cursors */
       ham_status_t st;
@@ -678,10 +660,7 @@ cleanup:
       Page *ancpage = 0;
       BtreeNodeProxy *ancnode = 0;
       if (anchor) {
-        st = env->get_page_manager()->fetch_page(&ancpage,
-                        page->get_db(), anchor);
-        if (st)
-          return (st);
+        ancpage = env->get_page_manager()->fetch_page(page->get_db(), anchor);
         ancnode = m_btree->get_node_from_page(ancpage);
         if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
           return (st);
@@ -713,11 +692,8 @@ cleanup:
       /* update the linked list of pages */
       if (node->get_left() == sibpage->get_address()) {
         if (sibnode->get_left()) {
-          Page *p;
-          st = env->get_page_manager()->fetch_page(&p,
-                            page->get_db(), sibnode->get_left());
-          if (st)
-            return (st);
+          Page *p = env->get_page_manager()->fetch_page(page->get_db(),
+                  sibnode->get_left());
           BtreeNodeProxy *n = m_btree->get_node_from_page(p);
           n->set_right(sibnode->get_right());
           node->set_left(sibnode->get_left());
@@ -728,11 +704,8 @@ cleanup:
       }
       else if (node->get_right() == sibpage->get_address()) {
         if (sibnode->get_right()) {
-          Page *p;
-          st = env->get_page_manager()->fetch_page(&p,
-                      page->get_db(), sibnode->get_right());
-          if (st)
-            return (st);
+          Page *p = env->get_page_manager()->fetch_page(page->get_db(),
+                  sibnode->get_right());
           BtreeNodeProxy *n = m_btree->get_node_from_page(p);
           node->set_right(sibnode->get_right());
           n->set_left(sibnode->get_left());
@@ -751,7 +724,7 @@ cleanup:
       m_btree->get_statistics()->reset_page(sibpage);
       env->get_page_manager()->add_to_freelist(sibpage);
 
-      *newpage_ref = sibpage;
+      *pnewpage = sibpage;
 
       BtreeIndex::ms_btree_smo_merge++;
 

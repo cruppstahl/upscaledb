@@ -13,9 +13,9 @@ test_SOURCES    = aes.cpp \
                   blob_manager.cpp \
                   btree.cpp \
                   btree_cursor.cpp \
+                  btree_default.cpp \
                   btree_erase.cpp \
                   btree_insert.cpp \
-                  btree_linear.cpp \
 				  btree_key.cpp \
 			 	  cache.cpp \
 				  changeset.cpp \

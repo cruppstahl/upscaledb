@@ -113,10 +113,10 @@ class Journal
     }
 
     // Creates a new journal
-    ham_status_t create();
+    void create();
 
     // Opens an existing journal
-    ham_status_t open();
+    void open();
 
     // Returns true if the journal is empty
     bool is_empty() {
@@ -126,9 +126,7 @@ class Journal
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        ham_status_t st = os_get_filesize(m_fd[i], &size);
-        if (st)
-          return (false); /* TODO what now? */
+        size = os_get_filesize(m_fd[i]);
         if (size && size != sizeof(PEnvironmentHeader))
           return (false);
       }
@@ -137,41 +135,36 @@ class Journal
     }
 
     // Appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN
-    ham_status_t append_txn_begin(Transaction *txn, LocalEnvironment *env,
+    void append_txn_begin(Transaction *txn, LocalEnvironment *env,
                 const char *name, ham_u64_t lsn);
 
     // Appends a journal entry for ham_txn_abort/ENTRY_TYPE_TXN_ABORT
-    ham_status_t append_txn_abort(Transaction *txn, ham_u64_t lsn);
+    void append_txn_abort(Transaction *txn, ham_u64_t lsn);
 
     // Appends a journal entry for ham_txn_commit/ENTRY_TYPE_TXN_COMMIT
-    ham_status_t append_txn_commit(Transaction *txn, ham_u64_t lsn);
+    void append_txn_commit(Transaction *txn, ham_u64_t lsn);
 
     // Appends a journal entry for ham_insert/ENTRY_TYPE_INSERT
-    ham_status_t append_insert(Database *db, Transaction *txn,
+    void append_insert(Database *db, Transaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn);
 
     // Appends a journal entry for ham_erase/ENTRY_TYPE_ERASE
-    ham_status_t append_erase(Database *db, Transaction *txn,
+    void append_erase(Database *db, Transaction *txn,
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     // Empties the journal, removes all entries
-    ham_status_t clear() {
-      ham_status_t st;
-
-      for (int i = 0; i < 2; i++) {
-        if ((st = clear_file(i)))
-          return (st);
-      }
-      return (0);
+    void clear() {
+      for (int i = 0; i < 2; i++)
+        clear_file(i);
     }
 
     // Closes the journal, frees all allocated resources
-    ham_status_t close(bool noclear = false);
+    void close(bool noclear = false);
 
     // Performs the overy! All committed Transactions will be re-applied,
     // all others are automatically aborted
-    ham_status_t recover();
+    void recover();
 
     // Returns the next lsn
     ham_u64_t get_incremented_lsn() {
@@ -188,7 +181,7 @@ class Journal
 
     // Switches the log file if necessary; sets the new log descriptor in the
     // transaction
-    ham_status_t switch_files_maybe(Transaction *txn);
+    void switch_files_maybe(Transaction *txn);
 
     // returns the path of the journal file
     std::string get_path(int i);
@@ -202,23 +195,23 @@ class Journal
     // PJournalEntryErase.
     //
     // Returns SUCCESS and an empty entry (lsn is zero) after the last element.
-    ham_status_t get_entry(Iterator *iter, PJournalEntry *entry,
+    void get_entry(Iterator *iter, PJournalEntry *entry,
                     ByteArray *auxbuffer);
 
     // Appends an entry to the journal
-    ham_status_t append_entry(int fdidx,
+    void append_entry(int fdidx,
                 void *ptr1 = 0, ham_u32_t ptr1_size = 0,
                 void *ptr2 = 0, ham_u32_t ptr2_size = 0,
                 void *ptr3 = 0, ham_u32_t ptr3_size = 0,
                 void *ptr4 = 0, ham_u32_t ptr4_size = 0,
                 void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
-      return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
+      os_writev(m_fd[fdidx], ptr1, ptr1_size,
                   ptr2, ptr2_size, ptr3, ptr3_size,
-                  ptr4, ptr4_size, ptr5, ptr5_size));
+                  ptr4, ptr4_size, ptr5, ptr5_size);
     }
 
     // Clears a single file
-    ham_status_t clear_file(int idx);
+    void clear_file(int idx);
 
     // References the Environment this journal file is for
     LocalEnvironment *m_env;

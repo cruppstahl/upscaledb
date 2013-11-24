@@ -49,13 +49,9 @@ BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
   ham_assert(key_size != 0);
 
   /* allocate a new root page */
-  Page *root = 0;
-  ham_status_t st = m_db->get_local_env()->get_page_manager()->alloc_page(&root,
-                        m_db, Page::kTypeBroot,
-                        PageManager::kIgnoreFreelist
-                            | PageManager::kClearWithZero);
-  if (st)
-    return (st);
+  Page *root = m_db->get_local_env()->get_page_manager()->alloc_page(m_db,
+                    Page::kTypeBroot,
+                    PageManager::kIgnoreFreelist | PageManager::kClearWithZero);
 
   // initialize the new page
   PBtreeNode *node = PBtreeNode::from_page(root);
@@ -138,8 +134,8 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
     *idxptr = slot;
 
   if (slot == -1)
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
-                            m_db, node->get_ptr_down()));
+    *pchild = m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
+                    node->get_ptr_down());
   else {
 #ifdef HAM_DEBUG
     ham_u32_t flags = node->test_get_flags(slot);
@@ -147,9 +143,9 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
 #endif
     ham_u64_t rid = node->get_record_id(slot);
     ham_assert(rid != 0);
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
-                            m_db, rid));
+    *pchild  = m_db->get_local_env()->get_page_manager()->fetch_page(m_db, rid);
   }
+  return (0);
 }
 
 ham_s32_t

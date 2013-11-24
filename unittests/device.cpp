@@ -47,21 +47,21 @@ struct DeviceFixture
 
   void createCloseTest() {
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->close());
+    m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    m_dev->open(Globals::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
   }
 
   void openCloseTest() {
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->close());
+     m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    m_dev->open(Globals::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->close());
+    m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    m_dev->open(Globals::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
   }
 
@@ -71,9 +71,9 @@ struct DeviceFixture
 
     REQUIRE(true == m_dev->is_open());
     for (i = 0; i < 10; i++) {
-      REQUIRE(0 == m_dev->alloc(1024, &address));
+      address = m_dev->alloc(1024);
       REQUIRE(address ==
-                  (((LocalEnvironment *)m_env)->get_page_size() * 2) + 1024 * i);
+                (((LocalEnvironment *)m_env)->get_page_size() * 2) + 1024 * i);
     }
   }
 
@@ -82,14 +82,14 @@ struct DeviceFixture
     page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->alloc_page(&page));
+    m_dev->alloc_page(&page);
     REQUIRE(page.get_data());
     m_dev->free_page(&page);
   }
 
   void flushTest() {
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->flush());
+    m_dev->flush();
     REQUIRE(true == m_dev->is_open());
   }
 
@@ -100,23 +100,23 @@ struct DeviceFixture
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->truncate(ps * 10));
+    m_dev->truncate(ps * 10);
     for (i = 0; i < 10; i++) {
       memset(&pages[i], 0, sizeof(Page));
       pages[i].set_db((LocalDatabase *)m_db);
       pages[i].set_address(i * ps);
-      REQUIRE(0 == m_dev->read_page(&pages[i]));
+      m_dev->read_page(&pages[i]);
     }
     for (i = 0; i < 10; i++)
       memset(pages[i].get_data(), i, ps);
     for (i = 0; i < 10; i++)
-      REQUIRE(0 == m_dev->write_page(&pages[i]));
+      m_dev->write_page(&pages[i]);
     for (i = 0; i < 10; i++) {
       ham_u8_t *buffer;
       memset(temp, i, ps);
       m_dev->free_page(&pages[i]);
 
-      REQUIRE(0 == m_dev->read_page(&pages[i]));
+      m_dev->read_page(&pages[i]);
       buffer = (ham_u8_t *)pages[i].get_data();
       REQUIRE(0 == memcmp(buffer, temp, ps));
     }
@@ -134,17 +134,17 @@ struct DeviceFixture
     m_dev->test_disable_mmap();
 
     REQUIRE(true == m_dev->is_open());
-    REQUIRE(0 == m_dev->truncate(ps * 10));
+    m_dev->truncate(ps * 10);
     for (i = 0; i < 10; i++) {
       buffer[i] = (ham_u8_t *)malloc(ps);
-      REQUIRE(0 == m_dev->read(i * ps, buffer[i], ps));
+      m_dev->read(i * ps, buffer[i], ps);
     }
     for (i = 0; i < 10; i++)
       memset(buffer[i], i, ps);
     for (i = 0; i < 10; i++)
-      REQUIRE(0 == m_dev->write(i * ps, buffer[i], ps));
+      m_dev->write(i * ps, buffer[i], ps);
     for (i = 0; i < 10; i++) {
-      REQUIRE(0 == m_dev->read(i * ps, buffer[i], ps));
+      m_dev->read(i * ps, buffer[i], ps);
       memset(temp, i, ps);
       REQUIRE(0 == memcmp(buffer[i], temp, ps));
       free(buffer[i]);
@@ -160,16 +160,16 @@ struct DeviceFixture
     m_dev->test_disable_mmap();
 
     REQUIRE(1 == m_dev->is_open());
-    REQUIRE(0 == m_dev->truncate(ps * 2));
+    m_dev->truncate(ps * 2);
     for (i = 0; i < 2; i++) {
       REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);
-      REQUIRE(0 == m_dev->read_page(pages[i]));
+      m_dev->read_page(pages[i]);
     }
     for (i = 0; i < 2; i++) {
       REQUIRE((pages[i]->get_flags() & Page::kNpersMalloc) != 0);
       memset(pages[i]->get_data(), i + 1, ps);
-      REQUIRE(0 == m_dev->write_page(pages[i]));
+      m_dev->write_page(pages[i]);
       delete pages[i];
     }
 
@@ -178,7 +178,7 @@ struct DeviceFixture
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);
-      REQUIRE(0 == m_dev->read_page(pages[i]));
+      m_dev->read_page(pages[i]);
       REQUIRE(0 == memcmp(pages[i]->get_data(), temp, sizeof(temp)));
       delete pages[i];
     }

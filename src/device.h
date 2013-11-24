@@ -44,58 +44,58 @@ class Device {
     }
 
     // Create a new device - called in ham_env_create
-    virtual ham_status_t create(const char *filename, ham_u32_t flags,
+    virtual void create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode) = 0;
 
     // opens an existing device - called in ham_env_open
-    virtual ham_status_t open(const char *filename, ham_u32_t flags) = 0;
+    virtual void open(const char *filename, ham_u32_t flags) = 0;
 
     // closes the device - called in ham_env_close
-    virtual ham_status_t close() = 0;
+    virtual void close() = 0;
 
     // flushes the device - called in ham_env_flush
-    virtual ham_status_t flush() = 0;
+    virtual void flush() = 0;
 
     // truncate/resize the device
-    virtual ham_status_t truncate(ham_u64_t newsize) = 0;
+    virtual void truncate(ham_u64_t newsize) = 0;
 
     // returns true if the device is open
     virtual bool is_open() = 0;
 
     // get the current file/storage size
-    virtual ham_status_t get_filesize(ham_u64_t *length) = 0;
+    virtual ham_u64_t get_filesize() = 0;
 
     // seek position in a file
-    virtual ham_status_t seek(ham_u64_t offset, int whence) = 0;
+    virtual void seek(ham_u64_t offset, int whence) = 0;
 
     // tell the position in a file
-    virtual ham_status_t tell(ham_u64_t *offset) = 0;
+    virtual ham_u64_t tell() = 0;
 
     // reads from the device; this function does not use mmap
-    virtual ham_status_t read(ham_u64_t offset, void *buffer,
+    virtual void read(ham_u64_t offset, void *buffer,
                 ham_u64_t size) = 0;
 
     // writes to the device; this function does not use mmap
-    virtual ham_status_t write(ham_u64_t offset, void *buffer,
+    virtual void write(ham_u64_t offset, void *buffer,
                 ham_u64_t size) = 0;
 
     // writes to the device; this function does not use mmap
-    virtual ham_status_t writev(ham_u64_t offset, void *buffer1,
+    virtual void writev(ham_u64_t offset, void *buffer1,
                 ham_u64_t size1, void *buffer2, ham_u64_t size2) = 0;
 
     // reads a page from the device; this function CAN use mmap
-    virtual ham_status_t read_page(Page *page) = 0;
+    virtual void read_page(Page *page) = 0;
 
     // writes a page to the device
-    virtual ham_status_t write_page(Page *page) = 0;
+    virtual void write_page(Page *page) = 0;
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.
-    virtual ham_status_t alloc(ham_u32_t size, ham_u64_t *address) = 0;
+    virtual ham_u64_t alloc(ham_u32_t size) = 0;
 
     // allocate storage for a page from this device; this function
     // can use mmap if available
-    virtual ham_status_t alloc_page(Page *page) = 0;
+    virtual void alloc_page(Page *page) = 0;
 
     // frees a page on the device
     //

@@ -35,11 +35,11 @@ Cache::Cache(LocalEnvironment *env, ham_u64_t capacity_bytes)
   if (m_capacity == 0)
     m_capacity = HAM_DEFAULT_CACHESIZE;
 
-  for (ham_u32_t i = 0; i < CACHE_BUCKET_SIZE; i++)
+  for (ham_u32_t i = 0; i < kCacheBucketSize; i++)
     m_buckets.push_back(0);
 }
 
-ham_status_t
+void
 Cache::check_integrity()
 {
   ham_u32_t elements = 0;
@@ -57,7 +57,7 @@ Cache::check_integrity()
   if (m_cur_elements != elements) {
     ham_trace(("cache's number of elements (%u) != actual number (%u)",
         m_cur_elements, elements));
-    return (HAM_INTEGRITY_VIOLATED);
+    throw Exception(HAM_INTEGRITY_VIOLATED);
   }
 
   /* make sure that the totallist HEAD -> next -> TAIL is set correctly,
@@ -70,8 +70,6 @@ Cache::check_integrity()
   }
   if (tail)
     ham_assert(tail->get_next(Page::kListCache) == 0);
-
-  return (0);
 }
 
 } // namespace hamsterdb

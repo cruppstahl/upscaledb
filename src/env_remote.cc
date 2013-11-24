@@ -43,27 +43,17 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
     return (HAM_INTERNAL_ERROR);
   }
 
-  ham_status_t st = os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(),
+  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(),
           m_buffer.get_size());
-  if (st)
-    return (st);
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  st = os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
-  if (st) {
-    os_socket_close(&m_socket);
-    return (HAM_IO_ERROR);
-  }
+  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
 
   // no need to check the magic; it's verified in Protocol::unpack
   ham_u32_t size = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(ham_db2h32(size) + 8);
-  st = os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
-  if (st) {
-    os_socket_close(&m_socket);
-    return (HAM_IO_ERROR);
-  }
+  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
 
   *reply = Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8);
 
@@ -107,18 +97,13 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  ham_status_t st = os_socket_connect(hostname.c_str(), port,
-          m_timeout, &m_socket);
-  if (st) {
-    (void)os_socket_close(&m_socket);
-    return (HAM_NETWORK_ERROR);
-  }
+  m_socket = os_socket_connect(hostname.c_str(), port, m_timeout);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
   Protocol *reply = 0;
-  st = perform_request(&request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     (void)os_socket_close(&m_socket);
     delete reply;
