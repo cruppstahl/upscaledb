@@ -301,22 +301,24 @@ x btree_erase.cc: do not shift elements if there are not at least 20 elements
 
 x btree_insert.cc has a TODO
 
-o run performance tests with several million inserts; but only track the
-    performance after the first million was inserted! can we make things
-    scale better?
-    - less seeks, better cache usage; always cache index pages, avoid CPU
-        cache misses and get prepared for variable-sized pages
-    - a sparse matrix of <ID -> page_proxy> mappings with metadata information
-        directly in the page_proxy structure:
-            - last access
-            - pointer to the actual page
-            - ...?
-    - add results to roadmap
+x check ham_cursor_find documentation - it's glitchy
 
-o default layout: handle fixed length inline records > 8 bytes (non-duplicates)
-    o does not require flags!
+x run performance tests with several million inserts; but only track the
+    performance after the first million was inserted! can we make things
+    scale better? - 50% used by freelist
+
+o default layout: handle fixed length inline records > 8 bytes
+    -> only if duplicates are disabled!
+    x ham_db_insert/ham_cursor_insert: check record size if record size is
+        fixed length (already implemented)
+    x move the current functionality to a template class
+    o only use fixed record length-layout if duplicates are DISABLED!
+    o always store record inline if size is <= 16 byte, or more if
+        pagesize is higher
     o internal pages: use a different layout than leaf pages (inline
         8 byte fixed length records, no duplicates)
+    o add persistent flag to force records inline (already exists?)
+    o ham_info: show if record is inline
     o make sure this is covered by monster/valgrind/perftest
 
 o use linear search with fixed length keys (if max-keys-per-page
@@ -346,6 +348,11 @@ o start redesigning code towards exceptions; this will reduce the code a lot
         - page, node, btree node, iterator, layout, slot/index/position
         - freelist
 
+o completely rewrite handling of duplicate keys
+    - store record list in leaf, not in overflow area; if there are too
+        many (> 256) then allocate an overflow extend
+    - support inline records
+
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
@@ -364,6 +371,33 @@ o evaluate use of endian-independence
 . improve integration of static code analysis in release process
     o try to become "oclint-clean"
     o try to become "coverity-clean"
+
+---------------------- release 2.1.4 (unstable) -----------------------------
+
+high-level plan for 2.1.5 (unstable).........................................
+- start transformation of file to a container of streams
+    (every buffer needs stream descriptor, trailer)
+    - metadata changes (= modifying the header page) is its own stream
+    - virtual page IDs, variable page sizes
+    - grow/shrink pages
+    - delta updates
+- compress the whole LSS -> PRO
+- encrypt the whole LSS -> PRO
+- hot backups (vacuumizes to a different file) -> PRO
+- bulk updates -> PRO
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort
+    - add those delta updates to the txn-trees or to the stream
+- cache-oblivious page distribution? (maybe write the LSS first?)
+    http://supertech.csail.mit.edu/cacheObliviousBTree.html
+- first PRO release
+    o webpage updates, PR, mailings
+- concurrency
+- operations on compressed data (COUNT(), MIN(), MAX(), ...)?
+- C-Store style projections? (requires complex schema types)
+    - introduce a new library with complex schema types, projections,
+        high level operations?
+
 
 o introduce PRO version
     o start a closed repository
@@ -418,44 +452,7 @@ o PRO: use SIMD for fixed-length scans and __builtin_prefetch
     http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/prefetch.h
     http://stackoverflow.com/questions/7327994/prefetching-examples
 
-o release-v2.pl: add test without berkeleydb (currently fails)
-
----------------------- release 2.1.4 (unstable) -----------------------------
-
-high-level plan for 2.2.0 (stable)...........................................
-- completely rewrite handling of duplicate keys
-    - replaces the legacy btree layout
-    - store record list in leaf, not in overflow area; if there are too
-        many (> 256) then allocate an overflow extend
-    - support inline records
-    - move the whole record handling from the proxy down to the layout
-- lay the groundwork for concurrency -> LSS-streams, finalize the file format
-    (every buffer needs stream descriptor, trailer)
-    - metadata changes (= modifying the header page) is its own stream
-    - virtual page IDs, variable page sizes
-    - grow/shrink pages
-    - delta updates
-- compress the whole LSS -> PRO
-- hot backups -> PRO
-- cache-oblivious page distribution? (maybe write the LSS first?)
-    http://supertech.csail.mit.edu/cacheObliviousBTree.html
-- move AES encryption to PRO?
-- first PRO release
-    o webpage updates, PR, mailings
-
-high-level plan for 2.2.1 ...................................................
-- btree can handle delta updates
-    - (or postpone till concurrency?)
-    - a transaction update is very similar to a delta update
-        - can both be consolidated?
-    - delta updates are merged when there are too many of them, or if a cursor
-        traverses the page (only if memcpy/memmove takes too much time)
-- concurrency
-- bulk updates? (-> PRO)
-- operations on compressed data (COUNT(), MIN(), MAX(), ...)?
-- C-Store style projections? (requires complex schema types)
-    - introduce a new library with complex schema types, projections,
-        high level operations?
+o release-v2.pl: add test without berkeleydb
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information

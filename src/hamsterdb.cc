@@ -1100,6 +1100,12 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
           "<= 8"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
+  if ((flags & HAM_PARTIAL)
+      && (record->partial_size + record->partial_offset > record->size)) {
+    ham_trace(("partial offset+size is greater than the total "
+          "record size"));
+    return (db->set_error(HAM_INV_PARAMETER));
+  }
   if ((flags & HAM_DUPLICATE)
       && !(db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)) {
     ham_trace(("database does not support duplicate keys "
@@ -1112,17 +1118,6 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
       || (flags & HAM_DUPLICATE_INSERT_FIRST)) {
     ham_trace(("function does not support flags HAM_DUPLICATE_INSERT_*; "
           "see ham_cursor_insert"));
-    return (db->set_error(HAM_INV_PARAMETER));
-  }
-  if ((flags & HAM_PARTIAL)
-      && (record->partial_size + record->partial_offset > record->size)) {
-    ham_trace(("partial offset+size is greater than the total "
-          "record size"));
-    return (db->set_error(HAM_INV_PARAMETER));
-  }
-  if ((flags & HAM_PARTIAL) && (record->size <= sizeof(ham_u64_t))) {
-    ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
-          "<= 8"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
 

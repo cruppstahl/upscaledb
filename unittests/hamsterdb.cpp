@@ -1252,14 +1252,16 @@ struct HamsterdbFixture {
 
   void cursorFindTest() {
     ham_cursor_t *cursor;
-    ham_key_t *key = 0;
+    ham_key_t key = {0};
 
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_find(0, key, 0, 0));
+        ham_cursor_find(0, &key, 0, 0));
     REQUIRE(HAM_INV_PARAMETER ==
         ham_cursor_find(cursor, 0, 0, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
+        ham_cursor_find(cursor, &key, 0, 0));
 
     ham_cursor_close(cursor);
   }
@@ -1901,7 +1903,7 @@ struct HamsterdbFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = ldb->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::FixedLayoutImpl<unsigned short> >, hamsterdb::CallbackCompare>");
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::FixedLayoutImpl<unsigned short>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::FixedLayoutImpl<unsigned short> > >, hamsterdb::CallbackCompare>");
 #endif
 
     ham_parameter_t query[] = {

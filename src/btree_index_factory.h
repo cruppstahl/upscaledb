@@ -66,6 +66,13 @@ struct BtreeIndexFactory
     bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
     ham_u32_t page_size = db->get_local_env()->get_page_size();
 
+    typedef FixedLayoutImpl<ham_u16_t> FixedLayout16;
+    typedef FixedLayoutImpl<ham_u32_t> FixedLayout32;
+    typedef DefaultLayoutImpl<ham_u16_t> DefaultLayout16;
+    typedef DefaultLayoutImpl<ham_u32_t> DefaultLayout32;
+    typedef DefaultInlineRecordImpl<FixedLayout16> DefaultInlineRecord16; 
+    typedef DefaultInlineRecordImpl<FixedLayout32> DefaultInlineRecord32; 
+
     // Record number database
     if (flags & HAM_RECORD_NUMBER) {
       if (!is_leaf)
@@ -88,11 +95,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<ham_u8_t> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<ham_u8_t> >());
         }
         else {
@@ -114,11 +121,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<ham_u16_t> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<ham_u16_t> >());
         }
         else {
@@ -140,11 +147,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<ham_u32_t> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<ham_u32_t> >());
         }
         else {
@@ -166,11 +173,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<ham_u64_t> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<ham_u64_t> >());
         }
         else {
@@ -192,11 +199,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<float> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<float> >());
         }
         else {
@@ -218,11 +225,11 @@ struct BtreeIndexFactory
         if (flags & HAM_ENABLE_DUPLICATES) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       NumericCompare<double> >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       NumericCompare<double> >());
         }
         else {
@@ -260,21 +267,23 @@ struct BtreeIndexFactory
         if (fixed_keys && (flags & HAM_ENABLE_DUPLICATES) != 0) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       CallbackCompare >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       CallbackCompare >());
         }
         // Variable keys with or without duplicates
         if (page_size <= 64 * 1024)
           return (new BtreeIndexTraitsImpl<
-                    DefaultNodeLayout< DefaultLayoutImpl<ham_u16_t> >,
+                        DefaultNodeLayout<DefaultLayout16,
+                            DefaultInlineRecordImpl<DefaultLayout16> >,
                         CallbackCompare>());
         else
           return (new BtreeIndexTraitsImpl<
-                    DefaultNodeLayout< DefaultLayoutImpl<ham_u32_t> >,
+                        DefaultNodeLayout<DefaultLayout32,
+                            DefaultInlineRecordImpl<DefaultLayout32> >,
                         CallbackCompare>());
       // BINARY is the default:
       case HAM_TYPE_BINARY:
@@ -297,20 +306,22 @@ struct BtreeIndexFactory
         if (fixed_keys && (flags & HAM_ENABLE_DUPLICATES) != 0) {
           if (page_size <= 64 * 1024)
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u16_t> >,
+                      DefaultNodeLayout<FixedLayout16, DefaultInlineRecord16>,
                       FixedSizeCompare >());
           else
             return (new BtreeIndexTraitsImpl<
-                      DefaultNodeLayout< FixedLayoutImpl<ham_u32_t> >,
+                      DefaultNodeLayout<FixedLayout32, DefaultInlineRecord32>,
                       FixedSizeCompare >());
         }
         if (page_size <= 64 * 1024)
           return (new BtreeIndexTraitsImpl<
-                    DefaultNodeLayout< DefaultLayoutImpl<ham_u16_t> >,
+                        DefaultNodeLayout<DefaultLayout16,
+                            DefaultInlineRecordImpl<DefaultLayout16> >,
                         VariableSizeCompare>());
         else
           return (new BtreeIndexTraitsImpl<
-                    DefaultNodeLayout< DefaultLayoutImpl<ham_u32_t> >,
+                        DefaultNodeLayout<DefaultLayout32,
+                            DefaultInlineRecordImpl<DefaultLayout32> >,
                         VariableSizeCompare>());
       default:
         break;

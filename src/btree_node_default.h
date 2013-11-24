@@ -70,24 +70,24 @@ namespace hamsterdb {
 
 #undef min  // avoid MSVC conflicts with std::min
 
-template<typename LayoutImpl>
+template<typename LayoutImpl, typename RecordImpl>
 class DefaultNodeLayout;
 
 //
 // An iterator for the DefaultNodeLayout
 //
-template<typename LayoutImpl>
+template<typename LayoutImpl, typename RecordImpl>
 class DefaultIterator
 {
   public:
-    DefaultIterator(DefaultNodeLayout<LayoutImpl> *node,
+    DefaultIterator(DefaultNodeLayout<LayoutImpl, RecordImpl> *node,
                     ham_u32_t slot)
       : m_node(node), m_slot(slot) {
     } 
 
-    DefaultIterator(const DefaultNodeLayout<LayoutImpl> *node,
+    DefaultIterator(const DefaultNodeLayout<LayoutImpl, RecordImpl> *node,
                     ham_u32_t slot)
-      : m_node((DefaultNodeLayout<LayoutImpl> *)node),
+      : m_node((DefaultNodeLayout<LayoutImpl, RecordImpl> *)node),
         m_slot(slot) {
     } 
 
@@ -152,14 +152,6 @@ class DefaultIterator
       *(ham_u64_t *)get_key_data() = rid;
     }
 
-    // Returns true if the record is inline
-    bool is_record_inline() const {
-      ham_u32_t flags = get_key_flags();
-      return ((flags & BtreeKey::kBlobSizeTiny)
-              || (flags & BtreeKey::kBlobSizeSmall)
-              || (flags & BtreeKey::kBlobSizeEmpty) != 0);
-    }
-
     // Returns the record id
     ham_u64_t get_record_id() const {
       return (m_node->get_record_id(m_slot));
@@ -168,6 +160,11 @@ class DefaultIterator
     // Sets the record id
     void set_record_id(ham_u64_t ptr) {
       return (m_node->set_record_id(m_slot, ptr));
+    }
+
+    // Returns true if the record is inline
+    bool is_record_inline() const {
+      return (m_node->is_record_inline(m_slot));
     }
 
     // Returns a pointer to the record's inline data
@@ -183,56 +180,22 @@ class DefaultIterator
 
     // Sets the inline record data
     void set_inline_record_data(const void *data, ham_u32_t size) {
-      ham_u32_t flags = get_key_flags();
-      // make sure that the flags are zeroed out
-      flags &= ~(BtreeKey::kBlobSizeSmall
-                      | BtreeKey::kBlobSizeTiny
-                      | BtreeKey::kBlobSizeEmpty);
-      if (size == 0) {
-        flags |= BtreeKey::kBlobSizeEmpty;
-      }
-      else if (size < 8) {
-        flags |= BtreeKey::kBlobSizeTiny;
-        /* the highest byte of the record id is the size of the blob */
-        char *p = (char *)get_inline_record_data();
-        p[sizeof(ham_u64_t) - 1] = size;
-        memcpy(p, data, size);
-      }
-      else if (size == 8) {
-        flags |= BtreeKey::kBlobSizeSmall;
-        char *p = (char *)get_inline_record_data();
-        memcpy(p, data, size);
-      }
-      else
-        ham_assert(!"shouldn't be here");
-      set_key_flags(flags);
+      m_node->set_inline_record_data(m_slot, data, size);
     }
 
     // Returns the size of the record, if inline
     ham_u32_t get_inline_record_size() const {
-      ham_assert(is_record_inline() == true);
-      if (get_key_flags() & BtreeKey::kBlobSizeTiny) {
-        /* the highest byte of the record id is the size of the blob */
-        char *p = (char *)get_inline_record_data();
-        return (p[sizeof(ham_u64_t) - 1]);
-      }
-      else if (get_key_flags() & BtreeKey::kBlobSizeSmall)
-        return (sizeof(ham_u64_t));
-      else if (get_key_flags() & BtreeKey::kBlobSizeEmpty)
-        return (0);
-      else
-        ham_assert(!"shouldn't be here");
-      return (0);
+      return (m_node->get_inline_record_size(m_slot));
     }
 
     // Returns the maximum size of inline records
     ham_u32_t get_max_inline_record_size() const {
-      return (sizeof(ham_u64_t));
+      return (m_node->get_max_inline_record_size());
     }
 
     // Removes an inline record
     void remove_inline_record() {
-      set_record_id(0);
+      memset(get_inline_record_data(), 0, get_max_inline_record_size());;
     }
 
     // Allows use of operator-> in the caller
@@ -246,7 +209,7 @@ class DefaultIterator
     }
 
   private:
-    DefaultNodeLayout<LayoutImpl> *m_node;
+    DefaultNodeLayout<LayoutImpl, RecordImpl> *m_node;
     int m_slot;
 };
 
@@ -418,11 +381,91 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
 extern ham_u32_t g_extended_threshold;
 
 //
+// A RecordProxy for the default inline records
+//
+template<typename LayoutImpl>
+class DefaultInlineRecordImpl
+{
+    typedef DefaultNodeLayout<LayoutImpl, DefaultInlineRecordImpl> NodeType;
+
+  public:
+    DefaultInlineRecordImpl(NodeType *layout)
+      : m_layout(layout) {
+    }
+
+    DefaultInlineRecordImpl(const NodeType *layout)
+      : m_layout((NodeType *)layout) {
+    }
+
+    // Returns true if the record is inline
+    bool is_record_inline(ham_u32_t slot) const {
+      ham_u32_t flags = m_layout->get_key_flags(slot);
+      return ((flags & BtreeKey::kBlobSizeTiny)
+              || (flags & BtreeKey::kBlobSizeSmall)
+              || (flags & BtreeKey::kBlobSizeEmpty) != 0);
+    }
+
+    // Sets the inline record data
+    void set_inline_record_data(ham_u32_t slot, const void *data,
+                    ham_u32_t size) {
+      ham_u32_t flags = m_layout->get_key_flags(slot);
+      // make sure that the flags are zeroed out
+      flags &= ~(BtreeKey::kBlobSizeSmall
+                      | BtreeKey::kBlobSizeTiny
+                      | BtreeKey::kBlobSizeEmpty);
+      if (size == 0) {
+        flags |= BtreeKey::kBlobSizeEmpty;
+      }
+      else if (size < 8) {
+        flags |= BtreeKey::kBlobSizeTiny;
+        /* the highest byte of the record id is the size of the blob */
+        char *p = (char *)m_layout->get_inline_record_data(slot);
+        p[sizeof(ham_u64_t) - 1] = size;
+        memcpy(p, data, size);
+      }
+      else if (size == 8) {
+        flags |= BtreeKey::kBlobSizeSmall;
+        char *p = (char *)m_layout->get_inline_record_data(slot);
+        memcpy(p, data, size);
+      }
+      else
+        ham_assert(!"shouldn't be here");
+      m_layout->set_key_flags(slot, flags);
+    }
+
+    // Returns the size of the record, if inline
+    ham_u32_t get_inline_record_size(ham_u32_t slot) const {
+      ham_assert(m_layout->is_record_inline(slot) == true);
+      ham_u32_t flags = m_layout->get_key_flags(slot);
+      if (flags & BtreeKey::kBlobSizeTiny) {
+        /* the highest byte of the record id is the size of the blob */
+        char *p = (char *)m_layout->get_inline_record_data(slot);
+        return (p[sizeof(ham_u64_t) - 1]);
+      }
+      else if (flags & BtreeKey::kBlobSizeSmall)
+        return (sizeof(ham_u64_t));
+      else if (flags & BtreeKey::kBlobSizeEmpty)
+        return (0);
+      else
+        ham_assert(!"shouldn't be here");
+      return (0);
+    }
+
+    // Returns the maximum size of inline records
+    ham_u32_t get_max_inline_record_size() const {
+      return (sizeof(ham_u64_t));
+    }
+
+  private:
+    NodeType *m_layout;
+};
+
+//
 // A BtreeNodeProxy layout which stores key flags, key size, key data
 // and the record pointer next to each other.
 // This is the format used since the initial hamsterdb version.
 //
-template<typename LayoutImpl>
+template<typename LayoutImpl, typename RecordImpl>
 class DefaultNodeLayout
 {
     typedef std::map<ham_u64_t, ByteArray> ExtKeyCache;
@@ -433,11 +476,12 @@ class DefaultNodeLayout
     };
 
   public:
-    typedef DefaultIterator<LayoutImpl> Iterator;
-    typedef const DefaultIterator<LayoutImpl> ConstIterator;
+    typedef DefaultIterator<LayoutImpl, RecordImpl> Iterator;
+    typedef const DefaultIterator<LayoutImpl, RecordImpl> ConstIterator;
 
     DefaultNodeLayout(Page *page)
-      : m_page(page), m_node(PBtreeNode::from_page(m_page)), m_extkey_cache(0) {
+      : m_page(page), m_node(PBtreeNode::from_page(m_page)),
+        m_record_proxy(this), m_extkey_cache(0) {
       initialize();
     }
 
@@ -1395,7 +1439,8 @@ class DefaultNodeLayout
     }
 
   private:
-    friend class DefaultIterator<LayoutImpl>;
+    friend class DefaultIterator<LayoutImpl, RecordImpl>;
+    friend class DefaultInlineRecordImpl<LayoutImpl>;
 
     void initialize() {
       LocalDatabase *db = m_page->get_db();
@@ -1880,33 +1925,61 @@ class DefaultNodeLayout
       return (false);
     }
 
+    // Returns the index capacity
     ham_u32_t get_capacity() const {
       return (ham_db2h32(*(ham_u32_t *)m_node->get_data()));
     }
 
+    // Sets the index capacity
     void set_capacity(ham_u32_t capacity) {
       *(ham_u32_t *)m_node->get_data() = ham_h2db32(capacity);
     }
 
+    // Returns the number of freelist entries
     ham_u32_t get_freelist_count() const {
       return (ham_db2h32(*(ham_u32_t *)(m_node->get_data() + 4)));
     }
 
+    // Sets the number of freelist entries
     void set_freelist_count(ham_u32_t freelist_count) {
       *(ham_u32_t *)(m_node->get_data() + 4) = ham_h2db32(freelist_count);
     }
 
+    // Returns the offset of the unused space at the end of the page
     ham_u32_t get_next_offset() const {
       return (ham_db2h32(*(ham_u32_t *)(m_node->get_data() + 8)));
     }
 
+    // Sets the offset of the unused space at the end of the page
     void set_next_offset(ham_u32_t next_offset) {
       *(ham_u32_t *)(m_node->get_data() + 8) = ham_h2db32(next_offset);
+    }
+
+    // Returns true if the record is inline
+    bool is_record_inline(ham_u32_t slot) const {
+      return (m_record_proxy.is_record_inline(slot));
+    }
+
+    // Sets the inline record data
+    void set_inline_record_data(ham_u32_t slot, const void *data,
+                    ham_u32_t size) {
+      m_record_proxy.set_inline_record_data(slot, data, size);
+    }
+
+    // Returns the size of the record, if inline
+    ham_u32_t get_inline_record_size(ham_u32_t slot) const {
+      return (m_record_proxy.get_inline_record_size(slot));
+    }
+
+    // Returns the maximum size of inline records
+    ham_u32_t get_max_inline_record_size() const {
+      return (m_record_proxy.get_max_inline_record_size());
     }
 
     Page *m_page;
     PBtreeNode *m_node;
     LayoutImpl m_layout;
+    RecordImpl m_record_proxy;
     ByteArray m_arena;
     ExtKeyCache *m_extkey_cache;
 };

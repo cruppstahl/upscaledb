@@ -1987,12 +1987,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * Searches with a key and points the Cursor to the key found, retrieves
  * the located record
  *
- * This function is identical to @ref ham_cursor_find, but it immediately
- * retrieves the located record if the lookup operation was successful.
- *
- * Searches for an item in the Database and points the
- * Cursor to this item. If the item could not be found, the Cursor is
- * not modified.
+ * Searches for an item in the Database and points the Cursor to this item.
+ * If the item could not be found, the Cursor is not modified.
  *
  * Note that @ref ham_cursor_find can not search for duplicate keys. If @a key
  * has multiple duplicates, only the first duplicate is returned.
@@ -2043,7 +2039,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *    Note that key->data will point to temporary data. This pointer
  *    will be invalidated by subsequent hamsterdb API calls. See
  *    @a HAM_KEY_USER_ALLOC on how to change this behaviour.
- * @param record A pointer to a @ref ham_record_t structure. If this
+ * @param record Optional pointer to a @ref ham_record_t structure. If this
  *    pointer is not NULL, the record of the new item is returned.
  *    Note that record->data will point to temporary data. This pointer
  *    will be invalidated by subsequent hamsterdb API calls. See

@@ -70,7 +70,7 @@ struct BtreeFixture {
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s;
     s = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short> >, hamsterdb::VariableSizeCompare>");
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short> > >, hamsterdb::VariableSizeCompare>");
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));

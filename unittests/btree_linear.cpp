@@ -375,7 +375,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short> >, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short> > >, hamsterdb::VariableSizeCompare>");
 #endif
 }
 
