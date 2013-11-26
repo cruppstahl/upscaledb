@@ -69,15 +69,15 @@ class RemoteEnvironment : public Environment
 
     // Creates a new database in the environment (ham_env_create_db)
     virtual ham_status_t create_db(Database **db, ham_u16_t dbname,
-            ham_u32_t flags, const ham_parameter_t *param);
+                    ham_u32_t flags, const ham_parameter_t *param);
 
     // Opens an existing database in the environment (ham_env_open_db)
     virtual ham_status_t open_db(Database **db, ham_u16_t dbname,
-            ham_u32_t flags, const ham_parameter_t *param);
+                    ham_u32_t flags, const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
     virtual ham_status_t txn_begin(Transaction **txn, const char *name,
-            ham_u32_t flags);
+                    ham_u32_t flags);
 
     // Aborts a transaction (ham_txn_abort)
     virtual ham_status_t txn_abort(Transaction *txn, ham_u32_t flags);
@@ -88,9 +88,9 @@ class RemoteEnvironment : public Environment
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags);
 
-    // Sends |request| to the remote server and blocks till |reply|
+    // Sends |request| to the remote server and blocks till the reply
     // was fully received
-    ham_status_t perform_request(Protocol *request, Protocol **reply);
+    Protocol *perform_request(Protocol *request);
 
   private:
     // the remote database handle

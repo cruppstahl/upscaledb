@@ -81,7 +81,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_key(&k));
+    c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
@@ -112,7 +112,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_key(&k));
+    c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
@@ -137,7 +137,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_key(&k));
+    c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
     REQUIRE((void *)0 == k.data);
 
@@ -163,7 +163,7 @@ struct TxnCursorFixture {
 
     TransactionCursor c((Cursor *)m_cursor);
 
-    REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_key(&k));
+    REQUIRE_CATCH(c.copy_coupled_key(&k), HAM_CURSOR_IS_NIL);
 
     c.set_to_nil();
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -188,7 +188,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_record(&r));
+    c.copy_coupled_record(&r);
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
@@ -219,7 +219,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_record(&r));
+    c.copy_coupled_record(&r);
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
@@ -244,7 +244,7 @@ struct TxnCursorFixture {
     TransactionCursor c((Cursor *)m_cursor);
     c.m_coupled_op = op;
 
-    REQUIRE(0 == c.copy_coupled_record(&r));
+    c.copy_coupled_record(&r);
     REQUIRE(r.size == record.size);
     REQUIRE((void *)0 == r.data);
 
@@ -268,7 +268,7 @@ struct TxnCursorFixture {
 
     TransactionCursor c((Cursor *)m_cursor);
 
-    REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_record(&r));
+    REQUIRE_CATCH(c.copy_coupled_record(&r), HAM_CURSOR_IS_NIL);
 
     c.set_to_nil();
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -334,7 +334,7 @@ struct TxnCursorFixture {
       return (st);
     if (record) {
       ham_record_t r = {0};
-      REQUIRE(0 == cursor->copy_coupled_record(&r));
+      cursor->copy_coupled_record(&r);
       REQUIRE(r.size == strlen(record) + 1);
       REQUIRE(0 == memcmp(r.data, record, r.size));
     }
@@ -347,9 +347,7 @@ struct TxnCursorFixture {
     ham_status_t st = cursor->move(flags);
     if (st)
       return (st);
-    st = cursor->copy_coupled_key(&k);
-    if (st)
-      return (st);
+    cursor->copy_coupled_key(&k);
     if (key) {
       if (strcmp((char *)k.data, key))
         return (HAM_INTERNAL_ERROR);

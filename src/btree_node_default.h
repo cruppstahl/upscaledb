@@ -610,9 +610,9 @@ class DefaultNodeLayout
       return (ConstIterator(this, slot));
     }
 
-    ham_status_t check_integrity() const {
+    void check_integrity() const {
       if (m_node->get_count() == 0)
-        return (0);
+        return;
 
       ByteArray arena;
       ham_u32_t count = m_node->get_count();
@@ -625,13 +625,13 @@ class DefaultNodeLayout
           ham_log(("integrity check failed in page 0x%llx: item #0 "
                   "has flags but it's not a leaf page",
                   m_page->get_address()));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
 
         if (it->get_key_size() > g_extended_threshold
             && !(it->get_key_flags() & BtreeKey::kExtended)) {
           ham_log(("key size %d, but is not extended", it->get_key_size()));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
 
         if (it->get_key_flags() & BtreeKey::kExtended) {
@@ -639,20 +639,13 @@ class DefaultNodeLayout
           if (!blobid) {
             ham_log(("integrity check failed in page 0x%llx: item "
                     "is extended, but has no blob", m_page->get_address()));
-            return (HAM_INTEGRITY_VIOLATED);
+            throw Exception(HAM_INTEGRITY_VIOLATED);
           }
 
           // make sure that the extended blob can be loaded
           ham_record_t record = {0};
-          ham_status_t st;
-          st = m_page->get_db()->get_local_env()->get_blob_manager()->read(
+          m_page->get_db()->get_local_env()->get_blob_manager()->read(
                           m_page->get_db(), blobid, &record, 0, &arena);
-          if (st) {
-            ham_log(("integrity check failed in page 0x%llx: item "
-                    "is extended, but failed to read blob: %d",
-                    m_page->get_address(), st));
-            return (HAM_INTEGRITY_VIOLATED);
-          }
 
           // compare it to the cached key (if there is one)
           if (m_extkey_cache) {
@@ -660,18 +653,18 @@ class DefaultNodeLayout
             if (it != m_extkey_cache->end()) {
               if (record.size != it->second.get_size()) {
                 ham_log(("Cached extended key differs from real key"));
-                return (HAM_INTEGRITY_VIOLATED);
+                throw Exception(HAM_INTEGRITY_VIOLATED);
               }
               if (memcmp(record.data, it->second.get_ptr(), record.size)) {
                 ham_log(("Cached extended key differs from real key"));
-                return (HAM_INTEGRITY_VIOLATED);
+                throw Exception(HAM_INTEGRITY_VIOLATED);
               }
             }
           }
         }
       }
 
-      return (check_index_integrity(m_node->get_count()));
+      check_index_integrity(m_node->get_count());
     }
 
     template<typename Cmp>
@@ -693,7 +686,9 @@ class DefaultNodeLayout
       int ret = 0, last = count + 1;
       int cmp = -1;
 
-      ham_assert(0 == check_index_integrity(count));
+#ifdef HAM_DEBUG
+      check_index_integrity(count);
+#endif
 
       ham_assert(count > 0);
 
@@ -748,16 +743,15 @@ class DefaultNodeLayout
     }
 
     // Returns a deep copy of the key
-    ham_status_t get_key(ConstIterator it, ByteArray *arena,
-                    ham_key_t *dest) {
+    void get_key(ConstIterator it, ByteArray *arena, ham_key_t *dest) {
       LocalDatabase *db = m_page->get_db();
-      ham_status_t st = 0;
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-        if (!arena->resize(it->get_key_size()) && it->get_key_size() > 0)
-          return (HAM_OUT_OF_MEMORY);
+        arena->resize(it->get_key_size());
         dest->data = arena->get_ptr();
         dest->size = it->get_key_size();
       }
@@ -771,46 +765,43 @@ class DefaultNodeLayout
         memcpy(dest->data, it->get_key_data(), it->get_key_size());
 
       /* recno databases: recno is stored in db-endian! */
-      if (st == 0 && db->get_rt_flags() & HAM_RECORD_NUMBER) {
+      if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
         ham_assert(dest->data != 0);
         ham_assert(dest->size == sizeof(ham_u64_t));
         ham_u64_t recno = *(ham_u64_t *)dest->data;
         recno = ham_db2h64(recno);
         memcpy(dest->data, &recno, sizeof(ham_u64_t));
       }
-
-      return (st);
     }
 
-    ham_status_t get_duplicate_count(Iterator it,
-                    DuplicateManager *duplicate_manager,
-                    ham_u32_t *pcount) const {
-      if (!(it->get_key_flags() & BtreeKey::kDuplicates)) {
-        *pcount = 1;
-        return (0);
-      }
-      return (duplicate_manager->get_count(it->get_record_id(), pcount, 0));
+    ham_u32_t get_duplicate_count(Iterator it) const {
+      if (!(it->get_key_flags() & BtreeKey::kDuplicates))
+        return (1);
+
+      LocalDatabase *db = m_page->get_db();
+      LocalEnvironment *env = db->get_local_env();
+      return (env->get_duplicate_manager()->get_count(it->get_record_id(), 0));
     }
 
     // Returns the full record and stores it in |dest|
-    ham_status_t get_record(Iterator it, ByteArray *arena,
+    void get_record(Iterator it, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_index,
                     PDupeEntry *duplicate_entry) const {
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       // handle duplicates
       if (it->get_key_flags() & BtreeKey::kDuplicates) {
         PDupeEntry tmp;
         if (!duplicate_entry)
           duplicate_entry = &tmp;
-        ham_status_t st = env->get_duplicate_manager()->get(it->get_record_id(),
+        env->get_duplicate_manager()->get(it->get_record_id(),
                         duplicate_index, duplicate_entry);
-        if (st)
-          return st;
         record->_intflags = dupe_entry_get_flags(duplicate_entry);
         record->_rid = dupe_entry_get_rid(duplicate_entry);
 
@@ -828,18 +819,18 @@ class DefaultNodeLayout
         if (size == 0) {
           record->data = 0;
           record->size = 0;
-          return (0);
+          return;
         }
         if (size <= 8) {
           if (flags & HAM_PARTIAL) {
             ham_trace(("flag HAM_PARTIAL is not allowed if record->size <= 8"));
-            return (HAM_INV_PARAMETER);
+            throw Exception(HAM_INV_PARAMETER);
           }
           if (!(record->flags & HAM_RECORD_USER_ALLOC)
               && (flags & HAM_DIRECT_ACCESS)) {
             record->data = &record->_rid;
             record->size = size;
-            return (0);
+            return;
           }
           if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             arena->resize(size);
@@ -847,10 +838,10 @@ class DefaultNodeLayout
           }
           record->size = size;
           memcpy(record->data, &record->_rid, size);
-          return (HAM_SUCCESS);
+          return;
         }
-        return (env->get_blob_manager()->read(db, record->_rid, record,
-                                flags, arena));
+        env->get_blob_manager()->read(db, record->_rid, record, flags, arena);
+        return;
       }
 
       // regular inline record, no duplicates
@@ -859,11 +850,11 @@ class DefaultNodeLayout
         if (size == 0) {
           record->data = 0;
           record->size = 0;
-          return (0);
+          return;
         }
         if (flags & HAM_PARTIAL) {
           ham_trace(("flag HAM_PARTIAL is not allowed if record->size <= 8"));
-          return (HAM_INV_PARAMETER);
+          throw Exception(HAM_INV_PARAMETER);
         }
         if (!(record->flags & HAM_RECORD_USER_ALLOC)
             && (flags & HAM_DIRECT_ACCESS)) {
@@ -877,39 +868,38 @@ class DefaultNodeLayout
           memcpy(record->data, it->get_inline_record_data(), size);
         }
         record->size = size;
-        return (HAM_SUCCESS);
+        return;
       }
 
       // non-inline record, no duplicates
-      return (env->get_blob_manager()->read(db, it->get_record_id(), record,
-                                flags, arena));
+      env->get_blob_manager()->read(db, it->get_record_id(), record,
+                                flags, arena);
     }
 
-    ham_status_t set_record(Iterator it, Transaction *txn,
+    void set_record(Iterator it, Transaction *txn,
                     ham_record_t *record, ham_u32_t duplicate_position,
                     ham_u32_t flags, ham_u32_t *new_duplicate_position) {
-      ham_status_t st;
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
       ham_u64_t ptr = it->get_record_id();
       ham_u8_t oldflags = it->get_key_flags();
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       // key does not yet exist
       if (!ptr && !it->is_record_inline()) {
         // a new inline key is inserted
         if (record->size <= it->get_max_inline_record_size()) {
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // a new (non-inline) key is inserted
-        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
-        if (st)
-          return (st);
-        it->set_record_id(ptr);
-        return (0);
+        else {
+          ptr = env->get_blob_manager()->allocate(db, record, flags);
+          it->set_record_id(ptr);
+        }
+        return;
       }
 
       bool insert_duplicate =
@@ -924,18 +914,16 @@ class DefaultNodeLayout
         // ... and is overwritten with another inline key
         if (record->size <= it->get_max_inline_record_size()) {
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // ... or with a (non-inline) key
-        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
-        if (st)
-          return (st);
-        it->set_key_flags(oldflags & ~(BtreeKey::kBlobSizeSmall
+        else {
+          ptr = env->get_blob_manager()->allocate(db, record, flags);
+          it->set_key_flags(oldflags & ~(BtreeKey::kBlobSizeSmall
                                 | BtreeKey::kBlobSizeEmpty
                                 | BtreeKey::kBlobSizeTiny));
-        it->set_record_id(ptr);
-        return (0);
+          it->set_record_id(ptr);
+        }
+        return;
       }
 
       // a (non-inline) key exists
@@ -944,16 +932,13 @@ class DefaultNodeLayout
         if (record->size <= it->get_max_inline_record_size()) {
           env->get_blob_manager()->free(db, ptr);
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // ... and is overwritten by a (non-inline) key
-        st = env->get_blob_manager()->overwrite(db, ptr, record, flags, &ptr);
-        if (st)
-          return (st);
-        if (ptr)
+        else {
+          ptr = env->get_blob_manager()->overwrite(db, ptr, record, flags);
           it->set_record_id(ptr);
-        return (0);
+        }
+        return;
       }
 
       /* the key is added as a duplicate
@@ -999,26 +984,16 @@ class DefaultNodeLayout
           dupe_entry_set_rid(&entries[i], rid);
         }
         else {
-          st = env->get_blob_manager()->allocate(db, record, flags, &rid);
-          if (st)
-            return (st);
+          rid = env->get_blob_manager()->allocate(db, record, flags);
           dupe_entry_set_flags(&entries[i], 0);
           dupe_entry_set_rid(&entries[i], rid);
         }
         i++;
 
         rid = 0;
-        st = env->get_duplicate_manager()->insert(db, 0,
+        env->get_duplicate_manager()->insert(db, 0,
                 (i == 2 ? 0 : ptr), record, duplicate_position,
                 flags, &entries[0], i, &rid, new_duplicate_position);
-        if (st) {
-          /* don't leak memory through the blob allocation above */
-          if (record->size > sizeof(ham_u64_t)) {
-            (void)env->get_blob_manager()->free(db,
-                    dupe_entry_get_rid(&entries[i - 1]), 0);
-          }
-          return (st);
-        }
 
         // disable small/tiny/empty flags, enable duplicates
         it->set_key_flags((oldflags & ~(BtreeKey::kBlobSizeSmall
@@ -1028,13 +1003,10 @@ class DefaultNodeLayout
         if (rid)
           it->set_record_id(rid);
       }
-
-      return (0);
     }
 
     // Returns the record size of a key or one of its duplicates
-    ham_status_t get_record_size(Iterator it, int duplicate_index,
-                    ham_u64_t *psize) const {
+    ham_u64_t get_record_size(Iterator it, int duplicate_index) const {
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
       ham_u32_t keyflags = 0;
@@ -1043,10 +1015,8 @@ class DefaultNodeLayout
 
       if (it->get_key_flags() & BtreeKey::kDuplicates) {
         PDupeEntry dupeentry;
-        ham_status_t st = env->get_duplicate_manager()->get(it->get_record_id(),
+        env->get_duplicate_manager()->get(it->get_record_id(),
                         duplicate_index, &dupeentry);
-        if (st)
-          return (st);
         keyflags = dupe_entry_get_flags(&dupeentry);
         ridptr = &dupeentry._rid;
         rid = dupeentry._rid;
@@ -1054,28 +1024,22 @@ class DefaultNodeLayout
         if (keyflags & BtreeKey::kBlobSizeTiny) {
           // the highest byte of the record id is the size of the blob
           char *p = (char *)ridptr;
-          *psize = p[sizeof(ham_u64_t) - 1];
-          return (0);
+          return (p[sizeof(ham_u64_t) - 1]);
         }
         else if (keyflags & BtreeKey::kBlobSizeSmall) {
           // record size is sizeof(ham_u64_t)
-          *psize = sizeof(ham_u64_t);
-          return (0);
+          return (sizeof(ham_u64_t));
         }
         else if (keyflags & BtreeKey::kBlobSizeEmpty) {
           // record size is 0
-          *psize = 0;
           return (0);
         }
-        return (env->get_blob_manager()->get_datasize(db, rid, psize));
+        return (env->get_blob_manager()->get_datasize(db, rid));
       }
 
-      if (it->is_record_inline()) {
-        *psize = it->get_inline_record_size();
-        return (0);
-      }
-      return (env->get_blob_manager()->get_datasize(db,
-                              it->get_record_id(), psize));
+      if (it->is_record_inline())
+        return (it->get_inline_record_size());
+      return (env->get_blob_manager()->get_datasize(db, it->get_record_id()));
     }
 
     void erase_key(Iterator it) {
@@ -1084,19 +1048,15 @@ class DefaultNodeLayout
         erase_extended_key(it->get_extended_blob_id());
     }
 
-    ham_status_t erase_record(Iterator it, int duplicate_id,
-                    bool all_duplicates) {
+    void erase_record(Iterator it, int duplicate_id, bool all_duplicates) {
       ham_u64_t rid;
-      ham_status_t st;
       LocalDatabase *db = m_page->get_db();
 
       /* delete one (or all) duplicates */
       if (it->get_key_flags() & BtreeKey::kDuplicates) {
-        st = db->get_local_env()->get_duplicate_manager()->erase(db,
+        db->get_local_env()->get_duplicate_manager()->erase(db,
                           it->get_record_id(), duplicate_id,
                           all_duplicates, &rid);
-        if (st)
-          return (st);
         if (all_duplicates) {
           it->set_key_flags(it->get_key_flags() & ~BtreeKey::kDuplicates);
           it->set_record_id(0);
@@ -1116,19 +1076,17 @@ class DefaultNodeLayout
         }
         else {
           /* delete the blob */
-          st = db->get_local_env()->get_blob_manager()->free(db,
+          db->get_local_env()->get_blob_manager()->free(db,
                           it->get_record_id(), 0);
-          if (st)
-            return (st);
           it->set_record_id(0);
         }
       }
-
-      return (0);
     }
 
     void erase(ham_u32_t slot) {
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       // if this is the last key in this page: just re-initialize
       if (m_node->get_count() == 1) {
@@ -1154,13 +1112,17 @@ class DefaultNodeLayout
                             * (get_freelist_count() + m_node->get_count()
                                     - slot - 1));
 
-      ham_assert(0 == check_index_integrity(m_node->get_count() - 1));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count() - 1);
+#endif
     }
 
-    ham_status_t insert(ham_u32_t slot, const ham_key_t *key) {
+    void insert(ham_u32_t slot, const ham_key_t *key) {
       ham_u32_t count = m_node->get_count();
 
-      ham_assert(0 == check_index_integrity(count));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       bool extended_key = key->size > g_extended_threshold;
 
@@ -1242,11 +1204,7 @@ class DefaultNodeLayout
       // now finally copy the key data
       if (extended_key) {
         Iterator it = at(slot);
-        ham_u64_t blobid;
-
-        ham_status_t st = add_extended_key(key, &blobid);
-        if (st)
-          return (st);
+        ham_u64_t blobid = add_extended_key(key);
 
         it->set_extended_blob_id(blobid);
         // remove all flags, set Extended flag
@@ -1260,26 +1218,28 @@ class DefaultNodeLayout
       set_key_size(slot, key->size);
       set_record_id(slot, 0);
 
-      ham_assert(0 == check_index_integrity(count + 1));
-      return (0);
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count() + 1);
+#endif
     }
 
     // Same as above, but copies the key from |src_node[src_slot]|
-    ham_status_t insert(ham_u32_t slot, DefaultNodeLayout *src_node,
+    void insert(ham_u32_t slot, DefaultNodeLayout *src_node,
                     ham_u32_t src_slot) {
       ham_key_t key = {0};
       ConstIterator it = src_node->at(src_slot);
       if (it->get_key_flags() & BtreeKey::kExtended) {
         get_extended_key(it->get_extended_blob_id(), &key);
-        return (insert(slot, &key));
       }
-      key.data = (void *)it->get_key_data();
-      key.size = it->get_key_size();
-      return (insert(slot, &key));
+      else {
+        key.data = (void *)it->get_key_data();
+        key.size = it->get_key_size();
+      }
+      insert(slot, &key);
     }
 
     // Replace |dest| with |src|
-    ham_status_t replace_key(ConstIterator src, Iterator dest,
+    void replace_key(ConstIterator src, Iterator dest,
                     bool dest_is_internal) const {
       ham_key_t key;
       key.flags = 0;
@@ -1287,15 +1247,16 @@ class DefaultNodeLayout
       key.size = src->get_key_size();
       key._flags = src->get_key_flags();
 
-      return (replace_key(&key, dest, dest_is_internal));
+      replace_key(&key, dest, dest_is_internal);
     }
 
     // Replace |dest| with |src|
-    ham_status_t replace_key(ham_key_t *src, Iterator dest,
-                    bool dest_is_internal) {
+    void replace_key(ham_key_t *src, Iterator dest, bool dest_is_internal) {
       dest->set_key_flags(src->_flags);
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
 
       // internal nodes are not allowed to have blob-related flags, because
       // only leaf-nodes can manage blobs. Therefore disable those flags if
@@ -1313,9 +1274,7 @@ class DefaultNodeLayout
       if (src->_flags & BtreeKey::kExtended) {
         ham_u64_t newblobid, oldblobid = *(ham_u64_t *)src->data;
         oldblobid = ham_db2h_offset(oldblobid);
-        ham_status_t st = copy_extended_key(oldblobid, &newblobid);
-        if (st)
-          return (st);
+        newblobid = copy_extended_key(oldblobid);
         dest->set_extended_blob_id(newblobid);
         dest->set_key_flags(BtreeKey::kExtended);
       }
@@ -1342,10 +1301,7 @@ class DefaultNodeLayout
           }
           // otherwise allocate and store an extended key
           else {
-            ham_u64_t blobid;
-            ham_status_t st = add_extended_key(src, &blobid);
-            if (st)
-              return (st);
+            ham_u64_t blobid = add_extended_key(src);
             dest->set_extended_blob_id(blobid);
             dest->set_key_flags(BtreeKey::kExtended);
           }
@@ -1372,8 +1328,9 @@ class DefaultNodeLayout
       if (rid)
         dest->set_record_id(rid);
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
-      return (0);
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
     }
 
     // Returns true if |key| cannot be inserted because a split is required
@@ -1401,7 +1358,9 @@ class DefaultNodeLayout
       int start_slot = pivot;
       int count = m_node->get_count() - pivot;
 
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
       ham_assert(0 == other->m_node->get_count());
       ham_assert(0 == other->get_freelist_count());
 
@@ -1435,16 +1394,20 @@ class DefaultNodeLayout
       if (get_freelist_count() > kRearrangeThreshold)
         rearrange(pivot);
 
-      ham_assert(0 == check_index_integrity(pivot));
-      ham_assert(0 == other->check_index_integrity(count));
+#ifdef HAM_DEBUG
+      check_index_integrity(pivot);
+      other->check_index_integrity(count);
+#endif
     }
 
     void merge_from(DefaultNodeLayout *other) {
       ham_u32_t count = m_node->get_count();
       ham_u32_t other_count = other->m_node->get_count();
 
-      ham_assert(0 == check_index_integrity(count));
-      ham_assert(0 == other->check_index_integrity(other_count));
+#ifdef HAM_DEBUG
+      check_index_integrity(count);
+      other->check_index_integrity(other_count);
+#endif
 
       other->clear_extkey_cache();
 
@@ -1468,12 +1431,16 @@ class DefaultNodeLayout
 
       other->set_next_offset(0);
       other->set_freelist_count(0);
-      ham_assert(0 == check_index_integrity(count + other_count));
+#ifdef HAM_DEBUG
+      check_index_integrity(count + other_count);
+#endif
     }
 
     void shift_from_right(DefaultNodeLayout *other, int count) {
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
-      ham_assert(0 == other->check_index_integrity(other->m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+      other->check_index_integrity(other->m_node->get_count());
+#endif
 
       // re-arrange the node: moves all keys sequentially to the beginning
       // of the key space, removes the whole freelist
@@ -1501,14 +1468,17 @@ class DefaultNodeLayout
       // keys to the freelist
       other->freelist_add_many(0, count);
 
-      ham_assert(0 == check_index_integrity(pos + count));
-      ham_assert(0 == other->check_index_integrity(other->m_node->get_count()
-                              - count));
+#ifdef HAM_DEBUG
+      check_index_integrity(pos + count);
+      other->check_index_integrity(other->m_node->get_count() - count);
+#endif
     }
 
     void shift_to_right(DefaultNodeLayout *other, int pos, int count) {
-      ham_assert(0 == check_index_integrity(m_node->get_count()));
-      ham_assert(0 == other->check_index_integrity(other->m_node->get_count()));
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+      other->check_index_integrity(other->m_node->get_count());
+#endif
 
       // re-arrange the node: moves all keys sequentially to the beginning
       // of the key space, removes the whole freelist
@@ -1539,9 +1509,10 @@ class DefaultNodeLayout
       // and rearrange the page because it's nearly empty
       rearrange(pos);
 
-      ham_assert(0 == check_index_integrity(pos));
-      ham_assert(0 == other->check_index_integrity(other->m_node->get_count()
-                              + count));
+#ifdef HAM_DEBUG
+      check_index_integrity(pos);
+      other->check_index_integrity(other->m_node->get_count() + count);
+#endif
     }
 
     // Clears the page with zeroes and reinitializes it
@@ -1594,7 +1565,7 @@ class DefaultNodeLayout
 
     // Retrieves the extended key at |blobid| and stores it in |key|; will
     // use the cache.
-    ham_status_t get_extended_key(ham_u64_t blobid, ham_key_t *key) {
+    void get_extended_key(ham_u64_t blobid, ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache = new ExtKeyCache();
       else {
@@ -1602,44 +1573,38 @@ class DefaultNodeLayout
         if (it != m_extkey_cache->end()) {
           key->size = it->second.get_size();
           key->data = it->second.get_ptr();
-          return (0);
+          return;
         }
       }
 
       ByteArray arena;
       ham_record_t record = {0};
       LocalDatabase *db = m_page->get_db();
-      ham_status_t st = db->get_local_env()->get_blob_manager()->read(db,
-                      blobid, &record, 0, &arena);
-      if (st)
-        return (st);
+      db->get_local_env()->get_blob_manager()->read(db, blobid, &record,
+                      0, &arena);
       (*m_extkey_cache)[blobid] = arena;
       arena.disown();
       key->data = record.data;
       key->size = record.size;
-      return (0);
     }
 
     // Erases an extended key from disk and from the cache
     void erase_extended_key(ham_u64_t blobid) {
       LocalDatabase *db = m_page->get_db();
-      (void)db->get_local_env()->get_blob_manager()->free(db, blobid);
+      db->get_local_env()->get_blob_manager()->free(db, blobid);
       if (m_extkey_cache)
         m_extkey_cache->erase(m_extkey_cache->find(blobid));
     }
 
-    ham_status_t copy_extended_key(ham_u64_t oldblobid, ham_u64_t *pnewblobid) {
-      ham_status_t st;
+    ham_u64_t copy_extended_key(ham_u64_t oldblobid) {
       ham_key_t oldkey = {0};
 
-      st = get_extended_key(oldblobid, &oldkey);
-      if (st)
-        return (st);
+      get_extended_key(oldblobid, &oldkey);
 
-      return (add_extended_key(&oldkey, pnewblobid));
+      return (add_extended_key(&oldkey));
     }
 
-    ham_status_t add_extended_key(const ham_key_t *key, ham_u64_t *pblobid) {
+    ham_u64_t add_extended_key(const ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache = new ExtKeyCache();
 
@@ -1648,18 +1613,16 @@ class DefaultNodeLayout
       rec.size = key->size;
 
       LocalDatabase *db = m_page->get_db();
-      ham_status_t st = db->get_local_env()->get_blob_manager()->allocate(db,
-                        &rec, 0, pblobid);
-      if (st)
-        return (st);
-      ham_assert(pblobid != 0);
+      ham_u64_t blobid = db->get_local_env()->get_blob_manager()->allocate(db,
+                            &rec, 0);
+      ham_assert(blobid != 0);
 
       ByteArray arena;
       arena.resize(key->size);
       memcpy(arena.get_ptr(), key->data, key->size);
-      (*m_extkey_cache)[*pblobid] = arena;
+      (*m_extkey_cache)[blobid] = arena;
       arena.disown();
-      return (0);
+      return (blobid);
     }
 
     ham_u32_t get_key_flags(int slot) const {
@@ -1853,9 +1816,9 @@ class DefaultNodeLayout
 
     // create a map with all occupied ranges in freelist and indices;
     // then make sure that there are no overlaps
-    ham_status_t check_index_integrity(ham_u32_t count) const {
+    void check_index_integrity(ham_u32_t count) const {
       if (count + get_freelist_count() <= 1)
-        return (0);
+        return;
 
       typedef std::pair<ham_u32_t, ham_u32_t> Range;
       typedef std::vector<Range> RangeVec;
@@ -1878,15 +1841,14 @@ class DefaultNodeLayout
                         > ranges[i + 1].first) {
           ham_trace(("integrity violated: slot %u/%u + 8 overlaps with %lu",
                       ranges[i].first, ranges[i].second, ranges[i + 1].first));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
       if (next_offset != get_next_offset()) {
         ham_trace(("integrity violated: next offset %d, cached offset %d",
                     next_offset, get_next_offset()));
-        return (HAM_INTEGRITY_VIOLATED);
+        throw Exception(HAM_INTEGRITY_VIOLATED);
       }
-      return (0);
     }
 
     // re-arrange the node: moves all keys sequentially to the beginning
@@ -1933,7 +1895,9 @@ class DefaultNodeLayout
 
       set_next_offset(next_offset);
 
-      ham_assert(0 == check_index_integrity(count));
+#ifdef HAM_DEBUG
+      check_index_integrity(count);
+#endif
     }
 
     // Tries to resize the node's capacity to fit |new_count| keys and at

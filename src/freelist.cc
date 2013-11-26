@@ -438,26 +438,22 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
   return pos;
 }
 
-ham_status_t
+void
 Freelist::free_page(Page *page)
 {
-  return (free_area(page->get_address(), m_env->get_page_size()));
+  free_area(page->get_address(), m_env->get_page_size());
 }
 
-ham_status_t
+void
 Freelist::free_area(ham_u64_t address, ham_u32_t size)
 {
-  ham_status_t st;
   Page *page = 0;
 
   ham_assert(size % kBlobAlignment == 0);
   ham_assert(address % kBlobAlignment == 0);
 
-  if (m_entries.empty()) {
-    st = initialize();
-    if (st)
-      return (st);
-  }
+  if (m_entries.empty())
+    initialize();
 
   /* split the chunk if it doesn't fit in one freelist page */
   while (size) {
@@ -474,9 +470,7 @@ Freelist::free_area(ham_u64_t address, ham_u32_t size)
         ham_assert(fp->get_start_address() != 0);
       }
       else {
-        st = alloc_freelist_page(&page, entry);
-        if (st)
-          return (st);
+        page = alloc_freelist_page(entry);
         fp = PFreelistPayload::from_page(page);
         ham_assert(fp->get_start_address() != 0);
       }
@@ -505,21 +499,18 @@ Freelist::free_area(ham_u64_t address, ham_u32_t size)
     size -= s * kBlobAlignment;
     address += s * kBlobAlignment;
   }
-
-  return (0);
 }
 
-ham_status_t
-Freelist::alloc_page(ham_u64_t *paddr)
+ham_u64_t
+Freelist::alloc_page()
 {
-  return (alloc_area_impl(m_env->get_page_size(), paddr, true, 0));
+  return (alloc_area_impl(m_env->get_page_size(), true, 0));
 }
 
-ham_status_t
-Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
+ham_u64_t
+Freelist::alloc_area_impl(ham_u32_t size, bool aligned,
                 ham_u64_t lower_bound_address)
 {
-  ham_status_t st;
   FreelistEntry *entry = NULL;
   PFreelistPayload *fp = NULL;
   Page *page = 0;
@@ -539,14 +530,8 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
   };
   FreelistStatistics::Hints hints = {0};
 
-  ham_assert(paddr != 0);
-  *paddr = 0;
-
-  if (m_entries.empty()) {
-    st = initialize();
-    if (st)
-      return (st);
-  }
+  if (m_entries.empty())
+    initialize();
 
   FreelistStatistics::get_global_hints(this, &global_hints);
 
@@ -717,9 +702,8 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
         }
 
         ham_assert(addr != 0);
-        *paddr = addr;
         m_count_hits++;
-        return (HAM_SUCCESS);
+        return (addr);
       }
     }
     else {
@@ -770,29 +754,23 @@ Freelist::alloc_area_impl(ham_u32_t size, ham_u64_t *paddr, bool aligned,
         (ham_u32_t)(fp->get_free_bits() - size / kBlobAlignment));
     entry->free_bits = fp->get_free_bits();
 
-    *paddr = (fp->get_start_address() + (s * kBlobAlignment));
     m_count_hits++;
+    return (fp->get_start_address() + (s * kBlobAlignment));
   }
-  else
-    m_count_misses++;
 
-  return (HAM_SUCCESS);
+  m_count_misses++;
+  return (0);
 }
 
 bool
 Freelist::is_page_free(ham_u64_t address)
 {
-  ham_status_t st;
-
   ham_u32_t page_size = m_env->get_page_size();
   ham_u32_t size_bits = page_size / kBlobAlignment;
   ham_assert(address % page_size == 0);
 
-  if (m_entries.empty()) {
-    st = initialize();
-    if (st)
-      return (false);
-  }
+  if (m_entries.empty())
+    initialize();
 
   /* get the cache entry of this address */
   FreelistEntry *entry = get_entry_for_address(address);
@@ -831,7 +809,7 @@ Freelist::is_page_free(ham_u64_t address)
   return (true);
 }
 
-ham_status_t
+void
 Freelist::truncate_page(ham_u64_t address)
 {
   ham_u32_t page_size = m_env->get_page_size();
@@ -876,8 +854,6 @@ Freelist::truncate_page(ham_u64_t address)
 
   /* |mark_dirty| stores the page in the changeset if recovery is enabled */
   mark_dirty(page);
-
-  return (0);
 }
 
 ham_s32_t
@@ -2700,7 +2676,7 @@ Freelist::locate_sufficient_free_space(FreelistStatistics::Hints *dst,
   return (start_index);
 }
 
-ham_status_t
+void
 Freelist::initialize()
 {
   FreelistEntry entry = {0};
@@ -2737,8 +2713,6 @@ Freelist::initialize()
     pentry->free_bits = fp->get_free_bits();
     pentry->pageid = page->get_address();
   }
-
-  return (0);
 }
 
 FreelistEntry *
@@ -2810,23 +2784,18 @@ Freelist::resize(ham_u32_t new_count)
   }
 }
 
-ham_status_t
-Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
+Page *
+Freelist::alloc_freelist_page(FreelistEntry *entry)
 {
   FreelistEntry *entries = &m_entries[0];
-  Page *page = 0;
   PFreelistPayload *fp;
   ham_u32_t size_bits = get_entry_maxspan();
+  Page *page = 0;
 
   ham_assert(((size_bits / 8) % sizeof(ham_u64_t)) == 0);
 
-  *ppage = 0;
-
-  if (m_entries.empty()) {
-    ham_status_t st = initialize();
-    if (st)
-      return (st);
-  }
+  if (m_entries.empty())
+    initialize();
 
   /*
    * it's not enough just to allocate the page - we have to make sure
@@ -2875,11 +2844,12 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       m_entries[i].pageid = page->get_address();
     }
 
-    if (&entries[i] == entry) {
-      *ppage = page;
-      return (0);
-    }
+    if (&entries[i] == entry)
+      return (page);
   }
+
+  ham_assert(!"shouldn't be here");
+  return (0);
 }
 
 ham_u32_t

@@ -60,7 +60,6 @@ class BtreeInsertAction
     }
 
     ham_status_t run() {
-      ham_status_t st;
       BtreeStatistics *stats = m_btree->get_statistics();
 
       m_hints = stats->get_insert_hints(m_flags);
@@ -79,6 +78,7 @@ class BtreeInsertAction
        * already full, it will remove the HINT_APPEND (or HINT_PREPEND)
        * flag and recursively call do_insert_cursor()
        */
+      ham_status_t st;
       if (m_hints.leaf_page_addr
           && (m_hints.flags & HAM_HINT_APPEND
               || m_hints.flags & HAM_HINT_PREPEND))
@@ -239,13 +239,10 @@ class BtreeInsertAction
         return (insert_in_page(page, key, rid));
 
       /* otherwise traverse the root down to the leaf */
-      Page *child;
-      ham_status_t st = m_btree->find_internal(page, key, &child);
-      if (st)
-        return (st);
+      Page *child = m_btree->find_internal(page, key);
 
       /* and call this function recursively */
-      st = insert_recursive(child, key, rid);
+      ham_status_t st = insert_recursive(child, key, rid);
       switch (st) {
         /* if we're done, we're done */
         case HAM_SUCCESS:
@@ -277,7 +274,6 @@ class BtreeInsertAction
 
     // Inserts a key in a page; if necessary, the page is split
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
-      ham_status_t st;
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       /*
@@ -285,7 +281,7 @@ class BtreeInsertAction
        * insert_in_leaf() will do the work for us
        */
       if (!node->requires_split(key)) {
-        st = insert_in_leaf(page, key, rid);
+        ham_status_t st = insert_in_leaf(page, key, rid);
         /* don't overwrite cursor if insert_in_leaf is called again */
         m_cursor = 0;
         return (st);
@@ -351,9 +347,7 @@ class BtreeInsertAction
       ham_assert(pivot > 0 && pivot <= (int)count - 2);
 
       /* uncouple all cursors */
-      ham_status_t st = BtreeCursor::uncouple_all_cursors(page, pivot);
-      if (st)
-        return (st);
+      BtreeCursor::uncouple_all_cursors(page, pivot);
 
       // Store the pivot key so it can be propagated to the parent page.
       // This requires a separate ByteArray because key->data might
@@ -361,9 +355,7 @@ class BtreeInsertAction
       // will effectively change key->data.
       ByteArray split_key_arena;
       ham_key_t split_key = {0};
-      st = old_node->get_key(pivot, &split_key_arena, &split_key);
-      if (st)
-        return (st);
+      old_node->get_key(pivot, &split_key_arena, &split_key);
       m_split_rid = new_page->get_address();
 
       /* if we're in an internal page: fix the ptr_down of the new page
@@ -378,6 +370,8 @@ class BtreeInsertAction
       int cmp = pivot_at_end
                     ? 1
                     : old_node->compare(key, &split_key);
+
+      ham_status_t st;
       if (cmp >= 0)
         st = insert_in_leaf(new_page, key, rid);
       else
@@ -427,7 +421,6 @@ class BtreeInsertAction
 
     ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_u64_t rid,
                 bool force_prepend = false, bool force_append = false) {
-      ham_status_t st;
       ham_u32_t new_dupe_id = 0;
       bool exists = false;
       ham_s32_t slot;
@@ -475,22 +468,17 @@ class BtreeInsertAction
       }
 
       // uncouple the cursors
-      if (!exists && count > slot) {
-        st = BtreeCursor::uncouple_all_cursors(page, slot);
-        if (st)
-          return (st);
-      }
+      if (!exists && count > slot)
+        BtreeCursor::uncouple_all_cursors(page, slot);
 
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
-          st = node->set_record(slot, m_txn, m_record,
+          node->set_record(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
                         m_hints.flags, &new_dupe_id);
-          if (st)
-            return (st);
 
           m_hints.processed_leaf_page = page;
           m_hints.processed_slot = slot;
@@ -503,21 +491,15 @@ class BtreeInsertAction
       // key does not exist and has to be inserted or appended
       else {
         // actually insert the key
-        st = node->insert(slot, key);
-        if (st)
-          return (st);
-
-        node->set_count(count + 1);
+        node->insert(slot, key);
 
         if (node->is_leaf()) {
           // allocate record id
-          st = node->set_record(slot, m_txn, m_record,
+          node->set_record(slot, m_txn, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
                         m_hints.flags, &new_dupe_id);
-          if (st) // TODO undo the previous insert!
-            return (st);
 
           m_hints.processed_leaf_page = page;
           m_hints.processed_slot = slot;

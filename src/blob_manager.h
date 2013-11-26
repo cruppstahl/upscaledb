@@ -117,30 +117,28 @@ class BlobManager
 
     // Allocates/create a new blob.
     // This function returns the blob-id (the start address of the blob
-    // header) in @a blob_id
-    virtual ham_status_t allocate(LocalDatabase *db, ham_record_t *record,
-                    ham_u32_t flags, ham_u64_t *blob_id) = 0;
+    // header)
+    virtual ham_u64_t allocate(LocalDatabase *db, ham_record_t *record,
+                    ham_u32_t flags) = 0;
 
     // Reads a blob and stores the data in @a record.
     // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    virtual ham_status_t read(LocalDatabase *db, ham_u64_t blob_id,
+    virtual void read(LocalDatabase *db, ham_u64_t blob_id,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
-    virtual ham_status_t get_datasize(LocalDatabase *db, ham_u64_t blob_id,
-                    ham_u64_t *size) = 0;
+    virtual ham_u64_t get_datasize(LocalDatabase *db, ham_u64_t blob_id) = 0;
 
     // Overwrites an existing blob
     //
     // Will return an error if the blob does not exist. Returns the blob-id
-    // (the start address of the blob header) in @a new_blob_id
-    virtual ham_status_t overwrite(LocalDatabase *db, ham_u64_t old_blob_id,
-                    ham_record_t *record, ham_u32_t flags,
-                    ham_u64_t *new_blob_id) = 0;
+    // (the start address of the blob header)
+    virtual ham_u64_t overwrite(LocalDatabase *db, ham_u64_t old_blob_id,
+                    ham_record_t *record, ham_u32_t flags) = 0;
 
     // Deletes an existing blob
-    virtual ham_status_t free(LocalDatabase *db, ham_u64_t blob_id,
+    virtual void free(LocalDatabase *db, ham_u64_t blob_id,
                     Page *page = 0, ham_u32_t flags = 0) = 0;
 
     // Fills in the current metrics

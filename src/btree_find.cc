@@ -45,7 +45,6 @@ class BtreeFindAction
     ham_status_t run() {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      ham_status_t st = 0;
       Page *page = 0;
       int slot = -1;
       BtreeNodeProxy *node = 0;
@@ -104,10 +103,10 @@ class BtreeFindAction
             hints.flags |= (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH);
 
           for (;;) {
-            st = m_btree->find_internal(page, m_key, &page);
+            page = m_btree->find_internal(page, m_key);
             if (!page) {
               stats->find_failed();
-              return (st ? st : HAM_KEY_NOT_FOUND);
+              return (HAM_KEY_NOT_FOUND);
             }
 
             node = m_btree->get_node_from_page(page);
@@ -120,7 +119,7 @@ class BtreeFindAction
         slot = m_btree->find_leaf(page, m_key, hints.flags);
         if (slot < -1) {
           stats->find_failed();
-          return ((ham_status_t)slot);
+          return (HAM_KEY_NOT_FOUND);
         }
       } /* end of regular search */
 
@@ -296,9 +295,7 @@ class BtreeFindAction
               ? &db->get_key_arena()
               : &m_txn->get_key_arena();
 
-        st = node->get_key(slot, arena, m_key);
-        if (st)
-          return (st);
+        node->get_key(slot, arena, m_key);
       }
 
       if (m_record) {
@@ -307,9 +304,7 @@ class BtreeFindAction
                ? &db->get_record_arena()
                : &m_txn->get_record_arena();
 
-        st = node->get_record(slot, arena, m_record, m_flags);
-        if (st)
-          return (st);
+        node->get_record(slot, arena, m_record, m_flags);
       }
 
       return (0);

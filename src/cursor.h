@@ -149,7 +149,6 @@ class DupeCacheLine
     bool m_use_btree;
 };
 
-
 //
 // The dupecache is a cache for duplicate keys
 //
@@ -306,15 +305,14 @@ class Cursor
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    ham_status_t get_duplicate_count(Transaction *txn, ham_u32_t *pcount,
-                    ham_u32_t flags);
+    ham_u32_t get_duplicate_count(Transaction *txn, ham_u32_t flags);
 
     // Retrieves the size of the current record
     //
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    ham_status_t get_record_size(Transaction *txn, ham_u64_t *psize);
+    ham_u64_t get_record_size(Transaction *txn);
 
     // Overwrites the record of the current key
     //
@@ -334,10 +332,10 @@ class Cursor
     //
     // The |what| parameter specifies if the dupecache is initialized from
     // btree (kBtree), from txn (kTxn) or both.
-    ham_status_t update_dupecache(ham_u32_t what);
+    void update_dupecache(ham_u32_t what);
 
     // Appends the duplicates of the BtreeCursor to the duplicate cache.
-    ham_status_t append_btree_duplicates(BtreeCursor *btc, DupeCache *dc);
+    void append_btree_duplicates(BtreeCursor *btc, DupeCache *dc);
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
     void clear_dupecache() {
@@ -358,7 +356,7 @@ class Cursor
     // If both are nil, or both are valid, then nothing happens
     //
     // |equal_key| is set to true if the keys in both cursors are equal.
-    ham_status_t sync(ham_u32_t flags, bool *equal_keys);
+    void sync(ham_u32_t flags, bool *equal_keys);
 
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary

@@ -230,7 +230,7 @@ Transaction::~Transaction()
     get_newer()->set_older(get_older());
 }
 
-ham_status_t
+void
 Transaction::commit(ham_u32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
@@ -242,12 +242,10 @@ Transaction::commit(ham_u32_t flags)
   // TODO ugly - better move flush_committed_txns() in the caller
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
   if (lenv)
-    return (lenv->flush_committed_txns());
-  else
-    return (0);
+    lenv->flush_committed_txns();
 }
 
-ham_status_t
+void
 Transaction::abort(ham_u32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
@@ -255,7 +253,7 @@ Transaction::abort(ham_u32_t flags)
   if (get_cursor_refcount()) {
     ham_trace(("Transaction cannot be aborted till all attached "
           "Cursors are closed"));
-    return (HAM_CURSOR_STILL_OPEN);
+    throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
   /* this transaction is now aborted!  */
@@ -268,8 +266,6 @@ Transaction::abort(ham_u32_t flags)
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
   if (lenv)
     lenv->get_changeset().clear();
-
-  return (0);
 }
 
 void
@@ -470,15 +466,12 @@ struct KeyCounter : public TransactionIndex::Visitor
   LocalDatabase *db;
 };
 
-ham_status_t
-TransactionIndex::get_key_count(Transaction *txn, ham_u32_t flags,
-                ham_u64_t *pkeycount)
+ham_u64_t
+TransactionIndex::get_key_count(Transaction *txn, ham_u32_t flags)
 {
-  *pkeycount = 0;
   KeyCounter k(m_db, txn, flags);
   enumerate(&k);
-  *pkeycount = k.counter;
-  return (0);
+  return (k.counter);
 }
 
 } // namespace hamsterdb

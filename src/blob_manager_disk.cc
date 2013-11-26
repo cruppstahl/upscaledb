@@ -25,7 +25,7 @@ using namespace hamsterdb;
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(PBlobHeader) + 1)
 
-ham_status_t
+void
 DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
         bool allocated, bool freshly_created, ham_u8_t **chunk_data,
         ham_u32_t *chunk_size, ham_u32_t chunks)
@@ -92,11 +92,9 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
       }
     }
   }
-
-  return (0);
 }
 
-ham_status_t
+void
 DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
         LocalDatabase *db, ham_u8_t *data, ham_u32_t size)
 {
@@ -151,13 +149,11 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
 
   if (fpage)
     *fpage = page;
-
-  return (0);
 }
 
-ham_status_t
+ham_u64_t
 DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
-                ham_u32_t flags, ham_u64_t *blobid)
+                ham_u32_t flags)
 {
   m_blob_total_allocated++;
 
@@ -168,8 +164,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   ham_u32_t chunk_size[2];
   bool freshly_created = false;
   ByteArray zeroes;
-
-  *blobid = 0;
+  ham_u64_t blobid = 0;
 
   // PARTIAL WRITE
   //
@@ -253,10 +248,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     // first: write the header
     chunk_data[0] = (ham_u8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
+    write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
-    if (st)
-      return (st);
 
     addr += sizeof(blob_header);
 
@@ -265,10 +258,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     while (gapsize >= m_env->get_page_size()) {
       chunk_data[0] = ptr;
       chunk_size[0] = m_env->get_page_size();
-      st = write_chunks(db, page, addr, true, freshly_created,
+      write_chunks(db, page, addr, true, freshly_created,
                         chunk_data, chunk_size, 1);
-      if (st)
-        break;
       gapsize -= m_env->get_page_size();
       addr += m_env->get_page_size();
     }
@@ -278,10 +269,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
       chunk_data[0] = ptr;
       chunk_size[0] = gapsize;
 
-      st = write_chunks(db, page, addr, true, freshly_created,
+      write_chunks(db, page, addr, true, freshly_created,
                       chunk_data, chunk_size, 1);
-      if (st)
-        return (st);
       addr += gapsize;
     }
 
@@ -289,10 +278,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     chunk_data[0] = (ham_u8_t *)record->data;
     chunk_size[0] = record->partial_size;
 
-    st = write_chunks(db, page, addr, true, freshly_created,
+    write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
-    if (st)
-      return (st);
     addr += record->partial_size;
   }
   else {
@@ -304,17 +291,15 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
                         ? record->partial_size
                         : record->size;
 
-    ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
+    write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 2);
-    if (st)
-      return (st);
     addr += sizeof(blob_header) + ((flags&HAM_PARTIAL)
                               ? record->partial_size
                               : record->size);
   }
 
   // store the blobid; it will be returned to the caller
-  *blobid = blob_header.get_self();
+  blobid = blob_header.get_self();
 
   // PARTIAL WRITES:
   //
@@ -338,10 +323,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
           while (gapsize > m_env->get_page_size()) {
             chunk_data[0] = ptr;
             chunk_size[0] = m_env->get_page_size();
-            ham_status_t st = write_chunks(db, page, addr, true,
+            write_chunks(db, page, addr, true,
                           freshly_created, chunk_data, chunk_size, 1);
-            if (st)
-              return (st);
             gapsize -= m_env->get_page_size();
             addr += m_env->get_page_size();
           }
@@ -355,17 +338,15 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
           return (HAM_OUT_OF_MEMORY);
         chunk_size[0] = gapsize;
 
-        ham_status_t st = write_chunks(db, page, addr, true, freshly_created,
+        write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
-        if (st)
-          return (st);
     }
   }
 
-  return (0);
+  return (blobid);
 }
 
-ham_status_t
+void
 DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
         ham_u32_t flags, ByteArray *arena)
 {
@@ -377,17 +358,15 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
 
   // first step: read the blob header
   PBlobHeader blob_header;
-  ham_status_t st = read_chunk(0, &page, blobid, db, (ham_u8_t *)&blob_header,
+  read_chunk(0, &page, blobid, db, (ham_u8_t *)&blob_header,
           sizeof(blob_header));
-  if (st)
-    return (st);
 
   ham_assert(blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   if (blob_header.get_self() != blobid) {
     ham_log(("blob %lld not found", blobid));
-    return (HAM_BLOB_NOT_FOUND);
+    throw Exception(HAM_BLOB_NOT_FOUND);
   }
 
   ham_u32_t blobsize = (ham_u32_t)blob_header.get_size();
@@ -397,7 +376,7 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
       ham_trace(("partial offset+size is greater than the total record size"));
-      return (HAM_INV_PARAMETER);
+      throw Exception(HAM_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
       record->partial_size = blobsize = blobsize - record->partial_offset;
@@ -409,7 +388,7 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
   if (!blobsize) {
     record->data = 0;
     record->size = 0;
-    return (0);
+    return;
   }
 
   // second step: resize the blob buffer
@@ -419,44 +398,33 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
   }
 
   // third step: read the blob data
-  st = read_chunk(page, 0,
+  read_chunk(page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
                   db, (ham_u8_t *)record->data, blobsize);
-  if (st)
-    return (st);
-
-  return (0);
 }
 
-ham_status_t
-DiskBlobManager::get_datasize(LocalDatabase *db, ham_u64_t blobid,
-                ham_u64_t *size)
+ham_u64_t
+DiskBlobManager::get_datasize(LocalDatabase *db, ham_u64_t blobid)
 {
-  *size = 0;
-
   ham_assert(blobid % Freelist::kBlobAlignment == 0);
 
   // read the blob header
   PBlobHeader blob_header;
-  ham_status_t st = read_chunk(0, 0, blobid, db,
+  read_chunk(0, 0, blobid, db,
           (ham_u8_t *)&blob_header, sizeof(blob_header));
-  if (st)
-    return (st);
 
   if (blob_header.get_self() != blobid)
-    return (HAM_BLOB_NOT_FOUND);
+    throw Exception(HAM_BLOB_NOT_FOUND);
 
-  *size = blob_header.get_size();
-  return (0);
+  return (blob_header.get_size());
 }
 
-ham_status_t
+ham_u64_t
 DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
-                ham_record_t *record, ham_u32_t flags, ham_u64_t *new_blobid)
+                ham_record_t *record, ham_u32_t flags)
 {
-  ham_status_t st;
   PBlobHeader old_blob_header, new_blob_header;
   Page *page;
 
@@ -480,17 +448,15 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
   // first, read the blob header; if the new blob fits into the
   // old blob, we overwrite the old blob (and add the remaining
   // space to the freelist, if there is any)
-  st = read_chunk(0, &page, old_blobid, db,
+  read_chunk(0, &page, old_blobid, db,
                   (ham_u8_t *)&old_blob_header, sizeof(old_blob_header));
-  if (st)
-    return (st);
 
   ham_assert(old_blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   ham_assert(old_blob_header.get_self() == old_blobid);
   if (old_blob_header.get_self() != old_blobid)
-    return (HAM_BLOB_NOT_FOUND);
+    throw Exception(HAM_BLOB_NOT_FOUND);
 
   // now compare the sizes; does the new data fit in the old allocated
   // space?
@@ -514,18 +480,14 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     if ((flags & HAM_PARTIAL) && (record->partial_offset)) {
       chunk_data[0] = (ham_u8_t *)&new_blob_header;
       chunk_size[0] = sizeof(new_blob_header);
-      st = write_chunks(db, page, new_blob_header.get_self(), false,
+      write_chunks(db, page, new_blob_header.get_self(), false,
                         false, chunk_data, chunk_size, 1);
-      if (st)
-        return (st);
 
       chunk_data[0] = (ham_u8_t *)record->data;
       chunk_size[0] = record->partial_size;
-      st = write_chunks(db, page, new_blob_header.get_self()
+      write_chunks(db, page, new_blob_header.get_self()
                     + sizeof(new_blob_header) + record->partial_offset,
                     false, false, chunk_data, chunk_size, 1);
-      if (st)
-        return (st);
     }
     else {
       chunk_data[0] = (ham_u8_t *)&new_blob_header;
@@ -535,10 +497,8 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                           ? record->partial_size
                           : record->size;
 
-      st = write_chunks(db, page, new_blob_header.get_self(), false,
+      write_chunks(db, page, new_blob_header.get_self(), false,
                             false, chunk_data, chunk_size, 2);
-      if (st)
-        return (st);
     }
 
     // move remaining data to the freelist
@@ -550,23 +510,20 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     }
 
     // the old rid is the new rid
-    *new_blobid = new_blob_header.get_self();
+    return (new_blob_header.get_self());
   }
   else {
     // when the new data is larger, allocate a fresh space for it
     // and discard the old; 'overwrite' has become (delete + insert) now.
-    st = allocate(db, record, flags, new_blobid);
-    if (st)
-      return (st);
+    ham_u64_t new_blobid = allocate(db, record, flags);
 
     m_env->get_page_manager()->add_to_freelist(db, old_blobid,
                   (ham_u32_t)old_blob_header.get_alloc_size());
+    return (new_blobid);
   }
-
-  return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 DiskBlobManager::free(LocalDatabase *db, ham_u64_t blobid, Page *page,
                 ham_u32_t flags)
 {
@@ -574,21 +531,17 @@ DiskBlobManager::free(LocalDatabase *db, ham_u64_t blobid, Page *page,
 
   // fetch the blob header
   PBlobHeader blob_header;
-  ham_status_t st = read_chunk(0, 0, blobid, db,
-          (ham_u8_t *)&blob_header, sizeof(blob_header));
-  if (st)
-    return (st);
+  read_chunk(0, 0, blobid, db, (ham_u8_t *)&blob_header, sizeof(blob_header));
 
   ham_assert(blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   ham_verify(blob_header.get_self() == blobid);
   if (blob_header.get_self() != blobid)
-    return (HAM_BLOB_NOT_FOUND);
+    throw Exception(HAM_BLOB_NOT_FOUND);
 
   // move the blob to the freelist
   m_env->get_page_manager()->add_to_freelist(db, blobid,
                 (ham_u32_t)blob_header.get_alloc_size());
-  return (0);
 }
 

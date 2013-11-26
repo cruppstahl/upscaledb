@@ -103,8 +103,7 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
 Page *
 PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
 {
-  ham_status_t st;
-  ham_u64_t tellpos = 0;
+  ham_u64_t freelist = 0;
   Page *page = 0;
   bool allocated_by_me = false;
 
@@ -113,17 +112,16 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
 
   /* first, we ask the freelist for a page */
   if (!(flags & PageManager::kIgnoreFreelist) && m_freelist) {
-    if ((st = m_freelist->alloc_page(&tellpos)))
-      return (0);
-    if (tellpos > 0) {
-      ham_assert(tellpos % m_env->get_page_size() == 0);
+    freelist = m_freelist->alloc_page();
+    if (freelist > 0) {
+      ham_assert(freelist % m_env->get_page_size() == 0);
       /* try to fetch the page from the cache */
-      page = m_cache->get_page(tellpos, 0);
+      page = m_cache->get_page(freelist, 0);
       if (page)
         goto done;
       /* allocate a new page structure and read the page from disk */
       page = new Page(m_env, db);
-      page->fetch(tellpos);
+      page->fetch(freelist);
       goto done;
     }
   }
@@ -142,7 +140,7 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
     }
   }
 
-  ham_assert(tellpos == 0);
+  ham_assert(freelist == 0);
   page->allocate();
 
 done:
@@ -191,11 +189,8 @@ PageManager::alloc_blob(Database *db, ham_u32_t size, bool *pallocated)
     *pallocated = false;
 
   // first check the freelist
-  if (m_freelist) {
-    ham_status_t st = m_freelist->alloc_area(size, &address);
-    if (st)
-      throw Exception(st);
-  }
+  if (m_freelist)
+    address = m_freelist->alloc_area(size);
 
   return (address);
 }
@@ -226,10 +221,7 @@ PageManager::flush_all_pages(bool nodelete)
 static void
 purge_callback(Page *page)
 {
-  ham_status_t st = BtreeCursor::uncouple_all_cursors(page);
-  if (st)
-    throw Exception(st);
-
+  BtreeCursor::uncouple_all_cursors(page);
   page->get_env()->get_page_manager()->flush_page(page);
   delete page;
 }
@@ -262,9 +254,7 @@ PageManager::reclaim_space()
       if (!m_freelist->is_page_free(new_size - page_size))
         break;
       new_size -= page_size;
-      ham_status_t st = m_freelist->truncate_page(new_size);
-      if (st)
-        throw Exception(st);
+      m_freelist->truncate_page(new_size);
     }
     if (new_size == filesize)
       return;

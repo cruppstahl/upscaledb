@@ -33,7 +33,7 @@ class BtreeEnumAction
       ham_assert(m_btree->get_root_address() != 0);
     }
 
-    ham_status_t run() {
+    void run() {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
@@ -83,8 +83,6 @@ class BtreeEnumAction
         else
           break;
       }
-
-      return (0);
     }
 
   private:
@@ -93,11 +91,11 @@ class BtreeEnumAction
     bool m_visit_internal_nodes;
 };
 
-ham_status_t
+void
 BtreeIndex::enumerate(BtreeVisitor &visitor, bool visit_internal_nodes)
 {
   BtreeEnumAction bea(this, visitor, visit_internal_nodes);
-  return (bea.run());
+  bea.run();
 }
 
 } // namespace hamsterdb

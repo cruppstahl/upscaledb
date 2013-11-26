@@ -248,7 +248,7 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
   return (0);
 }
 
-ham_status_t
+void
 TransactionCursor::copy_coupled_key(ham_key_t *key)
 {
   Transaction *txn = m_parent->get_txn();
@@ -275,15 +275,14 @@ TransactionCursor::copy_coupled_key(ham_key_t *key)
     }
     else
       key->data = 0;
+    return;
   }
-  /* otherwise cursor is nil and we cannot return a key */
-  else
-    return (HAM_CURSOR_IS_NIL);
 
-  return (0);
+  /* otherwise cursor is nil and we cannot return a key */
+  throw Exception(HAM_CURSOR_IS_NIL);
 }
 
-ham_status_t
+void
 TransactionCursor::copy_coupled_record(ham_record_t *record)
 {
   ham_record_t *source = 0;
@@ -307,24 +306,22 @@ TransactionCursor::copy_coupled_record(ham_record_t *record)
     }
     else
       record->data = 0;
-    return (0);
+    return;
   }
 
   /* otherwise cursor is nil and we cannot return a key */
-  return (HAM_CURSOR_IS_NIL);
+  throw Exception(HAM_CURSOR_IS_NIL);
 }
 
-ham_status_t
-TransactionCursor::get_record_size(ham_u64_t *psize)
+ham_u64_t
+TransactionCursor::get_record_size()
 {
   /* coupled cursor? get record from the txn_op structure */
-  if (!is_nil()) {
-    *psize = m_coupled_op->get_record()->size;
-    return (0);
-  }
+  if (!is_nil())
+    return (m_coupled_op->get_record()->size);
 
   /* otherwise cursor is nil and we cannot return a key */
-  return (HAM_CURSOR_IS_NIL);
+  throw Exception(HAM_CURSOR_IS_NIL);
 }
 
 ham_status_t
@@ -358,11 +355,8 @@ TransactionCursor::erase()
   // convinced that it is necessary here
   if (is_nil()) {
     BtreeCursor *btc = m_parent->get_btree_cursor();
-    if (btc->get_state() == BtreeCursor::kStateCoupled) {
-      st = btc->uncouple_from_page();
-      if (st)
-        return (st);
-    }
+    if (btc->get_state() == BtreeCursor::kStateCoupled)
+      btc->uncouple_from_page();
     st = get_db()->erase_txn(txn, btc->get_uncoupled_key(), 0, this);
     if (st)
       return (st);

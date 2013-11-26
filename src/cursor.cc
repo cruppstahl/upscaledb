@@ -25,40 +25,62 @@
 using namespace hamsterdb;
 
 
-ham_status_t
+Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
+  : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
+    m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
+    m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
+{
+}
+
+Cursor::Cursor(Cursor &other)
+  : m_db(other.m_db), m_txn_cursor(this), m_btree_cursor(this)
+{
+  m_txn = other.m_txn;
+  m_remote_handle = other.m_remote_handle;
+  m_next = other.m_next;
+  m_previous = other.m_previous;
+  m_dupecache_index = other.m_dupecache_index;
+  m_lastop = other.m_lastop;
+  m_last_cmp = other.m_last_cmp;
+  m_flags = other.m_flags;
+  m_is_first_use = other.m_is_first_use;
+
+  m_btree_cursor.clone(other.get_btree_cursor());
+  m_txn_cursor.clone(other.get_txn_cursor());
+
+  if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)
+    other.get_dupecache()->clone(get_dupecache());
+}
+
+void
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
-  ham_u32_t count;
-  ham_status_t st = btc->get_duplicate_count(&count, 0);
-  if (st)
-    return (st);
+  ham_u32_t count = btc->get_duplicate_count(0);
   for (ham_u32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 
   m_db->get_local_env()->get_changeset().clear();
-  return (0);
 }
 
-ham_status_t
+void
 Cursor::update_dupecache(ham_u32_t what)
 {
-  ham_status_t st = 0;
   DupeCache *dc = get_dupecache();
   BtreeCursor *btc = get_btree_cursor();
   TransactionCursor *txnc = get_txn_cursor();
 
   if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
-    return (0);
+    return;
 
   /* if the cache already exists: no need to continue, it should be
    * up to date */
   if (dc->get_count() != 0)
-    return (0);
+    return;
 
   if ((what & kBtree) && (what & kTxn)) {
     if (is_nil(kBtree) && !is_nil(kTxn)) {
       bool equal_keys;
-      (void)sync(0, &equal_keys);
+      sync(0, &equal_keys);
       if (!equal_keys)
         set_to_nil(kBtree);
     }
@@ -66,11 +88,8 @@ Cursor::update_dupecache(ham_u32_t what)
 
   /* first collect all duplicates from the btree. They're already sorted,
    * therefore we can just append them to our duplicate-cache. */
-  if ((what & kBtree) && !is_nil(kBtree)) {
-    st = append_btree_duplicates(btc, dc);
-    if (st && st != HAM_CURSOR_IS_NIL)
-      return (st);
-  }
+  if ((what & kBtree) && !is_nil(kBtree))
+    append_btree_duplicates(btc, dc);
 
   /* read duplicates from the txn-cursor? */
   if ((what & kTxn) && !is_nil(kTxn)) {
@@ -78,7 +97,7 @@ Cursor::update_dupecache(ham_u32_t what)
     TransactionNode *node = op->get_node();
 
     if (!node)
-      goto bail;
+      return;
 
     /* now start integrating the items from the transactions */
     op = node->get_oldest_op();
@@ -150,9 +169,6 @@ Cursor::update_dupecache(ham_u32_t what)
       op = op->get_next_in_node();
     }
   }
-
-bail:
-  return (0);
 }
 
 void
@@ -207,10 +223,9 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
   return (st);
 }
 
-ham_status_t
+void
 Cursor::sync(ham_u32_t flags, bool *equal_keys)
 {
-  ham_status_t st = 0;
   TransactionCursor *txnc = get_txn_cursor();
   if (equal_keys)
     *equal_keys = false;
@@ -219,7 +234,7 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
     TransactionNode *node;
     ham_key_t *k;
     if (!txnc->get_coupled_op())
-      return (0);
+      return;
     node = txnc->get_coupled_op()->get_node();
     k = node->get_key();
 
@@ -229,7 +244,7 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
                 : HAM_FIND_LEQ_MATCH);
     /* the flag DONT_LOAD_KEY does not load the key if there's an
      * approx match - it only positions the cursor */
-    st = get_btree_cursor()->find(k, 0, kSyncDontLoadKey | flags);
+    ham_status_t st = get_btree_cursor()->find(k, 0, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
      * set fresh_start to false; otherwise do_local_cursor_move
      * will move the btree cursor again */
@@ -239,17 +254,13 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
   else if (is_nil(kTxn)) {
     ham_key_t *k;
     Cursor *clone = get_db()->cursor_clone(this);
-    st = clone->get_btree_cursor()->uncouple_from_page();
-    if (st) {
-      get_db()->cursor_close(clone);
-      goto bail;
-    }
+    clone->get_btree_cursor()->uncouple_from_page();
     k = clone->get_btree_cursor()->get_uncoupled_key();
     if (!(flags & kSyncOnlyEqualKeys))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
           ? HAM_FIND_GEQ_MATCH
           : HAM_FIND_LEQ_MATCH);
-    st = txnc->find(k, kSyncDontLoadKey | flags);
+    ham_status_t st = txnc->find(k, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
     * set fresh_start to false; otherwise do_local_cursor_move
     * will move the btree cursor again */
@@ -259,13 +270,10 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
   }
 
   m_db->get_local_env()->get_changeset().clear();
-
-bail:
-  return (st);
 }
 
 ham_status_t
-Cursor::move_next_dupe(void)
+Cursor::move_next_dupe()
 {
   DupeCache *dc = get_dupecache();
 
@@ -352,11 +360,7 @@ Cursor::compare()
      *  -> fix it!
      */
     Cursor *clone = get_db()->cursor_clone(this);
-    ham_status_t st = clone->get_btree_cursor()->uncouple_from_page();
-    if (st) {
-      get_db()->cursor_close(clone);
-      return (0); /* TODO */
-    }
+    clone->get_btree_cursor()->uncouple_from_page();
     cmp = btree->compare_keys(clone->get_btree_cursor()->get_uncoupled_key(),
                             txnk);
     get_db()->cursor_close(clone);
@@ -982,15 +986,14 @@ retrieve_key_and_record:
       TransactionOperation *op = txnc->get_coupled_op();
       ham_assert(!(op->get_flags() & TransactionOperation::kErase));
 #endif
-      if (key) {
-        st = txnc->copy_coupled_key(key);
-        if (st)
-          goto bail;
+      try {
+        if (key)
+          txnc->copy_coupled_key(key);
+        if (record)
+          txnc->copy_coupled_record(record);
       }
-      if (record) {
-        st = txnc->copy_coupled_record(record);
-        if (st)
-          goto bail;
+      catch (Exception &ex) {
+        return (ex.code);
       }
     }
     else {
@@ -998,35 +1001,7 @@ retrieve_key_and_record:
     }
   }
 
-bail:
   return (st);
-}
-
-Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
-  : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
-    m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
-    m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
-{
-}
-
-Cursor::Cursor(Cursor &other)
-  : m_db(other.m_db), m_txn_cursor(this), m_btree_cursor(this)
-{
-  m_txn = other.m_txn;
-  m_remote_handle = other.m_remote_handle;
-  m_next = other.m_next;
-  m_previous = other.m_previous;
-  m_dupecache_index = other.m_dupecache_index;
-  m_lastop = other.m_lastop;
-  m_last_cmp = other.m_last_cmp;
-  m_flags = other.m_flags;
-  m_is_first_use = other.m_is_first_use;
-
-  m_btree_cursor.clone(other.get_btree_cursor());
-  m_txn_cursor.clone(other.get_txn_cursor());
-
-  if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)
-    other.get_dupecache()->clone(get_dupecache());
 }
 
 bool
@@ -1088,55 +1063,39 @@ Cursor::erase(Transaction *txn, ham_u32_t flags)
   return (st);
 }
 
-ham_status_t
-Cursor::get_duplicate_count(Transaction *txn, ham_u32_t *pcount,
-        ham_u32_t flags)
+ham_u32_t
+Cursor::get_duplicate_count(Transaction *txn, ham_u32_t flags)
 {
-  ham_status_t st = 0;
-
-  *pcount = 0;
-
   if (txn) {
     if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
       DupeCache *dc = get_dupecache();
 
-      (void)sync(0, &dummy);
-      st = update_dupecache(kTxn | kBtree);
-      if (st)
-        return (st);
-      *pcount = dc->get_count();
+      sync(0, &dummy);
+      update_dupecache(kTxn | kBtree);
+      return (dc->get_count());
     }
     else {
       /* obviously the key exists, since the cursor is coupled to
        * a valid item */
-      *pcount = 1;
+      return (1);
     }
   }
-  else {
-    st = get_btree_cursor()->get_duplicate_count(pcount, flags);
-  }
 
-  return (st);
+  return (get_btree_cursor()->get_duplicate_count(flags));
 }
 
-ham_status_t
-Cursor::get_record_size(Transaction *txn, ham_u64_t *psize)
+ham_u64_t
+Cursor::get_record_size(Transaction *txn)
 {
-  ham_status_t st = 0;
-
-  *psize = 0;
-
   if (txn) {
     if (is_coupled_to_txnop())
-      st = get_txn_cursor()->get_record_size(psize);
+      return (get_txn_cursor()->get_record_size());
     else
-      st = get_btree_cursor()->get_record_size(psize);
+      return (get_btree_cursor()->get_record_size());
   }
-  else
-    st = get_btree_cursor()->get_record_size(psize);
 
-  return (st);
+  return (get_btree_cursor()->get_record_size());
 }
 
 ham_status_t
@@ -1155,11 +1114,10 @@ Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
    */
   if (txn) {
     if (get_txn_cursor()->is_nil() && !(is_nil(0))) {
-      st = get_btree_cursor()->uncouple_from_page();
-      if (st == 0)
-        st = m_db->insert_txn(txn,
-                    get_btree_cursor()->get_uncoupled_key(),
-                    record, flags | HAM_OVERWRITE, get_txn_cursor());
+      get_btree_cursor()->uncouple_from_page();
+      st = m_db->insert_txn(txn,
+                  get_btree_cursor()->get_uncoupled_key(),
+                  record, flags | HAM_OVERWRITE, get_txn_cursor());
     }
     else {
       st = get_txn_cursor()->overwrite(record);
@@ -1169,9 +1127,8 @@ Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
       couple_to_txnop();
   }
   else {
-    st = get_btree_cursor()->overwrite(record, flags);
-    if (st == 0)
-      couple_to_btree();
+    get_btree_cursor()->overwrite(record, flags);
+    couple_to_btree();
   }
 
   return (st);

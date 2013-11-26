@@ -138,7 +138,7 @@ class DuplicateManager
      * OR, if the table already exists (i.e. table_id != 0), insert the
      * entry depending on the flags (only one entry is allowed in this case)
      */
-    ham_status_t insert(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
+    void insert(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
                 ham_record_t *record, ham_u32_t position, ham_u32_t flags,
                 PDupeEntry *entries, ham_u32_t num_entries,
                 ham_u64_t *rid, ham_u32_t *new_position);
@@ -152,21 +152,20 @@ class DuplicateManager
      *
      * sets new_table_id to 0 if the table is empty
      */
-    ham_status_t erase(LocalDatabase *db, ham_u64_t table_id,
+    void erase(LocalDatabase *db, ham_u64_t table_id,
                 ham_u32_t position, bool erase_all_duplicates,
                 ham_u64_t *new_table_id);
 
     /**
      * get the number of duplicates
      */
-    ham_status_t get_count(ham_u64_t table_id, ham_u32_t *count,
-                PDupeEntry *entry);
+    ham_u32_t get_count(ham_u64_t table_id, PDupeEntry *entry);
 
     /**
      * get a duplicate
      */
     ham_status_t get(ham_u64_t table_id, ham_u32_t position,
-                PDupeEntry *entry);
+                        PDupeEntry *entry);
 
     /**
      * retrieve the whole table of duplicates
@@ -174,12 +173,12 @@ class DuplicateManager
      * @warning will return garbage if the key has no dupes!!
      * @warning memory has to be freed by the caller IF needs_free is true!
      */
-    ham_status_t get_table(ham_u64_t table_id, PDupeTable **ptable,
+    void get_table(ham_u64_t table_id, PDupeTable **ptable,
                 bool *needs_free);
 
   private:
     /** internal implementation of get_table() */
-    ham_status_t get_table(PDupeTable **table_ref, Page **page,
+    void get_table(PDupeTable **table_ref, Page **page,
                 ham_u64_t table_id);
 
     /** the Environment which created this DuplicateManager */

@@ -337,99 +337,12 @@ o start redesigning code towards exceptions; this will reduce the code a lot
         -> it's ok, but only use for exceptions, not for normal
             return statements
     x hamsterdb.cc: wrap all high-level functions in try/catch
-    o then start rewriting everything (start with the level modules abi, aes,
+    x then start rewriting everything (start with the level modules abi, aes,
         os, mem, util, device, error, config, freelist, changeset, cache,
         page, page_manager, blob_manager, ...)
-      x packstart.h
-      x packstop.h
-      x endianswap.h
-      x serial.h
-      x version.h
-      x config.h
-      x abi.h
-      x aes.h
-      x error.cc
-      x error.h
-      x mutex.h
-      x util.cc
-      x util.h
-      x mem.cc
-      x mem.h
-      x os.h
-      x os_posix.cc
-      x os_win32.cc
-      x device_disk.h
-      x device_factory.h
-      x device.h
-      x device_inmem.h
-      x log.cc
-      x log.h
-      x journal.cc
-      x journal_entries.h
-      x journal.h
-
-      x cache.cc
-      x cache.h
-      x changeset.cc
-      x changeset.h
-      x errorinducer.h - must throw?
-      x page.cc
-      x page.h
-      x page_manager.cc
-      x page_manager.h
-
-      o freelist.cc
-      o freelist.h
-      o freelist_stats.cc
-      o freelist_stats.h
-      o blob_manager_disk.cc
-      o blob_manager_disk.h
-      o blob_manager_factory.h
-      o blob_manager.h
-      o blob_manager_inmem.cc
-      o blob_manager_inmem.h
-
-      o btree_check.cc
-      o btree_cursor.cc
-      o btree_cursor.h
-      o btree_enum.cc
-      o btree_erase.cc
-      o btree_find.cc
-      o btree_index.cc
-      o btree_index_factory.h
-      o btree_index.h
-      o btree_insert.cc
-      o btree_key.h
-      o btree_node_default.h
-      o btree_node.h
-      o btree_node_pax.h
-      o btree_node_proxy.h
-      o btree_stats.cc
-      o btree_stats.h
-
-      o duplicates.cc
-      o duplicates.h
-      o cursor.cc
-      o cursor.h
-      o db.cc
-      o db.h
-      o db_local.cc
-      o db_local.h
-      o db_remote.cc
-      o db_remote.h
-      o env.cc
-      o env.h
-      o env_header.h
-      o env_local.cc
-      o env_local.h
-      o env_remote.cc
-            -> reopen connection in case of network errors
-      o env_remote.h
-      o txn.cc
-      o txn_cursor.cc
-      o txn_cursor.h
-      o txn.h
-      o hamsterdb.cc
+      x env_remote.cc: reopen connection in case of network errors
+    o db_local.cc: local transactions must be aborted!
+    o run valgrind-tests (w/o tcmalloc!)
 
 o merge everything with v2
 
@@ -440,6 +353,8 @@ o completely rewrite handling of duplicate keys
     o can we unify the whole record handling from both layouts?
         - at least fix the naming to make clear whether a class is for
             PAX or for Default
+    o should we also touch the cursor handling for duplicate keys? or postpone
+        this towards delta updates?
 
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
@@ -468,6 +383,7 @@ high-level plan for 2.1.5 (unstable).........................................
     - metadata changes (= modifying the header page) is its own stream
     - virtual page IDs, variable page sizes
     - grow/shrink pages
+    - get rid of freelist
     - delta updates
 - compress the whole LSS -> PRO
 - encrypt the whole LSS -> PRO

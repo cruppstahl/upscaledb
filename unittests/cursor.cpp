@@ -257,11 +257,9 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     ham_cursor_t *clone;
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == c->get_btree_cursor()->uncouple_from_page());
-    REQUIRE(0 ==
-          ham_cursor_clone(m_cursor, &clone));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    c->get_btree_cursor()->uncouple_from_page();
+    REQUIRE(0 == ham_cursor_clone(m_cursor, &clone));
 
     ham_key_t *k1 = c->get_btree_cursor()->get_uncoupled_key();
     ham_key_t *k2 = ((Cursor *)clone)->get_btree_cursor()->get_uncoupled_key();
@@ -280,9 +278,8 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     Cursor *c = (Cursor *)m_cursor;
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == c->get_btree_cursor()->uncouple_from_page());
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    c->get_btree_cursor()->uncouple_from_page();
 
     /* will close in teardown() */
   }

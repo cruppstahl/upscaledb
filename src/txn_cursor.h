@@ -82,14 +82,14 @@ class TransactionCursor
     // If the cursor is uncoupled, HAM_CURSOR_IS_NIL is returned. this
     // means that the item was already flushed to the btree, and the caller has
     // to use the btree lookup function to retrieve the key.
-    ham_status_t copy_coupled_key(ham_key_t *key);
+    void copy_coupled_key(ham_key_t *key);
 
     // Retrieves the record from the current item; creates a deep copy.
     //
     // If the cursor is uncoupled, HAM_CURSOR_IS_NIL will be returned. this
     // means that the item was already flushed to the btree, and the caller has
     // to use the btree lookup function to retrieve the record.
-    ham_status_t copy_coupled_record(ham_record_t *record);
+    void copy_coupled_record(ham_record_t *record);
 
     // Moves the cursor to first, last, previous or next
     ham_status_t move(ham_u32_t flags);
@@ -101,7 +101,7 @@ class TransactionCursor
     ham_status_t find(ham_key_t *key, ham_u32_t flags);
 
     // Retrieves the record size of the current item
-    ham_status_t get_record_size(ham_u64_t *psize);
+    ham_u64_t get_record_size();
 
     // Erases the current item, then 'nil's the cursor
     ham_status_t erase();
@@ -136,8 +136,8 @@ class TransactionCursor
 
     // Moves the cursor to the first valid Operation in a Node
     ham_status_t move_top_in_node(TransactionNode *node,
-            TransactionOperation *op, bool ignore_conflicts,
-            ham_u32_t flags);
+                    TransactionOperation *op, bool ignore_conflicts,
+                    ham_u32_t flags);
 
     // The parent cursor
     Cursor *m_parent;

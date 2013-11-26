@@ -375,8 +375,7 @@ class TransactionIndex
     TransactionNode *get_last();
 
     // Returns the key count of this index
-    ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
-                    ham_u64_t *pkeycount);
+    ham_u64_t get_key_count(Transaction *txn, ham_u32_t flags);
 
  // private: //TODO re-enable this; currently disabled because rb.h needs it
     // the Database for all operations in this tree
@@ -411,10 +410,10 @@ class Transaction
     ~Transaction();
 
     // Commits the Transaction
-    ham_status_t commit(ham_u32_t flags = 0);
+    void commit(ham_u32_t flags = 0);
 
     // Aborts the Transaction
-    ham_status_t abort(ham_u32_t flags = 0);
+    void abort(ham_u32_t flags = 0);
 
     // Returns true if the Transaction was aborted
     bool is_aborted() const {

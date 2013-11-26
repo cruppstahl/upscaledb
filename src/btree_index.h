@@ -231,14 +231,13 @@ class BtreeIndex
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    ham_status_t create(ham_u16_t key_type, ham_u32_t key_size,
-                    ham_u32_t rec_size);
+    void create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size);
 
     // Opens and initializes the btree
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    ham_status_t open();
+    void open();
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,
@@ -255,19 +254,19 @@ class BtreeIndex
             ham_u32_t duplicate, ham_u32_t flags);
 
     // Iterates over the whole index and enumerate every item
-    ham_status_t enumerate(BtreeVisitor &visitor,
+    void enumerate(BtreeVisitor &visitor,
                     bool visit_internal_nodes = false);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
-    ham_status_t check_integrity();
+    void check_integrity();
 
     // Counts the keys in the btree (ham_db_get_key_count)
-    ham_status_t get_key_count(ham_u32_t flags, ham_u64_t *pkeycount);
+    ham_u64_t get_key_count(ham_u32_t flags);
 
     // Erases all records, overflow areas, extended keys etc from the index;
     // used to avoid memory leaks when closing in-memory Databases and to
     // clean up when deleting on-disk Databases.
-    ham_status_t release();
+    void release();
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
@@ -348,8 +347,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    ham_status_t find_internal(Page *parent, ham_key_t *key, Page **pchild,
-                    ham_s32_t *idxptr = 0);
+    Page *find_internal(Page *parent, ham_key_t *key, ham_s32_t *idxptr = 0);
 
     // Searches a leaf node for a key.
     //

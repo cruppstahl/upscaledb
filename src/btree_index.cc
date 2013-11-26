@@ -43,7 +43,7 @@ BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
                   key_size, false);
 }
 
-ham_status_t
+void
 BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
 {
   ham_assert(key_size != 0);
@@ -63,11 +63,9 @@ BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
   m_root_address = root->get_address();
 
   flush_descriptor();
-
-  return (0);
 }
 
-ham_status_t
+void
 BtreeIndex::open()
 {
   ham_u64_t rootadd;
@@ -91,8 +89,6 @@ BtreeIndex::open()
   m_key_type = key_type;
   m_flags = flags;
   m_rec_size = rec_size;
-
-  return (0);
 }
 
 void
@@ -115,12 +111,9 @@ BtreeIndex::flush_descriptor()
   env->mark_header_page_dirty();
 }
 
-ham_status_t
-BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
-                ham_s32_t *idxptr)
+Page *
+BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
 {
-  *pchild = 0;
-
   BtreeNodeProxy *node = get_node_from_page(page);
 
   // make sure that we're not in a leaf page, and that the
@@ -134,8 +127,8 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
     *idxptr = slot;
 
   if (slot == -1)
-    *pchild = m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
-                    node->get_ptr_down());
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
+                    node->get_ptr_down()));
   else {
 #ifdef HAM_DEBUG
     ham_u32_t flags = node->test_get_flags(slot);
@@ -143,9 +136,8 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
 #endif
     ham_u64_t rid = node->get_record_id(slot);
     ham_assert(rid != 0);
-    *pchild  = m_db->get_local_env()->get_page_manager()->fetch_page(m_db, rid);
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db, rid));
   }
-  return (0);
 }
 
 ham_s32_t
@@ -427,9 +419,8 @@ class CalcKeysVisitor : public BtreeVisitor {
       }
 
       if (key_flags & BtreeKey::kDuplicates) {
-        if (m_db->get_local_env()->get_duplicate_manager()->get_count(record_id,
-                                &dupcount, 0))
-          return (false);
+        dupcount = m_db->get_local_env()->get_duplicate_manager()->get_count(
+                        record_id, 0);
         m_count += dupcount;
       }
       else {
@@ -448,19 +439,12 @@ class CalcKeysVisitor : public BtreeVisitor {
     ham_u64_t m_count;
 };
 
-ham_status_t
-BtreeIndex::get_key_count(ham_u32_t flags, ham_u64_t *pkeycount)
+ham_u64_t
+BtreeIndex::get_key_count(ham_u32_t flags)
 {
-  *pkeycount = 0;
-
   CalcKeysVisitor visitor(m_db, flags);
-  ham_status_t st = enumerate(visitor);
-  if (st)
-    return (st);
-
-  *pkeycount = visitor.get_key_count();
-
-  return (0);
+  enumerate(visitor);
+  return (visitor.get_key_count());
 }
 
 //
@@ -477,11 +461,11 @@ class FreeBlobsVisitor : public BtreeVisitor {
     }
 };
 
-ham_status_t
+void
 BtreeIndex::release()
 {
   FreeBlobsVisitor visitor;
-  return (enumerate(visitor, true));
+  enumerate(visitor, true);
 }
 
 } // namespace hamsterdb

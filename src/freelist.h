@@ -72,29 +72,28 @@ class Freelist
     }
 
     // Adds a page to the freelist
-    ham_status_t free_page(Page *page);
+    void free_page(Page *page);
 
     // Adds an arbitrary file area to the freelist
     // Asserts that address and size are aligned to |kBlobAlignment|!
-    ham_status_t free_area(ham_u64_t address, ham_u32_t size);
+    void free_area(ham_u64_t address, ham_u32_t size);
 
     // Tries to allocate an (aligned) page from the freelist.
-    // Returns 0 in |paddress| if there was not enough free space to satisfy
+    // Returns 0 if there was not enough free space to satisfy
     // the request.
-    ham_status_t alloc_page(ham_u64_t *paddress);
+    ham_u64_t alloc_page();
 
     // Tries to allocate (possibly aligned) space from the freelist.
-    // Returns 0 in |paddress| if there was not enough free space to satisfy
-    // the request.
+    // Returns 0 if there was not enough free space to satisfy the request.
     // Asserts that size is aligned to |kBlobAlignment|.
-    ham_status_t alloc_area(ham_u32_t size, ham_u64_t *paddress) {
-      return (alloc_area_impl(size, paddress, false, 0));
+    ham_u64_t alloc_area(ham_u32_t size) {
+      return (alloc_area_impl(size, false, 0));
     }
 
     // Truncates the page at the given |address| and removes it
     // from the freelist.
     // Asserts that |address| is page_size-aligned.
-    ham_status_t truncate_page(ham_u64_t address);
+    void truncate_page(ham_u64_t address);
 
     // Returns true if the page at |address| is free, otherwise false
     // Asserts that |address| is page_size-aligned.
@@ -113,8 +112,8 @@ class Freelist
 
     // Actual implementation for the alloc*-functions.
     // The lower_bound_address is assumed to be aligned.
-    ham_status_t alloc_area_impl(ham_u32_t size, ham_u64_t *paddr,
-                bool aligned, ham_u64_t lower_bound_address);
+    ham_u64_t alloc_area_impl(ham_u32_t size, bool aligned,
+                    ham_u64_t lower_bound_address);
 
     // Returns the first freelist entry
     // TODO required?
@@ -131,7 +130,7 @@ class Freelist
   private:
     // Lazily initializes the freelist structure by reading the linked list
     // of freelist pages and filling the cache
-    ham_status_t initialize();
+    void initialize();
 
     // Returns the performance usage statistics
     GlobalStatistics *get_global_statistics() {
@@ -148,7 +147,7 @@ class Freelist
     void resize(ham_u32_t new_count);
 
     // Allocates a freelist page for the specified |entry|
-    ham_status_t alloc_freelist_page(Page **ppage, FreelistEntry *entry);
+    Page *alloc_freelist_page(FreelistEntry *entry);
 
     // Sets (or resets) all bits in a given range, depending on |set|
     ham_u32_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,

@@ -587,8 +587,7 @@ class PaxNodeLayout
       return (ConstIterator(this, slot));
     }
 
-    ham_status_t check_integrity() const {
-      return (0);
+    void check_integrity() const {
     }
 
     template<typename Cmp>
@@ -656,31 +655,25 @@ class PaxNodeLayout
       return (ret);
     }
 
-    ham_status_t get_key(ConstIterator it, ByteArray *arena,
-                    ham_key_t *dest) const {
+    void get_key(ConstIterator it, ByteArray *arena, ham_key_t *dest) const {
       LocalDatabase *db = m_page->get_db();
 
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-        if (!arena->resize(get_key_size()))
-          return (HAM_OUT_OF_MEMORY);
+        arena->resize(get_key_size());
         dest->data = arena->get_ptr();
         dest->size = get_key_size();
       }
 
       ham_assert(get_key_size() == db->get_key_size());
       memcpy(dest->data, it->get_key_data(), get_key_size());
-      return (0);
     }
 
-    ham_status_t get_duplicate_count(Iterator it,
-                    DuplicateManager *duplicate_manager,
-                    ham_u32_t *pcount) const {
-      *pcount = 1;
-      return (0);
+    ham_u32_t get_duplicate_count(Iterator it) const {
+      return (1);
     }
 
     // Returns the full record and stores it in |dest|
-    ham_status_t get_record(Iterator it, ByteArray *arena,
+    void get_record(Iterator it, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_index,
                     PDupeEntry *duplicate_entry) const {
@@ -695,11 +688,11 @@ class PaxNodeLayout
         if (size == 0) {
           record->data = 0;
           record->size = 0;
-          return (0);
+          return;
         }
         if (flags & HAM_PARTIAL) {
           ham_trace(("flag HAM_PARTIAL is not allowed if record->size <= 8"));
-          return (HAM_INV_PARAMETER);
+          throw Exception(HAM_INV_PARAMETER);
         }
         if (!(record->flags & HAM_RECORD_USER_ALLOC)
             && (flags & HAM_DIRECT_ACCESS)) {
@@ -713,34 +706,29 @@ class PaxNodeLayout
           memcpy(record->data, it->get_inline_record_data(), size);
         }
         record->size = size;
-        return (HAM_SUCCESS);
+        return;
       }
 
       // non-inline record, no duplicates
-      return (env->get_blob_manager()->read(db, it->get_record_id(), record,
-                                flags, arena));
+      env->get_blob_manager()->read(db, it->get_record_id(), record,
+                                flags, arena);
     }
 
     // Returns the record size of a key or one of its duplicates
-    ham_status_t get_record_size(Iterator it, int duplicate_index,
-                    ham_u64_t *psize) const {
+    ham_u64_t get_record_size(Iterator it, int duplicate_index) const {
       ham_assert(!(it->get_key_flags() & BtreeKey::kDuplicates));
+
+      if (it->is_record_inline())
+        return (it->get_inline_record_size());
 
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-
-      if (it->is_record_inline()) {
-        *psize = it->get_inline_record_size();
-        return (0);
-      }
-      return (env->get_blob_manager()->get_datasize(db,
-                              it->get_record_id(), psize));
+      return (env->get_blob_manager()->get_datasize(db, it->get_record_id()));
     }
 
-    ham_status_t set_record(Iterator it, Transaction *txn,
+    void set_record(Iterator it, Transaction *txn,
                     ham_record_t *record, ham_u32_t duplicate_position,
                     ham_u32_t flags, ham_u32_t *new_duplicate_position) {
-      ham_status_t st;
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
       ham_u64_t ptr = it->get_record_id();
@@ -750,15 +738,13 @@ class PaxNodeLayout
         // a new inline key is inserted
         if (record->size <= it->get_max_inline_record_size()) {
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // a new (non-inline) key is inserted
-        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
-        if (st)
-          return (st);
-        it->set_record_id(ptr);
-        return (0);
+        else {
+          ptr = env->get_blob_manager()->allocate(db, record, flags);
+          it->set_record_id(ptr);
+        }
+        return;
       }
 
       // an inline key exists
@@ -770,44 +756,37 @@ class PaxNodeLayout
         // ... and is overwritten with another inline key
         if (record->size <= it->get_max_inline_record_size()) {
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // ... or with a (non-inline) key
-        st = env->get_blob_manager()->allocate(db, record, flags, &ptr);
-        if (st)
-          return (st);
-        it->set_record_id(ptr);
-        return (0);
+        else {
+          ptr = env->get_blob_manager()->allocate(db, record, flags);
+          it->set_record_id(ptr);
+        }
+        return;
       }
 
       // a (non-inline) key exists
       if (ptr) {
         // ... and is overwritten by a inline key
         if (record->size <= it->get_max_inline_record_size()) {
-          (void)env->get_blob_manager()->free(db, ptr);
+          env->get_blob_manager()->free(db, ptr);
           it->set_inline_record_data(record->data, record->size);
-          return (0);
         }
-
         // ... and is overwritten by a (non-inline) key
-        st = env->get_blob_manager()->overwrite(db, ptr, record, flags, &ptr);
-        if (st)
-          return (st);
-        if (ptr)
+        else {
+          ptr = env->get_blob_manager()->overwrite(db, ptr, record, flags);
           it->set_record_id(ptr);
-        return (0);
+        }
+        return;
       }
 
       ham_assert(!"shouldn't be here");
-      return (0);
     }
 
     void erase_key(Iterator it) {
     }
 
-    ham_status_t erase_record(Iterator it, int duplicate_id,
-                    bool all_duplicates) {
+    void erase_record(Iterator it, int duplicate_id, bool all_duplicates) {
       LocalDatabase *db = m_page->get_db();
 
       if (it->is_record_inline()) {
@@ -815,14 +794,10 @@ class PaxNodeLayout
       }
       else {
         /* delete the blob */
-        ham_status_t st = db->get_local_env()->get_blob_manager()->free(db,
-                        it->get_record_id(), 0);
-        if (st)
-          return (st);
+        db->get_local_env()->get_blob_manager()->free(db,
+                                it->get_record_id(), 0);
         it->set_record_id(0);
       }
-
-      return (0);
     }
 
     void erase(ham_u32_t slot) {
@@ -842,34 +817,30 @@ class PaxNodeLayout
     }
 
     // Replace |dest| with |src|
-    ham_status_t replace_key(ConstIterator src, Iterator dest,
+    void replace_key(ConstIterator src, Iterator dest,
                     bool dest_is_internal) const {
       dest->set_key_flags(src->get_key_flags());
       dest->set_key_data(src->get_key_data(), src->get_key_size());
       dest->set_key_size(src->get_key_size());
-      return (0);
     }
 
     // Replace |dest| with |src|
-    ham_status_t replace_key(ham_key_t *src, Iterator dest,
-                    bool dest_is_internal) {
+    void replace_key(ham_key_t *src, Iterator dest, bool dest_is_internal) {
       dest->set_key_flags(src->_flags);
       dest->set_key_data(src->data, src->size);
       dest->set_key_size(src->size);
-      return (0);
     }
 
     // Same as above, but copies the key from |src_node[src_slot]|
-    ham_status_t insert(ham_u32_t slot, PaxNodeLayout *src_node,
-                    ham_u32_t src_slot) {
+    void insert(ham_u32_t slot, PaxNodeLayout *src_node, ham_u32_t src_slot) {
       ham_key_t key = {0};
       ConstIterator it = src_node->at(src_slot);
       key.data = it->get_key_data();
       key.size = it->get_key_size();
-      return (insert(slot, &key));
+      insert(slot, &key);
     }
 
-    ham_status_t insert(ham_u32_t slot, const ham_key_t *key) {
+    void insert(ham_u32_t slot, const ham_key_t *key) {
       ham_assert(key->size == get_key_size());
 
       ham_u32_t count = m_node->get_count();
@@ -896,8 +867,6 @@ class PaxNodeLayout
           m_flags[slot] = 0;
         m_records.reset(slot);
       }
-
-      return (0);
     }
 
     // Returns true if |key| cannot be inserted because a split is required

@@ -27,24 +27,21 @@ namespace hamsterdb {
 
 RemoteEnvironment::~RemoteEnvironment()
 {
-  (void)os_socket_close(&m_socket);
+  os_socket_close(&m_socket);
 }
 
-ham_status_t
-RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
+Protocol *
+RemoteEnvironment::perform_request(Protocol *request)
 {
-  *reply = 0;
-
   // use ByteArray to avoid frequent reallocs!
   m_buffer.clear();
 
   if (!request->pack(&m_buffer)) {
     ham_log(("protoype Protocol::pack failed"));
-    return (HAM_INTERNAL_ERROR);
+    throw Exception(HAM_INTERNAL_ERROR);
   }
 
-  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(),
-          m_buffer.get_size());
+  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(), m_buffer.get_size());
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
@@ -55,9 +52,7 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
   m_buffer.resize(ham_db2h32(size) + 8);
   os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
 
-  *reply = Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8);
-
-  return (0);
+  return (Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8));
 }
 
 ham_status_t
@@ -73,10 +68,8 @@ ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
         ham_u32_t cache_size)
 {
-  (void)cache_size;
-
   if (m_socket != HAM_INVALID_FD)
-    (void)os_socket_close(&m_socket);
+    os_socket_close(&m_socket);
 
   ham_assert(url != 0);
   ham_assert(::strstr(url, "ham://") == url);
@@ -102,25 +95,17 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
-  Protocol *reply = 0;
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    (void)os_socket_close(&m_socket);
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->type() == Protocol::CONNECT_REPLY);
 
-  st = reply->connect_reply().status();
+  ham_status_t st = reply->connect_reply().status();
   if (st == 0) {
     m_filename = url;
     set_flags(flags | reply->connect_reply().env_flags());
     m_remote_handle = reply->connect_reply().env_handle();
   }
 
-  delete reply;
   return (st);
 }
 
@@ -128,79 +113,48 @@ ham_status_t
 RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
         ham_u32_t flags)
 {
-  ham_status_t st;
-  Protocol *reply = 0;
-
   Protocol request(Protocol::ENV_RENAME_REQUEST);
   request.mutable_env_rename_request()->set_env_handle(m_remote_handle);
   request.mutable_env_rename_request()->set_oldname(oldname);
   request.mutable_env_rename_request()->set_newname(newname);
   request.mutable_env_rename_request()->set_flags(flags);
 
-  st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_rename_reply());
 
-  st = reply->env_rename_reply().status();
-
-  delete reply;
-  return (st);
+  return (reply->env_rename_reply().status());
 }
 
 ham_status_t
 RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 {
-  ham_status_t st;
-  Protocol *reply = 0;
-
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
   request.mutable_env_erase_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_erase_db_request()->set_name(name);
   request.mutable_env_erase_db_request()->set_flags(flags);
 
-  st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_erase_db_reply());
 
-  st = reply->env_erase_db_reply().status();
-
-  delete reply;
-  return (st);
+  return (reply->env_erase_db_reply().status());
 }
 
 ham_status_t
 RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
 {
-  Protocol *reply = 0;
-
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
   request.mutable_env_get_database_names_request()->set_env_handle(m_remote_handle);
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_get_database_names_reply());
 
-  st = reply->env_get_database_names_reply().status();
-  if (st) {
-    delete reply;
+  ham_status_t st = reply->env_get_database_names_reply().status();
+  if (st)
     return (st);
-  }
 
   /* copy the retrieved names */
   ham_u32_t i;
@@ -213,7 +167,6 @@ RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
 
   *count = i;
 
-  delete reply;
   return (0);
 }
 
@@ -221,7 +174,6 @@ ham_status_t
 RemoteEnvironment::get_parameters(ham_parameter_t *param)
 {
   static char filename[1024]; // TODO not threadsafe!!
-  Protocol *reply = 0;
   ham_parameter_t *p = param;
 
   if (!param)
@@ -234,20 +186,13 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
     p++;
   }
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_get_parameters_reply());
 
-  st = reply->env_get_parameters_reply().status();
-  if (st) {
-    delete reply;
+  ham_status_t st = reply->env_get_parameters_reply().status();
+  if (st)
     return (st);
-  }
 
   p = param;
   while (p && p->name) {
@@ -287,38 +232,27 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
     p++;
   }
 
-  delete reply;
   return (0);
 }
 
 ham_status_t
 RemoteEnvironment::flush(ham_u32_t flags)
 {
-  Protocol *reply = 0;
-
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
   request.mutable_env_flush_request()->set_env_handle(m_remote_handle);
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_flush_reply());
 
-  st = reply->env_flush_reply().status();
-  delete reply;
-  return (st);
+  return (reply->env_flush_reply().status());
 }
 
 ham_status_t
 RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
         const ham_parameter_t *param)
 {
-  Protocol *reply = 0;
   const ham_parameter_t *p;
 
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
@@ -334,28 +268,19 @@ RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     }
   }
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_create_db_reply());
 
-  st = reply->env_create_db_reply().status();
-  if (st) {
-    delete reply;
+  ham_status_t st = reply->env_create_db_reply().status();
+  if (st)
     return (st);
-  }
 
   RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
           reply->env_create_db_reply().db_flags());
 
   rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
   *pdb = rdb;
-
-  delete reply;
 
   /*
    * on success: store the open database in the environment's list of
@@ -370,7 +295,6 @@ ham_status_t
 RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
         const ham_parameter_t *param)
 {
-  Protocol *reply = 0;
   const ham_parameter_t *p;
 
   /* make sure that this database is not yet open */
@@ -390,27 +314,18 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     }
   }
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_env_open_db_reply());
 
-  st = reply->env_open_db_reply().status();
-  if (st) {
-    delete reply;
+  ham_status_t st = reply->env_open_db_reply().status();
+  if (st)
     return (st);
-  }
 
   RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
           reply->env_open_db_reply().db_flags());
   rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
   *pdb = rdb;
-
-  delete reply;
 
   // on success: store the open database in the environment's list of
   // opened databases
@@ -441,14 +356,8 @@ RemoteEnvironment::close(ham_u32_t flags)
   Protocol request(Protocol::DISCONNECT_REQUEST);
   request.mutable_disconnect_request()->set_env_handle(m_remote_handle);
 
-  Protocol *reply = 0;
-  st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->type() == Protocol::DISCONNECT_REPLY);
 
   st = reply->disconnect_reply().status();
@@ -457,7 +366,6 @@ RemoteEnvironment::close(ham_u32_t flags)
     m_remote_handle = 0;
   }
 
-  delete reply;
   return (st);
 }
 
@@ -466,7 +374,6 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
                 ham_u32_t flags)
 {
   ham_status_t st;
-  Protocol *reply = 0;
 
   Protocol request(Protocol::TXN_BEGIN_REQUEST);
   request.mutable_txn_begin_request()->set_env_handle(m_remote_handle);
@@ -474,82 +381,58 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
   if (name)
     request.mutable_txn_begin_request()->set_name(name);
 
-  st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_txn_begin_reply());
 
   st = reply->txn_begin_reply().status();
-  if (st) {
-    delete reply;
+  if (st)
     return (st);
-  }
 
   *txn = new Transaction(this, name, flags);
   (*txn)->set_remote_handle(reply->txn_begin_reply().txn_handle());
-    append_txn(*txn);
+  append_txn(*txn);
 
-  delete reply;
   return (0);
 }
 
 ham_status_t
 RemoteEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 {
-  Protocol *reply = 0;
-
   Protocol request(Protocol::TXN_COMMIT_REQUEST);
   request.mutable_txn_commit_request()->set_txn_handle(txn->get_remote_handle());
   request.mutable_txn_commit_request()->set_flags(flags);
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_txn_commit_reply());
 
-  st = reply->txn_commit_reply().status();
+  ham_status_t st = reply->txn_commit_reply().status();
   if (st == 0) {
     remove_txn(txn);
-    delete txn;
+    delete (txn);
   }
 
-  delete reply;
   return (st);
 }
 
 ham_status_t
 RemoteEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
 {
-  Protocol *reply = 0;
-
   Protocol request(Protocol::TXN_ABORT_REQUEST);
   request.mutable_txn_abort_request()->set_txn_handle(txn->get_remote_handle());
   request.mutable_txn_abort_request()->set_flags(flags);
 
-  ham_status_t st = perform_request(&request, &reply);
-  if (st) {
-    delete reply;
-    return (st);
-  }
+  std::auto_ptr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply != 0);
   ham_assert(reply->has_txn_abort_reply());
 
-  st = reply->txn_abort_reply().status();
+  ham_status_t st = reply->txn_abort_reply().status();
   if (st == 0) {
     remove_txn(txn);
     delete txn;
   }
 
-  delete reply;
   return (st);
 }
 

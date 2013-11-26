@@ -101,7 +101,7 @@ struct BtreeCursorFixture {
     REQUIRE((page = pm->fetch_page((LocalDatabase *)m_db,
                         be->get_root_address())));
     REQUIRE(page != 0);
-    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
+    BtreeCursor::uncouple_all_cursors(page);
 
     REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 

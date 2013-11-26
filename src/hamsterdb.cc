@@ -484,15 +484,16 @@ ham_env_create(ham_env_t **henv, const char *filename,
     }
   }
 
+  ham_status_t st = 0;
   Environment *env = 0;
   try {
     if (__filename_is_local(filename)) {
       LocalEnvironment *lenv = new LocalEnvironment();
+      env = lenv;
       if (logdir.size())
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
-      env = lenv;
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -510,29 +511,24 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #endif
 
     /* and finish the initialization of the Environment */
-    ham_status_t st = env->create(filename, flags, mode, page_size, cache_size,
-            maxdbs);
-    if (st)
-      goto bail;
+    st = env->create(filename, flags, mode, page_size, cache_size, maxdbs);
 
     /* flush the environment to make sure that the header page is written
      * to disk */
-    st = env->flush(0);
-
-bail:
-    if (st) {
-      delete env;
-      return (st);
-    }
-  
-    *henv = (ham_env_t *)env;
-    return 0;
+    if (st == 0)
+      st = env->flush(0);
   }
   catch (Exception &ex) {
-    if (env)
-      delete env;
-    return (ex.code);
+    st = ex.code;
   }
+
+  if (st) {
+    delete env;
+    return (st);
+  }
+ 
+  *henv = (ham_env_t *)env;
+  return 0;
 }
 
 ham_status_t HAM_CALLCONV
@@ -564,26 +560,24 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
     /* the function handler will do the rest */
     st = env->create_db((Database **)hdb, dbname, flags, param);
-    if (st)
-      goto bail;
 
     /* flush the environment to make sure that the header page is written
      * to disk */
-    st = env->flush(0);
-
-bail:
-    if (st) {
-      if (*hdb)
-        (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
-      *hdb = 0;
-      return (st);
-    }
-
-    return (0);
+    if (st == 0)
+      st = env->flush(0);
   }
   catch (Exception &ex) {
-    return (ex.code);
+    st = ex.code;
   }
+
+  if (st) {
+    if (*hdb)
+      (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
+    *hdb = 0;
+    return (st);
+  }
+
+  return (0);
 }
 
 ham_status_t HAM_CALLCONV
@@ -626,25 +620,25 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
     /* the function handler will do the rest */
     st = env->open_db((Database **)hdb, dbname, flags, param);
-
-    /* TODO move cleanup code to Environment::open_db() */
-    if (st) {
-      if (*hdb)
-        (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
-      *hdb = 0;
-      return (st);
-    }
-
-    return (0);
   }
   catch (Exception &ex) {
-    return (ex.code);
+    st = ex.code;
   }
+
+  /* TODO move cleanup code to Environment::open_db() */
+  if (st) {
+    if (*hdb)
+      (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
+    *hdb = 0;
+    return (st);
+  }
+
+  return (0);
 }
 
 ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
-        const ham_parameter_t *param)
+            const ham_parameter_t *param)
 {
   ham_u64_t cache_size = 0;
   ham_u32_t timeout = 0;
@@ -724,15 +718,17 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   if (cache_size == 0)
     cache_size = HAM_DEFAULT_CACHESIZE;
 
+  ham_status_t st = 0;
   Environment *env = 0;
+
   try {
     if (__filename_is_local(filename)) {
       LocalEnvironment *lenv = new LocalEnvironment();
+      env = lenv;
       if (logdir.size())
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
-      env = lenv;
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -750,27 +746,24 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #endif
 
     /* and finish the initialization of the Environment */
-    ham_status_t st = env->open(filename, flags, cache_size);
-    if (st)
-      goto bail;
-
-bail:
-    if (st) {
-      delete env;
-      return (st);
-    }
-
-    *henv = (ham_env_t *)env;
-    return (0);
+    st = env->open(filename, flags, cache_size);
   }
   catch (Exception &ex) {
-    return (ex.code);
+    st = ex.code;
   }
+
+  if (st) {
+    delete env;
+    return (st);
+  }
+
+  *henv = (ham_env_t *)env;
+  return (0);
 }
 
 ham_status_t HAM_CALLCONV
 ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname, ham_u16_t newname,
-        ham_u32_t flags)
+            ham_u32_t flags)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -927,9 +920,8 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 #ifdef HAM_DEBUG
     /* make sure that the changeset is empty */
     LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
-    if (lenv) {
+    if (lenv)
       ham_assert(lenv->get_changeset().is_empty());
-    }
 #endif
 
     /* auto-abort (or commit) all pending transactions */

@@ -166,23 +166,23 @@ class LocalEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
-            ham_u16_t maxdbs);
+                    ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
+                    ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            ham_u32_t cache_size);
+                    ham_u32_t cache_size);
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
-            ham_u32_t flags);
+                    ham_u32_t flags);
 
     // Erases (deletes) a database from the Environment (ham_env_erase_db)
     virtual ham_status_t erase_db(ham_u16_t name, ham_u32_t flags);
 
     // Returns all database names (ham_env_get_database_names)
     virtual ham_status_t get_database_names(ham_u16_t *names,
-            ham_u32_t *count);
+                    ham_u32_t *count);
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -192,15 +192,15 @@ class LocalEnvironment : public Environment
 
     // Creates a new database in the environment (ham_env_create_db)
     virtual ham_status_t create_db(Database **db, ham_u16_t dbname,
-            ham_u32_t flags, const ham_parameter_t *param);
+                    ham_u32_t flags, const ham_parameter_t *param);
 
     // Opens an existing database in the environment (ham_env_open_db)
     virtual ham_status_t open_db(Database **db, ham_u16_t dbname,
-            ham_u32_t flags, const ham_parameter_t *param);
+                    ham_u32_t flags, const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
     virtual ham_status_t txn_begin(Transaction **txn, const char *name,
-            ham_u32_t flags);
+                    ham_u32_t flags);
 
     // Aborts a transaction (ham_txn_abort)
     virtual ham_status_t txn_abort(Transaction *txn, ham_u32_t flags);
@@ -215,14 +215,14 @@ class LocalEnvironment : public Environment
     virtual void get_metrics(ham_env_metrics_t *metrics) const;
 
     // Flushes all committed transactions to disk
-    ham_status_t flush_committed_txns();
+    void flush_committed_txns();
 
   private:
     // Flushes a single, committed transaction to disk
-    ham_status_t flush_txn(Transaction *txn);
+    void flush_txn(Transaction *txn);
 
     // Runs the recovery process
-    ham_status_t recover(ham_u32_t flags);
+    void recover(ham_u32_t flags);
 
     // The Environment's header page/configuration
     EnvironmentHeader *m_header;

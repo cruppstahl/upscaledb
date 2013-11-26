@@ -491,7 +491,7 @@ struct RecordNumberFixture {
     PageManager *pm = db->get_local_env()->get_page_manager();
     REQUIRE((page = pm->fetch_page(db, be->get_root_address())));
     REQUIRE(page);
-    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
+    BtreeCursor::uncouple_all_cursors(page);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));

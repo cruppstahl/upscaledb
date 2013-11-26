@@ -19,9 +19,9 @@
 using namespace hamsterdb;
 
 
-ham_status_t
+ham_u64_t
 InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
-        ham_u32_t flags, ham_u64_t *blobid)
+            ham_u32_t flags)
 {
   m_blob_total_allocated++;
 
@@ -38,8 +38,6 @@ InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
   ham_u8_t *p = Memory::allocate<ham_u8_t>(record->size + sizeof(PBlobHeader));
-  if (!p)
-    return (HAM_OUT_OF_MEMORY);
 
   // initialize the header
   PBlobHeader *blob_header = (PBlobHeader *)p;
@@ -62,12 +60,10 @@ InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     memcpy(p + sizeof(PBlobHeader), record->data, record->size);
   }
 
-  *blobid = (ham_u64_t)PTR_TO_U64(p);
-
-  return (0);
+  return ((ham_u64_t)PTR_TO_U64(p));
 }
 
-ham_status_t
+void
 InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
@@ -82,7 +78,7 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
   // when the database is closing, the header is already deleted
   if (!blob_header) {
     record->size = 0;
-    return (0);
+    return;
   }
 
   ham_u32_t blobsize = (ham_u32_t)blob_header->get_size();
@@ -92,7 +88,7 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
       ham_trace(("partial offset is greater than the total record size"));
-      return (HAM_INV_PARAMETER);
+      throw Exception(HAM_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
       record->partial_size = blobsize = blobsize - record->partial_offset;
@@ -124,14 +120,11 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
       memcpy(record->data, d, blobsize);
     }
   }
-
-  return (0);
 }
 
-ham_status_t
+ham_u64_t
 InMemoryBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
-                    ham_record_t *record, ham_u32_t flags,
-                    ham_u64_t *new_blobid)
+                    ham_record_t *record, ham_u32_t flags)
 {
   // PARTIAL WRITE
   //
@@ -156,17 +149,14 @@ InMemoryBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     else {
       memmove(p + sizeof(PBlobHeader), record->data, record->size);
     }
-    *new_blobid = (ham_u64_t)PTR_TO_U64(phdr);
+    return ((ham_u64_t)PTR_TO_U64(phdr));
   }
   else {
-    ham_status_t st = m_env->get_blob_manager()->allocate(db, record,
-            flags, new_blobid);
-    if (st)
-      return (st);
+    ham_u64_t new_blobid = m_env->get_blob_manager()->allocate(db, record,
+            flags);
 
     Memory::release(phdr);
+    return (new_blobid);
   }
-
-  return (HAM_SUCCESS);
 }
 

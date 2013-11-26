@@ -106,7 +106,7 @@ class BtreeNodeProxy
     }
 
     // Checks the integrity of the node
-    virtual ham_status_t check_integrity() const = 0;
+    virtual void check_integrity() const = 0;
 
     // Iterates all keys, calls the |visitor| on each. Aborts if the
     // |visitor| returns false
@@ -130,23 +130,20 @@ class BtreeNodeProxy
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
     // are endian-translated.
-    virtual ham_status_t get_key(int slot, ByteArray *arena,
-                    ham_key_t *dest) = 0;
+    virtual void get_key(int slot, ByteArray *arena, ham_key_t *dest) = 0;
 
     // Same as above, but does not create a copy (unless the key is extended)
     virtual void get_key_direct(int slot, ByteArray *arena,
                     ham_key_t *dest) = 0;
 
     // Returns the number of duplicates of a key at the given |slot|
-    virtual ham_status_t get_duplicate_count(int slot,
-                    ham_u32_t *pcount) const = 0;
+    virtual ham_u32_t get_duplicate_count(int slot) const = 0;
 
     // Returns true if the key at the given |slot| has duplicates
     virtual bool has_duplicates(ham_u32_t slot) const = 0;
 
     // Returns the record size of a key or one of its duplicates
-    virtual ham_status_t get_record_size(int slot, int duplicate_index,
-                    ham_u64_t *psize) const = 0;
+    virtual ham_u64_t get_record_size(int slot, int duplicate_index) const = 0;
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
@@ -159,7 +156,7 @@ class BtreeNodeProxy
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual ham_status_t get_record(int slot, ByteArray *arena,
+    virtual void get_record(int slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_position = 0,
                     PDupeEntry *duplicate_entry = 0) const = 0;
@@ -171,7 +168,7 @@ class BtreeNodeProxy
     // - HAM_DUPLICATE*
     //
     // a previously existing blob will be deleted if necessary
-    virtual ham_status_t set_record(int slot, Transaction *txn,
+    virtual void set_record(int slot, Transaction *txn,
                     ham_record_t *record, ham_u32_t duplicate_position,
                     ham_u32_t flags, ham_u32_t *new_duplicate_position) = 0;
 
@@ -179,7 +176,7 @@ class BtreeNodeProxy
     // If |all_duplicates| is set then all duplicates of this key are deleted.
     // |has_duplicates_left| will return true if there are more duplicates left
     // after the current one was deleted.
-    virtual ham_status_t erase_record(int slot, int duplicate_id,
+    virtual void erase_record(int slot, int duplicate_id,
                     bool all_duplicates, bool *has_duplicates_left) = 0;
 
     // High level function to remove an existing entry
@@ -191,18 +188,18 @@ class BtreeNodeProxy
     virtual void remove_all_entries() = 0;
 
     // Replaces the |dest|-key with the key in |slot|
-    virtual ham_status_t replace_key(int slot, BtreeNodeProxy *dest,
+    virtual void replace_key(int slot, BtreeNodeProxy *dest,
                     int dest_slot, bool dest_is_internal) const = 0;
 
     // Replaces the |dest|-key with the key in |source|
-    virtual ham_status_t replace_key(ham_key_t *source,
+    virtual void replace_key(ham_key_t *source,
                     int dest_slot, bool dest_is_internal) = 0;
 
     // High level function to insert a new key
-    virtual ham_status_t insert(ham_u32_t slot, const ham_key_t *key) = 0;
+    virtual void insert(ham_u32_t slot, const ham_key_t *key) = 0;
 
     // High level function to insert a new key
-    virtual ham_status_t insert(ham_u32_t slot, BtreeNodeProxy *source,
+    virtual void insert(ham_u32_t slot, BtreeNodeProxy *source,
                    int source_slot) = 0;
 
     // Returns true if a node requires a split to insert |key|
@@ -359,8 +356,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Checks the integrity of the node
-    virtual ham_status_t check_integrity() const {
-      return (m_layout.check_integrity());
+    virtual void check_integrity() const {
+      m_layout.check_integrity();
     }
 
     // Iterates all keys, calls the |visitor| on each. Aborts if the
@@ -414,14 +411,13 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
     // are endian-translated.
-    virtual ham_status_t get_key(int slot, ByteArray *arena,
-                    ham_key_t *dest) {
+    virtual void get_key(int slot, ByteArray *arena, ham_key_t *dest) {
       typename NodeLayout::ConstIterator it = m_layout.at(slot);
       if (dest->flags & HAM_KEY_USER_ALLOC) {
         arena->assign(dest->data, dest->size);
         arena->disown();
       }
-      return (m_layout.get_key(it, arena, dest));
+      m_layout.get_key(it, arena, dest);
     }
 
     // Same as above, but does not create a copy (unless the key is extended)
@@ -439,12 +435,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns the number of duplicates of a key at the given |slot|
-    virtual ham_status_t get_duplicate_count(int slot,
-                    ham_u32_t *pcount) const {
+    virtual ham_u32_t get_duplicate_count(int slot) const {
       typename NodeLayout::Iterator it = m_layout.at(slot);
-      return (m_layout.get_duplicate_count(it,
-                    m_page->get_db()->get_local_env()->get_duplicate_manager(),
-                    pcount));
+      return (m_layout.get_duplicate_count(it));
     }
 
     // Returns true if the key at the given |slot| has duplicates
@@ -456,28 +449,27 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual ham_status_t get_record(int slot, ByteArray *arena,
+    virtual void get_record(int slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_index = 0,
                     PDupeEntry *duplicate_entry = 0) const {
       typename NodeLayout::Iterator it = m_layout.at(slot);
-      return (m_layout.get_record(it, arena, record, flags,
-                              duplicate_index, duplicate_entry));
+      m_layout.get_record(it, arena, record, flags, duplicate_index,
+                      duplicate_entry);
     }
 
-    virtual ham_status_t set_record(int slot, Transaction *txn,
+    virtual void set_record(int slot, Transaction *txn,
                     ham_record_t *record, ham_u32_t duplicate_position,
                     ham_u32_t flags, ham_u32_t *new_duplicate_position) {
       typename NodeLayout::Iterator it = m_layout.at(slot);
-      return (m_layout.set_record(it, txn, record, duplicate_position,
-                              flags, new_duplicate_position));
+      m_layout.set_record(it, txn, record, duplicate_position, flags,
+                      new_duplicate_position);
     }
 
     // Returns the record size of a key or one of its duplicates
-    virtual ham_status_t get_record_size(int slot, int duplicate_index,
-                    ham_u64_t *psize) const {
+    virtual ham_u64_t get_record_size(int slot, int duplicate_index) const {
       typename NodeLayout::Iterator it = m_layout.at(slot);
-      return (m_layout.get_record_size(it, duplicate_index, psize));
+      return (m_layout.get_record_size(it, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
@@ -504,16 +496,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // If |all_duplicates| is set then all duplicates of this key are deleted.
     // |has_duplicates_left| will return true if there are more duplicates left
     // after the current one was deleted.
-    virtual ham_status_t erase_record(int slot, int duplicate_id,
+    virtual void erase_record(int slot, int duplicate_id,
                     bool all_duplicates, bool *has_duplicates_left) {
       typename NodeLayout::Iterator it = m_layout.at(slot);
 
-      ham_status_t st = m_layout.erase_record(it, duplicate_id,
-                      all_duplicates);
+      m_layout.erase_record(it, duplicate_id, all_duplicates);
       if (has_duplicates_left)
         *has_duplicates_left = (it->get_key_flags() & BtreeKey::kDuplicates
                                 && it->get_record_id() != 0);
-      return (st);
     }
 
     // Erases all extended keys, overflow areas and records that are
@@ -532,7 +522,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Replaces the |dest|-key with the key in |slot|
-    virtual ham_status_t replace_key(int slot, BtreeNodeProxy *dest_node,
+    virtual void replace_key(int slot, BtreeNodeProxy *dest_node,
                     int dest_slot, bool dest_is_internal) const {
       ham_key_t key = {0};
 
@@ -543,32 +533,34 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       key.data   = it->get_key_data();
       key.size   = it->get_key_size();
 
-      return (dest_node->replace_key(&key, dest_slot, dest_is_internal));
+      dest_node->replace_key(&key, dest_slot, dest_is_internal);
     }
 
     // Replaces the |dest|-key with the key in |source|
-    virtual ham_status_t replace_key(ham_key_t *source,
-                    int dest_slot, bool dest_is_internal) {
+    virtual void replace_key(ham_key_t *source, int dest_slot,
+                    bool dest_is_internal) {
       typename NodeLayout::Iterator it = m_layout.at(dest_slot);
 
       // release the extended blob of the destination key (if there is one)
       if (dest_slot < (int)get_count())
         m_layout.erase_key(it);
 
-      return (m_layout.replace_key(source, it, dest_is_internal));
+      m_layout.replace_key(source, it, dest_is_internal);
     }
 
     // High level function to insert a new key
-    virtual ham_status_t insert(ham_u32_t slot, const ham_key_t *key) {
-      return (m_layout.insert(slot, key));
+    virtual void insert(ham_u32_t slot, const ham_key_t *key) {
+      m_layout.insert(slot, key);
+      set_count(get_count() + 1);
     }
 
     // High level function to insert a new key
-    virtual ham_status_t insert(ham_u32_t slot, BtreeNodeProxy *source,
+    virtual void insert(ham_u32_t slot, BtreeNodeProxy *source,
                    int source_slot) {
       ClassType *other = dynamic_cast<ClassType *>(source);
       ham_assert(other != 0);
-      return (m_layout.insert(slot, &other->m_layout, source_slot));
+      m_layout.insert(slot, &other->m_layout, source_slot);
+      set_count(get_count() + 1);
     }
 
     // Returns true if a node requires a split to insert |key|

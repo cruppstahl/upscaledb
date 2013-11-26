@@ -24,11 +24,10 @@
 
 namespace hamsterdb {
 
-ham_status_t
+void
 DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
                 ham_u64_t table_id)
 {
-  ham_status_t st;
   PBlobHeader hdr;
   Page *hdrpage = 0;
   PDupeTable *table;
@@ -39,15 +38,12 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
   if (m_env->get_flags() & HAM_IN_MEMORY) {
     ham_u8_t *p = (ham_u8_t *)U64_TO_PTR(table_id);
     *table_ref = (PDupeTable *)(p + sizeof(hdr));
-    return (0);
+    return;
   }
 
   /* load the blob header */
   DiskBlobManager *dbm = (DiskBlobManager *)m_env->get_blob_manager();
-  st = dbm->read_chunk(0, &hdrpage, table_id, 0,
-                  (ham_u8_t *)&hdr, sizeof(hdr));
-  if (st)
-    return (st);
+  dbm->read_chunk(0, &hdrpage, table_id, 0, (ham_u8_t *)&hdr, sizeof(hdr));
 
   /*
    * if the whole table is in a page (and not split between several
@@ -60,31 +56,25 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
     *page = hdrpage;
     *table_ref = (PDupeTable *)&p[table_id - hdrpage->get_address()
                     + sizeof(hdr)];
-    return (0);
+    return;
   }
 
   /* otherwise allocate memory for the table */
   table = Memory::allocate<PDupeTable>((ham_u32_t)hdr.get_size());
-  if (!table)
-    return (HAM_OUT_OF_MEMORY);
 
   /* then read the rest of the blob */
-  st = dbm->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
+  dbm->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
                     0, (ham_u8_t *)table, (ham_u32_t)hdr.get_size());
-  if (st)
-    return (st);
 
   *table_ref = table;
-  return (0);
 }
 
-ham_status_t
+void
 DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
                 ham_u64_t table_id, ham_record_t *record, ham_u32_t position,
                 ham_u32_t flags, PDupeEntry *entries, ham_u32_t num_entries,
                 ham_u64_t *rid, ham_u32_t *new_position)
 {
-  ham_status_t st = 0;
   PDupeTable *table = 0;
   bool alloc_table = false;
   bool resize = false;
@@ -99,8 +89,6 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
     /* allocates space for 8 (!) entries */
     table = Memory::allocate<PDupeTable>(sizeof(PDupeTable)
             + 7 * sizeof(PDupeEntry));
-    if (!table)
-      return (HAM_OUT_OF_MEMORY);
     dupe_table_set_capacity(table, 8);
     dupe_table_set_count(table, 1);
     memcpy(dupe_table_get_entry(table, 0), &entries[0], sizeof(entries[0]));
@@ -112,9 +100,7 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
   }
   else {
     /* otherwise load the existing table */
-    st = get_table(&table, &page, table_id);
-    if (st)
-      return (st);
+    get_table(&table, &page, table_id);
     if (!page && !(m_env->get_flags() & HAM_IN_MEMORY))
       alloc_table = true;
   }
@@ -134,8 +120,6 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
 
     table = Memory::allocate<PDupeTable>(
                 sizeof(PDupeTable) + (new_cap - 1) * sizeof(PDupeEntry));
-    if (!table)
-      return (HAM_OUT_OF_MEMORY);
     dupe_table_set_capacity(table, new_cap);
     dupe_table_set_count(table, dupe_table_get_count(old));
     memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),
@@ -154,7 +138,7 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
     if (!(dupe_entry_get_flags(e) & (BtreeKey::kBlobSizeSmall
                                 | BtreeKey::kBlobSizeTiny
                                 | BtreeKey::kBlobSizeEmpty))) {
-      (void)m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
+      m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
     }
 
     memcpy(dupe_table_get_entry(table, position),
@@ -197,14 +181,14 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
     rec.data = (ham_u8_t *)table;
     rec.size = sizeof(PDupeTable) + (dupe_table_get_capacity(table) - 1)
                     * sizeof(PDupeEntry);
-    st = m_env->get_blob_manager()->overwrite(db, table_id, &rec, 0, rid);
+    *rid = m_env->get_blob_manager()->overwrite(db, table_id, &rec, 0);
   }
   else if (!table_id) {
     ham_record_t rec = {0};
     rec.data = (ham_u8_t *)table;
     rec.size = sizeof(PDupeTable) + (dupe_table_get_capacity(table) - 1)
                     * sizeof(PDupeEntry);
-    st = m_env->get_blob_manager()->allocate(db, &rec, 0, rid);
+    *rid = m_env->get_blob_manager()->allocate(db, &rec, 0);
   }
   else if (table_id && page) {
     page->set_dirty(true);
@@ -218,11 +202,9 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
 
   if (new_position)
     *new_position = position;
-
-  return (st);
 }
 
-ham_status_t
+void
 DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
             ham_u32_t position, bool erase_all_duplicates,
             ham_u64_t *new_table_id)
@@ -235,10 +217,7 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
 
   ByteArray *arena = &db->get_record_arena();
 
-  ham_status_t st = m_env->get_blob_manager()->read(db, table_id, &rec,
-          0, arena);
-  if (st)
-    return (st);
+  m_env->get_blob_manager()->read(db, table_id, &rec, 0, arena);
 
   PDupeTable *table = (PDupeTable *)rec.data;
 
@@ -253,22 +232,15 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
       if (!(dupe_entry_get_flags(e) & (BtreeKey::kBlobSizeSmall
                                     | BtreeKey::kBlobSizeTiny
                                     | BtreeKey::kBlobSizeEmpty))) {
-        st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
-        if (st) {
-          Memory::release(table);
-          return (st);
-        }
+        m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
       }
     }
     /* now free the table itself */
-    st = m_env->get_blob_manager()->free(db, table_id, 0);
-    if (st)
-      return (st);
+    m_env->get_blob_manager()->free(db, table_id, 0);
 
     if (new_table_id)
       *new_table_id = 0;
-
-    return (0);
+    return;
   }
   else {
     ham_record_t rec = {0};
@@ -276,11 +248,7 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
     if (!(dupe_entry_get_flags(e) & (BtreeKey::kBlobSizeSmall
                                   | BtreeKey::kBlobSizeTiny
                                   | BtreeKey::kBlobSizeEmpty))) {
-      st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
-      if (st) {
-        Memory::release(table);
-        return (st);
-      }
+      m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
     }
     memmove(e, e + 1, ((dupe_table_get_count(table) - position) - 1)
                 * sizeof(PDupeEntry));
@@ -289,11 +257,7 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
     rec.data = (ham_u8_t *)table;
     rec.size = sizeof(PDupeTable) + (dupe_table_get_capacity(table) - 1)
                     * sizeof(PDupeEntry);
-    st = m_env->get_blob_manager()->overwrite(db, table_id, &rec, 0, &rid);
-    if (st) {
-      Memory::release(table);
-      return (st);
-    }
+    rid = m_env->get_blob_manager()->overwrite(db, table_id, &rec, 0);
     if (new_table_id)
       *new_table_id = rid;
   }
@@ -302,44 +266,35 @@ DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
   if (dupe_table_get_count(table) == 0)
     if (new_table_id)
       *new_table_id = 0;
-
-  return (0);
 }
 
-ham_status_t
-DuplicateManager::get_count(ham_u64_t table_id, ham_u32_t *count,
-                PDupeEntry *entry)
+ham_u32_t
+DuplicateManager::get_count(ham_u64_t table_id, PDupeEntry *entry)
 {
   PDupeTable *table;
   Page *page = 0;
 
-  ham_status_t st = get_table(&table, &page, table_id);
-  if (st)
-    return (st);
+  get_table(&table, &page, table_id);
 
-  *count = dupe_table_get_count(table);
+  ham_u32_t count = dupe_table_get_count(table);
   if (entry)
-    memcpy(entry, dupe_table_get_entry(table, (*count) - 1), sizeof(*entry));
+    memcpy(entry, dupe_table_get_entry(table, count - 1), sizeof(*entry));
 
   if (!(m_env->get_flags() & HAM_IN_MEMORY)) {
     if (!page)
       Memory::release(table);
   }
 
-  return (0);
+  return (count);
 }
 
 ham_status_t
-DuplicateManager::get(ham_u64_t table_id, ham_u32_t position,
-                PDupeEntry *entry)
+DuplicateManager::get(ham_u64_t table_id, ham_u32_t position, PDupeEntry *entry)
 {
-  ham_status_t st;
   PDupeTable *table;
   Page *page = 0;
 
-  st = get_table(&table, &page, table_id);
-  if (st)
-    return (st);
+  get_table(&table, &page, table_id);
 
   if (position >= dupe_table_get_count(table)) {
     if (!(m_env->get_flags() & HAM_IN_MEMORY))
@@ -356,21 +311,17 @@ DuplicateManager::get(ham_u64_t table_id, ham_u32_t position,
   return (0);
 }
 
-ham_status_t
+void
 DuplicateManager::get_table(ham_u64_t table_id, PDupeTable **ptable,
                 bool *needs_free)
 {
   Page *page = 0;
 
-  ham_status_t st = get_table(ptable, &page, table_id);
-  if (st)
-    return (st);
+  get_table(ptable, &page, table_id);
 
   if (!(m_env->get_flags() & HAM_IN_MEMORY))
     if (!page)
       *needs_free = true;
-
-  return (0);
 }
 
 } // namespace hamsterdb

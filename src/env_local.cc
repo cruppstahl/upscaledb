@@ -239,9 +239,9 @@ fail_with_fake_cleansing:
    * (logical) journal.
    */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    st = recover(flags);
+    recover(flags);
 
-  return (st);
+  return (0);
 }
 
 ham_status_t
@@ -383,9 +383,7 @@ LocalEnvironment::close(ham_u32_t flags)
   Device *device = get_device();
 
   /* flush all committed transactions */
-  st = flush_committed_txns();
-  if (st)
-    return (st);
+  flush_committed_txns();
 
   /* close all databases */
   Environment::DatabaseMap::iterator it = get_database_map().begin();
@@ -401,9 +399,7 @@ LocalEnvironment::close(ham_u32_t flags)
   }
 
   /* flush all committed transactions */
-  st = flush_committed_txns();
-  if (st)
-    return (st);
+  flush_committed_txns();
 
   /* flush all pages and the freelist, reduce the file size */
   if (m_page_manager)
@@ -468,7 +464,7 @@ LocalEnvironment::close(ham_u32_t flags)
     m_header = 0;
   }
 
-  return 0;
+  return (0);
 }
 
 ham_status_t
@@ -519,19 +515,14 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
 ham_status_t
 LocalEnvironment::flush(ham_u32_t flags)
 {
-  ham_status_t st;
   Device *device = get_device();
-
-  (void)flags;
 
   /* never flush an in-memory-database */
   if (get_flags() & HAM_IN_MEMORY)
     return (0);
 
   /* flush all committed transactions */
-  st = flush_committed_txns();
-  if (st)
-    return (st);
+  flush_committed_txns();
 
   /* flush the header page, if necessary */
   if (m_header->get_header_page()->is_dirty())
@@ -772,53 +763,47 @@ LocalEnvironment::txn_begin(Transaction **txn, const char *name,
 ham_status_t
 LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 {
-  ham_status_t st = 0;
-
   /* are cursors attached to this txn? if yes, fail */
   if (txn->get_cursor_refcount()) {
     ham_trace(("Transaction cannot be committed till all attached "
           "Cursors are closed"));
-    return (HAM_CURSOR_STILL_OPEN);
+    throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
     get_journal()->append_txn_commit(txn, get_incremented_lsn());
-    if (st)
-      return (st);
   }
 
-  return (txn->commit(flags));
+  txn->commit(flags);
+  return (0);
 }
 
 ham_status_t
 LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
 {
-  ham_status_t st = 0;
-
   /* are cursors attached to this txn? if yes, fail */
   if (txn->get_cursor_refcount()) {
     ham_trace(("Transaction cannot be aborted till all attached "
           "Cursors are closed"));
-    return (HAM_CURSOR_STILL_OPEN);
+    throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
     get_journal()->append_txn_abort(txn, get_incremented_lsn());
-    if (st)
-      return (st);
   }
 
-  return (txn->abort(flags));
+  txn->abort(flags);
+  return (0);
 }
 
-ham_status_t
+void
 LocalEnvironment::recover(ham_u32_t flags)
 {
-  ham_status_t st;
+  ham_status_t st = 0;
   m_log = new Log(this);
   m_journal = new Journal(this);
 
@@ -866,28 +851,25 @@ LocalEnvironment::recover(ham_u32_t flags)
     }
   }
 
-goto success;
-
 bail:
   /* in case of errors: close log and journal, but do not delete the files */
-  m_log->close(true);
-  delete m_log;
-  m_log = 0;
+  if (st) {
+    m_log->close(true);
+    delete m_log;
+    m_log = 0;
 
-  m_journal->close(true);
-  delete m_journal;
-  m_journal = 0;
-  return (st);
+    m_journal->close(true);
+    delete m_journal;
+    m_journal = 0;
+    throw Exception(st);
+  }
 
-success:
   /* done with recovering - if there's no log and/or no journal then
    * create them and store them in the environment */
   if (!(get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     delete m_journal;
     m_journal = 0;
   }
-
-  return (0);
 }
 
 void
@@ -901,7 +883,7 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
   BtreeIndex::get_metrics(metrics);
 }
 
-ham_status_t
+void
 LocalEnvironment::flush_committed_txns()
 {
   Transaction *oldest;
@@ -914,9 +896,7 @@ LocalEnvironment::flush_committed_txns()
       if (last_id)
         ham_assert(last_id != oldest->get_id());
       last_id = oldest->get_id();
-      ham_status_t st = flush_txn(oldest);
-      if (st)
-        return (st);
+      flush_txn(oldest);
     }
     else if (oldest->is_aborted()) {
       ; /* nop */
@@ -934,14 +914,11 @@ LocalEnvironment::flush_committed_txns()
   /* clear the changeset; if the loop above was not entered or the
    * transaction was empty then it may still contain pages */
   get_changeset().clear();
-
-  return (0);
 }
 
-ham_status_t
+void
 LocalEnvironment::flush_txn(Transaction *txn)
 {
-  ham_status_t st = 0;
   TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;
 
@@ -957,12 +934,7 @@ LocalEnvironment::flush_txn(Transaction *txn)
       ham_assert(get_changeset().is_empty());
 #endif
 
-    st = node->get_db()->flush_txn_operation(txn, op);
-    if (st) {
-      ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
-      get_changeset().clear();
-      return (st);
-    }
+    node->get_db()->flush_txn_operation(txn, op);
 
     /* now flush the changeset to disk */
     if (get_flags() & HAM_ENABLE_RECOVERY)
@@ -987,8 +959,6 @@ next_op:
     /* continue with the next operation of this txn */
     op = op->get_next_in_txn();
   }
-
-  return (0);
 }
 
 ham_u64_t

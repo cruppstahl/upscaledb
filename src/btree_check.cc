@@ -38,7 +38,7 @@ class BtreeCheckAction
     }
 
     // This is the main method; it starts the verification.
-    ham_status_t run() {
+    void run() {
       Page *page, *parent = 0;
       ham_u32_t level = 0;
       LocalDatabase *db = m_btree->get_db();
@@ -47,7 +47,6 @@ class BtreeCheckAction
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      ham_status_t st;
       page = env->get_page_manager()->fetch_page(db,
               m_btree->get_root_address());
 
@@ -57,9 +56,7 @@ class BtreeCheckAction
         ham_u64_t ptr_down = node->get_ptr_down();
 
         // verify the page and all its siblings
-        st = verify_level(parent, page, level);
-        if (st)
-          break;
+        verify_level(parent, page, level);
         parent = page;
 
         // follow the pointer to the smallest child
@@ -70,15 +67,12 @@ class BtreeCheckAction
 
         ++level;
     }
-
-    return (st);
   }
 
   private:
     // Verifies a whole level in the tree - start with "page" and traverse
     // the linked list of all the siblings
-    ham_status_t verify_level(Page *parent, Page *page, ham_u32_t level) {
-      ham_status_t st = 0;
+    void verify_level(Page *parent, Page *page, ham_u32_t level) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       Page *child, *leftsib = 0;
@@ -92,15 +86,13 @@ class BtreeCheckAction
           ham_log(("integrity check failed in page 0x%llx: parent item "
                   "#0 < item #%d\n", page->get_address(),
                   node->get_count() - 1));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
 
       while (page) {
         // verify the page
-        st = verify_page(parent, leftsib, page, level);
-        if (st)
-          break;
+        verify_page(parent, leftsib, page, level);
 
         // follow the right sibling
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -112,25 +104,21 @@ class BtreeCheckAction
         leftsib = page;
         page = child;
       }
-
-      return (st);
     }
 
     // Verifies a single page
-    ham_status_t verify_page(Page *parent, Page *leftsib, Page *page,
-                ham_u32_t level) {
-      ham_status_t st;
+    void verify_page(Page *parent, Page *leftsib, Page *page, ham_u32_t level) {
       LocalDatabase *db = m_btree->get_db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
         if (page->get_address() == m_btree->get_root_address())
-          return (0);
+          return;
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
                 page->get_address()));
-        return (HAM_INTEGRITY_VIOLATED);
+        throw Exception(HAM_INTEGRITY_VIOLATED);
       }
 
       // check if the largest item of the left sibling is smaller than
@@ -140,56 +128,42 @@ class BtreeCheckAction
         ham_key_t key1 = {0};
         ham_key_t key2 = {0};
 
-        st = node->check_integrity();
-        if (st)
-          return (st);
-        st = sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
-        if (st)
-          return (st);
-        st = node->get_key(0, &m_barray2, &key2);
-        if (st)
-          return (st);
+        node->check_integrity();
+
+        sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
+        node->get_key(0, &m_barray2, &key2);
 
         int cmp = node->compare(&key1, &key2);
         if (cmp >= 0) {
           ham_log(("integrity check failed in page 0x%llx: item #0 "
                   "< left sibling item #%d\n", page->get_address(),
                   sibnode->get_count() - 1));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
 
       if (node->get_count() == 1)
-        return (0);
+        return;
 
-      st = node->check_integrity();
-      if (st)
-        return (st);
+      node->check_integrity();
 
       for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
         int cmp = compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i + 1));
         if (cmp >= 0) {
           ham_log(("integrity check failed in page 0x%llx: item #%d "
                   "< item #%d", page->get_address(), i, i + 1));
-          return (HAM_INTEGRITY_VIOLATED);
+          throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
-
-      return (0);
     }
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
-      ham_status_t st;
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
       ham_key_t key1 = {0};
       ham_key_t key2 = {0};
 
-      st = node->get_key(lhs, &m_barray1, &key1);
-      if (st)
-        return (st);
-      st = node->get_key(rhs, &m_barray2, &key2);
-      if (st)
-        return (st);
+      node->get_key(lhs, &m_barray1, &key1);
+      node->get_key(rhs, &m_barray2, &key2);
 
       return (node->compare(&key1, &key2));
     }
@@ -199,11 +173,11 @@ class BtreeCheckAction
     ByteArray m_barray2;
 };
 
-ham_status_t
+void
 BtreeIndex::check_integrity()
 {
   BtreeCheckAction bta(this);
-  return (bta.run());
+  bta.run();
 }
 
 } // namespace hamsterdb

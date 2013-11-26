@@ -110,18 +110,15 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 ==
-          m_freelist->free_area(ps + i * CHUNKSIZE, CHUNKSIZE));
+      m_freelist->free_area(ps + i * CHUNKSIZE, CHUNKSIZE);
     }
 
     for (int i = 0; i < 10; i++) {
-      ham_u64_t o;
-      REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+      ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
       REQUIRE((ham_u64_t)(ps + i * CHUNKSIZE) == o);
     }
 
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == o);
     REQUIRE(m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -133,7 +130,7 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == m_freelist->free_area(ps + i * ps, ps));
+      m_freelist->free_area(ps + i * ps, ps);
     }
 
     for (int i = 0; i < 10; i++) {
@@ -141,8 +138,7 @@ struct FreelistFixture {
     }
 
     for (int i = 0; i < 10; i++) {
-      ham_u64_t o;
-      REQUIRE(0 == m_freelist->alloc_area(ps, &o));
+      ham_u64_t o = m_freelist->alloc_area(ps);
       REQUIRE((ham_u64_t)(ps + i * ps) == o);
       REQUIRE(false == m_freelist->is_page_free(ps + i * ps));
     }
@@ -156,15 +152,14 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 0; i < 3; i++) {
-      REQUIRE(0 == m_freelist->free_area(ps + i * ps, ps));
+      m_freelist->free_area(ps + i * ps, ps);
     }
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(true == m_freelist->is_page_free(ps + i * ps));
     }
 
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)(ps) == o);
 
     REQUIRE(false == m_freelist->is_page_free(ps + 0 * ps));
@@ -183,8 +178,7 @@ struct FreelistFixture {
                   PageManager::kClearWithZero)));
 
     // allocate a blob from the freelist - must fail
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(0ull == o);
 
     pm->add_to_freelist(page);
@@ -201,7 +195,7 @@ struct FreelistFixture {
     REQUIRE((ham_u64_t)(page_size * 2) == m_lenv->get_device()->get_filesize());
 
     // allocate a blob from the freelist - must fail
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(0ull == o);
   }
 
@@ -238,8 +232,7 @@ struct FreelistFixture {
     REQUIRE((ham_u64_t)(page_size * 4) == m_lenv->get_device()->get_filesize());
 
     // allocate a new page from the freelist - must fail
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(0ull == o);
 
     // allocate a new page from disk - must succeed
@@ -282,7 +275,7 @@ struct FreelistFixture {
     // truncate the free pages and verify that they are *not longer free*
     for (int i = 2; i < 5; i++) {
       REQUIRE(true  == m_freelist->is_page_free(page[i]->get_address()));
-      REQUIRE(0 == m_freelist->truncate_page(page[i]->get_address()));
+      m_freelist->truncate_page(page[i]->get_address());
       REQUIRE(false == m_freelist->is_page_free((2 + i) * page_size));
     }
 
@@ -296,8 +289,7 @@ struct FreelistFixture {
     }
 
     // freelist is empty
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(0ull == o);
 
     // allocate the page; this must increase the file size
@@ -322,10 +314,8 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 ==
-          m_freelist->free_area(ps, ps));
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_page(&o));
+    m_freelist->free_area(ps, ps);
+    ham_u64_t o = m_freelist->alloc_page();
     REQUIRE((ham_u64_t)ps == o);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -336,19 +326,15 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 60; i < 70; i++) {
-      REQUIRE(0 ==
-          m_freelist->free_area(ps + i * CHUNKSIZE, CHUNKSIZE));
+      m_freelist->free_area(ps + i * CHUNKSIZE, CHUNKSIZE);
     }
 
     for (int i = 60; i < 70; i++) {
-      ham_u64_t o;
-      REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+      ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
       REQUIRE(o == (ham_u64_t)ps + i * CHUNKSIZE);
     }
 
-    ham_u64_t o;
-    REQUIRE(0 ==
-          m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == o);
     REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -361,20 +347,19 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 60; i < 70; i++) {
-      REQUIRE(0 == m_freelist->free_area(offset, (i + 1) * CHUNKSIZE));
+      m_freelist->free_area(offset, (i + 1) * CHUNKSIZE);
       offset += (i + 1) * CHUNKSIZE;
     }
 
     offset = ps;
     for (int i = 60; i < 70; i++) {
-      ham_u64_t o;
-      REQUIRE(0 == m_freelist->alloc_area((i + 1) * CHUNKSIZE, &o));
+      ham_u64_t o = m_freelist->alloc_area((i + 1) * CHUNKSIZE);
       REQUIRE((ham_u64_t)offset == o);
       offset += (i + 1) * CHUNKSIZE;
     }
 
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
+    ham_u64_t o = m_freelist->alloc_area(CHUNKSIZE);
+    REQUIRE(0 == o);
     REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -384,7 +369,7 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->free_area(o, CHUNKSIZE));
+    m_freelist->free_area(o, CHUNKSIZE);
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* need to clear the changeset, otherwise ham_db_close() will complain */
@@ -392,13 +377,12 @@ struct FreelistFixture {
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t addr;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    ham_u64_t addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(o == addr);
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == addr);
 
-    REQUIRE(0 == m_freelist->free_area(o * 2, CHUNKSIZE));
+    m_freelist->free_area(o * 2, CHUNKSIZE);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     /* need to clear the changeset, otherwise ham_db_close() will complain */
@@ -406,9 +390,9 @@ struct FreelistFixture {
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(addr == o * 2);
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == addr);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -418,9 +402,9 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->free_area(o * 3, CHUNKSIZE));
+    m_freelist->free_area(o * 3, CHUNKSIZE);
     ham_u64_t addr;
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(addr == 3 * o);
     REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
 
@@ -430,11 +414,11 @@ struct FreelistFixture {
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == addr);
 
-    REQUIRE(0 == m_freelist->free_area(o * 10, CHUNKSIZE));
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    m_freelist->free_area(o * 10, CHUNKSIZE);
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(addr == 10 * o);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -443,7 +427,7 @@ struct FreelistFixture {
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE((ham_u64_t)0 == addr);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -452,8 +436,7 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     // this code snippet crashed in an acceptance test
-    REQUIRE(0 == m_freelist->free_area(2036736,
-          m_lenv->get_page_size() - 1024));
+    m_freelist->free_area(2036736, m_lenv->get_page_size() - 1024);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
@@ -463,11 +446,10 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->free_area(ps, ps));
-    REQUIRE(0 == m_freelist->alloc_page(&addr));
+    m_freelist->free_area(ps, ps);
+    addr = m_freelist->alloc_page();
     REQUIRE(ps == addr);
-    REQUIRE(0 ==
-        m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(0ull == addr);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -478,12 +460,12 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->free_area(ps, ps * 2));
-    REQUIRE(0 == m_freelist->alloc_page(&addr));
+    m_freelist->free_area(ps, ps * 2);
+    addr = m_freelist->alloc_page();
     REQUIRE(addr == (ham_u64_t)ps * 1);
-    REQUIRE(0 == m_freelist->alloc_page(&addr));
+    addr = m_freelist->alloc_page();
     REQUIRE(addr == (ham_u64_t)ps * 2);
-    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
+    addr = m_freelist->alloc_area(CHUNKSIZE);
     REQUIRE(addr == (ham_u64_t)0);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -501,11 +483,10 @@ struct FreelistFixture {
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    REQUIRE(0 == m_freelist->free_area(ps, ps));
-    REQUIRE(0 == m_freelist->free_area(ps, ps));
-    REQUIRE(0 == m_freelist->free_area(ps, ps));
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_page(&o));
+    m_freelist->free_area(ps, ps);
+    m_freelist->free_area(ps, ps);
+    m_freelist->free_area(ps, ps);
+    ham_u64_t o = m_freelist->alloc_page();
     REQUIRE((ham_u64_t)ps == o);
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -515,12 +496,11 @@ struct FreelistFixture {
     ham_u32_t ps = m_lenv->get_page_size();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == m_freelist->free_area(ps, ps));
+    m_freelist->free_area(ps, ps);
     REQUIRE(0 == ham_txn_commit(txn, 0));
     REQUIRE(0 == ham_db_close(m_db, 0));
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS | HAM_DISABLE_RECLAIM_INTERNAL));
-    ham_u64_t o;
-    REQUIRE(0 == m_freelist->alloc_page(&o));
+    ham_u64_t o = m_freelist->alloc_page();
     REQUIRE((ham_u64_t)ps == o);
   }
 };

@@ -129,7 +129,7 @@ class BtreeCursor
 
     // Uncouples the cursor
     // Asserts that the cursor is coupled
-    ham_status_t uncouple_from_page();
+    void uncouple_from_page();
 
     // Returns true if a cursor points to this btree key
     bool points_to(Page *page, ham_u32_t slot);
@@ -151,13 +151,13 @@ class BtreeCursor
     ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     // Returns the number of duplicates of the referenced key
-    ham_status_t get_duplicate_count(ham_u32_t *count, ham_u32_t flags);
+    ham_u32_t get_duplicate_count(ham_u32_t flags);
 
     // Overwrite the record of this cursor
-    ham_status_t overwrite(ham_record_t *record, ham_u32_t flags);
+    void overwrite(ham_record_t *record, ham_u32_t flags);
 
     // retrieves the record size of the current record
-    ham_status_t get_record_size(ham_u64_t *size);
+    ham_u64_t get_record_size();
 
     // Closes the cursor
     void close() {
@@ -166,7 +166,7 @@ class BtreeCursor
 
     // Uncouples all cursors from a page
     // This method is called whenever the page is deleted or becomes invalid
-    static ham_status_t uncouple_all_cursors(Page *page, ham_u32_t start = 0);
+    static void uncouple_all_cursors(Page *page, ham_u32_t start = 0);
 
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
@@ -179,7 +179,7 @@ class BtreeCursor
     // Couples the cursor to the current page/key
     // Asserts that the cursor is uncoupled. After this call the cursor
     // will be coupled.
-    ham_status_t couple();
+    void couple();
 
     // move cursor to the very first key
     ham_status_t move_first(ham_u32_t flags);

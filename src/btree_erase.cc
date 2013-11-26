@@ -65,13 +65,12 @@ class BtreeEraseAction
           ham_assert(node->is_leaf());
           if (coupled_index > 0 && node->requires_merge()) {
             /* yes, we can remove the key */
-            return (remove_entry(coupled_page, coupled_index));
+            remove_entry(coupled_page, coupled_index);
+            return (0);
           }
           else {
             /* otherwise uncouple and fall through */
-            ham_status_t st = m_cursor->uncouple_from_page();
-            if (st)
-              return (st);
+            m_cursor->uncouple_from_page();
           }
         }
 
@@ -97,17 +96,9 @@ class BtreeEraseAction
 
       if (p) {
         /* delete the old root page */
-        st = BtreeCursor::uncouple_all_cursors(root);
-        if (st) {
-          m_btree->get_statistics()->erase_failed();
-          return (st);
-        }
+        BtreeCursor::uncouple_all_cursors(root);
 
-        st = collapse_root(root, p);
-        if (st) {
-          m_btree->get_statistics()->erase_failed();
-          return (st);
-        }
+        collapse_root(root, p);
 
         m_btree->get_statistics()->reset_page(root);
       }
@@ -117,7 +108,7 @@ class BtreeEraseAction
 
   private:
     /* remove an item from a page */
-    ham_status_t remove_entry(Page *page, int slot) {
+    void remove_entry(Page *page, int slot) {
       LocalDatabase *db = m_btree->get_db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -125,9 +116,7 @@ class BtreeEraseAction
       ham_assert(slot < (int)node->get_count());
 
       /* uncouple all cursors */
-      ham_status_t st;
-      if ((st = BtreeCursor::uncouple_all_cursors(page, slot + 1)))
-        return (st);
+      BtreeCursor::uncouple_all_cursors(page, slot + 1);
 
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete
@@ -136,15 +125,12 @@ class BtreeEraseAction
       if (node->is_leaf()) {
         // only delete a duplicate?
         if (m_dupe_id > 0)
-          st = node->erase_record(slot, m_dupe_id - 1, false,
-                  &has_duplicates_left);
+          node->erase_record(slot, m_dupe_id - 1, false, &has_duplicates_left);
         else {
-          st = node->erase_record(slot, 0, true, &has_duplicates_left);
+          node->erase_record(slot, 0, true, &has_duplicates_left);
           ham_assert(has_duplicates_left == false);
         }
       }
-      if (st)
-        return (st);
 
       // still got duplicates left? then adjust all cursors
       if (node->is_leaf()) {
@@ -173,7 +159,7 @@ class BtreeEraseAction
           }
           // all cursors were adjusted, the duplicate was deleted. return
           // to caller!
-          return (0);
+          return;
         }
         // the full key was deleted; all cursors pointing to this key
         // are set to nil
@@ -203,7 +189,6 @@ class BtreeEraseAction
       node->erase(slot);
 
       page->set_dirty(true);
-      return (0);
     }
 
     /*
@@ -242,11 +227,8 @@ class BtreeEraseAction
       else if (!m_mergepage)
         m_mergepage = page;
 
-      if (!node->is_leaf()) {
-        st = m_btree->find_internal(page, m_key, &child, &slot);
-        if (st)
-          return (st);
-      }
+      if (!node->is_leaf())
+        child = m_btree->find_internal(page, m_key, &slot);
       else {
         slot = node->find(m_key);
         child = 0;
@@ -322,20 +304,20 @@ class BtreeEraseAction
       if (newme) {
         if (slot == -1)
           slot = 0;
-        st = remove_entry(page, slot);
-        if (st)
-          return (st);
+        remove_entry(page, slot);
       }
 
       /* no need to rebalance in case of an error */
-      return (rebalance(page_ref, page, left, right, lanchor, ranchor, parent));
+      rebalance(page_ref, page, left, right, lanchor, ranchor, parent);
+
+      return (0);
     }
 
     /*
      * rebalance a page - either shifts elements to a sibling, or merges
      * the page with a sibling
      */
-    ham_status_t rebalance(Page **pnewpage, Page *page, ham_u64_t left,
+    void rebalance(Page **pnewpage, Page *page, ham_u64_t left,
                     ham_u64_t right, ham_u64_t lanchor,
                     ham_u64_t ranchor, Page *parent) {
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -352,7 +334,7 @@ class BtreeEraseAction
 
       *pnewpage = 0;
       if (!m_mergepage)
-        return (0);
+        return;
 
       /* get the left and the right sibling of this page */
       if (left) {
@@ -375,7 +357,7 @@ class BtreeEraseAction
         if (!node->is_leaf())
           *pnewpage = env->get_page_manager()->fetch_page(db,
                   node->get_ptr_down());
-        return (0);
+        return;
       }
 
       /*
@@ -383,60 +365,60 @@ class BtreeEraseAction
        * too empty, we have to merge them
        */
       if ((!leftpage || fewleft) && (!rightpage || fewright)) {
-        if (parent && lanchor != parent->get_address()) {
-          return (merge_pages(pnewpage, page, rightpage, ranchor));
-        }
-        else {
-          return (merge_pages(pnewpage, leftpage, page, lanchor));
-        }
+        if (parent && lanchor != parent->get_address())
+          merge_pages(pnewpage, page, rightpage, ranchor);
+        else
+          merge_pages(pnewpage, leftpage, page, lanchor);
+        return;
       }
 
       /* otherwise choose the better of a merge or a shift */
       if (leftpage && fewleft && rightpage && !fewright) {
         if (parent && (!(ranchor == parent->get_address()) &&
-            (page->get_address() == m_mergepage->get_address()))) {
-          return (merge_pages(pnewpage, leftpage, page, lanchor));
-        }
-        else {
-          return (shift_pages(page, rightpage, ranchor));
-        }
+            (page->get_address() == m_mergepage->get_address())))
+          merge_pages(pnewpage, leftpage, page, lanchor);
+        else
+          shift_pages(page, rightpage, ranchor);
+        return;
       }
 
       /* ... still choose the better of a merge or a shift... */
       if (leftpage && !fewleft && rightpage && fewright) {
         if (parent && (!(lanchor == parent->get_address()) &&
                 (page->get_address() == m_mergepage->get_address())))
-          return (merge_pages(pnewpage, page, rightpage, ranchor));
+          merge_pages(pnewpage, page, rightpage, ranchor);
         else
-          return (shift_pages(leftpage, page, lanchor));
+          shift_pages(leftpage, page, lanchor);
+        return;
       }
 
       /* choose the more effective of two shifts */
       if (lanchor == ranchor) {
         if (leftnode != 0 && rightnode != 0
                 && leftnode->get_count() <= rightnode->get_count())
-          return (shift_pages(page, rightpage, ranchor));
+          shift_pages(page, rightpage, ranchor);
         else
-          return (shift_pages(leftpage, page, lanchor));
+          shift_pages(leftpage, page, lanchor);
+        return;
       }
 
       /* choose the shift with more local effect */
       if (parent && lanchor == parent->get_address())
-        return (shift_pages(leftpage, page, lanchor));
+        shift_pages(leftpage, page, lanchor);
       else
-        return (shift_pages(page, rightpage, ranchor));
+        shift_pages(page, rightpage, ranchor);
+      return;
     }
 
     /*
      * shift items from a sibling to this page, till both pages have an equal
      * number of items
      */
-    ham_status_t shift_pages(Page *page, Page *sibpage, ham_u64_t anchor) {
+    void shift_pages(Page *page, Page *sibpage, ham_u64_t anchor) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       int slot = 0;
 
-      ham_status_t st = 0;
       Page *ancpage = env->get_page_manager()->fetch_page(db, anchor);
 
       BtreeNodeProxy *node    = m_btree->get_node_from_page(page);
@@ -450,17 +432,14 @@ class BtreeEraseAction
                   - std::min(node->get_count(), sibnode->get_count())
               < kShiftThreshold) {
           m_mergepage = 0;
-          return (0);
+          return;
         }
       }
 
       /* uncouple all cursors */
-      if ((st = BtreeCursor::uncouple_all_cursors(page)))
-        return (st);
-      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
-        return (st);
-      if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
-        return (st);
+      BtreeCursor::uncouple_all_cursors(page);
+      BtreeCursor::uncouple_all_cursors(sibpage);
+      BtreeCursor::uncouple_all_cursors(ancpage);
 
       bool internal = !node->is_leaf();
 
@@ -473,9 +452,7 @@ class BtreeEraseAction
           slot = ancnode->find(sibnode, 0);
 
           /* append the anchor node to the page */
-          st = ancnode->replace_key(slot, node, node->get_count(), true);
-          if (st)
-            return (st);
+          ancnode->replace_key(slot, node, node->get_count(), true);
 
           /* the pointer of this new node is ptr_down of the sibling */
           node->set_record_id(node->get_count(), sibnode->get_ptr_down());
@@ -488,9 +465,7 @@ class BtreeEraseAction
           sibnode->set_ptr_down(sibnode->get_record_id(0));
 
           /* update the anchor node with sibling[0] */
-          st = sibnode->replace_key(0, ancnode, slot, true);
-          if (st)
-            return (st);
+          sibnode->replace_key(0, ancnode, slot, true);
 
           /* and remove this key from the sibling */
           sibnode->erase(0);
@@ -506,9 +481,7 @@ class BtreeEraseAction
 
         /* internal node: append the anchor key to the page */
         if (internal) {
-          st = ancnode->replace_key(slot, node, node->get_count(), true);
-          if (st)
-            return (st);
+          ancnode->replace_key(slot, node, node->get_count(), true);
 
           node->set_record_id(node->get_count(), sibnode->get_ptr_down());
           node->set_count(node->get_count() + 1);
@@ -532,9 +505,7 @@ class BtreeEraseAction
           if (anchor) {
             //slot = ancnode->find(sibnode, 0);
             /* replace the key */
-            st = sibnode->replace_key(0, ancnode, slot, true);
-            if (st)
-              return (st);
+            sibnode->replace_key(0, ancnode, slot, true);
           }
 
           /* shift once more */
@@ -544,9 +515,7 @@ class BtreeEraseAction
           /* in a leaf - update the anchor */
           //slot = ancnode->find(sibnode, 0);
           /* replace the key */
-          st = sibnode->replace_key(0, ancnode, slot, true);
-          if (st)
-            return (st);
+          sibnode->replace_key(0, ancnode, slot, true);
         }
       }
       /* this code path shifts keys from this node to the sibling */
@@ -556,9 +525,7 @@ class BtreeEraseAction
           slot = ancnode->find(sibnode, 0);
 
           /* copy the old anchor element to sibling[0] */
-          st = sibnode->insert(0, ancnode, slot);
-          if (st)
-            return (st);
+          sibnode->insert(0, ancnode, slot);
 
           /* sibling[0].ptr = sibling.ptr_down */
           sibnode->set_record_id(0, sibnode->get_ptr_down());
@@ -567,9 +534,7 @@ class BtreeEraseAction
           sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
           /* new anchor element is node[node.count-1].key */
-          st = node->replace_key(node->get_count() - 1, ancnode, slot, true);
-          if (st)
-            return (st);
+          node->replace_key(node->get_count() - 1, ancnode, slot, true);
 
           /* current page has now one item less */
           node->set_count(node->get_count() - 1);
@@ -587,9 +552,7 @@ class BtreeEraseAction
         /* internal pages: insert the anchor element */
         if (internal) {
           /* shift entire sibling by 1 to the right */
-          st = sibnode->insert(0, ancnode, slot);
-          if (st)
-            return (st);
+          sibnode->insert(0, ancnode, slot);
 
           sibnode->set_record_id(0, sibnode->get_ptr_down());
           sibnode->set_count(sibnode->get_count() + 1);
@@ -616,14 +579,12 @@ class BtreeEraseAction
         if (anchor) {
           if (internal) {
             slot = ancnode->find(node, s);
-            st = node->replace_key(s, ancnode, slot + 1, true);
+            node->replace_key(s, ancnode, slot + 1, true);
           }
           else {
             slot = ancnode->find(sibnode, 0);
-            st = sibnode->replace_key(0, ancnode, slot + 1, true);
+            sibnode->replace_key(0, ancnode, slot + 1, true);
           }
-          if (st)
-            return (st);
         }
       }
 
@@ -636,12 +597,10 @@ cleanup:
       m_mergepage = 0;
 
       BtreeIndex::ms_btree_smo_shift++;
-
-      return (st);
     }
 
     /* merge two pages */
-    ham_status_t merge_pages(Page **pnewpage, Page *page, Page *sibpage,
+    void merge_pages(Page **pnewpage, Page *page, Page *sibpage,
                         ham_u64_t anchor) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
@@ -651,19 +610,15 @@ cleanup:
       *pnewpage = 0;
 
       /* uncouple all cursors */
-      ham_status_t st;
-      if ((st = BtreeCursor::uncouple_all_cursors(page)))
-        return (st);
-      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
-        return (st);
+      BtreeCursor::uncouple_all_cursors(page);
+      BtreeCursor::uncouple_all_cursors(sibpage);
 
       Page *ancpage = 0;
       BtreeNodeProxy *ancnode = 0;
       if (anchor) {
         ancpage = env->get_page_manager()->fetch_page(page->get_db(), anchor);
         ancnode = m_btree->get_node_from_page(ancpage);
-        if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
-          return (st);
+        BtreeCursor::uncouple_all_cursors(ancpage);
       }
 
       /*
@@ -673,9 +628,7 @@ cleanup:
       if (!node->is_leaf()) {
         int slot = ancnode->find(sibnode, 0);
 
-        st = ancnode->replace_key(slot, node, node->get_count(), true);
-        if (st)
-          return (st);
+        ancnode->replace_key(slot, node, node->get_count(), true);
 
         node->set_record_id(node->get_count(), sibnode->get_ptr_down());
         node->set_count(node->get_count() + 1);
@@ -727,12 +680,10 @@ cleanup:
       *pnewpage = sibpage;
 
       BtreeIndex::ms_btree_smo_merge++;
-
-      return (HAM_SUCCESS);
     }
 
     /* collapse the root node */
-    ham_status_t collapse_root(Page *oldroot, Page *newroot) {
+    void collapse_root(Page *oldroot, Page *newroot) {
       LocalEnvironment *env = oldroot->get_db()->get_local_env();
       env->get_page_manager()->add_to_freelist(oldroot);
 
@@ -740,7 +691,6 @@ cleanup:
       ham_assert(newroot->get_db());
 
       newroot->set_type(Page::kTypeBroot);
-      return (0);
     }
 
     // the current btree
