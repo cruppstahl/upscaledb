@@ -903,7 +903,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
    * only available in ham_cursor_find */
-  if (get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
     Cursor *c;
     st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
             (ham_txn_t *)txn, HAM_DONT_LOCK);
@@ -1359,7 +1359,7 @@ bail:
 }
 
 ham_status_t
-LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
+LocalDatabase::cursor_get_record_count(Cursor *cursor,
           ham_u32_t *count, ham_u32_t flags)
 {
   ham_status_t st = 0;
@@ -1380,7 +1380,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
   }
 
   /* this function will do all the work */
-  *count = cursor->get_duplicate_count(
+  *count = cursor->get_record_count(
             cursor->get_txn() ? cursor->get_txn() : local_txn,
             flags);
 

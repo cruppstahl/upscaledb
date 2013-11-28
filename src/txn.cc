@@ -21,7 +21,6 @@
 #include "mem.h"
 #include "page.h"
 #include "btree_stats.h"
-#include "btree_key.h"
 #include "txn.h"
 #include "txn_cursor.h"
 #include "cursor.h"

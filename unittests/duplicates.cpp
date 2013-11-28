@@ -98,8 +98,7 @@ struct DuplicateFixture {
     rec.data = data;
     rec.size = sizeof(data);
     ::memset(&data, 0x99, sizeof(data));
-    REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
 
     REQUIRE(0 == ham_cursor_move(c, &key, &rec2, HAM_CURSOR_FIRST));
     REQUIRE((ham_u32_t)sizeof(data) == rec2.size);
@@ -140,8 +139,7 @@ struct DuplicateFixture {
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      REQUIRE(0 ==
-          ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
       REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
         REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
@@ -161,8 +159,7 @@ struct DuplicateFixture {
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      REQUIRE(0 ==
-          ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
       REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
         REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
@@ -170,8 +167,7 @@ struct DuplicateFixture {
       }
     }
 
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(cursor, &count, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(cursor, &count, 0));
     REQUIRE((ham_u32_t)M == count);
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -184,8 +180,7 @@ struct DuplicateFixture {
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      REQUIRE(0 ==
-          ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
+      REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
       REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
         REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
@@ -193,8 +188,7 @@ struct DuplicateFixture {
       }
     }
 
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(cursor, &count, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(cursor, &count, 0));
     REQUIRE((ham_u32_t)M == count);
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -203,8 +197,7 @@ struct DuplicateFixture {
     ::memset(data, 0x99, 16);
     rec.data = data;
     rec.size = 16;
-    REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
 
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
     REQUIRE((ham_u32_t)16 == rec2.size);
@@ -313,8 +306,7 @@ struct DuplicateFixture {
     REQUIRE(0 == ::memcmp(data, rec.data, sizeof(data)));
 
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-        ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
   void insert(ham_key_t *key, ham_record_t *rec) {
@@ -351,8 +343,7 @@ struct DuplicateFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    REQUIRE(expected ==
-        ham_cursor_move(cursor, &key, &rec, flags));
+    REQUIRE(expected == ham_cursor_move(cursor, &key, &rec, flags));
 
     if (expected == 0) {
       if (data) {
@@ -772,17 +763,14 @@ struct DuplicateFixture {
 
   void eraseDuplicateTest() {
     ham_cursor_t *c1, *c2;
-    ham_key_t key;
-    ham_record_t rec;
-    int value = 1;
-    ::memset(&key, 0, sizeof(key));
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
 
-    ::memset(&rec, 0, sizeof(rec));
+    int value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
-    ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
@@ -792,17 +780,16 @@ struct DuplicateFixture {
     REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     REQUIRE(0 == ham_cursor_find(c1, &key, 0, 0));
+
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-        ham_cursor_move(c1, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_move(c1, &key, &rec, 0));
     REQUIRE(1 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_find(c2, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-        ham_cursor_move(c2, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_move(c2, &key, &rec, 0));
     REQUIRE(1 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
@@ -811,14 +798,12 @@ struct DuplicateFixture {
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-        ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
     REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-        ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
     REQUIRE(2 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_close(c1));
@@ -1218,80 +1203,20 @@ struct DuplicateFixture {
     rec.data = (void *)"1111111111111111111111111111111111111111";
     rec.size = (ham_u32_t)strlen((char *)rec.data)+1;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-    checkData(c2, 0,          0,
-        "1111111111111111111111111111111111111111");
+    checkData(c2, 0, 0, "1111111111111111111111111111111111111111");
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"00";
     rec.size = (ham_u32_t)strlen((char *)rec.data)+1;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-    checkData(c2, 0,          0, "00");
+    checkData(c2, 0, 0, "00");
 
     checkData(c1, HAM_CURSOR_PREVIOUS,  0, "00");
     checkData(c1, HAM_CURSOR_FIRST,   0, "00");
 
     ham_cursor_close(c1);
     ham_cursor_close(c2);
-  }
-
-  void endianTest() {
-// i currently don't have access to a big-endian machine, and the existing
-// files were created with a database < 1.0.9 and are no longer supported
-#if 0
-    ham_key_t key;
-    ham_record_t rec;
-    ham_cursor_t *c;
-
-    /* close the existing database handle */
-    REQUIRE(0 == ham_db_close(m_db, 0));
-
-    (void)os::unlink(Globals::opath(".test"));
-
-    /* generated with `cat ../COPYING.GPL2 | ./db5` */
-#if defined(HAM_LITTLE_ENDIAN)
-    REQUIRE(true ==
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-          Globals::opath(".test")));
-#else
-    REQUIRE(true ==
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-          Globals::opath(".test")));
-#endif
-    REQUIRE(0 == ham_open(m_db, Globals::opath(".test"), 0));
-
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"written";
-    key.size = 8;
-
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
-
-    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
-    memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_cursor_move(c, 0, &rec, 0));
-    REQUIRE(_ham_byteswap32(125) == *(unsigned int *)rec.data);
-
-    memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
-                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    REQUIRE(_ham_byteswap32(142) == *(unsigned int *)rec.data);
-
-    memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
-                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    REQUIRE(_ham_byteswap32(235) == *(unsigned int *)rec.data);
-
-    memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
-                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    REQUIRE(_ham_byteswap32(331) == *(unsigned int *)rec.data);
-
-    memset(&rec, 0, sizeof(rec));
-    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(c, 0, &rec,
-                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-
-    REQUIRE(0 == ham_cursor_close(c));
-#endif
   }
 
   void eraseCursorTest() {
@@ -1504,28 +1429,25 @@ struct DuplicateFixture {
 
         if (s == 0) {
           /* first round: insert the duplicates */
-          REQUIRE(0 ==
-              ham_cursor_insert(c, &key, &rec,
+          REQUIRE(0 == ham_cursor_insert(c, &key, &rec,
                   HAM_DUPLICATE_INSERT_LAST));
         }
         else {
           /* other rounds: just overwrite them */
-          REQUIRE(0 ==
-              ham_cursor_overwrite(c, &rec, 0));
+          REQUIRE(0 == ham_cursor_overwrite(c, &rec, 0));
           if (i != (s + 4) - 1)
-            REQUIRE(0 ==
-              ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
+            REQUIRE(0 == ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
         }
       }
 
-      checkData(c, HAM_CURSOR_FIRST,  0, newvalues[0]);
-      checkData(c, HAM_CURSOR_NEXT,   0, newvalues[1]);
-      checkData(c, HAM_CURSOR_NEXT,   0, newvalues[2]);
-      checkData(c, HAM_CURSOR_NEXT,   0, newvalues[3]);
-      checkData(c, HAM_CURSOR_NEXT,   HAM_KEY_NOT_FOUND, newvalues[1]);
+      checkData(c, HAM_CURSOR_FIRST, 0, newvalues[0]);
+      checkData(c, HAM_CURSOR_NEXT,  0, newvalues[1]);
+      checkData(c, HAM_CURSOR_NEXT,  0, newvalues[2]);
+      checkData(c, HAM_CURSOR_NEXT,  0, newvalues[3]);
+      checkData(c, HAM_CURSOR_NEXT,  HAM_KEY_NOT_FOUND, newvalues[1]);
 
       /* move to first element */
-      checkData(c, HAM_CURSOR_FIRST,  0, newvalues[0]);
+      checkData(c, HAM_CURSOR_FIRST, 0, newvalues[0]);
     }
 
     REQUIRE(0 == ham_cursor_close(c));
@@ -1610,26 +1532,23 @@ struct DuplicateFixture {
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 1000; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.size = sizeof(i);
       rec.data = &i;
 
-      REQUIRE(0 ==
-          ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 1000; i++) {
       memset(&rec, 0, sizeof(rec));
 
-      REQUIRE(0 ==
-          ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
       REQUIRE((ham_u32_t)4 == rec.size);
       REQUIRE(i == *(int *)rec.data);
     }
 
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-        ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
     REQUIRE(0 == ham_cursor_close(c));
   }
 
@@ -1899,16 +1818,6 @@ TEST_CASE("DuplicateFixture/overwriteMultipleCursorTest", "")
 }
 
 /*
- * reads a big-endian database (if started on a little-endian system)
- * or vice versa
- */
-TEST_CASE("DuplicateFixture/endianTest", "")
-{
-  DuplicateFixture f;
-  f.endianTest();
-}
-
-/*
  * insert a few duplicate items, then delete them all with a cursor
  */
 TEST_CASE("DuplicateFixture/eraseCursorTest", "")
@@ -1977,8 +1886,7 @@ TEST_CASE("DuplicateFixture/getDuplicateCountTest", "")
 }
 
 /*
- * insert a lot of duplicates to provoke a page-split in the duplicate
- * table
+ * insert a lot of duplicates (the duplicate table will grow)
  */
 TEST_CASE("DuplicateFixture/insertManyManyTest", "")
 {
@@ -2206,16 +2114,6 @@ TEST_CASE("DuplicateFixture-inmem/overwriteMultipleCursorTest", "")
 }
 
 /*
- * reads a big-endian database (if started on a little-endian system)
- * or vice versa
- */
-TEST_CASE("DuplicateFixture-inmem/endianTest", "")
-{
-  DuplicateFixture f(HAM_IN_MEMORY);
-  f.endianTest();
-}
-
-/*
  * insert a few duplicate items, then delete them all with a cursor
  */
 TEST_CASE("DuplicateFixture-inmem/eraseCursorTest", "")
@@ -2284,8 +2182,7 @@ TEST_CASE("DuplicateFixture-inmem/getDuplicateCountTest", "")
 }
 
 /*
- * insert a lot of duplicates to provoke a page-split in the duplicate
- * table
+ * insert a lot of duplicates to grow the duplicate table
  */
 TEST_CASE("DuplicateFixture-inmem/insertManyManyTest", "")
 {

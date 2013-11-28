@@ -29,6 +29,7 @@ int        HamsterDatabase::ms_refcount;
 
 namespace hamsterdb {
   extern ham_u32_t g_extended_threshold;
+  extern ham_u32_t g_duplicate_threshold;
 };
 
 static int 
@@ -76,6 +77,7 @@ HamsterDatabase::do_create_env()
   ms_refcount++;
 
   hamsterdb::g_extended_threshold = m_config->extkey_threshold;
+  hamsterdb::g_duplicate_threshold = m_config->duptable_threshold;
 
   if (ms_env == 0) {
     params[0].name = HAM_PARAM_CACHESIZE;
@@ -145,6 +147,7 @@ HamsterDatabase::do_open_env()
   ms_refcount++;
 
   hamsterdb::g_extended_threshold = m_config->extkey_threshold;
+  hamsterdb::g_duplicate_threshold = m_config->duptable_threshold;
 
   // check if another thread was faster
   if (ms_env == 0) {

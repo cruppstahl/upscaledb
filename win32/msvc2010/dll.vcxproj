@@ -199,10 +199,10 @@
     <ClInclude Include="..\..\src\btree_index.h" />
     <ClInclude Include="..\..\src\btree_cursor.h" />
     <ClInclude Include="..\..\src\btree_index_factory.h" />
-    <ClInclude Include="..\..\src\btree_key.h" />
+    <ClInclude Include="..\..\src\btree_flags.h" />
     <ClInclude Include="..\..\src\btree_node.h" />
-    <ClInclude Include="..\..\src\btree_node_default.h" />
-    <ClInclude Include="..\..\src\btree_node_pax.h" />
+    <ClInclude Include="..\..\src\btree_impl_default.h" />
+    <ClInclude Include="..\..\src\btree_impl_pax.h" />
     <ClInclude Include="..\..\src\btree_node_proxy.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />
     <ClInclude Include="..\..\src\cache.h" />
@@ -216,7 +216,6 @@
     <ClInclude Include="..\..\src\device_disk.h" />
     <ClInclude Include="..\..\src\device_factory.h" />
     <ClInclude Include="..\..\src\device_inmem.h" />
-    <ClInclude Include="..\..\src\duplicates.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
     <ClInclude Include="..\..\src\env_local.h" />
@@ -260,7 +259,6 @@
     <ClCompile Include="..\..\src\db.cc" />
     <ClCompile Include="..\..\src\db_local.cc" />
     <ClCompile Include="..\..\src\db_remote.cc" />
-    <ClCompile Include="..\..\src\duplicates.cc" />
     <ClCompile Include="..\..\src\env.cc" />
     <ClInclude Include="..\..\src\env_header.h" />
     <ClCompile Include="..\..\src\env_local.cc" />

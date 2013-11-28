@@ -60,7 +60,7 @@ LocalEnvironment::get_freelist_payload(ham_u32_t *psize)
 
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_header(0), m_device(0), m_changeset(this),
-    m_blob_manager(0), m_page_manager(0), m_duplicate_manager(this), m_log(0),
+    m_blob_manager(0), m_page_manager(0), m_log(0),
     m_journal(0), m_txn_id(0), m_encryption_enabled(false), m_page_size(0)
 {
 }

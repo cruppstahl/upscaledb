@@ -55,7 +55,7 @@ Cursor::Cursor(Cursor &other)
 void
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
-  ham_u32_t count = btc->get_duplicate_count(0);
+  ham_u32_t count = btc->get_record_count(0);
   for (ham_u32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 
@@ -1064,7 +1064,7 @@ Cursor::erase(Transaction *txn, ham_u32_t flags)
 }
 
 ham_u32_t
-Cursor::get_duplicate_count(Transaction *txn, ham_u32_t flags)
+Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
 {
   if (txn) {
     if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
@@ -1082,7 +1082,7 @@ Cursor::get_duplicate_count(Transaction *txn, ham_u32_t flags)
     }
   }
 
-  return (get_btree_cursor()->get_duplicate_count(flags));
+  return (get_btree_cursor()->get_record_count(flags));
 }
 
 ham_u64_t

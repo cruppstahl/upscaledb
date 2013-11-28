@@ -16,7 +16,6 @@
 
 #include "env.h"
 #include "changeset.h"
-#include "duplicates.h"
 #include "env_header.h"
 
 namespace hamsterdb {
@@ -63,11 +62,6 @@ class LocalEnvironment : public Environment
     // Returns the PageManager instance
     PageManager *get_page_manager() {
       return (m_page_manager);
-    }
-
-    // Returns the duplicate manager
-    DuplicateManager *get_duplicate_manager() {
-      return (&m_duplicate_manager);
     }
 
     // Returns the Log
@@ -239,9 +233,6 @@ class LocalEnvironment : public Environment
 
     // The PageManager instance
     PageManager *m_page_manager;
-
-    // The DuplicateManager
-    DuplicateManager m_duplicate_manager;
 
     // The physical write-ahead log
     Log *m_log;

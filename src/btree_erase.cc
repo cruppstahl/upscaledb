@@ -121,16 +121,16 @@ class BtreeEraseAction
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete
       // those.
-      bool has_duplicates_left;
+      bool has_duplicates_left = false;
       if (node->is_leaf()) {
         // only delete a duplicate?
         if (m_dupe_id > 0)
           node->erase_record(slot, m_dupe_id - 1, false, &has_duplicates_left);
-        else {
-          node->erase_record(slot, 0, true, &has_duplicates_left);
-          ham_assert(has_duplicates_left == false);
-        }
+        else
+          node->erase_record(slot, 0, true, 0);
       }
+
+      page->set_dirty(true);
 
       // still got duplicates left? then adjust all cursors
       if (node->is_leaf()) {
@@ -187,8 +187,6 @@ class BtreeEraseAction
 
       // now remove the key
       node->erase(slot);
-
-      page->set_dirty(true);
     }
 
     /*
@@ -425,6 +423,8 @@ class BtreeEraseAction
       BtreeNodeProxy *sibnode = m_btree->get_node_from_page(sibpage);
       BtreeNodeProxy *ancnode = m_btree->get_node_from_page(ancpage);
 
+      ham_assert(sibnode->is_leaf() == node->is_leaf());
+
       /* do not shift if both pages have (nearly) equal size; too much
        * effort for too little gain! */
       if (node->get_count() > 20 && sibnode->get_count() > 20) {
@@ -452,7 +452,7 @@ class BtreeEraseAction
           slot = ancnode->find(sibnode, 0);
 
           /* append the anchor node to the page */
-          ancnode->replace_key(slot, node, node->get_count(), true);
+          ancnode->replace_key(slot, node, node->get_count());
 
           /* the pointer of this new node is ptr_down of the sibling */
           node->set_record_id(node->get_count(), sibnode->get_ptr_down());
@@ -465,7 +465,7 @@ class BtreeEraseAction
           sibnode->set_ptr_down(sibnode->get_record_id(0));
 
           /* update the anchor node with sibling[0] */
-          sibnode->replace_key(0, ancnode, slot, true);
+          sibnode->replace_key(0, ancnode, slot);
 
           /* and remove this key from the sibling */
           sibnode->erase(0);
@@ -481,7 +481,7 @@ class BtreeEraseAction
 
         /* internal node: append the anchor key to the page */
         if (internal) {
-          ancnode->replace_key(slot, node, node->get_count(), true);
+          ancnode->replace_key(slot, node, node->get_count());
 
           node->set_record_id(node->get_count(), sibnode->get_ptr_down());
           node->set_count(node->get_count() + 1);
@@ -505,7 +505,7 @@ class BtreeEraseAction
           if (anchor) {
             //slot = ancnode->find(sibnode, 0);
             /* replace the key */
-            sibnode->replace_key(0, ancnode, slot, true);
+            sibnode->replace_key(0, ancnode, slot);
           }
 
           /* shift once more */
@@ -515,7 +515,7 @@ class BtreeEraseAction
           /* in a leaf - update the anchor */
           //slot = ancnode->find(sibnode, 0);
           /* replace the key */
-          sibnode->replace_key(0, ancnode, slot, true);
+          sibnode->replace_key(0, ancnode, slot);
         }
       }
       /* this code path shifts keys from this node to the sibling */
@@ -534,11 +534,10 @@ class BtreeEraseAction
           sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
           /* new anchor element is node[node.count-1].key */
-          node->replace_key(node->get_count() - 1, ancnode, slot, true);
+          node->replace_key(node->get_count() - 1, ancnode, slot);
 
           /* current page has now one item less */
           node->set_count(node->get_count() - 1);
-          sibnode->set_count(sibnode->get_count() + 1);
         }
 
         ham_u32_t c = (node->get_count() - sibnode->get_count()) / 2;
@@ -553,9 +552,7 @@ class BtreeEraseAction
         if (internal) {
           /* shift entire sibling by 1 to the right */
           sibnode->insert(0, ancnode, slot);
-
           sibnode->set_record_id(0, sibnode->get_ptr_down());
-          sibnode->set_count(sibnode->get_count() + 1);
         }
 
         ham_u32_t s = node->get_count() - c - 1;
@@ -579,11 +576,11 @@ class BtreeEraseAction
         if (anchor) {
           if (internal) {
             slot = ancnode->find(node, s);
-            node->replace_key(s, ancnode, slot + 1, true);
+            node->replace_key(s, ancnode, slot + 1);
           }
           else {
             slot = ancnode->find(sibnode, 0);
-            sibnode->replace_key(0, ancnode, slot + 1, true);
+            sibnode->replace_key(0, ancnode, slot + 1);
           }
         }
       }
@@ -628,7 +625,7 @@ cleanup:
       if (!node->is_leaf()) {
         int slot = ancnode->find(sibnode, 0);
 
-        ancnode->replace_key(slot, node, node->get_count(), true);
+        ancnode->replace_key(slot, node, node->get_count());
 
         node->set_record_id(node->get_count(), sibnode->get_ptr_down());
         node->set_count(node->get_count() + 1);

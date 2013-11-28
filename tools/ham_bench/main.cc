@@ -75,6 +75,7 @@
 #define ARG_SEED                    55
 #define ARG_DISTRIBUTION            56
 #define ARG_EXTKEY_THRESHOLD        57
+#define ARG_DUPTABLE_THRESHOLD      58
 
 /*
  * command line parameters
@@ -339,6 +340,12 @@ static option_t opts[] = {
     0,
     "extkey-threshold",
     "Keys > threshold are moved to a blob",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_DUPTABLE_THRESHOLD,
+    0,
+    "duptable-threshold",
+    "Duplicates > threshold are moved to an external table",
     GETOPTS_NEED_ARGUMENT },
   { 0, 0, 0, 0, 0 }
 };
@@ -623,6 +630,13 @@ parse_config(int argc, char **argv, Configuration *c)
         exit(-1);
       }
     }
+    else if (opt == ARG_DUPTABLE_THRESHOLD) {
+      c->duptable_threshold = strtoul(param, 0, 0);
+      if (!c->duptable_threshold) {
+        printf("[FAIL] invalid parameter for 'duptable-threshold'\n");
+        exit(-1);
+      }
+    }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
     }
@@ -693,7 +707,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
                   name, boost::filesystem::file_size("test-berk.db"));
   }
 
-  if (conf->metrics != Configuration::kMetricsAll)
+  if (conf->metrics != Configuration::kMetricsAll || strcmp(name, "hamsterdb"))
     return;
 
   printf("\thamsterdb mem_total_allocations       %lu\n",
@@ -736,6 +750,10 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.btree_smo_merge);
   printf("\thamsterdb btree_smo_shift             %lu\n",
           metrics->hamster_metrics.btree_smo_shift);
+  printf("\thamsterdb extended_keys               %lu\n",
+          metrics->hamster_metrics.extended_keys);
+  printf("\thamsterdb extended_duptables          %lu\n",
+          metrics->hamster_metrics.extended_duptables);
 }
 
 struct Callable
@@ -807,8 +825,18 @@ run_single_test(Configuration *conf)
     threads.push_back(new boost::thread(thread_callback, c));
   }
 
-  while (generator.execute())
-    ;
+  while (generator.execute()) {
+#if 0
+    // verify hamsterdb integrity
+    if (db->is_open()) {
+      ham_status_t st = db->check_integrity(0);
+      if (st != 0) {
+        LOG_ERROR(("fullcheck failed: hamster integrity status %d\n", st));
+        return false;
+      }
+    }
+#endif
+  }
 
   // have to collect metrics now while the database was not yet closed
   Metrics metrics;
@@ -833,6 +861,7 @@ run_single_test(Configuration *conf)
     generator.open();
   }
   generator.close();
+  db->close_env();
   delete db;
 
   bool ok = generator.was_successful();
@@ -903,6 +932,15 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
     ham_record_t rec1 = {0};
     ham_key_t key2 = {0};
     ham_record_t rec2 = {0};
+
+    // perform an integrity check
+#if 0
+    st1 = gen1->get_db()->check_integrity(0);
+    if (st1 != 0) {
+      LOG_ERROR(("integrity check failed: hamster integrity status %d\n", st1));
+      return (false);
+    }
+#endif
 
     // iterate over both databases
     if (conf->fullcheck == Configuration::kFullcheckFind) {

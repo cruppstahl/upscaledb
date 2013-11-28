@@ -27,7 +27,6 @@
 #include "../src/device.h"
 #include "../src/env.h"
 #include "../src/btree_index.h"
-#include "../src/btree_key.h"
 #include "../src/cache.h"
 
 using namespace hamsterdb;

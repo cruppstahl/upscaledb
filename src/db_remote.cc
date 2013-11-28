@@ -438,24 +438,24 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
+RemoteDatabase::cursor_get_record_count(Cursor *cursor,
                 ham_u32_t *count, ham_u32_t flags)
 {
   ham_status_t st;
   RemoteEnvironment *env = get_remote_env();
 
-  Protocol request(Protocol::CURSOR_GET_DUPLICATE_COUNT_REQUEST);
-  request.mutable_cursor_get_duplicate_count_request()->set_cursor_handle(
+  Protocol request(Protocol::CURSOR_GET_RECORD_COUNT_REQUEST);
+  request.mutable_cursor_get_record_count_request()->set_cursor_handle(
                   cursor->get_remote_handle());
-  request.mutable_cursor_get_duplicate_count_request()->set_flags(flags);
+  request.mutable_cursor_get_record_count_request()->set_flags(flags);
 
   std::auto_ptr<Protocol> reply(env->perform_request(&request));
 
-  ham_assert(reply->has_cursor_get_duplicate_count_reply() != 0);
+  ham_assert(reply->has_cursor_get_record_count_reply() != 0);
 
-  st = reply->cursor_get_duplicate_count_reply().status();
+  st = reply->cursor_get_record_count_reply().status();
   if (st == 0)
-    *count = reply->cursor_get_duplicate_count_reply().count();
+    *count = reply->cursor_get_record_count_reply().count();
 
   return (st);
 }

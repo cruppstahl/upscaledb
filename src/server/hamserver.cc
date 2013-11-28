@@ -973,25 +973,25 @@ bail:
 }
 
 static void
-handle_cursor_get_duplicate_count(ServerContext *srv, uv_stream_t *tcp,
+handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
   ham_status_t st = 0;
   ham_u32_t count = 0;
 
   ham_assert(request != 0);
-  ham_assert(request->has_cursor_get_duplicate_count_request());
+  ham_assert(request->has_cursor_get_record_count_request());
 
-  Cursor *cursor = srv->get_cursor(request->cursor_get_duplicate_count_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_get_record_count_request().cursor_handle());
   if (!cursor)
     st = HAM_INV_PARAMETER;
   else
     st = ham_cursor_get_duplicate_count((ham_cursor_t *)cursor, &count,
-            request->cursor_get_duplicate_count_request().flags());
+            request->cursor_get_record_count_request().flags());
 
-  Protocol reply(Protocol::CURSOR_GET_DUPLICATE_COUNT_REPLY);
-  reply.mutable_cursor_get_duplicate_count_reply()->set_status(st);
-  reply.mutable_cursor_get_duplicate_count_reply()->set_count(count);
+  Protocol reply(Protocol::CURSOR_GET_RECORD_COUNT_REPLY);
+  reply.mutable_cursor_get_record_count_reply()->set_status(st);
+  reply.mutable_cursor_get_record_count_reply()->set_count(count);
 
   send_wrapper(srv, tcp, &reply);
 }
@@ -1196,8 +1196,8 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u8_t *data, ham_u32_t size)
     case ProtoWrapper_Type_CURSOR_FIND_REQUEST:
       handle_cursor_find(srv, tcp, wrapper);
       break;
-    case ProtoWrapper_Type_CURSOR_GET_DUPLICATE_COUNT_REQUEST:
-      handle_cursor_get_duplicate_count(srv, tcp, wrapper);
+    case ProtoWrapper_Type_CURSOR_GET_RECORD_COUNT_REQUEST:
+      handle_cursor_get_record_count(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_CURSOR_OVERWRITE_REQUEST:
       handle_cursor_overwrite(srv, tcp, wrapper);

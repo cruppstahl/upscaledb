@@ -79,8 +79,8 @@ struct Configuration
       cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
       num_threads(1), use_cursors(false), direct_access(false),
       use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
-      fullcheck_frequency(100), metrics(kMetricsDefault),
-      extkey_threshold(256) {
+      fullcheck_frequency(1000), metrics(kMetricsDefault),
+      extkey_threshold(0), duptable_threshold(0) {
   }
 
   void print() const {
@@ -137,8 +137,10 @@ struct Configuration
       printf("--fullcheck=reverse ");
     if (fullcheck == kFullcheckNone)
       printf("--fullcheck=none ");
-    if (extkey_threshold != 256)
+    if (extkey_threshold)
       printf("--extkey-threshold=%d ", extkey_threshold);
+    if (duptable_threshold)
+      printf("--duptable-threshold=%d ", duptable_threshold);
     if (!filename.empty()) {
       printf("%s\n", filename.c_str());
     }
@@ -235,6 +237,7 @@ struct Configuration
   std::string tee_file;
   int metrics;
   int extkey_threshold;
+  int duptable_threshold;
 };
 
 #endif /* CONFIGURATION_H__ */

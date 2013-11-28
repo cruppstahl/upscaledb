@@ -1,3 +1,8 @@
+Jan 01, 2014 - chris ---------------------------------------------------
+o Default Btree node layout now also stores duplicate keys inline, even
+	if they're > 8 bytes (previous versions stored duplicate keys in a
+	separate blob, which required lots of additional I/O)
+
 Nov 23, 2013 - chris ---------------------------------------------------
 o Default Btree node layout for variable length keys can now store
 	fixed length records inline if they're small enough (and if duplicate

@@ -149,8 +149,6 @@ struct DbFixture {
     // checks to make sure structure packing by the compiler is still okay
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
     REQUIRE(sizeof(PBlobHeader) == 28);
-    REQUIRE(sizeof(PDupeEntry) == 16);
-    REQUIRE(sizeof(PDupeTable) == 8 + sizeof(PDupeEntry));
     REQUIRE(sizeof(PBtreeNode) == 33);
     REQUIRE(sizeof(PEnvironmentHeader) == 20);
     REQUIRE(sizeof(PBtreeHeader) == 24);

@@ -30,7 +30,10 @@ namespace hamsterdb {
 ham_u64_t BtreeIndex::ms_btree_smo_split = 0;
 ham_u64_t BtreeIndex::ms_btree_smo_merge = 0;
 ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
-ham_u32_t g_extended_threshold = 256;
+ham_u32_t g_extended_threshold = 0;
+ham_u32_t g_duplicate_threshold = 0;
+ham_u64_t g_extended_keys = 0;
+ham_u64_t g_extended_duptables = 0;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
                 ham_u32_t key_type, ham_u32_t key_size)
@@ -132,7 +135,8 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
   else {
 #ifdef HAM_DEBUG
     ham_u32_t flags = node->test_get_flags(slot);
-    ham_assert(flags == 0 || flags == BtreeKey::kExtended);
+    flags &= ~(BtreeKey::kInitialized | BtreeKey::kExtendedKey);
+    ham_assert(flags == 0);
 #endif
     ham_u64_t rid = node->get_record_id(slot);
     ham_assert(rid != 0);
@@ -410,23 +414,17 @@ class CalcKeysVisitor : public BtreeVisitor {
     virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
                   ham_u8_t key_flags, ham_u32_t key_size, 
                   ham_u64_t record_id) {
-      ham_u32_t dupcount = 1;
+      ham_u32_t count = node->get_count();
 
       if (m_flags & HAM_SKIP_DUPLICATES
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
-        m_count += node->get_count();
+        m_count += count;
         return (false);
       }
 
-      if (key_flags & BtreeKey::kDuplicates) {
-        dupcount = m_db->get_local_env()->get_duplicate_manager()->get_count(
-                        record_id, 0);
-        m_count += dupcount;
-      }
-      else {
-        m_count++;
-      }
-      return (true);
+      for (ham_u32_t i = 0; i < count; i++)
+        m_count += node->get_record_count(i);
+      return (false);
     }
 
     ham_u64_t get_key_count() const {

@@ -17,7 +17,6 @@
 #include "db.h"
 #include "env.h"
 #include "error.h"
-#include "btree_key.h"
 #include "mem.h"
 #include "page.h"
 #include "page_manager.h"
@@ -82,9 +81,9 @@ class BtreeCheckAction
       // than the largest item in this page
       if (parent && node->get_left()) {
         int cmp = compare_keys(db, page, 0, node->get_count() - 1);
-        if (cmp < 0) {
+        if (cmp <= 0) {
           ham_log(("integrity check failed in page 0x%llx: parent item "
-                  "#0 < item #%d\n", page->get_address(),
+                  "#0 <= item #%d\n", page->get_address(),
                   node->get_count() - 1));
           throw Exception(HAM_INTEGRITY_VIOLATED);
         }
@@ -100,6 +99,11 @@ class BtreeCheckAction
           child = env->get_page_manager()->fetch_page(db, node->get_right());
         else
           child = 0;
+
+        if (leftsib) {
+          BtreeNodeProxy *leftnode = m_btree->get_node_from_page(leftsib);
+          ham_assert(leftnode->is_leaf() == node->is_leaf());
+        }
 
         leftsib = page;
         page = child;

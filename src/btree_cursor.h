@@ -38,12 +38,12 @@
 
 #include "error.h"
 #include "util.h"
-#include "duplicates.h"
 
 namespace hamsterdb {
 
 class Cursor;
 class BtreeIndex;
+class Page;
 
 //
 // The Cursor structure for a b+tree cursor
@@ -124,7 +124,6 @@ class BtreeCursor
     // Sets the duplicate key we're pointing to
     void set_duplicate_index(ham_u32_t duplicate_index) {
       m_duplicate_index = duplicate_index;
-      memset(&m_dupe_cache, 0, sizeof(m_dupe_cache));
     }
 
     // Uncouples the cursor
@@ -150,8 +149,8 @@ class BtreeCursor
     // Moves the cursor to the first, last, next or previous element
     ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
-    // Returns the number of duplicates of the referenced key
-    ham_u32_t get_duplicate_count(ham_u32_t flags);
+    // Returns the number of records of the referenced key
+    ham_u32_t get_record_count(ham_u32_t flags);
 
     // Overwrite the record of this cursor
     void overwrite(ham_record_t *record, ham_u32_t flags);
@@ -208,9 +207,6 @@ class BtreeCursor
 
     // the id of the duplicate key to which this cursor is coupled
     ham_u32_t m_duplicate_index;
-
-    // cached flags and record ID of the current duplicate
-    PDupeEntry m_dupe_cache;
 
     // for coupled cursors: the page we're pointing to
     Page *m_coupled_page;

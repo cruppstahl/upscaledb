@@ -13,7 +13,7 @@
 #define HAM_BTREE_NODE_H__
 
 #include "endianswap.h"
-#include "btree_key.h"
+#include "btree_flags.h"
 #include "db_local.h"
 #include "page.h"
 
@@ -47,12 +47,12 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
       return (OFFSETOF(PBtreeNode, m_data));
     }
 
-    // Returns the flags
+    // Returns the flags of the btree node (|kLeafNode|)
     ham_u32_t get_flags() const {
       return (ham_db2h32(m_flags));
     }
 
-    // Sets the flags
+    // Sets the flags of the btree node (|kLeafNode|)
     void set_flags(ham_u32_t flags) {
       m_flags = ham_h2db32(flags);
     }

@@ -54,8 +54,11 @@ struct BtreeDefaultFixture {
       { HAM_PARAM_PAGESIZE, page_size },
       { 0, 0 }
     };
+
+    ham_u64_t type = key_size == 4 ? HAM_TYPE_UINT32 : HAM_TYPE_BINARY;
     ham_parameter_t p2[] = {
       { HAM_PARAM_KEY_SIZE, key_size },
+      { HAM_PARAM_KEY_TYPE, type },
       { HAM_PARAM_RECORD_SIZE, rec_size },
       { 0, 0 }
     };
@@ -105,13 +108,16 @@ struct BtreeDefaultFixture {
                               m_duplicates ? HAM_DUPLICATE : 0));
     }
 
-    ham_cursor_t *cursor;
+    ham_cursor_t *cursor = 0;
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       ham_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
-      REQUIRE(0 == strcmp((const char *)key.data, buffer));
+      if (m_key_size != HAM_KEY_SIZE_UNLIMITED)
+        REQUIRE(0 == memcmp((const char *)key.data, buffer, m_key_size));
+      else
+        REQUIRE(0 == strcmp((const char *)key.data, buffer));
       if (m_rec_size != HAM_RECORD_SIZE_UNLIMITED)
         REQUIRE(m_rec_size == rec.size);
       else
@@ -119,18 +125,23 @@ struct BtreeDefaultFixture {
       REQUIRE(key.size == expected.size);
     }
 
-    // this leaks a cursor structure, which will be cleaned up later
-    // in teardown()
+    if (cursor)
+      ham_cursor_close(cursor);
+
+    // now loop again, but in reverse order
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
     for (IntVector::const_reverse_iterator it = inserts.rbegin();
             it != inserts.rend(); it++) {
       ham_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
+      if (m_key_size != HAM_KEY_SIZE_UNLIMITED)
+        REQUIRE(0 == memcmp((const char *)key.data, buffer, m_key_size));
+      else
+        REQUIRE(0 == strcmp((const char *)key.data, buffer));
       if (m_rec_size != HAM_RECORD_SIZE_UNLIMITED)
         REQUIRE(m_rec_size == rec.size);
       else
         REQUIRE(0 == rec.size);
-      REQUIRE(0 == strcmp((const char *)key.data, buffer));
       REQUIRE(key.size == expected.size);
     }
   }
@@ -183,13 +194,19 @@ struct BtreeDefaultFixture {
 
   void eraseCursorTest(const IntVector &inserts) {
     ham_key_t key = {0};
+    ham_cursor_t *cursor;
     char buffer[BUFFER] = {0};
+
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       key = makeKey(*it, buffer);
-      REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
+      REQUIRE(0 == ham_cursor_erase(cursor, 0));
     }
+
+    ham_cursor_close(cursor);
 
     ham_u64_t keycount = 1;
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
@@ -230,11 +247,9 @@ struct BtreeDefaultFixture {
       key = makeKey(*it, buffer);
       rec.data = key.data;
       rec.size = key.size;
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      if (m_duplicates) {
-        REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-      }
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec,
+                              m_duplicates ? HAM_DUPLICATE : 0));
+
       if (g_split_count == 3) {
         inserts.resize(inserted + 1);
         break;
@@ -381,6 +396,10 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   for (int i = 0; i < 30; i++) {
     ivec.push_back(i);
     ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
   }
 
   BtreeDefaultFixture f(true);
@@ -389,15 +408,18 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short> > >, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, true> >, hamsterdb::VariableSizeCompare>");
 #endif
 }
 
 TEST_CASE("BtreeDefault/randomEraseMergeDuplicateTest", "")
 {
   BtreeDefaultFixture::IntVector ivec;
-  for (int i = 0; i < 10000; i++)
+  for (int i = 0; i < 10000; i++) {
     ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
+  }
   std::srand(0); // make this reproducable
   std::random_shuffle(ivec.begin(), ivec.end());
 
@@ -412,7 +434,7 @@ TEST_CASE("BtreeDefault/insertExtendedKeyTest", "")
   for (int i = 0; i < 100; i++)
     ivec.push_back(i);
 
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
 }
 
@@ -424,7 +446,7 @@ TEST_CASE("BtreeDefault/insertExtendedKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   REQUIRE(g_split_count == 1);
 }
@@ -439,7 +461,7 @@ TEST_CASE("BtreeDefault/insertRandomExtendedKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   REQUIRE(g_split_count == 1);
 }
@@ -447,10 +469,10 @@ TEST_CASE("BtreeDefault/insertRandomExtendedKeySplitTest", "")
 TEST_CASE("BtreeDefault/eraseExtendedKeyTest", "")
 {
   BtreeDefaultFixture::IntVector ivec;
-  for (int i = 0; i < 100; i++)
+  for (int i = 0; i < 1000; i++)
     ivec.push_back(i);
 
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   f.eraseExtendedTest(ivec);
 }
@@ -463,7 +485,7 @@ TEST_CASE("BtreeDefault/eraseExtendedKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   REQUIRE(g_split_count == 1);
   f.eraseExtendedTest(ivec);
@@ -477,7 +499,7 @@ TEST_CASE("BtreeDefault/eraseReverseExtendedKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   REQUIRE(g_split_count == 1);
   std::reverse(ivec.begin(), ivec.end());
@@ -494,7 +516,7 @@ TEST_CASE("BtreeDefault/eraseRandomExtendedKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertExtendedTest(ivec);
   REQUIRE(g_split_count == 1);
   f.eraseExtendedTest(ivec);
@@ -508,7 +530,7 @@ TEST_CASE("BtreeDefault/eraseReverseKeySplitTest", "")
 
   g_BTREE_INSERT_SPLIT_HOOK = split_hook;
   g_split_count = 0;
-  BtreeDefaultFixture f(true);
+  BtreeDefaultFixture f;
   f.insertCursorTest(ivec);
   REQUIRE(g_split_count == 4);
   std::reverse(ivec.begin(), ivec.end());
@@ -518,9 +540,8 @@ TEST_CASE("BtreeDefault/eraseReverseKeySplitTest", "")
 TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
 {
   BtreeDefaultFixture::IntVector ivec;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 100; i++)
     ivec.push_back(i);
-  }
 
   BtreeDefaultFixture f(false, HAM_KEY_SIZE_UNLIMITED, 5);
   f.insertCursorTest(ivec);
@@ -528,8 +549,50 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeLayout<hamsterdb::DefaultLayoutImpl<unsigned short>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short> > >, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false> > >, hamsterdb::VariableSizeCompare>");
 #endif
+}
+
+TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
+{
+  BtreeDefaultFixture::IntVector ivec;
+  for (int i = 0; i < 100; i++) {
+    ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
+  }
+
+  BtreeDefaultFixture f(true, 4, 5);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::FixedLayoutImpl<unsigned short, true> > >, hamsterdb::NumericCompare<unsigned int> >");
+#endif
+
+  f.insertCursorTest(ivec);
+  f.eraseCursorTest(ivec);
+}
+
+TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
+{
+  BtreeDefaultFixture::IntVector ivec;
+  for (int i = 0; i < 100; i++) {
+    ivec.push_back(i);
+    ivec.push_back(i);
+    ivec.push_back(i);
+  }
+
+  BtreeDefaultFixture f(true, HAM_KEY_SIZE_UNLIMITED, 5);
+
+#ifdef HAVE_GCC_ABI_DEMANGLE
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true> > >, hamsterdb::VariableSizeCompare>");
+#endif
+
+  f.insertCursorTest(ivec);
+  f.eraseCursorTest(ivec);
 }
 
 } // namespace hamsterdb

@@ -69,8 +69,8 @@ class RemoteDatabase : public Database
     virtual ham_status_t cursor_find(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    virtual ham_status_t cursor_get_duplicate_count(Cursor *cursor,
+    // Returns number of duplicates (ham_cursor_get_record_count)
+    virtual ham_status_t cursor_get_record_count(Cursor *cursor,
                     ham_u32_t *count, ham_u32_t flags);
 
     // Get current record size (ham_cursor_get_record_size)

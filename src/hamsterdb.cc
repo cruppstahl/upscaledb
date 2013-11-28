@@ -1270,6 +1270,16 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
       ham_trace(("parameter 'key' must not be NULL"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
+    if (flags & HAM_HINT_PREPEND) {
+      ham_trace(("flag HAM_HINT_PREPEND is only allowed in "
+            "ham_cursor_insert"));
+      return (db->set_error(HAM_INV_PARAMETER));
+    }
+    if (flags & HAM_HINT_APPEND) {
+      ham_trace(("flag HAM_HINT_APPEND is only allowed in "
+            "ham_cursor_insert"));
+      return (db->set_error(HAM_INV_PARAMETER));
+    }
     if (db->get_rt_flags() & HAM_READ_ONLY) {
       ham_trace(("cannot erase from a read-only database"));
       return (HAM_WRITE_PROTECTED);
@@ -1556,12 +1566,6 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
              "In-Memory Databases"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags & HAM_FIND_NEAR_MATCH)
-        && (env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      ham_trace(("approx. matching is not allowed if Transactions "
-             "are enabled"));
-      return (db->set_error(HAM_INV_PARAMETER));
-    }
     if ((flags & HAM_DIRECT_ACCESS)
         && (env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
       ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
@@ -1743,8 +1747,8 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
-        ham_u32_t *count, ham_u32_t flags)
+ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, ham_u32_t *count,
+                ham_u32_t flags)
 {
   Database *db;
 
@@ -1767,7 +1771,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
 
     *count = 0;
 
-    return (db->set_error(db->cursor_get_duplicate_count(cursor,
+    return (db->set_error(db->cursor_get_record_count(cursor,
                                     count, flags)));
   }
   catch (Exception &ex) {

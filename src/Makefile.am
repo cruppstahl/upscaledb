@@ -20,14 +20,14 @@ libhamsterdb_la_SOURCES = \
 	btree_enum.cc \
 	btree_erase.cc \
 	btree_find.cc \
+	btree_flags.h \
+	btree_impl_default.h \
+	btree_impl_pax.h \
 	btree_index.cc \
 	btree_index.h \
 	btree_index_factory.h \
 	btree_insert.cc \
-	btree_key.h \
 	btree_node.h \
-	btree_node_default.h \
-	btree_node_pax.h \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \
@@ -48,8 +48,6 @@ libhamsterdb_la_SOURCES = \
 	device_disk.h \
 	device_inmem.h \
 	device_factory.h \
-	duplicates.cc \
-	duplicates.h \
 	endianswap.h \
 	env.h \
 	env.cc \

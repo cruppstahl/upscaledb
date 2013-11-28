@@ -365,7 +365,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_key.h"
+			RelativePath="..\..\src\btree_flags.h"
 			>
 		</File>
 		<File
@@ -373,11 +373,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_node_default.h"
+			RelativePath="..\..\src\btree_impl_default.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_node_pax.h"
+			RelativePath="..\..\src\btree_impl_pax.h"
 			>
 		</File>
 		<File
@@ -458,14 +458,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\device_inmem.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\duplicates.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\duplicates.h"
 			>
 		</File>
 		<File

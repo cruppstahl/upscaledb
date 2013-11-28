@@ -1111,53 +1111,6 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
-  void nearFindTest() {
-    unsigned i;
-    ham_db_t *db;
-    ham_env_t *env;
-    ham_key_t key = {};
-    ham_record_t rec = {};
-
-    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 == ham_env_open_db(env, &db, 13, 0, 0));
-
-    /* empty DB: LT/GT must turn up error */
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
-
-    /* insert some values (0, 2, 4) */
-    key.data = (void *)&i;
-    key.size = sizeof(i);
-    for (i = 0; i < 6; i += 2)
-      REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
-
-    /* and search for them */
-    i = 3;
-    key.data = (void *)&i;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
-
-    i = 3;
-    key.data = (void *)&i;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
-
-    i = 3;
-    key.data = (void *)&i;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
-
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-  }
-
   void timeoutTest() {
     ham_env_t *env;
     ham_parameter_t params[] = {
@@ -1402,12 +1355,6 @@ TEST_CASE("Remote/autoAbortTransactionTest", "")
 {
   RemoteFixture f;
   f.autoAbortTransactionTest();
-}
-
-TEST_CASE("Remote/nearFindTest", "")
-{
-  RemoteFixture f;
-  f.nearFindTest();
 }
 
 TEST_CASE("Remote/timeoutTest", "")

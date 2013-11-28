@@ -26,7 +26,6 @@
 #include "blob_manager.h"
 #include "page_manager.h"
 #include "btree_index.h"
-#include "btree_key.h"
 #include "btree_stats.h"
 #include "btree_node_proxy.h"
 #include "btree_cursor.h"
@@ -474,7 +473,7 @@ class BtreeInsertAction
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
-          node->set_record(slot, m_txn, m_record,
+          node->set_record(slot, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
@@ -495,7 +494,7 @@ class BtreeInsertAction
 
         if (node->is_leaf()) {
           // allocate record id
-          node->set_record(slot, m_txn, m_record,
+          node->set_record(slot, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,

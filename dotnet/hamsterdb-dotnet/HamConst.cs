@@ -218,5 +218,22 @@ namespace Hamster
     public const int HAM_FIND_GEQ_MATCH  = (HAM_FIND_GT_MATCH|HAM_FIND_EXACT_MATCH);
     /// <summary>Flag for Cursor.Find</summary>
     public const int HAM_FIND_NEAR_MATCH = (HAM_FIND_GEQ_MATCH|HAM_FIND_LEQ_MATCH);
+
+    /// <summary>A binary blob without type; sorted by memcmp</summary>
+    public const int HAM_TYPE_BINARY            =         0;
+    /// <summary>A binary blob without type; sorted by callback function</summary>
+    public const int HAM_TYPE_CUSTOM            =         1;
+    /// <summary>An unsigned 8-bit integer</summary>
+    public const int HAM_TYPE_UINT8             =         3;
+    /// <summary>An unsigned 16-bit integer</summary>
+    public const int HAM_TYPE_UINT16            =         5;
+    /// <summary>An unsigned 32-bit integer</summary>
+    public const int HAM_TYPE_UINT32            =         7;
+    /// <summary>An unsigned 64-bit integer</summary>
+    public const int HAM_TYPE_UINT64            =         9;
+    /// <summary>An 32-bit float</summary>
+    public const int HAM_TYPE_REAL32            =        11;
+    /// <summary>An 64-bit double</summary>
+    public const int HAM_TYPE_REAL64            =        12;
   }
 }

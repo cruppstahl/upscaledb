@@ -20,7 +20,6 @@
 #include "abi.h"
 #include "util.h"
 #include "btree_cursor.h"
-#include "btree_key.h"
 #include "btree_stats.h"
 #include "btree_node.h"
 
@@ -29,6 +28,12 @@ namespace hamsterdb {
 #include "packstart.h"
 
 #undef max // avoid MSVC conflicts with std::max
+
+// for counting extended keys
+extern ham_u64_t g_extended_keys;
+
+// for counting extended duplicate tables
+extern ham_u64_t g_extended_duptables;
 
 //
 // The persistent btree index descriptor. This structure manages the
@@ -297,6 +302,8 @@ class BtreeIndex
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->btree_smo_shift = ms_btree_smo_shift;
+      metrics->extended_keys = g_extended_keys;
+      metrics->extended_duptables = g_extended_duptables;
     }
 
     // Returns the class name (for testing)

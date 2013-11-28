@@ -274,7 +274,6 @@ struct APIv110Fixture {
   }
 
   void negativeApproxMatchingTest() {
-    ham_key_t key = {};
     ham_cursor_t *cursor;
 
     teardown();
@@ -284,9 +283,6 @@ struct APIv110Fixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-
-    REQUIRE(HAM_INV_PARAMETER ==
-          ham_cursor_find(cursor, &key, 0, HAM_FIND_GEQ_MATCH));
 
     REQUIRE(0 == ham_cursor_close(cursor));
   }

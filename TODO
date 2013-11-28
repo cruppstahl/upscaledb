@@ -346,35 +346,130 @@ x start redesigning code towards exceptions; this will reduce the code a lot
 x db_local.cc has many parameter checks - i.e in insert(); can these be
     moved to hamsterdb.cc?
 
-o merge everything with v2
+x merge everything with v2
 
-o completely rewrite handling of duplicate keys
-    o requires new flag for overflow-duplicate tables
-    o add new layout which has 1 byte for duplicate counter
-    o fix calculation of key data access (needs to take duplicate counter
-        and flag into account)
-    o > 256 duplicates: set duplicate table-flag, move to overflow area
-    o fix remaining duplicate code, make sure that everything works
-    o support inline records
-    o remove DuplicateManager; move to btree_node_default.h, depending
-        on template parameters
-    o BtreeCursor: remove m_dupe_cache, directly access the BtreeNodeProxy
-    o can we unify the whole record handling from both layouts?
-        - at least fix the naming to make clear whether a class is for
-            PAX or for Default
-    o add tests with > 256 duplicates per key
-    o add dupkey_cache (similar to extkey_cache) for duplicate tables
+x completely rewrite handling of duplicate keys
+    x remove flag kDuplicates, replace with it->has_duplicates()
+    x requires new flag for overflow-duplicate tables
+    x add 1 byte duplicate count to both layouts
+    x use new layout in BtreeIndexFactory
+    x all tests must work
+    x replace get_key_data_size() + sizeof(ham_u64_t) with generic function
+        (get_total_key_data_size()) - all tests must work
+    x get_total_key_data_size() takes duplicate count/flag into account
+        - all tests must work
+    x freelist_find: call with total size as parameter, not just key size
+    x append_key: call with total size as parameter, not just key size
+    x replace_key ist IMMER internal! dest_is_internal-parameter durch assert
+        ersetzen, code vereinfachen
+    x rewrite insert(), find(), erase() etc
+        x there should be several record layouts
+            x default (like now)
+            x internal (like now)
+            x fixed (like now)
+            x duplicate default - always stores 1 byte flags + 8 byte rid
+            x duplicate fixed inline
+            x remove DuplicateManager
+            x fix TODO in btree_index.cc (get_key_count ignores duplicates)
+            x it->has_duplicates() always returns true; is it really
+                required?
+    x what if a duplicate is inserted, but it does not fit?
+        -> moved to a duplicate table
+    x add dupkey_cache (similar to extkey_cache) for duplicate tables
+    x is 255 too much as a size limit for the overflow table?
+      x yes; smaller page sizes should use less (same as extkey-threshold)
+      x add as undocumented parameter for ham_bench
+      x add unittest with growing the duplicate table
+      x add to monster, valgrind, perftests (same as extkey-tests)
+    x check with valgrind
+    x fix the remaining TODOs
+
+o allow tiny (fixed) record sizes with duplicate keys/tables
+    x btree_index_factory currently ignores fixed records if keys are fixed
+        (i.e. HAM_TYPE_UINT8 etc)
+        x cover this with a few tests
+    x clean up use of record_count:
+        x insert: set to 1, add empty record (set_record_id(0))
+            and set a special "Initialized"-flag
+        x split BtreeKey flags in BtreeKey and BtreeRecord (btree_flags.h)
+        x distinguish between get_key_flags/set_key_flags and
+            get_record_flags/set_record_flags
+        x can we split set_record() in overwrite_record() and add_record()?
+            also handle overwrite duplicate keys in a duplicate table!
+            (this is currently not implemented)
+        x allow record counts of 0 (i.e. after erase or when setting
+            a duplicate table)
+        x after erase(): has_duplicates_left should use this counter!
+
+        x special handling in get_total_data_size() if a duplicate table exists
+            - always add sizeof(ham_u64_t) instead of total_record_size!
+
+    x requires_split: make sure that there is at least 1 free index
+
+    x ./ham_bench --use-berkeleydb=true --reopen=true --duptable-threshold=8 --key=uint16 --duplicate=last --stop-ops=20000 --recsize-fixed=1
+    x ./ham_bench --use-berkeleydb=true --reopen=true --duptable-threshold=8 --key=uint16 --duplicate=last --stop-ops=20000 --recsize-fixed=0
+    x add duplicate tests with fixed records
+    x add these to the monster
+    x run monster tests with extremely low duptable-threshold (2)
+
+    x check performance, make a few profiling runs
+
+x more refactoring in the Btree layout implementations
+    x rename btree_node_pax.h -> btree_impl_pax.h
+        x also rename the classes
+            PaxNodeLayout -> PaxNodeImpl
+            DefaultNodeLayout -> DefaultNodeImpl
+        x add extensive documentation
+        x replace ham_assert with ham_verify where it makes sense
+    x rename btree_node_default.h -> btree_impl_default.h
+        x also rename the classes
+        x rename m_record_proxy to RecordList m_records
+        x replace ham_assert with ham_verify where it makes sense
+        x The iterators should not contain code but only call into the
+            node (or node.m_record, node.m_index)
+        x add extensive documentation
+
+    x statistics: count number of overflow tables
+        x and print in ham_bench
+        x same for extended keys
+
+x rewrite the whole split handling; instead of asking whether a split is
+    required, simply proceed and insert. If the insert returns an error then
+    perform the split and try again. requires_split() is an expensive
+    operation and should be avoided at all costs. Only the insert knows
+    whether a key is inserted or a duplicate, or if even the duplicate is
+    in a duplicate table (which NEVER causes a split).
+    x split_required_impl: do not calculate offset; use
+        get_usable_pagesize() - (get_next_offset() + capacity * span)
+    x try to avoid get_total_key_data_size()
+    x BtreeInsertAction::insert_recursive calls requires_split, which is
+        really expensive (calls calc_next_offset() many times)
+
+x .NET misses _TYPE_* in HamConst
+    x also check java!
+
+x split monster.lst into multiple files, run in parallel on different
+    hard drives
+
+x rebase, merge with v2
+
+o ham_bench: new test mode: first load with LOTS of data, then erase in the
+    same order (or in random order or reverse order) till the database is empty
+    o implementation idea: when switching to ERASE, perform a reset() on the
+        NumberGenerator, and it will start delivering the same sequence as
+        from the beginning
+    o add to monster tests, valgrind
 
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
         o use ham_info to see if the record is inline
         o update "performance" wiki
-        o update "ham_bench" wiki (new "string" keys)
     o HAM_KEY_SIZE_UNLIMITED etc
     o removed HAM_ENABLE_EXTENDED_KEYS
     o removed HAM_DISABLE_VARIABLE_KEYS
-    o > 256 duplicate keys -> require overflow table
+    o > 256 duplicate keys -> requires overflow table
+    o > 256 key size -> requires extended key
 
 o evaluate use of endian-independence
     o ask on mailing list
@@ -385,29 +480,62 @@ o evaluate use of endian-independence
     o try to become "oclint-clean"
     o try to become "coverity-clean"
 
+o web-page requires updates
+    o deployed html differs from git-repository
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
+
 ---------------------- release 2.1.4 (unstable) -----------------------------
 
 high-level plan for 2.1.5 (unstable).........................................
-- start transformation of file to a container of streams
-  - preparations
-    - remove HAM_CACHE_STRICT
-    - how to perform fast recovery if a stream is spread all over the file,
-        and if there's no "next" pointer to the next segment?
-        the segment trailers only store the checksums of the major streams,
-        but nothing else.
-    - one solution would be to have several files:
-        1. for pages (including header page)
-        2. for streams (if file overflows then switch to the next file;
-            delete old files when they are no longer required)
-        this would avoid complicated garbage collection and slow recovery,
-        but would make atomic updates impossible  and increase disk seeks
- -> - another solution: recover "from the end". while segments do not have
-        a "next" pointer, they can have a "previous" pointer. Follow these
-        backwards till the first checkpoint is reached. only three streams
-        have to be fetched: 1) PageManager 2) Journal 3) Log; however,
-        if the file was closed correctly then the last segments of all
-        streams are checkpoints, and the checkpoints of Journal and Log
-        should be empty.
+- check for scalability issues with files > 1 GB (pax, record=0)
+- get rid of the freelist
+    - the PageManager knows whether a page is free or not
+    - the PageManager persists this freelist in a blob
+    - blob pages track their own freelist in the page itself
+        (did this before and it caused issues with direct I/O - how to
+        solve this?)
+- support pages with different sizes
+    - each page can have a different size
+    - the PageManager knows about these sizes and the mapping of page id to
+        address
+    - databases can have different default sizes, depending on their
+        configuration (same for blobs)
+    - the header page will become very small (1kb or less) and read-only, not
+        logged for regular operations
+    - insert(): instead of splitting, a page can now also grow
+- support efficient logging
+    - merge all log files to one single file
+    - if it exceeds a threshold (100 mb): start a new file
+    - the btree/data file is INDEPENDENT from the log! it has only atomic
+        updates and might become out-of-sync with the actual log. This is by
+        design and must not cause problems! this will later allow us to run
+        "compactions" in background.
+    - the log contains logical "streams", i.e. for PageManager, for each Page
+        etc
+    - the log writes checkpoints of those streams if the number of delta
+        updates exceeds a threshold
+    - the log buffers the data and only flushes/fsyncs when requested
+        (TODO this needs to be clearly defined!)
+    - the log can be compressed (PRO)
+    - whenever a Btree page is flushed, the log will contain a "flush" marker
+        of this page (and the lsn of the last update which modified this page).
+        this marker is stored in the log's PageManager stream
+        (can this marker be stored in the page itself?)
+    ? what about SMOs?
+        they're performed atomically in the Btree by updating/allocating all
+        pages, modifying them, updating the PageManager stream in the log
+        and then switching atomically in the PageManager map
+    ? how is recovery performed?
+        - read the last buffer from the last logfile (the tail contains a
+            header)
+        - uncompress, if it was compressed
+        - ...?
+    ? can this asynchronousness cause problems?
+    ? when/how to fsync?
 
   - StreamContainer
     - a collection of static buffers (i.e. pages, header page) and streams;
@@ -418,7 +546,7 @@ high-level plan for 2.1.5 (unstable).........................................
     - buffers data before writing to file, but flushes (and fsyncs) on
         demand
     - implementation for in-memory remains empty
-    - requests checksums from streams if there are too many delta updates
+    - requests checkpoints from streams if there are too many delta updates
     - uses log-file switching: if one file overflows then switch to a second
         file, write checkpoints and continue
     - can maintain its own Stream where it stores its own state: the buffers
@@ -428,20 +556,6 @@ high-level plan for 2.1.5 (unstable).........................................
     - add to LocalEnvironment
     - vacuum: ask all streams to perform checkpoints, and flush the buffer
         into a separate file; then rename the file 
-
-  - page-manager
-    - the page-manager replaces the cache with a linear structure which
-        maps page-id to Page object and counts number of delta updates
-    - The page-manager knows when a page is no longer required or can be
-        removed/reused
-    - The page-manager writes its state to a stream
-    - Pages use virtual IDs
-    - Blobs handle their freelist in the page
-    - get rid of the freelist
-
-  - header page
-    - the header page is now read-only during regular operations, and is only
-        modified if a database is erased or renamed
     - move the Environment's configuration to a separate object
     - move the Database's configuration to a separate object
 
@@ -452,9 +566,29 @@ high-level plan for 2.1.5 (unstable).........................................
     - log: write to sc stream
     - remove the device classes
 
+- delta updates: very similar to the current TransactionOperations; however,
+    the difference is that delta updates are part of a page, whereas
+    TransactionOperations are part of a Transaction. The difference is more
+    obvious when talking about recovery: delta updates are logged in the
+    "stream" of a page, not of a Transaction. When loading a page, they can be
+    reapplied immediately and the page will be valid.
+    -> logging disabled: don't bother
+    -> logging enabled: write delta updates to a (buffered) log; flush log
+        when a Txn is committed
+    -> if the log exceeds 100 mb: switch to the next log
+    -> delete old log files when all their streams are checkpointed in a
+        newer file
+    -> if delta updates exceed <threshold>: request/write a checkpoint
+    -> each stream knows which log file stores its latest checkpoint
+    -> when the database is closed: write checkpoints of as many streams
+        as possible, esp. if older logs contain delta updates (then the
+        old log can be purged)
+    -> each log has a trailer which lists the streams in the log; this
+        can be used to purge the log efficiently
+
   --------- freelist gone, everything should work and be much faster ---------
 
-  - Delta updates
+  - Delta updates (concurrent/atomic!)
     are like TransactionOperations but directly attached to a BtreeNode.
     the Transaction is separated from the updates; its only state is a name,
     the Tid and the flags (committed, aborted...)
@@ -474,11 +608,12 @@ high-level plan for 2.1.5 (unstable).........................................
         aborted Transaction (the Checkpoint is performed by the PageManager,
         which has to traverse the Btree because an SMO is performed
         recursively)
-    - non-transactional updates can also be performed as DeltaUpdates, but
+    - non-transactional updates are also performed as DeltaUpdates, but
         they are not logged
 
-- compress the whole LSS with snappy -> PRO
-- encrypt the whole LSS with AES -> PRO
+- bloom filter -> PRO
+- compress the whole LSS (and the log) with snappy -> PRO
+- encrypt the whole LSS (and the log) with AES -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
 - compression -> PRO
 - bulk updates -> PRO
@@ -492,9 +627,15 @@ high-level plan for 2.1.5 (unstable).........................................
 - concurrency
 - operations on compressed data (COUNT(), MIN(), MAX(), ...)?
 - C-Store style projections? (requires complex schema types)
-    - introduce a new library with complex schema types, projections,
-        high level operations?
-
+    - introduce a new library with complex schema types, projections
+    - analytic functions
+        count, min, max, sum, product, average, ln, sqrt, exp, round, trunc,
+        date/time functions and interval functions
+    - select(predicate_t, column_descriptor_t, paging_state_t)
+             \- an AST of functors
+                          \- existing columns or generated columns (i.e. sum())
+    - erase(predicate_t)
+    - explain(predicate_t, column_descriptor_t)
 
 o introduce PRO version
     o start a closed repository
@@ -602,25 +743,12 @@ o use cache-oblivious b-tree layout
     o run samples
     o build release package
 
-. review/rewrite/refactor Transaction class
-    keep in mind that sooner or later the BtreeNode will expect template
-    arguments; can we do something similar with the TransactionNode?
-    x try to get the methods/design analoguous to the Btree - no, that
-        does not make too much sense
-    x document the tree structure in the header file
-    x refactor the code
-    o split into multiple files
-    o try to cleanup the flow; move more code from db.cc to txn.cc
-    . each Transaction should have its own PoolAllocator (based on ByteArray);
-        when deleting the whole structure, only the PoolAllocator is freed
-        o only do this if memory allocations cost performance
-        o problem: a realloc() will not always work because it might move
-            the allocated memory, and all existing pointers would be invalid 
-
 . also remove locking from C# and Java APIs
 
-
 ------------------- idea soup ---------------------------------------------
+
+o btree_impl_default::set_record: if the duplicate is LAST of the last key
+    in the node then simply append the record and increase next_offset
 
 o asynchronous prefetching of pages
     -> see posix_fadvice, libprefetch

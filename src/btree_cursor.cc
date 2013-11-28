@@ -26,7 +26,7 @@
 namespace hamsterdb {
 
 BtreeCursor::BtreeCursor(Cursor *parent)
-  : m_parent(parent), m_state(0), m_duplicate_index(0), m_dupe_cache(),
+  : m_parent(parent), m_state(0), m_duplicate_index(0),
     m_coupled_page(0), m_coupled_index(0), m_next_in_page(0),
     m_previous_in_page(0)
 {
@@ -46,7 +46,6 @@ BtreeCursor::set_to_nil()
 
   m_state = BtreeCursor::kStateNil;
   m_duplicate_index = 0;
-  memset(&m_dupe_cache, 0, sizeof(PDupeEntry));
 }
 
 void
@@ -96,20 +95,15 @@ BtreeCursor::clone(BtreeCursor *other)
 void
 BtreeCursor::overwrite(ham_record_t *record, ham_u32_t flags)
 {
-  Transaction *txn = m_parent->get_txn();
-
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
     couple();
   else if (m_state != kStateCoupled)
     throw Exception(HAM_CURSOR_IS_NIL);
 
-  // delete the cache of the current duplicate
-  memset(&m_dupe_cache, 0, sizeof(PDupeEntry));
-
   // copy the key flags, and remove all flags concerning the key size
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  node->set_record(m_coupled_index, txn, record, m_duplicate_index,
+  node->set_record(m_coupled_index, record, m_duplicate_index,
                     flags | HAM_OVERWRITE, 0);
 
   m_coupled_page->set_dirty(true);
@@ -121,9 +115,6 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
   ham_status_t st = 0;
   LocalDatabase *db = m_parent->get_db();
   Transaction *txn = m_parent->get_txn();
-
-  // delete the cache of the current duplicate
-  memset(&m_dupe_cache, 0, sizeof(PDupeEntry));
 
   if (flags & HAM_CURSOR_FIRST)
     st = move_first(flags);
@@ -165,8 +156,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
            ? &db->get_record_arena()
            : &txn->get_record_arena();
 
-    node->get_record(m_coupled_index, arena, record, flags,
-                    m_duplicate_index, &m_dupe_cache);
+    node->get_record(m_coupled_index, arena, record, flags, m_duplicate_index);
   }
 
   return (0);
@@ -238,7 +228,7 @@ BtreeCursor::points_to(ham_key_t *key)
 }
 
 ham_u32_t
-BtreeCursor::get_duplicate_count(ham_u32_t flags)
+BtreeCursor::get_record_count(ham_u32_t flags)
 {
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -247,7 +237,7 @@ BtreeCursor::get_duplicate_count(ham_u32_t flags)
     return (HAM_CURSOR_IS_NIL);
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  return (node->get_duplicate_count(m_coupled_index));
+  return (node->get_record_count(m_coupled_index));
 }
 
 ham_u64_t
@@ -338,19 +328,11 @@ BtreeCursor::move_next(ham_u32_t flags)
 
   // if this key has duplicates: get the next duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (node->has_duplicates(m_coupled_index)
-              && (!(flags & HAM_SKIP_DUPLICATES))) {
-    m_duplicate_index++;
-    ham_status_t st = env->get_duplicate_manager()->get(
-                            node->get_record_id(m_coupled_index),
-                            m_duplicate_index, &m_dupe_cache);
-    if (st) {
-      m_duplicate_index--; // undo the increment above
-      if (st != HAM_KEY_NOT_FOUND)
-        return (st);
-    }
-    else if (!st)
+  if (!(flags & HAM_SKIP_DUPLICATES)) {
+    if (m_duplicate_index < node->get_record_count(m_coupled_index) - 1) {
+      m_duplicate_index++;
       return (0);
+    }
   }
 
   // don't continue if ONLY_DUPLICATES is set
@@ -380,7 +362,6 @@ BtreeCursor::move_next(ham_u32_t flags)
 ham_status_t
 BtreeCursor::move_previous(ham_u32_t flags)
 {
-  ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
   LocalEnvironment *env = db->get_local_env();
 
@@ -394,19 +375,9 @@ BtreeCursor::move_previous(ham_u32_t flags)
 
   // if this key has duplicates: get the previous duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (node->has_duplicates(m_coupled_index)
-      && (!(flags & HAM_SKIP_DUPLICATES))
-      && m_duplicate_index > 0) {
+  if (!(flags & HAM_SKIP_DUPLICATES) && m_duplicate_index > 0) {
     m_duplicate_index--;
-    st = env->get_duplicate_manager()->get(node->get_record_id(m_coupled_index),
-                    m_duplicate_index, &m_dupe_cache);
-    if (st) {
-      m_duplicate_index++; // undo the decrement above
-      if (st != HAM_KEY_NOT_FOUND)
-        return (st);
-    }
-    else if (!st)
-      return (0);
+    return (0);
   }
 
   // don't continue if ONLY_DUPLICATES is set
@@ -433,12 +404,8 @@ BtreeCursor::move_previous(ham_u32_t flags)
   m_duplicate_index = 0;
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (node->has_duplicates(m_coupled_index)
-      && !(flags & HAM_SKIP_DUPLICATES)) {
-    ham_u32_t count = env->get_duplicate_manager()->get_count(
-                    node->get_record_id(m_coupled_index), &m_dupe_cache);
-    m_duplicate_index = count - 1;
-  }
+  if (!(flags & HAM_SKIP_DUPLICATES))
+    m_duplicate_index = node->get_record_count(m_coupled_index) - 1;
 
   return (0);
 }
@@ -479,12 +446,8 @@ BtreeCursor::move_last(ham_u32_t flags)
   couple_to_page(page, node->get_count() - 1, 0);
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (node->has_duplicates(m_coupled_index) && !(flags & HAM_SKIP_DUPLICATES)) {
-    ham_u32_t count = env->get_duplicate_manager()->get_count(
-                        node->get_record_id(m_coupled_index),
-                        &m_dupe_cache);
-    m_duplicate_index = count - 1;
-  }
+  if (!(flags & HAM_SKIP_DUPLICATES))
+    m_duplicate_index = node->get_record_count(m_coupled_index) - 1;
 
   return (0);
 }

@@ -20,7 +20,7 @@
 #include "../src/blob_manager.h"
 #include "../src/env.h"
 #include "../src/page.h"
-#include "../src/btree_key.h"
+#include "../src/btree_flags.h"
 #include "../src/page_manager.h"
 
 namespace hamsterdb {
@@ -80,25 +80,6 @@ struct BlobManagerFixture {
 
     b.set_size(0x123ull);
     REQUIRE((ham_u64_t)0x123ull == b.get_size());
-  }
-
-  void dupeStructureTest() {
-    PDupeTable t;
-    ::memset(&t, 0, sizeof(t));
-
-    dupe_table_set_count(&t, 0x789ull);
-    REQUIRE((ham_u32_t)0x789ull == dupe_table_get_count(&t));
-
-    dupe_table_set_capacity(&t, 0x123ull);
-    REQUIRE((ham_u32_t)0x123ull == dupe_table_get_capacity(&t));
-
-    PDupeEntry *e = dupe_table_get_entry(&t, 0);
-    dupe_entry_set_flags(e, 0x13);
-    REQUIRE((ham_u8_t)0x13 == dupe_entry_get_flags(e));
-
-    dupe_entry_set_rid(e, (ham_u64_t)0x12345ull);
-    REQUIRE((ham_u64_t)0x12345ull ==
-            dupe_entry_get_rid(e));
   }
 
   void allocReadFreeTest() {
@@ -342,12 +323,6 @@ TEST_CASE("BlobManager/structureTest", "")
   f.structureTest();
 }
 
-TEST_CASE("BlobManager/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, true, 1024);
-  f.dupeStructureTest();
-}
-
 TEST_CASE("BlobManager/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 1024);
@@ -401,12 +376,6 @@ TEST_CASE("BlobManager-notxn/structureTest", "")
 {
   BlobManagerFixture f(false, false, 1024);
   f.structureTest();
-}
-
-TEST_CASE("BlobManager-notxn/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, false, 1024);
-  f.dupeStructureTest();
 }
 
 TEST_CASE("BlobManager-notxn/allocReadFreeTest", "")
@@ -464,12 +433,6 @@ TEST_CASE("BlobManager-64k/structureTest", "")
   f.structureTest();
 }
 
-TEST_CASE("BlobManager-64k/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, true, 1024 * 64, 1024 * 64);
-  f.dupeStructureTest();
-}
-
 TEST_CASE("BlobManager-64k/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 1024 * 64, 1024 * 64);
@@ -523,12 +486,6 @@ TEST_CASE("BlobManager-nocache/structureTest", "")
 {
   BlobManagerFixture f(false, true, 0);
   f.structureTest();
-}
-
-TEST_CASE("BlobManager-nocache/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, true, 0);
-  f.dupeStructureTest();
 }
 
 TEST_CASE("BlobManager-nocache/allocReadFreeTest", "")
@@ -586,12 +543,6 @@ TEST_CASE("BlobManager-nocache-notxn/structureTest", "")
   f.structureTest();
 }
 
-TEST_CASE("BlobManager-nocache-notxn/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, false, 0);
-  f.dupeStructureTest();
-}
-
 TEST_CASE("BlobManager-nocache-notxn/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, false, 0);
@@ -645,12 +596,6 @@ TEST_CASE("BlobManager-nocache-64k/structureTest", "")
 {
   BlobManagerFixture f(false, true, 0, 1024 * 64);
   f.structureTest();
-}
-
-TEST_CASE("BlobManager-nocache-64k/dupeStructureTest", "")
-{
-  BlobManagerFixture f(false, true, 0, 1024 * 64);
-  f.dupeStructureTest();
 }
 
 TEST_CASE("BlobManager-nocache-64k/allocReadFreeTest", "")
@@ -708,12 +653,6 @@ TEST_CASE("BlobManager-inmem/structureTest", "")
   f.structureTest();
 }
 
-TEST_CASE("BlobManager-inmem/dupeStructureTest", "")
-{
-  BlobManagerFixture f(true, false);
-  f.dupeStructureTest();
-}
-
 TEST_CASE("BlobManager-inmem/allocReadFreeTest", "")
 {
   BlobManagerFixture f(true, false);
@@ -767,12 +706,6 @@ TEST_CASE("BlobManager-inmem-64k/structureTest", "")
 {
   BlobManagerFixture f(true, false, 0, 1024 * 64);
   f.structureTest();
-}
-
-TEST_CASE("BlobManager-inmem-64k/dupeStructureTest", "")
-{
-  BlobManagerFixture f(true, false, 0, 1024 * 64);
-  f.dupeStructureTest();
 }
 
 TEST_CASE("BlobManager-inmem-64k/allocReadFreeTest", "")
