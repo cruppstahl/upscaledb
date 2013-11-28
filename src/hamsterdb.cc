@@ -1270,15 +1270,9 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
       ham_trace(("parameter 'key' must not be NULL"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (flags & HAM_HINT_PREPEND) {
-      ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
-            "ham_cursor_insert"));
-      return (db->set_error(HAM_INV_PARAMETER));
-    }
-    if (flags & HAM_HINT_APPEND) {
-      ham_trace(("flags HAM_HINT_APPEND is only allowed in "
-            "ham_cursor_insert"));
-      return (db->set_error(HAM_INV_PARAMETER));
+    if (db->get_rt_flags() & HAM_READ_ONLY) {
+      ham_trace(("cannot erase from a read-only database"));
+      return (HAM_WRITE_PROTECTED);
     }
 
     if (!__prepare_key(key))

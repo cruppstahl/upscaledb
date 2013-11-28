@@ -84,7 +84,13 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   }
 
   page = new Page(m_env, db);
-  page->fetch(address);
+  try {
+    page->fetch(address);
+  }
+  catch (Exception &ex) {
+    delete page;
+    throw ex;
+  }
 
   ham_assert(page->get_data());
 

@@ -331,7 +331,7 @@ x define and document the terminology and check the code for inconsistencies
     -> Wiki
     x review code and make sure it's consistent
 
-o start redesigning code towards exceptions; this will reduce the code a lot
+x start redesigning code towards exceptions; this will reduce the code a lot
     and we can get rid on those annoying error checks and returns
     x evaluate performance of exception handling code vs. non-exception handling
         -> it's ok, but only use for exceptions, not for normal
@@ -341,20 +341,29 @@ o start redesigning code towards exceptions; this will reduce the code a lot
         os, mem, util, device, error, config, freelist, changeset, cache,
         page, page_manager, blob_manager, ...)
       x env_remote.cc: reopen connection in case of network errors
-    o db_local.cc: local transactions must be aborted!
-    o run valgrind-tests (w/o tcmalloc!)
+    x run valgrind-tests (w/o tcmalloc!)
+
+x db_local.cc has many parameter checks - i.e in insert(); can these be
+    moved to hamsterdb.cc?
 
 o merge everything with v2
 
 o completely rewrite handling of duplicate keys
-    o store record list in leaf, not in overflow area; if there are too
-        many (> 256) then allocate an overflow extend
+    o requires new flag for overflow-duplicate tables
+    o add new layout which has 1 byte for duplicate counter
+    o fix calculation of key data access (needs to take duplicate counter
+        and flag into account)
+    o > 256 duplicates: set duplicate table-flag, move to overflow area
+    o fix remaining duplicate code, make sure that everything works
     o support inline records
+    o remove DuplicateManager; move to btree_node_default.h, depending
+        on template parameters
+    o BtreeCursor: remove m_dupe_cache, directly access the BtreeNodeProxy
     o can we unify the whole record handling from both layouts?
         - at least fix the naming to make clear whether a class is for
             PAX or for Default
-    o should we also touch the cursor handling for duplicate keys? or postpone
-        this towards delta updates?
+    o add tests with > 256 duplicates per key
+    o add dupkey_cache (similar to extkey_cache) for duplicate tables
 
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
@@ -365,6 +374,7 @@ o extend the documentation
     o HAM_KEY_SIZE_UNLIMITED etc
     o removed HAM_ENABLE_EXTENDED_KEYS
     o removed HAM_DISABLE_VARIABLE_KEYS
+    o > 256 duplicate keys -> require overflow table
 
 o evaluate use of endian-independence
     o ask on mailing list
@@ -379,15 +389,98 @@ o evaluate use of endian-independence
 
 high-level plan for 2.1.5 (unstable).........................................
 - start transformation of file to a container of streams
-    (every buffer needs stream descriptor, trailer)
-    - metadata changes (= modifying the header page) is its own stream
-    - virtual page IDs, variable page sizes
-    - grow/shrink pages
-    - get rid of freelist
-    - delta updates
-- compress the whole LSS -> PRO
-- encrypt the whole LSS -> PRO
+  - preparations
+    - remove HAM_CACHE_STRICT
+    - how to perform fast recovery if a stream is spread all over the file,
+        and if there's no "next" pointer to the next segment?
+        the segment trailers only store the checksums of the major streams,
+        but nothing else.
+    - one solution would be to have several files:
+        1. for pages (including header page)
+        2. for streams (if file overflows then switch to the next file;
+            delete old files when they are no longer required)
+        this would avoid complicated garbage collection and slow recovery,
+        but would make atomic updates impossible  and increase disk seeks
+ -> - another solution: recover "from the end". while segments do not have
+        a "next" pointer, they can have a "previous" pointer. Follow these
+        backwards till the first checkpoint is reached. only three streams
+        have to be fetched: 1) PageManager 2) Journal 3) Log; however,
+        if the file was closed correctly then the last segments of all
+        streams are checkpoints, and the checkpoints of Journal and Log
+        should be empty.
+
+  - StreamContainer
+    - a collection of static buffers (i.e. pages, header page) and streams;
+      all stored in one file. each stream contains segments with a small
+      header (stream-id, subject, lsn, number of buffers), one or more
+      buffers (size, checksum?) and a trailer (last checkpoint of metadata,
+      last checkpoint of page-manager)
+    - buffers data before writing to file, but flushes (and fsyncs) on
+        demand
+    - implementation for in-memory remains empty
+    - requests checksums from streams if there are too many delta updates
+    - uses log-file switching: if one file overflows then switch to a second
+        file, write checkpoints and continue
+    - can maintain its own Stream where it stores its own state: the buffers
+        that were written to disk, which streams are in these buffers,
+        are they obsolete through newer checkpoints etc
+    - use this information to garbage-collect buffers and re-use them
+    - add to LocalEnvironment
+    - vacuum: ask all streams to perform checkpoints, and flush the buffer
+        into a separate file; then rename the file 
+
+  - page-manager
+    - the page-manager replaces the cache with a linear structure which
+        maps page-id to Page object and counts number of delta updates
+    - The page-manager knows when a page is no longer required or can be
+        removed/reused
+    - The page-manager writes its state to a stream
+    - Pages use virtual IDs
+    - Blobs handle their freelist in the page
+    - get rid of the freelist
+
+  - header page
+    - the header page is now read-only during regular operations, and is only
+        modified if a database is erased or renamed
+    - move the Environment's configuration to a separate object
+    - move the Database's configuration to a separate object
+
+  - StreamContainer ("sc") #2
+    - perform full transition by moving the remaining modules to the sc
+    - pages: fetch/flush from sc file
+    - journal: write to sc stream
+    - log: write to sc stream
+    - remove the device classes
+
+  --------- freelist gone, everything should work and be much faster ---------
+
+  - Delta updates
+    are like TransactionOperations but directly attached to a BtreeNode.
+    the Transaction is separated from the updates; its only state is a name,
+    the Tid and the flags (committed, aborted...)
+    - Transactions are stored in a linear array, just like the pages
+    - db_local.cc: local Transactions must be aborted if a Transaction occurs
+        (create them on the stack, abort in destructor)
+    - Transactions are not connected to their operations or anywhere else
+    - the TransactionOperation becomes a DeltaUpdate
+    - attach the DeltaUpdate directly to the BtreeNode
+    - the TransactionIndex is no longer required
+    - fix insert/erase/find/cursor operations and do not use
+        the TransactionIndex (rename BtreeIndex -> Btree)
+    - the cursor can be directly coupled to a DeltaUpdate
+    - implement SMOs (split/shifts/merge) and make sure the DeltaUpdates are
+        moved to the other page, if necessary
+    - when checkpointing: delete all DeltaUpdates that belong to an
+        aborted Transaction (the Checkpoint is performed by the PageManager,
+        which has to traverse the Btree because an SMO is performed
+        recursively)
+    - non-transactional updates can also be performed as DeltaUpdates, but
+        they are not logged
+
+- compress the whole LSS with snappy -> PRO
+- encrypt the whole LSS with AES -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
+- compression -> PRO
 - bulk updates -> PRO
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort

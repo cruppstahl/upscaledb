@@ -1599,7 +1599,15 @@ class DefaultNodeLayout
     ham_u64_t copy_extended_key(ham_u64_t oldblobid) {
       ham_key_t oldkey = {0};
 
-      get_extended_key(oldblobid, &oldkey);
+      // do NOT use the cache when retrieving the existing blob - this
+      // blob belongs to a different page and we do not have access to
+      // its layout
+      ham_record_t record = {0};
+      LocalDatabase *db = m_page->get_db();
+      db->get_local_env()->get_blob_manager()->read(db, oldblobid, &record,
+                      0, &m_arena);
+      oldkey.data = record.data;
+      oldkey.size = record.size;
 
       return (add_extended_key(&oldkey));
     }
@@ -1616,6 +1624,7 @@ class DefaultNodeLayout
       ham_u64_t blobid = db->get_local_env()->get_blob_manager()->allocate(db,
                             &rec, 0);
       ham_assert(blobid != 0);
+      ham_assert(m_extkey_cache->find(blobid) == m_extkey_cache->end());
 
       ByteArray arena;
       arena.resize(key->size);

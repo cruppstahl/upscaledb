@@ -828,10 +828,6 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
   Transaction *local_txn = 0;
   ham_u64_t recno = 0;
 
-  if (get_rt_flags() & HAM_READ_ONLY) {
-    ham_trace(("cannot erase from a read-only database"));
-    return (HAM_WRITE_PROTECTED);
-  }
   if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
       && key->size != get_key_size()) {
     ham_trace(("invalid key size (%u instead of %u)",
