@@ -90,6 +90,11 @@
 #include "env_local.h"
 #include "btree_index.h"
 
+#ifdef WIN32
+// MSVC: disable warning about use of 'this' in base member initializer list
+#  pragma warning(disable:4355)
+#endif
+
 namespace hamsterdb {
 
 #undef min  // avoid MSVC conflicts with std::min

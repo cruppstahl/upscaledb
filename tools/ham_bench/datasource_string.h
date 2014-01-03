@@ -22,6 +22,8 @@
 // The file with the (sorted) words
 #ifdef WIN32
 #  define DICT "words"
+#  undef min   // clashes with std::min
+#  undef max   // clashes with std::max
 #else
 #  define DICT "/usr/share/dict/words"
 #endif

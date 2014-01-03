@@ -323,21 +323,19 @@ os_get_filesize(ham_fd_t fd)
 void
 os_truncate(ham_fd_t fd, ham_u64_t newsize)
 {
-  ham_status_t st = os_seek(fd, newsize, HAM_OS_SEEK_SET);
-  if (st)
-    return (st);
+  os_seek(fd, newsize, HAM_OS_SEEK_SET);
 
   if (!SetEndOfFile((HANDLE)fd)) {
     char buf[256];
-    st = (ham_status_t)GetLastError();
+    ham_status_t st = (ham_status_t)GetLastError();
     ham_log(("SetEndOfFile failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(HAM_IO_ERROR);
   }
 }
 
-void
-os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
+ham_fd_t
+os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
@@ -366,7 +364,6 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 
   if (fd == INVALID_HANDLE_VALUE) {
     char buf[256];
-    fd = HAM_INVALID_FD;
     st = (ham_status_t)GetLastError();
     if (st == ERROR_SHARING_VIOLATION)
       throw Exception(HAM_WOULD_BLOCK);
@@ -375,6 +372,8 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(HAM_IO_ERROR);
   }
+
+  return (fd);
 }
 
 void
@@ -434,6 +433,8 @@ os_open(const char *filename, ham_u32_t flags)
                         ? HAM_FILE_NOT_FOUND
                         : HAM_IO_ERROR);
   }
+
+  return (fd);
 }
 
 void
@@ -541,7 +542,7 @@ os_socket_close(ham_socket_t *socket)
 {
   if (*socket != HAM_INVALID_FD) {
     if (::closesocket(*socket) == -1)
-      return (HAM_IO_ERROR);
+      throw Exception(HAM_IO_ERROR);
     *socket = HAM_INVALID_FD;
   }
 }

@@ -696,8 +696,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       typename NodeImpl::Iterator it = m_impl.at(slot);
       it->set_record_id(record_id);
       it->set_key_flags(flags);
-      it->set_key_size(data_size);
-      it->set_key_data(data, data_size);
+      it->set_key_size((ham_u16_t)data_size);
+      it->set_key_data(data, (ham_u32_t)data_size);
     }
 
     // Clears the page with zeroes and reinitializes it; only for testing

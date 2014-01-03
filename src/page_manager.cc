@@ -266,7 +266,7 @@ PageManager::reclaim_space()
       return;
     m_env->get_device()->truncate(new_size);
   }
-  catch (Exception &ex) {
+  catch (Exception &) {
   }
 }
 

@@ -21,6 +21,9 @@
 #include "../src/db_local.h"
 #include "../src/btree_index.h"
 
+#undef min
+#undef max
+
 namespace hamsterdb {
 
 static int g_split_count = 0;

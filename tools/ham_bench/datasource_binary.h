@@ -128,11 +128,11 @@ class BinaryDescendingDatasource : public Datasource
       if (fixed_size) {
         m_data.resize(size);
         for (int i = 0; i < size; i++)
-          m_data[i] = m_alphabet.size() - 1;
+          m_data[i] = (unsigned char)m_alphabet.size() - 1;
       }
       else {
         m_data.resize(1);
-        m_data[0] = m_alphabet.size() - 1;
+        m_data[0] = (unsigned char)m_alphabet.size() - 1;
       }
     }
 
@@ -146,7 +146,7 @@ class BinaryDescendingDatasource : public Datasource
       if (m_fixed_size || m_data.size() == m_size) {
         for (int s = (int)size - 1; s >= 0; s--) {
           if (m_data[s] == 0)
-            m_data[s] = m_alphabet.size() - 1;
+            m_data[s] = (unsigned char)m_alphabet.size() - 1;
           else {
             m_data[s]--;
             break;
@@ -166,7 +166,7 @@ class BinaryDescendingDatasource : public Datasource
       else {
         if (m_data.size() < m_size) {
           m_data.resize(m_data.size() + 1);
-          m_data[m_data.size() - 1] = m_alphabet.size() - 1;
+          m_data[m_data.size() - 1] = (unsigned char)m_alphabet.size() - 1;
         }
       }
     }
@@ -215,7 +215,7 @@ class BinaryZipfianDatasource : public Datasource
 
   private:
     boost::mt19937 m_rng;
-    int m_size;
+    size_t m_size;
     bool m_fixed_size;
     NumericZipfianDatasource<int> m_zipf;
     std::vector<unsigned char> m_data;

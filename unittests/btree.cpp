@@ -272,16 +272,17 @@ struct BtreeFixture {
 
     g_BTREE_INSERT_SPLIT_HOOK = split_hook;
 
-    std::string expected_leafname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned int>, hamsterdb::InlineRecordList>, hamsterdb::NumericCompare<unsigned int> >";
-    std::string expected_internalname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned int>, hamsterdb::InternalRecordList>, hamsterdb::NumericCompare<unsigned int> >";
-
     // check if the root page proxy was created correctly (it's a leaf)
     REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
                     1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
+#ifdef HAVE_GCC_ABI_DEMANGLE
+    std::string expected_internalname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned int>, hamsterdb::InternalRecordList>, hamsterdb::NumericCompare<unsigned int> >";
+    std::string expected_leafname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned int>, hamsterdb::InlineRecordList>, hamsterdb::NumericCompare<unsigned int> >";
     REQUIRE(node->test_get_classname() == expected_leafname);
+#endif
 
     char buffer[10] = {0};
     ham_key_t key = {0};
@@ -305,7 +306,9 @@ struct BtreeFixture {
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
+#ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_leafname);
+#endif
 
     // check the other leaf
     REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
@@ -313,14 +316,18 @@ struct BtreeFixture {
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
+#ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_leafname);
+#endif
 
     // and the new root page (must be an internal page)
     REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
                         3 * 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);
+#ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_internalname);
+#endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }

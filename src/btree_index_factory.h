@@ -64,7 +64,7 @@ struct BtreeIndexFactory
                 ham_u16_t key_type, ham_u16_t key_size, bool is_leaf) {
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
     bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
-    bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES);
+    bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
     ham_u32_t page_size = db->get_local_env()->get_page_size();
 
     typedef FixedLayoutImpl<ham_u16_t, false> FixedLayout16;

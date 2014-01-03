@@ -109,7 +109,7 @@ ham_txn_get_name(ham_txn_t *htxn)
     else
       return (name.c_str());
   }
-  catch (Exception &ex) {
+  catch (Exception &) {
     return (0);
   }
 }
