@@ -178,6 +178,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\unittests\aes.cpp" />
     <ClCompile Include="..\..\unittests\api110.cpp" />
     <ClCompile Include="..\..\unittests\approx.cpp" />
     <ClCompile Include="..\..\unittests\blob_manager.cpp" />
@@ -198,7 +199,6 @@
     <ClCompile Include="..\..\unittests\endian.cpp" />
     <ClCompile Include="..\..\unittests\env.cpp" />
     <ClCompile Include="..\..\unittests\error.cpp" />
-    <ClCompile Include="..\..\unittests\extkeys.cpp" />
     <ClCompile Include="..\..\unittests\freelist.cpp" />
     <ClCompile Include="..\..\unittests\hamsterdb.cpp" />
     <ClCompile Include="..\..\unittests\journal.cpp" />

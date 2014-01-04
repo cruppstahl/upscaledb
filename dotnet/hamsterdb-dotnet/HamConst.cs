@@ -26,6 +26,7 @@ namespace Hamster
     public const int HAM_INV_RECORD_SIZE        =     -2;
     /// <summary>Invalid key size</summary>
     public const int HAM_INV_KEY_SIZE           =     -3;
+    /// <summary>Invalid key size</summary>
     public const int HAM_INV_KEYSIZE            =     -3;
     /// <summary>Invalid page size (must be 1024 or a multiple of 2048)</summary>
     public const int HAM_INV_PAGESIZE           =     -4;
@@ -135,6 +136,7 @@ namespace Hamster
     public const int HAM_PARAM_PAGESIZE         =  0x00101;
     /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_KEY_SIZE         =  0x00102;
+    /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_KEYSIZE          =  0x00102;
     /// <summary>Parameter name for Environment.Create</summary>
     public const int HAM_PARAM_MAX_DATABASES    =  0x00103;
@@ -159,7 +161,7 @@ namespace Hamster
     /// <summary>Value for HAM_PARAM_KEY_SIZE</summary>
     public const int HAM_KEY_SIZE_UNLIMITED         = 0xffff;
     /// <summary>Value for HAM_PARAM_RECORD_SIZE</summary>
-    public const int HAM_RECORD_SIZE_UNLIMITED      = 0xffffffff;
+    public const long HAM_RECORD_SIZE_UNLIMITED     = 0xffffffff;
 
     // Database operations
     /// <summary>Flag for Database.Insert, Cursor.Insert</summary>
