@@ -1129,7 +1129,7 @@ class DefaultNodeImpl
     void check_integrity() const {
       if (m_node->get_count() == 0)
         return;
-      ham_assert(m_node->get_count() + get_freelist_count() < get_capacity());
+      ham_assert(m_node->get_count() + get_freelist_count() <= get_capacity());
 
       ByteArray arena;
       ham_u32_t count = m_node->get_count();
@@ -2313,7 +2313,7 @@ class DefaultNodeImpl
 
       m_layout.initialize(m_node->get_data() + kPayloadOffset, key_size);
 
-      if (m_node->get_count() == 0) {
+      if (m_node->get_count() == 0 && !(db->get_rt_flags() & HAM_READ_ONLY)) {
         ham_u32_t rec_size = db->get_btree_index()->get_record_size();
         ham_u32_t page_size = get_usable_page_size();
 

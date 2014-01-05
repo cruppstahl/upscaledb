@@ -450,16 +450,13 @@ class BtreeEraseAction
         /* internal node: append the anchornode separator value to this node */
         if (internal) {
           slot = ancnode->find(sibnode, 0);
+          ham_u32_t position = node->get_count();
 
-          /* append the anchor node to the page */
-          ancnode->replace_key(slot, node, node->get_count());
+          /* this appends the key at the end of the node */
+          node->insert(position, ancnode, slot);
 
           /* the pointer of this new node is ptr_down of the sibling */
-          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
-
-          /* the key was appended, therefore the counter of the node must
-           * be incremented */
-          node->set_count(node->get_count() + 1);
+          node->set_record_id(position, sibnode->get_ptr_down());
 
           /* new pointer left of the sibling is sibling[0].ptr */
           sibnode->set_ptr_down(sibnode->get_record_id(0));
@@ -481,10 +478,13 @@ class BtreeEraseAction
 
         /* internal node: append the anchor key to the page */
         if (internal) {
-          ancnode->replace_key(slot, node, node->get_count());
+          ham_u32_t position = node->get_count();
 
-          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
-          node->set_count(node->get_count() + 1);
+          /* this appends the key at the end of the node */
+          node->insert(position, ancnode, slot);
+
+          /* the pointer of this new node is ptr_down of the sibling */
+          node->set_record_id(position, sibnode->get_ptr_down());
         }
 
         /* get the slot in the anchor node BEFORE the keys are shifted
@@ -537,7 +537,7 @@ class BtreeEraseAction
           node->replace_key(node->get_count() - 1, ancnode, slot);
 
           /* current page has now one item less */
-          node->set_count(node->get_count() - 1);
+          node->erase(node->get_count() - 1);
         }
 
         ham_u32_t c = (node->get_count() - sibnode->get_count()) / 2;
@@ -624,11 +624,10 @@ cleanup:
        */
       if (!node->is_leaf()) {
         int slot = ancnode->find(sibnode, 0);
+        ham_u32_t position = node->get_count();
 
-        ancnode->replace_key(slot, node, node->get_count());
-
-        node->set_record_id(node->get_count(), sibnode->get_ptr_down());
-        node->set_count(node->get_count() + 1);
+        node->insert(position, ancnode, slot);
+        node->set_record_id(position, sibnode->get_ptr_down());
       }
 
       /* merge all items from the sibling into this page */

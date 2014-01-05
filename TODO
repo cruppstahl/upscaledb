@@ -532,6 +532,8 @@ high-level plan for 2.1.5 (unstable).........................................
         they're performed atomically in the Btree by updating/allocating all
         pages, modifying them, updating the PageManager stream in the log
         and then switching atomically in the PageManager map
+    ? a insert with a duplicate table or extended key is not atomic; how
+        can we solve this?
     ? how is recovery performed?
         - read the last buffer from the last logfile (the tail contains a
             header)
