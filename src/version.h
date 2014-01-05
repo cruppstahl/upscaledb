@@ -28,6 +28,7 @@
  * History of file versions:
  *   2.1.0: introduced the file version; version is 0
  *   2.1.3: new btree format, file format cleanups; version is 1
+ *   2.1.4: new btree format for duplicate keys/var. length keys; version is 2
  */
 #define HAM_VERSION_MAJ     2
 #define HAM_VERSION_MIN     1

@@ -14,6 +14,7 @@ ham_bench_SOURCES = berkeleydb.h \
 				  datasource.h \
 				  datasource_binary.h \
 				  datasource_numeric.h \
+				  datasource_string.h \
 				  generator.h \
 				  generator_parser.h \
 				  generator_parser.cc \

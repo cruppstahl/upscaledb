@@ -17,13 +17,13 @@ sub simple_test {
     print "===========================================================\n";
     print "inserting $max keys...\n";
     for ($k = 0; $k < $max; $k++) {
-      check(system("./recovery insert 8 8 $k 0 $txn $i"));
+      check(system("./recovery insert 64 8 $k 0 $txn $i"));
       #`cp recovery.db rec2.db`;
       #`cp recovery.db.log0 rec2.db.log0`;
       #`cp recovery.db.jrn0 rec2.db.jrn0`;
       #`cp recovery.db.jrn1 rec2.db.jrn1`;
       check(system("./recovery recover $txn"));
-      check(system("./recovery verify 8 8 $k 0 $txn 1"));
+      check(system("./recovery verify 64 8 $k 0 $txn 1"));
     }
 
     print "erasing $max keys...\n";
@@ -32,9 +32,9 @@ sub simple_test {
       `cp recovery.db.log0 rec-$k.db.log0`;
       `cp recovery.db.jrn0 rec-$k.db.jrn0`;
       `cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery erase 8 $k 0 $txn $i"));
+      check(system("./recovery erase 64 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
-      check(system("./recovery verify 8 8 $k 0 $txn 0"));
+      check(system("./recovery verify 64 8 $k 0 $txn 0"));
     }
   }
 }

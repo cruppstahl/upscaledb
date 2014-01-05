@@ -72,7 +72,7 @@ insert(int argc, char **argv) {
 
   ham_record_t rec = {0};
   rec.data = malloc(rec_size);
-  rec.size = key_size;
+  rec.size = rec_size;
   memset(rec.data, 0, rec.size);
 
   // if db does not yet exist: create it, otherwise open it
@@ -81,7 +81,7 @@ insert(int argc, char **argv) {
           | HAM_ENABLE_RECOVERY, 0);
   if (st == HAM_FILE_NOT_FOUND) {
     ham_parameter_t params[] = {
-      { HAM_PARAM_PAGESIZE, 1024 },
+      { HAM_PARAM_PAGE_SIZE, 1024 },
       { 0, 0 }
     };
     st = ham_env_create(&env, "recovery.db",
@@ -93,13 +93,7 @@ insert(int argc, char **argv) {
       exit(-1);
     }
 
-    ham_parameter_t dbparams[] = {
-      { HAM_PARAM_KEYSIZE, 100 },
-      { 0, 0 }
-    };
-    st = ham_env_create_db(env, &db, 1,
-              HAM_ENABLE_DUPLICATE_KEYS,
-              &dbparams[0]);
+    st = ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0);
     if (st) {
       printf("ham_env_create_db failed: %d\n", (int)st);
       exit(-1);
@@ -308,7 +302,7 @@ verify(int argc, char **argv) {
 
   ham_record_t rec = {0};
   rec.data = malloc(rec_size);
-  rec.size = key_size;
+  rec.size = rec_size;
   memset(rec.data, 0, rec.size);
 
   ham_record_t rec2 = {0};

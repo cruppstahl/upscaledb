@@ -453,13 +453,6 @@ x split monster.lst into multiple files, run in parallel on different
 
 x rebase, merge with v2
 
-o ham_bench: new test mode: first load with LOTS of data, then erase in the
-    same order (or in random order or reverse order) till the database is empty
-    o implementation idea: when switching to ERASE, perform a reset() on the
-        NumberGenerator, and it will start delivering the same sequence as
-        from the beginning
-    o add to monster tests, valgrind
-
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
@@ -471,6 +464,14 @@ o extend the documentation
     o > 256 duplicate keys -> requires overflow table
     o > 256 key size -> requires extended key
 
+o web-page requires updates
+    o deployed html differs from git-repository
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
+
 o evaluate use of endian-independence
     o ask on mailing list
     o ask in README
@@ -480,15 +481,14 @@ o evaluate use of endian-independence
     o try to become "oclint-clean"
     o try to become "coverity-clean"
 
-o web-page requires updates
-    o deployed html differs from git-repository
-    o www1
-        o merge git repository of www1 (host on github, keep remote branch)
-        o clean up 'dl' directory
-        o where to host static files?
-        o backup and deploy to www2, use round-robin DNS
+o ham_bench: new test mode: first load with LOTS of data, then erase in the
+    same order (or in random order or reverse order) till the database is empty
+    o implementation idea: when switching to ERASE, perform a reset() on the
+        NumberGenerator, and it will start delivering the same sequence as
+        from the beginning
+    o add to monster tests, valgrind
 
----------------------- release 2.1.4 (unstable) -----------------------------
+---------------------- release 2.1.4 ----------------------------------------
 
 high-level plan for 2.1.5 (unstable).........................................
 - check for scalability issues with files > 1 GB (pax, record=0)
@@ -507,6 +507,9 @@ high-level plan for 2.1.5 (unstable).........................................
     - the header page will become very small (1kb or less) and read-only, not
         logged for regular operations
     - insert(): instead of splitting, a page can now also grow
+- simplify header page handling
+    - header page has a fixed id (i.e. = db-name)
+    - if the header page is replaced: only the PageManager is updated!
 - support efficient logging
     - merge all log files to one single file
     - if it exceeds a threshold (100 mb): start a new file
