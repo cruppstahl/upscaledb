@@ -217,4 +217,70 @@
    fun:_ZN9hamsterdb17BtreeInsertAction16insert_recursiveEPNS_4PageEP9ham_key_tm
    fun:_ZN9hamsterdb17BtreeInsertAction6insertEv
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   writev(vector[...])
+   fun:writev
+   fun:_ZN9hamsterdb9os_writevEiPvmS0_mS0_mS0_mS0_m
+   fun:_ZN9hamsterdb7Journal12append_entryEiPvjS1_jS1_jS1_jS1_j
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_11TransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_11TransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase13cursor_insertEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:ham_cursor_insert
+   fun:_ZN17BaseCursorFixture26getDuplicateRecordSizeTestEv
+   fun:_ZL35TestCaseFunction_catch_internal_424v
+   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
+   fun:_ZNK5Catch12TestCaseInfo6invokeEv
+   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb15DiskBlobManager12write_chunksEPNS_13LocalDatabaseEPNS_4PageEmbbPPhPjj
+   fun:_ZN9hamsterdb15DiskBlobManager8allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DiskBlobManager9overwriteEPNS_13LocalDatabaseEmP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb1EEENS_23DefaultInlineRecordImplIS2_Lb1EEEE21flush_duplicate_tableEmPNS_9ByteArrayE
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb1EEENS_23DefaultInlineRecordImplIS2_Lb1EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb18BtreeNodeProxyImplINS_15DefaultNodeImplINS_17DefaultLayoutImplItLb1EEENS_23DefaultInlineRecordImplIS3_Lb1EEEEENS_19VariableSizeCompareEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_leafEPNS_4PageEP9ham_key_tmbb
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_pageEPNS_4PageEP9ham_key_tm
+   fun:_ZN9hamsterdb17BtreeInsertAction16insert_recursiveEPNS_4PageEP9ham_key_tm
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:_ZN9hamsterdb13LocalDatabase15get_btree_indexEv
+   fun:_ZN9hamsterdb11BtreeCursorC1EPNS_6CursorE
+   fun:_ZN9hamsterdb6CursorC1EPNS_13LocalDatabaseEPNS_11TransactionEj
+   fun:_ZN9hamsterdb14RemoteDatabase18cursor_create_implEPNS_11TransactionEj
+   fun:_ZN9hamsterdb8Database13cursor_createEPNS_11TransactionEj
+   fun:ham_cursor_create
+   fun:_ZN13RemoteFixture20cursorInsertFindTestEv
+   fun:_ZL36TestCaseFunction_catch_internal_1276v
+   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
+   fun:_ZNK5Catch12TestCaseInfo6invokeEv
+   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
+   fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:_ZN9hamsterdb13LocalDatabase15get_btree_indexEv
+   fun:_ZN9hamsterdb11BtreeCursorC1EPNS_6CursorE
+   fun:_ZN9hamsterdb6CursorC1EPNS_13LocalDatabaseEPNS_11TransactionEj
+   fun:_ZN9hamsterdb14RemoteDatabase17cursor_clone_implEPNS_6CursorE
+   fun:_ZN9hamsterdb8Database12cursor_cloneEPNS_6CursorE
+   fun:ham_cursor_clone
+   fun:_ZN13RemoteFixture15cursorCloneTestEv
+   fun:_ZL36TestCaseFunction_catch_internal_1342v
+   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
+   fun:_ZNK5Catch12TestCaseInfo6invokeEv
+   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
+   fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
+}
 

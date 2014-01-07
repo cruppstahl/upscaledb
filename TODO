@@ -14,19 +14,13 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.2.0-pre2 (unstable)...................................
+high-level plan for 2.1.4 ..................................................
 x refactoring: sometimes, the BtreeNodeProxy updates node->count after an
     operation; sometimes, this is handled in the Btree*Action class -> unify
 x btree stores fixed-length records in the leaf
 x PAX layout: if record size is fix then do not store 1 byte flag for each key
 x ham_bench uses /opt/share/dict/words as data input
-o completely rewrite handling of extended keys
-o introduce commercial PRO version
-o PRO: btree can compress keys (strings: prefix, everything: dict)
-o PRO: use SIMD for fixed-length scans
-. db_remote.cc has an evil cast which creates (currently suppressed) valgrind
-    errors, fix this (i.e. by introducing a RemoteCursor, LocalCursor)!
-      Cursor *c = new Cursor((LocalDatabase *)this); // TODO this cast is evil!!
+x completely rewrite handling of extended keys
 
 .............................................................................
 
@@ -384,7 +378,7 @@ x completely rewrite handling of duplicate keys
     x check with valgrind
     x fix the remaining TODOs
 
-o allow tiny (fixed) record sizes with duplicate keys/tables
+x allow tiny (fixed) record sizes with duplicate keys/tables
     x btree_index_factory currently ignores fixed records if keys are fixed
         (i.e. HAM_TYPE_UINT8 etc)
         x cover this with a few tests
@@ -454,18 +448,18 @@ x split monster.lst into multiple files, run in parallel on different
 x rebase, merge with v2
 
 x update tools-tests
-o update valgrind suppressions
+x update valgrind suppressions
 
-o extend the documentation
-    o HAM_PARAM_RECORD_SIZE
-        o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
-        o use ham_info to see if the record is inline
-        o update "performance" wiki
-    o HAM_KEY_SIZE_UNLIMITED etc
-    o removed HAM_ENABLE_EXTENDED_KEYS
-    o removed HAM_DISABLE_VARIABLE_KEYS
-    o > 256 duplicate keys -> requires overflow table
-    o > 256 key size -> requires extended key
+x extend the documentation
+    x HAM_PARAM_RECORD_SIZE
+        x tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
+        x use ham_info to see if the record is inline
+        x update "performance" wiki
+    x HAM_KEY_SIZE_UNLIMITED etc
+    x removed HAM_ENABLE_EXTENDED_KEYS
+    x removed HAM_DISABLE_VARIABLE_KEYS
+    x > 256 duplicate keys -> requires overflow table
+    x > 256 key size -> requires extended key
 
 o web-page requires updates
     o deployed html differs from git-repository
@@ -488,31 +482,38 @@ o ham_bench: new test mode: first load with LOTS of data, then erase in the
 
 ---------------------- release 2.1.4 ----------------------------------------
 
-high-level plan for 2.1.5 (unstable).........................................
-- check for scalability issues with files > 1 GB (pax, record=0)
+high-level plan for 2.1.5 ...................................................
+- check for scalability issues with files > 1 GB
+    - pax, recordsize=0
+    - variable, recordsize=0
 - get rid of the freelist
     - the PageManager knows whether a page is free or not
-    - the PageManager persists its state in a blob
+    - the PageManager persists its state in a blob (needs always to be flushed
+        if recovery is enabled! - UGLY, needs to be improved as soon as
+        the log supports "streams" - but how? store delta-updates in log?)
     - blob pages track their own freelist in the page itself
         (did this before and it caused issues with direct I/O - how to
-        solve this? - check monster.txt if direct I/O is really used that often;
-        remove it if it's not)
+        solve this? - check monster.txt if direct I/O is really used that
+        often; remove it if it's not)
 - support pages with different sizes
     - each page can have a different size
     - the PageManager knows about these sizes and the mapping of page id to
         address
     - databases can have different default sizes, depending on their
         configuration (same for blobs)
-    - the header page will become very small (1kb or less) and read-only, not
-        logged for regular operations
     - insert(): instead of splitting, a page can now also grow
+
+- Pages no longer form linked lists; this is now handled by the PageManager
+
 - simplify header page handling
     - header page has a fixed id (i.e. = db-name), no need to store ID
         in the env-header
     - if the header page is replaced: only the PageManager is updated!
+    - the header page will become very small (1kb or less) and read-only, not
+        logged for regular operations
 - support efficient logging
-    - merge all log files to one single file
-    - if it exceeds a threshold (100 mb): start a new file
+    - merge journal and log into one single file
+    - if file exceeds a threshold (100 mb): start a new file
     - the btree/data file is INDEPENDENT from the log! it has only atomic
         updates and might become out-of-sync with the actual log. This is by
         design and must not cause problems! this will later allow us to run

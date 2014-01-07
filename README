@@ -50,6 +50,8 @@ Bugfixes
 - none
 
 Other Changes
+* The flag HAM_ENABLE_EXTENDED_KEYS was removed
+* The flag HAM_DISABLE_VARIABLE_KEYS was removed
 * C++ API: Can now specify HAM_RECORD_USER_ALLOC when retrieving keys
 	with ham_db_find
 * Removed HAM_DISABLE_VARIABLE_KEYS, HAM_ENABLE_EXTENDED_KEYS; they're no

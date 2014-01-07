@@ -392,14 +392,14 @@ ham_env_create(ham_env_t **henv, const char *filename,
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
         if (flags & HAM_IN_MEMORY && cache_size != 0) {
-          ham_trace(("combination of HAM_IN_MEMORY and cache_size != 0 "
+          ham_trace(("combination of HAM_IN_MEMORY and cache size != 0 "
                 "not allowed"));
           return (HAM_INV_PARAMETER);
         }
         break;
       case HAM_PARAM_PAGESIZE:
         if (param->value != 1024 && param->value % 2048 != 0) {
-          ham_trace(("invalid page_size - must be 1024 or a multiple of 2048"));
+          ham_trace(("invalid page size - must be 1024 or a multiple of 2048"));
           return (HAM_INV_PAGESIZE);
         }
         page_size = (ham_u32_t)param->value;
@@ -443,7 +443,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   /* don't allow cache limits with unlimited cache */
   if (flags & HAM_CACHE_UNLIMITED) {
     if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache_size != 0 "
+      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
             "or HAM_CACHE_STRICT not allowed"));
       return (HAM_INV_PARAMETER);
     }
@@ -471,7 +471,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     l /= sizeof(PBtreeHeader);
     if (maxdbs > l) {
       ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
-            "this page_size; the maximum allowed is %u",
+            "this page size; the maximum allowed is %u",
             (unsigned)l));
       return (HAM_INV_PARAMETER);
     }
@@ -709,7 +709,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   /* don't allow cache limits with unlimited cache */
   if (flags & HAM_CACHE_UNLIMITED) {
     if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache_size != 0 "
+      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
             "or HAM_CACHE_STRICT not allowed"));
       return (HAM_INV_PARAMETER);
     }
