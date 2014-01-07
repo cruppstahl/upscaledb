@@ -31,6 +31,8 @@ o web-page requires updates
         o where to host static files?
         o backup and deploy to www2, use round-robin DNS
 
+x update copyright string: 2013 -> 2014
+
 x check for scalability issues with files > 1 GB and check if we're on the
     right track regarding scalability
     -> remove the freelist

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Christoph Rupp")]
 [assembly: AssemblyProduct("hamsterdb-dotnet")]
-[assembly: AssemblyCopyright("Copyright © 2013 Christoph Rupp")]
+[assembly: AssemblyCopyright("Copyright © 2014 Christoph Rupp")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

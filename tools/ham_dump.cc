@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -300,7 +300,7 @@ main(int argc, char **argv) {
         filename = param;
         break;
       case ARG_HELP:
-        printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2013 "
+        printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2014 "
            "Christoph Rupp (chris@crupp.de).\n\n",
            maj, min, rev);
 
