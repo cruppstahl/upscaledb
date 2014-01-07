@@ -17,7 +17,6 @@ test_SOURCES    = aes.cpp \
                   btree_erase.cpp \
                   btree_insert.cpp \
 				  btree_key.cpp \
-			 	  cache.cpp \
 				  changeset.cpp \
 				  check.cpp \
                   cppapi.cpp \

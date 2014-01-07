@@ -23,7 +23,6 @@
 #include "../src/env.h"
 #include "../src/page.h"
 #include "../src/cursor.h"
-#include "../src/cache.h"
 
 namespace hamsterdb {
 

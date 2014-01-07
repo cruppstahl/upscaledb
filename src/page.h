@@ -91,12 +91,6 @@ class Page {
 
     // The various linked lists (indices in m_prev, m_next)
     enum {
-      // a bucket in the hash table of the cache manager
-      kListBucket             = 0,
-
-      // list of all cached pages
-      kListCache              = 1,
-
       // list of all pages in a changeset
       kListChangeset          = 2,
 

@@ -14,7 +14,6 @@
 
 #include <string.h>
 
-#include "cache.h"
 #include "cursor.h"
 #include "db.h"
 #include "device.h"

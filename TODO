@@ -54,15 +54,21 @@ o get rid of linked "totallist" of all pages
     The PageManager keeps a (persistent) list of all pages, including their
     id, their size, the type, the database. It keeps a separate list with
     all free pages.
-    o the PageManager has a list of all pages
-    o the PageManager knows whether a page is free or not
-    o when allocating new pages: check the internal list, not the freelist
-    o the PageManager knows if a page is old or not, and whether it can
+    x the PageManager has a list of all pages. this effectively replaces
+        the cache
+    x the PageManager knows if a page is old or not, and whether it can
         be flushed to disk
+    x get rid of the "totallist" linked list of all pages
+    x get rid of the "bucket" linked list of all pages
+    o remove HAM_CACHE_FULL and HAM_CACHE_STRICT - don't think it is used
+    o move the unittests from cache.cpp to page_manager.cpp
+    o the PageManager knows whether a page is free or not
+        o no longer use the freelist to manage empty pages, only for blobs
+    o when allocating new pages: check the internal list, not the freelist
     o store the modified list to disk, load it
+    o implement/update reclaim_space()
     o if logging is enabled: immediately write the modified state
         (later this will be rewritten as incremental updates for the log)
-    o get rid of the "totallist" linked list of all pages
     o pax-layout with recsize == 0: must be much faster now
 
 o blob pages track their own freelist in the page itself
@@ -79,6 +85,8 @@ o support pages with different sizes
         - increase for large key sizes
         - increase for duplicate keys
         - increase for blob pages
+    o merge adjacent free pages
+    o implement check_integrity() and add calls and asserts after modifications
     o make sure that the log can work with different sizes
     o very large blob pages no longer span multiple blobs but create a
         single page which is large enough

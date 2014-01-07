@@ -18,7 +18,6 @@
 #include <ham/hamsterdb.h>
 
 #include "../src/db.h"
-#include "../src/cache.h"
 #include "../src/page.h"
 #include "../src/env.h"
 #include "../src/env_header.h"
@@ -78,8 +77,6 @@ struct DbFixture {
 
     REQUIRE(m_dbp->get_btree_index()); // already initialized
 
-    REQUIRE(((LocalEnvironment *)m_env)->get_page_manager()->test_get_cache());
-
     ((LocalEnvironment *)m_env)->get_header()->get_header_page()->set_dirty(false);
     REQUIRE(!((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
     ((LocalEnvironment *)m_env)->mark_header_page_dirty();
@@ -135,13 +132,13 @@ struct DbFixture {
     page->set_dirty(true);
     address = page->get_address();
     page->flush();
-    pm->test_get_cache()->remove_page(page);
+    pm->test_remove_page(page);
     delete page;
 
     REQUIRE((page = pm->fetch_page(m_dbp, address)));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
-    pm->test_get_cache()->remove_page(page);
+    pm->test_remove_page(page);
     delete page;
   }
 

@@ -17,7 +17,6 @@
 #include "os.hpp"
 
 #include "../src/page.h"
-#include "../src/cache.h"
 #include "../src/error.h"
 #include "../src/env.h"
 #include "../src/os.h"

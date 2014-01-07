@@ -376,10 +376,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\cache.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\3rdparty\catch\catch.hpp"
 			>
 		</File>

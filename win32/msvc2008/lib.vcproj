@@ -393,14 +393,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\cache.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\cache.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\changeset.cc"
 			>
 		</File>

@@ -49,7 +49,6 @@ struct PageManagerFixture {
   void newDeleteTest() {
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
 
-    REQUIRE(pm->test_get_cache());
     if (m_inmemory)
       REQUIRE(!pm->test_get_freelist());
   }

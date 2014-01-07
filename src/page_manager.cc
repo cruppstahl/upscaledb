@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "page.h"
-#include "cache.h"
 #include "device.h"
 #include "btree_index.h"
 #include "btree_node_proxy.h"
@@ -22,11 +21,11 @@
 namespace hamsterdb {
 
 PageManager::PageManager(LocalEnvironment *env, ham_u32_t cache_size)
-  : m_env(env), m_cache(0), m_freelist(0), m_page_count_fetched(0),
-    m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
-    m_page_count_freelist(0)
+  : m_env(env), m_freelist(0), m_cache_size(cache_size), m_epoch(0),
+    m_page_count_fetched(0), m_page_count_flushed(0), m_page_count_index(0),
+    m_page_count_blob(0), m_page_count_freelist(0), m_cache_hits(0),
+    m_cache_misses(0)
 {
-  m_cache = new Cache(env, cache_size);
 }
 
 PageManager::~PageManager()
@@ -35,11 +34,6 @@ PageManager::~PageManager()
     delete m_freelist;
     m_freelist = 0;
   }
-
-  if (m_cache) {
-    delete m_cache;
-    m_cache = 0;
-  }
 }
 
 void
@@ -47,12 +41,11 @@ PageManager::get_metrics(ham_env_metrics_t *metrics) const
 {
   metrics->page_count_fetched = m_page_count_fetched;
   metrics->page_count_flushed = m_page_count_flushed;
-  metrics->page_count_type_index   = m_page_count_index;
-  metrics->page_count_type_blob    = m_page_count_blob;
+  metrics->page_count_type_index = m_page_count_index;
+  metrics->page_count_type_blob = m_page_count_blob;
   metrics->page_count_type_freelist= m_page_count_freelist;
-
-  if (m_cache)
-    m_cache->get_metrics(metrics);
+  metrics->cache_hits = m_cache_hits;
+  metrics->cache_misses = m_cache_misses;
 
   if (m_freelist)
     m_freelist->get_metrics(metrics);
@@ -62,9 +55,11 @@ Page *
 PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
                 bool only_from_cache)
 {
-  /* fetch the page from the cache */
-  Page *page = m_cache->get_page(address, Cache::NOREMOVE);
+  /* fetch the page from our list */
+  Page *page = fetch_page(address);
   if (page) {
+    m_cache_hits++;
+
     ham_assert(page->get_data());
     /* store the page in the changeset if recovery is enabled */
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -72,16 +67,10 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
     return (page);
   }
 
+  m_cache_misses++;
+
   if (only_from_cache || m_env->get_flags() & HAM_IN_MEMORY)
     return (0);
-
-  ham_assert(m_cache->get_page(address) == 0);
-
-  /* can we allocate a new page for the cache? */
-  if (m_cache->is_too_big()) {
-    if (m_env->get_flags() & HAM_CACHE_STRICT)
-      throw Exception(HAM_CACHE_FULL);
-  }
 
   page = new Page(m_env, db);
   try {
@@ -94,8 +83,8 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
 
   ham_assert(page->get_data());
 
-  /* store the page in the cache */
-  m_cache->put_page(page);
+  /* store the page in the list */
+  store_page(page);
 
   /* store the page in the changeset */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -111,18 +100,27 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
 {
   ham_u64_t freelist = 0;
   Page *page = 0;
-  bool allocated_by_me = false;
 
   ham_assert(0 == (flags & ~(PageManager::kIgnoreFreelist
                                 | PageManager::kClearWithZero)));
 
   /* first, we ask the freelist for a page */
   if (!(flags & PageManager::kIgnoreFreelist) && m_freelist) {
+    /* check the internal list for a free page */
+    for (PageMap::iterator it = m_page_map.begin();
+                  it != m_page_map.end(); it++) {
+      if (it->second.is_free) {
+        it->second.is_free = false;
+        page = it->second.page;
+        goto done;
+      }
+    }
+
     freelist = m_freelist->alloc_page();
     if (freelist > 0) {
       ham_assert(freelist % m_env->get_page_size() == 0);
       /* try to fetch the page from the cache */
-      page = m_cache->get_page(freelist, 0);
+      page = fetch_page(freelist);
       if (page)
         goto done;
       /* allocate a new page structure and read the page from disk */
@@ -132,19 +130,8 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
     }
   }
 
-  if (!page) {
+  if (!page)
     page = new Page(m_env, db);
-    allocated_by_me = true;
-  }
-
-  /* can we allocate a new page for the cache? */
-  if (m_cache->is_too_big()) {
-    if (m_env->get_flags() & HAM_CACHE_STRICT) {
-      if (allocated_by_me)
-        delete page;
-      throw Exception(HAM_CACHE_FULL);
-    }
-  }
 
   ham_assert(freelist == 0);
   page->allocate();
@@ -164,7 +151,7 @@ done:
     m_env->get_changeset().add_page(page);
 
   /* store the page in the cache */
-  m_cache->put_page(page);
+  store_page(page);
 
   switch (page_type) {
     case Page::kTypeBindex:
@@ -201,44 +188,77 @@ PageManager::alloc_blob(Database *db, ham_u32_t size, bool *pallocated)
   return (address);
 }
 
-static bool
-flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
-{
-  page->get_env()->get_page_manager()->flush_page(page);
-
-  /*
-   * if the page is deleted, uncouple all cursors, then
-   * free the memory of the page, then remove from the cache
-   */
-  if (flags == 0) {
-    (void)BtreeCursor::uncouple_all_cursors(page);
-    return (true);
-  }
-
-  return (false);
-}
-
 void
 PageManager::flush_all_pages(bool nodelete)
 {
-  m_cache->visit(flush_all_pages_callback, 0, nodelete ? 1 : 0);
-}
+  for (PageMap::iterator it = m_page_map.begin();
+                  it != m_page_map.end(); it++) {
+    flush_page(it->second.page);
+    // if the page will be deleted then uncouple all cursors
+    if (!nodelete) {
+      BtreeCursor::uncouple_all_cursors(it->second.page);
+      delete it->second.page;
+    }
+  }
 
-static void
-purge_callback(Page *page)
-{
-  BtreeCursor::uncouple_all_cursors(page);
-  page->get_env()->get_page_manager()->flush_page(page);
-  delete page;
+  if (!nodelete)
+    m_page_map.clear();
 }
 
 void
 PageManager::purge_cache()
 {
   /* in-memory-db: don't remove the pages or they would be lost */
-  if (!(m_env->get_flags() & HAM_IN_MEMORY))
-    m_cache->purge(purge_callback,
-            (m_env->get_flags() & HAM_CACHE_STRICT) != 0);
+  if (m_env->get_flags() & HAM_IN_MEMORY)
+    return;
+
+  /* calculate a limit of pages that we will flush */
+  unsigned max_pages = m_page_map.size();
+
+  if (max_pages == 0)
+    max_pages = 1;
+  /* but still we set an upper limit to avoid IO spikes */
+  else if (max_pages > kPurgeLimit)
+    max_pages = kPurgeLimit;
+
+  unsigned i = 0;
+  PageMap::iterator it = m_page_map.begin();
+  while (it != m_page_map.end() && i < max_pages) {
+    Page *page = it->second.page;
+    /* pick the page if it's unused, (not in a changeset), NOT mapped and old
+     * enough */
+    if (page->get_flags() & Page::kNpersMalloc
+            && !m_env->get_changeset().contains(page)
+            && page->get_address() > 0
+            && m_epoch - it->second.birthday > kPurgeThreshold) {
+      flush_page(it->second.page);
+      BtreeCursor::uncouple_all_cursors(it->second.page);
+      delete it->second.page;
+      m_page_map.erase(it++);
+      i++;
+    }
+    else {
+      ++it;
+    }
+  }
+}
+
+void
+PageManager::close_database(Database *db)
+{
+  PageMap::iterator it = m_page_map.begin();
+  while (it != m_page_map.end()) {
+    Page *page = it->second.page;
+    if (page->get_address() > 0 && page->get_db() == db) {
+      flush_page(page);
+      BtreeCursor::uncouple_all_cursors(page);
+      delete page;
+      m_page_map.erase(it++);
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 void
@@ -270,53 +290,20 @@ PageManager::reclaim_space()
   }
 }
 
-static bool
-db_close_callback(Page *page, Database *db, ham_u32_t flags)
-{
-  LocalEnvironment *env = page->get_env();
-
-  if (page->get_db() == db && page->get_address() != 0) {
-    env->get_page_manager()->flush_page(page);
-
-    /*
-     * TODO is this really necessary?? i don't think so
-     */
-    if (page->get_data() &&
-        (!(page->get_flags() & Page::kNpersNoHeader)) &&
-          (page->get_type() == Page::kTypeBroot ||
-            page->get_type() == Page::kTypeBindex)) {
-      BtreeCursor::uncouple_all_cursors(page);
-    }
-
-    return (true);
-  }
-
-  return (false);
-}
-
 void
 PageManager::check_integrity()
 {
-  if (m_cache)
-    m_cache->check_integrity();
-}
-
-ham_u64_t
-PageManager::get_cache_capacity() const
-{
-  return (m_cache->get_capacity());
-}
-
-void
-PageManager::close_database(Database *db)
-{
-  if (m_cache)
-    m_cache->visit(db_close_callback, db, 0);
+  // TODO
 }
 
 void
 PageManager::add_to_freelist(Page *page)
 {
+  PageMap::iterator it = m_page_map.find(page->get_address());
+  ham_assert(it != m_page_map.end());
+  ham_assert(it->second.is_free == false);
+  it->second.is_free = true;
+
   Freelist *f = get_freelist();
 
   if (page->get_node_proxy()) {

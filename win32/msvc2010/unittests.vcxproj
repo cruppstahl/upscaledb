@@ -188,7 +188,6 @@
     <ClCompile Include="..\..\unittests\btree_erase.cpp" />
     <ClCompile Include="..\..\unittests\btree_insert.cpp" />
     <ClCompile Include="..\..\unittests\btree_key.cpp" />
-    <ClCompile Include="..\..\unittests\cache.cpp" />
     <ClCompile Include="..\..\unittests\changeset.cpp" />
     <ClCompile Include="..\..\unittests\check.cpp" />
     <ClCompile Include="..\..\unittests\cppapi.cpp" />

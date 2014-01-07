@@ -31,8 +31,6 @@ libhamsterdb_la_SOURCES = \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \
-	cache.cc \
-	cache.h \
 	changeset.cc \
 	changeset.h \
 	config.h \

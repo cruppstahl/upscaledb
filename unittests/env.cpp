@@ -17,11 +17,11 @@
 #include "os.hpp"
 
 #include "../src/env.h"
-#include "../src/cache.h"
 #include "../src/page.h"
 #include "../src/db_local.h"
 #include "../src/env.h"
 #include "../src/env_header.h"
+#include "../src/env_local.h"
 
 using namespace hamsterdb;
 

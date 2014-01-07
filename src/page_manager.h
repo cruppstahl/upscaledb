@@ -12,8 +12,7 @@
 #ifndef HAM_PAGE_MANAGER_H__
 #define HAM_PAGE_MANAGER_H__
 
-#include <string.h>
-#include <vector>
+#include <map>
 
 #include "ham/hamsterdb_int.h"
 
@@ -24,12 +23,26 @@
 
 namespace hamsterdb {
 
-class Cache;
-
 //
-// The PageManager allocates, fetches and frees pages.
+// The PageManager allocates, fetches and frees pages. It manages the
+// list of all pages (free and not free), and maps their virtual ID to
+// their physical address in the file.
 //
 class PageManager {
+  private:
+    // The state of a page
+    struct PageState {
+      PageState(ham_u64_t _birthday = 0, Page *_page = 0)
+        : birthday(_birthday), page(_page), is_free(false) {
+      }
+
+      ham_u64_t birthday;
+      Page *page;
+      bool is_free;
+    };
+
+    typedef std::map<ham_u64_t, PageState> PageMap;
+
   public:
     // Flags for PageManager::alloc_page()
     enum {
@@ -37,7 +50,13 @@ class PageManager {
       kIgnoreFreelist =  8,
 
       // Clear the full page with zeroes
-      kClearWithZero  = 16
+      kClearWithZero  = 16,
+
+      // Limits the amount of pages that are flushed in purge_cache()
+      kPurgeLimit = 20,
+
+      // Only pages above this age are purged
+      kPurgeThreshold = 100
     };
 
     // Default constructor
@@ -93,18 +112,19 @@ class PageManager {
     // Purges the cache if the cache limits are exceeded
     void purge_cache();
 
-    // Reclaim file space
+    // Reclaim file space; truncates unused file space at the end of the file.
     void reclaim_space();
 
-    // Flushes all pages of a database (but not the header page,
-    // it's still required and will be flushed below)
+    // Flushes all pages of a database
     void close_database(Database *db);
 
     // Checks the integrity of the freelist and the cache
     void check_integrity();
 
     // Returns the cache's capacity
-    ham_u64_t get_cache_capacity() const;
+    ham_u64_t get_cache_capacity() const {
+      return (m_cache_size);
+    }
 
     // Adds a page to the freelist
     void add_to_freelist(Page *page);
@@ -117,13 +137,16 @@ class PageManager {
         f->free_area(address, size);
     }
 
-    // Returns the Cache pointer; only for testing!
-    Cache *test_get_cache() {
-      return (m_cache);
-    }
 
     // Closes the PageManager; flushes all dirty pages
     void close();
+
+    // Removes a page from the list; only for testing.
+    void test_remove_page(Page *page) {
+      PageMap::iterator it = m_page_map.find(page->get_address());
+      ham_assert(it != m_page_map.end());
+      m_page_map.erase(it);
+    }
 
   private:
     friend struct BlobManagerFixture;
@@ -145,14 +168,38 @@ class PageManager {
       return (m_freelist);
     }
 
+    // Fetches a page from the list
+    Page *fetch_page(ham_u64_t id) {
+      m_epoch++;
+
+      PageMap::iterator it = m_page_map.find(id);
+      if (it != m_page_map.end())
+        return (it->second.page);
+      return (0);
+    }
+
+    // Stores a page in the list
+    void store_page(Page *page) {
+      ham_assert(m_page_map.find(page->get_address()) == m_page_map.end());
+      PageState ps = PageState(m_epoch, page);
+      m_page_map[page->get_address()] = ps;
+    }
+
     // The current Environment handle
     LocalEnvironment *m_env;
 
-    // the Cache caches the database pages
-    Cache *m_cache;
-
     // the Freelist manages the free space in the file; can be NULL
     Freelist *m_freelist;
+
+    // The list of pages currently in use
+    PageMap m_page_map;
+
+    // The cache size (in bytes)
+    ham_u32_t m_cache_size;
+
+    // the current epoch (a monotonic counter to calculate the "age" of
+    // a cached page)
+    ham_u64_t m_epoch;
 
     // tracks number of fetched pages
     ham_u64_t m_page_count_fetched;
@@ -168,6 +215,12 @@ class PageManager {
 
     // tracks number of freelist pages
     ham_u64_t m_page_count_freelist;
+
+    // tracks number of cache hits
+    ham_u64_t m_cache_hits;
+
+    // tracks number of cache misses
+    ham_u64_t m_cache_misses;
 };
 
 } // namespace hamsterdb

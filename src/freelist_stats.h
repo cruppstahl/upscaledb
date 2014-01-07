@@ -16,6 +16,8 @@
 #ifndef HAM_FREELIST_STATISTICS_H__
 #define HAM_FREELIST_STATISTICS_H__
 
+#include <string.h>
+
 namespace hamsterdb {
 
 class Freelist;

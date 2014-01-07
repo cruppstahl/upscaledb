@@ -16,7 +16,6 @@
 #include <algorithm>
 
 #include "cursor.h"
-#include "cache.h"
 #include "db.h"
 #include "env.h"
 #include "error.h"

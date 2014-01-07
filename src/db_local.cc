@@ -17,7 +17,6 @@
 #include "btree_index_factory.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
-#include "cache.h"
 #include "cursor.h"
 #include "db_local.h"
 #include "device.h"
