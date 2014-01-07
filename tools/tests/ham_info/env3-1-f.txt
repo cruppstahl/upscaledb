@@ -1,20 +1,18 @@
 environment
-  pagesize:           16384
-  version:          2.1.4.1
-  serialno:           0
+  page_size:           16384
+  version:          2.1.4.2
   max databases:        16
 
   database 1 (0x1)
     key type:             HAM_TYPE_UINT32
     max key size:         4
     max keys per page:    1256
-    address of root page: 16384
-    flags:                0x0044
+    flags:                0x0004
+    record size:          unlimited
     number of items:    4
     average key size:     4
     minimum key size:     4
     maximum key size:     4
-    number of extended keys:0
     total keys (bytes):   16
     average record size:  36
     minimum record size:  36

@@ -453,6 +453,9 @@ x split monster.lst into multiple files, run in parallel on different
 
 x rebase, merge with v2
 
+x update tools-tests
+o update valgrind suppressions
+
 o extend the documentation
     o HAM_PARAM_RECORD_SIZE
         o tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
@@ -472,11 +475,6 @@ o web-page requires updates
         o where to host static files?
         o backup and deploy to www2, use round-robin DNS
 
-o evaluate use of endian-independence
-    o ask on mailing list
-    o ask in README
-    o check target platforms (ARMs for Android/iOS...)
-
 . improve integration of static code analysis in release process
     o try to become "oclint-clean"
     o try to become "coverity-clean"
@@ -494,10 +492,11 @@ high-level plan for 2.1.5 (unstable).........................................
 - check for scalability issues with files > 1 GB (pax, record=0)
 - get rid of the freelist
     - the PageManager knows whether a page is free or not
-    - the PageManager persists this freelist in a blob
+    - the PageManager persists its state in a blob
     - blob pages track their own freelist in the page itself
         (did this before and it caused issues with direct I/O - how to
-        solve this?)
+        solve this? - check monster.txt if direct I/O is really used that often;
+        remove it if it's not)
 - support pages with different sizes
     - each page can have a different size
     - the PageManager knows about these sizes and the mapping of page id to
@@ -508,7 +507,8 @@ high-level plan for 2.1.5 (unstable).........................................
         logged for regular operations
     - insert(): instead of splitting, a page can now also grow
 - simplify header page handling
-    - header page has a fixed id (i.e. = db-name)
+    - header page has a fixed id (i.e. = db-name), no need to store ID
+        in the env-header
     - if the header page is replaced: only the PageManager is updated!
 - support efficient logging
     - merge all log files to one single file
@@ -636,9 +636,10 @@ high-level plan for 2.1.5 (unstable).........................................
     - analytic functions
         count, min, max, sum, product, average, ln, sqrt, exp, round, trunc,
         date/time functions and interval functions
-    - select(predicate_t, column_descriptor_t, paging_state_t)
+    - select(predicate_t, column_descriptor_t, select_state_t)
              \- an AST of functors
                           \- existing columns or generated columns (i.e. sum())
+                                                \- keeps track of offset, count
     - erase(predicate_t)
     - explain(predicate_t, column_descriptor_t)
 
