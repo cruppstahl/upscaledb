@@ -25,9 +25,15 @@ class BinaryRandomDatasource : public Datasource
 {
   public:
     BinaryRandomDatasource(int size, bool fixed_size, unsigned int seed = 0)
-      : m_size(size), m_fixed_size(fixed_size) {
-      if (seed)
-        m_rng.seed(seed);
+      : m_size(size), m_fixed_size(fixed_size), m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed)
+        m_rng.seed(m_seed);
       uint8_t ch = 0;
       for (size_t i = 0; i < sizeof(m_data); i++) {
         while (!std::isalnum(ch))
@@ -52,6 +58,7 @@ class BinaryRandomDatasource : public Datasource
     unsigned char m_data[256];
     int m_size;
     bool m_fixed_size;
+    unsigned int m_seed;
 };
 
 class BinaryAscendingDatasource : public Datasource
@@ -59,12 +66,18 @@ class BinaryAscendingDatasource : public Datasource
   public:
     BinaryAscendingDatasource(int size, bool fixed_size)
       : m_size(size), m_fixed_size(fixed_size) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
       m_alphabet = "0123456789"
               "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
               "abcdefghijklmnopqrstuvwxyz";
-      if (fixed_size) {
-        m_data.resize(size);
-        for (int i = 0; i < size; i++)
+      if (m_fixed_size) {
+        m_data.resize(m_size);
+        for (size_t i = 0; i < m_size; i++)
           m_data[i] = 0;
       }
       else {
@@ -122,12 +135,18 @@ class BinaryDescendingDatasource : public Datasource
   public:
     BinaryDescendingDatasource(int size, bool fixed_size)
       : m_size(size), m_fixed_size(fixed_size) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
       m_alphabet = "0123456789"
               "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
               "abcdefghijklmnopqrstuvwxyz";
-      if (fixed_size) {
-        m_data.resize(size);
-        for (int i = 0; i < size; i++)
+      if (m_fixed_size) {
+        m_data.resize(m_size);
+        for (size_t i = 0; i < m_size; i++)
           m_data[i] = (unsigned char)m_alphabet.size() - 1;
       }
       else {
@@ -189,11 +208,18 @@ class BinaryZipfianDatasource : public Datasource
   public:
     BinaryZipfianDatasource(uint64_t n, size_t size, bool fixed_size,
             long seed = 0, double alpha = 0.8)
-      : m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha) {
-      if (seed)
-        m_rng.seed(seed);
-      m_data.resize(n * size);
-      for (unsigned i = 0; i < (n * size); i++) {
+      : m_n(n), m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
+        m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed)
+        m_rng.seed(m_seed);
+      m_data.resize(m_n * m_size);
+      for (unsigned i = 0; i < (m_n * m_size); i++) {
         do {
           m_data[i] = m_rng() % 0xff;
         } while (!isalnum(m_data[i]));
@@ -214,11 +240,13 @@ class BinaryZipfianDatasource : public Datasource
     }
 
   private:
+    uint64_t m_n;
     boost::mt19937 m_rng;
     size_t m_size;
     bool m_fixed_size;
     NumericZipfianDatasource<int> m_zipf;
     std::vector<unsigned char> m_data;
+    unsigned int m_seed;
 };
 
 #endif /* DATASOURCE_BINARY_H__ */

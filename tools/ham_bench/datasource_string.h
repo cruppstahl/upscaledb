@@ -35,11 +35,18 @@ class StringRandomDatasource : public Datasource
 {
   public:
     StringRandomDatasource(int size, bool fixed_size, unsigned int seed = 0)
-      : m_size(size), m_fixed_size(fixed_size) {
-      if (seed)
-        m_rng.seed(seed);
+      : m_size(size), m_fixed_size(fixed_size), m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed)
+        m_rng.seed(m_seed);
       std::ifstream infile(DICT);
       std::string line;
+      m_data.clear();
       while (std::getline(infile, line)) {
         m_data.push_back(line);
       }
@@ -70,6 +77,7 @@ class StringRandomDatasource : public Datasource
     std::vector<std::string> m_data;
     size_t m_size;
     bool m_fixed_size;
+    unsigned int m_seed;
 };
 
 class StringAscendingDatasource : public Datasource
@@ -77,8 +85,15 @@ class StringAscendingDatasource : public Datasource
   public:
     StringAscendingDatasource(int size, bool fixed_size)
       : m_size(size), m_next(0), m_fixed_size(fixed_size) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
       std::ifstream infile(DICT);
       std::string line;
+      m_data.clear();
       while (std::getline(infile, line)) {
         m_data.push_back(line);
       }
@@ -114,8 +129,15 @@ class StringDescendingDatasource : public Datasource
   public:
     StringDescendingDatasource(int size, bool fixed_size)
       : m_size(size), m_fixed_size(fixed_size) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
       std::ifstream infile(DICT);
       std::string line;
+      m_data.clear();
       while (std::getline(infile, line)) {
         m_data.push_back(line);
       }
@@ -160,11 +182,19 @@ class StringZipfianDatasource : public Datasource
   public:
     StringZipfianDatasource(uint64_t n, size_t size, bool fixed_size,
             long seed = 0, double alpha = 0.8)
-      : m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha) {
-      if (seed)
-        m_rng.seed(seed);
+      : m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
+        m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed)
+        m_rng.seed(m_seed);
       std::ifstream infile(DICT);
       std::string line;
+      m_data.clear();
       while (std::getline(infile, line)) {
         m_data.push_back(line);
       }
@@ -194,6 +224,7 @@ class StringZipfianDatasource : public Datasource
     bool m_fixed_size;
     NumericZipfianDatasource<int> m_zipf;
     std::vector<std::string> m_data;
+    long m_seed;
 };
 
 #endif /* DATASOURCE_STRING_H__ */

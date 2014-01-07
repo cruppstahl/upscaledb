@@ -24,6 +24,10 @@ class Datasource
     virtual ~Datasource() {
     }
 
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() = 0;
+
     // returns the next piece of data
     virtual void get_next(std::vector<uint8_t> &vec) = 0;
 };

@@ -76,6 +76,7 @@
 #define ARG_DISTRIBUTION            56
 #define ARG_EXTKEY_THRESHOLD        57
 #define ARG_DUPTABLE_THRESHOLD      58
+#define ARG_BULK_ERASE              59
 
 /*
  * command line parameters
@@ -347,6 +348,12 @@ static option_t opts[] = {
     "duptable-threshold",
     "Duplicates > threshold are moved to an external table",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_BULK_ERASE,
+    0,
+    "bulk-erase",
+    "Performs bulk erase of all inserted keys, empties the database",
+    0 },
   { 0, 0, 0, 0, 0 }
 };
 
@@ -643,11 +650,25 @@ parse_config(int argc, char **argv, Configuration *c)
         exit(-1);
       }
     }
+    else if (opt == ARG_BULK_ERASE) {
+      c->bulk_erase = true;
+    }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
     }
     else {
       printf("[FAIL] unknown parameter '%s'\n", param);
+      exit(-1);
+    }
+  }
+
+  if (c->bulk_erase) {
+    if (!c->filename.empty()) {
+      printf("[FAIL] '--bulk-erase' not supported with test files\n");
+      exit(-1);
+    }
+    if (c->limit_seconds || c->limit_bytes) {
+      printf("[FAIL] '--bulk-erase' only supported with --stop-ops\n");
       exit(-1);
     }
   }

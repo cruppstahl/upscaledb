@@ -155,6 +155,9 @@ class RuntimeGenerator : public ::Generator
 
     // the collected metrics/statistics
     Metrics m_metrics;
+
+    // only erase everything?
+    bool m_erase_only;
 };
 
 #endif /* RUNTIME_GENERATOR_H__ */

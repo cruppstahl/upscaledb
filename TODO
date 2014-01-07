@@ -15,451 +15,13 @@ to scale with the number of cores.
 ==============================================================================
 
 high-level plan for 2.1.4 ..................................................
-x refactoring: sometimes, the BtreeNodeProxy updates node->count after an
-    operation; sometimes, this is handled in the Btree*Action class -> unify
-x btree stores fixed-length records in the leaf
-x PAX layout: if record size is fix then do not store 1 byte flag for each key
-x ham_bench uses /opt/share/dict/words as data input
-x completely rewrite handling of extended keys
-
-.............................................................................
-
-x btree stores fixed-length records in the leaf
-    x this size must be persistent
-    x also support record length of 0 ("key exists" vs "key does not exist")
-    x return HAM_INV_RECORD_SIZE in insert/insert_cursor
-    x if page is large enough then store the record in the leaf, even
-        if it's > 8 bytes (add persistent flags to force this behavior)
-    x needs to move BtreeIndex::read_record into BtreeNodeProxy
-    x clean up the whole flow, the BtreeNodeProxy and the iterators 
-    x PAX: wrap record access with RecordProxy policy, no functional changes
-    x PAX: support inline fixed length records
-        x only for leafs! internal nodes have a fixed record length of 8
-        x add method test_get_classname() for the BtreeNodeProxy
-        x move all key-type tests to a btree fixture
-        o verify that the btree-flags are persistent
-        o needs new unittests for leaf nodes/root nodes
-        o needs new unittests for internal nodes
-    x extend unittests, ham_bench, ham_info, ham_dump, samples, monster tests,
-        valgrind tests, perftests, documentation, tutorial
-        x verify that the btree-flags are persistent
-        x needs new unittests for leaf nodes/root nodes
-        x needs new unittests for internal nodes
-        x currently, records are limited by a constant ("32")
-            x replace the magic number with an enum
-            x ignore limit if the FORCE flag was set manually
-            x add a unittest
-    x extend ham_info
-    x extend samples
-    x extend ham_export, ham_import
-    x extend ham_bench
-        x specify record size (support "0"!)
-        x force inline records
-    x add support for java API
-    x add support for dotnet API
-    x extend monster tests
-    x extend valgrind tests
-    x extend perftests
-    x document that this setting is OPTIONAL but RECOMMENDED! (same for
-        HAM_PARAM_KEY_TYPE)
-    x PAX: if record size is fix then do not store 1 byte flag for each key
-
-x clean up PageManager::allocate_page and node initialization;
-    PageManager has parameter "page-type", and depending on the type
-    the page is initialized. No further initialization is required
-    in the btree or anywhere else.
-
-x ham_bench improvements
-    x have more data sources based on dict/words (concatenate, if there are
-        not enough or if they are too short)
-      x StringRandomSource(max)
-      x StringAscendingSource(max)
-      x StringDescendingSource(max)
-      x StringZipfianSource(max)
-
-x completely rewrite handling of extended keys
-    If the extended key does not fit into 1/10th of the pagesize: allocate
-    an overflow area, move the FULL key into that area.
-    x remove prefix compare
-    x get rid of the extkey-cache
-    x compare functions no longer needs to return errors
-    x add some unittests for extended keys (for TDD); these tests must continue
-        to work after every! modification
-        x inserts of variable length (with splits)
-        x iterating forward with a cursor
-        x iterating backwards with a cursor
-        x lookups with ham_db_find
-        x same with random access
-        x deleting keys
-    x create a new page layout for variable keys (non-PAX), start by
-        copying the legacy layout
-    x BtreeIndexFactory uses this layout for all keys that have variable
-        length
-    x move some functions of BtreeNodeProxy down to the layout
-    x get rid of btree_node_legacy.cc and btree_node_linear.cc
-    x replace btree_node_legacy.h with btree_node_linear.h!
-    x move extkey handling "down" to the node layout, remove from proxy
-    x proxy: move get_duplicate_count() "down"
-    x proxy: move get_record_data() "down"
-    x proxy: move get_record_size() "down"
-    x proxy: move set_record_data() "down"
-    x proxy: try to merge release_key() and remove_record(), move "down"
-    x move duplicate handling "down" to the node layout, remove from proxy
-    x clean up proxy and the layouts; clean up interfaces, list them in the
-        same order, remove unused stuff, combine functions
-        (set_record_data+set_record_size, get_record_data+get_record_size etc)
-    x design the new layout:
-        - with extended keys
-        - with inline records
-        - with duplicates (later)
-        1 byte flags (kBlobEmpty, -Small, -Tiny, -ExtendedKey,
-                -HasDuplicates1,-2,-4,-ExtendedDuplicates)
-        2 byte key size (optional)
-        n byte duplicate counter (size depends on flags - optional)
-        n byte key data (optional)
-        m byte record data, repeated (optional)
-    x rewrite the whole minkeys/maxkeys-handling, it does not make sense with
-        variable length keys (and compressed ones, too)
-        x keep track of end() iterator in linear layout
-        x move "minkeys" calculation to the layout
-        x do not store maxkeys in btree; calculate on the fly
-        x document that ham_db_get_parameters returns an estimate
-
-    x revert use of "end" cursor - no longer required
-    x Iterator must become a real object, not just a casted pointer
-    x btree_*: change layout and optimize it for access through slots by
-        separating the key data and the record data from the flags, and
-        addressing through an index
-        F1S1D1I1|F2S2D2I2|...|FnSnDnIn|<..>|K1   R1|K2R2R2|...|K3 R3...
-        F: Flags
-        S: Key size (optional)
-        D: Duplicate counter (1 byte - if more then use overflow page)
-        I: Index in page (2 byte if pagesize <= 64k, otherwise 4 byte)
-        x cursor does not access key through pointer but through node (w/ slot)
-            -> same as pax-layout
-        x F/S/D/I start at beginning of page, keys/records start in the middle
-            x implement the layout for fixed size slots with variable keys
-            x all tests must work!
-            x fixed key size: no key size, no dup-counter, no index pointer
-                x if key size is fix then do not store it in the layout
-                    -> this layout is for fixed length keys WITH duplicates!
-                    x adjust factory to use this layout
-                    x needs new unittest (added, but also check the class name!)
-                x all tests must work!
-                x make sure this is covered in monster tests/valgrind/perftest
-                    (fixed length binaries w/ duplicates)
-            x remove the PLinearKey structure, it's no longer required
-                x introduce a new key size HAM_KEY_SIZE_UNLIMITED
-                    x make this the default
-                x remove HAM_ENABLE_EXTENDED_KEYS
-                x remove HAM_DISABLE_VARIABLE_KEYS
-                x fix Java wrapper
-                x fix .NET wrapper
-                x make sure that samples still run
-                x fix ham_bench
-                    x remove DISABLE_VARIABLE_KEYS
-                    x remove ENABLE_EXTENDED_KEYS
-                    x remove --btree-key-size
-                    x remove --key-is-fixed-size
-                    x use: keysize = logical key size, limit
-                    x use: keysize-fixed = HAM_PARAM_KEY_SIZE parameter
-                x update monster tests, valgrind tests, performance tests
-            x variable key size: w/ key size, no dup-counter, w/ index pointer
-                x factory creates this layout when required
-                x stores the key size
-                x stores an index offset
-                x sets index offset to a fixed-slot-address
-                x if key size exceeds a threshold then completely move it to
-                        a blob
-                    x get rid of db->get_extended_key(), handle in layout
-                x needs a freelist
-                    the basic layout is: |m_max_count| slots for keys;
-                    the |count| keys at the beginning are used, all others
-                    are unused (freelist)
-                    x store m_max_count persistently
-                    x if a key is inserted: check the freelist,
-                        otherwise append the key data
-                    x if a key is deleted: move descriptor to freelist
-                    x if a key is overwritten/replaced: check if key space
-                        is large enough; if not then move space to freelist,
-                        check freelist for a different one (or append to
-                        end)
-                    x re-implement all functions; use index offsets to fetch
-                        the key data
-                    x all unittests must work
-                x add tests (insert/erase) with extended keys
-                x add tests with big keys (variable length, up to 1024 bytes)
-                    -> also for perftests
-                x all acceptance tests must work
-                x fix remaining TODOs
-                    x implement freelist_collapse() - no, not required
-                    x the name "Linear" does not fit anymore because linear
-                        search is not used; rename to "Default"
-                    x fix all other TODOs
-                    x reorg node in split_required(): if there's enough space
-                        between the last key and the end of the page then
-                        increase m_capacity (as much as possible) and shift the
-                        keys to the right
-                        otherwise try to decrease capacity and shift the keys
-                        to the left (if the current capacity is not exceeded)
-                        x make sure that m_capacity is persisted!
-
-    x run performance tests and profiling; try to find bottlenecks and
-        optimize expensive functions
-        ==> NOT GOOD! 17% in get_highest_key_data_index (called from
-            requires_split()), 9% in rearrange()
-        x instead of the index, could we also cached the offset of the last
-            used byte? seems like this is easier to maintain
-        x m_next_offset: could even make it persistent if it shows up
-            during profiling - no, it does not
-        x make the layout constructor extremely cheap
-            currently 25% of the time is spent in allocating new
-            BtreeNodeProxys! 2.1.3 did not have this issue
-            x m_capacity should only be accessed through getters and setters
-            x m_freelist_count should only be accessed through getters and
-                setters (currently it's not correctly persisted)
-            x try removing m_arena
-            x db->get_keysize/db->get_recsize should be inline
-            x do not call btree->get_maxkeys, calculate inline (or always start
-                with a capacity of 510)
-            x check if the PaxLayout has similar problems? - no
-            x does m_layout really require state? can it be static? - not req.
-        x move ByteArray back to object scope
-        x make requires_split() extremely cheap
-            x only rearrange() if freelist_count < threshold,
-                otherwise split immediately
-            x or not? try to remove kRearrangeThreshold - does it really
-                make things worse? - nope...
-            x but call resize() nevertheless
-            x why are there still 11% wasted in rearrange()? the test does
-                not delete anything. the freelist should always be
-                empty! -> it happens after splits!
-        x rearrange() is required, but way too expensive
-            make a copy of the (used) indices, sort them, then shift
-        x can we somehow compress the key indices? i.e. the offset requires
-            4 bytes, but 2 should be enough for page sizes up to 64kb
-            (make a separate layout for bigger sizes?)
-            x this needs monster tests, valgrind tests, perftest
-
-    x a few things that i noticed...
-        x check_index_integrity can check the sizes (> threshold -> extkey-flag
-                must be set)
-        x check for performance regressions of extended keys; if necessary,
-                implement a simple extkey-cache (i.e. based on
-                a std::map<ham_u64_t, ByteArray>)
-                This cache should be *per node*!
-        x review append_key - what happens if a key is extended?
-                or if an extended key is merged/copied? - it's ok
-        x need more tests with extended keys
-            x reduce extkey-threshold with undocumented global variable
-            x add this (undocumented) option to ham_bench
-            x add to monster test and valgrind test (with erase/lookups)
-
-    x document the different node layouts in the header files
-
-    x pax AND linear: cursor->next should not return anything but increment
-        the internal slot ONLY!! this must be as cheap as possible.
-
-    x update ChangeLog, merge with v2
-
-x BtreeCursor: use memory arena for uncoupling the key
-    -> better wait till extended keys are gone
-
-x ham_bench: do not allow fullcheck-find with duplicates (or skip duplicates
-    in bdb when performing the fullcheck)
-
-x pax: also use extended keys if key is too big?? or fallback to linear
-    layout? -> will just fail if not enough keys fit
-
-x c++ API: allow use of ham_db_find with HAM_RECORD_USER_ALLOC
-
-x replace ham_size_t with ham_u32_t (it's anyway the same)
-
-x improve consistency: pagesize -> page_size, PAGESIZE -> PAGE_SIZE,
-        CACHESIZE -> CACHE_SIZE, cachesize -> cache_size, keysize -> key_size,
-        more??
-
-x keysize is sometimes 16bit, sometimes 32bit; use 16 bit consistently
-    x make ham_key_t::size a ham_u32_t? - no!
-    x make sure HAM_PARAM_KEY_SIZE is < 0xffff!
-
-x remove BtreeIndex::get_max_keys, move to node layout; remove
-    get_system_keysize()
-
-x increase file version, libtool version (if necessary)
-
-x btree_erase.cc has TODOs... - no, they're already fixed
-
-x btree_erase.cc: do not shift elements if there are not at least 20 elements
-    to be shifted
-
-x btree_insert.cc has a TODO
-
-x check ham_cursor_find documentation - it's glitchy
-
-x run performance tests with several million inserts; but only track the
-    performance after the first million was inserted! can we make things
-    scale better? - 50% used by freelist
-
-x default layout: handle fixed length inline records > 8 bytes
-    -> only if duplicates are disabled!
-    x ham_db_insert/ham_cursor_insert: check record size if record size is
-        fixed length (already implemented)
-    x move the current functionality to a template class
-    x only use fixed record length-layout if duplicates are DISABLED!
-    x add new test and make sure it uses the correct template classes
-    x internal pages: use a different layout than leaf pages (inline
-        8 byte fixed length records, no duplicates)
-    x add persistent flag to force records inline (already exists?)
-    x ham_info: show if record is inline
-    x make sure this is covered by monster/valgrind/perftest
-
-x the following tests are failing:
-    x --use-berkeleydb=true --reopen=true --pagesize=1024 ../../../hamsterdb-tests/testfiles/1/ext_021.tst
-    x --use-berkeleydb=true --reopen=true --pagesize=2048 ../../../hamsterdb-tests/testfiles/1/ext_021.tst
-    x --use-berkeleydb=true --reopen=true --pagesize=1024 ../../../hamsterdb-tests/testfiles/3/ext_023.tst
-    x --use-berkeleydb=true --reopen=true --pagesize=1024 --overwrite ../../../hamsterdb-tests/testfiles/1/ext_021.tst
-    x --use-berkeleydb=true --reopen=true --pagesize=1024 --overwrite ../../../hamsterdb-tests/testfiles/3/ext_023.tst
-
-x define and document the terminology and check the code for inconsistencies
-    -> Wiki
-    x review code and make sure it's consistent
-
-x start redesigning code towards exceptions; this will reduce the code a lot
-    and we can get rid on those annoying error checks and returns
-    x evaluate performance of exception handling code vs. non-exception handling
-        -> it's ok, but only use for exceptions, not for normal
-            return statements
-    x hamsterdb.cc: wrap all high-level functions in try/catch
-    x then start rewriting everything (start with the level modules abi, aes,
-        os, mem, util, device, error, config, freelist, changeset, cache,
-        page, page_manager, blob_manager, ...)
-      x env_remote.cc: reopen connection in case of network errors
-    x run valgrind-tests (w/o tcmalloc!)
-
-x db_local.cc has many parameter checks - i.e in insert(); can these be
-    moved to hamsterdb.cc?
-
-x merge everything with v2
-
-x completely rewrite handling of duplicate keys
-    x remove flag kDuplicates, replace with it->has_duplicates()
-    x requires new flag for overflow-duplicate tables
-    x add 1 byte duplicate count to both layouts
-    x use new layout in BtreeIndexFactory
-    x all tests must work
-    x replace get_key_data_size() + sizeof(ham_u64_t) with generic function
-        (get_total_key_data_size()) - all tests must work
-    x get_total_key_data_size() takes duplicate count/flag into account
-        - all tests must work
-    x freelist_find: call with total size as parameter, not just key size
-    x append_key: call with total size as parameter, not just key size
-    x replace_key ist IMMER internal! dest_is_internal-parameter durch assert
-        ersetzen, code vereinfachen
-    x rewrite insert(), find(), erase() etc
-        x there should be several record layouts
-            x default (like now)
-            x internal (like now)
-            x fixed (like now)
-            x duplicate default - always stores 1 byte flags + 8 byte rid
-            x duplicate fixed inline
-            x remove DuplicateManager
-            x fix TODO in btree_index.cc (get_key_count ignores duplicates)
-            x it->has_duplicates() always returns true; is it really
-                required?
-    x what if a duplicate is inserted, but it does not fit?
-        -> moved to a duplicate table
-    x add dupkey_cache (similar to extkey_cache) for duplicate tables
-    x is 255 too much as a size limit for the overflow table?
-      x yes; smaller page sizes should use less (same as extkey-threshold)
-      x add as undocumented parameter for ham_bench
-      x add unittest with growing the duplicate table
-      x add to monster, valgrind, perftests (same as extkey-tests)
-    x check with valgrind
-    x fix the remaining TODOs
-
-x allow tiny (fixed) record sizes with duplicate keys/tables
-    x btree_index_factory currently ignores fixed records if keys are fixed
-        (i.e. HAM_TYPE_UINT8 etc)
-        x cover this with a few tests
-    x clean up use of record_count:
-        x insert: set to 1, add empty record (set_record_id(0))
-            and set a special "Initialized"-flag
-        x split BtreeKey flags in BtreeKey and BtreeRecord (btree_flags.h)
-        x distinguish between get_key_flags/set_key_flags and
-            get_record_flags/set_record_flags
-        x can we split set_record() in overwrite_record() and add_record()?
-            also handle overwrite duplicate keys in a duplicate table!
-            (this is currently not implemented)
-        x allow record counts of 0 (i.e. after erase or when setting
-            a duplicate table)
-        x after erase(): has_duplicates_left should use this counter!
-
-        x special handling in get_total_data_size() if a duplicate table exists
-            - always add sizeof(ham_u64_t) instead of total_record_size!
-
-    x requires_split: make sure that there is at least 1 free index
-
-    x ./ham_bench --use-berkeleydb=true --reopen=true --duptable-threshold=8 --key=uint16 --duplicate=last --stop-ops=20000 --recsize-fixed=1
-    x ./ham_bench --use-berkeleydb=true --reopen=true --duptable-threshold=8 --key=uint16 --duplicate=last --stop-ops=20000 --recsize-fixed=0
-    x add duplicate tests with fixed records
-    x add these to the monster
-    x run monster tests with extremely low duptable-threshold (2)
-
-    x check performance, make a few profiling runs
-
-x more refactoring in the Btree layout implementations
-    x rename btree_node_pax.h -> btree_impl_pax.h
-        x also rename the classes
-            PaxNodeLayout -> PaxNodeImpl
-            DefaultNodeLayout -> DefaultNodeImpl
-        x add extensive documentation
-        x replace ham_assert with ham_verify where it makes sense
-    x rename btree_node_default.h -> btree_impl_default.h
-        x also rename the classes
-        x rename m_record_proxy to RecordList m_records
-        x replace ham_assert with ham_verify where it makes sense
-        x The iterators should not contain code but only call into the
-            node (or node.m_record, node.m_index)
-        x add extensive documentation
-
-    x statistics: count number of overflow tables
-        x and print in ham_bench
-        x same for extended keys
-
-x rewrite the whole split handling; instead of asking whether a split is
-    required, simply proceed and insert. If the insert returns an error then
-    perform the split and try again. requires_split() is an expensive
-    operation and should be avoided at all costs. Only the insert knows
-    whether a key is inserted or a duplicate, or if even the duplicate is
-    in a duplicate table (which NEVER causes a split).
-    x split_required_impl: do not calculate offset; use
-        get_usable_pagesize() - (get_next_offset() + capacity * span)
-    x try to avoid get_total_key_data_size()
-    x BtreeInsertAction::insert_recursive calls requires_split, which is
-        really expensive (calls calc_next_offset() many times)
-
-x .NET misses _TYPE_* in HamConst
-    x also check java!
-
-x split monster.lst into multiple files, run in parallel on different
-    hard drives
-
-x rebase, merge with v2
-
-x update tools-tests
-x update valgrind suppressions
-
-x extend the documentation
-    x HAM_PARAM_RECORD_SIZE
-        x tutorial (also add info about HAM_PARAM_KEY_TYPE, HAM_PARAM_KEY_SIZE)
-        x use ham_info to see if the record is inline
-        x update "performance" wiki
-    x HAM_KEY_SIZE_UNLIMITED etc
-    x removed HAM_ENABLE_EXTENDED_KEYS
-    x removed HAM_DISABLE_VARIABLE_KEYS
-    x > 256 duplicate keys -> requires overflow table
-    x > 256 key size -> requires extended key
+x check for scalability issues with files > 1 GB
+x improvements for ham_bench
+- get rid of the freelist
+- support pages of different sizes
+- improved (faster) logging
+- delta updates (maybe)
+-----------------------------------------------------------------------------
 
 o web-page requires updates
     o deployed html differs from git-repository
@@ -469,49 +31,77 @@ o web-page requires updates
         o where to host static files?
         o backup and deploy to www2, use round-robin DNS
 
+x check for scalability issues with files > 1 GB and check if we're on the
+    right track regarding scalability
+    -> remove the freelist
+    -> add delta updates to avoid memmove in the index pages
+
+x ham_bench: new test mode: first load with LOTS of data, then erase in the
+    same order (or in random order or reverse order) till the database is empty
+    - implementation idea: when switching to ERASE, perform a reset() on the
+        NumberGenerator, and it will start delivering the same sequence as
+        from the beginning
+    x add a reset() method to the datasources
+    x new command line options --bulk-erase
+        x if set then reset() datasource, delete
+        x NOT for parser-generator (print error)
+        x only for stop-ops
+    x add to monster tests
+
+o get rid of linked "totallist" of all pages
+    The PageManager keeps a (persistent) list of all pages, including their
+    id, their size, the type, the database. It keeps a separate list with
+    all free pages.
+    o the PageManager has a list of all pages
+    o the PageManager knows whether a page is free or not
+    o when allocating new pages: check the internal list, not the freelist
+    o the PageManager knows if a page is old or not, and whether it can
+        be flushed to disk
+    o store the modified list to disk, load it
+    o if logging is enabled: immediately write the modified state
+        (later this will be rewritten as incremental updates for the log)
+    o get rid of the "totallist" linked list of all pages
+    o pax-layout with recsize == 0: must be much faster now
+
+o blob pages track their own freelist in the page itself
+    o remove direct I/O - it's not used anyway
+    o need a counter with the number of free bytes left
+    o completely get rid of the freelist
+
+o support pages with different sizes
+    o each page can have a different size
+    o the PageManager knows about these sizes and the mapping of page id to
+        address
+    o databases can have different default sizes, depending on their
+        configuration (same for blobs)
+        - increase for large key sizes
+        - increase for duplicate keys
+        - increase for blob pages
+    o make sure that the log can work with different sizes
+    o very large blob pages no longer span multiple blobs but create a
+        single page which is large enough
+    o remove HAM_PARAM_PAGE_SIZE parameter from ham_env_create
+    o add HAM_PARAM_PAGE_SIZE_LOW, HAM_PARAM_PAGE_SIZE_HIGH parameter
+        to ham_env_create_db
+    o insert(): instead of splitting, a page can now also grow; this is an
+        atomic operation in the PageManager, but also needs to be reflected
+        in the log somehow?
+
+o Pages no longer form linked lists; this is now handled by the PageManager
+
+o simplify header page handling
+    o header page has a fixed id (i.e. = db-name), no need to store ID
+        in the env-header
+    o if the header page is replaced: only the PageManager is updated!
+    o the header page will become very small (1kb or less) and read-only, not
+        logged for regular operations
+    o clean up the code (getters/setters of the header page)
+
 . improve integration of static code analysis in release process
     o try to become "oclint-clean"
     o try to become "coverity-clean"
 
-o ham_bench: new test mode: first load with LOTS of data, then erase in the
-    same order (or in random order or reverse order) till the database is empty
-    o implementation idea: when switching to ERASE, perform a reset() on the
-        NumberGenerator, and it will start delivering the same sequence as
-        from the beginning
-    o add to monster tests, valgrind
-
----------------------- release 2.1.4 ----------------------------------------
-
-high-level plan for 2.1.5 ...................................................
-- check for scalability issues with files > 1 GB
-    - pax, recordsize=0
-    - variable, recordsize=0
-- get rid of the freelist
-    - the PageManager knows whether a page is free or not
-    - the PageManager persists its state in a blob (needs always to be flushed
-        if recovery is enabled! - UGLY, needs to be improved as soon as
-        the log supports "streams" - but how? store delta-updates in log?)
-    - blob pages track their own freelist in the page itself
-        (did this before and it caused issues with direct I/O - how to
-        solve this? - check monster.txt if direct I/O is really used that
-        often; remove it if it's not)
-- support pages with different sizes
-    - each page can have a different size
-    - the PageManager knows about these sizes and the mapping of page id to
-        address
-    - databases can have different default sizes, depending on their
-        configuration (same for blobs)
-    - insert(): instead of splitting, a page can now also grow
-
-- Pages no longer form linked lists; this is now handled by the PageManager
-
-- simplify header page handling
-    - header page has a fixed id (i.e. = db-name), no need to store ID
-        in the env-header
-    - if the header page is replaced: only the PageManager is updated!
-    - the header page will become very small (1kb or less) and read-only, not
-        logged for regular operations
-- support efficient logging
+o support efficient logging
     - merge journal and log into one single file
     - if file exceeds a threshold (100 mb): start a new file
     - the btree/data file is INDEPENDENT from the log! it has only atomic
@@ -572,6 +162,9 @@ high-level plan for 2.1.5 ...................................................
     - log: write to sc stream
     - remove the device classes
 
+high-level plan for 2.1.6 ...................................................
+- reduce the linked lists - they're hard to be updated with concurrent
+    operations
 - delta updates: very similar to the current TransactionOperations; however,
     the difference is that delta updates are part of a page, whereas
     TransactionOperations are part of a Transaction. The difference is more
@@ -591,8 +184,6 @@ high-level plan for 2.1.5 ...................................................
         old log can be purged)
     -> each log has a trailer which lists the streams in the log; this
         can be used to purge the log efficiently
-
-  --------- freelist gone, everything should work and be much faster ---------
 
   - Delta updates (concurrent/atomic!)
     are like TransactionOperations but directly attached to a BtreeNode.

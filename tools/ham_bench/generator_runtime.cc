@@ -25,7 +25,7 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                 bool show_progress)
   : Generator(id, conf, db), m_state(0), m_opcount(0),
     m_datasource(0), m_u01(m_rng), m_elapsed_seconds(0.0), m_txn(0),
-    m_cursor(0), m_progress(0), m_success(true)
+    m_cursor(0), m_progress(0), m_success(true), m_erase_only(false)
 {
   if (conf->seed)
     m_rng.seed(conf->seed);
@@ -575,8 +575,15 @@ RuntimeGenerator::generate_record()
 int
 RuntimeGenerator::get_next_command()
 {
-  // limit reached - last command? then 'close'
+  // limit reached - last command? then either delete everything or 'close'
   if (limit_reached()) {
+    if (m_erase_only == false && m_config->bulk_erase) {
+      m_opcount = 0;
+      m_erase_only = true;
+      m_datasource->reset();
+      return (Generator::kCommandErase);
+    }
+
     if (m_state == kStateRunning) {
       if (m_txn)
         return (Generator::kCommandCommitTransaction);
@@ -584,6 +591,10 @@ RuntimeGenerator::get_next_command()
       return (Generator::kCommandClose);
     }
   }
+
+  // only send erase?
+  if (m_erase_only)
+    return (Generator::kCommandErase);
 
   // first command? then either 'create' or 'reopen', depending on flags
   if (m_opcount == 0) {

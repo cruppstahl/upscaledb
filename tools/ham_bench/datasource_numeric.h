@@ -27,10 +27,17 @@ template<typename T>
 class NumericRandomDatasource : public Datasource
 {
   public:
-    NumericRandomDatasource(unsigned int seed = 0) {
-      if (seed) {
-        m_rng.seed(seed);
-        m_rng64.seed(seed);
+    NumericRandomDatasource(unsigned int seed = 0)
+      : m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed) {
+        m_rng.seed(m_seed);
+        m_rng64.seed(m_seed);
       }
     }
 
@@ -51,14 +58,21 @@ class NumericRandomDatasource : public Datasource
   private:
     boost::mt19937 m_rng;
     boost::mt19937_64 m_rng64;
+    unsigned int m_seed;
 };
 
 template<typename T>
 class NumericAscendingDatasource : public Datasource
 {
   public:
-    NumericAscendingDatasource()
-      : m_value(0) {
+    NumericAscendingDatasource() {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      m_value = 0;
     }
 
     // returns the next piece of data; overflows are ignored
@@ -76,8 +90,14 @@ template<typename T>
 class NumericDescendingDatasource : public Datasource
 {
   public:
-    NumericDescendingDatasource()
-      : m_value(std::numeric_limits<T>::max()) {
+    NumericDescendingDatasource() {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      m_value = std::numeric_limits<T>::max();
     }
 
     // returns the next piece of data; underflows are ignored
@@ -98,18 +118,24 @@ class NumericZipfianDatasource : public Datasource
 {
   public:
     NumericZipfianDatasource(uint64_t n, long seed = 0, double alpha = 0.8)
-      : m_alpha(alpha), m_u01(m_rng) {
-      if (seed)
-        m_rng.seed(seed);
+      : m_n(n), m_alpha(alpha), m_u01(m_rng), m_seed(seed) {
+      reset();
+    }
+
+    // resets the input and restarts delivering the same sequence
+    // from scratch
+    virtual void reset() {
+      if (m_seed)
+        m_rng.seed(m_seed);
 
       // Compute normalization constant
-      for (uint64_t i = 1; i <= n; i++)
-        m_c = m_c + (1.0 / pow((double)i, alpha));
+      for (uint64_t i = 1; i <= m_n; i++)
+        m_c = m_c + (1.0 / pow((double)i, m_alpha));
       m_c = 1.0 / m_c;
 
-      m_values.resize(n);
+      m_values.resize(m_n);
       double sum_prob = 0;
-      for (uint64_t i = 1; i <= n; i++) {
+      for (uint64_t i = 1; i <= m_n; i++) {
         sum_prob = sum_prob + m_c / pow((double) i, m_alpha);
         m_values[i - 1] = sum_prob;
       }
@@ -139,11 +165,13 @@ class NumericZipfianDatasource : public Datasource
     }
 
   private:
+    uint64_t m_n;
     double m_alpha;
     double m_c;
     std::vector<double> m_values;
     boost::mt19937 m_rng;
     boost::uniform_01<boost::mt19937> m_u01;
+    long m_seed;
 };
 
 #endif /* DATASOURCE_NUMERIC_H__ */
