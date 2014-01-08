@@ -613,9 +613,9 @@ class PaxNodeImpl
       : m_page(page), m_node(PBtreeNode::from_page(page)),
         m_keys(page->get_db(), m_node->get_data()),
         m_records(page->get_db()) {
-      ham_u32_t usable_nodesize = page->get_env()->get_page_size()
-                    - PBtreeNode::get_entry_offset()
-                    - Page::sizeof_persistent_header;
+      ham_u32_t usable_nodesize
+              = page->get_db()->get_local_env()->get_usable_page_size()
+                    - PBtreeNode::get_entry_offset();
       ham_u32_t key_size = get_actual_key_size(m_keys.get_key_size());
       m_capacity = usable_nodesize / (key_size
                       + m_records.get_max_inline_record_size());
@@ -789,7 +789,7 @@ class PaxNodeImpl
 
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      return (env->get_blob_manager()->get_datasize(db, it->get_record_id()));
+      return (env->get_blob_manager()->get_blob_size(db, it->get_record_id()));
     }
 
     // Updates the record of a key
@@ -839,7 +839,7 @@ class PaxNodeImpl
       if (ptr) {
         // ... and is overwritten by a inline key
         if (record->size <= it->get_max_inline_record_size()) {
-          env->get_blob_manager()->free(db, ptr);
+          env->get_blob_manager()->erase(db, ptr);
           it->set_inline_record_data(record->data, record->size);
         }
         // ... and is overwritten by a (non-inline) key
@@ -869,7 +869,7 @@ class PaxNodeImpl
 
       // now erase the blob
       LocalDatabase *db = m_page->get_db();
-      db->get_local_env()->get_blob_manager()->free(db, it->get_record_id(), 0);
+      db->get_local_env()->get_blob_manager()->erase(db, it->get_record_id(), 0);
       it->set_record_id(0);
     }
 

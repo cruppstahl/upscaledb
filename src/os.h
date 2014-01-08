@@ -83,7 +83,7 @@ os_tell(ham_fd_t fd);
 
 // returns the size of a database file
 extern ham_u64_t
-os_get_filesize(ham_fd_t fd);
+os_get_file_size(ham_fd_t fd);
 
 // truncate/resize the file
 extern void

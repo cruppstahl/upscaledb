@@ -1059,12 +1059,10 @@ struct EnvFixture {
     }
 
     REQUIRE(0 == ham_env_close(env, 0));
-    REQUIRE(0 ==
-      ham_env_open(&env, Globals::opath(".test"), m_flags, 0));
+    REQUIRE(0 == ham_env_open(&env, Globals::opath(".test"), m_flags, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 ==
-        ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+      REQUIRE(0 == ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
     }
 
     for (i = 0; i < 10; i++) {
@@ -1174,12 +1172,12 @@ struct EnvFixture {
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));
 
-    ps[0].value = 675;
+    ps[0].value = 676;
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
     REQUIRE(0 == ham_env_close(env, 0));
 
-    ps[0].value = 676;
+    ps[0].value = 677;
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
   }

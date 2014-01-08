@@ -42,22 +42,6 @@ LocalEnvironment::get_btree_descriptor(int i)
   return (d + i);
 }
 
-PFreelistPayload *
-LocalEnvironment::get_freelist_payload(ham_u32_t *psize)
-{
-  ham_u32_t header_size = (sizeof(PEnvironmentHeader)
-                  + m_header->get_max_databases() * sizeof(PBtreeHeader));
-
-  if (psize) {
-    ham_u32_t size = get_usable_page_size();
-    size -= header_size;
-    size -= PFreelistPayload::get_bitmap_offset();
-    size -= size % sizeof(ham_u64_t);
-    *psize = size;
-  }
-  return ((PFreelistPayload *)(m_header->get_header_page()->get_payload() + header_size));
-}
-
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_header(0), m_device(0), m_changeset(this),
     m_blob_manager(0), m_page_manager(0), m_log(0),
@@ -72,10 +56,13 @@ LocalEnvironment::~LocalEnvironment()
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
-        ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
+        ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
         ham_u16_t max_databases)
 {
+  if (flags & HAM_IN_MEMORY)
+    flags |= HAM_DISABLE_RECLAIM_INTERNAL;
   set_flags(flags);
+
   if (filename)
     m_filename = filename;
   m_file_mode = mode;
@@ -84,7 +71,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
-  m_device->set_page_size(m_page_size);
 
   /* create the file */
   m_device->create(filename, flags, mode);
@@ -95,7 +81,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* allocate the header page */
   {
     Page *page = new Page(this);
-    page->allocate();
+    page->allocate(Page::kTypeHeader, m_page_size);
     memset(page->get_data(), 0, m_page_size);
     page->set_type(Page::kTypeHeader);
     m_header->set_header_page(page);
@@ -133,14 +119,13 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-        ham_u32_t cache_size)
+        ham_u64_t cache_size)
 {
   ham_status_t st;
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
-  m_device->set_page_size(m_page_size);
 
   if (filename)
     m_filename = filename;
@@ -183,7 +168,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
     m_page_size = m_header->get_page_size();
-    m_device->set_page_size(m_page_size);
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -240,6 +224,13 @@ fail_with_fake_cleansing:
    */
   if (get_flags() & HAM_ENABLE_RECOVERY)
     recover(flags);
+
+  /* load the state of the PageManager */
+  if (m_header->get_page_manager_blobid() != 0) {
+    m_page_manager->load_state(m_header->get_page_manager_blobid());
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      get_changeset().clear();
+  }
 
   return (0);
 }
@@ -396,6 +387,22 @@ LocalEnvironment::close(ham_u32_t flags)
       st = db->close(flags);
     if (st)
       return (st);
+  }
+
+  // store the state of the PageManager
+  if (m_page_manager
+      && (get_flags() & HAM_IN_MEMORY) == 0
+      && (get_flags() & HAM_READ_ONLY) == 0) {
+    ham_u64_t new_blobid = m_page_manager->store_state();
+    if (new_blobid != get_header()->get_page_manager_blobid()) {
+      get_header()->set_page_manager_blobid(new_blobid);
+      get_header()->get_header_page()->set_dirty(true);
+      if (get_flags() & HAM_ENABLE_RECOVERY) {
+        get_changeset().add_page(get_header()->get_header_page());
+        if (m_log && (flags & HAM_DONT_CLEAR_LOG) == 0)
+          get_changeset().flush(get_incremented_lsn());
+      }
+    }
   }
 
   /* flush all committed transactions */
@@ -839,6 +846,15 @@ LocalEnvironment::recover(ham_u32_t flags)
     }
   }
 
+  /* load the state of the PageManager; the PageManager state is loaded AFTER
+   * physical recovery because its page might have been restored in
+   * log->recover()*/
+  if (m_header->get_page_manager_blobid() != 0) {
+    m_page_manager->load_state(m_header->get_page_manager_blobid());
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      get_changeset().clear();
+  }
+
   if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
     if (!m_journal->is_empty()) {
       if (flags & HAM_AUTO_RECOVERY) {
@@ -870,6 +886,9 @@ bail:
     delete m_journal;
     m_journal = 0;
   }
+
+  /* reset the page manager */
+  m_page_manager->close();
 }
 
 void

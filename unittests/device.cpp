@@ -82,7 +82,7 @@ struct DeviceFixture
     page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
-    m_dev->alloc_page(&page);
+    m_dev->alloc_page(&page, ((LocalEnvironment *)m_env)->get_page_size());
     REQUIRE(page.get_data());
     m_dev->free_page(&page);
   }
@@ -105,10 +105,11 @@ struct DeviceFixture
       memset(&pages[i], 0, sizeof(Page));
       pages[i].set_db((LocalDatabase *)m_db);
       pages[i].set_address(i * ps);
-      m_dev->read_page(&pages[i]);
+      m_dev->read_page(&pages[i], ((LocalEnvironment *)m_env)->get_page_size());
     }
-    for (i = 0; i < 10; i++)
-      memset(pages[i].get_data(), i, ps);
+    for (i = 0; i < 10; i++) {
+      memset(pages[i].get_raw_payload(), i, ps);
+    }
     for (i = 0; i < 10; i++)
       m_dev->write_page(&pages[i]);
     for (i = 0; i < 10; i++) {
@@ -116,9 +117,9 @@ struct DeviceFixture
       memset(temp, i, ps);
       m_dev->free_page(&pages[i]);
 
-      m_dev->read_page(&pages[i]);
-      buffer = (ham_u8_t *)pages[i].get_data();
-      REQUIRE(0 == memcmp(buffer, temp, ps));
+      m_dev->read_page(&pages[i], ((LocalEnvironment *)m_env)->get_page_size());
+      buffer = (ham_u8_t *)pages[i].get_payload();
+      REQUIRE(0 == memcmp(buffer, temp, ps - Page::kSizeofPersistentHeader));
     }
     for (i = 0; i < 10; i++)
       m_dev->free_page(&pages[i]);
@@ -162,24 +163,26 @@ struct DeviceFixture
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);
     for (i = 0; i < 2; i++) {
-      REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
+      pages[i] = new Page((LocalEnvironment *)m_env);
       pages[i]->set_address(ps * i);
-      m_dev->read_page(pages[i]);
+      m_dev->read_page(pages[i], ps);
     }
     for (i = 0; i < 2; i++) {
       REQUIRE((pages[i]->get_flags() & Page::kNpersMalloc) != 0);
-      memset(pages[i]->get_data(), i + 1, ps);
+      memset(pages[i]->get_payload(), i + 1,
+                      ps - Page::kSizeofPersistentHeader);
       m_dev->write_page(pages[i]);
       delete pages[i];
     }
 
     for (i = 0; i < 2; i++) {
-      char temp[1024];
+      char temp[HAM_DEFAULT_PAGESIZE];
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);
-      m_dev->read_page(pages[i]);
-      REQUIRE(0 == memcmp(pages[i]->get_data(), temp, sizeof(temp)));
+      m_dev->read_page(pages[i], ps);
+      REQUIRE(0 == memcmp(pages[i]->get_payload(), temp,
+                              ps - Page::kSizeofPersistentHeader));
       delete pages[i];
     }
   }

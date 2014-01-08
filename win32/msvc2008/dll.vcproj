@@ -545,22 +545,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\freelist.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\freelist.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\freelist_stats.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\freelist_stats.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\hamsterdb.cc"
 			>
 		</File>

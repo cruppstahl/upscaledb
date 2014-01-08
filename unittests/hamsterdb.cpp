@@ -139,18 +139,6 @@ struct HamsterdbFixture {
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, 0, 0, 0664, 0));
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, 0, HAM_IN_MEMORY | HAM_CACHE_STRICT, 0, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, ".test.db",
-          HAM_CACHE_UNLIMITED | HAM_CACHE_STRICT, 0644, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, ".test.db", HAM_CACHE_UNLIMITED, 0, &cs[0]));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open(&env, ".test.db",
-            HAM_CACHE_UNLIMITED | HAM_CACHE_STRICT, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open(&env, ".test.db", HAM_CACHE_UNLIMITED, &cs[0]));
-    REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, 0, HAM_IN_MEMORY, 0, &cs[0]));
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, 0, HAM_IN_MEMORY|HAM_READ_ONLY, 0, 0));

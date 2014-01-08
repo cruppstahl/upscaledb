@@ -43,7 +43,6 @@
 #include "txn.h"
 #include "util.h"
 #include "version.h"
-#include "freelist.h"
 
 using namespace hamsterdb;
 
@@ -198,8 +197,6 @@ ham_strerror(ham_status_t result)
       return ("Data blob not found");
     case HAM_IO_ERROR:
       return ("System I/O error");
-    case HAM_CACHE_FULL:
-      return ("Database cache is full");
     case HAM_NOT_IMPLEMENTED:
       return ("Operation not implemented");
     case HAM_FILE_NOT_FOUND:
@@ -328,7 +325,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 {
   ham_u32_t page_size = HAM_DEFAULT_PAGESIZE;
   ham_u64_t cache_size = 0;
-  ham_u16_t maxdbs = 0;
+  ham_u16_t max_databases = 0;
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
@@ -343,13 +340,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   /* creating a file in READ_ONLY mode? doesn't make sense */
   if (flags & HAM_READ_ONLY) {
     ham_trace(("cannot create a file in read-only mode"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  /* in-memory? don't allow cache limits! */
-  if ((flags & HAM_IN_MEMORY) && (flags & HAM_CACHE_STRICT)) {
-    ham_trace(("combination of HAM_IN_MEMORY and HAM_CACHE_STRICT "
-            "not allowed"));
     return (HAM_INV_PARAMETER);
   }
 
@@ -375,7 +365,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_u32_t mask = HAM_ENABLE_FSYNC
             | HAM_IN_MEMORY
             | HAM_DISABLE_MMAP
-            | HAM_CACHE_STRICT
             | HAM_CACHE_UNLIMITED
             | HAM_ENABLE_RECOVERY
             | HAM_AUTO_RECOVERY
@@ -406,8 +395,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
         page_size = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_MAX_DATABASES:
-        maxdbs = (ham_u32_t)param->value;
-        if (maxdbs == 0) {
+        max_databases = (ham_u32_t)param->value;
+        if (max_databases == 0) {
           ham_trace(("invalid value %u for parameter HAM_PARAM_MAX_DATABASES",
                  (unsigned)param->value));
           return (HAM_INV_PARAMETER);
@@ -442,12 +431,10 @@ ham_env_create(ham_env_t **henv, const char *filename,
   }
 
   /* don't allow cache limits with unlimited cache */
-  if (flags & HAM_CACHE_UNLIMITED) {
-    if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
-            "or HAM_CACHE_STRICT not allowed"));
-      return (HAM_INV_PARAMETER);
-    }
+  if (flags & HAM_CACHE_UNLIMITED && cache_size != 0) {
+    ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
+          "not allowed"));
+    return (HAM_INV_PARAMETER);
   }
 
   if (cache_size == 0)
@@ -463,25 +450,24 @@ ham_env_create(ham_env_t **henv, const char *filename,
   /*
    * make sure that max_databases actually fit in a header
    * page!
-   * leave at least 128 bytes for the freelist and the other header data
+   * leave at least 128 bytes for other header data
    */
   {
-    ham_u32_t l = page_size - sizeof(PEnvironmentHeader)
-        - PFreelistPayload::get_bitmap_offset() - 128;
+    ham_u32_t l = page_size - sizeof(PEnvironmentHeader) - 128;
 
     l /= sizeof(PBtreeHeader);
-    if (maxdbs > l) {
+    if (max_databases > l) {
       ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
             "this page size; the maximum allowed is %u",
             (unsigned)l));
       return (HAM_INV_PARAMETER);
     }
-    else if (maxdbs == 0) {
+    else if (max_databases == 0) {
       if (Database::kMaxIndices > l)
-        maxdbs = (ham_u16_t)l;  /* small page sizes (e.g. 1K) cannot carry 
-                                 * Database::kMaxIndices databases! */
+        max_databases = (ham_u16_t)l;  /* small pages (e.g. 1K) cannot carry 
+                                        * Database::kMaxIndices databases! */
       else
-        maxdbs = Database::kMaxIndices;
+        max_databases = Database::kMaxIndices;
     }
   }
 
@@ -512,7 +498,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->create(filename, flags, mode, page_size, cache_size, maxdbs);
+    st = env->create(filename, flags, mode, page_size,
+                    cache_size, max_databases);
 
     /* flush the environment to make sure that the header page is written
      * to disk */
@@ -708,12 +695,10 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   }
 
   /* don't allow cache limits with unlimited cache */
-  if (flags & HAM_CACHE_UNLIMITED) {
-    if ((flags & HAM_CACHE_STRICT) || cache_size != 0) {
-      ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
-            "or HAM_CACHE_STRICT not allowed"));
-      return (HAM_INV_PARAMETER);
-    }
+  if (flags & HAM_CACHE_UNLIMITED && cache_size != 0) {
+    ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
+          "not allowed"));
+    return (HAM_INV_PARAMETER);
   }
 
   if (cache_size == 0)

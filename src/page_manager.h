@@ -17,9 +17,9 @@
 #include "ham/hamsterdb_int.h"
 
 #include "error.h"
-#include "freelist.h"
 #include "env_local.h"
 #include "db_local.h"
+#include "cache.h"
 
 namespace hamsterdb {
 
@@ -29,28 +29,20 @@ namespace hamsterdb {
 // their physical address in the file.
 //
 class PageManager {
-  private:
-    // The state of a page
-    struct PageState {
-      PageState(ham_u64_t _birthday = 0, Page *_page = 0)
-        : birthday(_birthday), page(_page), is_free(false) {
-      }
-
-      ham_u64_t birthday;
-      Page *page;
-      bool is_free;
-    };
-
-    typedef std::map<ham_u64_t, PageState> PageMap;
+    // The freelist maps page-id to number of free pages (usually 1)
+    typedef std::map<ham_u64_t, int> FreeMap;
 
   public:
     // Flags for PageManager::alloc_page()
     enum {
-      // Do not use freelist when allocating the page
-      kIgnoreFreelist =  8,
+      // flag for alloc_page(): Clear the full page with zeroes
+      kClearWithZero     = 1,
 
-      // Clear the full page with zeroes
-      kClearWithZero  = 16,
+      // flag for alloc_page(): Ignores the freelist
+      kIgnoreFreelist    = 2,
+
+      // flag for alloc_page(): Do not persist the PageManager state to disk
+      kDisableStoreState = 4,
 
       // Limits the amount of pages that are flushed in purge_cache()
       kPurgeLimit = 20,
@@ -62,10 +54,16 @@ class PageManager {
     // Default constructor
     //
     // The cache size is specified in bytes!
-    PageManager(LocalEnvironment *env, ham_u32_t cache_size);
+    PageManager(LocalEnvironment *env, ham_u64_t cache_size);
 
     // Destructor
     ~PageManager();
+
+    // Loads the state from a blob
+    void load_state(ham_u64_t blobid);
+
+    // Stores the state to a blob; returns the blobid
+    ham_u64_t store_state();
 
     // Fills in the current metrics for the PageManager, the Cache and the
     // Freelist
@@ -75,8 +73,6 @@ class PageManager {
     //
     // @param db The Database which fetches this page
     // @param address The page's address
-    // @param only_from_cache If false (and a cache miss) then the page
-    //              is fetched from disk
     Page *fetch_page(LocalDatabase *db, ham_u64_t address,
                     bool only_from_cache = false);
 
@@ -84,8 +80,15 @@ class PageManager {
     //
     // @param db The Database which allocates this page
     // @param page_type One of Page::TYPE_* in page.h
-    // @param flags Either kIgnoreFreelist or kClearWithZero
-    Page *alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags);
+    // @param flags kClearWithZero
+    Page *alloc_page(LocalDatabase *db, ham_u32_t page_type,
+                    ham_u32_t flags = 0);
+
+    // Allocates multiple adjacent pages
+    //
+    // Used by the BlobManager to store blobs that span multiple pages
+    // Returns the first page in the list of pages
+    Page *alloc_multiple_blob_pages(LocalDatabase *, int num_pages);
 
     // Flushes a Page to disk
     void flush_page(Page *page) {
@@ -94,15 +97,6 @@ class PageManager {
         page->flush();
       }
     }
-
-    // Allocates space for a blob, either by using the freelist or by
-    // allocating free disk space at the end of the file
-    //
-    // @param db The Database (can be NULL)
-    // @param size The requested size (in bytes)
-    // @param allocated Will return whether the space is newly allocated
-    // Returns the address of the space
-    ham_u64_t alloc_blob(Database *db, ham_u32_t size, bool *allocated = 0);
 
     // Flush all pages, and clear the cache.
     //
@@ -118,88 +112,82 @@ class PageManager {
     // Flushes all pages of a database
     void close_database(Database *db);
 
-    // Checks the integrity of the freelist and the cache
-    void check_integrity();
-
     // Returns the cache's capacity
     ham_u64_t get_cache_capacity() const {
-      return (m_cache_size);
+      return (m_cache.get_capacity());
     }
 
-    // Adds a page to the freelist
-    void add_to_freelist(Page *page);
-
-    // Adds an area to the freelist; used for blobs, but make sure to add
-    // sizeof(PBlobHeader) to the blob's payload size!
-    void add_to_freelist(Database *db, ham_u64_t address, ham_u32_t size) {
-      Freelist *f = get_freelist();
-      if (f)
-        f->free_area(address, size);
-    }
-
+    // Adds a page (or many pages) to the freelist
+    void add_to_freelist(Page *page, int page_count = 1);
 
     // Closes the PageManager; flushes all dirty pages
     void close();
 
     // Removes a page from the list; only for testing.
     void test_remove_page(Page *page) {
-      PageMap::iterator it = m_page_map.find(page->get_address());
-      ham_assert(it != m_page_map.end());
-      m_page_map.erase(it);
+      m_cache.remove_page(page);
+    }
+
+    // Returns true if a page is free; only for testing. Ignores
+    // multi-pages
+    bool test_is_page_free(ham_u64_t pageid) {
+      FreeMap::iterator it = m_free_pages.find(pageid);
+      return (it != m_free_pages.end());
     }
 
   private:
     friend struct BlobManagerFixture;
-    friend struct CacheFixture;
-    friend struct FreelistFixture;
     friend struct PageManagerFixture;
-
-    // Returns the freelist; only for testing!
-    Freelist *test_get_freelist() {
-      return (get_freelist());
-    }
-
-    // Returns the (initialized) freelist pointer
-    Freelist *get_freelist() {
-      if (!m_freelist
-          && !(m_env->get_flags() & HAM_IN_MEMORY)
-          && !(m_env->get_flags() & HAM_READ_ONLY))
-        m_freelist = new Freelist(m_env);
-      return (m_freelist);
-    }
+    friend struct LogHighLevelFixture;
 
     // Fetches a page from the list
     Page *fetch_page(ham_u64_t id) {
-      m_epoch++;
-
-      PageMap::iterator it = m_page_map.find(id);
-      if (it != m_page_map.end())
-        return (it->second.page);
-      return (0);
+      return (m_cache.get_page(id));
     }
 
     // Stores a page in the list
-    void store_page(Page *page) {
-      ham_assert(m_page_map.find(page->get_address()) == m_page_map.end());
-      PageState ps = PageState(m_epoch, page);
-      m_page_map[page->get_address()] = ps;
+    void store_page(Page *page, bool dont_flush_state = false) {
+      m_cache.put_page(page);
+
+      /* write to disk (if necessary) */
+      if (dont_flush_state == false)
+        maybe_store_state();
+    }
+
+    /* returns true if the cache is full */
+    bool cache_is_full() const {
+      return (m_cache.is_full());
+    }
+
+    /* if recovery is enabled then immediately write the modified blob */
+    void maybe_store_state(bool force = false) {
+      if (force || (m_env->get_flags() & HAM_ENABLE_RECOVERY)) {
+        ham_u64_t new_blobid = store_state();
+        if (new_blobid != m_env->get_header()->get_page_manager_blobid()) {
+          m_env->get_header()->set_page_manager_blobid(new_blobid);
+          m_env->get_header()->get_header_page()->set_dirty(true);
+          /* store the page in the changeset if recovery is enabled */
+          if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+            m_env->get_changeset().add_page(m_env->get_header()->get_header_page());
+        }
+      }
     }
 
     // The current Environment handle
     LocalEnvironment *m_env;
 
-    // the Freelist manages the free space in the file; can be NULL
-    Freelist *m_freelist;
+    // The cache
+    Cache m_cache;
 
-    // The list of pages currently in use
-    PageMap m_page_map;
+    // The map with free pages
+    FreeMap m_free_pages;
 
-    // The cache size (in bytes)
-    ham_u32_t m_cache_size;
+    // Whether |m_free_pages| must be flushed or not
+    bool m_needs_flush;
 
-    // the current epoch (a monotonic counter to calculate the "age" of
-    // a cached page)
-    ham_u64_t m_epoch;
+    // Page with the persisted state data. If multiple pages are allocated
+    // then these pages form a linked list, with |m_state_page| being the head
+    Page *m_state_page;
 
     // tracks number of fetched pages
     ham_u64_t m_page_count_fetched;
@@ -213,14 +201,20 @@ class PageManager {
     // tracks number of blob pages
     ham_u64_t m_page_count_blob;
 
-    // tracks number of freelist pages
-    ham_u64_t m_page_count_freelist;
+    // tracks number of page manager pages
+    ham_u64_t m_page_count_page_manager;
 
     // tracks number of cache hits
     ham_u64_t m_cache_hits;
 
     // tracks number of cache misses
     ham_u64_t m_cache_misses;
+
+    // number of successful freelist hits
+    ham_u64_t m_freelist_hits;
+
+    // number of freelist misses
+    ham_u64_t m_freelist_misses;
 };
 
 } // namespace hamsterdb

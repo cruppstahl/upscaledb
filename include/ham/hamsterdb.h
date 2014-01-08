@@ -337,8 +337,6 @@ typedef struct {
 #define HAM_BLOB_NOT_FOUND              (-16)
 /** Generic file I/O error */
 #define HAM_IO_ERROR                    (-18)
-/** Database cache is full */
-#define HAM_CACHE_FULL                  (-19)
 /** Function is not yet implemented */
 #define HAM_NOT_IMPLEMENTED             (-20)
 /** File not found */
@@ -514,22 +512,14 @@ ham_get_license(const char **licensee, const char **product);
  *     <li>@ref HAM_IN_MEMORY</li> Creates an In-Memory Environment. No
  *      file will be created, and the Database contents are lost after
  *      the Environment is closed. The @a filename parameter can
- *      be NULL. Do <b>NOT</b> use in combination with
- *      @ref HAM_CACHE_STRICT and do <b>NOT</b> specify @a cache_size
- *      other than 0.
+ *      be NULL. Do <b>NOT</b> specify @a cache_size other than 0.
  *     <li>@ref HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *      By default, hamsterdb checks if it can use mmap,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
- *     <li>@ref HAM_CACHE_STRICT</li> Do not allow the cache to grow larger
- *      than @a cache_size. If a Database operation needs to resize the
- *      cache, it will return @ref HAM_CACHE_FULL.
- *      If the flag is not set, the cache is allowed to allocate
- *      more pages than the maximum cache size, but only if it's
- *      necessary and only for a short time.
  *     <li>@ref HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
- *      with @ref HAM_CACHE_STRICT or a limited cache size.
+ *      with a limited cache size.
  *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
@@ -624,15 +614,9 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      By default, hamsterdb checks if it can use mmap,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
- *     <li>@ref HAM_CACHE_STRICT </li> Do not allow the cache to grow larger
- *      than @a cache_size. If a Database operation needs to resize the
- *      cache, it will return @ref HAM_CACHE_FULL.
- *      If the flag is not set, the cache is allowed to allocate
- *      more pages than the maximum cache size, but only if it's
- *      necessary and only for a short time.
  *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
- *      with @ref HAM_CACHE_STRICT or a limited cache size.
+ *      with a limited cache size.
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *      is in an inconsistent state. Not allowed in combination
@@ -1147,10 +1131,6 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 /** Flag for @ref ham_env_open, @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_DISABLE_MMAP                            0x00000200
-
-/** Flag for @ref ham_env_open, @ref ham_env_create.
- * This flag is non persistent. */
-#define HAM_CACHE_STRICT                            0x00000400
 
 /** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */

@@ -142,7 +142,7 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * Metrics marked "global" are stored globally and shared between multiple
  * Environments.
  */
-#define HAM_METRICS_VERSION         4
+#define HAM_METRICS_VERSION         5
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
@@ -177,8 +177,8 @@ typedef struct ham_env_metrics_t {
   // number of blob pages in this Environment
   ham_u64_t page_count_type_blob;
 
-  // number of freelist pages in this Environment
-  ham_u64_t page_count_type_freelist;
+  // number of page-manager pages in this Environment
+  ham_u64_t page_count_type_page_manager;
 
   // number of successful freelist hits
   ham_u64_t freelist_hits;
@@ -197,15 +197,6 @@ typedef struct ham_env_metrics_t {
 
   // number of blobs read
   ham_u64_t blob_total_read;
-
-  // number of direct I/O bytes read (disk only)
-  ham_u64_t blob_direct_read;
-
-  // number of direct I/O bytes written (disk only)
-  ham_u64_t blob_direct_written;
-
-  // number of direct I/O bytes allocated (disk only)
-  ham_u64_t blob_direct_allocated;
 
   // (global) number of btree page splits
   ham_u64_t btree_smo_split;

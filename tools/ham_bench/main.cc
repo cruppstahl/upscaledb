@@ -751,8 +751,8 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.page_count_type_index);
   printf("\thamsterdb page_count_type_blob        %lu\n",
           metrics->hamster_metrics.page_count_type_blob);
-  printf("\thamsterdb page_count_type_freelist    %lu\n",
-          metrics->hamster_metrics.page_count_type_freelist);
+  printf("\thamsterdb page_count_type_page_manager %lu\n",
+          metrics->hamster_metrics.page_count_type_page_manager);
   printf("\thamsterdb freelist_hits               %lu\n",
           metrics->hamster_metrics.freelist_hits);
   printf("\thamsterdb freelist_misses             %lu\n",
@@ -765,12 +765,6 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.blob_total_allocated);
   printf("\thamsterdb blob_total_read             %lu\n",
           metrics->hamster_metrics.blob_total_read);
-  printf("\thamsterdb blob_direct_read            %lu\n",
-          metrics->hamster_metrics.blob_direct_read);
-  printf("\thamsterdb blob_direct_written         %lu\n",
-          metrics->hamster_metrics.blob_direct_written);
-  printf("\thamsterdb blob_direct_allocated       %lu\n",
-          metrics->hamster_metrics.blob_direct_allocated);
   printf("\thamsterdb btree_smo_split             %lu\n",
           metrics->hamster_metrics.btree_smo_split);
   printf("\thamsterdb btree_smo_merge             %lu\n",

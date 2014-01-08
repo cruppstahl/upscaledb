@@ -31,12 +31,8 @@ class LocalEnvironment;
 class Device {
   public:
     // Constructor
-    //
-    // initialize the page_size with a default value - this will be
-    // overwritten i.e. by ham_env_open, ham_env_create when the page_size
-    // of the file is known
     Device(LocalEnvironment *env, ham_u32_t flags)
-      : m_env(env), m_flags(flags), m_page_size(HAM_DEFAULT_PAGESIZE) {
+      : m_env(env), m_flags(flags) {
     }
 
     // virtual destructor
@@ -63,7 +59,7 @@ class Device {
     virtual bool is_open() = 0;
 
     // get the current file/storage size
-    virtual ham_u64_t get_filesize() = 0;
+    virtual ham_u64_t get_file_size() = 0;
 
     // seek position in a file
     virtual void seek(ham_u64_t offset, int whence) = 0;
@@ -84,7 +80,7 @@ class Device {
                 ham_u64_t size1, void *buffer2, ham_u64_t size2) = 0;
 
     // reads a page from the device; this function CAN use mmap
-    virtual void read_page(Page *page) = 0;
+    virtual void read_page(Page *page, ham_u32_t page_size) = 0;
 
     // writes a page to the device
     virtual void write_page(Page *page) = 0;
@@ -95,7 +91,7 @@ class Device {
 
     // allocate storage for a page from this device; this function
     // can use mmap if available
-    virtual void alloc_page(Page *page) = 0;
+    virtual void alloc_page(Page *page, ham_u32_t page_size) = 0;
 
     // frees a page on the device
     //
@@ -110,11 +106,6 @@ class Device {
       return (m_env);
     }
 
-    // set the page_size for this device 
-    void set_page_size(ham_u32_t page_size) {
-      m_page_size = page_size;
-    }
-
     // disable memory mapped I/O - used for testing
     void test_disable_mmap() {
       m_flags |= HAM_DISABLE_MMAP;
@@ -126,9 +117,6 @@ class Device {
 
     // the device flags 
     ham_u32_t m_flags;
-
-    // the page size 
-    ham_u32_t m_page_size;
 
     friend class DeviceTest;
     friend class InMemoryDeviceTest;

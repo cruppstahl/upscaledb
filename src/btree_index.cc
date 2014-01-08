@@ -53,8 +53,7 @@ BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
 
   /* allocate a new root page */
   Page *root = m_db->get_local_env()->get_page_manager()->alloc_page(m_db,
-                    Page::kTypeBroot,
-                    PageManager::kIgnoreFreelist | PageManager::kClearWithZero);
+                    Page::kTypeBroot, PageManager::kClearWithZero);
 
   // initialize the new page
   PBtreeNode *node = PBtreeNode::from_page(root);
@@ -389,7 +388,7 @@ BtreeIndex::get_max_keys_per_page() const
 
   /* adjust page size and key size by adding the overhead */
   page_size -= PBtreeNode::get_entry_offset();
-  page_size -= Page::sizeof_persistent_header;
+  page_size -= Page::kSizeofPersistentHeader;
 
   ham_u32_t actual_key_size = m_leaf_traits->get_actual_key_size(key_size);
 

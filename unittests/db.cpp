@@ -123,10 +123,10 @@ struct DbFixture {
 
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
 
-    REQUIRE((page = pm->alloc_page(m_dbp, 0, PageManager::kIgnoreFreelist)));
+    REQUIRE((page = pm->alloc_page(m_dbp, 0)));
 
     REQUIRE(m_dbp == page->get_db());
-    p = page->get_raw_payload();
+    p = page->get_payload();
     for (int i = 0; i < 16; i++)
       p[i] = (ham_u8_t)i;
     page->set_dirty(true);
@@ -147,19 +147,14 @@ struct DbFixture {
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
     REQUIRE(sizeof(PBlobHeader) == 28);
     REQUIRE(sizeof(PBtreeNode) == 33);
-    REQUIRE(sizeof(PEnvironmentHeader) == 20);
+    REQUIRE(sizeof(PEnvironmentHeader) == 28);
     REQUIRE(sizeof(PBtreeHeader) == 24);
-    REQUIRE(sizeof(PFreelistPayload) == 3 * 8 + 4 + 1);
-    REQUIRE(sizeof(PFreelistPageStatistics) ==
-        4 + 8 + 4 * HAM_FREELIST_SLOT_SPREAD);
-    REQUIRE(HAM_FREELIST_SLOT_SPREAD == 16 - 5 + 1);
-    REQUIRE(PFreelistPayload::get_bitmap_offset() == 28);
     REQUIRE(sizeof(Log::PEnvironmentHeader) == 16);
     REQUIRE(sizeof(Log::PEntry) == 32);
     REQUIRE(sizeof(PPageData) == 13);
     PPageData p;
     REQUIRE(sizeof(p._s) == 13);
-    REQUIRE(Page::sizeof_persistent_header == 12);
+    REQUIRE(Page::kSizeofPersistentHeader == 12);
 
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
@@ -170,7 +165,7 @@ struct DbFixture {
     page.set_db(&db);
     db.m_btree_index = &be;
     be.m_key_size = 666;
-    REQUIRE(Page::sizeof_persistent_header == 12);
+    REQUIRE(Page::kSizeofPersistentHeader == 12);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
     struct {

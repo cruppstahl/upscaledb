@@ -9,5 +9,7 @@ test
 .test*
 *.db
 *.db.*
+xxx*.log*
+.jrn*
 recovery
 valgrind-out.txt

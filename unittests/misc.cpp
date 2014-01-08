@@ -52,8 +52,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    page->allocate();
-    memset(page->get_raw_payload(), 0, 4096);
+    page->allocate(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
@@ -72,8 +71,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    page->allocate();
-    memset(page->get_raw_payload(), 0, 4096);
+    page->allocate(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
@@ -92,8 +90,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    page->allocate();
-    memset(page->get_raw_payload(), 0, 4096);
+    page->allocate(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
@@ -112,8 +109,7 @@ struct MiscFixture {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
     page->set_db(m_dbp);
-    page->allocate();
-    memset(page->get_raw_payload(), 0, 4096);
+    page->allocate(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};

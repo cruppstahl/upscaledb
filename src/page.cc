@@ -28,8 +28,6 @@
 
 namespace hamsterdb {
 
-int Page::sizeof_persistent_header = (OFFSETOF(PPageData, _s._payload));
-
 Page::Page(LocalEnvironment *env, LocalDatabase *db)
   : m_env(env), m_db(db), m_address(0), m_flags(0), m_dirty(false),
     m_cursor_list(0), m_node_proxy(0), m_data(0)
@@ -53,16 +51,20 @@ Page::~Page()
 }
 
 void
-Page::allocate()
+Page::allocate(ham_u32_t type, ham_u32_t flags)
 {
-  m_env->get_device()->alloc_page(this);
+  m_env->get_device()->alloc_page(this, m_env->get_page_size());
+  if (flags & kInitializeWithZeroes)
+    memset(get_raw_payload(), 0, m_env->get_page_size());
+  if (type)
+    set_type(type);
 }
 
 void
 Page::fetch(ham_u64_t address)
 {
   set_address(address);
-  m_env->get_device()->read_page(this);
+  m_env->get_device()->read_page(this, m_env->get_page_size());
 }
 
 void

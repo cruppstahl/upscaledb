@@ -299,7 +299,7 @@ TEST_CASE("OsTest/truncateTest",
   ham_fd_t fd = os_create(Globals::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     os_truncate(fd, i * 128);
-    REQUIRE((ham_u64_t)(i * 128) == os_get_filesize(fd));
+    REQUIRE((ham_u64_t)(i * 128) == os_get_file_size(fd));
   }
   os_close(fd);
 }

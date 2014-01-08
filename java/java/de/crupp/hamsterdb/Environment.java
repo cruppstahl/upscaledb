@@ -106,22 +106,12 @@ public class Environment {
    *      Creates an In-Memory Environment. No file will be created,
    *      and the Database contents are lost after the Database
    *      is closed. The <code>filename</code> parameter can
-   *      be null. Do <b>NOT</b> use in combination with
-   *      <code>Const.HAM_CACHE_STRICT</code> and do <b>NOT</b>
-   *      specify a cache size other than 0.
+   *      be null. Do <b>NOT</b> specify a cache size other than 0.
    *     <li><code>Const.HAM_DISABLE_MMAP</code></li>
    *      Do not use memory mapped files for I/O. By default,
    *      hamsterdb checks if it can use mmap, since mmap is
    *      faster than read/write. For performance reasons, this
    *      flag should not be used.
-   *     <li><code>Const.HAM_CACHE_STRICT</code></li>
-   *      Do not allow the cache to grow larger than the size specified
-   *      with <code>Const.HAM_PARAM_CACHESIZE</code>. If a
-   *      Database operation needs to resize the cache, it will
-   *      fail and return <code>Const.HAM_CACHE_FULL</code>.
-   *      If the flag is not set, the cache is allowed to allocate
-   *      more pages than the maximum cache size, but only if it's
-   *      necessary and only for a short time.
    *     <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
    *     <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
    *      This flag is deprecated.
@@ -202,14 +192,6 @@ public class Environment {
    *      hamsterdb checks if it can use mmap, since mmap is
    *      faster than read/write. For performance reasons, this
    *      flag should not be used.
-   *     <li><code>Const.HAM_CACHE_STRICT</code></li>
-   *      Do not allow the cache to grow larger than the size specified
-   *      with <code>Const.HAM_PARAM_CACHESIZE</code>. If a
-   *      Database operation needs to resize the cache, it will
-   *      fail and return <code>Const.HAM_CACHE_FULL</code>.
-   *      If the flag is not set, the cache is allowed to allocate
-   *      more pages than the maximum cache size, but only if it's
-   *      necessary and only for a short time.
    *     <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
    *     <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
    *      This flag is deprecated.

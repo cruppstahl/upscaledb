@@ -563,9 +563,9 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->get_journal();
     REQUIRE(j);
-    size = os_get_filesize(j->m_fd[0]);
+    size = os_get_file_size(j->m_fd[0]);
     REQUIRE(sizeof(Journal::PEnvironmentHeader) == size);
-    size = os_get_filesize(j->m_fd[1]);
+    size = os_get_file_size(j->m_fd[1]);
     REQUIRE(sizeof(Journal::PEnvironmentHeader) == size);
   }
 
@@ -604,7 +604,7 @@ struct JournalFixture {
 
     /* verify the lsn */
     Journal *j = m_lenv->get_journal();
-    REQUIRE(11ull == j->test_get_lsn());
+    REQUIRE(12ull == j->test_get_lsn());
     REQUIRE(5ull == m_lenv->test_get_txn_id());
 
     /* create another transaction and make sure that the transaction

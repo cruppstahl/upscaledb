@@ -62,7 +62,7 @@ class BtreeFindAction
          * should be discarded.
          */
         page = env->get_page_manager()->fetch_page(db, hints.leaf_page_addr,
-                true);
+                                            true);
         if (page) {
           node = m_btree->get_node_from_page(page);
           ham_assert(node->is_leaf());

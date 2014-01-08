@@ -39,7 +39,7 @@ class InMemoryBlobManager : public BlobManager {
                     ByteArray *arena);
 
     // Retrieves the size of a blob
-    ham_u64_t get_datasize(LocalDatabase *db, ham_u64_t blobid) {
+    ham_u64_t get_blob_size(LocalDatabase *db, ham_u64_t blobid) {
       PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
       return ((ham_u32_t)blob_header->get_size());
     }
@@ -52,7 +52,7 @@ class InMemoryBlobManager : public BlobManager {
                     ham_record_t *record, ham_u32_t flags);
 
     // Deletes an existing blob
-    void free(LocalDatabase *db, ham_u64_t blobid,
+    void erase(LocalDatabase *db, ham_u64_t blobid,
                     Page *page = 0, ham_u32_t flags = 0) {
       Memory::release((void *)U64_TO_PTR(blobid));
     }

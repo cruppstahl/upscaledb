@@ -47,7 +47,7 @@ struct BtreeKeyFixture {
 
     m_page = new Page((LocalEnvironment *)m_env);
     m_page->set_db(m_dbp);
-    m_page->allocate();
+    m_page->allocate(Page::kTypeBindex, m_dbp->get_local_env()->get_page_size());
 
     // this is a leaf page! internal pages cause different behavior... 
     PBtreeNode *node = PBtreeNode::from_page(m_page);

@@ -221,8 +221,6 @@
     <ClInclude Include="..\..\src\env_remote.h" />
     <ClInclude Include="..\..\src\error.h" />
     <ClInclude Include="..\..\src\errorinducer.h" />
-    <ClInclude Include="..\..\src\freelist.h" />
-    <ClInclude Include="..\..\src\freelist_stats.h" />
     <ClInclude Include="..\..\src\journal.h" />
     <ClInclude Include="..\..\src\journal_entries.h" />
     <ClInclude Include="..\..\src\log.h" />
@@ -262,8 +260,6 @@
     <ClCompile Include="..\..\src\env_local.cc" />
     <ClCompile Include="..\..\src\env_remote.cc" />
     <ClCompile Include="..\..\src\error.cc" />
-    <ClCompile Include="..\..\src\freelist.cc" />
-    <ClCompile Include="..\..\src\freelist_stats.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
     <ClCompile Include="..\..\src\log.cc" />

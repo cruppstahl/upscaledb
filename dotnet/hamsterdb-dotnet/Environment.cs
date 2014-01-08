@@ -108,21 +108,12 @@ namespace Hamster
     ///     and the Databases are lost after the Environment
     ///     is closed. The <paramref name="fileName" /> parameter can
     ///     be null. Do <b>NOT</b> use in combination with
-    ///     <see cref="HamConst.HAM_CACHE_STRICT" /> and do <b>NOT</b>
-    ///     specify a cache size other than 0.</item><br />
+    ///     a cache size other than 0.</item><br />
     ///   <item><see cref="HamConst.HAM_DISABLE_MMAP" />
     ///     Do not use memory mapped files for I/O. By default,
     ///     hamsterdb checks if it can use mmap, since mmap is faster
     ///     than read/write. For performance reasons, this flag should
     ///     not be used.</item><br />
-    ///   <item><see cref="HamConst.HAM_CACHE_STRICT" />
-    ///     Do not allow the cache to grow larger than the size specified
-    ///     with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a
-    ///     Database operation needs to resize the cache, it will
-    ///     fail and return <see cref="HamConst.HAM_CACHE_FULL" />.
-    ///     If the flag is not set, the cache is allowed to allocate
-    ///     more pages than the maximum cache size, but only if it's
-    ///     necessary and only for a short time.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
     ///     Enables logging/recovery for this Database. Not allowed in
     ///     combination with <see cref="HamConst.HAM_IN_MEMORY" />,
@@ -236,14 +227,6 @@ namespace Hamster
     ///     hamsterdb checks if it can use mmap, since mmap is faster
     ///     than read/write. For performance reasons, this flag should
     ///     not be used.</item><br />
-    ///   <item><see cref="HamConst.HAM_CACHE_STRICT" />
-    ///     Do not allow the cache to grow larger than the size specified
-    ///     with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a
-    ///     Database operation needs to resize the cache, it will
-    ///     fail and return <see cref="HamConst.HAM_CACHE_FULL" />.
-    ///     If the flag is not set, the cache is allowed to allocate
-    ///     more pages than the maximum cache size, but only if it's
-    ///     necessary and only for a short time.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
     ///     Enables logging/recovery for this Database. Will return
     ///     <see cref="HamConst.HAM_NEED_RECOVERY" />, if the

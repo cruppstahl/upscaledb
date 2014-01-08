@@ -72,14 +72,7 @@ struct LogFixture {
   }
 
   void createCloseTest() {
-    Log *log = disconnect_log_and_create_new_log();
-
-    /* TODO make sure that the file exists and
-     * contains only the header */
-
-    REQUIRE(true == log->is_empty());
-
-    log->close();
+    REQUIRE(true == m_lenv->get_log()->is_empty());
   }
 
   void createCloseOpenCloseTest() {
@@ -89,7 +82,6 @@ struct LogFixture {
 
     log->open();
     REQUIRE(true == log->is_empty());
-    log->close();
   }
 
   void negativeCreateTest() {
@@ -134,7 +126,6 @@ struct LogFixture {
     log->append_write(1, 0, 0, data, sizeof(data));
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    log->close();
   }
 
   void clearTest() {
@@ -151,7 +142,6 @@ struct LogFixture {
     REQUIRE(true == log->is_empty());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    log->close();
   }
 
   void iterateOverEmptyLogTest() {
@@ -164,8 +154,6 @@ struct LogFixture {
     log->get_entry(&iter, &entry, &buffer);
     REQUIRE((ham_u64_t)0 == entry.lsn);
     REQUIRE(0 == buffer.get_size());
-
-    log->close();
   }
 
   void iterateOverLogOneEntryTest() {
@@ -191,7 +179,6 @@ struct LogFixture {
     REQUIRE((ham_u64_t)1 == log->get_lsn());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    log->close();
   }
 
   void checkLogEntry(Log *log, Log::PEntry *entry, ham_u64_t lsn, void *data) {
@@ -206,11 +193,12 @@ struct LogFixture {
 
   void iterateOverLogMultipleEntryTest() {
     Log *log = m_lenv->get_log();
+    ham_u32_t page_size = m_lenv->get_page_size();
 
     for (int i = 0; i < 5; i++) {
       Page *page;
       page = new Page(m_lenv);
-      page->allocate();
+      page->allocate(Page::kTypeBindex);
       log->append_page(page, 1 + i, 5 - i);
       delete page;
     }
@@ -233,19 +221,19 @@ struct LogFixture {
 
     log->get_entry(&iter, &entry, &buffer);
     checkLogEntry(log, &entry, 5, buffer.get_ptr());
-    REQUIRE(m_lenv->get_page_size() == (ham_u32_t)entry.data_size);
+    REQUIRE(page_size == (ham_u32_t)entry.data_size);
     log->get_entry(&iter, &entry, &buffer);
     checkLogEntry(log, &entry, 4, buffer.get_ptr());
-    REQUIRE(m_lenv->get_page_size() == (ham_u32_t)entry.data_size);
+    REQUIRE(page_size == (ham_u32_t)entry.data_size);
     log->get_entry(&iter, &entry, &buffer);
     checkLogEntry(log, &entry, 3, buffer.get_ptr());
-    REQUIRE(m_lenv->get_page_size() == (ham_u32_t)entry.data_size);
+    REQUIRE(page_size == (ham_u32_t)entry.data_size);
     log->get_entry(&iter, &entry, &buffer);
     checkLogEntry(log, &entry, 2, buffer.get_ptr());
-    REQUIRE(m_lenv->get_page_size() == (ham_u32_t)entry.data_size);
+    REQUIRE(page_size == (ham_u32_t)entry.data_size);
     log->get_entry(&iter, &entry, &buffer);
     checkLogEntry(log, &entry, 1, buffer.get_ptr());
-    REQUIRE(m_lenv->get_page_size() == (ham_u32_t)entry.data_size);
+    REQUIRE(page_size == (ham_u32_t)entry.data_size);
   }
 };
 
@@ -409,7 +397,7 @@ struct LogHighLevelFixture {
     /* make sure that the log file was deleted and that the lsn is 1 */
     Log *log = m_lenv->get_log();
     REQUIRE(log != 0);
-    ham_u64_t filesize = os_get_filesize(log->test_get_fd());
+    ham_u64_t filesize = os_get_file_size(log->test_get_fd());
     REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
@@ -490,7 +478,7 @@ struct LogHighLevelFixture {
 
     /* make sure that the log files are deleted and that the lsn is 1 */
     Log *log = ((LocalEnvironment *)m_env)->get_log();
-    ham_u64_t filesize = os_get_filesize(log->test_get_fd());
+    ham_u64_t filesize = os_get_file_size(log->test_get_fd());
     REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
@@ -552,21 +540,24 @@ struct LogHighLevelFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void recoverAllocatePageTest() {
+  void recoverAllocatedPageTest() {
 #ifndef WIN32
     LocalDatabase *db = (LocalDatabase *)m_db;
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
     ham_u32_t ps = m_lenv->get_page_size();
     Page *page;
 
-    REQUIRE((page = m_lenv->get_page_manager()->alloc_page(db,
-                        0, PageManager::kIgnoreFreelist)));
+    REQUIRE((page = m_lenv->get_page_manager()->alloc_page(db, 0)));
     page->set_dirty(true);
     REQUIRE((ham_u64_t)(ps * 2) == page->get_address());
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
     m_lenv->get_changeset().flush(1);
     m_lenv->get_changeset().clear();
+
+    /* don't store the PageManager's state - it would overwrite the log */
+    g_CHANGESET_POST_LOG_HOOK = (hook_func_t)0;
+
     teardown();
 
     /* restore the backupped logfiles */
@@ -580,7 +571,9 @@ struct LogHighLevelFixture {
     os_close(fd);
 
     /* make sure that the log has one alloc-page entry */
-    compareLog(Globals::opath(".test2"), LogEntry(1, ps * 2, ps));
+    std::vector<LogEntry> vec;
+    vec.push_back(LogEntry(1, ps * 2, ps));  // the new page
+    compareLog(Globals::opath(".test2"), vec);
 
     /* recover and make sure that the page exists */
     REQUIRE(0 ==
@@ -609,8 +602,7 @@ struct LogHighLevelFixture {
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db,
-                            0, PageManager::kIgnoreFreelist)));
+      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db, 0)));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -618,6 +610,10 @@ struct LogHighLevelFixture {
     }
     m_lenv->get_changeset().flush(33);
     m_lenv->get_changeset().clear();
+
+    /* don't store the PageManager's state - it would overwrite the log */
+    g_CHANGESET_POST_LOG_HOOK = (hook_func_t)0;
+
     teardown();
 
     /* restore the backupped logfiles */
@@ -663,14 +659,17 @@ struct LogHighLevelFixture {
     Page *page;
     LocalDatabase *db = (LocalDatabase *)m_db;
 
-    REQUIRE((page = m_lenv->get_page_manager()->alloc_page(db,
-                        0, PageManager::kIgnoreFreelist)));
+    REQUIRE((page = m_lenv->get_page_manager()->alloc_page(db, 33)));
     page->set_dirty(true);
     REQUIRE(page->get_address() == ps * 2);
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
     m_lenv->get_changeset().flush(2);
     m_lenv->get_changeset().clear();
+
+    /* don't store the PageManager's state - it would overwrite the log */
+    g_CHANGESET_POST_LOG_HOOK = (hook_func_t)0;
+
     teardown();
 
     /* restore the backupped logfiles */
@@ -683,7 +682,9 @@ struct LogHighLevelFixture {
     os_close(fd);
 
     /* make sure that the log has one alloc-page entry */
-    compareLog(Globals::opath(".test2"), LogEntry(2, ps * 2, ps));
+    std::vector<LogEntry> vec;
+    vec.push_back(LogEntry(2, ps * 2, ps));
+    compareLog(Globals::opath(".test2"), vec);
 
     /* recover and make sure that the page is ok */
     REQUIRE(0 ==
@@ -693,9 +694,10 @@ struct LogHighLevelFixture {
     db = (LocalDatabase *)m_db;
     m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     REQUIRE((page = fetch_page(db, ps * 2)));
+    REQUIRE(page->get_type() == 33);
     /* verify that the page does not contain the "XXX..." */
     for (int i = 0; i < 20; i++)
-      REQUIRE('X' != page->get_raw_payload()[i]);
+      REQUIRE('X' != page->get_payload()[i]);
 
     /* verify the lsn */
     REQUIRE(2ull == m_lenv->get_log()->get_lsn());
@@ -712,8 +714,7 @@ struct LogHighLevelFixture {
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db,
-                            0, PageManager::kIgnoreFreelist)));
+      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db, 0)));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -721,6 +722,10 @@ struct LogHighLevelFixture {
     }
     m_lenv->get_changeset().flush(5);
     m_lenv->get_changeset().clear();
+
+    /* don't store the PageManager's state - it would overwrite the log */
+    g_CHANGESET_POST_LOG_HOOK = (hook_func_t)0;
+
     teardown();
 
     /* restore the backupped logfiles */
@@ -729,9 +734,8 @@ struct LogHighLevelFixture {
     /* now modify the file - after all we want to make sure that
      * the recovery overwrites the modification */
     ham_fd_t fd = os_open(Globals::opath(".test"), 0);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
       os_pwrite(fd, ps * (2 + i), "XXXXXXXXXXXXXXXXXXXX", 20);
-    }
     os_close(fd);
 
     /* make sure that the log has one alloc-page entry */
@@ -751,7 +755,7 @@ struct LogHighLevelFixture {
     for (int i = 0; i < 10; i++) {
       REQUIRE((page[i] = fetch_page(db, ps * (2 + i))));
       for (int j = 0; j < 20; j++)
-        REQUIRE('X' != page[i]->get_raw_payload()[i]);
+        REQUIRE('X' != page[i]->get_payload()[i]);
     }
 
     /* verify the lsn */
@@ -769,8 +773,7 @@ struct LogHighLevelFixture {
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db,
-                            0, PageManager::kIgnoreFreelist)));
+      REQUIRE((page[i] = m_lenv->get_page_manager()->alloc_page(db, 0)));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -778,6 +781,10 @@ struct LogHighLevelFixture {
     }
     m_lenv->get_changeset().flush(6);
     m_lenv->get_changeset().clear();
+
+    /* don't store the PageManager's state - it would overwrite the log */
+    g_CHANGESET_POST_LOG_HOOK = (hook_func_t)0;
+
     teardown();
 
     /* restore the backupped logfiles */
@@ -787,9 +794,8 @@ struct LogHighLevelFixture {
      * the recovery overwrites the modification, and then truncate
      * the file */
     ham_fd_t fd = os_open(Globals::opath(".test"), 0);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
       os_pwrite(fd, ps * (2 + i), "XXXXXXXXXXXXXXXXXXXX", 20);
-    }
     os_truncate(fd, ps * 7);
     os_close(fd);
 
@@ -810,7 +816,7 @@ struct LogHighLevelFixture {
     for (int i = 0; i < 10; i++) {
       REQUIRE((page[i] = fetch_page(db, ps * (2 + i))));
       for (int j = 0; j < 20; j++)
-        REQUIRE('X' != page[i]->get_raw_payload()[i]);
+        REQUIRE('X' != page[i]->get_payload()[i]);
     }
 
     /* verify the lsn */
@@ -883,10 +889,10 @@ TEST_CASE("Log-high/createCloseOpenFullLogEnvRecoverTest", "")
   f.createCloseOpenFullLogEnvRecoverTest();
 }
 
-TEST_CASE("Log-high/recoverAllocatePageTest", "")
+TEST_CASE("Log-high/recoverAllocatedPageTest", "")
 {
   LogHighLevelFixture f;
-  f.recoverAllocatePageTest();
+  f.recoverAllocatedPageTest();
 }
 
 TEST_CASE("Log-high/recoverAllocateMultiplePageTest", "")

@@ -31,6 +31,7 @@ libhamsterdb_la_SOURCES = \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \
+	cache.h \
 	changeset.cc \
 	changeset.h \
 	config.h \
@@ -57,10 +58,6 @@ libhamsterdb_la_SOURCES = \
 	error.cc \
 	error.h \
 	errorinducer.h \
-	freelist.cc \
-	freelist.h \
-	freelist_stats.cc \
-	freelist_stats.h \
 	hamsterdb.cc \
 	journal.cc \
 	journal_entries.h \

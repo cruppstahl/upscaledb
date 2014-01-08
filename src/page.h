@@ -40,9 +40,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   ham_u32_t _flags;
 
-  // some reserved bytes; not used
-  ham_u32_t _reserved1; // reserved for crc32
-  ham_u32_t _reserved2; // reserved for individual page size
+  // reserved space
+  ham_u64_t _reserved;
 
   // the persistent data blob
   ham_u8_t _payload[1];
@@ -82,17 +81,25 @@ typedef HAM_PACK_0 union HAM_PACK_1 PPageData {
  */
 class Page {
   public:
-    // Returns the size of the persistent header of a page
-    //
-    // Equals the size of struct PPageData, without the payload byte.
-    // This is not equal to sizeof(struct PPageData)-1, because of
-    // padding (i.e. on gcc 4.1/64bit the size would be 15 bytes).
-    static int sizeof_persistent_header;
+    // Misc. enums
+    enum {
+      // sizeof the persistent page header
+      kSizeofPersistentHeader = sizeof(PPageHeader) - 1,
+
+      // instruct Page::allocate() to reset the page with zeroes
+      kInitializeWithZeroes,
+    };
 
     // The various linked lists (indices in m_prev, m_next)
     enum {
+      // list of all cached pages
+      kListCache              = 0,
+
       // list of all pages in a changeset
-      kListChangeset          = 2,
+      kListChangeset          = 1,
+
+      // a bucket in the hash table of the cache
+      kListBucket             = 2,
 
       // array limit
       kListMax                = 3
@@ -116,7 +123,7 @@ class Page {
       // unidentified db page type
       kTypeUnknown            =  0x00000000,
 
-      // the db header page: this is the first page in the environment
+      // the header page: this is the first page in the environment (offset 0)
       kTypeHeader             =  0x10000000,
 
       // a B+tree root page
@@ -125,10 +132,10 @@ class Page {
       // a B+tree node page
       kTypeBindex             =  0x30000000,
 
-      // a freelist management page
-      kTypeFreelist           =  0x40000000,
+      // a page storing the state of the PageManager
+      kTypePageManager        =  0x40000000,
 
-      // a page which stores (the front part of) blobs.
+      // a page which stores blobs
       kTypeBlob               =  0x50000000
     };
 
@@ -242,7 +249,8 @@ class Page {
     }
 
     // Allocates a new page from the device
-    void allocate();
+    // |flags|: either 0 or kInitializeWithZeroes
+    void allocate(ham_u32_t type, ham_u32_t flags = 0);
 
     // Reads a page from the device
     void fetch(ham_u64_t address);

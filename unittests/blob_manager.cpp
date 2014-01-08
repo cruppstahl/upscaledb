@@ -20,6 +20,7 @@
 #include "../src/blob_manager.h"
 #include "../src/env.h"
 #include "../src/page.h"
+#include "../src/blob_manager_disk.h"
 #include "../src/btree_flags.h"
 #include "../src/page_manager.h"
 
@@ -100,7 +101,31 @@ struct BlobManagerFixture {
     REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
-    m_blob_manager->free((LocalDatabase *)m_db, blobid, 0);
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
+  }
+
+  void freeBlobTest() {
+    ham_u8_t buffer[64];
+    ham_u64_t blobid;
+    ham_record_t record;
+    ::memset(&record, 0, sizeof(record));
+    ::memset(&buffer, 0x12, sizeof(buffer));
+
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+
+    record.size = sizeof(buffer);
+    record.data = buffer;
+    blobid = m_blob_manager->allocate((LocalDatabase *)m_db, &record, 0);
+    REQUIRE(blobid != 0ull);
+
+    ham_u64_t page_id = (blobid / lenv->get_page_size())
+                            * lenv->get_page_size();
+
+    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == false);
+
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
+
+    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == true);
   }
 
   void replaceTest() {
@@ -131,7 +156,7 @@ struct BlobManagerFixture {
     REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
-    m_blob_manager->free((LocalDatabase *)m_db, blobid2, 0);
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid2, 0);
   }
 
   void replaceWithBigTest() {
@@ -162,7 +187,7 @@ struct BlobManagerFixture {
     REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
-    m_blob_manager->free((LocalDatabase *)m_db, blobid2, 0);
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid2, 0);
   }
 
   void replaceWithSmallTest() {
@@ -173,13 +198,28 @@ struct BlobManagerFixture {
     ::memset(&buffer,  0x12, sizeof(buffer));
     ::memset(&buffer2, 0x15, sizeof(buffer2));
 
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalDatabase *ldb = (LocalDatabase *)m_db;
+
     record.data = buffer;
     record.size = sizeof(buffer);
-    blobid = m_blob_manager->allocate((LocalDatabase *)m_db, &record, 0);
+    blobid = m_blob_manager->allocate(ldb, &record, 0);
     REQUIRE(blobid != 0ull);
 
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
-    m_blob_manager->read((LocalDatabase *)m_db, blobid, &record, 0, arena);
+    /* verify the freelist information */
+    if (!m_inmemory) {
+      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+      if (lenv->get_page_size() == 1024 * 16) {
+        REQUIRE(header->get_free_bytes() == 3666);
+        REQUIRE(header->get_freelist_size(0) == 3666);
+      }
+      REQUIRE(header->get_freelist_offset(0) == 433);
+    }
+
+    ByteArray *arena = &ldb->get_record_arena();
+    m_blob_manager->read(ldb, blobid, &record, 0, arena);
     REQUIRE(record.size == (ham_u32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
@@ -187,28 +227,36 @@ struct BlobManagerFixture {
     record.data = buffer2;
     blobid2 = m_blob_manager->overwrite((LocalDatabase *)m_db, blobid,
                     &record, 0);
-    REQUIRE(blobid2 != 0ull);
 
-    m_blob_manager->read((LocalDatabase *)m_db, blobid2, &record, 0, arena);
+    /* verify the freelist information - free area must have increased
+     * by 64 bytes (the size difference between both records) */
+    if (!m_inmemory) {
+      REQUIRE(blobid2 == blobid);
+
+      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+      if (lenv->get_page_size() == 1024 * 16) {
+        REQUIRE(header->get_free_bytes() == 3666 - 64);
+        REQUIRE(header->get_freelist_size(0) == 3666);
+      }
+    }
+
+    m_blob_manager->read(ldb, blobid2, &record, 0, arena);
     REQUIRE(record.size == (ham_u32_t)sizeof(buffer2));
     REQUIRE(0 == ::memcmp(buffer2, record.data, record.size));
 
-    /* make sure that at least 64bit are in the freelist */
-    if (!m_inmemory) {
-      ham_u64_t addr;
-      Freelist *f = ((LocalEnvironment *)m_env)->get_page_manager()->test_get_freelist();
-      addr = f->alloc_area(64);
-      REQUIRE(addr != 0ull);
-    }
+    m_blob_manager->erase(ldb, blobid2, 0);
 
-    m_blob_manager->free((LocalDatabase *)m_db, blobid2, 0);
-
-    /* and now another 64bit should be in the freelist */
+    /* once more check the freelist */
     if (!m_inmemory) {
-      ham_u64_t addr;
-      Freelist *f = ((LocalEnvironment *)m_env)->get_page_manager()->test_get_freelist();
-      addr = f->alloc_area(64);
-      REQUIRE(addr != 0ull);
+      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+      if (lenv->get_page_size() == 1024 * 16) {
+        REQUIRE(header->get_free_bytes() == 3758);
+        REQUIRE(header->get_freelist_size(0) == 3666);
+      }
     }
   }
 
@@ -234,7 +282,7 @@ struct BlobManagerFixture {
     REQUIRE(record.size == (ham_u32_t)ps * BLOCKS * 2);
 
     /* and erase it */
-    m_blob_manager->free((LocalDatabase *)m_db, blobid, 0);
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
 
     /* now use a loop to allocate the buffer, and make it bigger and
      * bigger */
@@ -252,7 +300,7 @@ struct BlobManagerFixture {
       blobid = blobid2;
       REQUIRE(blobid != 0ull);
     }
-    m_blob_manager->free((LocalDatabase *)m_db, blobid, 0);
+    m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
     ::free(buffer);
   }
 
@@ -295,7 +343,7 @@ struct BlobManagerFixture {
     }
 
     for (int i = 0; i < loops; i++) {
-      m_blob_manager->free((LocalDatabase *)m_db, blobid[i], 0);
+      m_blob_manager->erase((LocalDatabase *)m_db, blobid[i], 0);
     }
 
     ::free(blobid);
@@ -327,6 +375,12 @@ TEST_CASE("BlobManager/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 1024);
   f.allocReadFreeTest();
+}
+
+TEST_CASE("BlobManager/freeBlobTest", "")
+{
+  BlobManagerFixture f(false, true, 1024);
+  f.freeBlobTest();
 }
 
 TEST_CASE("BlobManager/replaceTest", "")

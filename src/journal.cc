@@ -114,7 +114,7 @@ Journal::open()
   // more up-to-date than the one in the header structure.
   for (i = 0; i < 2; i++) {
     // but make sure that the file is large enough!
-    ham_u64_t size = os_get_filesize(m_fd[i]);
+    ham_u64_t size = os_get_file_size(m_fd[i]);
 
     if (size >= sizeof(entry)) {
       os_pread(m_fd[i], size - sizeof(PJournalEntry), &entry, sizeof(entry));
@@ -319,14 +319,14 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   }
 
   // get the size of the journal file
-  filesize = os_get_filesize(m_fd[iter->fdidx]);
+  filesize = os_get_file_size(m_fd[iter->fdidx]);
 
   // reached EOF? then either skip to the next file or we're done
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
       iter->offset = sizeof(PEnvironmentHeader);
-      filesize = os_get_filesize(m_fd[iter->fdidx]);
+      filesize = os_get_file_size(m_fd[iter->fdidx]);
     }
     else {
       entry->lsn = 0;

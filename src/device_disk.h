@@ -51,7 +51,7 @@ class DiskDevice : public Device {
         return;
 
       // the file size which backs the mapped ptr
-      ham_u64_t open_filesize = get_filesize();
+      ham_u64_t open_filesize = get_file_size();
 
       // make sure we do not exceed the "real" size of the file, otherwise
       // we run into issues when accessing that memory (at least on windows)
@@ -90,8 +90,8 @@ class DiskDevice : public Device {
     }
 
     // get the current file/storage size
-    virtual ham_u64_t get_filesize() {
-      return (os_get_filesize(m_fd));
+    virtual ham_u64_t get_file_size() {
+      return (os_get_file_size(m_fd));
     }
 
     // seek to a position in a file
@@ -122,8 +122,7 @@ class DiskDevice : public Device {
 #ifdef HAM_ENABLE_ENCRYPTION
       if (m_env->is_encryption_enabled()) {
         // encryption disables direct I/O -> only full pages are allowed
-        ham_assert(size == m_page_size);
-        ham_assert(offset % m_page_size == 0);
+        ham_assert(offset % size == 0);
 
         m_encryption_buffer.resize(size);
         AesCipher aes(m_env->get_encryption_key(), offset);
@@ -144,7 +143,7 @@ class DiskDevice : public Device {
 
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
-    virtual void read_page(Page *page) {
+    virtual void read_page(Page *page, ham_u32_t page_size) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (page->get_address() < m_mapped_size && m_mmapptr != 0) {
@@ -159,46 +158,42 @@ class DiskDevice : public Device {
 
       // this page is not in the mapped area; allocate a buffer
       if (page->get_data() == 0) {
-        ham_u8_t *p = Memory::allocate<ham_u8_t>(m_page_size);
+        ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
         page->set_data((PPageData *)p);
         page->set_flags(page->get_flags() | Page::kNpersMalloc);
       }
 
-      os_pread(m_fd, page->get_address(), page->get_data(), m_page_size);
+      os_pread(m_fd, page->get_address(), page->get_data(), page_size);
 #ifdef HAM_ENABLE_ENCRYPTION
       if (m_env->is_encryption_enabled()) {
         AesCipher aes(m_env->get_encryption_key(), page->get_address());
         aes.decrypt((ham_u8_t *)page->get_data(),
-                        (ham_u8_t *)page->get_data(), m_page_size);
+                        (ham_u8_t *)page->get_data(), page_size);
       }
 #endif
-      // TODO in case of error
-      // Memory::release(page->get_data());
-      // page->set_data((PPageData *)0);
     }
 
     // writes a page to the device
     virtual void write_page(Page *page) {
-      write(page->get_address(), page->get_data(), m_page_size);
+      write(page->get_address(), page->get_data(), m_env->get_page_size());
     }
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual ham_u64_t alloc(ham_u32_t size) {
-      ham_u64_t address = os_get_filesize(m_fd);
+      ham_u64_t address = os_get_file_size(m_fd);
       os_truncate(m_fd, address + size);
       return (address);
     }
 
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
-    virtual void alloc_page(Page *page) {
-      ham_u32_t size = m_page_size;
-      ham_u64_t pos = os_get_filesize(m_fd);
+    virtual void alloc_page(Page *page, ham_u32_t page_size) {
+      ham_u64_t pos = os_get_file_size(m_fd);
 
-      os_truncate(m_fd, pos + size);
+      os_truncate(m_fd, pos + page_size);
       page->set_address(pos);
-      read_page(page);
+      read_page(page, page_size);
     }
 
     // Frees a page on the device; plays counterpoint to |ref alloc_page|

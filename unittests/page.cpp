@@ -59,7 +59,7 @@ struct PageFixture {
   void allocFreeTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
-    page->allocate();
+    page->allocate(0, 1024);
     delete page;
   }
 
@@ -70,7 +70,7 @@ struct PageFixture {
 
     for (i = 0; i < 10; i++) {
       page = new Page((LocalEnvironment *)m_env);
-      page->allocate();
+      page->allocate(0, ps);
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
       if (!m_inmemory)
@@ -85,11 +85,14 @@ struct PageFixture {
 
     page = new Page((LocalEnvironment *)m_env);
     temp = new Page((LocalEnvironment *)m_env);
-    page->allocate();
+    page->allocate(0, ps);
     REQUIRE(page->get_address() == ps * 2);
 
     page->fetch(page->get_address());
-    memset(page->get_data(), 0x13, ps);
+
+    // patch the size, otherwise we run into asserts
+
+    memset(page->get_payload(), 0x13, ps - Page::kSizeofPersistentHeader);
     page->set_dirty(true);
     page->flush();
 

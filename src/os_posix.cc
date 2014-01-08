@@ -340,11 +340,11 @@ os_tell(ham_fd_t fd)
 }
 
 ham_u64_t
-os_get_filesize(ham_fd_t fd)
+os_get_file_size(ham_fd_t fd)
 {
   os_seek(fd, 0, HAM_OS_SEEK_END);
   ham_u64_t size = os_tell(fd);
-  os_log(("os_get_filesize: fd=%d, size=%lld", fd, size));
+  os_log(("os_get_file_size: fd=%d, size=%lld", fd, size));
   return (size);
 }
 

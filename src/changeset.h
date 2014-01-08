@@ -39,7 +39,7 @@ class Changeset
   public:
     Changeset(LocalEnvironment *env)
     : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
-      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0),
+      m_page_manager(0), m_page_manager_size(0), m_page_manager_capacity(0),
       m_indices(0), m_indices_size(0), m_indices_capacity(0),
       m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
     }
@@ -48,8 +48,8 @@ class Changeset
       delete m_inducer;
       if (m_blobs)
         ::free(m_blobs);
-      if (m_freelists)
-        ::free(m_freelists);
+      if (m_page_manager)
+        ::free(m_page_manager);
       if (m_indices)
         ::free(m_indices);
       if (m_others)
@@ -107,9 +107,9 @@ class Changeset
     ham_u32_t m_blobs_size;
     ham_u32_t m_blobs_capacity;
 
-    Page **m_freelists;
-    ham_u32_t m_freelists_size;
-    ham_u32_t m_freelists_capacity;
+    Page **m_page_manager;
+    ham_u32_t m_page_manager_size;
+    ham_u32_t m_page_manager_capacity;
 
     Page **m_indices;
     ham_u32_t m_indices_size;

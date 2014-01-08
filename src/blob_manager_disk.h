@@ -18,13 +18,104 @@
 namespace hamsterdb {
 
 /*
+ * The header of a blob page
+ *
+ * Contains a fixed length freelist and a couter for the number of free
+ * bytes
+ */
+HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
+{
+  public:
+    void initialize() {
+      memset(this, 0, sizeof(PBlobPageHeader));
+    }
+
+    // Returns a PBlobPageHeader from a page
+    static PBlobPageHeader *from_page(Page *page) {
+      return (PBlobPageHeader *)&page->get_payload()[0];
+    }
+
+    // Returns the number of pages which are all managed by this header
+    ham_u32_t get_num_pages() const {
+      return (ham_db2h32(m_num_pages));
+    }
+
+    // Sets the number of pages which are all managed by this header
+    void set_num_pages(ham_u32_t num_pages) {
+      m_num_pages = ham_h2db32(num_pages);
+    }
+
+    // Returns the "free bytes" counter
+    ham_u32_t get_free_bytes() const {
+      return (ham_db2h32(m_free_bytes));
+    }
+
+    // Sets the "free bytes" counter
+    void set_free_bytes(ham_u32_t free_bytes) {
+      m_free_bytes = ham_h2db32(free_bytes);
+    }
+
+    // Returns the total number of freelist entries
+    ham_u8_t get_freelist_entries() const {
+      return (32);
+    }
+
+    // Returns the offset of freelist entry |i|
+    ham_u32_t get_freelist_offset(ham_u32_t i) const {
+      return (ham_h2db32(m_freelist[i].offset));
+    }
+
+    // Sets the offset of freelist entry |i|
+    void set_freelist_offset(ham_u32_t i, ham_u32_t offset) {
+      m_freelist[i].offset = ham_db2h32(offset);
+    }
+
+    // Returns the size of freelist entry |i|
+    ham_u32_t get_freelist_size(ham_u32_t i) const {
+      return (ham_h2db32(m_freelist[i].size));
+    }
+
+    // Sets the size of freelist entry |i|
+    void set_freelist_size(ham_u32_t i, ham_u32_t size) {
+      m_freelist[i].size = ham_db2h32(size);
+    }
+
+  private:
+    // Number of "regular" pages for this blob; used for blobs exceeding
+    // a page size
+    ham_u32_t m_num_pages;
+
+    // Number of free bytes in this page
+    ham_u32_t m_free_bytes;
+
+    // Number of freelist entries; currently unused
+    ham_u8_t m_reserved;
+
+    struct FreelistEntry {
+      ham_u32_t offset;
+      ham_u32_t size;
+    };
+
+    // The freelist - offset/size pairs in this page
+    FreelistEntry m_freelist[32];
+} HAM_PACK_2;
+
+#include "packstop.h"
+
+
+/*
  * A BlobManager for disk-based databases
  */
 class DiskBlobManager : public BlobManager
 {
+  enum {
+    // Overhead per page
+    kPageOverhead = Page::kSizeofPersistentHeader + sizeof(PBlobPageHeader)
+  };
+
   public:
     DiskBlobManager(LocalEnvironment *env)
-      : BlobManager(env) {
+      : BlobManager(env), m_last_alloc_blobid(0) {
     }
 
     // allocate/create a blob
@@ -40,7 +131,7 @@ class DiskBlobManager : public BlobManager
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    ham_u64_t get_datasize(LocalDatabase *db, ham_u64_t blobid);
+    ham_u64_t get_blob_size(LocalDatabase *db, ham_u64_t blobid);
 
     // overwrite an existing blob
     //
@@ -50,23 +141,18 @@ class DiskBlobManager : public BlobManager
                     ham_record_t *record, ham_u32_t flags);
 
     // delete an existing blob
-    void free(LocalDatabase *db, ham_u64_t blobid,
+    void erase(LocalDatabase *db, ham_u64_t blobid,
                     Page *page = 0, ham_u32_t flags = 0);
 
   private:
     friend class DuplicateManager;
+    friend class BlobManagerFixture;
 
     // write a series of data chunks to storage at file offset 'addr'.
     //
     // The chunks are assumed to be stored in sequential order, adjacent
     // to each other, i.e. as one long data strip.
-    //
-    // Writing is performed on a per-page basis, where special conditions
-    // will decide whether or not the write operation is performed
-    // through the page cache or directly to device; such is determined
-    // on a per-page basis.
     void write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
-                    bool allocated, bool freshly_created,
                     ham_u8_t **chunk_data, ham_u32_t *chunk_size,
                     ham_u32_t chunks);
 
@@ -74,13 +160,21 @@ class DiskBlobManager : public BlobManager
     void read_chunk(Page *page, Page **fpage, ham_u64_t addr,
                     LocalDatabase *db, ham_u8_t *data, ham_u32_t size);
 
-    // if the blob is small enough (or if logging is enabled) then go through
-    // the cache. otherwise use direct I/O
-    bool blob_from_cache(ham_u32_t size) {
-      if (m_env->get_log())
-        return (size < (m_env->get_usable_page_size()));
-      return (size < (ham_u32_t)(m_env->get_page_size() >> 3));
-    }
+    // adds a free chunk to the freelist
+    void add_to_freelist(PBlobPageHeader *header, ham_u32_t offset,
+                    ham_u32_t size);
+
+    // searches the freelist for a free chunk; if available, returns |true|
+    // and stores the offset in |poffset|.
+    bool alloc_from_freelist(PBlobPageHeader *header, ham_u32_t size,
+                    ham_u64_t *poffset);
+
+    // verifies the integrity of the freelist
+    bool check_integrity(PBlobPageHeader *header) const;
+
+    // the last page that we used to allocate a blob; will be used first
+    // to check for free slots
+    ham_u64_t m_last_alloc_blobid;
 };
 
 } // namespace hamsterdb

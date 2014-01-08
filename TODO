@@ -23,14 +23,6 @@ x improvements for ham_bench
 - delta updates (maybe)
 -----------------------------------------------------------------------------
 
-o web-page requires updates
-    o deployed html differs from git-repository
-    o www1
-        o merge git repository of www1 (host on github, keep remote branch)
-        o clean up 'dl' directory
-        o where to host static files?
-        o backup and deploy to www2, use round-robin DNS
-
 x update copyright string: 2013 -> 2014
 
 x check for scalability issues with files > 1 GB and check if we're on the
@@ -50,7 +42,7 @@ x ham_bench: new test mode: first load with LOTS of data, then erase in the
         x only for stop-ops
     x add to monster tests
 
-o get rid of linked "totallist" of all pages
+x get rid of the freelist for pages (not yet for blobs)
     The PageManager keeps a (persistent) list of all pages, including their
     id, their size, the type, the database. It keeps a separate list with
     all free pages.
@@ -60,60 +52,292 @@ o get rid of linked "totallist" of all pages
         be flushed to disk
     x get rid of the "totallist" linked list of all pages
     x get rid of the "bucket" linked list of all pages
-    o remove HAM_CACHE_FULL and HAM_CACHE_STRICT - don't think it is used
-    o move the unittests from cache.cpp to page_manager.cpp
-    o the PageManager knows whether a page is free or not
-        o no longer use the freelist to manage empty pages, only for blobs
-    o when allocating new pages: check the internal list, not the freelist
-    o store the modified list to disk, load it
-    o implement/update reclaim_space()
-    o if logging is enabled: immediately write the modified state
+    x remove HAM_CACHE_FULL and HAM_CACHE_STRICT - don't think it is used
+    x the PageManager knows whether a page is free or not
+        x no longer use the freelist to manage empty pages, only for blobs
+    x when allocating new pages: check the internal list, not the freelist
+    x store the modified list on disk, load it
+        x implement store/load methods
+        x store blob-id in the environment header 
+        x load when env is opened
+        x store when env is closed
+        x PageManager must accept entries which are available but do not
+            have a Page pointer
+        x fix unittests
+    x pax-layout with recsize == 0: must be much faster now
+        -> yes, but purge_cache requires 30% of the time now
+        x re-introduce totallist
+    x move the unittests from cache.cpp to page_manager.cpp, update them
+    x do not persist state if Environment is in-memory 
+    x re-activate unittests in log.cpp
+    x if logging is enabled: immediately write the modified state
         (later this will be rewritten as incremental updates for the log)
-    o pax-layout with recsize == 0: must be much faster now
+        x verify recovery tests
 
-o blob pages track their own freelist in the page itself
-    o remove direct I/O - it's not used anyway
-    o need a counter with the number of free bytes left
-    o completely get rid of the freelist
+x support pages with different sizes
+    x for now just keep the setting as is (HAM_PARAM_PAGE_SIZE in the Env)
+        x but the page stores its size persistently (for debugging)
+        x always use page->get_page_size(), if possible
+        x when loading a page: assert that page_size is correct
+            (if a header exists)
 
-o support pages with different sizes
-    o each page can have a different size
-    o the PageManager knows about these sizes and the mapping of page id to
-        address
-    o databases can have different default sizes, depending on their
-        configuration (same for blobs)
-        - increase for large key sizes
-        - increase for duplicate keys
-        - increase for blob pages
-    o merge adjacent free pages
-    o implement check_integrity() and add calls and asserts after modifications
-    o make sure that the log can work with different sizes
-    o very large blob pages no longer span multiple blobs but create a
+    x make sure that the log can work with different sizes
+
+    x device: make independent of page size
+    x Page::allocate must accept page size as parameter
+
+    x if a free page is deleted then delete the Page pointer, but keep the
+        entry in the map, otherwise we lose the information whether the page
+        is free
+    x PageManager must store page sizes (and persist them)
+    x when allocating a page: check freelist for pages with this size
+    x PageManager->is_cache_full() must take the sizes in account
+
+x v2: fix compilation problems on MacOS
+
+x remove the freelist
+    x blob: remove direct I/O - it's barely used anyway
+    x completely get rid of the freelist
+    x blobs no longer need to be aligned
+
+    x very large blob pages no longer span multiple blobs but create a
         single page which is large enough
-    o remove HAM_PARAM_PAGE_SIZE parameter from ham_env_create
-    o add HAM_PARAM_PAGE_SIZE_LOW, HAM_PARAM_PAGE_SIZE_HIGH parameter
-        to ham_env_create_db
-    o insert(): instead of splitting, a page can now also grow; this is an
-        atomic operation in the PageManager, but also needs to be reflected
-        in the log somehow?
+        x PageManager::alloc_page needs page-size parameter
+        x PageManager::fetch_page does not require parameter cache_only
+        x PageManager::fetch_page needs to know the size
+    x blobs no longer cross page boundaries
+    x this allows lots of cleanups in DiskBlobManager::read_chunk/write_chunk,
+        because there's always just ONE page, not more
+        x still uses env->get_page_size()
+    x every page now has a page header, even blob pages
+    x every blob page now has a blob page header with a counter ("free bytes")
+        and a small freelist (constant length)
 
-o Pages no longer form linked lists; this is now handled by the PageManager
+    x update the "free bytes" counter after overwriting, allocating and erasing
+        blobs to/in/from this page
+    x keep the actual freelist VERY simple - i.e. do not merge empty
+        blobs, i.e. only store the 32 largest free entries etc
 
-o simplify header page handling
-    o header page has a fixed id (i.e. = db-name), no need to store ID
-        in the env-header
-    o if the header page is replaced: only the PageManager is updated!
-    o the header page will become very small (1kb or less) and read-only, not
-        logged for regular operations
-    o clean up the code (getters/setters of the header page)
+    x PageManager state persists page sizes for all pages with non-default size
+    x The PageManager caches the id of the last used blob page to
+        check for free space
+    x verify that m_needs_flush is always updated correctly
+
+    x re-activate unittests
+        x implement PageManager persistence (simply reserve a page)
+            x needs unittest
+    x implement/update reclaim_space()
+    x update freelist counters for metrics
+    x also check recovery tests
+
+    x git rm src/freelist* unittests/freelist*
+
+    x improve performance
+        x all pages have fixed size (except blob pages)
+            x remove page->get_size()
+            x adjust page->allocate, page->fetch
+        x remove PageManager::get_page_from_address()
+        x blob pages spanning multiple pages do NOT have a header!
+        x the page-map ONLY persists free pages
+
+    x run performance tests (compare PAX against 2.1.3, release build)
+        o with records, 1 mio
+            --seed=1389874598 --key=uint64
+                                2.1.4           head
+            total time:         9.272876        7.887640
+            file size:          1159331840      1118830592
+        o with records, 5 mio
+            --seed=1389874598 --key=uint64 --stop-ops=5000000
+                                2.1.4           head
+            total time:         64.212313       53.898093
+            file size:          5832523776      5595086848
+        o with records, 1 mio, 30% erase
+            --seed=1389874598 --key=uint64 --erase-pct=30
+                                2.1.4           head
+            total time:         6.530221        6.320913
+            file size:          807469056       781975552
+        o with records, 5 mio, 30% erase
+            --seed=1389874598 --key=uint64 --stop-ops=5000000 --erase-pct=30
+                                2.1.4           head
+            total time:         44.115751       39.040701
+            file size:          4074618880      3898146816
+        o without records, 1 mio
+            --seed=1389874598 --key=uint64 --recsize-fixed=0
+                                2.1.4           head
+     !!     total time:         3.155387        3.203447
+            file size:          10534912        10534912
+        o without records, 5 mio
+            --seed=1389874598 --key=uint64 --recsize-fixed=0 --stop-ops=5000000
+                                2.1.4           head
+     !!     total time:         27.179945       27.068112
+            file size:          67125248        67125248
+        o without records, 1 mio, 30% erase
+            --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30
+                                2.1.4           head
+     !!     total time:         2.255874        2.275510
+            file size:          8421376         8421376
+        o without records, 5 mio, 30% erase
+            --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30 --stop-ops=5000000
+                                2.1.4           head
+     !!     total time:         20.919253       21.453294
+            file size:          33898496        33816576
+
+x v2: Fix .NET Wrapper issue: VS2010, SampleDb1. See
+    https://github.com/cruppstahl/hamsterdb/issues/29 for details
+
+x improve the freelist
+    The current implementation is limited because it only supports one page
+    to persist the PageManager's state. More than one page has to be
+    supported, and logging must be efficiently (i.e. only log those pages
+    that are modified.)
+    x only freelist operations are logged
+    x Reenable Env/eraseMultipleDatabases
+    x Reenable Env/eraseMultipleDatabasesReopenEnv
+    x store freelist on multiple pages, if required
+        x implemented, but needs a test
+    x BlobManager: merge adjacent free blobs
+    x if a blob page is completely empty: add it to the freelist
+        x add test
+    x if page is a multi-page: add all pages separately
+
+    x when closing: perform reclaim_space() BEFORE flush_all_pages(),
+        and flush_all_pages() should NOT flush the state_page;
+        instead (afterwards), the state is flushed and the state_page
+        is flushed. afterwards, no more pages are allowed to be modified.
+        -> that's already the case...
+    x check recovery tests
+
+o improve PageManager performance
+    x if logging is enabled and a freelist entry is *added* then this change
+        must not be logged. However, if a page is *taken* from the freelist
+        then it must be logged.
+    x use the non-intrusive hash table from 2.1.3
+        x manage free pages in separate freelist (std::map)
+        x cached pages are stored in a non-intrusive hash table
+    x improve multi-page handling
+        x PM::alloc_multiple_blob_pages() needs to be implemented
+            x add tests
+====================
+    o check performance again
+performance (see matrix above) is slower than 2.1.3 - why??
+according to callgrind, 2.1.3 is slower in EVERY aspect with ONE exception:
+  DiskBlobManager::allocate has a higher "self" time when looking up
+    m_last_alloc_blobid -> move it to the PageManager and cache the Page
+    pointer instead of the Page id, then try again
+====================
+    o compress the freelist state
+        o collapse single free pages to multi-page blobs
+            o add tests
+        - 1 byte header
+            - 3 bits: number of following bytes for page-id
+                (address % page_size)
+            - 5 bits: the multi-page counter
+        - n bytes: page-id, multiple of page-size
+    o run monster tests
+
+o perftest
+    o add tests with more elements (i.e. 10 mio ops)
+    o ... and with very big records (1mb)
+    o also run those for 2.1.4
+
+o v2: verify/improve performance of btree_impl_default: it has a very high
+    number of page splits compared to 2.1.3, even if the key size is <= 21.
+    Why? maybe the capacity is not calculated correctly. or do keys have
+    more overhead than in 2.1.3?
+    o variable length keys (no duplicates), recsize=0
+    o variable length keys (with duplicates), recsize=0
+    o fixed length keys (with duplicates), recsize=0
+    -> what exactly happens if the page is split? is it really resized
+            correctly?
+
+o erlang API
+
+o web-page requires updates
+    x deployed html differs from git-repository
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
 
 . improve integration of static code analysis in release process
     o try to become "oclint-clean"
     o try to become "coverity-clean"
 
+high-level plan for 2.1.6 ...................................................
+
+- come up with a new design which is NOT based on virtual Page IDs, resizable
+    pages etc - they would be way too slow
+    o review Changeset::flush
+    o buffer the log and journal, only flush if there's an overflow or a commit
+    o is it possible to merge log and journal?
+    o the PageManager should write "deltas"
+
+- reduce the linked lists - they're hard to be updated with concurrent
+    operations
+    o page
+    o transaction and dependent objects
+    o ...
+
+- delta updates: very similar to the current TransactionOperations; however,
+    the difference is that delta updates are part of a page, whereas
+    TransactionOperations are part of a Transaction. The difference is more
+    obvious when talking about recovery: delta updates are logged in the
+    "stream" of a page, not of a Transaction. When loading a page, they can be
+    reapplied immediately and the page will be valid.
+    -> logging disabled: don't bother
+    -> logging enabled: write delta updates to a (buffered) log; flush log
+        when a Txn is committed
+    -> if the log exceeds 100 mb: switch to the next log
+    -> delete old log files when all their streams are checkpointed in a
+        newer file
+    -> if delta updates exceed <threshold>: request/write a checkpoint
+    -> each stream knows which log file stores its latest checkpoint
+    -> when the database is closed: write checkpoints of as many streams
+        as possible, esp. if older logs contain delta updates (then the
+        old log can be purged)
+    -> each log has a trailer which lists the streams in the log; this
+        can be used to purge the log efficiently
+
+  - Delta updates (concurrent/atomic!)
+    are like TransactionOperations but directly attached to a BtreeNode.
+    the Transaction is separated from the updates; its only state is a name,
+    the Tid and the flags (committed, aborted...)
+    - Transactions are stored in a linear array, just like the pages
+    - db_local.cc: local Transactions must be aborted if a Transaction occurs
+        (create them on the stack, abort in destructor)
+    - Transactions are not connected to their operations or anywhere else
+    - the TransactionOperation becomes a DeltaUpdate
+    - attach the DeltaUpdate directly to the BtreeNode
+    - the TransactionIndex is no longer required
+    - fix insert/erase/find/cursor operations and do not use
+        the TransactionIndex (rename BtreeIndex -> Btree)
+    - the cursor can be directly coupled to a DeltaUpdate
+    - implement SMOs (split/shifts/merge) and make sure the DeltaUpdates are
+        moved to the other page, if necessary
+    - when checkpointing: delete all DeltaUpdates that belong to an
+        aborted Transaction (the Checkpoint is performed by the PageManager,
+        which has to traverse the Btree because an SMO is performed
+        recursively)
+    - non-transactional updates are also performed as DeltaUpdates, but
+        they are not logged
 o support efficient logging
-    - merge journal and log into one single file
-    - if file exceeds a threshold (100 mb): start a new file
+    o a log IS-A journal: it has "streams" with separate "entries", each has
+        a lsn, a header and a payload; both buffer (and compress/encrypt), flush
+        -> try to merge both
+    o journal (and log) could buffer the pages and only write them to disk
+        when the buffer overflows or a transaction is committed
+        (later: this buffer could be compressed -> PRO)
+    o the log remains responsible for the btree, the journal is a logical
+        backup for the delta updates/txn updates
+    o instead of flushing the full state, the PageManager could write "deltas"
+        to the log
+    o ... and the delta updates would be identical to the txn-operations
+    o play around with certain thresholds; don't switch the file too often
+    o when merging delta-updates, the log should try to store all delta-updates
+        into one Changeset, and therefore flush the log only once (with
+        combined updates)
+
     - the btree/data file is INDEPENDENT from the log! it has only atomic
         updates and might become out-of-sync with the actual log. This is by
         design and must not cause problems! this will later allow us to run
@@ -124,7 +348,6 @@ o support efficient logging
         updates exceeds a threshold
     - the log buffers the data and only flushes/fsyncs when requested
         (TODO this needs to be clearly defined!)
-    - the log can be compressed (PRO)
     - whenever a Btree page is flushed, the log will contain a "flush" marker
         of this page (and the lsn of the last update which modified this page).
         this marker is stored in the log's PageManager stream
@@ -172,53 +395,9 @@ o support efficient logging
     - log: write to sc stream
     - remove the device classes
 
-high-level plan for 2.1.6 ...................................................
-- reduce the linked lists - they're hard to be updated with concurrent
-    operations
-- delta updates: very similar to the current TransactionOperations; however,
-    the difference is that delta updates are part of a page, whereas
-    TransactionOperations are part of a Transaction. The difference is more
-    obvious when talking about recovery: delta updates are logged in the
-    "stream" of a page, not of a Transaction. When loading a page, they can be
-    reapplied immediately and the page will be valid.
-    -> logging disabled: don't bother
-    -> logging enabled: write delta updates to a (buffered) log; flush log
-        when a Txn is committed
-    -> if the log exceeds 100 mb: switch to the next log
-    -> delete old log files when all their streams are checkpointed in a
-        newer file
-    -> if delta updates exceed <threshold>: request/write a checkpoint
-    -> each stream knows which log file stores its latest checkpoint
-    -> when the database is closed: write checkpoints of as many streams
-        as possible, esp. if older logs contain delta updates (then the
-        old log can be purged)
-    -> each log has a trailer which lists the streams in the log; this
-        can be used to purge the log efficiently
 
-  - Delta updates (concurrent/atomic!)
-    are like TransactionOperations but directly attached to a BtreeNode.
-    the Transaction is separated from the updates; its only state is a name,
-    the Tid and the flags (committed, aborted...)
-    - Transactions are stored in a linear array, just like the pages
-    - db_local.cc: local Transactions must be aborted if a Transaction occurs
-        (create them on the stack, abort in destructor)
-    - Transactions are not connected to their operations or anywhere else
-    - the TransactionOperation becomes a DeltaUpdate
-    - attach the DeltaUpdate directly to the BtreeNode
-    - the TransactionIndex is no longer required
-    - fix insert/erase/find/cursor operations and do not use
-        the TransactionIndex (rename BtreeIndex -> Btree)
-    - the cursor can be directly coupled to a DeltaUpdate
-    - implement SMOs (split/shifts/merge) and make sure the DeltaUpdates are
-        moved to the other page, if necessary
-    - when checkpointing: delete all DeltaUpdates that belong to an
-        aborted Transaction (the Checkpoint is performed by the PageManager,
-        which has to traverse the Btree because an SMO is performed
-        recursively)
-    - non-transactional updates are also performed as DeltaUpdates, but
-        they are not logged
-
-- bloom filter -> PRO
+- prefetch
+- linear SIMD search -> PRO
 - compress the whole LSS (and the log) with snappy -> PRO
 - encrypt the whole LSS (and the log) with AES -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
@@ -227,10 +406,11 @@ high-level plan for 2.1.6 ...................................................
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the stream
-- cache-oblivious page distribution? (maybe write the LSS first?)
-    http://supertech.csail.mit.edu/cacheObliviousBTree.html
 - first PRO release
     o webpage updates, PR, mailings
+- cache-oblivious page distribution? (maybe write the LSS first?)
+    http://supertech.csail.mit.edu/cacheObliviousBTree.html
+- bloom filter -> PRO
 - concurrency
 - operations on compressed data (COUNT(), MIN(), MAX(), ...)?
 - C-Store style projections? (requires complex schema types)

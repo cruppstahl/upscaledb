@@ -120,7 +120,7 @@ class Log
       if (m_fd == HAM_INVALID_FD)
         return (true);
 
-      ham_u64_t size = os_get_filesize(m_fd);
+      ham_u64_t size = os_get_file_size(m_fd);
       if (size && size != sizeof(Log::PEnvironmentHeader))
         return (false);
       return (true);

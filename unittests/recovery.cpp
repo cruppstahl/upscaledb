@@ -260,7 +260,7 @@ recover(int argc, char **argv) {
   }
 
   st = ham_env_open(&env, "recovery.db",
-        (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_AUTO_RECOVERY, 0);
+        (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) | HAM_AUTO_RECOVERY, 0);
   if (st != 0) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);

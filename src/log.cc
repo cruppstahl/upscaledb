@@ -74,7 +74,7 @@ Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ByteArray *buffer)
   // if the iterator is initialized and was never used before: read
   // the file size
   if (!*iter)
-    *iter = os_get_filesize(m_fd);
+    *iter = os_get_file_size(m_fd);
 
   // if the current file is empty: no need to continue
   if (*iter <= sizeof(Log::PEnvironmentHeader)) {
@@ -124,16 +124,12 @@ Log::close(bool noclear)
 void
 Log::append_page(Page *page, ham_u64_t lsn, ham_u32_t page_count)
 {
-  ham_u8_t *p = (ham_u8_t *)page->get_raw_payload();
-  ham_u32_t size = m_env->get_page_size();
-
   append_write(lsn, page_count == 0
                         ? kChangesetIsComplete
                         : 0,
-                page->get_address(), p, size);
-
-  if (p != page->get_raw_payload())
-    Memory::release(p);
+                page->get_address(),
+                page->get_raw_payload(),
+                m_env->get_page_size());
 }
 
 void
@@ -148,7 +144,7 @@ Log::recover()
 
   // get the file size of the database; otherwise we do not know if we
   // modify an existing page or if one of the pages has to be allocated
-  ham_u64_t filesize = device->get_filesize();
+  ham_u64_t filesize = device->get_file_size();
 
   // temporarily disable logging
   m_env->set_flags(m_env->get_flags() & ~HAM_ENABLE_RECOVERY);
@@ -187,7 +183,14 @@ Log::recover()
       filesize += entry.data_size;
 
       page = new Page(m_env);
-      page->allocate();
+      page->allocate(0);
+    }
+    else if (entry.offset > filesize) {
+      filesize = entry.offset + entry.data_size;
+      m_env->get_device()->truncate(filesize);
+
+      page = new Page(m_env);
+      page->fetch(entry.offset);
     }
     else {
       // overwritten...
@@ -195,11 +198,11 @@ Log::recover()
       page->fetch(entry.offset);
     }
 
-    ham_assert(page->get_address() == entry.offset);
-    ham_assert(m_env->get_page_size() == entry.data_size);
-
     // overwrite the page data
     memcpy(page->get_data(), buffer.get_ptr(), entry.data_size);
+
+    ham_assert(page->get_address() == entry.offset);
+    ham_assert(m_env->get_page_size() == entry.data_size);
 
     // flush the modified page to disk
     page->set_dirty(true);

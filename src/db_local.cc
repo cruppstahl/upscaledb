@@ -494,8 +494,7 @@ LocalDatabase::open(ham_u16_t descriptor)
    * from the btree.
    */
   ham_u32_t flags = get_rt_flags();
-  flags &= ~(HAM_CACHE_STRICT
-            | HAM_CACHE_UNLIMITED
+  flags &= ~(HAM_CACHE_UNLIMITED
             | HAM_DISABLE_MMAP
             | HAM_ENABLE_FSYNC
             | HAM_READ_ONLY
@@ -509,7 +508,6 @@ LocalDatabase::open(ham_u16_t descriptor)
   m_btree_index = new BtreeIndex(this, descriptor, flags | desc->get_flags(),
                             desc->get_key_type(), desc->get_key_size());
 
-  ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
   ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
   ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_FSYNC));
@@ -551,8 +549,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
-  persistent_flags &= ~(HAM_CACHE_STRICT
-            | HAM_CACHE_UNLIMITED
+  persistent_flags &= ~(HAM_CACHE_UNLIMITED
             | HAM_DISABLE_MMAP
             | HAM_ENABLE_FSYNC
             | HAM_READ_ONLY
@@ -654,10 +651,6 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
 ham_status_t
 LocalDatabase::check_integrity(Transaction *txn)
 {
-  /* check the cache integrity */
-  if (!(get_rt_flags() & HAM_IN_MEMORY))
-    get_local_env()->get_page_manager()->check_integrity();
-
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 

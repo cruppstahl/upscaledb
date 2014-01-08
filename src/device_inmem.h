@@ -62,7 +62,7 @@ class InMemoryDevice : public Device {
     }
 
     // get the current file/storage size 
-    virtual ham_u64_t get_filesize() {
+    virtual ham_u64_t get_file_size() {
       ham_assert(!"this operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -98,7 +98,7 @@ class InMemoryDevice : public Device {
     }
 
     // reads a page from the device 
-    virtual void read_page(Page *page) {
+    virtual void read_page(Page *page, ham_u32_t page_size) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -115,10 +115,10 @@ class InMemoryDevice : public Device {
     }
 
     // allocate storage for a page from this device 
-    virtual void alloc_page(Page *page) {
+    virtual void alloc_page(Page *page, ham_u32_t page_size) {
       ham_assert(page->get_data() == 0);
 
-      ham_u8_t *p = Memory::allocate<ham_u8_t>(m_page_size);
+      ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
       page->set_data((PPageData *)p);
       page->set_flags(page->get_flags() | Page::kNpersMalloc);
       page->set_address((ham_u64_t)PTR_TO_U64(p));

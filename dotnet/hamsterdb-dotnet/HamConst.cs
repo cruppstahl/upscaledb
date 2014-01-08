@@ -54,8 +54,6 @@ namespace Hamster
     public const int HAM_PREFIX_REQUEST_FULLKEY =    -17;
     /// <summary>Generic file I/O error</summary>
     public const int HAM_IO_ERROR               =    -18;
-    /// <summary>Database cache is full</summary>
-    public const int HAM_CACHE_FULL             =    -19;
     /// <summary>Function is not yet implemented</summary>
     public const int HAM_NOT_IMPLEMENTED        =    -20;
     /// <summary>File not found</summary>
@@ -112,8 +110,6 @@ namespace Hamster
     public const int HAM_IN_MEMORY              =  0x00080;
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_MMAP           =  0x00200;
-    /// <summary>Flag for Database.Open, Database.Create</summary>
-    public const int HAM_CACHE_STRICT           =  0x00400;
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_FREELIST_FLUSH =  0x00800;
     /// <summary>Flag for Database.Create</summary>

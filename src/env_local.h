@@ -112,7 +112,7 @@ class LocalEnvironment : public Environment
     // Returns the size of the usable persistent payload of a page
     // (page_size minus the overhead of the page header)
     ham_u32_t get_usable_page_size() const {
-      return (get_page_size() - Page::sizeof_persistent_header);
+      return (get_page_size() - Page::kSizeofPersistentHeader);
     }
 
     // Sets the dirty-flag of the header page and adds the header page
@@ -127,10 +127,6 @@ class LocalEnvironment : public Environment
     // Get the private data of the specified database stored at index |i|;
     // interpretation of the data is up to the Btree.
     PBtreeHeader *get_btree_descriptor(int i);
-
-    // Returns the freelist payload stored in the header page.
-    // |psize| will contain the payload size, unless the pointer is NULL.
-    PFreelistPayload *get_freelist_payload(ham_u32_t *psize = 0);
 
     // Returns the logfile directory
     const std::string &get_log_directory() {
@@ -160,12 +156,12 @@ class LocalEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-                    ham_u32_t mode, ham_u32_t page_size, ham_u32_t cache_size,
+                    ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
                     ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-                    ham_u32_t cache_size);
+                    ham_u64_t cache_size);
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,

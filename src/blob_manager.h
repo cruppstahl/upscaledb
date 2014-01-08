@@ -95,11 +95,6 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 
 #include "packstop.h"
 
-
-#if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
-#  undef free
-#endif
-
 // The BlobManager manages blobs (not a surprise)
 //
 // This is an abstract baseclass, derived for In-Memory- and Disk-based
@@ -108,9 +103,7 @@ class BlobManager
 {
   public:
     BlobManager(LocalEnvironment *env)
-      : m_env(env), m_blob_total_allocated(0), m_blob_total_read(0),
-        m_blob_direct_read(0), m_blob_direct_written(0),
-        m_blob_direct_allocated(0) {
+      : m_env(env), m_blob_total_allocated(0), m_blob_total_read(0) {
     }
 
     virtual ~BlobManager() { }
@@ -128,7 +121,7 @@ class BlobManager
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
-    virtual ham_u64_t get_datasize(LocalDatabase *db, ham_u64_t blob_id) = 0;
+    virtual ham_u64_t get_blob_size(LocalDatabase *db, ham_u64_t blob_id) = 0;
 
     // Overwrites an existing blob
     //
@@ -138,16 +131,13 @@ class BlobManager
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     // Deletes an existing blob
-    virtual void free(LocalDatabase *db, ham_u64_t blob_id,
+    virtual void erase(LocalDatabase *db, ham_u64_t blob_id,
                     Page *page = 0, ham_u32_t flags = 0) = 0;
 
     // Fills in the current metrics
     void get_metrics(ham_env_metrics_t *metrics) const {
       metrics->blob_total_allocated = m_blob_total_allocated;
       metrics->blob_total_read = m_blob_total_read;
-      metrics->blob_direct_read = m_blob_direct_read;
-      metrics->blob_direct_written = m_blob_direct_written;
-      metrics->blob_direct_allocated = m_blob_direct_allocated;
     }
 
   protected:
@@ -160,14 +150,6 @@ class BlobManager
     // Usage tracking - number of blobs read
     ham_u64_t m_blob_total_read;
 
-    // Usage tracking - number of direct I/O reads
-    ham_u64_t m_blob_direct_read;
-
-    // Usage tracking - number of direct I/O writes
-    ham_u64_t m_blob_direct_written;
-
-    // Usage tracking - number of direct I/O allocations
-    ham_u64_t m_blob_direct_allocated;
 };
 
 } // namespace hamsterdb

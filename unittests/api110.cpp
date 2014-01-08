@@ -216,7 +216,7 @@ struct APIv110Fixture {
     teardown();
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test.db"),
-            HAM_CACHE_STRICT, 0644, &env_params[0]));
+            0, 0644, &env_params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
@@ -227,7 +227,7 @@ struct APIv110Fixture {
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    REQUIRE((unsigned)HAM_CACHE_STRICT ==
+    REQUIRE(0u ==
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 
@@ -254,7 +254,7 @@ struct APIv110Fixture {
     teardown();
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test.db"),
-            HAM_CACHE_STRICT, 0644, &env_params[0]));
+            0, 0644, &env_params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
@@ -269,7 +269,7 @@ struct APIv110Fixture {
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    REQUIRE((unsigned)HAM_CACHE_STRICT ==
+    REQUIRE((unsigned)0 ==
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 

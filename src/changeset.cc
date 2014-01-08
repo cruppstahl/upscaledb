@@ -99,7 +99,7 @@ Changeset::flush(ham_u64_t lsn)
   INDUCE(ErrorInducer::kChangesetFlush);
 
   m_blobs_size = 0;
-  m_freelists_size = 0;
+  m_page_manager_size = 0;
   m_indices_size = 0;
   m_others_size = 0;
 
@@ -128,8 +128,9 @@ Changeset::flush(ham_u64_t lsn)
         case Page::kTypeHeader:
           append(m_indices, m_indices_size, m_indices_capacity, p);
           break;
-        case Page::kTypeFreelist:
-          append(m_freelists, m_freelists_size, m_freelists_capacity, p);
+        case Page::kTypePageManager:
+          append(m_page_manager, m_page_manager_size,
+                          m_page_manager_capacity, p);
           break;
         default:
           append(m_others, m_others_size, m_others_capacity, p);
@@ -156,13 +157,11 @@ Changeset::flush(ham_u64_t lsn)
   // know what's going on in this operation. otherwise we only need to log
   // if there's more than one page in a bucket:
   //
-  // - if there's more than one freelist page modified then the freelist
-  //   operation would be huge and we rather not risk to lose that much space
   // - if there's more than one index operation then the operation must
   //   be atomic
-  if (m_others_size || m_indices_size > 1 || m_freelists_size > 1) {
+  if (m_others_size || m_page_manager_size || m_indices_size > 1) {
     log_bucket(m_blobs, m_blobs_size, lsn, page_count);
-    log_bucket(m_freelists, m_freelists_size, lsn, page_count);
+    log_bucket(m_page_manager, m_page_manager_size, lsn, page_count);
     log_bucket(m_indices, m_indices_size, lsn, page_count);
     log_bucket(m_others, m_others_size, lsn, page_count);
     log_written = true;

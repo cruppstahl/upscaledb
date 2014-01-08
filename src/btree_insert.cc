@@ -194,8 +194,7 @@ class BtreeInsertAction
       LocalEnvironment *env = db->get_local_env();
 
       /* allocate a new root page */
-      Page *newroot = env->get_page_manager()->alloc_page(db,
-                            Page::kTypeBroot, 0);
+      Page *newroot = env->get_page_manager()->alloc_page(db, Page::kTypeBroot);
       ham_assert(newroot->get_db());
 
       m_btree->get_statistics()->reset_page(root);
@@ -301,7 +300,7 @@ class BtreeInsertAction
 
       /* allocate a new page */
       Page *new_page = env->get_page_manager()->alloc_page(db,
-                            Page::kTypeBindex, 0);
+                                    Page::kTypeBindex);
       {
         PBtreeNode *node = PBtreeNode::from_page(new_page);
         node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);

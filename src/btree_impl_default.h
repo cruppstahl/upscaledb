@@ -1438,7 +1438,7 @@ class DefaultNodeImpl
             return;
           }
           // free the existing record (if there is one)
-          env->get_blob_manager()->free(db, ptr);
+          env->get_blob_manager()->erase(db, ptr);
           // fall through
         }
         // write the new inline record
@@ -1471,7 +1471,7 @@ class DefaultNodeImpl
             m_records.table_set_record_id(&table, duplicate_index, ptr);
             return;
           }
-          db->get_local_env()->get_blob_manager()->free(db, ptr, 0);
+          db->get_local_env()->get_blob_manager()->erase(db, ptr, 0);
         }
 
         // now overwrite with an inline key
@@ -1725,7 +1725,7 @@ class DefaultNodeImpl
 
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      return (env->get_blob_manager()->get_datasize(db, ptr));
+      return (env->get_blob_manager()->get_blob_size(db, ptr));
     }
 
     // Erases an extended key
@@ -1758,7 +1758,7 @@ class DefaultNodeImpl
             // non-inline record? free the blob
             if (!m_records.table_is_record_inline(&table, i)) {
               ptr = m_records.table_get_record_id(&table, i);
-              db->get_local_env()->get_blob_manager()->free(db, ptr, 0);
+              db->get_local_env()->get_blob_manager()->erase(db, ptr, 0);
             }
           }
 
@@ -1769,7 +1769,7 @@ class DefaultNodeImpl
           // non-inline record? free the blob
           if (!m_records.table_is_record_inline(&table, duplicate_index)) {
             ptr = m_records.table_get_record_id(&table, duplicate_index);
-            db->get_local_env()->get_blob_manager()->free(db, ptr, 0);
+            db->get_local_env()->get_blob_manager()->erase(db, ptr, 0);
           }
 
           // remove the record from the duplicate table
@@ -1809,7 +1809,7 @@ class DefaultNodeImpl
         // if records are not inline: delete the blobs
         for (ham_u32_t i = 0; i < record_count; i++) {
           if (!it->is_record_inline(i))
-            db->get_local_env()->get_blob_manager()->free(db,
+            db->get_local_env()->get_blob_manager()->erase(db,
                             it->get_record_id(i), 0);
             it->remove_inline_record(i);
         }
@@ -1826,7 +1826,7 @@ class DefaultNodeImpl
       else {
         // if record is not inline: delete the blob
         if (!it->is_record_inline(duplicate_index))
-          db->get_local_env()->get_blob_manager()->free(db,
+          db->get_local_env()->get_blob_manager()->erase(db,
                           it->get_record_id(duplicate_index), 0);
 
         // shift duplicate records "to the left"
@@ -2294,8 +2294,8 @@ class DefaultNodeImpl
     // Clears the page with zeroes and reinitializes it; only
     // for testing
     void test_clear_page() {
-      ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
-      memset(m_page->get_raw_payload(), 0, page_size);
+      memset(m_page->get_payload(), 0,
+                    m_page->get_db()->get_local_env()->get_usable_page_size());
       initialize();
     }
 
@@ -2468,13 +2468,13 @@ class DefaultNodeImpl
         m_duptable_cache->erase(it);
 
       LocalDatabase *db = m_page->get_db();
-      db->get_local_env()->get_blob_manager()->free(db, tableid, 0);
+      db->get_local_env()->get_blob_manager()->erase(db, tableid, 0);
     }
 
     // Erases an extended key from disk and from the cache
     void erase_extended_key(ham_u64_t blobid) {
       LocalDatabase *db = m_page->get_db();
-      db->get_local_env()->get_blob_manager()->free(db, blobid);
+      db->get_local_env()->get_blob_manager()->erase(db, blobid);
       if (m_extkey_cache) {
         ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
         if (it != m_extkey_cache->end())
@@ -3050,10 +3050,9 @@ class DefaultNodeImpl
     // Returns the usable page size that can be used for actually
     // storing the data
     ham_u32_t get_usable_page_size() const {
-      return (m_page->get_db()->get_local_env()->get_page_size()
+      return (m_page->get_db()->get_local_env()->get_usable_page_size()
                     - kPayloadOffset
-                    - PBtreeNode::get_entry_offset()
-                    - Page::sizeof_persistent_header);
+                    - PBtreeNode::get_entry_offset());
     }
 
     // The page that we're operating on

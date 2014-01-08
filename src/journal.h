@@ -126,7 +126,7 @@ class Journal
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        size = os_get_filesize(m_fd[i]);
+        size = os_get_file_size(m_fd[i]);
         if (size && size != sizeof(PEnvironmentHeader))
           return (false);
       }
