@@ -241,15 +241,18 @@ HamsterDatabase::do_create_db(int id)
   ham_status_t st;
   ham_parameter_t params[6] = {{0, 0}};
 
-  params[0].name = HAM_PARAM_KEY_SIZE;
-  params[0].value = 0;
+  int n = 0;
+  params[n].name = HAM_PARAM_KEY_SIZE;
+  params[n].value = 0;
+  n++;
   switch (m_config->key_type) {
     case Configuration::kKeyCustom:
       params[0].value = m_config->key_is_fixed_size
                             ? m_config->key_size
                             : HAM_KEY_SIZE_UNLIMITED;
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_CUSTOM;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_CUSTOM;
+      n++;
       break;
     case Configuration::kKeyBinary:
       params[0].value = m_config->key_is_fixed_size
@@ -257,34 +260,41 @@ HamsterDatabase::do_create_db(int id)
                             : HAM_KEY_SIZE_UNLIMITED;
       break;
     case Configuration::kKeyUint8:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_UINT8;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_UINT8;
+      n++;
       break;
     case Configuration::kKeyUint16:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_UINT16;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_UINT16;
+      n++;
       break;
     case Configuration::kKeyUint32:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_UINT32;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_UINT32;
+      n++;
       break;
     case Configuration::kKeyUint64:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_UINT64;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_UINT64;
+      n++;
       break;
     case Configuration::kKeyReal32:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_REAL32;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_REAL32;
+      n++;
       break;
     case Configuration::kKeyReal64:
-      params[1].name = HAM_PARAM_KEY_TYPE;
-      params[1].value = HAM_TYPE_REAL64;
+      params[n].name = HAM_PARAM_KEY_TYPE;
+      params[n].value = HAM_TYPE_REAL64;
+      n++;
       break;
     default:
       assert(!"shouldn't be here");
   }
-  params[2].name = HAM_PARAM_RECORD_SIZE;
-  params[2].value = m_config->rec_size_fixed;
+  params[n].name = HAM_PARAM_RECORD_SIZE;
+  params[n].value = m_config->rec_size_fixed;
+  n++;
 
   ham_u32_t flags = 0;
 

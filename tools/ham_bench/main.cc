@@ -439,8 +439,14 @@ parse_config(int argc, char **argv, Configuration *c)
       }
     }
     else if (opt == ARG_RECSIZE_FIXED) {
-      c->rec_size_fixed = strtoul(param, 0, 0);
-      c->rec_size = c->rec_size_fixed;
+      if (param) {
+        c->rec_size_fixed = strtoul(param, 0, 0);
+        c->rec_size = c->rec_size_fixed;
+      }
+      else {
+        printf("invalid parameter for --recsize-fixed (value is missing)\n");
+        exit(-1);
+      }
     }
     else if (opt == ARG_REC_INLINE) {
       c->force_records_inline = true;
