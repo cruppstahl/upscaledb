@@ -32,14 +32,17 @@ ham_bench_SOURCES = berkeleydb.h \
 				  timer.h
 
 ham_bench_LDADD = $(top_builddir)/src/.libs/libhamsterdb.a \
-				  $(BOOST_CHRONO_LIBS) $(BOOST_SYSTEM_LIBS) \
+				  $(BOOST_SYSTEM_LIBS) \
 				  $(BOOST_THREAD_LIBS) $(BOOST_FILESYSTEM_LIBS) \
 				  -lpthread -ldl
 ham_bench_LDFLAGS =
 
 if DARWIN
-ham_bench_LDADD   += $(BOOST_SYSTEM_LIBS)
+ham_bench_LDADD   += $(BOOST_SYSTEM_LIBS) -lboost_chrono-mt
 ham_bench_LDFLAGS += $(BOOST_SYSTEM_LDFLAGS)
+else
+ham_bench_LDADD   += $(BOOST_CHRONO_LIBS)
+ham_bench_LDFLAGS += $(BOOST_CHRONO_LDFLAGS)
 endif
 
 if ENABLE_REMOTE

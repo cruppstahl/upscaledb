@@ -42,7 +42,6 @@ AX_CXX_GCC_ABI_DEMANGLE
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.36])
 BOOST_SYSTEM()
-BOOST_CHRONO()
 BOOST_FILESYSTEM()
 BOOST_THREADS()
 
@@ -50,6 +49,15 @@ AM_CONDITIONAL([DARWIN],  [AS_CASE([$host_os], [darwin*],  [true], [false])])
 AM_CONDITIONAL([FREEBSD], [AS_CASE([$host_os], [freebsd*], [true], [false])])
 AM_CONDITIONAL([LINUX],   [AS_CASE([$host_os], [linux*],   [true], [false])])
 AM_CONDITIONAL([SUNOS],   [AS_CASE([$host_os], [solaris*], [true], [false])])
+
+# issue 28: do not test for boost_chrono on MacOS
+case "$host_os" in
+  *darwin*)
+    ;;
+  *)
+    BOOST_CHRONO()
+    ;;
+esac
 
 # A string describing all enabled/disabled settings
 settings=""
