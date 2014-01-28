@@ -128,7 +128,6 @@ struct APIv110Fixture {
     ham_parameter_t set_params[] = {
       { HAM_PARAM_CACHESIZE, 1024*32 },
       { HAM_PARAM_PAGESIZE, 1024*64 },
-      { HAM_PARAM_MAX_DATABASES, 32 },
       { 0,0 }
     };
 
@@ -143,7 +142,6 @@ struct APIv110Fixture {
                     == (ham_u64_t)(1024 * 32));
     REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
                     == (ham_u64_t)(1024 * 64));
-    REQUIRE(get_param_value(params, HAM_PARAM_MAX_DATABASES) == 32ull);
     REQUIRE((ham_u64_t)HAM_DISABLE_MMAP ==
         get_param_value(params, HAM_PARAM_FLAGS));
     REQUIRE((ham_u64_t)0664 ==
@@ -165,7 +163,6 @@ struct APIv110Fixture {
     ham_parameter_t set_params[] = {
       { HAM_PARAM_CACHESIZE, 1024*32 },
       { HAM_PARAM_PAGESIZE, 1024*64 },
-      { HAM_PARAM_MAX_DATABASES, 32 },
       { 0,0 }
     };
 
@@ -183,8 +180,6 @@ struct APIv110Fixture {
         get_param_value(params, HAM_PARAM_CACHESIZE));
     REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
                     == (ham_u64_t)(1024 * 64));
-    REQUIRE((ham_u64_t)32 ==
-        get_param_value(params, HAM_PARAM_MAX_DATABASES));
     REQUIRE((ham_u64_t)HAM_READ_ONLY ==
         get_param_value(params, HAM_PARAM_FLAGS));
     REQUIRE((ham_u64_t)0644 ==
@@ -223,8 +218,6 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)38 ==
-        get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     REQUIRE(0u ==
@@ -265,8 +258,6 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)38 ==
-        get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     REQUIRE((unsigned)0 ==

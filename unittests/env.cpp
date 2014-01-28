@@ -102,7 +102,6 @@ struct EnvFixture {
     const ham_parameter_t parameters[] = {
        { HAM_PARAM_CACHESIZE, 128 * 1024 },
        { HAM_PARAM_PAGESIZE, 64 * 1024 },
-       { HAM_PARAM_MAX_DATABASES, 128 },
        { 0, 0 }
     };
     const ham_parameter_t parameters2[] = {
@@ -123,7 +122,7 @@ struct EnvFixture {
     REQUIRE(0 == ham_env_get_parameters(env, ps));
     REQUIRE((ham_u64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((ham_u64_t)(64 * 1024u) == ps[1].value);
-    REQUIRE((ham_u64_t)128u /* 2029 */ == ps[2].value);
+    REQUIRE((ham_u64_t)2724u == ps[2].value);
 
     /* close and re-open the ENV */
     if (!(m_flags & HAM_IN_MEMORY)) {
@@ -136,7 +135,7 @@ struct EnvFixture {
     REQUIRE(0 == ham_env_get_parameters(env, ps));
     REQUIRE((ham_u64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((ham_u64_t)(1024 * 64u) == ps[1].value);
-    REQUIRE(128ull == ps[2].value);
+    REQUIRE(2724ull == ps[2].value);
 
     /* now create 128 DBs; we said we would, anyway, when creating the
      * ENV ! */
@@ -294,7 +293,6 @@ struct EnvFixture {
     ham_parameter_t parameters2[] = {
        { HAM_PARAM_CACHESIZE, 1024 * 128 },
        { HAM_PARAM_PAGESIZE, 1024 * 4 },
-       { HAM_PARAM_MAX_DATABASES, MAX },
        { 0, 0 }
     };
 
@@ -313,9 +311,6 @@ struct EnvFixture {
       REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, Globals::opath(".test"),
           m_flags | HAM_CACHE_UNLIMITED, 0644, parameters2));
-      REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, Globals::opath(".test"),
-          m_flags, 0644, parameters2)); // page_size too small for DB#
       parameters2[1].value = 65536; // page_size := 64K
     }
 
@@ -1075,7 +1070,7 @@ struct EnvFixture {
 
   void limitsReachedTest() {
     int i;
-    const int MAX_DB = 17;
+    const int MAX_DB = 676 + 1;
     ham_env_t *env;
     ham_db_t *db[MAX_DB];
 
@@ -1157,50 +1152,6 @@ struct EnvFixture {
     REQUIRE(0 == ham_db_close(db1, 0));
     REQUIRE(0 == ham_db_close(db3, 0));
     REQUIRE(0 == ham_env_close(env, 0));
-  }
-
-  void maxDatabasesTest() {
-    ham_env_t *env;
-    ham_parameter_t ps[] = { { HAM_PARAM_MAX_DATABASES, 0 }, { 0, 0 } };
-
-    ps[0].value = 0;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
-
-    ps[0].value = 5;
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
-    REQUIRE(0 == ham_env_close(env, 0));
-
-    ps[0].value = 676;
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
-    REQUIRE(0 == ham_env_close(env, 0));
-
-    ps[0].value = 677;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
-  }
-
-  void maxDatabasesReopenTest() {
-    ham_env_t *env;
-    ham_db_t *db;
-    ham_parameter_t ps[] = { { HAM_PARAM_MAX_DATABASES, 50 }, { 0, 0 }};
-
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, ps));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 333, 0, 0));
-    if (!(m_flags & HAM_IN_MEMORY)) {
-      REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-
-      REQUIRE(0 ==
-          ham_env_open(&env, Globals::opath(".test"), m_flags, 0));
-      REQUIRE(0 ==
-          ham_env_open_db(env, &db, 333, 0, 0));
-    }
-    REQUIRE(50 == ((LocalEnvironment *)env)->get_header()->get_max_databases());
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
   void createOpenEmptyTest() {
@@ -1406,18 +1357,6 @@ TEST_CASE("Env/getDatabaseNamesTest", "")
   f.getDatabaseNamesTest();
 }
 
-TEST_CASE("Env/maxDatabasesTest", "")
-{
-  EnvFixture f;
-  f.maxDatabasesTest();
-}
-
-TEST_CASE("Env/maxDatabasesReopenTest", "")
-{
-  EnvFixture f;
-  f.maxDatabasesReopenTest();
-}
-
 TEST_CASE("Env/createOpenEmptyTest", "")
 {
   EnvFixture f;
@@ -1543,18 +1482,6 @@ TEST_CASE("Env-inmem/getDatabaseNamesTest", "")
 {
   EnvFixture f(HAM_IN_MEMORY);
   f.getDatabaseNamesTest();
-}
-
-TEST_CASE("Env-inmem/maxDatabasesTest", "")
-{
-  EnvFixture f(HAM_IN_MEMORY);
-  f.maxDatabasesTest();
-}
-
-TEST_CASE("Env-inmem/maxDatabasesReopenTest", "")
-{
-  EnvFixture f(HAM_IN_MEMORY);
-  f.maxDatabasesReopenTest();
 }
 
 TEST_CASE("Env-inmem/createOpenEmptyTest", "")

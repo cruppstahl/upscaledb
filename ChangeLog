@@ -1,3 +1,7 @@
+Jan 28, 2014 - chris ---------------------------------------------------
+o Removed the parameter HAM_PARAM_MAX_DATABASES - the number of databases
+	is now always set to the maximum limit.
+
 Jan 08, 2014 - chris ---------------------------------------------------
 o Removed HAM_CACHE_STRICT, HAM_CACHE_FULL and the related functionalities
 

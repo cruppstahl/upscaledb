@@ -46,7 +46,7 @@ class Database
   public:
     enum {
       // The default number of indices in an Environment
-      kMaxIndices =  16 /* 16 * 32 = 512 byte wasted */
+      kMaxIndices1k = 32
     };
 
     // Constructor

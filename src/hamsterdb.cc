@@ -394,14 +394,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
         }
         page_size = (ham_u32_t)param->value;
         break;
-      case HAM_PARAM_MAX_DATABASES:
-        max_databases = (ham_u32_t)param->value;
-        if (max_databases == 0) {
-          ham_trace(("invalid value %u for parameter HAM_PARAM_MAX_DATABASES",
-                 (unsigned)param->value));
-          return (HAM_INV_PARAMETER);
-        }
-        break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
         break;
@@ -452,24 +444,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
    * page!
    * leave at least 128 bytes for other header data
    */
-  {
-    ham_u32_t l = page_size - sizeof(PEnvironmentHeader) - 128;
-
-    l /= sizeof(PBtreeHeader);
-    if (max_databases > l) {
-      ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
-            "this page size; the maximum allowed is %u",
-            (unsigned)l));
-      return (HAM_INV_PARAMETER);
-    }
-    else if (max_databases == 0) {
-      if (Database::kMaxIndices > l)
-        max_databases = (ham_u16_t)l;  /* small pages (e.g. 1K) cannot carry 
-                                        * Database::kMaxIndices databases! */
-      else
-        max_databases = Database::kMaxIndices;
-    }
-  }
+  max_databases = page_size - sizeof(PEnvironmentHeader) - 128;
+  max_databases /= sizeof(PBtreeHeader);
 
   ham_status_t st = 0;
   Environment *env = 0;
