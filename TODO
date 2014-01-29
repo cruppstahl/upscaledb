@@ -141,45 +141,45 @@ x remove the freelist
         x the page-map ONLY persists free pages
 
     x run performance tests (compare PAX against 2.1.3, release build)
-        o with records, 1 mio
+        - with records, 1 mio
             --seed=1389874598 --key=uint64
                                 2.1.4           head
-            total time:         9.272876        7.887640
+            total time:         9.272876        7.827158
             file size:          1159331840      1118830592
-        o with records, 5 mio
+        - with records, 5 mio
             --seed=1389874598 --key=uint64 --stop-ops=5000000
                                 2.1.4           head
-            total time:         64.212313       53.898093
+            total time:         64.212313       51.958598
             file size:          5832523776      5595086848
-        o with records, 1 mio, 30% erase
+        - with records, 1 mio, 30% erase
             --seed=1389874598 --key=uint64 --erase-pct=30
                                 2.1.4           head
-            total time:         6.530221        6.320913
+            total time:         6.530221        5.632957
             file size:          807469056       781975552
-        o with records, 5 mio, 30% erase
+        - with records, 5 mio, 30% erase
             --seed=1389874598 --key=uint64 --stop-ops=5000000 --erase-pct=30
                                 2.1.4           head
-            total time:         44.115751       39.040701
+            total time:         44.115751       36.708448
             file size:          4074618880      3898146816
-        o without records, 1 mio
+        - without records, 1 mio
             --seed=1389874598 --key=uint64 --recsize-fixed=0
                                 2.1.4           head
-     !!     total time:         3.155387        3.203447
+            total time:         3.155387        3.164027
             file size:          10534912        10534912
-        o without records, 5 mio
+        - without records, 5 mio
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --stop-ops=5000000
                                 2.1.4           head
-     !!     total time:         27.179945       27.068112
+            total time:         27.179945       27.616605
             file size:          67125248        67125248
-        o without records, 1 mio, 30% erase
+        - without records, 1 mio, 30% erase
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30
                                 2.1.4           head
-     !!     total time:         2.255874        2.275510
+            total time:         2.255874        2.238849
             file size:          8421376         8421376
-        o without records, 5 mio, 30% erase
+        - without records, 5 mio, 30% erase
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30 --stop-ops=5000000
                                 2.1.4           head
-     !!     total time:         20.919253       21.453294
+            total time:         20.919253       20.989679
             file size:          33898496        33816576
 
 x v2: Fix .NET Wrapper issue: VS2010, SampleDb1. See
@@ -217,22 +217,17 @@ o improve PageManager performance
     x improve multi-page handling
         x PM::alloc_multiple_blob_pages() needs to be implemented
             x add tests
-====================
-    o check performance again
-performance (see matrix above) is slower than 2.1.3 - why??
-according to callgrind, 2.1.3 is slower in EVERY aspect with ONE exception:
-  DiskBlobManager::allocate has a higher "self" time when looking up
-    m_last_alloc_blobid -> move it to the PageManager and cache the Page
-    pointer instead of the Page id, then try again
-====================
-    o compress the freelist state
-        o collapse single free pages to multi-page blobs
-            o add tests
-        - 1 byte header
-            - 3 bits: number of following bytes for page-id
-                (address % page_size)
-            - 5 bits: the multi-page counter
-        - n bytes: page-id, multiple of page-size
+    x check performance again
+    x compress the freelist state
+        x collapse single free pages to multi-page blobs
+        x 1 byte header
+          - 4 bits: number of following bytes for page-id
+              (address % page_size)
+          - 4 bits: the multi-page counter
+        x n bytes: page-id, multiple of page-size
+        x add test for encode/decode
+        x add test for collapsing
+    x run recovery tests
     o run monster tests
 
 o perftest
@@ -250,7 +245,25 @@ o v2: verify/improve performance of btree_impl_default: it has a very high
     -> what exactly happens if the page is split? is it really resized
             correctly?
 
+o what else can be done to improve scalability? the graphs sometimes show 
+    high latencies and zig-zag curves in throughput
+    x reducing purge queue from 20 to 5 -> no noticable effect
+    x seek times are not relevant, zig-zag is also visible on SSDs
+    x totally disable purging? (unlimited cache) - scalability is so-so,
+        but there's no zig-zag; so it seems to be related to purging.
+    o can we purge asynchronously?
+
 o erlang API
+    o with quickcheck coverage for...
+        o database operations (create/close/open/erase/rename)
+        o database operations with insert/erase/find
+        o database operations with many insert/erase/find/table_scans
+        o ... add transactions
+        o ... add many cursors
+
+o improve integration of static code analysis in release process
+    o try to become "oclint-clean"
+    o try to become "coverity-clean"
 
 o web-page requires updates
     x deployed html differs from git-repository
@@ -259,10 +272,6 @@ o web-page requires updates
         o clean up 'dl' directory
         o where to host static files?
         o backup and deploy to www2, use round-robin DNS
-
-. improve integration of static code analysis in release process
-    o try to become "oclint-clean"
-    o try to become "coverity-clean"
 
 high-level plan for 2.1.6 ...................................................
 
@@ -321,10 +330,15 @@ high-level plan for 2.1.6 ...................................................
         recursively)
     - non-transactional updates are also performed as DeltaUpdates, but
         they are not logged
+
 o support efficient logging
     o a log IS-A journal: it has "streams" with separate "entries", each has
         a lsn, a header and a payload; both buffer (and compress/encrypt), flush
-        -> try to merge both
+        -> try to merge both; the log is first processed (starting from the
+        end of the file), then the journal (starting from the beginning and
+        skipping all log entries)
+        -> store the lsn of the last modification in the page (right now
+        it's stored in the log header, i think)
     o journal (and log) could buffer the pages and only write them to disk
         when the buffer overflows or a transaction is committed
         (later: this buffer could be compressed -> PRO)

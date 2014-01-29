@@ -243,10 +243,8 @@ struct PageManagerFixture {
     ham_u32_t page_size = lenv->get_page_size();
 
     // fill with freelist pages and blob pages
-    for (int i = 0; i < 10; i++) {
-      // 1025 to avoid collisions with existing pages
-      pm->m_free_pages[1025 * (i + 1)] = 1;
-    }
+    for (int i = 0; i < 10; i++)
+      pm->m_free_pages[page_size * (i + 100)] = 1;
 
     pm->m_needs_flush = true;
     REQUIRE(pm->store_state() == page_size * 2);
@@ -258,14 +256,10 @@ struct PageManagerFixture {
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->get_page_manager();
 
-    // and check again
-    int i = 0;
+    // and check again - the entries must be collapsed
     PageManager::FreeMap::iterator it = pm->m_free_pages.begin();
-    for (; it != pm->m_free_pages.end(); it++) {
-      REQUIRE(it->first == 1025u * (i + 1));
-      REQUIRE(it->second == 1);
-      i++;
-    }
+    REQUIRE(it->first == page_size * 100);
+    REQUIRE(it->second == 10);
   }
 
   void reclaimTest() {
@@ -313,12 +307,47 @@ struct PageManagerFixture {
     REQUIRE((ham_u64_t)(page_size * 6) == lenv->get_device()->get_file_size());
   }
 
-  void storeBigStateTest() {
+  void collapseFreelistTest() {
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    PageManager *pm = lenv->get_page_manager();
+    ham_u32_t page_size = lenv->get_page_size();
+
+    for (int i = 1; i <= 150; i++)
+      pm->m_free_pages[page_size * i] = 1;
+
+    // store the state on disk
+    pm->m_needs_flush = true;
+    ham_u64_t page_id = pm->store_state();
+
+    pm->flush_all_pages();
+    pm->m_free_pages.clear();
+
+    pm->load_state(page_id);
+
+    REQUIRE(10 == pm->m_free_pages.size());
+    for (int i = 1; i < 10; i++)
+      REQUIRE(pm->m_free_pages[page_size * (1 + i * 15)] == 15);
+  }
+
+  void encodeDecodeTest() {
+    ham_u8_t buffer[32] = {0};
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
 
-    for (int i = 1; i <= 10000; i++) {
-      pm->m_free_pages[i] = 1;
+    for (int i = 1; i < 10000; i++) {
+      int num_bytes = pm->encode(&buffer[0], i * 13);
+      REQUIRE(pm->decode(num_bytes, &buffer[0]) == (ham_u64_t)i * 13);
+    }
+  }
+
+  void storeBigStateTest() {
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    PageManager *pm = lenv->get_page_manager();
+    ham_u32_t page_size = lenv->get_page_size();
+
+    for (int i = 1; i <= 30000; i++) {
+      if (i & 1) // only store every 2nd page to avoid collapsing
+        pm->m_free_pages[page_size * i] = 1;
     }
 
     // store the state on disk
@@ -330,9 +359,10 @@ struct PageManagerFixture {
 
     pm->load_state(page_id);
 
-    REQUIRE(10000 == pm->m_free_pages.size());
-    for (int i = 1; i <= 10000; i++) {
-      REQUIRE(pm->m_free_pages[i] == 1);
+    REQUIRE(15000 == pm->m_free_pages.size());
+    for (int i = 1; i <= 30000; i++) {
+      if (i & 1)
+        REQUIRE(pm->m_free_pages[page_size * i] == 1);
     }
 
     REQUIRE(pm->m_page_count_page_manager == 4);
@@ -427,6 +457,18 @@ TEST_CASE("PageManager/reclaimTest", "")
 {
   PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGESIZE);
   f.reclaimTest();
+}
+
+TEST_CASE("PageManager/collapseFreelistTest", "")
+{
+  PageManagerFixture f(false);
+  f.collapseFreelistTest();
+}
+
+TEST_CASE("PageManager/encodeDecodeTest", "")
+{
+  PageManagerFixture f(false);
+  f.encodeDecodeTest();
 }
 
 TEST_CASE("PageManager/storeBigStateTest", "")

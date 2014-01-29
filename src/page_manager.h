@@ -120,6 +120,16 @@ class PageManager {
     // Adds a page (or many pages) to the freelist
     void add_to_freelist(Page *page, int page_count = 1);
 
+    // Returns the Page pointer where we can add more blobs
+    Page *get_last_blob_page() {
+      return (m_last_blob_page);
+    }
+
+    // Sets the Page pointer where we can add more blobs
+    void set_last_blob_page(Page *page) {
+      m_last_blob_page = page;
+    }
+
     // Closes the PageManager; flushes all dirty pages
     void close();
 
@@ -173,6 +183,16 @@ class PageManager {
       }
     }
 
+    // Encodes |n| to |p|; returns the number of required bytes
+    int encode(ham_u8_t *p, ham_u64_t n);
+
+    // Decodes a number of |n| bytes stored in |p| and returns
+    // the decoded number
+    ham_u64_t decode(int n, ham_u8_t *p);
+
+    // callback for purging pages
+    static void purge_callback(Page *page, PageManager *pm);
+
     // The current Environment handle
     LocalEnvironment *m_env;
 
@@ -188,6 +208,9 @@ class PageManager {
     // Page with the persisted state data. If multiple pages are allocated
     // then these pages form a linked list, with |m_state_page| being the head
     Page *m_state_page;
+
+    // Cached page where to add more blobs
+    Page *m_last_blob_page;
 
     // tracks number of fetched pages
     ham_u64_t m_page_count_fetched;

@@ -99,7 +99,6 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 {
   ham_u32_t page_size = m_env->get_page_size();
 
-  Page *page = 0;
   PBlobPageHeader *header = 0;
   ham_u64_t address = 0;
   ham_u8_t *chunk_data[2];
@@ -124,8 +123,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
-  if (m_last_alloc_blobid)
-    page = m_env->get_page_manager()->fetch_page(db, m_last_alloc_blobid);
+  Page *page = m_env->get_page_manager()->get_last_blob_page();
 
   if (page) {
     header = PBlobPageHeader::from_page(page);
@@ -171,9 +169,9 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 
   // store the page id if it still has space left
   if (header->get_free_bytes())
-    m_last_alloc_blobid = page->get_address();
+    m_env->get_page_manager()->set_last_blob_page(page);
   else
-    m_last_alloc_blobid = 0;
+    m_env->get_page_manager()->set_last_blob_page(0);
 
   // initialize the blob header
   blob_header.set_alloc_size(alloc_size);
@@ -446,7 +444,7 @@ DiskBlobManager::erase(LocalDatabase *db, ham_u64_t blobid, Page *page,
   // it to the freelist
   if (header->get_free_bytes() == (header->get_num_pages()
               * m_env->get_page_size()) - kPageOverhead) {
-    m_last_alloc_blobid = 0;
+    m_env->get_page_manager()->set_last_blob_page(0);
     m_env->get_page_manager()->add_to_freelist(page, header->get_num_pages());
     header->initialize();
     return;

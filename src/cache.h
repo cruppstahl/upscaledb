@@ -31,6 +31,7 @@
 namespace hamsterdb {
 
 class LocalEnvironment;
+class PageManager;
 
 /*
  * The Cache Manager
@@ -157,14 +158,14 @@ class Cache
       }
     }
 
-    typedef void (*PurgeCallback)(Page *page);
+    typedef void (*PurgeCallback)(Page *page, PageManager *pm);
 
     // Purges the cache; the callback is called for every page that needs
     // to be purged
     //
     // By default this is capped to 20 pages to avoid I/O spikes.
     // In benchmarks this has proven to be a good limit.
-    void purge(PurgeCallback cb, unsigned limit = 20) {
+    void purge(PurgeCallback cb, PageManager *pm, unsigned limit = 20) {
       if (!is_full())
         return;
 
@@ -193,7 +194,7 @@ class Cache
             && !m_env->get_changeset().contains(page)) {
           remove_page(page);
           Page *prev = page->get_previous(Page::kListCache);
-          cb(page);
+          cb(page, pm);
           i++;
           page = prev;
         }

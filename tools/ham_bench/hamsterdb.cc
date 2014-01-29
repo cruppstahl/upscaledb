@@ -84,8 +84,6 @@ HamsterDatabase::do_create_env()
     params[0].value = m_config->cachesize;
     params[1].name = HAM_PARAM_PAGESIZE;
     params[1].value = m_config->pagesize;
-    //params[2].name = HAM_PARAM_MAX_DATABASES;
-    //params[2].value = 32; // for up to 32 threads
     if (m_config->use_encryption) {
       params[2].name = HAM_PARAM_ENCRYPTION_KEY;
       params[2].value = (ham_u64_t)"1234567890123456";

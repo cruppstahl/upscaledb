@@ -115,7 +115,7 @@ class DiskBlobManager : public BlobManager
 
   public:
     DiskBlobManager(LocalEnvironment *env)
-      : BlobManager(env), m_last_alloc_blobid(0) {
+      : BlobManager(env) {
     }
 
     // allocate/create a blob
@@ -171,10 +171,6 @@ class DiskBlobManager : public BlobManager
 
     // verifies the integrity of the freelist
     bool check_integrity(PBlobPageHeader *header) const;
-
-    // the last page that we used to allocate a blob; will be used first
-    // to check for free slots
-    ham_u64_t m_last_alloc_blobid;
 };
 
 } // namespace hamsterdb

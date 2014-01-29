@@ -31,10 +31,10 @@ sub simple_test {
 
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
-      `cp recovery.db rec-$k.db`;
-      `cp recovery.db.log0 rec-$k.db.log0`;
-      `cp recovery.db.jrn0 rec-$k.db.jrn0`;
-      `cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      #`cp recovery.db rec-$k.db`;
+      #`cp recovery.db.log0 rec-$k.db.log0`;
+      #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
+      #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 64 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 64 8 $k 0 $txn 0"));
@@ -64,10 +64,10 @@ sub extended_test {
 
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
-      `cp recovery.db rec-$k.db`;
-      `cp recovery.db.log0 rec-$k.db.log0`;
-      `cp recovery.db.jrn0 rec-$k.db.jrn0`;
-      `cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      #`cp recovery.db rec-$k.db`;
+      #`cp recovery.db.log0 rec-$k.db.log0`;
+      #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
+      #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 1024 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 1024 1024 $k 0 $txn 0"));
@@ -137,7 +137,7 @@ sub extended_duplicate_test {
 }
 
 print "----------------------------\nsimple_test\n";
-#simple_test(1);
+simple_test(1);
 
 print "----------------------------\nextended_test\n";
 extended_test(1);

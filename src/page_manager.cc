@@ -23,9 +23,9 @@ namespace hamsterdb {
 
 PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
   : m_env(env), m_cache(env, cache_size), m_needs_flush(false),
-    m_state_page(0), m_page_count_fetched(0), m_page_count_flushed(0),
-    m_page_count_index(0), m_page_count_blob(0), m_page_count_page_manager(0),
-    m_freelist_hits(0), m_freelist_misses(0)
+    m_state_page(0), m_last_blob_page(0), m_page_count_fetched(0),
+    m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
+    m_page_count_page_manager(0), m_freelist_hits(0), m_freelist_misses(0)
 {
 }
 
@@ -38,12 +38,14 @@ PageManager::load_state(ham_u64_t pageid)
 {
   if (m_state_page)
     delete m_state_page;
+
   m_state_page = new Page(m_env, 0);
   m_state_page->fetch(pageid);
 
   m_free_pages.clear();
 
   Page *page = m_state_page;
+  ham_u32_t page_size = m_env->get_page_size();
 
   while (1) {
     ham_assert(page->get_type() == Page::kTypePageManager);
@@ -59,11 +61,17 @@ PageManager::load_state(ham_u64_t pageid)
 
     // now read all pages
     for (ham_u32_t i = 0; i < counter; i++) {
-      ham_u64_t id = ham_db2h64(*(ham_u64_t *)p);
-      p += 8;
-      ham_assert(p - page->get_payload() <= m_env->get_usable_page_size());
+      // 4 bits page_counter, 4 bits for number of following bytes
+      int page_counter = (*p & 0xf0) >> 4;
+      int num_bytes = *p & 0x0f;
+      ham_assert(page_counter > 0);
+      ham_assert(num_bytes <= 8);
+      p += 1;
 
-      m_free_pages[id] = 1;
+      ham_u64_t id = decode(num_bytes, p);
+      p += num_bytes;
+
+      m_free_pages[id * page_size] = page_counter;
     }
 
     // load the overflow page
@@ -80,6 +88,7 @@ PageManager::store_state()
   // no modifications? then simply return the old blobid
   if (!m_needs_flush)
     return (m_state_page ? m_state_page->get_address() : 0);
+
   m_needs_flush = false;
 
   if (!m_state_page) {
@@ -89,6 +98,8 @@ PageManager::store_state()
     ham_u8_t *p = m_state_page->get_payload();
     *(ham_u64_t *)p = 0;
   }
+
+  ham_u32_t page_size = m_env->get_page_size();
 
   /* store the page in the changeset if recovery is enabled */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -108,13 +119,42 @@ PageManager::store_state()
 
     ham_u32_t counter = 0;
 
-    // only store the addresses of the free pages
-    for (; it != m_free_pages.end(); it++) {
-      if ((p + 8) - page->get_payload() >= m_env->get_usable_page_size())
+    while (it != m_free_pages.end()) {
+      // 9 bytes is the maximum amount of storage that we will need for a
+      // new entry; if it does not fit then break
+      if ((p + 9) - page->get_payload() >= m_env->get_usable_page_size())
         break;
 
-      *(ham_u64_t *)p = ham_h2db64(it->first);
-      p += 8;
+      // ... and check if the next entry (and the following) are directly
+      // next to the current page
+      ham_u32_t page_counter = 1;
+      ham_u64_t base = it->first;
+      ham_u64_t current = it->first;
+
+      // move to the next entry
+      it++;
+
+      for (; it != m_free_pages.end() && page_counter < 16 - 1; it++) {
+        if (it->first != current + page_size)
+          break;
+        current += page_size;
+        page_counter++;
+      }
+
+      // now |base| is the start of a sequence of free pages, and the
+      // sequence has |page_counter| pages
+      //
+      // This is encoded as
+      // - 1 byte header
+      //   - 4 bits for |page_counter|
+      //   - 4 bits for the number of bytes following ("n")
+      // - n byte page-id (div page_size)
+      ham_assert(page_counter < 16);
+      ham_assert(base % page_size == 0);
+      int num_bytes = encode(p + 1, base / page_size);
+      *p = (page_counter << 4) | num_bytes;
+      p += 1 + num_bytes;
+
       counter++;
     }
 
@@ -355,17 +395,23 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
 void
 PageManager::flush_all_pages(bool nodelete)
 {
+  if (nodelete == false)
+    m_last_blob_page = 0;
   m_cache.visit(flush_all_pages_callback, 0, nodelete ? 1 : 0);
 
   if (m_state_page)
     flush_page(m_state_page);
 }
 
-static void
-purge_callback(Page *page)
+void
+PageManager::purge_callback(Page *page, PageManager *pm)
 {
   BtreeCursor::uncouple_all_cursors(page);
   page->get_env()->get_page_manager()->flush_page(page);
+
+  if (pm->m_last_blob_page == page)
+    pm->m_last_blob_page = 0;
+
   delete page;
 }
 
@@ -374,7 +420,7 @@ PageManager::purge_cache()
 {
   /* in-memory-db: don't remove the pages or they would be lost */
   if (!(m_env->get_flags() & HAM_IN_MEMORY))
-    m_cache.purge(purge_callback);
+    m_cache.purge(purge_callback, this);
 }
 
 static bool
@@ -402,12 +448,15 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 void
 PageManager::close_database(Database *db)
 {
+  m_last_blob_page = 0;
+
   m_cache.visit(db_close_callback, db, 0);
 }
 
 void
 PageManager::reclaim_space()
 {
+  m_last_blob_page = 0;
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
   bool do_truncate = false;
   ham_u64_t file_size = m_env->get_device()->get_file_size();
@@ -481,6 +530,84 @@ PageManager::close()
 
   delete m_state_page;
   m_state_page = 0;
+  m_last_blob_page = 0;
+}
+
+int
+PageManager::encode(ham_u8_t *p, ham_u64_t n)
+{
+  if (n <= 0xf) {
+    *p = n;
+    return (1);
+  }
+  if (n <= 0xff) {
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (2);
+  }
+  if (n <= 0xfff) {
+    *(p + 2) = (n & 0xf00) >> 8;
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (3);
+  }
+  if (n <= 0xffff) {
+    *(p + 3) = (n & 0xf000) >> 12;
+    *(p + 2) = (n & 0xf00) >> 8;
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (4);
+  }
+  if (n <= 0xfffff) {
+    *(p + 4) = (n & 0xf0000) >> 16;
+    *(p + 3) = (n & 0xf000) >> 12;
+    *(p + 2) = (n & 0xf00) >> 8;
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (5);
+  }
+  if (n <= 0xffffff) {
+    *(p + 5) = (n & 0xf00000) >> 24;
+    *(p + 4) = (n & 0xf0000) >> 16;
+    *(p + 3) = (n & 0xf000) >> 12;
+    *(p + 2) = (n & 0xf00) >> 8;
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (6);
+  }
+  if (n <= 0xfffffff) {
+    *(p + 6) = (n & 0xf000000) >> 32;
+    *(p + 5) = (n & 0xf00000) >> 24;
+    *(p + 4) = (n & 0xf0000) >> 16;
+    *(p + 3) = (n & 0xf000) >> 12;
+    *(p + 2) = (n & 0xf00) >> 8;
+    *(p + 1) = (n & 0xf0) >> 4;
+    *(p + 0) = n & 0xf;
+    return (7);
+  }
+  *(p + 7) = (n & 0xf0000000) >> 36;
+  *(p + 6) = (n & 0xf000000) >> 32;
+  *(p + 5) = (n & 0xf00000) >> 24;
+  *(p + 4) = (n & 0xf0000) >> 16;
+  *(p + 3) = (n & 0xf000) >> 12;
+  *(p + 2) = (n & 0xf00) >> 8;
+  *(p + 1) = (n & 0xf0) >> 4;
+  *(p + 0) = n & 0xf;
+  return (8);
+}
+
+ham_u64_t
+PageManager::decode(int n, ham_u8_t *p)
+{
+  ham_u64_t ret = 0;
+
+  for (int i = 0; i < n - 1; i++) {
+    ret += *(p + (n - i - 1));
+    ret <<= 4;
+  }
+
+  // last assignment is without *= 10
+  return (ret + *p);
 }
 
 } // namespace hamsterdb
