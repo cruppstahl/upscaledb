@@ -120,7 +120,7 @@ struct Configuration
     if (!use_hamsterdb)
       printf("--use-hamsterdb=false ");
     if (bulk_erase)
-      printf("--bulk_erase ");
+      printf("--bulk-erase ");
     if (use_transactions) {
       if (transactions_nth)
         printf("--use-transactions=tmp ");

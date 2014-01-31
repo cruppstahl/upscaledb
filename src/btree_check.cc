@@ -11,6 +11,7 @@
 
 #include "config.h"
 
+#include <set>
 #include <string.h>
 #include <stdio.h>
 
@@ -89,6 +90,8 @@ class BtreeCheckAction
         }
       }
 
+      m_children.clear();
+
       while (page) {
         // verify the page
         verify_page(parent, leftsib, page, level);
@@ -159,6 +162,26 @@ class BtreeCheckAction
           throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
+
+      // internal nodes: make sure that all record IDs are unique
+      if (!node->is_leaf()) {
+        if (m_children.find(node->get_ptr_down()) != m_children.end()) {
+          ham_log(("integrity check failed in page 0x%llx: record of item "
+                  "-1 is not unique", page->get_address()));
+          throw Exception(HAM_INTEGRITY_VIOLATED);
+        }
+        m_children.insert(node->get_ptr_down());
+
+        for (ham_u16_t i = 0; i < node->get_count(); i++) {
+          ham_u64_t child_id = node->get_record_id(i);
+          if (m_children.find(child_id) != m_children.end()) {
+            ham_log(("integrity check failed in page 0x%llx: record of item "
+                    "#%d is not unique", page->get_address(), i));
+            throw Exception(HAM_INTEGRITY_VIOLATED);
+          }
+          m_children.insert(child_id);
+       }
+      }
     }
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
@@ -172,9 +195,15 @@ class BtreeCheckAction
       return (node->compare(&key1, &key2));
     }
 
+    // The BtreeIndex on which we operate
     BtreeIndex *m_btree;
+
+    // ByteArrays to avoid frequent memory allocations
     ByteArray m_barray1;
     ByteArray m_barray2;
+
+    // For checking uniqueness of record IDs on an internal level
+    std::set<ham_u64_t> m_children;
 };
 
 void

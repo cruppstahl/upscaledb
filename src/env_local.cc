@@ -293,11 +293,19 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
     return (HAM_DATABASE_ALREADY_OPEN);
 
   /*
-   * if it's an in-memory environment: no need to go on, if the
-   * database was closed, it does no longer exist
+   * if it's an in-memory environment then it's enough to purge the
+   * database from the environment header
    */
-  if (get_flags() & HAM_IN_MEMORY)
+  if (get_flags() & HAM_IN_MEMORY) {
+    for (ham_u16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+      PBtreeHeader *desc = get_btree_descriptor(dbi);
+      if (name == desc->get_dbname()) {
+        desc->set_dbname(0);
+        return (0);
+      }
+    }
     return (HAM_DATABASE_NOT_FOUND);
+  }
 
   /* temporarily load the database */
   LocalDatabase *db;

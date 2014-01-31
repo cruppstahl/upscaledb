@@ -1317,7 +1317,13 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
     if (st)
       return (db->set_error(st));
 
+    ham_u16_t dbname = db->get_name();
     delete db;
+
+    /* in-memory database: make sure that a database with the same name
+     * can be re-created */
+    if (env->get_flags() & HAM_IN_MEMORY)
+      (void)env->erase_db(dbname, 0);
     return (0);
   }
   catch (Exception &ex) {

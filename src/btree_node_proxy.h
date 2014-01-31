@@ -199,7 +199,7 @@ class BtreeNodeProxy
     // Note that |dest| MUST be an internal node! This is used to update
     // anchor nodes during erase SMOs.
     virtual void replace_key(ham_u32_t slot, BtreeNodeProxy *dest,
-                    int dest_slot) const = 0;
+                    int dest_slot) = 0;
 
     // Replaces the |dest|-key with the key in |source|
     // Note that |dest| MUST be an internal node! This is used to update
@@ -551,15 +551,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Replaces the |dest|-key with the key in |slot|
     // Note that |dest| MUST be an internal node!
     virtual void replace_key(ham_u32_t slot, BtreeNodeProxy *dest_node,
-                    int dest_slot) const {
+                    int dest_slot) {
       ham_key_t key = {0};
 
-      // no need to get a deep copy if this is an extended key;
-      // replace_key can deal with extended keys.
-      typename NodeImpl::Iterator it = m_impl.at(slot);
-      key._flags = it->get_key_flags();
-      key.data   = it->get_key_data();
-      key.size   = it->get_key_size();
+      ByteArray arena;
+      get_key_direct(slot, &arena, &key);
 
       dest_node->replace_key(&key, dest_slot);
     }
@@ -674,12 +670,12 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         }
         else {
          printf("%03u:    ", i);
-         printf("    %08d -> %08llx\n", *(int *)it->get_key_data(),
-                  (unsigned long long)it->get_record_id());
-         //for (ham_u32_t j = 0; j < it->get_key_size(); j++)
-           //printf("%c", ((const char *)it->get_key_data())[j]);
-          //printf(" (%d) -> %08llx\n", it->get_key_size(),
-                          //(unsigned long long)it->get_record_id());
+         //printf("    %08d -> %08llx\n", *(int *)it->get_key_data(),
+                  //(unsigned long long)it->get_record_id());
+         for (ham_u32_t j = 0; j < it->get_key_size(); j++)
+           printf("%c", ((const char *)it->get_key_data())[j]);
+         printf(" (%d) -> %08llx\n", it->get_key_size(),
+                          (unsigned long long)it->get_record_id());
         }
       }
     }

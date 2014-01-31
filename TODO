@@ -17,10 +17,9 @@ to scale with the number of cores.
 high-level plan for 2.1.4 ..................................................
 x check for scalability issues with files > 1 GB
 x improvements for ham_bench
-- get rid of the freelist
-- support pages of different sizes
-- improved (faster) logging
-- delta updates (maybe)
+x get rid of the freelist
+x improve scalability
+- erlang wrapper
 -----------------------------------------------------------------------------
 
 x update copyright string: 2013 -> 2014
@@ -207,7 +206,7 @@ x improve the freelist
         -> that's already the case...
     x check recovery tests
 
-o improve PageManager performance
+x improve PageManager performance
     x if logging is enabled and a freelist entry is *added* then this change
         must not be logged. However, if a page is *taken* from the freelist
         then it must be logged.
@@ -228,42 +227,39 @@ o improve PageManager performance
         x add test for encode/decode
         x add test for collapsing
     x run recovery tests
-    o run monster tests
 
-o perftest
-    o add tests with more elements (i.e. 10 mio ops)
-    o ... and with very big records (1mb)
-    o also run those for 2.1.4
+x shouldn't we use PAX if key==uint64 and record size is variable?  -> it does!
 
-o v2: verify/improve performance of btree_impl_default: it has a very high
+x perftest
+    x add tests with more elements (i.e. 10 mio ops)
+    x ... and with very big records (1mb)
+
+x perftest: add bulk erase for all 3 distributions (no records required,
+    500k are enough)
+
+x v2: verify/improve performance of btree_impl_default: it has a very high
     number of page splits compared to 2.1.3, even if the key size is <= 21.
     Why? maybe the capacity is not calculated correctly. or do keys have
     more overhead than in 2.1.3?
-    o variable length keys (no duplicates), recsize=0
-    o variable length keys (with duplicates), recsize=0
-    o fixed length keys (with duplicates), recsize=0
-    -> what exactly happens if the page is split? is it really resized
-            correctly?
+                                2.1.3           head
+        - variable length keys (no duplicates)
+            --recsize=0 --seed=1389874598 
+            splits:             2043            1993
+        - variable length keys (no duplicates)
+            --recsize=0 --seed=1389874598 --keysize=64
+            splits:             6649            4141
+        - variable length keys (with duplicates)
+            --recsize=0 --seed=1389874598 --duplicate=last
+            splits:             2043            2067
+        - fixed length keys (with duplicates)
+            --recsize=0 --seed=1389874598 --key=uint64 --duplicate=last
+            splits:             1958            2002
 
-o what else can be done to improve scalability? the graphs sometimes show 
-    high latencies and zig-zag curves in throughput
-    x reducing purge queue from 20 to 5 -> no noticable effect
-    x seek times are not relevant, zig-zag is also visible on SSDs
-    x totally disable purging? (unlimited cache) - scalability is so-so,
-        but there's no zig-zag; so it seems to be related to purging.
-    o can we purge asynchronously?
-
-o erlang API
-    o with quickcheck coverage for...
-        o database operations (create/close/open/erase/rename)
-        o database operations with insert/erase/find
-        o database operations with many insert/erase/find/table_scans
-        o ... add transactions
-        o ... add many cursors
-
-o improve integration of static code analysis in release process
-    o try to become "oclint-clean"
-    o try to become "coverity-clean"
+o run monster tests
+    x add test: bulk-erase, page_size 1024, key_size 64, extkey-threshold 30
+    x BtreeDefault/eraseReverseExtendedKeySplitTest
+    x BtreeDefault/eraseReverseKeySplitTest
+    o ./ham_bench --use-berkeleydb=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --extkey-threshold=20 --stop-ops=1000000
 
 o web-page requires updates
     x deployed html differs from git-repository
@@ -275,61 +271,54 @@ o web-page requires updates
 
 high-level plan for 2.1.6 ...................................................
 
-- come up with a new design which is NOT based on virtual Page IDs, resizable
-    pages etc - they would be way too slow
-    o review Changeset::flush
-    o buffer the log and journal, only flush if there's an overflow or a commit
-    o is it possible to merge log and journal?
-    o the PageManager should write "deltas"
+o erlang API
+    o with quickcheck coverage for...
+        o database operations (create/close/open/erase/rename)
+        o database operations with insert/erase/find
+        o database operations with many insert/erase/find/table_scans
+        o ... add transactions
+        o ... add many cursors
+
+o improved logging/journalling
+    - merge both files (log + journal) into one
+    - log is now buffered (could even be compressed, encrypted)
+    - PageManager state now writes to journal
+
+o delta updates (DU)
+    - insert SMOs (splits) are applied when "going down"
+    - erase SMOs are vastly simplified (only merges, no shifts)
+        - never delete slot 0 of a page, only mark as deleted
+        -> check the literature
+    - SMOs are separated from the actual operation
+    - the actual operation now becomes atomic and simply attachs a DU to
+        the modified page
+    - creating a DU requires a single memory allocation!
+    - DUs are stored in the journal as a logical operation
+    - DUs are merged synchronously as soon as there are too many or the
+        page is flushed or a lookup is performed
+    - find a single solution for transactions AND regular updates
+        is this possible? they both serve different purposes, and the
+        consolidation could become very tricky (think of cursors, 
+        approx. matching...)
+        - but maybe the txn opnode/op could *point* to the DU?
+        -> or: store DeltaUpdates in the TransactionIndex? then we could reuse
+            the consolidation logic
+
+o improve integration of static code analysis in release process
+    o oclint
+    o coverity
+
+high-level plan for 2.1.7 ...................................................
+
+- page flushes/cache purges/flushing txns is handled asynchronously in the
+    background
+    TODO TODO TODO
 
 - reduce the linked lists - they're hard to be updated with concurrent
     operations
     o page
     o transaction and dependent objects
     o ...
-
-- delta updates: very similar to the current TransactionOperations; however,
-    the difference is that delta updates are part of a page, whereas
-    TransactionOperations are part of a Transaction. The difference is more
-    obvious when talking about recovery: delta updates are logged in the
-    "stream" of a page, not of a Transaction. When loading a page, they can be
-    reapplied immediately and the page will be valid.
-    -> logging disabled: don't bother
-    -> logging enabled: write delta updates to a (buffered) log; flush log
-        when a Txn is committed
-    -> if the log exceeds 100 mb: switch to the next log
-    -> delete old log files when all their streams are checkpointed in a
-        newer file
-    -> if delta updates exceed <threshold>: request/write a checkpoint
-    -> each stream knows which log file stores its latest checkpoint
-    -> when the database is closed: write checkpoints of as many streams
-        as possible, esp. if older logs contain delta updates (then the
-        old log can be purged)
-    -> each log has a trailer which lists the streams in the log; this
-        can be used to purge the log efficiently
-
-  - Delta updates (concurrent/atomic!)
-    are like TransactionOperations but directly attached to a BtreeNode.
-    the Transaction is separated from the updates; its only state is a name,
-    the Tid and the flags (committed, aborted...)
-    - Transactions are stored in a linear array, just like the pages
-    - db_local.cc: local Transactions must be aborted if a Transaction occurs
-        (create them on the stack, abort in destructor)
-    - Transactions are not connected to their operations or anywhere else
-    - the TransactionOperation becomes a DeltaUpdate
-    - attach the DeltaUpdate directly to the BtreeNode
-    - the TransactionIndex is no longer required
-    - fix insert/erase/find/cursor operations and do not use
-        the TransactionIndex (rename BtreeIndex -> Btree)
-    - the cursor can be directly coupled to a DeltaUpdate
-    - implement SMOs (split/shifts/merge) and make sure the DeltaUpdates are
-        moved to the other page, if necessary
-    - when checkpointing: delete all DeltaUpdates that belong to an
-        aborted Transaction (the Checkpoint is performed by the PageManager,
-        which has to traverse the Btree because an SMO is performed
-        recursively)
-    - non-transactional updates are also performed as DeltaUpdates, but
-        they are not logged
 
 o support efficient logging
     o a log IS-A journal: it has "streams" with separate "entries", each has

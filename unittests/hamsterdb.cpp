@@ -1936,6 +1936,22 @@ struct HamsterdbFixture {
     REQUIRE(HAM_INV_KEY_SIZE == ham_env_create_db(env, &db, 1, 0, &ps[0]));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
+
+  void recreateInMemoryDatabase() {
+    ham_db_t *db;
+    ham_env_t *env;
+
+    // create in-memory environment
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+                            HAM_IN_MEMORY, 0, 0));
+    // create a database (id = 1)
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
+    // close the database
+    REQUIRE(0 == ham_db_close(db, 0));
+    // re-create the database (id = 1)
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Hamsterdb/versionTest", "")
@@ -2302,6 +2318,12 @@ TEST_CASE("Hamsterdb/invalidKeySizeTest", "")
 {
   HamsterdbFixture f;
   f.invalidKeySizeTest();
+}
+
+TEST_CASE("Hamsterdb/recreateInMemoryDatabase", "")
+{
+  HamsterdbFixture f;
+  f.recreateInMemoryDatabase();
 }
 
 } // namespace hamsterdb
