@@ -1,3 +1,7 @@
+Feb 04, 2014 - chris ---------------------------------------------------
+o Bugfix: if a Database is closed in an in-memory Environment, the Database
+	name was still occupied and the Database could not be re-created.
+
 Jan 28, 2014 - chris ---------------------------------------------------
 o Removed the parameter HAM_PARAM_MAX_DATABASES - the number of databases
 	is now always set to the maximum limit.
