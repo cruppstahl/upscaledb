@@ -1,8 +1,15 @@
+Feb 08, 2014 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.5
+
+Feb 05, 2014 - chris ---------------------------------------------------
+o Fixed several regressions that crept in when 2.1.4 was released
+
 Feb 04, 2014 - chris ---------------------------------------------------
 o Bugfix: if a Database is closed in an in-memory Environment, the Database
 	name was still occupied and the Database could not be re-created.
 
 Jan 28, 2014 - chris ---------------------------------------------------
+o The freelist was replaced and scales much better now
 o Removed the parameter HAM_PARAM_MAX_DATABASES - the number of databases
 	is now always set to the maximum limit.
 

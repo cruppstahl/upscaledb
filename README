@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.1.4               Sun Aug 11 21:20:54 CEST 2013
+hamsterdb Embedded Storage 2.1.5               Mi 5. Feb 22:00:56 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -11,53 +11,37 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release moves further into the direction of a key/value engine with
-modern column-store features: cache-optimized, compressed data structures,
-reduced I/O and even basic schema support.
+This release fixes several bugs and regressions. Some of these bugs were
+discovered using Qviq's QuickCheck, others were discovered after I implemented
+new test features for ham_bench.
 
-Variable length keys and keys with duplicates are now stored with a custom
-BTree memory layout, which stores a small up-front index in each node.
-Unlike previous versions, "extended" keys and duplicate keys are no longer
-stored in a separate overflow area (which required additional I/O), but in the
-leaf node itself. This improves performance and keeps the file size small.
+Also, the freelist was completely rewritten and scales much better now.
+In addition, the parameter HAM_PARAM_MAX_DATABASES was removed because
+it is no longer required. The new default is now automatically set to the
+highest limit (which allows to create ~ 650 databases if the page size is
+set to 16kb).
 
-Also, records can now be stored in the leaf, even if they exceed the size of 8
-bytes. For this, users have to specify the record size when creating a
-Database (using HAM_PARAM_RECORD_SIZE). It is highly recommended to set the
-record size if the record size is always constant.
+The file format of 2.1.5 is compatible to 2.1.4 and will most likely remain
+stable for the next few releases.
 
-The file format of 2.1.4 is NOT compatible with 2.1.3 and will remain unstable
-for the next or the next two releases. Use ham_export/ham_import to upgrade the
-files.
+For the next release i am going to continue working on improved scalability,
+and you can also expect Erlang support soonish.
 
 2. Changes
 
 New Features
-* Added HAM_PARAM_RECORD_SIZE to specify a fixed record size; if it's small
-	enough, the records are stored in the leaf and not in a separately
-	allocated blob
-* Default Btree node layout for variable length keys can now store
-	fixed length records inline if they're small enough (and if duplicate
-	keys are disabled)
-* Default Btree node layout now also stores duplicate keys inline, even
-	if they're > 8 bytes (previous versions stored duplicate keys in a
-	separate blob, which required lots of additional I/O)
-* Default Btree node layout for variable length keys and duplicate keys
-	was completely rewritten and now uses an up-front index in the
-	node
+* none
 
 Bugfixes
-- none
+* Fixed several regressions that crept in when 2.1.4 was released
+* Bugfix: if a Database is closed in an in-memory Environment, the Database
+	name was still occupied and the Database could not be re-created.
 
 Other Changes
-* The flag HAM_ENABLE_EXTENDED_KEYS was removed
-* The flag HAM_DISABLE_VARIABLE_KEYS was removed
-* C++ API: Can now specify HAM_RECORD_USER_ALLOC when retrieving keys
-	with ham_db_find
-* Removed HAM_DISABLE_VARIABLE_KEYS, HAM_ENABLE_EXTENDED_KEYS; they're no
-	longer required. Introduced HAM_KEY_SIZE_UNLIMITED for unlimited/variable
-	length keys (the default)
-
+* The freelist was replaced and scales much better now
+* Removed the parameter HAM_PARAM_MAX_DATABASES - the number of databases
+	is now always set to the maximum limit.
+* Removed HAM_CACHE_STRICT, HAM_CACHE_FULL and the related functionalities
 
 To see a list of all changes, look in the file ChangeLog.
 
