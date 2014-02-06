@@ -44,8 +44,8 @@ class PageManager {
       // flag for alloc_page(): Do not persist the PageManager state to disk
       kDisableStoreState = 4,
 
-      // Limits the amount of pages that are flushed in purge_cache()
-      kPurgeLimit = 20,
+      // The amount of pages that are at least flushed in purge_cache()
+      kPurgeAtLeast = 20,
 
       // Only pages above this age are purged
       kPurgeThreshold = 100

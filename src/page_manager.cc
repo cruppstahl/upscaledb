@@ -418,9 +418,22 @@ PageManager::purge_callback(Page *page, PageManager *pm)
 void
 PageManager::purge_cache()
 {
-  /* in-memory-db: don't remove the pages or they would be lost */
-  if (!(m_env->get_flags() & HAM_IN_MEMORY))
-    m_cache.purge(purge_callback, this);
+  // in-memory-db: don't remove the pages or they would be lost
+  if (m_env->get_flags() & HAM_IN_MEMORY || !m_cache.is_full())
+    return;
+
+  // Purge as many pages as possible to get memory usage down to the
+  // cache's limit.
+  //
+  // By default this is capped to |kPurgeAtLeast| pages to avoid I/O spikes.
+  // In benchmarks this has proven to be a good limit.
+  ham_u32_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
+  if (max_pages == 0)
+    max_pages = 1;
+  ham_u32_t limit = m_cache.get_current_elements() - max_pages;
+  if (limit < kPurgeAtLeast)
+    limit = kPurgeAtLeast;
+  m_cache.purge(purge_callback, this, limit);
 }
 
 static bool

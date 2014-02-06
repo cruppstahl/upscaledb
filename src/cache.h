@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -162,22 +162,10 @@ class Cache
 
     // Purges the cache; the callback is called for every page that needs
     // to be purged
-    //
-    // By default this is capped to 20 pages to avoid I/O spikes.
-    // In benchmarks this has proven to be a good limit.
-    void purge(PurgeCallback cb, PageManager *pm, unsigned limit = 20) {
-      if (!is_full())
-        return;
+    void purge(PurgeCallback cb, PageManager *pm, unsigned limit) {
+      ham_assert(is_full() && limit > 0);
 
       unsigned i = 0;
-      unsigned max_pages = (unsigned)m_cur_elements;
-
-      max_pages /= 10;
-      if (max_pages == 0)
-        max_pages = 1;
-      /* but still we set an upper limit to avoid IO spikes */
-      else if (max_pages > limit)
-        max_pages = limit;
 
       /* get the chronologically oldest page */
       Page *oldest = m_totallist_tail;
@@ -192,8 +180,8 @@ class Cache
         /* pick the first unused page (not in a changeset) that is NOT mapped */
         if (page->get_flags() & Page::kNpersMalloc
             && !m_env->get_changeset().contains(page)) {
-          remove_page(page);
           Page *prev = page->get_previous(Page::kListCache);
+          remove_page(page);
           cb(page, pm);
           i++;
           page = prev;
@@ -201,7 +189,7 @@ class Cache
         else
           page = page->get_previous(Page::kListCache);
         ham_assert(page != oldest);
-      } while (i < max_pages && page && page != oldest);
+      } while (i < limit && page && page != oldest);
     }
 
     // the visitor callback returns true if the page should be removed from

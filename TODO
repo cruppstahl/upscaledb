@@ -143,42 +143,42 @@ x remove the freelist
         - with records, 1 mio
             --seed=1389874598 --key=uint64
                                 2.1.4           head
-            total time:         9.272876        7.827158
+            total time:         9.272876        7.599807
             file size:          1159331840      1118830592
         - with records, 5 mio
             --seed=1389874598 --key=uint64 --stop-ops=5000000
                                 2.1.4           head
-            total time:         64.212313       51.958598
+            total time:         64.212313       47.319125
             file size:          5832523776      5595086848
         - with records, 1 mio, 30% erase
             --seed=1389874598 --key=uint64 --erase-pct=30
                                 2.1.4           head
-            total time:         6.530221        5.632957
+            total time:         6.530221        6.067156
             file size:          807469056       781975552
         - with records, 5 mio, 30% erase
             --seed=1389874598 --key=uint64 --stop-ops=5000000 --erase-pct=30
                                 2.1.4           head
-            total time:         44.115751       36.708448
+            total time:         44.115751       35.959277
             file size:          4074618880      3898146816
         - without records, 1 mio
             --seed=1389874598 --key=uint64 --recsize-fixed=0
                                 2.1.4           head
-            total time:         3.155387        3.164027
+            total time:         3.155387        3.112488
             file size:          10534912        10534912
         - without records, 5 mio
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --stop-ops=5000000
                                 2.1.4           head
-            total time:         27.179945       27.616605
+            total time:         27.179945       25.764103
             file size:          67125248        67125248
         - without records, 1 mio, 30% erase
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30
                                 2.1.4           head
-            total time:         2.255874        2.238849
+            total time:         2.255874        2.207462
             file size:          8421376         8421376
         - without records, 5 mio, 30% erase
             --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30 --stop-ops=5000000
                                 2.1.4           head
-            total time:         20.919253       20.989679
+            total time:         20.919253       20.624674
             file size:          33898496        33816576
 
 x v2: Fix .NET Wrapper issue: VS2010, SampleDb1. See
@@ -255,12 +255,18 @@ x v2: verify/improve performance of btree_impl_default: it has a very high
             --recsize=0 --seed=1389874598 --key=uint64 --duplicate=last
             splits:             1958            2002
 
-o run monster tests
+x run monster tests
     x add test: bulk-erase, page_size 1024, key_size 64, extkey-threshold 30
     x BtreeDefault/eraseReverseExtendedKeySplitTest
     x BtreeDefault/eraseReverseKeySplitTest
     x ./ham_bench --use-berkeleydb=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --extkey-threshold=20 --recsize=0 --stop-ops=1000000
     x ./ham_bench --use-berkeleydb=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --cache=104857600 --stop-ops=500000 --seed=1391626086
+
+x ham_bench: extremely large files quickly get killed by the oom killer because
+        the process requires too much memory; why is that so??
+        ./ham_bench --recsize=1048576 --metrics=all --stop-ops=50000
+
+o start release process for 2.1.5
 
 o web-page requires updates
     x deployed html differs from git-repository
@@ -272,31 +278,42 @@ o web-page requires updates
 
 high-level plan for 2.1.6 ...................................................
 
+o cache purge: purges 20 pages at once. is that a good number? try others
+
+o improve: ham_bench --cache=310241024 --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=1000000 --seed=1391686926
+
 o erlang API
     o with quickcheck coverage for...
         x database operations (create/close/open/erase/rename)
         o database operations with insert/erase/find
         o database operations with many insert/erase/find/table_scans
         o ... add transactions
-        o ... add many cursors
+        o ... add cursors
 
 o improved logging/journalling
     - merge both files (log + journal) into one
-    - log is now buffered (could even be compressed, encrypted) and only
-        flushed if a txn is committed, the changeset is written or
-        the log file becomes too big
+    - need to keep track of the newest lsn (is currently written to the
+        log file header)
+    - buffer the log and only flush if a txn is committed, the changeset
+        is written or the buffer becomes too big
     - recovery processes physical log "backwards" and logical journal
         "forwards"
-    - PageManager state now writes to journal, changes belong to the
-        transaction
+    - PageManager state now writes deltas to journal while flushing a txn-op
+            (this is part of the journal, not of the changeset)
+        - this state is written immediately BEFORE the changeset
+        - the deltas have to be idempotent
+        - the deltas must be applied during recovery of the journal, not during
+            the log; the log only contains physical redo-information. it does
+            not require the PageManager to work.
+        - after the physical redo, the journal is re-created and the PageManager
+            deltas are applied
         - periodically insert checkpoints if the log file becomes too big
             and too many deltas have been written; otherwise the logfile
-            cannot be switched)
-    - get prepared for delta updates
+            cannot be switched
 
 o delta updates (DU)
     - insert SMOs (splits) are applied when "going down"
-    - erase SMOs are vastly simplified (only merges, no shifts)
+    - erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
         -> leaf nodes can become empty
         -> internal nodes must have at least one link (ptr_down)
         -> if a child node is deleted, and the anchor of that child node
@@ -308,16 +325,21 @@ o delta updates (DU)
              can be reorganized
         -> in the end there's a btree skeleton with empty leafs and nearly-
             empty nodes; this can then be compact()ed offline
-    - the actual operation now becomes atomic and simply attachs a DU to
-        the modified page
     - SMOs are separated from the actual operation
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-    - need a compact()/vaccumize()/reorg() command
+    - reorg on demand (new compact() API) or in background? better in
+        background. then come up with very simple rules to merge empty pages
+        and clean up the tree.
 
+    - the actual operation now becomes atomic and simply attachs a DU to
+        the modified page
     - creating a DU requires a single memory allocation!
     - DUs are stored in the journal as a logical operation (attached to
         the page, but with a link to the txn)
+    - how does recovery work? all DUs that were already flushed (can find out
+        by looking at their lsn) are ignored; only those are applied that
+        are not yet written to disk
     - DUs are merged synchronously as soon as there are too many or the
         page is flushed or a lookup is performed
     - with a page split the queued DUs have to be split as well (or merged)
@@ -331,10 +353,15 @@ o delta updates (DU)
 
 o can we come up with olap functions that operate directly on the btree data?
     -> working on keys only!! does that make sense?
+    - should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
+    o MIN()
+    o MAX()
+    o TOP(N, predicate)
     o COUNT(predicate)
     o AGGREGATE(predicate, result)
     o AVERAGE(predicate, result)
     o SELECT(predicate, callback)
+    o JOIN(predicate, other table, join-callback, result-callback)
 
 o improve integration of static code analysis in release process
     o oclint
@@ -352,98 +379,22 @@ high-level plan for 2.1.7 ...................................................
     o transaction and dependent objects
     o ...
 
-o support efficient logging
-    o a log IS-A journal: it has "streams" with separate "entries", each has
-        a lsn, a header and a payload; both buffer (and compress/encrypt), flush
-        -> try to merge both; the log is first processed (starting from the
-        end of the file), then the journal (starting from the beginning and
-        skipping all log entries)
-        -> store the lsn of the last modification in the page (right now
-        it's stored in the log header, i think)
-    o journal (and log) could buffer the pages and only write them to disk
-        when the buffer overflows or a transaction is committed
-        (later: this buffer could be compressed -> PRO)
-    o the log remains responsible for the btree, the journal is a logical
-        backup for the delta updates/txn updates
-    o instead of flushing the full state, the PageManager could write "deltas"
-        to the log
-    o ... and the delta updates would be identical to the txn-operations
-    o play around with certain thresholds; don't switch the file too often
-    o when merging delta-updates, the log should try to store all delta-updates
-        into one Changeset, and therefore flush the log only once (with
-        combined updates)
-
-    - the btree/data file is INDEPENDENT from the log! it has only atomic
-        updates and might become out-of-sync with the actual log. This is by
-        design and must not cause problems! this will later allow us to run
-        "compactions" in background.
-    - the log contains logical "streams", i.e. for PageManager, for each Page
-        etc
-    - the log writes checkpoints of those streams if the number of delta
-        updates exceeds a threshold
-    - the log buffers the data and only flushes/fsyncs when requested
-        (TODO this needs to be clearly defined!)
-    - whenever a Btree page is flushed, the log will contain a "flush" marker
-        of this page (and the lsn of the last update which modified this page).
-        this marker is stored in the log's PageManager stream
-        (can this marker be stored in the page itself?)
-    ? what about SMOs?
-        they're performed atomically in the Btree by updating/allocating all
-        pages, modifying them, updating the PageManager stream in the log
-        and then switching atomically in the PageManager map
-    ? a insert with a duplicate table or extended key is not atomic; how
-        can we solve this?
-    ? how is recovery performed?
-        - read the last buffer from the last logfile (the tail contains a
-            header)
-        - uncompress, if it was compressed
-        - ...?
-    ? can this asynchronousness cause problems?
-    ? when/how to fsync?
-
-  - StreamContainer
-    - a collection of static buffers (i.e. pages, header page) and streams;
-      all stored in one file. each stream contains segments with a small
-      header (stream-id, subject, lsn, number of buffers), one or more
-      buffers (size, checksum?) and a trailer (last checkpoint of metadata,
-      last checkpoint of page-manager)
-    - buffers data before writing to file, but flushes (and fsyncs) on
-        demand
-    - implementation for in-memory remains empty
-    - requests checkpoints from streams if there are too many delta updates
-    - uses log-file switching: if one file overflows then switch to a second
-        file, write checkpoints and continue
-    - can maintain its own Stream where it stores its own state: the buffers
-        that were written to disk, which streams are in these buffers,
-        are they obsolete through newer checkpoints etc
-    - use this information to garbage-collect buffers and re-use them
-    - add to LocalEnvironment
-    - vacuum: ask all streams to perform checkpoints, and flush the buffer
-        into a separate file; then rename the file 
-    - move the Environment's configuration to a separate object
-    - move the Database's configuration to a separate object
-
-  - StreamContainer ("sc") #2
-    - perform full transition by moving the remaining modules to the sc
-    - pages: fetch/flush from sc file
-    - journal: write to sc stream
-    - log: write to sc stream
-    - remove the device classes
-
 
 - prefetch cache lines when searching
 - linear SIMD search -> PRO
 - compress the log with snappy -> PRO
+- compress the records with snappy -> PRO
 - encrypt the log and the environment file with AES -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
-- compression -> PRO
 - bulk updates -> PRO
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the stream
 - first PRO release
     o webpage updates, PR, mailings
-- cache-oblivious page distribution? (maybe write the LSS first?)
+
+- compression -> PRO
+- cache-oblivious page distribution?
     http://supertech.csail.mit.edu/cacheObliviousBTree.html
 - bloom filter -> PRO
 - concurrency
@@ -516,8 +467,6 @@ o PRO: use SIMD for fixed-length scans and __builtin_prefetch
         or the subrange in the binary search is low enough, and if the
         performance makes sense) -> also for MIT
     o if both layouts use binary search then move it back to the proxy!
-
-o release-v2.pl: add test without berkeleydb
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information

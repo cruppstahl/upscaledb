@@ -2101,9 +2101,9 @@ class DefaultNodeImpl
             tmp.size = sizeof(blobid);
             tmp.data = &blobid;
             // we NEED that space now!
+            force_more_space();
             if (count + get_freelist_count() >= get_capacity() - 1)
               resize(count + 1, &tmp);
-            force_more_space();
             ham_assert(has_enough_space(&tmp, false, true));
             // internal nodes only have a record-id, no duplicates etc
             ham_u32_t offset = append_key(count, tmp.data,
@@ -3008,9 +3008,8 @@ class DefaultNodeImpl
 
       // leave some headroom - a few operations create new indices; make sure
       // that they have index capacity left
-      if (!force && count + get_freelist_count() >= get_capacity() - 2)
-        return (false);
-      if (force && count + get_freelist_count() >= get_capacity() - 1)
+      if (count + get_freelist_count() >= get_capacity() - 
+                      (force ? 1 : 2))
         return (false);
 
       ham_u32_t offset = headroom + get_next_offset();

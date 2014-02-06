@@ -1,6 +1,10 @@
 Feb 08, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.5
 
+Feb 06, 2014 - chris ---------------------------------------------------
+o Bugfix: cache purges always purged one page only; now purges as many as
+	required
+
 Feb 05, 2014 - chris ---------------------------------------------------
 o Fixed several regressions that crept in when 2.1.4 was released
 
