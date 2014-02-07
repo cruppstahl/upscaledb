@@ -94,9 +94,11 @@ PageManager::store_state()
   if (!m_state_page) {
     m_state_page = new Page(m_env, 0);
     m_state_page->allocate(Page::kTypePageManager);
-    // reset the overflow pointer
+    // reset the overflow pointer and the counter
     ham_u8_t *p = m_state_page->get_payload();
     *(ham_u64_t *)p = 0;
+    p += sizeof(ham_u64_t);
+    *(ham_u32_t *)p = 0;
   }
 
   ham_u32_t page_size = m_env->get_page_size();

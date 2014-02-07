@@ -16,7 +16,7 @@
  * the database operations (unlike the (physical) log which stores low-level
  * information about modified pages.
  *
- * The journal is organized in two files. If one of the files grows too high
+ * The journal is organized in two files. If one of the files grows too large
  * then all new transactions are stored in the other file.
  * ("Log file switching")
  */
@@ -66,6 +66,8 @@ class Journal
 
     //
     // The header structure of a journal file
+    //
+    // TODO rename to PJournalHeader
     //
     HAM_PACK_0 struct HAM_PACK_1 PEnvironmentHeader {
       PEnvironmentHeader()
@@ -162,7 +164,7 @@ class Journal
     // Closes the journal, frees all allocated resources
     void close(bool noclear = false);
 
-    // Performs the overy! All committed Transactions will be re-applied,
+    // Performs the recovery! All committed Transactions will be re-applied,
     // all others are automatically aborted
     void recover();
 
@@ -171,7 +173,8 @@ class Journal
       return (m_lsn++);
     }
 
-    // Returns the previous lsn; only required for unittests
+    // Returns the previous lsn; only for testing!
+    // TODO really required? JournalFixture is a friend!
     ham_u64_t test_get_lsn() {
       return (m_lsn);
     }
@@ -190,11 +193,10 @@ class Journal
     // the oldest entry.
     //
     // |iter| must be initialized with zeroes for the first call.
-    // |auxbuffer| returns the auxiliary data of the entry.
-    // |auxbuffer.ptr| is either a structure of type PJournalEntryInsert or
-    // PJournalEntryErase.
+    // |auxbuffer| returns the auxiliary data of the entry and is either
+    // a structure of type PJournalEntryInsert or PJournalEntryErase.
     //
-    // Returns SUCCESS and an empty entry (lsn is zero) after the last element.
+    // Returns an empty entry (lsn is zero) after the last element.
     void get_entry(Iterator *iter, PJournalEntry *entry,
                     ByteArray *auxbuffer);
 

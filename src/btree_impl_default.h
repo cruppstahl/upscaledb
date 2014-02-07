@@ -2310,7 +2310,7 @@ class DefaultNodeImpl
 
       // now close the "gap" in the |other| page by moving the shifted
       // keys to the freelist
-      other->freelist_add_many(0, count);
+      other->freelist_add_many(count);
 
 #ifdef HAM_DEBUG
       check_index_integrity(pos + count);
@@ -2740,22 +2740,29 @@ class DefaultNodeImpl
     }
 
     // Adds a bunch of indices to the freelist
-    void freelist_add_many(int start, int count) {
-      // copy the indices to the freelist area
-      memmove(m_layout.get_key_index_ptr(m_node->get_count()
-                              + get_freelist_count()),
-                      m_layout.get_key_index_ptr(start),
+    void freelist_add_many(int count) {
+      // Copy the indices to the freelist area. This might overwrite the
+      // end of the index area and corrupt the payload data, therefore
+      // first copy those indices to a temporary array
+      void *tmp = m_arena.resize(count * m_layout.get_key_index_span());
+      memcpy(tmp, m_layout.get_key_index_ptr(0),
+                      m_layout.get_key_index_span() * count);
+
+      // then remove the deleted index keys by shifting all remaining
+      // indices/freelist items "to the left"
+      memmove(m_layout.get_key_index_ptr(0),
+                      m_layout.get_key_index_ptr(count),
+                      m_layout.get_key_index_span()
+                            * (get_freelist_count() + m_node->get_count()
+                                    - count));
+
+      // Add the previously stored indices to the freelist
+      memcpy(m_layout.get_key_index_ptr(m_node->get_count()
+                              + get_freelist_count() - count), tmp,
                       m_layout.get_key_index_span() * count);
 
       set_freelist_count(get_freelist_count() + count);
 
-      // then remove the deleted index keys by shifting all remaining
-      // indices/freelist items "to the left"
-      memmove(m_layout.get_key_index_ptr(start),
-                      m_layout.get_key_index_ptr(start + count),
-                      m_layout.get_key_index_span()
-                            * (get_freelist_count() + m_node->get_count()
-                                    - start - count));
       ham_assert(get_freelist_count() + m_node->get_count() - count
                       <= get_capacity());
     }

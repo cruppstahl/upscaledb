@@ -15,7 +15,7 @@ then
 fi
 
 FILES="README
-configure.in
+configure.ac
 documentation/Doxyfile
 tools/tests/ham_info/env3-3-f.txt
 tools/tests/ham_info/env3.txt

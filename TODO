@@ -280,8 +280,6 @@ high-level plan for 2.1.6 ...................................................
 
 o cache purge: purges 20 pages at once. is that a good number? try others
 
-o improve: ham_bench --cache=310241024 --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=1000000 --seed=1391686926
-
 o erlang API
     o with quickcheck coverage for...
         x database operations (create/close/open/erase/rename)
@@ -291,13 +289,26 @@ o erlang API
         o ... add cursors
 
 o improved logging/journalling
+    - add additional metadata
+        - type
+        - lsn
+        - txn-id (can be empty)
+        - uncompressed size
+        - payload size
+        - trailer: type + payload size
     - merge both files (log + journal) into one
+        - add new journal entry for "changeset"
+        - then write the full changeset
     - need to keep track of the newest lsn (is currently written to the
         log file header)
-    - buffer the log and only flush if a txn is committed, the changeset
-        is written or the buffer becomes too big
     - recovery processes physical log "backwards" and logical journal
         "forwards"
+    - files are buffered (use FILE and setvbuf w/ full buffering)
+        - os_writev still required?
+        - flush buffers if a txn is committed (fsync), after the changeset
+            was written (fsync) or the buffer becomes too big
+    - check recovery tests
+
     - PageManager state now writes deltas to journal while flushing a txn-op
             (this is part of the journal, not of the changeset)
         - this state is written immediately BEFORE the changeset
@@ -310,21 +321,24 @@ o improved logging/journalling
         - periodically insert checkpoints if the log file becomes too big
             and too many deltas have been written; otherwise the logfile
             cannot be switched
+    - check recovery tests
+    - check performance w/ lessfs
 
 o delta updates (DU)
     - insert SMOs (splits) are applied when "going down"
+        - move split operation to "the janitor"
     - erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
         -> leaf nodes can become empty
-        -> internal nodes must have at least one link (ptr_down)
-        -> if a child node is deleted, and the anchor of that child node
-            is NOT at position[0] then remove them (this conflicts with the
-            rule "internal nodes have at least one link (ptr_down)")
-        -> if internal nodes only have one link to a single child then they
-             can be reorganized
-        -> if internal nodes only have one link to a single child then they
-             can be reorganized
+        -> internal nodes must at least set ptr_down
+        -> only merge pages if they have the same parent and if they are both
+            nearly empty
+            - merge goes from top to bottom
+            - if there's an underflow: the path to this underflow is added
+                to the janitor's queue
         -> in the end there's a btree skeleton with empty leafs and nearly-
-            empty nodes; this can then be compact()ed offline
+            empty nodes; this can then be compact()ed offline or asynchronously
+        - is there a cheap way to visualize the tree?
+            -> yes: http://www.graphviz.org/content/datastruct
     - SMOs are separated from the actual operation
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
@@ -334,22 +348,27 @@ o delta updates (DU)
 
     - the actual operation now becomes atomic and simply attachs a DU to
         the modified page
-    - creating a DU requires a single memory allocation!
-    - DUs are stored in the journal as a logical operation (attached to
-        the page, but with a link to the txn)
-    - how does recovery work? all DUs that were already flushed (can find out
-        by looking at their lsn) are ignored; only those are applied that
-        are not yet written to disk
-    - DUs are merged synchronously as soon as there are too many or the
-        page is flushed or a lookup is performed
-    - with a page split the queued DUs have to be split as well (or merged)
+        - creating a DU requires a single memory allocation!
     - find a single solution for transactions AND regular updates
         is this possible? they both serve different purposes, and the
         consolidation could become very tricky (think of cursors, 
         approx. matching...)
         -> but maybe the txn opnode/op could *point* to the DU?
-        -> or: always store DeltaUpdates in the TransactionIndex? then we
-            could reuse the consolidation logic
+        - the janitor makes sure that DUs of aborted txn's are silently removed
+    - the janitor merges the DUs if
+        - the number of DUs exceeds a certain limit
+        - the page is merged or split
+        - the page is flushed
+        - there is a lookup operation
+        - however: skip those of uncommitted/aborted transactions!
+    - how does recovery work? all DUs that were already flushed (can find out
+        by looking at their lsn) are ignored; only those are applied that
+        are not yet written to disk
+        - each journal entry of a DU must store the current lsn AND the txn-id
+        - whenever a page is flushed then the page must contain the lsn
+            of the latest DU that was merged!
+
+o improve: ham_bench --cache=310241024 --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=1000000 --seed=1391686926
 
 o can we come up with olap functions that operate directly on the btree data?
     -> working on keys only!! does that make sense?
