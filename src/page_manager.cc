@@ -167,7 +167,6 @@ PageManager::store_state()
 
     // now store the counter
     *(ham_u32_t *)p = ham_h2db32(counter);
-    p += 4;
 
     // are we done? if not then continue with the next page
     if (it != m_free_pages.end()) {

@@ -23,8 +23,8 @@ set to 16kb).
 
 Many of these changes and fixes improved the performance.
 
-The file format of 2.1.5 is compatible to 2.1.4 and will most likely remain
-stable for the next few releases.
+The file format of 2.1.5 is not compatible to 2.1.4, but will most likely
+remain stable for the next releases.
 
 For the next release i am going to continue working on improved scalability,
 and you can also expect Erlang support soonish.

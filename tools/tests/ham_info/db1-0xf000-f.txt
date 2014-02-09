@@ -2,7 +2,7 @@ environment
     pagesize:                   16384
     version:                    2.0.2.0
     serialno:                   0
-    max databases:              16
+    max databases:              676
 
     database 61440 (0xf000)
         max key size:           21

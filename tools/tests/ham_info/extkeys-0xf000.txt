@@ -1,5 +1,5 @@
 environment
   page_size:           16384
-  version:          2.1.5.2
-  max databases:        16
+  version:          2.1.5.3
+  max databases:        676
 Database 61440 (0xf000) not found

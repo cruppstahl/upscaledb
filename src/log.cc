@@ -199,7 +199,8 @@ Log::recover()
     }
 
     // overwrite the page data
-    memcpy(page->get_data(), buffer.get_ptr(), entry.data_size);
+    if (buffer.get_ptr())
+      memcpy(page->get_data(), buffer.get_ptr(), entry.data_size);
 
     ham_assert(page->get_address() == entry.offset);
     ham_assert(m_env->get_page_size() == entry.data_size);

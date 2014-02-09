@@ -420,10 +420,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\freelist.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\globals.h"
 			>
 		</File>

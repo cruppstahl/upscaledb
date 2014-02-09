@@ -164,8 +164,11 @@ class BtreeInsertAction
       /* OK - we're really appending/prepending the new key.  */
       if (force_append || force_prepend)
         return (insert_in_leaf(page, m_key, 0, force_prepend, force_append));
-      else
-        return (insert());
+
+      /* otherwise reset the hints because they would be misleading */
+      m_hints.flags &= ~HAM_HINT_APPEND;
+      m_hints.flags &= ~HAM_HINT_PREPEND;
+      return (insert());
     }
 
     ham_status_t insert() {

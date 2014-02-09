@@ -1926,13 +1926,11 @@ class DefaultNodeImpl
       }
       // not found: append at the end
       else {
-        if (count == 0) {
-          idx = 0;
+        if (count == 0)
           offset = 0;
-        }
-        else {
+        else
           offset = get_next_offset();
-        }
+
         // make sure that the key really fits! if not then use an extended key.
         // this can happen if a page is split, but the new key still doesn't
         // fit into the splitted page.

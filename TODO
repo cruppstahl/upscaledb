@@ -280,6 +280,11 @@ high-level plan for 2.1.6 ...................................................
 
 o cache purge: purges 20 pages at once. is that a good number? try others
 
+o clang's scan-build ignores ham_assert macros
+    http://clang-analyzer.llvm.org/annotations.html#custom_assertions
+    - use __attribute__((__noreturn__));
+    - also (primarily) for debug build, only if scan-build is active
+
 o erlang API
     o with quickcheck coverage for...
         x database operations (create/close/open/erase/rename)

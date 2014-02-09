@@ -304,7 +304,9 @@ struct PageManagerFixture {
       REQUIRE(false == pm->test_is_page_free((3 + i) * page_size));
 
     // verify file size
+#ifndef WIN32
     REQUIRE((ham_u64_t)(page_size * 6) == lenv->get_device()->get_file_size());
+#endif
   }
 
   void collapseFreelistTest() {

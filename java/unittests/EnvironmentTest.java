@@ -300,7 +300,7 @@ public class EnvironmentTest extends TestCase {
     assertEquals(2 * 1024 * 1024, params[0].value);
     if (params[1].value != 1024 * 16 && params[1].value != 1024 * 64)
       assertEquals(16 * 1024, params[1].value);
-    assertEquals(16, params[2].value);
+    assertEquals(676, params[2].value);
     assertEquals(0, params[3].value);
     assertEquals(420, params[4].value);
     assertEquals("jtest.db", params[5].stringValue);

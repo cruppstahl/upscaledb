@@ -136,7 +136,6 @@ class BinaryImporter : public Importer {
       // create environment (if it does not yet exist)
       ham_parameter_t params[] = {
         { HAM_PARAM_PAGESIZE, e.page_size() },
-        { HAM_PARAM_MAX_DATABASES, e.max_databases() },
         { 0, 0 },
       };
 

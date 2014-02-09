@@ -1,7 +1,7 @@
 environment
   page_size:           16384
-  version:          2.1.5.2
-  max databases:        16
+  version:          2.1.5.3
+  max databases:        676
 
   database 1 (0x1)
     key type:             HAM_TYPE_UINT32
@@ -38,7 +38,7 @@ environment
   database 3 (0x3)
     key type:             HAM_TYPE_UINT32
     max key size:         4
-    max keys per page:    1634
+    max keys per page:    2042
     flags:                0x804004
     record size:          4 (inline: yes)
     number of items:    8

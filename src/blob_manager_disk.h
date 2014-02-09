@@ -17,6 +17,8 @@
 
 namespace hamsterdb {
 
+#include "packstart.h"
+
 /*
  * The header of a blob page
  *
