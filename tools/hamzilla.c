@@ -276,7 +276,7 @@ read_config(const char *configfile, config_table_t **params) {
   r = fread(buf, 1, len, fp);
   fclose(fp);
 
-  if (r < 0 || r != len) {
+  if (r != len) {
     hlog(LOG_FATAL, "failed to read configuration file: %s\n",
                     strerror(errno));
     exit(-1);

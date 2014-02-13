@@ -37,7 +37,7 @@ ham_u64_t g_extended_duptables = 0;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
                 ham_u32_t key_type, ham_u32_t key_size)
-  : m_db(db), m_key_size(0), m_key_type(key_type),
+  : m_db(db), m_key_size(0), m_key_type(key_type), m_rec_size(0),
     m_descriptor_index(descriptor), m_flags(flags), m_root_address(0)
 {
   m_leaf_traits = BtreeIndexFactory::create(db, flags, key_type,

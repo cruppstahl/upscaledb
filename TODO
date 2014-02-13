@@ -14,276 +14,17 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.1.4 ..................................................
-x check for scalability issues with files > 1 GB
-x improvements for ham_bench
-x get rid of the freelist
-x improve scalability
-- erlang wrapper
------------------------------------------------------------------------------
+high-level plan for 2.1.6 ..................................................
+x improve static code analysis
+- erlang api
+- improved logging/journalling
+- simplified btree SMOs
+- delta updates
 
-x update copyright string: 2013 -> 2014
 
-x check for scalability issues with files > 1 GB and check if we're on the
-    right track regarding scalability
-    -> remove the freelist
-    -> add delta updates to avoid memmove in the index pages
-
-x ham_bench: new test mode: first load with LOTS of data, then erase in the
-    same order (or in random order or reverse order) till the database is empty
-    - implementation idea: when switching to ERASE, perform a reset() on the
-        NumberGenerator, and it will start delivering the same sequence as
-        from the beginning
-    x add a reset() method to the datasources
-    x new command line options --bulk-erase
-        x if set then reset() datasource, delete
-        x NOT for parser-generator (print error)
-        x only for stop-ops
-    x add to monster tests
-
-x get rid of the freelist for pages (not yet for blobs)
-    The PageManager keeps a (persistent) list of all pages, including their
-    id, their size, the type, the database. It keeps a separate list with
-    all free pages.
-    x the PageManager has a list of all pages. this effectively replaces
-        the cache
-    x the PageManager knows if a page is old or not, and whether it can
-        be flushed to disk
-    x get rid of the "totallist" linked list of all pages
-    x get rid of the "bucket" linked list of all pages
-    x remove HAM_CACHE_FULL and HAM_CACHE_STRICT - don't think it is used
-    x the PageManager knows whether a page is free or not
-        x no longer use the freelist to manage empty pages, only for blobs
-    x when allocating new pages: check the internal list, not the freelist
-    x store the modified list on disk, load it
-        x implement store/load methods
-        x store blob-id in the environment header 
-        x load when env is opened
-        x store when env is closed
-        x PageManager must accept entries which are available but do not
-            have a Page pointer
-        x fix unittests
-    x pax-layout with recsize == 0: must be much faster now
-        -> yes, but purge_cache requires 30% of the time now
-        x re-introduce totallist
-    x move the unittests from cache.cpp to page_manager.cpp, update them
-    x do not persist state if Environment is in-memory 
-    x re-activate unittests in log.cpp
-    x if logging is enabled: immediately write the modified state
-        (later this will be rewritten as incremental updates for the log)
-        x verify recovery tests
-
-x support pages with different sizes
-    x for now just keep the setting as is (HAM_PARAM_PAGE_SIZE in the Env)
-        x but the page stores its size persistently (for debugging)
-        x always use page->get_page_size(), if possible
-        x when loading a page: assert that page_size is correct
-            (if a header exists)
-
-    x make sure that the log can work with different sizes
-
-    x device: make independent of page size
-    x Page::allocate must accept page size as parameter
-
-    x if a free page is deleted then delete the Page pointer, but keep the
-        entry in the map, otherwise we lose the information whether the page
-        is free
-    x PageManager must store page sizes (and persist them)
-    x when allocating a page: check freelist for pages with this size
-    x PageManager->is_cache_full() must take the sizes in account
-
-x v2: fix compilation problems on MacOS
-
-x remove the freelist
-    x blob: remove direct I/O - it's barely used anyway
-    x completely get rid of the freelist
-    x blobs no longer need to be aligned
-
-    x very large blob pages no longer span multiple blobs but create a
-        single page which is large enough
-        x PageManager::alloc_page needs page-size parameter
-        x PageManager::fetch_page does not require parameter cache_only
-        x PageManager::fetch_page needs to know the size
-    x blobs no longer cross page boundaries
-    x this allows lots of cleanups in DiskBlobManager::read_chunk/write_chunk,
-        because there's always just ONE page, not more
-        x still uses env->get_page_size()
-    x every page now has a page header, even blob pages
-    x every blob page now has a blob page header with a counter ("free bytes")
-        and a small freelist (constant length)
-
-    x update the "free bytes" counter after overwriting, allocating and erasing
-        blobs to/in/from this page
-    x keep the actual freelist VERY simple - i.e. do not merge empty
-        blobs, i.e. only store the 32 largest free entries etc
-
-    x PageManager state persists page sizes for all pages with non-default size
-    x The PageManager caches the id of the last used blob page to
-        check for free space
-    x verify that m_needs_flush is always updated correctly
-
-    x re-activate unittests
-        x implement PageManager persistence (simply reserve a page)
-            x needs unittest
-    x implement/update reclaim_space()
-    x update freelist counters for metrics
-    x also check recovery tests
-
-    x git rm src/freelist* unittests/freelist*
-
-    x improve performance
-        x all pages have fixed size (except blob pages)
-            x remove page->get_size()
-            x adjust page->allocate, page->fetch
-        x remove PageManager::get_page_from_address()
-        x blob pages spanning multiple pages do NOT have a header!
-        x the page-map ONLY persists free pages
-
-    x run performance tests (compare PAX against 2.1.3, release build)
-        - with records, 1 mio
-            --seed=1389874598 --key=uint64
-                                2.1.4           head
-            total time:         9.272876        7.599807
-            file size:          1159331840      1118830592
-        - with records, 5 mio
-            --seed=1389874598 --key=uint64 --stop-ops=5000000
-                                2.1.4           head
-            total time:         64.212313       47.319125
-            file size:          5832523776      5595086848
-        - with records, 1 mio, 30% erase
-            --seed=1389874598 --key=uint64 --erase-pct=30
-                                2.1.4           head
-            total time:         6.530221        6.067156
-            file size:          807469056       781975552
-        - with records, 5 mio, 30% erase
-            --seed=1389874598 --key=uint64 --stop-ops=5000000 --erase-pct=30
-                                2.1.4           head
-            total time:         44.115751       35.959277
-            file size:          4074618880      3898146816
-        - without records, 1 mio
-            --seed=1389874598 --key=uint64 --recsize-fixed=0
-                                2.1.4           head
-            total time:         3.155387        3.112488
-            file size:          10534912        10534912
-        - without records, 5 mio
-            --seed=1389874598 --key=uint64 --recsize-fixed=0 --stop-ops=5000000
-                                2.1.4           head
-            total time:         27.179945       25.764103
-            file size:          67125248        67125248
-        - without records, 1 mio, 30% erase
-            --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30
-                                2.1.4           head
-            total time:         2.255874        2.207462
-            file size:          8421376         8421376
-        - without records, 5 mio, 30% erase
-            --seed=1389874598 --key=uint64 --recsize-fixed=0 --erase-pct=30 --stop-ops=5000000
-                                2.1.4           head
-            total time:         20.919253       20.624674
-            file size:          33898496        33816576
-
-x v2: Fix .NET Wrapper issue: VS2010, SampleDb1. See
-    https://github.com/cruppstahl/hamsterdb/issues/29 for details
-
-x improve the freelist
-    The current implementation is limited because it only supports one page
-    to persist the PageManager's state. More than one page has to be
-    supported, and logging must be efficiently (i.e. only log those pages
-    that are modified.)
-    x only freelist operations are logged
-    x Reenable Env/eraseMultipleDatabases
-    x Reenable Env/eraseMultipleDatabasesReopenEnv
-    x store freelist on multiple pages, if required
-        x implemented, but needs a test
-    x BlobManager: merge adjacent free blobs
-    x if a blob page is completely empty: add it to the freelist
-        x add test
-    x if page is a multi-page: add all pages separately
-
-    x when closing: perform reclaim_space() BEFORE flush_all_pages(),
-        and flush_all_pages() should NOT flush the state_page;
-        instead (afterwards), the state is flushed and the state_page
-        is flushed. afterwards, no more pages are allowed to be modified.
-        -> that's already the case...
-    x check recovery tests
-
-x improve PageManager performance
-    x if logging is enabled and a freelist entry is *added* then this change
-        must not be logged. However, if a page is *taken* from the freelist
-        then it must be logged.
-    x use the non-intrusive hash table from 2.1.3
-        x manage free pages in separate freelist (std::map)
-        x cached pages are stored in a non-intrusive hash table
-    x improve multi-page handling
-        x PM::alloc_multiple_blob_pages() needs to be implemented
-            x add tests
-    x check performance again
-    x compress the freelist state
-        x collapse single free pages to multi-page blobs
-        x 1 byte header
-          - 4 bits: number of following bytes for page-id
-              (address % page_size)
-          - 4 bits: the multi-page counter
-        x n bytes: page-id, multiple of page-size
-        x add test for encode/decode
-        x add test for collapsing
-    x run recovery tests
-
-x shouldn't we use PAX if key==uint64 and record size is variable?  -> it does!
-
-x perftest
-    x add tests with more elements (i.e. 10 mio ops)
-    x ... and with very big records (1mb)
-
-x perftest: add bulk erase for all 3 distributions (no records required,
-    500k are enough)
-
-x v2: verify/improve performance of btree_impl_default: it has a very high
-    number of page splits compared to 2.1.3, even if the key size is <= 21.
-    Why? maybe the capacity is not calculated correctly. or do keys have
-    more overhead than in 2.1.3?
-                                2.1.3           head
-        - variable length keys (no duplicates)
-            --recsize=0 --seed=1389874598 
-            splits:             2043            1993
-        - variable length keys (no duplicates)
-            --recsize=0 --seed=1389874598 --keysize=64
-            splits:             6649            4141
-        - variable length keys (with duplicates)
-            --recsize=0 --seed=1389874598 --duplicate=last
-            splits:             2043            2067
-        - fixed length keys (with duplicates)
-            --recsize=0 --seed=1389874598 --key=uint64 --duplicate=last
-            splits:             1958            2002
-
-x run monster tests
-    x add test: bulk-erase, page_size 1024, key_size 64, extkey-threshold 30
-    x BtreeDefault/eraseReverseExtendedKeySplitTest
-    x BtreeDefault/eraseReverseKeySplitTest
-    x ./ham_bench --use-berkeleydb=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --extkey-threshold=20 --recsize=0 --stop-ops=1000000
-    x ./ham_bench --use-berkeleydb=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --cache=104857600 --stop-ops=500000 --seed=1391626086
-
-x ham_bench: extremely large files quickly get killed by the oom killer because
-        the process requires too much memory; why is that so??
-        ./ham_bench --recsize=1048576 --metrics=all --stop-ops=50000
-
-o start release process for 2.1.5
-
-o web-page requires updates
-    x deployed html differs from git-repository
-    o www1
-        o merge git repository of www1 (host on github, keep remote branch)
-        o clean up 'dl' directory
-        o where to host static files?
-        o backup and deploy to www2, use round-robin DNS
-
-high-level plan for 2.1.6 ...................................................
-
-o cache purge: purges 20 pages at once. is that a good number? try others
-
-o clang's scan-build ignores ham_assert macros
+x clang's scan-build ignores ham_assert macros
     http://clang-analyzer.llvm.org/annotations.html#custom_assertions
-    - use __attribute__((__noreturn__));
-    - also (primarily) for debug build, only if scan-build is active
+    x also for coverity
 
 o erlang API
     o with quickcheck coverage for...
@@ -328,6 +69,16 @@ o improved logging/journalling
             cannot be switched
     - check recovery tests
     - check performance w/ lessfs
+
+. web-page requires updates
+    x deployed html differs from git-repository
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
+
+. cache purge: purges 20 pages at once. is that a good number? try others
 
 o delta updates (DU)
     - insert SMOs (splits) are applied when "going down"

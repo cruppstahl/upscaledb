@@ -44,7 +44,16 @@ extern void dbg_prepare(int level, const char *file, int line,
 
 extern void dbg_log(const char *format, ...);
 
-extern void dbg_verify_failed(const char *format, ...);
+#define CLANG_ANALYZER_NORETURN
+#if __clang__
+#  if __has_feature(attribute_analyzer_noreturn)
+#    undef CLANG_ANALYZER_NORETURN
+#    define CLANG_ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#  endif
+#endif
+
+// causes the actual abort()
+extern void dbg_verify_failed(const char *format, ...) CLANG_ANALYZER_NORETURN;
 
 // a hook for unittests; will be triggered when an assert fails
 extern void (*ham_test_abort)();

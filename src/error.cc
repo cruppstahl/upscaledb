@@ -102,6 +102,7 @@ dbg_log(const char *format, ...)
   g_handler(g_level, buffer);
 }
 
+/* coverity[+kill] */
 void
 dbg_verify_failed(const char *format, ...)
 {

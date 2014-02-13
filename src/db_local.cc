@@ -1354,7 +1354,6 @@ ham_status_t
 LocalDatabase::cursor_get_record_count(Cursor *cursor,
           ham_u32_t *count, ham_u32_t flags)
 {
-  ham_status_t st = 0;
   Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
@@ -1379,15 +1378,6 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor,
   /* if we created a temp. txn then clean it up again */
   if (local_txn)
     cursor->set_txn(0);
-
-  if (st) {
-    if (local_txn)
-      local_txn->abort();
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  ham_assert(st == 0);
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */

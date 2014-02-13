@@ -25,7 +25,8 @@ PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
   : m_env(env), m_cache(env, cache_size), m_needs_flush(false),
     m_state_page(0), m_last_blob_page(0), m_page_count_fetched(0),
     m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
-    m_page_count_page_manager(0), m_freelist_hits(0), m_freelist_misses(0)
+    m_page_count_page_manager(0), m_cache_hits(0), m_cache_misses(0),
+    m_freelist_hits(0), m_freelist_misses(0)
 {
 }
 
