@@ -30,9 +30,11 @@ o erlang API
     o with quickcheck coverage for...
         x database operations (create/close/open/erase/rename)
         o database operations with insert/erase/find
-        o database operations with many insert/erase/find/table_scans
+        o ... add overwrite
+        o ... add duplicates
         o ... add transactions
         o ... add cursors
+        o ... add table scans
 
 o improved logging/journalling
     - add additional metadata
@@ -44,7 +46,7 @@ o improved logging/journalling
         - trailer: type + payload size
     - merge both files (log + journal) into one
         - add new journal entry for "changeset"
-        - then write the full changeset
+        - then write the full changeset atomically
     - need to keep track of the newest lsn (is currently written to the
         log file header)
     - recovery processes physical log "backwards" and logical journal
@@ -72,6 +74,8 @@ o improved logging/journalling
 
 . web-page requires updates
     x deployed html differs from git-repository
+    o would be great if the www1-repository and hamsterdb-www would be
+        identical
     o www1
         o merge git repository of www1 (host on github, keep remote branch)
         o clean up 'dl' directory
