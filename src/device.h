@@ -75,10 +75,6 @@ class Device {
     virtual void write(ham_u64_t offset, void *buffer,
                 ham_u64_t size) = 0;
 
-    // writes to the device; this function does not use mmap
-    virtual void writev(ham_u64_t offset, void *buffer1,
-                ham_u64_t size1, void *buffer2, ham_u64_t size2) = 0;
-
     // reads a page from the device; this function CAN use mmap
     virtual void read_page(Page *page, ham_u32_t page_size) = 0;
 

@@ -189,6 +189,9 @@ struct JournalFixture {
     REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
     REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
+    j->flush_buffer(0);
+    j->flush_buffer(1);
+
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
 
@@ -201,6 +204,10 @@ struct JournalFixture {
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+    j->flush_buffer(0);
+    j->flush_buffer(1);
+
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
     REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
@@ -226,6 +233,10 @@ struct JournalFixture {
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+    j->flush_buffer(0);
+    j->flush_buffer(1);
+
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
     REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
@@ -365,6 +376,9 @@ struct JournalFixture {
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+    j->flush_buffer(0);
+    j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)2 == j->test_get_lsn());
@@ -564,9 +578,9 @@ struct JournalFixture {
     Journal *j = m_lenv->get_journal();
     REQUIRE(j);
     size = os_get_file_size(j->m_fd[0]);
-    REQUIRE(sizeof(Journal::PEnvironmentHeader) == size);
+    REQUIRE(sizeof(Journal::PJournalHeader) == size);
     size = os_get_file_size(j->m_fd[1]);
-    REQUIRE(sizeof(Journal::PEnvironmentHeader) == size);
+    REQUIRE(sizeof(Journal::PJournalHeader) == size);
   }
 
   void recoverVerifyTxnIdsTest() {
@@ -679,7 +693,6 @@ struct JournalFixture {
     unsigned p = 0;
     ham_key_t key = {};
     ham_record_t rec = {};
-    Journal *j = new Journal(m_lenv);
     ham_u64_t lsn = 2;
 
     /* create a couple of transaction which insert a key, but do not
@@ -694,6 +707,10 @@ struct JournalFixture {
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
     }
+
+    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv->get_journal()->flush_buffer(0);
+    m_lenv->get_journal()->flush_buffer(1);
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -711,9 +728,8 @@ struct JournalFixture {
           Globals::opath(".test.jrn1")));
     REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
-    j->close();
-    delete j;
-    j = new Journal(m_lenv);
+    
+    Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test_set_journal(j);
     compareJournal(j, vec, p);
@@ -779,6 +795,9 @@ struct JournalFixture {
       else
         j->append_txn_commit((Transaction *)txn[i], lsn - 1);
     }
+
+    j->flush_buffer(0);
+    j->flush_buffer(1);
 
     /* backup the journal files; then re-create the Environment from the
      * journal */

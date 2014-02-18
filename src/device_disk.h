@@ -134,13 +134,6 @@ class DiskDevice : public Device {
       os_pwrite(m_fd, offset, buffer, size);
     }
 
-    // writes to the device; this function does not use mmap
-    virtual void writev(ham_u64_t offset, void *buffer1, ham_u64_t size1,
-                    void *buffer2, ham_u64_t size2) {
-      seek(offset, HAM_OS_SEEK_SET);
-      os_writev(m_fd, buffer1, size1, buffer2, size2);
-    }
-
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
     virtual void read_page(Page *page, ham_u32_t page_size) {

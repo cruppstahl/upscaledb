@@ -30,23 +30,11 @@
 
 namespace hamsterdb {
 
-static ham_u32_t
-__get_aligned_entry_size(ham_u32_t s)
-{
-  s += 8 - 1;
-  s -= (s % 8);
-  return (s);
-}
-
 void
 Journal::create()
 {
   int i;
-  PEnvironmentHeader header;
-
-  // Initialize the header structure
-  memset(&header, 0, sizeof(header));
-  header.magic = HEADER_MAGIC;
+  PJournalHeader header;
 
   // create the two files
   for (i = 0; i < 2; i++) {
@@ -62,12 +50,12 @@ void
 Journal::open()
 {
   int i;
-  PEnvironmentHeader header;
+  PJournalHeader header;
   PJournalEntry entry;
+  PJournalTrailer trailer;
   ham_u64_t lsn[2];
   ham_status_t st1 = 0, st2 = 0;
 
-  memset(&header, 0, sizeof(header));
   m_current_fd = 0;
 
   // open the two files; if the files do not exist then create them
@@ -98,7 +86,7 @@ Journal::open()
     // check the magic
     os_pread(m_fd[i], 0, &header, sizeof(header));
 
-    if (header.magic != HEADER_MAGIC) {
+    if (header.magic != kHeaderMagic) {
       ham_trace(("journal has unknown magic or is corrupt"));
       (void)close();
       throw Exception(HAM_LOG_INV_FILE_HEADER);
@@ -117,7 +105,10 @@ Journal::open()
     ham_u64_t size = os_get_file_size(m_fd[i]);
 
     if (size >= sizeof(entry)) {
-      os_pread(m_fd[i], size - sizeof(PJournalEntry), &entry, sizeof(entry));
+      os_pread(m_fd[i], size - sizeof(PJournalTrailer),
+                      &trailer, sizeof(trailer));
+      os_pread(m_fd[i], size - trailer.full_size - sizeof(trailer),
+                      &entry, sizeof(entry));
       lsn[i] = entry.lsn;
     }
     else
@@ -171,6 +162,10 @@ Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env,
   if (name)
     entry.followup_size = strlen(name) + 1;
 
+  PJournalTrailer trailer;
+  trailer.type = entry.type;
+  trailer.full_size = sizeof(entry) + entry.followup_size;
+
   switch_files_maybe(txn);
 
   int cur = txn->get_log_desc();
@@ -178,9 +173,11 @@ Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env,
   if (txn->get_name().size())
     append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
                 (void *)txn->get_name().c_str(),
-                (ham_u32_t)txn->get_name().size() + 1);
+                (ham_u32_t)txn->get_name().size() + 1,
+                (void *)&trailer, sizeof(trailer));
   else
-    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry));
+    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
+                (void *)&trailer, sizeof(trailer));
 
   m_open_txn[cur]++;
 
@@ -202,12 +199,16 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_ABORT;
 
+  PJournalTrailer trailer;
+  trailer.type = entry.type;
+  trailer.full_size = sizeof(entry) + entry.followup_size;
+
   // update the transaction counters of this logfile
   idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
-  append_entry(idx, &entry, sizeof(entry));
+  append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
   // no need for fsync - incomplete transactions will be aborted anyway
 }
 
@@ -223,14 +224,18 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_COMMIT;
 
+  PJournalTrailer trailer;
+  trailer.type = entry.type;
+  trailer.full_size = sizeof(entry) + entry.followup_size;
+
   // update the transaction counters of this logfile
   idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
-  append_entry(idx, &entry, sizeof(entry));
+  append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
   if (m_env->get_flags() & HAM_ENABLE_FSYNC)
-    os_flush(m_fd[idx]);
+    flush_buffer(idx, true);
 }
 
 void
@@ -241,17 +246,15 @@ Journal::append_insert(Database *db, Transaction *txn,
   if (m_disable_logging)
     return;
 
-  char padding[16] = {0};
   PJournalEntry entry;
   PJournalEntryInsert insert;
   ham_u32_t size = sizeof(PJournalEntryInsert) + key->size + record->size - 1;
-  ham_u32_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_INSERT;
-  entry.followup_size = size + padding_size;
+  entry.followup_size = size;
 
   insert.key_size = key->size;
   insert.record_size = record->size;
@@ -259,13 +262,18 @@ Journal::append_insert(Database *db, Transaction *txn,
   insert.record_partial_offset = record->partial_offset;
   insert.insert_flags = flags;
 
+  PJournalTrailer trailer;
+  trailer.type = entry.type;
+  trailer.full_size = sizeof(entry) + sizeof(PJournalEntryInsert) - 1
+                + key->size + record->size;
+
   // append the entry to the logfile
   append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
                 &insert, sizeof(PJournalEntryInsert) - 1,
                 key->data, key->size,
                 record->data, record->size,
-                padding, padding_size);
+                &trailer, sizeof(trailer));
 }
 
 void
@@ -275,27 +283,30 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
   if (m_disable_logging)
     return;
 
-  char padding[16] = {0};
   PJournalEntry entry;
   PJournalEntryErase erase;
   ham_u32_t size = sizeof(PJournalEntryErase) + key->size - 1;
-  ham_u32_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_ERASE;
-  entry.followup_size = size + padding_size;
+  entry.followup_size = size;
   erase.key_size = key->size;
   erase.erase_flags = flags;
   erase.duplicate = dupe;
+
+  PJournalTrailer trailer;
+  trailer.type = entry.type;
+  trailer.full_size = sizeof(entry) + sizeof(PJournalEntryErase) - 1
+                + key->size;
 
   // append the entry to the logfile
   append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
                 (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
                 key->data, key->size,
-                padding, padding_size);
+                &trailer, sizeof(trailer));
 }
 
 void
@@ -315,7 +326,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
                   m_current_fd == 0
                       ? 1
                       : 0;
-    iter->offset = sizeof(PEnvironmentHeader);
+    iter->offset = sizeof(PJournalHeader);
   }
 
   // get the size of the journal file
@@ -325,7 +336,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
-      iter->offset = sizeof(PEnvironmentHeader);
+      iter->offset = sizeof(PJournalHeader);
       filesize = os_get_file_size(m_fd[iter->fdidx]);
     }
     else {
@@ -353,6 +364,9 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
                     entry->followup_size);
     iter->offset += entry->followup_size;
   }
+
+  // skip the trailer
+  iter->offset += sizeof(PJournalTrailer);
 }
 
 void
@@ -360,13 +374,20 @@ Journal::close(bool noclear)
 {
   int i;
 
+  // the noclear flag is set during testing, for checking whether the files
+  // contain the correct data. Flush the buffers, otherwise the tests will
+  // fail because data is missing
+  if (noclear) {
+    flush_buffer(0);
+    flush_buffer(1);
+  }
+
   if (!noclear) {
-    PEnvironmentHeader header;
+    PJournalHeader header;
 
     clear();
 
     // update the header page of file 0 to store the lsn
-    header.magic = HEADER_MAGIC;
     header.lsn = m_lsn;
 
     if (m_fd[0] != HAM_INVALID_FD)
@@ -378,6 +399,7 @@ Journal::close(bool noclear)
       os_close(m_fd[i]);
       m_fd[i] = HAM_INVALID_FD;
     }
+    m_buffer[i].clear();
   }
 }
 
@@ -603,17 +625,20 @@ void
 Journal::clear_file(int idx)
 {
   if (m_fd[idx] != HAM_INVALID_FD) {
-    os_truncate(m_fd[idx], sizeof(PEnvironmentHeader));
+    os_truncate(m_fd[idx], sizeof(PJournalHeader));
 
     // after truncate, the file pointer is far beyond the new end of file;
     // reset the file pointer, or the next write will resize the file to
     // the original size
-    os_seek(m_fd[idx], sizeof(PEnvironmentHeader), HAM_OS_SEEK_SET);
+    os_seek(m_fd[idx], sizeof(PJournalHeader), HAM_OS_SEEK_SET);
   }
 
   // clear the transaction counters
   m_open_txn[idx] = 0;
   m_closed_txn[idx] = 0;
+
+  // also clear the buffer with the outstanding data
+  m_buffer[idx].clear();
 }
 
 std::string

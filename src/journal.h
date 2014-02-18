@@ -19,14 +19,21 @@
  * The journal is organized in two files. If one of the files grows too large
  * then all new transactions are stored in the other file.
  * ("Log file switching")
+ *
+ * For writing, files are buffered. The buffers are flushed when they
+ * exceed a certain threshold, when a Transaction is committed or a Changeset
+ * was written.
  */
 
 #ifndef HAM_JOURNAL_H__
 #define HAM_JOURNAL_H__
 
+#include <cstdio>
+
 #include "mem.h"
 #include "env_local.h"
 #include "os.h"
+#include "util.h"
 #include "journal_entries.h"
 
 namespace hamsterdb {
@@ -41,37 +48,46 @@ class ByteArray;
 class Journal
 {
     enum {
-      kDefaultThreshold = 16
+      // switch log file after |kSwitchTxnThreshold| transactions
+      kSwitchTxnThreshold = 16,
+
+      // flush buffers if this limit is exceeded
+      kBufferLimit = 1024 * 1024, // 1 mb
+
+      // magic for a journal file
+      kHeaderMagic = ('h'<<24) | ('j'<<16) | ('o'<<8) | '2',
+
+      // magic for a journal trailer
+      kTrailerMagic = ('h'<<24) | ('t'<<16) | ('r'<<8) | '1'
     };
 
   public:
-    static const ham_u32_t HEADER_MAGIC = ('h'<<24) | ('j'<<16) | ('o'<<8)|'1';
-
     enum {
-      // mark the start of a new transaction
+      // marks the start of a new transaction
       ENTRY_TYPE_TXN_BEGIN  = 1,
 
-      // mark the end of an aborted transaction
+      // marks the end of an aborted transaction
       ENTRY_TYPE_TXN_ABORT  = 2,
 
-      // mark the end of an committed transaction
+      // marks the end of an committed transaction
       ENTRY_TYPE_TXN_COMMIT = 3,
 
-      // mark an insert operation
+      // marks an insert operation
       ENTRY_TYPE_INSERT     = 4,
 
-      // mark an erase operation
-      ENTRY_TYPE_ERASE      = 5
+      // marks an erase operation
+      ENTRY_TYPE_ERASE      = 5,
+
+      // marks a whole changeset operation (writes modified pages)
+      ENTRY_TYPE_CHANGESET  = 6
     };
 
     //
     // The header structure of a journal file
     //
-    // TODO rename to PJournalHeader
-    //
-    HAM_PACK_0 struct HAM_PACK_1 PEnvironmentHeader {
-      PEnvironmentHeader()
-        : magic(0), _reserved(0), lsn(0) {
+    HAM_PACK_0 struct HAM_PACK_1 PJournalHeader {
+      PJournalHeader()
+        : magic(kHeaderMagic), _reserved(0), lsn(0) {
       }
 
       // the magic
@@ -82,6 +98,24 @@ class Journal
 
       // the last used lsn
       ham_u64_t lsn;
+    } HAM_PACK_2;
+
+    //
+    // The trailer of each journal entry
+    //
+    HAM_PACK_0 struct HAM_PACK_1 PJournalTrailer {
+      PJournalTrailer()
+        : magic(kTrailerMagic) {
+      }
+
+      // the magic
+      ham_u32_t magic;
+
+      // the entry type
+      ham_u32_t type;
+
+      // the full size of the entry
+      ham_u32_t full_size;
     } HAM_PACK_2;
 
     //
@@ -105,7 +139,7 @@ class Journal
     // Constructor
     Journal(LocalEnvironment *env)
       : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
-        m_threshold(kDefaultThreshold), m_disable_logging(false) {
+        m_threshold(kSwitchTxnThreshold), m_disable_logging(false) {
       m_fd[0] = HAM_INVALID_FD;
       m_fd[1] = HAM_INVALID_FD;
       m_open_txn[0] = 0;
@@ -129,7 +163,7 @@ class Journal
 
       for (int i = 0; i < 2; i++) {
         size = os_get_file_size(m_fd[i]);
-        if (size && size != sizeof(PEnvironmentHeader))
+        if (size && size != sizeof(PJournalHeader))
           return (false);
       }
 
@@ -201,15 +235,35 @@ class Journal
                     ByteArray *auxbuffer);
 
     // Appends an entry to the journal
-    void append_entry(int fdidx,
+    void append_entry(int idx,
                 void *ptr1 = 0, ham_u32_t ptr1_size = 0,
                 void *ptr2 = 0, ham_u32_t ptr2_size = 0,
                 void *ptr3 = 0, ham_u32_t ptr3_size = 0,
                 void *ptr4 = 0, ham_u32_t ptr4_size = 0,
                 void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
-      os_writev(m_fd[fdidx], ptr1, ptr1_size,
-                  ptr2, ptr2_size, ptr3, ptr3_size,
-                  ptr4, ptr4_size, ptr5, ptr5_size);
+      if (ptr1_size)
+        m_buffer[idx].append(ptr1, ptr1_size);
+      if (ptr2_size)
+        m_buffer[idx].append(ptr2, ptr2_size);
+      if (ptr3_size)
+        m_buffer[idx].append(ptr3, ptr3_size);
+      if (ptr4_size)
+        m_buffer[idx].append(ptr4, ptr4_size);
+      if (ptr5_size)
+        m_buffer[idx].append(ptr5, ptr5_size);
+
+      // flush buffer if size limit is exceeded
+      if (m_buffer[idx].get_size() >= kBufferLimit)
+        flush_buffer(idx);
+    }
+
+    // Flushes a buffer to disk
+    void flush_buffer(int idx, bool fsync = false) {
+      os_write(m_fd[idx], m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
+      m_buffer[idx].clear();
+
+      if (fsync)
+        os_flush(m_fd[idx]);
     }
 
     // Clears a single file
@@ -223,6 +277,9 @@ class Journal
 
     // The two file descriptors
     ham_fd_t m_fd[2];
+
+    // Buffers for writing data to the files
+    ByteArray m_buffer[2];
 
     // For counting all open transactions in the files
     ham_u32_t m_open_txn[2];

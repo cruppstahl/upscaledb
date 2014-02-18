@@ -19,6 +19,13 @@ x improve static code analysis
 - erlang api
 - improved logging/journalling
 - simplified btree SMOs
+    paper:
+        describe current solution
+        describe new solution
+            split SMOs from actual operation
+            show degenerated tree
+            show SMO operations (which can run in background)
+        show before/after benchmarks
 - delta updates
 
 
@@ -30,47 +37,39 @@ o erlang API
     o with quickcheck coverage for...
         x database operations (create/close/open/erase/rename)
         o database operations with insert/erase/find
-        o ... add overwrite
-        o ... add duplicates
-        o ... add transactions
-        o ... add cursors
-        o ... add table scans
 
 o improved logging/journalling
-    - add additional metadata
-        - type
-        - lsn
-        - txn-id (can be empty)
-        - uncompressed size
-        - payload size
-        - trailer: type + payload size
-    - merge both files (log + journal) into one
-        - add new journal entry for "changeset"
-        - then write the full changeset atomically
-    - need to keep track of the newest lsn (is currently written to the
+    x change journal magic
+    x add trailer for each entry (type + size)
+    x need to keep track of the newest lsn (is currently written to the
         log file header)
-    - recovery processes physical log "backwards" and logical journal
+    x files must be buffered
+        x flush buffers if a txn is committed (fsync!)
+        x if the buffer becomes too big
+        x if the file is closed (no - just clear the buffer!)
+    o merge both files (log + journal) into one
+        o add new journal entry for "changeset"
+        o then write the full changeset atomically
+        o flush buffers after the changeset was written (fsync)
+        o os_writev still required?
+    o recovery processes physical log "backwards" and logical journal
         "forwards"
-    - files are buffered (use FILE and setvbuf w/ full buffering)
-        - os_writev still required?
-        - flush buffers if a txn is committed (fsync), after the changeset
-            was written (fsync) or the buffer becomes too big
-    - check recovery tests
+    o check recovery tests
+    o review changeset flush
 
-    - PageManager state now writes deltas to journal while flushing a txn-op
+    o PageManager state now writes deltas to journal while flushing a txn-op
             (this is part of the journal, not of the changeset)
-        - this state is written immediately BEFORE the changeset
-        - the deltas have to be idempotent
-        - the deltas must be applied during recovery of the journal, not during
+        o this state is written immediately BEFORE the changeset
+        o the deltas have to be idempotent
+        o the deltas must be applied during recovery of the journal, not during
             the log; the log only contains physical redo-information. it does
             not require the PageManager to work.
-        - after the physical redo, the journal is re-created and the PageManager
+        o after the physical redo, the journal is re-created and the PageManager
             deltas are applied
-        - periodically insert checkpoints if the log file becomes too big
+        o periodically insert checkpoints if the log file becomes too big
             and too many deltas have been written; otherwise the logfile
             cannot be switched
-    - check recovery tests
-    - check performance w/ lessfs
+    o check recovery tests
 
 . web-page requires updates
     x deployed html differs from git-repository
@@ -83,6 +82,7 @@ o improved logging/journalling
         o backup and deploy to www2, use round-robin DNS
 
 . cache purge: purges 20 pages at once. is that a good number? try others
+    o maybe the number should depend on the page size?
 
 o delta updates (DU)
     - insert SMOs (splits) are applied when "going down"

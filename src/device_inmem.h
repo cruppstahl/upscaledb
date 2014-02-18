@@ -91,12 +91,6 @@ class InMemoryDevice : public Device {
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
-    virtual void writev(ham_u64_t offset, void *buffer1, ham_u64_t size1,
-                    void *buffer2, ham_u64_t size2) {
-      ham_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(HAM_NOT_IMPLEMENTED);
-    }
-
     // reads a page from the device 
     virtual void read_page(Page *page, ham_u32_t page_size) {
       ham_assert(!"operation is not possible for in-memory-databases");
