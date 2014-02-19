@@ -16,9 +16,9 @@ to scale with the number of cores.
 
 high-level plan for 2.1.6 ..................................................
 x improve static code analysis
-- erlang api
-- improved logging/journalling
-- simplified btree SMOs
+x erlang api
+o improved logging/journalling
+o simplified btree SMOs
     paper:
         describe current solution
         describe new solution
@@ -26,19 +26,14 @@ x improve static code analysis
             show degenerated tree
             show SMO operations (which can run in background)
         show before/after benchmarks
-- delta updates
+o delta updates
 
 
 x clang's scan-build ignores ham_assert macros
     http://clang-analyzer.llvm.org/annotations.html#custom_assertions
     x also for coverity
 
-o erlang API
-    o with quickcheck coverage for...
-        x database operations (create/close/open/erase/rename)
-        o database operations with insert/erase/find
-
-o improved logging/journalling
+x improved logging/journalling
     x change journal magic
     x add trailer for each entry (type + size)
     x need to keep track of the newest lsn (is currently written to the
@@ -47,34 +42,39 @@ o improved logging/journalling
         x flush buffers if a txn is committed (fsync!)
         x if the buffer becomes too big
         x if the file is closed (no - just clear the buffer!)
-    o merge both files (log + journal) into one
-        o add new journal entry for "changeset"
-        o then write the full changeset atomically
-        o flush buffers after the changeset was written (fsync)
-        o os_writev still required?
-    o recovery processes physical log "backwards" and logical journal
+    x merge both files (log + journal) into one
+        x add new journal entry for "changeset"
+        x then write the full changeset to the journal
+        x flush buffers after the changeset was written (fsync)
+        x remove log.h, log.cc
+        x os_writev still required?
+    x recovery processes physical log "backwards" and logical journal
         "forwards"
-    o check recovery tests
-    o review changeset flush
+        x first go backwards; but if there's no trailer magic then skip the
+            changeset
+        x when going forwards: skip ALL changesets
+        x ... and start with lsn of the applied changeset
+    x still has to work if journalling is disabled but recovery is enabled
+    x check recovery tests
+    x collect metric for bytes flushed to disk
+        x add to ham_bench
+    x changeset flush - always log if > 1 page is flushed
+    x add documentation
 
-    o PageManager state now writes deltas to journal while flushing a txn-op
-            (this is part of the journal, not of the changeset)
-        o this state is written immediately BEFORE the changeset
-        o the deltas have to be idempotent
-        o the deltas must be applied during recovery of the journal, not during
-            the log; the log only contains physical redo-information. it does
-            not require the PageManager to work.
-        o after the physical redo, the journal is re-created and the PageManager
-            deltas are applied
-        o periodically insert checkpoints if the log file becomes too big
-            and too many deltas have been written; otherwise the logfile
-            cannot be switched
+x erlang API
+    x with quickcheck coverage for...
+        x database operations (create/close/open/erase/rename)
+        x database operations with insert/erase/find
+
+o PageManager state now writes deltas to journal while flushing a txn-op.
+    o the deltas are part of the Changeset
+    o the deltas have to be idempotent
+    o the deltas must be applied during recovery of the changeset
     o check recovery tests
 
 . web-page requires updates
     x deployed html differs from git-repository
-    o would be great if the www1-repository and hamsterdb-www would be
-        identical
+    o www1-repository and hamsterdb-www should be identical
     o www1
         o merge git repository of www1 (host on github, keep remote branch)
         o clean up 'dl' directory
@@ -90,8 +90,8 @@ o delta updates (DU)
     - erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
         -> leaf nodes can become empty
         -> internal nodes must at least set ptr_down
-        -> only merge pages if they have the same parent and if they are both
-            nearly empty
+        -> janitor: only merge pages if they have the same parent and if they
+            are both nearly empty
             - merge goes from top to bottom
             - if there's an underflow: the path to this underflow is added
                 to the janitor's queue
@@ -105,6 +105,10 @@ o delta updates (DU)
     - reorg on demand (new compact() API) or in background? better in
         background. then come up with very simple rules to merge empty pages
         and clean up the tree.
+        -> just rinse and repeat: merge children with the same parent (see
+            above). The merges will start at the bottom and then slowly move
+            up. repeat till there's no more merging to be done. just figure
+            out a way how to do that efficiently!
 
     - the actual operation now becomes atomic and simply attachs a DU to
         the modified page
@@ -141,6 +145,12 @@ o can we come up with olap functions that operate directly on the btree data?
     o AVERAGE(predicate, result)
     o SELECT(predicate, callback)
     o JOIN(predicate, other table, join-callback, result-callback)
+    -> look for erlang map functions (foldl, foldr etc) for interfaces
+    -> the SELECTs should return VIEWs which then can used as input for other
+        SELECTs; this way you can build a "tree" of statements:
+        SELECT(callback1,
+            JOIN(callback2, table1,
+                SELECT(callback3, table2)))
 
 o improve integration of static code analysis in release process
     o oclint

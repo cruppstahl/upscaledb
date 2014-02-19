@@ -238,7 +238,7 @@ Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
   entry.offset = offset;
   entry.data_size = size;
 
-  os_writev(m_fd, data, size, &entry, sizeof(entry));
+  // os_writev(m_fd, data, size, &entry, sizeof(entry));
 }
 
 std::string

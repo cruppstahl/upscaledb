@@ -225,37 +225,6 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
     throw Exception(HAM_IO_ERROR);
 }
 
-void
-os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
-            void *buffer2, ham_u64_t buffer2_len,
-            void *buffer3, ham_u64_t buffer3_len,
-            void *buffer4, ham_u64_t buffer4_len,
-            void *buffer5, ham_u64_t buffer5_len)
-{
-  /*
-   * Win32 has a writev implementation, but it requires the pointers
-   * to be memory page aligned
-   */
-  ham_u64_t rollback = os_tell(fd);
-
-  try {
-    os_write(fd, buffer1, buffer1_len);
-    if (buffer2)
-      os_write(fd, buffer2, buffer2_len);
-    if (buffer3)
-      os_write(fd, buffer3, buffer3_len);
-    if (buffer4)
-      os_write(fd, buffer4, buffer4_len);
-    if (buffer5)
-      os_write(fd, buffer5, buffer5_len);
-  }
-  catch (Exception &ex) {
-    /* rollback the previous change */
-    os_seek(fd, rollback, HAM_OS_SEEK_SET);
-    throw ex;
-  }
-}
-
 #ifndef INVALID_SET_FILE_POINTER
 #   define INVALID_SET_FILE_POINTER  ((DWORD)-1)
 #endif

@@ -13,7 +13,6 @@ sub simple_test {
   $txn = shift;
   for ($i = 0; $i <= 7; $i++) {
     unlink("recovery.db");
-    unlink("recovery.db.log0");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
 
@@ -22,7 +21,6 @@ sub simple_test {
     for ($k = 0; $k < $max; $k++) {
       check(system("./recovery insert 64 8 $k 0 $txn $i"));
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery recover $txn"));
@@ -32,7 +30,6 @@ sub simple_test {
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 64 $k 0 $txn $i"));
@@ -46,7 +43,6 @@ sub extended_test {
   $txn = shift;
   for ($i = 0; $i <= 10; $i++) {
     unlink("recovery.db");
-    unlink("recovery.db.log0");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
 
@@ -55,7 +51,6 @@ sub extended_test {
     for ($k = 0; $k < $max; $k++) {
       check(system("./recovery insert 1024 1024 $k 0 $txn $i"));
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery recover $txn"));
@@ -65,7 +60,6 @@ sub extended_test {
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 1024 $k 0 $txn $i"));
@@ -79,7 +73,6 @@ sub duplicate_test {
   $txn = shift;
   for ($i = 1; $i <= 7; $i++) {
     unlink("recovery.db");
-    unlink("recovery.db.log0");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
 
@@ -88,7 +81,6 @@ sub duplicate_test {
     for ($k = 0; $k < $max; $k++) {
       check(system("./recovery insert 8 8 $k 1 $txn $i"));
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery recover $txn"));
@@ -108,7 +100,6 @@ sub extended_duplicate_test {
   $txn = shift;
   for ($i = 1; $i <= 10; $i++) {
     unlink("recovery.db");
-    unlink("recovery.db.log0");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
 
@@ -116,7 +107,6 @@ sub extended_duplicate_test {
     for ($k = 0; $k < $max; $k++) {
       check(system("./recovery insert 1024 1024 $k 1 $txn $i"));
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery recover $txn"));
@@ -126,7 +116,6 @@ sub extended_duplicate_test {
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
       #`cp recovery.db rec-$k.db`;
-      #`cp recovery.db.log0 rec-$k.db.log0`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
       check(system("./recovery erase 1024 $k 1 $txn $i"));

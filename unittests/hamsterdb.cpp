@@ -1601,15 +1601,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_db_close(m_db, 0));
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_open_db(m_env, &m_db, 0xff00, 0, 0));
-    /* right now it's allowed to create the DUMMY_DATABASE from scratch
-     * - that's not really a problem...
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open_db(m_env, m_db,
-            HAM_DUMMY_DATABASE_NAME, 0, 0));
-     */
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open_db(m_env, &m_db,
-            HAM_DUMMY_DATABASE_NAME + 1, 0, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_env_open_db(m_env, &m_db, 0xf000, 0, 0));
   }
 
   void hintingTest() {
@@ -1840,7 +1832,6 @@ struct HamsterdbFixture {
     os::unlink("data/test.db.log0");
     os::unlink("data/test.db.jrn0");
     os::unlink("data/test.db.jrn1");
-    REQUIRE(false == os::file_exists("data/test.db.log0"));
     REQUIRE(false == os::file_exists("data/test.db.jrn0"));
     REQUIRE(false == os::file_exists("data/test.db.jrn1"));
 
@@ -1848,7 +1839,6 @@ struct HamsterdbFixture {
         ham_env_create(&env, Globals::opath("test.db"),
             HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
     REQUIRE(0 == ham_env_close(env, 0));
-    REQUIRE(true == os::file_exists("data/test.db.log0"));
     REQUIRE(true == os::file_exists("data/test.db.jrn0"));
     REQUIRE(true == os::file_exists("data/test.db.jrn1"));
 

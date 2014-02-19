@@ -12,9 +12,13 @@
 /**
  * @brief Routines for the journal - writing, reading, recovering
  *
- * The journal is a logical log file. It stores high-level information about
- * the database operations (unlike the (physical) log which stores low-level
- * information about modified pages.
+ * The journal is a log for storing logical and physical redo-information.
+ *
+ * The logical information describe the database operation (i.e. insert/erase),
+ * the physical information describes the modified pages.
+ *
+ * "Undo" information is not required because aborted Transactions are never
+ * written to disk. The journal only can "redo" operations.
  *
  * The journal is organized in two files. If one of the files grows too large
  * then all new transactions are stored in the other file.
@@ -23,6 +27,27 @@
  * For writing, files are buffered. The buffers are flushed when they
  * exceed a certain threshold, when a Transaction is committed or a Changeset
  * was written.
+ *
+ * The physical information is a collection of pages which are modified in
+ * a single database operation (i.e. ham_db_erase). This collection is
+ * called a "changeset" and implemented in changeset.h/.cc. As soon as the
+ * operation is finished, the changeset is flushed: if the changeset contains
+ * just a single page, then this operation is atomic and is NOT logged.
+ * Otherwise the whole changeset is appended to the journal, and afterwards
+ * the database file is modified.
+ *
+ * When recovering, the Journal first extracts the newest/latest entry.
+ * If this entry is a changeset then the changeset is reapplied, because
+ * we assume that there was a crash immediately AFTER the changeset was
+ * written, but BEFORE the database file was modified. (The changeset is
+ * idempotent; if the database file was successfully modified then the
+ * changes are re-applied; this is not a problem.)
+ *
+ * Afterwards, the journal is processed from start to end. All operations
+ * are re-applied. Since they're idempotent it's not a problem if they
+ * are applied twice. In this phase all changesets are skipped because the
+ * newest changeset was already applied, and we know that all older changesets
+ * have already been written successfully to the database file.
  */
 
 #ifndef HAM_JOURNAL_H__
@@ -30,15 +55,12 @@
 
 #include <cstdio>
 
-#include "mem.h"
-#include "env_local.h"
 #include "os.h"
 #include "util.h"
+#include "env_local.h"
 #include "journal_entries.h"
 
 namespace hamsterdb {
-
-class ByteArray;
 
 #include "packstart.h"
 
@@ -55,31 +77,31 @@ class Journal
       kBufferLimit = 1024 * 1024, // 1 mb
 
       // magic for a journal file
-      kHeaderMagic = ('h'<<24) | ('j'<<16) | ('o'<<8) | '2',
+      kHeaderMagic = ('h' << 24) | ('j' << 16) | ('o' << 8) | '2',
 
       // magic for a journal trailer
-      kTrailerMagic = ('h'<<24) | ('t'<<16) | ('r'<<8) | '1'
+      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1'
     };
 
   public:
     enum {
       // marks the start of a new transaction
-      ENTRY_TYPE_TXN_BEGIN  = 1,
+      kEntryTypeTxnBegin   = 1,
 
       // marks the end of an aborted transaction
-      ENTRY_TYPE_TXN_ABORT  = 2,
+      kEntryTypeTxnAbort   = 2,
 
       // marks the end of an committed transaction
-      ENTRY_TYPE_TXN_COMMIT = 3,
+      kEntryTypeTxnCommit  = 3,
 
       // marks an insert operation
-      ENTRY_TYPE_INSERT     = 4,
+      kEntryTypeInsert     = 4,
 
       // marks an erase operation
-      ENTRY_TYPE_ERASE      = 5,
+      kEntryTypeErase      = 5,
 
       // marks a whole changeset operation (writes modified pages)
-      ENTRY_TYPE_CHANGESET  = 6
+      kEntryTypeChangeset  = 6
     };
 
     //
@@ -139,7 +161,8 @@ class Journal
     // Constructor
     Journal(LocalEnvironment *env)
       : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
-        m_threshold(kSwitchTxnThreshold), m_disable_logging(false) {
+        m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
+        m_count_bytes_flushed(0) {
       m_fd[0] = HAM_INVALID_FD;
       m_fd[1] = HAM_INVALID_FD;
       m_open_txn[0] = 0;
@@ -170,24 +193,31 @@ class Journal
       return (true);
     }
 
-    // Appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN
+    // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
     void append_txn_begin(Transaction *txn, LocalEnvironment *env,
                 const char *name, ham_u64_t lsn);
 
-    // Appends a journal entry for ham_txn_abort/ENTRY_TYPE_TXN_ABORT
+    // Appends a journal entry for ham_txn_abort/kEntryTypeTxnAbort
     void append_txn_abort(Transaction *txn, ham_u64_t lsn);
 
-    // Appends a journal entry for ham_txn_commit/ENTRY_TYPE_TXN_COMMIT
+    // Appends a journal entry for ham_txn_commit/kEntryTypeTxnCommit
     void append_txn_commit(Transaction *txn, ham_u64_t lsn);
 
-    // Appends a journal entry for ham_insert/ENTRY_TYPE_INSERT
+    // Appends a journal entry for ham_insert/kEntryTypeInsert
     void append_insert(Database *db, Transaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn);
 
-    // Appends a journal entry for ham_erase/ENTRY_TYPE_ERASE
+    // Appends a journal entry for ham_erase/kEntryTypeErase
     void append_erase(Database *db, Transaction *txn,
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
+
+    // Appends a journal entry for a whole changeset/kEntryTypeChangeset
+    void append_changeset(Page **bucket1, ham_u32_t bucket1_size,
+                    Page **bucket2, ham_u32_t bucket2_size,
+                    Page **bucket3, ham_u32_t bucket3_size,
+                    Page **bucket4, ham_u32_t bucket4_size,
+                    ham_u32_t lsn);
 
     // Empties the journal, removes all entries
     void clear() {
@@ -207,6 +237,11 @@ class Journal
       return (m_lsn++);
     }
 
+    // Fills the metrics
+    void get_metrics(ham_env_metrics_t *metrics) {
+      metrics->journal_bytes_flushed = m_count_bytes_flushed;
+    }
+
     // Returns the previous lsn; only for testing!
     // TODO really required? JournalFixture is a friend!
     ham_u64_t test_get_lsn() {
@@ -215,6 +250,13 @@ class Journal
 
   private:
     friend struct JournalFixture;
+
+    // Recovers (re-applies) the physical changelog; returns the lsn of the
+    // Changelog
+    ham_u64_t recover_changeset();
+
+    // Recovers the logical journal
+    void recover_journal(ham_u64_t start_lsn);
 
     // Switches the log file if necessary; sets the new log descriptor in the
     // transaction
@@ -259,11 +301,14 @@ class Journal
 
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
-      os_write(m_fd[idx], m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
-      m_buffer[idx].clear();
+      if (m_buffer[idx].get_size() > 0) {
+        os_write(m_fd[idx], m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
+        m_count_bytes_flushed += m_buffer[idx].get_size();
+        m_buffer[idx].clear();
 
-      if (fsync)
-        os_flush(m_fd[idx]);
+        if (fsync)
+          os_flush(m_fd[idx]);
+      }
     }
 
     // Clears a single file
@@ -272,7 +317,7 @@ class Journal
     // References the Environment this journal file is for
     LocalEnvironment *m_env;
 
-    // The index of the file descriptor we are currently writing to
+    // The index of the file descriptor we are currently writing to (0 or 1)
     ham_u32_t m_current_fd;
 
     // The two file descriptors
@@ -299,6 +344,9 @@ class Journal
 
     // Set to false to disable logging; used during recovery
     bool m_disable_logging;
+
+    // Counting the flushed bytes (for ham_env_get_metrics)
+    ham_u64_t m_count_bytes_flushed;
 };
 
 #include "packstop.h"

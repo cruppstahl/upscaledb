@@ -122,7 +122,7 @@ struct Configuration
     if (bulk_erase)
       printf("--bulk-erase ");
     if (use_transactions) {
-      if (transactions_nth)
+      if (!transactions_nth)
         printf("--use-transactions=tmp ");
       else if (transactions_nth == 0xffffffffu)
         printf("--use-transactions=all ");

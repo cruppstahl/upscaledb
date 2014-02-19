@@ -22,7 +22,6 @@ namespace hamsterdb {
 
 class PBtreeHeader;
 class PFreelistPayload;
-class Log;
 class Journal;
 class PageManager;
 class BlobManager;
@@ -62,16 +61,6 @@ class LocalEnvironment : public Environment
     // Returns the PageManager instance
     PageManager *get_page_manager() {
       return (m_page_manager);
-    }
-
-    // Returns the Log
-    Log *get_log() {
-      return (m_log);
-    }
-
-    // Sets the Log; only for testing!
-    void test_set_log(Log *log) {
-      m_log = log;
     }
 
     // Returns the Journal
@@ -229,9 +218,6 @@ class LocalEnvironment : public Environment
 
     // The PageManager instance
     PageManager *m_page_manager;
-
-    // The physical write-ahead log
-    Log *m_log;
 
     // The logical journal
     Journal *m_journal;

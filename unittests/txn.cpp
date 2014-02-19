@@ -46,7 +46,6 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE(((LocalEnvironment *)m_env)->get_log() != (Log *)0);
     REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY) != 0);
   }
 

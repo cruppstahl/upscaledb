@@ -223,7 +223,6 @@
     <ClInclude Include="..\..\src\errorinducer.h" />
     <ClInclude Include="..\..\src\journal.h" />
     <ClInclude Include="..\..\src\journal_entries.h" />
-    <ClInclude Include="..\..\src\log.h" />
     <ClInclude Include="..\..\src\mem.h" />
     <ClInclude Include="..\..\src\mutex.h" />
     <ClInclude Include="..\..\src\os.h" />
@@ -262,7 +261,6 @@
     <ClCompile Include="..\..\src\error.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
-    <ClCompile Include="..\..\src\log.cc" />
     <ClCompile Include="..\..\src\mem.cc" />
     <ClCompile Include="..\..\src\os_win32.cc" />
     <ClCompile Include="..\..\src\page.cc" />

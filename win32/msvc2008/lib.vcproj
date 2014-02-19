@@ -521,14 +521,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\log.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\log.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\mem.cc"
 			>
 		</File>

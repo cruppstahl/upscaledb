@@ -33,37 +33,6 @@ extern "C" {
  * @{
  */
 
-/**
- * @defgroup ham_special_db_names Special Database Names
- * @{
- */
-
-/**
- * A reserved Database name for those Databases, who are created without
- * an Environment (and therefore do not have a name).
- *
- * Note that this value also serves as the upper bound for allowed
- * user specified Database names as passed to @a ham_env_create_db
- * or @a ham_env_open_db.
- */
-#define HAM_DEFAULT_DATABASE_NAME       (0xf000)
-
-/**
- * A reserved Database name which automatically picks the first Database
- * in an Environment
- */
-#define HAM_FIRST_DATABASE_NAME         (0xf001)
-
-/**
- * A reserved Database name for a dummy Database which only reads/writes
- * the header page
- */
-#define HAM_DUMMY_DATABASE_NAME         (0xf002)
-
-/**
-@}
-*/
-
 /** get the (non-persisted) flags of a key */
 #define ham_key_get_intflags(key)       (key)->_flags
 
@@ -142,7 +111,7 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * Metrics marked "global" are stored globally and shared between multiple
  * Environments.
  */
-#define HAM_METRICS_VERSION         5
+#define HAM_METRICS_VERSION         6
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
@@ -212,6 +181,9 @@ typedef struct ham_env_metrics_t {
 
   // (global) number of extended duplicate tables
   ham_u64_t extended_duptables;
+
+  // number of flushed bytes in the log/journal
+  ham_u64_t journal_bytes_flushed;
 
 } ham_env_metrics_t;
 

@@ -34,7 +34,6 @@
 #include "env_local.h"
 #include "env_remote.h"
 #include "error.h"
-#include "log.h"
 #include "mem.h"
 #include "os.h"
 #include "page.h"
@@ -513,8 +512,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
   *hdb = 0;
 
-  if (!dbname || (dbname > HAM_DEFAULT_DATABASE_NAME
-      && dbname != HAM_DUMMY_DATABASE_NAME)) {
+  if (!dbname || (dbname >= 0xf000)) {
     ham_trace(("invalid database name"));
     return (HAM_INV_PARAMETER);
   }
@@ -566,9 +564,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
     ham_trace(("parameter 'dbname' must not be 0"));
     return (HAM_INV_PARAMETER);
   }
-  if (dbname != HAM_FIRST_DATABASE_NAME
-      && (dbname != HAM_DUMMY_DATABASE_NAME
-        && dbname > HAM_DEFAULT_DATABASE_NAME)) {
+  if (dbname >= 0xf000) {
     ham_trace(("database name must be lower than 0xf000"));
     return (HAM_INV_PARAMETER);
   }
@@ -741,7 +737,7 @@ ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname, ham_u16_t newname,
     ham_trace(("parameter 'newname' must not be 0"));
     return (HAM_INV_PARAMETER);
   }
-  if (newname >= HAM_DEFAULT_DATABASE_NAME) {
+  if (newname >= 0xf000) {
     ham_trace(("parameter 'newname' must be lower than 0xf000"));
     return (HAM_INV_PARAMETER);
   }

@@ -251,31 +251,6 @@ TEST_CASE("OsTest/negativeMmapTest",
   os_close(fd);
 }
 
-TEST_CASE("OsTest/writevTest",
-           "Tests the operating system functions in os*")
-{
-  ham_fd_t fd;
-  const char *hello = "hello ";
-  const char *world = "world!";
-  char buffer[128];
-
-  fd = os_create(Globals::opath(".test"), 0, 0664);
-  os_writev(fd, (void *)hello, strlen(hello), (void *)world, strlen(world) + 1);
-  os_close(fd);
-  
-  memset(buffer, 0, sizeof(buffer));
-  fd = os_open(Globals::opath(".test"), 0);
-  os_pread(fd, 0, buffer, 12);
-  REQUIRE(0 == strcmp("hello world!", buffer));
-
-  os_seek(fd, 10, HAM_OS_SEEK_SET);
-  os_writev(fd, (void *)hello, strlen(hello), (void *)world, strlen(world) + 1);
-  os_pread(fd, 10, buffer, 12);
-  os_close(fd);
-
-  REQUIRE(0 == strcmp("hello world!", buffer));
-}
-
 TEST_CASE("OsTest/seekTellTest",
            "Tests the operating system functions in os*")
 {

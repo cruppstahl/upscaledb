@@ -77,7 +77,7 @@ class Changeset
      * flush all pages in the changeset - first write them to the log, then
      * write them to the disk
      *
-     * on success: will clear the changeset and the log
+     * on success: will clear the changeset and the journal
      */
     void flush(ham_u64_t lsn);
 
@@ -89,10 +89,6 @@ class Changeset
   private:
     /** The Environment which created this Changeset */
     LocalEnvironment *m_env;
-
-    /** write all pages in a bucket to the log file */
-    void log_bucket(Page **bucket, ham_u32_t bucket_size, ham_u64_t lsn,
-                ham_u32_t &page_count) ;
 
     /** the head of our linked list */
     Page *m_head;

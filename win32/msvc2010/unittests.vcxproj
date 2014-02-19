@@ -200,7 +200,6 @@
     <ClCompile Include="..\..\unittests\error.cpp" />
     <ClCompile Include="..\..\unittests\hamsterdb.cpp" />
     <ClCompile Include="..\..\unittests\journal.cpp" />
-    <ClCompile Include="..\..\unittests\log.cpp" />
     <ClCompile Include="..\..\unittests\main.cpp" />
     <ClCompile Include="..\..\unittests\misc.cpp" />
     <ClCompile Include="..\..\unittests\os.cpp" />

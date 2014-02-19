@@ -130,6 +130,43 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
 
 #include "packstop.h"
 
+
+#include "packstart.h"
+
+//
+// a Journal entry for a 'changeset' group
+//
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
+  // Constructor - sets all fields to 0
+  PJournalEntryChangeset()
+    : num_pages(0) {
+  }
+
+  // number of pages in this changeset
+  ham_u32_t num_pages;
+} HAM_PACK_2;
+
+#include "packstop.h"
+
+
+#include "packstart.h"
+
+//
+// a Journal entry for a single page
+//
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
+  // Constructor - sets all fields to 0
+  PJournalEntryPageHeader(ham_u64_t _address = 0)
+    : address(_address) {
+  }
+
+  // the page address
+  ham_u64_t address;
+} HAM_PACK_2;
+
+#include "packstop.h"
+
+
 } // namespace hamsterdb
 
 #endif /* HAM_JOURNAL_ENTRIES_H__ */

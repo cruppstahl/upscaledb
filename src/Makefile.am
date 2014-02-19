@@ -62,8 +62,6 @@ libhamsterdb_la_SOURCES = \
 	journal.cc \
 	journal_entries.h \
 	journal.h \
-	log.cc \
-	log.h \
 	mem.cc \
 	mem.h \
 	mutex.h \

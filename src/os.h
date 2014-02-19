@@ -49,14 +49,6 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
 extern void
 os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen);
 
-// write data from multiple buffers to a file; uses the current file position
-extern void
-os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
-            void *buffer2 = 0, ham_u64_t buffer2_len = 0,
-            void *buffer3 = 0, ham_u64_t buffer3_len = 0,
-            void *buffer4 = 0, ham_u64_t buffer4_len = 0,
-            void *buffer5 = 0, ham_u64_t buffer5_len = 0);
-
 #ifdef HAM_OS_POSIX
 #  define HAM_OS_SEEK_SET   SEEK_SET
 #  define HAM_OS_SEEK_END   SEEK_END

@@ -46,7 +46,7 @@ struct LogEntry {
 struct InsertLogEntry : public LogEntry {
   InsertLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname,
         ham_key_t *_key, ham_record_t *_record)
-    : LogEntry(_lsn, _txn_id, Journal::ENTRY_TYPE_INSERT, _dbname),
+    : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key), record(_record) {
   }
 
@@ -57,7 +57,7 @@ struct InsertLogEntry : public LogEntry {
 struct EraseLogEntry : public LogEntry {
   EraseLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname,
         ham_key_t *_key)
-    : LogEntry(_lsn, _txn_id, Journal::ENTRY_TYPE_INSERT, _dbname),
+    : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key) {
   }
 
@@ -129,16 +129,6 @@ struct JournalFixture {
     REQUIRE(true == j->is_empty());
 
     // do not close the journal - it will be closed in teardown()
-  }
-
-  void createCloseOpenCloseTest() {
-    Journal *j = m_lenv->get_journal();
-    REQUIRE(true == j->is_empty());
-    j->close(true);
-
-    j->open();
-    REQUIRE(true == j->is_empty());
-    m_lenv->test_set_journal(j);
   }
 
   void negativeCreateTest() {
@@ -431,7 +421,7 @@ struct JournalFixture {
     REQUIRE((ham_u64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((ham_u64_t)1 == entry.txn_id);
     REQUIRE(0 == auxbuffer.get_size());
-    REQUIRE((ham_u32_t)Journal::ENTRY_TYPE_TXN_BEGIN == entry.type);
+    REQUIRE((ham_u32_t)Journal::kEntryTypeTxnBegin == entry.type);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -446,6 +436,10 @@ struct JournalFixture {
       journal->get_entry(&it, &entry, &auxbuffer);
       if (entry.lsn == 0)
         break;
+
+      // skip Changesets
+      if (entry.type == Journal::kEntryTypeChangeset)
+        continue;
 
       if (s == size) {
         REQUIRE(0ull == entry.lsn);
@@ -494,10 +488,10 @@ struct JournalFixture {
       REQUIRE(0 ==
           ham_txn_begin(&txn, m_env, name, 0, 0));
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_BEGIN, 0, &name[0]);
+              Journal::kEntryTypeTxnBegin, 0, &name[0]);
       REQUIRE(0 == ham_txn_abort(txn, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_ABORT, 0);
+              Journal::kEntryTypeTxnAbort, 0);
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -523,10 +517,10 @@ struct JournalFixture {
     for (int i = 0; i <= 7; i++) {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+              Journal::kEntryTypeTxnBegin, 0);
       REQUIRE(0 == ham_txn_abort(txn, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_ABORT, 0);
+              Journal::kEntryTypeTxnAbort, 0);
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -553,11 +547,11 @@ struct JournalFixture {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
       if (i >= 5)
         vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+              Journal::kEntryTypeTxnBegin, 0);
       REQUIRE(0 == ham_txn_abort(txn, 0));
       if (i >= 5)
         vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::ENTRY_TYPE_TXN_ABORT, 0);
+              Journal::kEntryTypeTxnAbort, 0);
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -592,11 +586,11 @@ struct JournalFixture {
       REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
       REQUIRE((ham_u64_t)(i + 1) == ((Transaction *)txn)->get_id());
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+            Journal::kEntryTypeTxnBegin, 0);
       ham_u64_t txnid = ((Transaction *)txn)->get_id();
       REQUIRE(0 == ham_txn_commit(txn, 0));
       vec[p++] = LogEntry(2 + i * 2, txnid,
-            Journal::ENTRY_TYPE_TXN_COMMIT, 0);
+            Journal::kEntryTypeTxnCommit, 0);
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -643,14 +637,14 @@ struct JournalFixture {
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+            Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_INSERT, 1);
+            Journal::kEntryTypeInsert, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_COMMIT, 0);
+            Journal::kEntryTypeTxnCommit, 0);
       REQUIRE(0 == ham_txn_commit(txn[i], 0));
     }
 
@@ -700,12 +694,12 @@ struct JournalFixture {
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+            Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_INSERT, 1);
+            Journal::kEntryTypeInsert, 1);
     }
 
     m_lenv = (LocalEnvironment *)m_env;
@@ -782,14 +776,14 @@ struct JournalFixture {
     for (int i = 0; i < 2; i++) {
       REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+            Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_INSERT, 1);
+            Journal::kEntryTypeInsert, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_COMMIT, 0);
+            Journal::kEntryTypeTxnCommit, 0);
       if (i == 0)
         REQUIRE(0 == ham_txn_commit(txn[i], 0));
       else
@@ -858,21 +852,21 @@ struct JournalFixture {
     for (int i = 0; i < 2; i++) {
       REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
-            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+            Journal::kEntryTypeTxnBegin, 0);
     }
     for (int i = 0; i < 100; i++) {
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ham_db_insert(m_db, txn[i&1], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i&1])->get_id(),
-            Journal::ENTRY_TYPE_INSERT, 1);
+            Journal::kEntryTypeInsert, 1);
     }
     /* commit the first txn, abort the second */
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn[0])->get_id(),
-          Journal::ENTRY_TYPE_TXN_COMMIT, 0);
+          Journal::kEntryTypeTxnCommit, 0);
     REQUIRE(0 == ham_txn_commit(txn[0], 0));
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn[1])->get_id(),
-          Journal::ENTRY_TYPE_TXN_ABORT, 0);
+          Journal::kEntryTypeTxnAbort, 0);
     REQUIRE(0 == ham_txn_abort(txn[1], 0));
 
     /* backup the journal files; then re-create the Environment from the
@@ -923,14 +917,14 @@ struct JournalFixture {
      * duplicates */
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
-          Journal::ENTRY_TYPE_TXN_BEGIN, 0);
+          Journal::kEntryTypeTxnBegin, 0);
     for (int i = 0; i < 100; i++) {
       int val = i % 10;
       key.data = &val;
       key.size = sizeof(val);
       REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
-            Journal::ENTRY_TYPE_INSERT, 1);
+            Journal::kEntryTypeInsert, 1);
     }
     /* now delete them all */
     for (int i = 0; i < 10; i++) {
@@ -938,11 +932,11 @@ struct JournalFixture {
       key.size = sizeof(i);
       REQUIRE(0 == ham_db_erase(m_db, txn, &key, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
-            Journal::ENTRY_TYPE_ERASE, 1);
+            Journal::kEntryTypeErase, 1);
     }
     /* commit the txn */
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
-          Journal::ENTRY_TYPE_TXN_COMMIT, 0);
+          Journal::kEntryTypeTxnCommit, 0);
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* backup the journal files; then re-create the Environment from the
@@ -980,12 +974,6 @@ TEST_CASE("Journal/createCloseTest", "")
 {
   JournalFixture f;
   f.createCloseTest();
-}
-
-TEST_CASE("Journal/createCloseOpenCloseTest", "")
-{
-  JournalFixture f;
-  f.createCloseOpenCloseTest();
 }
 
 TEST_CASE("Journal/negativeCreate", "")

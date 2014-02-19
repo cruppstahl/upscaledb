@@ -30,7 +30,6 @@ test_SOURCES    = api110.cpp \
 				  globals.h \
 				  hamsterdb.cpp \
 				  journal.cpp \
-				  log.cpp \
 				  misc.cpp \
 				  os.cpp \
 				  os.hpp \

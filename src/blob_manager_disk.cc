@@ -18,7 +18,6 @@
 #include "device.h"
 #include "error.h"
 #include "page_manager.h"
-#include "log.h"
 
 #include "blob_manager_disk.h"
 

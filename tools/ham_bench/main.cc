@@ -775,6 +775,8 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.extended_keys);
   printf("\thamsterdb extended_duptables          %lu\n",
           metrics->hamster_metrics.extended_duptables);
+  printf("\thamsterdb journal_bytes_flushed       %lu\n",
+          metrics->hamster_metrics.journal_bytes_flushed);
 }
 
 struct Callable

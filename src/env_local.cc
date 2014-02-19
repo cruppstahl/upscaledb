@@ -24,7 +24,6 @@
 #include "cursor.h"
 #include "txn_cursor.h"
 #include "page_manager.h"
-#include "log.h"
 #include "journal.h"
 #include "os.h"
 #include "env_local.h"
@@ -44,8 +43,8 @@ LocalEnvironment::get_btree_descriptor(int i)
 
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_header(0), m_device(0), m_changeset(this),
-    m_blob_manager(0), m_page_manager(0), m_log(0),
-    m_journal(0), m_txn_id(0), m_encryption_enabled(false), m_page_size(0)
+    m_blob_manager(0), m_page_manager(0), m_journal(0), m_txn_id(0),
+    m_encryption_enabled(false), m_page_size(0)
 {
 }
 
@@ -105,9 +104,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
-    m_log = new hamsterdb::Log(this);
-    m_log->create();
-
     m_journal = new Journal(this);
     m_journal->create();
   }
@@ -313,12 +309,10 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   if (st)
     return (st);
 
-  /* logging enabled? then the changeset and the log HAS to be empty */
+  /* logging enabled? then the changeset HAS to be empty */
 #ifdef HAM_DEBUG
-  if (get_flags() & HAM_ENABLE_RECOVERY) {
+  if (get_flags() & HAM_ENABLE_RECOVERY)
     ham_assert(get_changeset().is_empty());
-    ham_assert(get_log()->is_empty());
-  }
 #endif
 
   /*
@@ -413,7 +407,7 @@ LocalEnvironment::close(ham_u32_t flags)
       get_header()->get_header_page()->set_dirty(true);
       if (get_flags() & HAM_ENABLE_RECOVERY) {
         get_changeset().add_page(get_header()->get_header_page());
-        if (m_log && (flags & HAM_DONT_CLEAR_LOG) == 0)
+        if (m_journal && (flags & HAM_DONT_CLEAR_LOG) == 0)
           get_changeset().flush(get_incremented_lsn());
       }
     }
@@ -463,12 +457,6 @@ LocalEnvironment::close(ham_u32_t flags)
   }
 
   /* close the log and the journal */
-  if (m_log) {
-    m_log->close(!!(flags & HAM_DONT_CLEAR_LOG));
-    delete m_log;
-    m_log = 0;
-  }
-
   if (m_journal) {
     m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
     delete m_journal;
@@ -640,7 +628,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u16_t name = get_btree_descriptor(i)->get_dbname();
     if (!name)
       continue;
-    if (name == dbname || dbname == HAM_FIRST_DATABASE_NAME) {
+    if (name == dbname) {
       delete db;
       return (HAM_DATABASE_ALREADY_EXISTS);
     }
@@ -660,12 +648,10 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     return (HAM_LIMITS_REACHED);
   }
 
-  /* logging enabled? then the changeset and the log HAS to be empty */
+  /* logging enabled? then the changeset HAS to be empty */
 #ifdef HAM_DEBUG
-  if (get_flags() & HAM_ENABLE_RECOVERY) {
+  if (get_flags() & HAM_ENABLE_RECOVERY)
     ham_assert(get_changeset().is_empty());
-    ham_assert(get_log()->is_empty());
-  }
 #endif
 
   /* initialize the Database */
@@ -728,7 +714,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
     ham_u16_t name = get_btree_descriptor(dbi)->get_dbname();
     if (!name)
       continue;
-    if (dbname == HAM_FIRST_DATABASE_NAME || dbname == name)
+    if (dbname == name)
       break;
   }
 
@@ -825,34 +811,22 @@ void
 LocalEnvironment::recover(ham_u32_t flags)
 {
   ham_status_t st = 0;
-  m_log = new Log(this);
   m_journal = new Journal(this);
 
   ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
 
-  /* open the log and the journal (if transactions are enabled) */
   try {
-    m_log->open();
+    m_journal->open();
   }
   catch (Exception &ex) {
     if (ex.code == HAM_FILE_NOT_FOUND)
-      m_log->create();
-  }
-
-  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    try {
-      m_journal->open();
-    }
-    catch (Exception &ex) {
-      if (ex.code == HAM_FILE_NOT_FOUND)
       m_journal->create();
-    }
   }
 
   /* success - check if we need recovery */
-  if (!m_log->is_empty()) {
+  if (!m_journal->is_empty()) {
     if (flags & HAM_AUTO_RECOVERY) {
-      m_log->recover();
+      m_journal->recover();
     }
     else {
       st = HAM_NEED_RECOVERY;
@@ -860,34 +834,9 @@ LocalEnvironment::recover(ham_u32_t flags)
     }
   }
 
-  /* load the state of the PageManager; the PageManager state is loaded AFTER
-   * physical recovery because its page might have been restored in
-   * log->recover()*/
-  if (m_header->get_page_manager_blobid() != 0) {
-    m_page_manager->load_state(m_header->get_page_manager_blobid());
-    if (get_flags() & HAM_ENABLE_RECOVERY)
-      get_changeset().clear();
-  }
-
-  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    if (!m_journal->is_empty()) {
-      if (flags & HAM_AUTO_RECOVERY) {
-        m_journal->recover();
-      }
-      else {
-        st = HAM_NEED_RECOVERY;
-        goto bail;
-      }
-    }
-  }
-
 bail:
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
-    m_log->close(true);
-    delete m_log;
-    m_log = 0;
-
     m_journal->close(true);
     delete m_journal;
     m_journal = 0;
@@ -912,6 +861,9 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
   m_page_manager->get_metrics(metrics);
   // the BlobManagers
   m_blob_manager->get_metrics(metrics);
+  // the Journal (if available)
+  if (m_journal)
+    m_journal->get_metrics(metrics);
   // and of the btrees
   BtreeIndex::get_metrics(metrics);
 }

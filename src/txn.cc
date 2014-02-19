@@ -17,7 +17,6 @@
 #include "db.h"
 #include "env_local.h"
 #include "error.h"
-#include "log.h"
 #include "mem.h"
 #include "page.h"
 #include "btree_stats.h"

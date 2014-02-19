@@ -19,7 +19,6 @@
 #include "device.h"
 #include "env.h"
 #include "error.h"
-#include "log.h"
 #include "mem.h"
 #include "os.h"
 #include "page.h"
