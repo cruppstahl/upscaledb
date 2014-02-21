@@ -944,7 +944,7 @@ class PaxNodeImpl
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(const ham_key_t *key) const {
+    bool requires_split() const {
       return (m_node->get_count() >= m_capacity - 1);
     }
 

@@ -296,6 +296,8 @@ struct BtreeFixture {
     while (!g_split) {
       key.data = &k;
       key.size = sizeof(k);
+      if (k == 1168)
+        printf("hit\n");
       REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
       k++;
     }

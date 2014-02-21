@@ -147,26 +147,22 @@ struct BtreeCursorFixture {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    REQUIRE(0 ==
-        ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
     REQUIRE(0 == *(int *)key.data);
     REQUIRE(0 == *(int *)rec.data);
-    REQUIRE(0 ==
-        ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_LAST));
     REQUIRE(63 == *(int *)key.data);
     REQUIRE(63 == *(int *)rec.data);
 
     for (int i = 0; i < 64; i++) {
-      REQUIRE(0 ==
-          ham_cursor_move(cursor2, &key, &rec, HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_move(cursor2, &key, &rec, HAM_CURSOR_NEXT));
       REQUIRE(i == *(int *)key.data);
       REQUIRE(i == *(int *)rec.data);
     }
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor2, 0, 0, HAM_CURSOR_NEXT));
     for (int i = 63; i >= 0; i--) {
-      REQUIRE(0 ==
-          ham_cursor_move(cursor3, &key, &rec, HAM_CURSOR_PREVIOUS));
+      REQUIRE(0 == ham_cursor_move(cursor3, &key, &rec, HAM_CURSOR_PREVIOUS));
       REQUIRE(i == *(int *)key.data);
       REQUIRE(i == *(int *)rec.data);
     }

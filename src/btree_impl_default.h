@@ -2144,12 +2144,18 @@ class DefaultNodeImpl
     // Rearranges the node if required
     // Leaves some additional headroom in internal pages, in case we
     // overwrite small keys with longer keys and need more space
-    bool requires_split(const ham_key_t *key) {
-      if (has_enough_space(key, true, false, (!m_node->is_leaf() ? 128 : 0)))
+    bool requires_split() {
+      ham_key_t key = {0};
+      key.size = 32;
+      return (!has_enough_space(&key, true, false, 0));
+      // TODO re-enable this when erase SMOs are cleaned up
+#if 0
+      if (has_enough_space(&key, true, false, (!m_node->is_leaf() ? 128 : 0)))
         return (false);
 
       rearrange(m_node->get_count());
-      return (resize(m_node->get_count() + 1, key));
+      return (resize(m_node->get_count() + 1, &key));
+#endif
     }
 
     // Returns true if the node requires a merge or a shift
@@ -2934,6 +2940,9 @@ class DefaultNodeImpl
 
     // Tries to resize the node's capacity to fit |new_count| keys and at
     // least |key->size| additional bytes
+    //
+    // Returns true if the resize operation was not successful and a split
+    // is required
     bool resize(ham_u32_t new_count, const ham_key_t *key) {
       ham_u32_t page_size = get_usable_page_size();
 

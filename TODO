@@ -17,7 +17,7 @@ to scale with the number of cores.
 high-level plan for 2.1.6 ..................................................
 x improve static code analysis
 x erlang api
-o improved logging/journalling
+x improved logging/journalling
 o simplified btree SMOs
     paper:
         describe current solution
@@ -68,12 +68,6 @@ x erlang API
 
 x fix issue #30
 
-o PageManager state now writes deltas to journal while flushing a txn-op.
-    o the deltas are part of the Changeset
-    o the deltas have to be idempotent
-    o the deltas must be applied during recovery of the changeset
-    o check recovery tests
-
 x there'S a bug (already in 2.1.6)
     ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 --stop-ops=25000
     ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=25000
@@ -96,28 +90,47 @@ x there'S a bug (already in 2.1.6)
         o where to host static files?
         o backup and deploy to www2, use round-robin DNS
 
-. cache purge: purges 20 pages at once. is that a good number? try others
-    o maybe the number should depend on the page size?
-
 o delta updates (DU)
-    - insert SMOs (splits) are applied when "going down"
-        - move split operation to "the janitor"
-    - erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
+    o insert SMOs (splits) are applied when "going down"
+        x make sure that all tests are still running
+        o also check monster tests
+    o erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
         -> leaf nodes can become empty
         -> internal nodes must at least set ptr_down
-        -> janitor: only merge pages if they have the same parent and if they
-            are both nearly empty
-            - merge goes from top to bottom
-            - if there's an underflow: the path to this underflow is added
-                to the janitor's queue
+        -> when going down: only merge pages if they have the same parent and
+            if they are both empty (or nearly empty)
         -> in the end there's a btree skeleton with empty leafs and nearly-
             empty nodes; this can then be compact()ed offline or asynchronously
-        - is there a cheap way to visualize the tree?
+        o is there a cheap way to visualize the tree?
             -> yes: http://www.graphviz.org/content/datastruct
-    - SMOs are separated from the actual operation
+        o rewrite operation similar to insert/find: loop till there's a
+            leaf; while traversing, do the merges if the rules above apply
+            o only if both siblings have the same parent, and if the
+                parent slots are > 0 (not at the left edge)
+            o then immediately update the parent
+            o get rid of shifting and replace_key
+            o only merge right sibling to current page
+        o review BtreeImplDefault::requires_split
+
+    o the actual operation now becomes atomic and simply attachs a DU to
+        the modified page
+        o creating a DU requires a single memory allocation!
+    o find a single solution for transactions AND regular updates
+        is this possible? they both serve different purposes, and the
+        consolidation could become very tricky (think of cursors, 
+        approx. matching...)
+        -> but maybe the txn opnode/op could *point* to the DU?
+        o the janitor makes sure that DUs of aborted txn's are silently removed
+
+    o separate SMOs from the actual operation
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-    - reorg on demand (new compact() API) or in background? better in
+        o move SMO operations to "the janitor"
+        o janitor has a work queue
+        o if there's an underflow during ham_erase: the path to this
+            underflow is added to the janitor's queue
+        o same regarding ham_insert
+    o reorg on demand (new compact() API) or in background? better in
         background. then come up with very simple rules to merge empty pages
         and clean up the tree.
         -> just rinse and repeat: merge children with the same parent (see
@@ -125,29 +138,26 @@ o delta updates (DU)
             up. repeat till there's no more merging to be done. just figure
             out a way how to do that efficiently!
 
-    - the actual operation now becomes atomic and simply attachs a DU to
-        the modified page
-        - creating a DU requires a single memory allocation!
-    - find a single solution for transactions AND regular updates
-        is this possible? they both serve different purposes, and the
-        consolidation could become very tricky (think of cursors, 
-        approx. matching...)
-        -> but maybe the txn opnode/op could *point* to the DU?
-        - the janitor makes sure that DUs of aborted txn's are silently removed
-    - the janitor merges the DUs if
-        - the number of DUs exceeds a certain limit
-        - the page is merged or split
-        - the page is flushed
-        - there is a lookup operation
-        - however: skip those of uncommitted/aborted transactions!
-    - how does recovery work? all DUs that were already flushed (can find out
+    o the janitor merges the DUs if
+        o the number of DUs exceeds a certain limit
+        o the page is merged or split
+        o the page is flushed
+        o there is a lookup operation
+        o however: skip those of uncommitted/aborted transactions!
+    o how does recovery work? all DUs that were already flushed (can find out
         by looking at their lsn) are ignored; only those are applied that
         are not yet written to disk
-        - each journal entry of a DU must store the current lsn AND the txn-id
-        - whenever a page is flushed then the page must contain the lsn
-            of the latest DU that was merged!
+        x each journal entry of a DU must store the current lsn AND the txn-id
+        o whenever a page is flushed then the page must contain the lsn
+            of the latest DU that was merged! (??)
 
-o improve: ham_bench --cache=310241024 --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=1000000 --seed=1391686926
+o improve: ham_bench --cache=310241024 --reopen=true --key=binary \
+    --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase \
+    --distribution=random --extkey-threshold=20 --recsize=0 \
+    --stop-ops=1000000 --seed=1391686926
+
+. cache purge: purges 20 pages at once. is that a good number? try others
+    o maybe the number should depend on the page size?
 
 o can we come up with olap functions that operate directly on the btree data?
     -> working on keys only!! does that make sense?
@@ -159,6 +169,9 @@ o can we come up with olap functions that operate directly on the btree data?
     o AGGREGATE(predicate, result)
     o AVERAGE(predicate, result)
     o SELECT(predicate, callback)
+    o MAP(predicate, callback, result-callback)
+    o FOLDL
+    o FOLDR
     o JOIN(predicate, other table, join-callback, result-callback)
     -> look for erlang map functions (foldl, foldr etc) for interfaces
     -> the SELECTs should return VIEWs which then can used as input for other
@@ -166,6 +179,8 @@ o can we come up with olap functions that operate directly on the btree data?
         SELECT(callback1,
             JOIN(callback2, table1,
                 SELECT(callback3, table2)))
+    -> allow database operations while such a process is performed
+    -> use lua to specify operations on a higher level??
 
 o improve integration of static code analysis in release process
     o oclint

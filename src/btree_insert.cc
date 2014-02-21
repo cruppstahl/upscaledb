@@ -50,13 +50,14 @@ class BtreeInsertAction
     BtreeInsertAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
-        m_record(record), m_split_rid(0), m_flags(flags), m_final_status(0) {
+        m_record(record), m_flags(flags) {
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
         ham_assert(m_btree->get_db() == m_cursor->get_parent()->get_db());
       }
     }
 
+    // This is the entry point for the actual insert operation
     ham_status_t run() {
       BtreeStatistics *stats = m_btree->get_statistics();
 
@@ -74,7 +75,7 @@ class BtreeInsertAction
        * prepend the key; if this fails because the key is NOT the largest
        * (or smallest) key in the database or because the current page is
        * already full, it will remove the HINT_APPEND (or HINT_PREPEND)
-       * flag and recursively call do_insert_cursor()
+       * flag and call insert()
        */
       ham_status_t st;
       if (m_hints.leaf_page_addr
@@ -83,9 +84,6 @@ class BtreeInsertAction
         st = append_or_prepend_key();
       else
         st = insert();
-
-      if (st == 0 && m_final_status != 0)
-        st = m_final_status;
 
       if (st)
         stats->insert_failed();
@@ -131,7 +129,7 @@ class BtreeInsertAction
        */
       if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
               || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
-              || node->requires_split(m_key))
+              || split_required(node))
         return (insert());
 
       /*
@@ -165,168 +163,144 @@ class BtreeInsertAction
       if (force_append || force_prepend)
         return (insert_in_leaf(page, m_key, 0, force_prepend, force_append));
 
-      /* otherwise reset the hints because they would be misleading */
+      /* otherwise reset the hints because they are no longer valid */
       m_hints.flags &= ~HAM_HINT_APPEND;
       m_hints.flags &= ~HAM_HINT_PREPEND;
       return (insert());
+    }
+
+    bool split_required(BtreeNodeProxy *node) {
+      return (node->requires_split());
     }
 
     ham_status_t insert() {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
-      /* get the root-page...  */
-      Page *root = env->get_page_manager()->fetch_page(db,
+      Page *parent = 0;
+      Page *page = env->get_page_manager()->fetch_page(db,
                     m_btree->get_root_address());
-
-      /* ... and start the recursion */
-      ham_status_t st = insert_recursive(root, m_key, 0);
-
-      /* create a new root page if it needs to be split */
-      if (st == kSplitRequired) {
-        st = split_root(root);
-        if (st)
-          return (st);
-      }
-
-      return (st);
-    }
-
-    ham_status_t split_root(Page *root) {
-      LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
-
-      /* allocate a new root page */
-      Page *newroot = env->get_page_manager()->alloc_page(db, Page::kTypeBroot);
-      ham_assert(newroot->get_db());
-
-      m_btree->get_statistics()->reset_page(root);
-
-      /* insert the pivot element and set ptr_down */
-      BtreeNodeProxy *node = m_btree->get_node_from_page(newroot);
-      node->set_ptr_down(m_btree->get_root_address());
-
-      ham_key_t split_key = {0};
-      split_key.data = m_split_key_arena.get_ptr();
-      split_key.size = m_split_key_arena.get_size();
-      ham_status_t st = insert_in_leaf(newroot, &split_key, m_split_rid);
-      /* don't overwrite cursor if insert_in_leaf is called again */
-      m_cursor = 0;
-      if (st)
-        return (st);
-
-      /*
-       * set the new root page
-       *
-       * !!
-       * do NOT delete the old root page - it's still in use!
-       */
-      m_btree->set_root_address(newroot->get_address());
-      root->set_type(Page::kTypeBindex);
-      root->set_dirty(true);
-      newroot->set_dirty(true);
-      return (0);
-    }
-
-    // This is the function which does most of the work - traversing to a
-    // leaf, inserting the key using insert_in_page()
-    // and performing necessary SMOs. It works recursive.
-    ham_status_t insert_recursive(Page *page, ham_key_t *key, ham_u64_t rid) {
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-      /* if we've reached a leaf: insert the key */
-      if (node->is_leaf())
-        return (insert_in_page(page, key, rid));
-
-      /* otherwise traverse the root down to the leaf */
-      Page *child = m_btree->find_internal(page, key);
-
-      /* and call this function recursively */
-      ham_status_t st = insert_recursive(child, key, rid);
-      switch (st) {
-        /* if we're done, we're done */
-        case HAM_SUCCESS:
-          break;
-        /* if we tried to insert a duplicate key, we're done, too */
-        case HAM_DUPLICATE_KEY:
-          break;
-        /* the child was split, and we have to insert a new key/rid-pair.  */
-        case kSplitRequired: {
-          m_hints.flags |= HAM_OVERWRITE;
-          m_cursor = 0;
-          ham_key_t split_key = {0};
-          split_key.data = m_split_key_arena.get_ptr();
-          split_key.size = m_split_key_arena.get_size();
-          st = insert_in_page(page, &split_key, m_split_rid);
-
-          m_hints.flags = m_hints.original_flags;
-          m_hints.processed_leaf_page = 0;
-          m_hints.processed_slot = 0;
-          break;
+      // now walk down the tree
+      while (1) {
+        if (split_required(node)) {
+          page = split_page(page, parent, m_key);
+          node = m_btree->get_node_from_page(page);
         }
-        /* every other return value is unexpected and shouldn't happen */
-        default:
+
+        if (node->is_leaf())
           break;
+
+        parent = page;
+        page = m_btree->find_internal(page, m_key);
+        node = m_btree->get_node_from_page(page);
       }
 
-      return (st);
+      // we've reached the leaf
+      return (insert_in_leaf(page, m_key, 0));
     }
 
-    // Inserts a key in a page; if necessary, the page is split
-    ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
-      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-
-      /*
-       * if we can insert the new key without splitting the page then
-       * insert_in_leaf() will do the work for us
-       */
-      if (!node->requires_split(key)) {
-        ham_status_t st = insert_in_leaf(page, key, rid);
-        /* don't overwrite cursor if insert_in_leaf is called again */
-        m_cursor = 0;
-        return (st);
-      }
-
-      /* otherwise split the page. The split might be unnecessary because the
-       * following insert can still fail, i.e. because the key already
-       * exists. But these rare cases do not justify extra lookups in all other
-       * cases, and the split would anyway happen sooner or later. */
-      return (insert_split(page, key, rid));
-    }
-
-    // Splits a page and inserts the new element
-    ham_status_t insert_split(Page *page, ham_key_t *key, ham_u64_t rid) {
+    // Splits |page| and updates the |parent|. If |parent| is null then
+    // it's assumed that |page| is the root node.
+    // Returns the new page in the path for |key|; caller can immediately
+    // continue the traversal.
+    Page *split_page(Page *old_page, Page *parent, ham_key_t *key) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
-      BtreeNodeProxy *old_node = m_btree->get_node_from_page(page);
+      m_btree->get_statistics()->reset_page(old_page);
+      BtreeNodeProxy *old_node = m_btree->get_node_from_page(old_page);
 
-      /* allocate a new page */
+      /* allocate a new page and initialize it */
       Page *new_page = env->get_page_manager()->alloc_page(db,
                                     Page::kTypeBindex);
       {
         PBtreeNode *node = PBtreeNode::from_page(new_page);
         node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
       }
-
-      m_btree->get_statistics()->reset_page(page);
-
       BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_page);
-      ham_u32_t count = old_node->get_count();
 
-      /*
-       * for databases with sequential access (this includes recno databases):
-       * do not split in the middle, but at the very end of the page.
-       *
-       * if this page is the right-most page in the index, and this key is
-       * inserted at the very end, then we select the same pivot as for
-       * sequential access.
-       */
+      /* no parent page? then we're splitting the root page. allocate
+       * a new root page */
+      if (!parent)
+        parent = allocate_new_root(old_page);
+
+      /* get the slot of the pivot key */
+      int pivot = get_pivot(old_node);
+
+      /* and store the pivot key for later */
+      ByteArray pivot_key_arena;
+      ham_key_t pivot_key = {0};
+      old_node->get_key(pivot, &pivot_key_arena, &pivot_key);
+
+      /* uncouple all cursors */
+      if (old_node->is_leaf())
+        BtreeCursor::uncouple_all_cursors(old_page, pivot);
+
+      /* update the parent page */
+      BtreeNodeProxy *parent_node = m_btree->get_node_from_page(parent);
+      ham_status_t st = insert_in_leaf(parent, &pivot_key,
+                            new_page->get_address());
+      if (st)
+        throw Exception(st);
+      /* new root page? then also set ptr_down! */
+      if (parent_node->get_count() == 0)
+        parent_node->set_ptr_down(old_page->get_address());
+
+      /* if we're in an internal page: fix the ptr_down of the new page
+       * (it must point to the ptr of the pivot key) */
+      if (!old_node->is_leaf())
+        new_node->set_ptr_down(old_node->get_record_id(pivot));
+
+      /* now move some of the key/rid-tuples to the new page */
+      old_node->split(new_node, pivot);
+
+      /* fix the double-linked list of pages, and mark the pages as dirty */
+      if (old_node->get_right()) {
+        Page *sib_page = env->get_page_manager()->fetch_page(db,
+                        old_node->get_right());
+        BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
+        sib_node->set_left(new_page->get_address());
+        sib_page->set_dirty(true);
+      }
+      new_node->set_left(old_page->get_address());
+      new_node->set_right(old_node->get_right());
+      old_node->set_right(new_page->get_address());
+      new_page->set_dirty(true);
+      old_page->set_dirty(true);
+
+      BtreeIndex::ms_btree_smo_split++;
+
+      if (g_BTREE_INSERT_SPLIT_HOOK)
+        g_BTREE_INSERT_SPLIT_HOOK();
+
+      // if the new key is >= the pivot key then continue with the right page,
+      // otherwise continue with the left page
+      return (m_btree->compare_keys(key, &pivot_key) >= 0
+                      ? new_page
+                      : old_page);
+    }
+
+    /*
+     * Calculates the pivot index of a split.
+     *
+     * For databases with sequential access (this includes recno databases):
+     * do not split in the middle, but at the very end of the page.
+     *
+     * If this page is the right-most page in the index, and the new key is
+     * inserted at the very end, then we select the same pivot as for
+     * sequential access.
+     */
+    int get_pivot(BtreeNodeProxy *old_node) {
+      ham_u32_t old_count = old_node->get_count();
+      ham_assert(old_count > 2);
+
       bool pivot_at_end = false;
       if (m_hints.flags & HAM_HINT_APPEND && m_hints.append_count > 5)
         pivot_at_end = true;
       else if (old_node->get_right() == 0) {
-        int cmp = old_node->compare(key, old_node->get_count() - 1);
+        int cmp = old_node->compare(m_key, old_node->get_count() - 1);
         if (cmp > 0)
           pivot_at_end = true;
       }
@@ -335,99 +309,47 @@ class BtreeInsertAction
        * of them were appends then pick a pivot key at the "end" of the node */
       int pivot;
       if (pivot_at_end || m_hints.append_count > 30)
-        pivot = count - 2;
+        pivot = old_count - 2;
       else if (m_hints.append_count > 10)
-        pivot = (count / 100.f * 66);
+        pivot = (old_count / 100.f * 66);
       else if (m_hints.prepend_count > 10)
-        pivot = (count / 100.f * 33);
+        pivot = (old_count / 100.f * 33);
       else if (m_hints.prepend_count > 30)
         pivot = 2;
       else
-        pivot = count / 2;
-      ham_assert(pivot > 0 && pivot <= (int)count - 2);
+        pivot = old_count / 2;
+      ham_assert(pivot > 0 && pivot <= (int)old_count - 2);
 
-      /* uncouple all cursors */
-      BtreeCursor::uncouple_all_cursors(page, pivot);
+      return (pivot);
+    }
 
-      // Store the pivot key so it can be propagated to the parent page.
-      // This requires a separate ByteArray because key->data might
-      // point to m_split_key_arena, and overwriting m_split_key_arena
-      // will effectively change key->data.
-      ByteArray split_key_arena;
-      ham_key_t split_key = {0};
-      old_node->get_key(pivot, &split_key_arena, &split_key);
-      m_split_rid = new_page->get_address();
+    // Allocates a new root page and sets it up in the btree
+    Page *allocate_new_root(Page *old_root) {
+      LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
 
-      /* if we're in an internal page: fix the ptr_down of the new page
-       * (it points to the ptr of the pivot key) */
-      if (!old_node->is_leaf())
-        new_node->set_ptr_down(old_node->get_record_id(pivot));
+      Page *new_root = env->get_page_manager()->alloc_page(db,
+                      Page::kTypeBroot);
 
-      /* now move some of the key/rid-tuples to the new page */
-      old_node->split(new_node, pivot);
+      /* insert the pivot element and set ptr_down */
+      BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);
+      new_node->set_ptr_down(old_root->get_address());
 
-      /* insert the new element in the old or the new page? */
-      int cmp = pivot_at_end
-                    ? 1
-                    : old_node->compare(key, &split_key);
+      m_btree->set_root_address(new_root->get_address());
+      old_root->set_type(Page::kTypeBindex);
 
-      ham_status_t st;
-      if (cmp >= 0)
-        st = insert_in_leaf(new_page, key, rid);
-      else
-        st = insert_in_leaf(page, key, rid);
-
-      // continue if the key is a duplicate; we nevertheless have to
-      // finish the SMO (but make sure we do not lose the return value)
-      if (st) {
-        if (st == HAM_DUPLICATE_KEY)
-          m_final_status = st;
-        else
-          return (st);
-      }
-
-      /* don't overwrite cursor if insert_in_leaf is called again */
-      m_cursor = 0;
-
-      /* fix the double-linked list of pages, and mark the pages as dirty */
-      Page *sib_page = 0;
-      if (old_node->get_right()) {
-        sib_page = env->get_page_manager()->fetch_page(db,
-                        old_node->get_right());
-      }
-
-      new_node->set_left(page->get_address());
-      new_node->set_right(old_node->get_right());
-      old_node->set_right(new_page->get_address());
-      if (sib_page) {
-        BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
-        sib_node->set_left(new_page->get_address());
-        sib_page->set_dirty(true);
-      }
-      new_page->set_dirty(true);
-      page->set_dirty(true);
-
-      // assign the previously stored pivot key to m_split_key_arena
-      m_split_key_arena.clear();
-      m_split_key_arena = split_key_arena;
-      split_key_arena.disown();
-
-      BtreeIndex::ms_btree_smo_split++;
-
-      if (g_BTREE_INSERT_SPLIT_HOOK)
-        g_BTREE_INSERT_SPLIT_HOOK();
-      return (kSplitRequired);
+      return (new_root);
     }
 
     ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_u64_t rid,
                 bool force_prepend = false, bool force_append = false) {
       ham_u32_t new_dupe_id = 0;
       bool exists = false;
-      ham_s32_t slot;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      int count = node->get_count();
+      ham_u32_t count = node->get_count();
 
+      int slot;
       if (count == 0)
         slot = 0;
       else if (force_prepend)
@@ -468,7 +390,7 @@ class BtreeInsertAction
       }
 
       // uncouple the cursors
-      if (!exists && count > slot)
+      if (!exists && (int)count > slot)
         BtreeCursor::uncouple_all_cursors(page, slot);
 
       if (exists) {
@@ -511,8 +433,9 @@ class BtreeInsertAction
       }
       page->set_dirty(true);
 
-      /* if we have a cursor: couple it to the new key */
-      if (m_cursor) {
+      /* if we have a cursor (and this is a leaf node): couple it to the
+       * inserted key */
+      if (m_cursor && node->is_leaf()) {
         m_cursor->get_parent()->set_to_nil(Cursor::kBtree);
 
         ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
@@ -537,17 +460,8 @@ class BtreeInsertAction
     // the record that is inserted
     ham_record_t *m_record;
 
-    // the pivot key for SMOs and splits
-    ByteArray m_split_key_arena;
-
-    // the pivot record ID for SMOs and splits
-    ham_u64_t m_split_rid;
-
     // flags of ham_db_insert()
     ham_u32_t m_flags;
-
-    // helper to avoid losing the result
-    ham_status_t m_final_status;
 
     // statistical hints for this operation
     BtreeStatistics::InsertHints m_hints;
