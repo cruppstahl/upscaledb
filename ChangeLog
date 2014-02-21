@@ -1,4 +1,7 @@
 Feb 21, 2014 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.6
+
+Feb 21, 2014 - chris ---------------------------------------------------
 o issue #30: very small cache sizes cause file size explosion
 
 Feb 20, 2014 - chris ---------------------------------------------------

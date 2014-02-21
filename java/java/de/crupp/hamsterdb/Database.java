@@ -72,7 +72,7 @@ public class Database {
    * <p>
    * This method wraps the native ham_get_version function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gafdbeaa3c3be6812d1b5d5470f7e984ca">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gafdbeaa3c3be6812.1.6d5470f7e984ca">C documentation</a>
    *
    * @return the hamsterdb version tuple
    */
@@ -149,7 +149,7 @@ public class Database {
    * If <code>cmp</code> is null, hamsterdb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.5d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.6d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>

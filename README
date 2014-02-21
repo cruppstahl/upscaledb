@@ -1,5 +1,4 @@
-
-hamsterdb Embedded Storage 2.1.5               Mi 5. Feb 22:00:56 CET 2014
+hamsterdb Embedded Storage 2.1.6               Fr 21. Feb 22:01:12 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -11,23 +10,11 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release fixes several bugs and regressions. Some of these bugs were
-discovered using Qviq's QuickCheck, others were discovered after I implemented
-new test features for ham_bench.
-
-Also, the freelist was completely rewritten and scales much better now.
-In addition, the parameter HAM_PARAM_MAX_DATABASES was removed because
-it is no longer required. The new default is now automatically set to the
-highest limit (which allows to create ~ 650 databases if the page size is
-set to 16kb).
-
-Many of these changes and fixes improved the performance.
-
-The file format of 2.1.5 is not compatible to 2.1.4, but will most likely
-remain stable for the next releases.
-
-For the next release i am going to continue working on improved scalability,
-and you can also expect Erlang support soonish.
+This release fixes issue #30 (file size grew exponentially if cache size was
+very low and therefore the cache was purged very often). Also, the code
+of Journal and the Log were merged, and the phyical log is now also stored
+in the Journal files. The Journal now uses a buffer to reduce I/O.
+Performance increased compared to previous releases if recovery is enabled.
 
 2. Changes
 
@@ -35,17 +22,10 @@ New Features
 * none
 
 Bugfixes
-* Fixed several regressions that crept in when 2.1.4 was released
-* If a Database is closed in an in-memory Environment, the Database
-	name was still occupied and the Database could not be re-created.
-* Cache purges always purged one page only; now purges as many as
-	required
+* issue #30: file size no longer grows exponentially if cache size is low
 
 Other Changes
-* The freelist was replaced and scales much better now
-* Removed the parameter HAM_PARAM_MAX_DATABASES - the number of databases
-	is now always set to the maximum limit.
-* Removed HAM_CACHE_STRICT, HAM_CACHE_FULL and the related functionalities
+* The Journal and the Log were merged and the Journal is now buffered
 
 To see a list of all changes, look in the file ChangeLog.
 

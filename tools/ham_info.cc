@@ -66,12 +66,6 @@ error(const char *foo, ham_status_t st) {
 
 static void
 print_environment(ham_env_t *env) {
-  /* we need a temp. database */
-  ham_db_t *db;
-  ham_status_t st = ham_env_open_db(env, &db, 0xf001, 0, 0);
-  if (st)
-    error("ham_env_open_db", st);
-
   hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
   if (!quiet) {
     printf("environment\n");
@@ -84,10 +78,6 @@ print_environment(ham_env_t *env) {
     printf("  max databases:        %u\n",
             lenv->get_header()->get_max_databases());
   }
-
-  st = ham_db_close(db, 0);
-  if (st)
-    error("ham_db_close", st);
 }
 
 static void

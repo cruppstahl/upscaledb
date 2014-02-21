@@ -66,6 +66,8 @@ x erlang API
         x database operations (create/close/open/erase/rename)
         x database operations with insert/erase/find
 
+x fix issue #30
+
 o PageManager state now writes deltas to journal while flushing a txn-op.
     o the deltas are part of the Changeset
     o the deltas have to be idempotent
@@ -75,6 +77,9 @@ o PageManager state now writes deltas to journal while flushing a txn-op.
 . web-page requires updates
     x deployed html differs from git-repository
     o www1-repository and hamsterdb-www should be identical
+        o samples fehlen
+        o download-dateien fehlen
+        o doku fehlt
     o www1
         o merge git repository of www1 (host on github, keep remote branch)
         o clean up 'dl' directory

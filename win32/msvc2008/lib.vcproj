@@ -68,7 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib libboost_thread-vc90-mt-gd-1_49.lib libboost_date_time-vc90-mt-gd-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.6.lib"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
 			/>
 			<Tool
@@ -137,7 +137,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008/libuv_x64_debug.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.6.lib"
 				AdditionalLibraryDirectories=""
 			/>
 			<Tool
@@ -202,7 +202,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ../../../hamsterdb-alien/boost/msvc2008/x86/libboost_thread-vc90-mt-1_49.lib ../../../hamsterdb-alien/boost/msvc2008/x86/libboost_date_time-vc90-mt-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.6.lib"
 				AdditionalLibraryDirectories=""
 				SuppressStartupBanner="true"
 			/>
@@ -269,7 +269,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008/libuv_x64.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.6.lib"
 				AdditionalLibraryDirectories="..\..\hamsterdb-alien\boost\x64"
 			/>
 			<Tool

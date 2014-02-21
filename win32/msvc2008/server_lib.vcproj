@@ -68,7 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="libuv_debug.lib psapi.lib Iphlpapi.lib"
-				OutputFile="$(OutDir)\libhamserver-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-2.1.6.lib"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
@@ -137,7 +137,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="libuv_x64_debug.lib psapi.lib Iphlpapi.lib"
-				OutputFile="$(OutDir)\libhamserver-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-2.1.6.lib"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
@@ -202,7 +202,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="libuv.lib psapi.lib Iphlpapi.lib"
-				OutputFile="$(OutDir)\libhamserver-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-2.1.6.lib"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
@@ -268,7 +268,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="libuv_x64.lib psapi.lib Iphlpapi.lib"
-				OutputFile="$(OutDir)\libhamserver-2.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-2.1.6.lib"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool

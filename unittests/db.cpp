@@ -26,7 +26,6 @@
 #include "../src/blob_manager.h"
 #include "../src/page_manager.h"
 #include "../src/txn.h"
-#include "../src/log.h"
 #include "../src/btree_node.h"
 
 namespace hamsterdb {
@@ -149,8 +148,6 @@ struct DbFixture {
     REQUIRE(sizeof(PBtreeNode) == 33);
     REQUIRE(sizeof(PEnvironmentHeader) == 28);
     REQUIRE(sizeof(PBtreeHeader) == 24);
-    REQUIRE(sizeof(Log::PEnvironmentHeader) == 16);
-    REQUIRE(sizeof(Log::PEntry) == 32);
     REQUIRE(sizeof(PPageData) == 13);
     PPageData p;
     REQUIRE(sizeof(p._s) == 13);
