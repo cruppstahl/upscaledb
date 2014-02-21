@@ -121,12 +121,17 @@ class PageManager {
     void add_to_freelist(Page *page, int page_count = 1);
 
     // Returns the Page pointer where we can add more blobs
-    Page *get_last_blob_page() {
-      return (m_last_blob_page);
+    Page *get_last_blob_page(LocalDatabase *db) {
+      if (m_last_blob_page)
+        return (m_last_blob_page);
+      if (m_last_blob_page_id)
+        return (fetch_page(db, m_last_blob_page_id));
+      return (0);
     }
 
     // Sets the Page pointer where we can add more blobs
     void set_last_blob_page(Page *page) {
+      m_last_blob_page_id = 0;
       m_last_blob_page = page;
     }
 
@@ -211,6 +216,9 @@ class PageManager {
 
     // Cached page where to add more blobs
     Page *m_last_blob_page;
+
+    // Page where to add more blobs - if |m_last_blob_page| was flushed
+    ham_u64_t m_last_blob_page_id;
 
     // tracks number of fetched pages
     ham_u64_t m_page_count_fetched;

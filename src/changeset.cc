@@ -137,8 +137,6 @@ Changeset::flush(ham_u64_t lsn)
 
   INDUCE(ErrorInducer::kChangesetFlush);
 
-  bool log_written = false;
-
   // If there's more than one index operation then the operation must
   // be atomic and therefore logged.
   //
@@ -154,7 +152,6 @@ Changeset::flush(ham_u64_t lsn)
                     m_indices, m_indices_size,
                     m_others, m_others_size,
                     lsn);
-    log_written = true;
   }
 
   p = m_head;
@@ -162,7 +159,6 @@ Changeset::flush(ham_u64_t lsn)
   INDUCE(ErrorInducer::kChangesetFlush);
 
   // now flush all modified pages to disk
-  ham_assert(log != 0);
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
   /* execute a post-log hook; this hook is set by the unittest framework

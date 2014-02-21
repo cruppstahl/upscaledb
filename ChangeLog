@@ -1,3 +1,6 @@
+Feb 21, 2014 - chris ---------------------------------------------------
+o issue #30: very small cache sizes cause file size explosion
+
 Feb 20, 2014 - chris ---------------------------------------------------
 o The log was merged with the journal; the journal now stores
 	redo-information for physical changes. To improve performance, the journal

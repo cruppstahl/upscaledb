@@ -122,7 +122,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_env->get_page_manager()->get_last_blob_page();
+  Page *page = m_env->get_page_manager()->get_last_blob_page(db);
 
   if (page) {
     header = PBlobPageHeader::from_page(page);

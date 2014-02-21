@@ -23,10 +23,10 @@ namespace hamsterdb {
 
 PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
   : m_env(env), m_cache(env, cache_size), m_needs_flush(false),
-    m_state_page(0), m_last_blob_page(0), m_page_count_fetched(0),
-    m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
-    m_page_count_page_manager(0), m_cache_hits(0), m_cache_misses(0),
-    m_freelist_hits(0), m_freelist_misses(0)
+    m_state_page(0), m_last_blob_page(0), m_last_blob_page_id(0),
+    m_page_count_fetched(0), m_page_count_flushed(0), m_page_count_index(0),
+    m_page_count_blob(0), m_page_count_page_manager(0), m_cache_hits(0),
+    m_cache_misses(0), m_freelist_hits(0), m_freelist_misses(0)
 {
 }
 
@@ -397,8 +397,10 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
 void
 PageManager::flush_all_pages(bool nodelete)
 {
-  if (nodelete == false)
+  if (nodelete == false && m_last_blob_page) {
+    m_last_blob_page_id = m_last_blob_page->get_address();
     m_last_blob_page = 0;
+  }
   m_cache.visit(flush_all_pages_callback, 0, nodelete ? 1 : 0);
 
   if (m_state_page)
@@ -409,11 +411,13 @@ void
 PageManager::purge_callback(Page *page, PageManager *pm)
 {
   BtreeCursor::uncouple_all_cursors(page);
-  page->get_env()->get_page_manager()->flush_page(page);
 
-  if (pm->m_last_blob_page == page)
+  if (pm->m_last_blob_page == page) {
+    pm->m_last_blob_page_id = pm->m_last_blob_page->get_address();
     pm->m_last_blob_page = 0;
+  }
 
+  page->get_env()->get_page_manager()->flush_page(page);
   delete page;
 }
 
@@ -463,7 +467,10 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 void
 PageManager::close_database(Database *db)
 {
-  m_last_blob_page = 0;
+  if (m_last_blob_page) {
+    m_last_blob_page_id = m_last_blob_page->get_address();
+    m_last_blob_page = 0;
+  }
 
   m_cache.visit(db_close_callback, db, 0);
 }
@@ -471,7 +478,10 @@ PageManager::close_database(Database *db)
 void
 PageManager::reclaim_space()
 {
-  m_last_blob_page = 0;
+  if (m_last_blob_page) {
+    m_last_blob_page_id = m_last_blob_page->get_address();
+    m_last_blob_page = 0;
+  }
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
   bool do_truncate = false;
   ham_u64_t file_size = m_env->get_device()->get_file_size();
