@@ -890,20 +890,6 @@ class PaxNodeImpl
       }
     }
 
-    // Replace |dest| with |src|
-    void replace_key(ConstIterator src, Iterator dest) const {
-      dest->set_key_flags(src->get_key_flags());
-      dest->set_key_data(src->get_key_data(), src->get_key_size());
-      dest->set_key_size(src->get_key_size());
-    }
-
-    // Replace |dest| with |src|
-    void replace_key(ham_key_t *src, Iterator dest) {
-      dest->set_key_flags(src->_flags);
-      dest->set_key_data(src->data, src->size);
-      dest->set_key_size(src->size);
-    }
-
     // Same as above, but copies the key from |src_node[src_slot]|
     void insert(ham_u32_t slot, PaxNodeImpl *src_node, ham_u32_t src_slot) {
       ham_key_t key = {0};
@@ -1001,55 +987,6 @@ class PaxNodeImpl
                       other->m_records.get_record_data(0),
                       m_records.get_max_inline_record_size()
                             * other->m_node->get_count());
-    }
-
-    // Shifts |count| elements from the right sibling (|other|) to this node
-    void shift_from_right(PaxNodeImpl *other, int count) {
-      ham_u32_t pos = m_node->get_count();
-
-      // first perform the shift
-      memcpy(m_keys.get_key_data(pos), other->m_keys.get_key_data(0),
-                      get_key_size() * count);
-      if (!RecordList::is_always_fixed_size())
-        memcpy(&m_flags[pos], &other->m_flags[0], count);
-      memcpy(m_records.get_record_data(pos),
-                      other->m_records.get_record_data(0),
-                      m_records.get_max_inline_record_size() * count);
-
-      // then reduce the other page
-      memmove(other->m_keys.get_key_data(0), other->m_keys.get_key_data(count),
-                      get_key_size() * (other->m_node->get_count() - count));
-      if (!RecordList::is_always_fixed_size())
-        memmove(&other->m_flags[0], &other->m_flags[count],
-                        (other->m_node->get_count() - count));
-      memmove(other->m_records.get_record_data(0),
-                      other->m_records.get_record_data(count),
-                      m_records.get_max_inline_record_size()
-                            * (other->m_node->get_count() - count));
-    }
-
-    // Shifts |count| elements from this node to |other|, starting at
-    // |slot|
-    void shift_to_right(PaxNodeImpl *other, ham_u32_t slot, int count) {
-      // make room in the right sibling
-      memmove(other->m_keys.get_key_data(count), other->m_keys.get_key_data(0),
-                      get_key_size() * other->m_node->get_count());
-      if (!RecordList::is_always_fixed_size())
-        memmove(&other->m_flags[count], &other->m_flags[0],
-                        other->m_node->get_count());
-      memmove(other->m_records.get_record_data(count),
-                      other->m_records.get_record_data(0),
-                      m_records.get_max_inline_record_size()
-                            * other->m_node->get_count());
-
-      // shift |count| elements from this page to |other|
-      memcpy(other->m_keys.get_key_data(0), m_keys.get_key_data(slot),
-                      get_key_size() * count);
-      if (!RecordList::is_always_fixed_size())
-        memcpy(&other->m_flags[0], &m_flags[slot], count);
-      memcpy(other->m_records.get_record_data(0),
-                      m_records.get_record_data(slot),
-                      m_records.get_max_inline_record_size() * count);
     }
 
     // Returns the record counter of a key

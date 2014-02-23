@@ -111,7 +111,7 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * Metrics marked "global" are stored globally and shared between multiple
  * Environments.
  */
-#define HAM_METRICS_VERSION         6
+#define HAM_METRICS_VERSION         7
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
@@ -172,9 +172,6 @@ typedef struct ham_env_metrics_t {
 
   // (global) number of btree page merges
   ham_u64_t btree_smo_merge;
-
-  // (global) number of btree page shifts
-  ham_u64_t btree_smo_shift;
 
   // (global) number of extended keys
   ham_u64_t extended_keys;

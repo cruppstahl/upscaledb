@@ -301,7 +301,6 @@ class BtreeIndex
     static void get_metrics(ham_env_metrics_t *metrics) {
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
-      metrics->btree_smo_shift = ms_btree_smo_shift;
       metrics->extended_keys = g_extended_keys;
       metrics->extended_duptables = g_extended_duptables;
     }

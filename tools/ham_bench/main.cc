@@ -769,8 +769,6 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.btree_smo_split);
   printf("\thamsterdb btree_smo_merge             %lu\n",
           metrics->hamster_metrics.btree_smo_merge);
-  printf("\thamsterdb btree_smo_shift             %lu\n",
-          metrics->hamster_metrics.btree_smo_shift);
   printf("\thamsterdb extended_keys               %lu\n",
           metrics->hamster_metrics.extended_keys);
   printf("\thamsterdb extended_duptables          %lu\n",

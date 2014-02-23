@@ -59,32 +59,48 @@ o delta updates (DU)
         x make sure that all tests are still running
         o also check monster tests
     o erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
-        -> leaf nodes can become empty
-        -> internal nodes must at least set ptr_down
-        -> when going down: only merge pages if they have the same parent and
-            if they are both empty (or nearly empty)
+        x leaf nodes can become empty
+        x internal nodes must at least set ptr_down
+        x when going down: only merge pages if they have the same parent and
+            if they are both (nearly) empty
         -> in the end there's a btree skeleton with empty leafs and nearly-
             empty nodes; this can then be compact()ed offline or asynchronously
+        x get rid of shifting and replace_key
+        x BtreeImpl/Proxy: remove shifts, replace_key etc
+        o also merge with the left sibling
         o is there a cheap way to visualize the tree?
             -> yes: http://www.graphviz.org/content/datastruct
-        o rewrite operation similar to insert/find: loop till there's a
-            leaf; while traversing, do the merges if the rules above apply
-            o only if both siblings have the same parent, and if the
-                parent slots are > 0 (not at the left edge)
-            o then immediately update the parent
-            o get rid of shifting and replace_key
-            o only merge right sibling to current page
-        o review BtreeImplDefault::requires_split
 
-    o the actual operation now becomes atomic and simply attachs a DU to
-        the modified page
-        o creating a DU requires a single memory allocation!
+        o review BtreeImplDefault::requires_split
+            -> causes segfaults because insert() assumes that there's enough
+                space in the node. how to fix this? either
+                - either use extkey if there is not enough space
+                - or resize node in insert(), and then split in the caller
+                    if insert() fails
+
     o find a single solution for transactions AND regular updates
         is this possible? they both serve different purposes, and the
         consolidation could become very tricky (think of cursors, 
         approx. matching...)
         -> but maybe the txn opnode/op could *point* to the DU?
+        o what about cursor logic? does it always require merging the DUs?
+            are DUs even avoided if there's a cursor coupled to the page?
         o the janitor makes sure that DUs of aborted txn's are silently removed
+    o the actual operation now becomes atomic and simply attachs a DU to
+        the modified page
+        o creating a DU requires a single memory allocation!
+    o merge the DUs when...
+        o a lookup happens (really?)
+        o if the number of DUs exceed a limit 
+        o when the page is split
+        o when the page is merged
+        o when the page is flushed
+    o how does recovery work? all DUs that were already flushed (can find out
+        by looking at their lsn) are ignored; only those are applied that
+        are not yet written to disk
+        x each journal entry of a DU must store the current lsn AND the txn-id
+        o whenever a page is flushed then the page must contain the lsn
+            of the latest DU that was merged! (??)
 
     o separate SMOs from the actual operation
         -> check the literature
@@ -101,19 +117,6 @@ o delta updates (DU)
             above). The merges will start at the bottom and then slowly move
             up. repeat till there's no more merging to be done. just figure
             out a way how to do that efficiently!
-
-    o the janitor merges the DUs if
-        o the number of DUs exceeds a certain limit
-        o the page is merged or split
-        o the page is flushed
-        o there is a lookup operation
-        o however: skip those of uncommitted/aborted transactions!
-    o how does recovery work? all DUs that were already flushed (can find out
-        by looking at their lsn) are ignored; only those are applied that
-        are not yet written to disk
-        x each journal entry of a DU must store the current lsn AND the txn-id
-        o whenever a page is flushed then the page must contain the lsn
-            of the latest DU that was merged! (??)
 
 o improve: ham_bench --cache=310241024 --reopen=true --key=binary \
     --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase \

@@ -195,17 +195,6 @@ class BtreeNodeProxy
     // or an In-Memory Database is freed
     virtual void remove_all_entries() = 0;
 
-    // Replaces the |dest|-key with the key in |slot|
-    // Note that |dest| MUST be an internal node! This is used to update
-    // anchor nodes during erase SMOs.
-    virtual void replace_key(ham_u32_t slot, BtreeNodeProxy *dest,
-                    int dest_slot) = 0;
-
-    // Replaces the |dest|-key with the key in |source|
-    // Note that |dest| MUST be an internal node! This is used to update
-    // anchor nodes during erase SMOs.
-    virtual void replace_key(ham_key_t *source, int dest_slot) = 0;
-
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual void insert(ham_u32_t slot, const ham_key_t *key) = 0;
@@ -228,13 +217,6 @@ class BtreeNodeProxy
 
     // Merges all keys from the |other| node to this node
     virtual void merge_from(BtreeNodeProxy *other) = 0;
-
-    // Append |count| keys from the |other| node to this node
-    virtual void shift_from_right(BtreeNodeProxy *other, int count) = 0;
-
-    // Prepends |count| keys from this node to the |other| node
-    virtual void shift_to_right(BtreeNodeProxy *other, ham_u32_t slot,
-                    int count) = 0;
 
     // Prints the node to stdout. Only for testing and debugging!
     virtual void print(ham_u32_t count = 0) = 0;
@@ -433,6 +415,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
     virtual int find(ham_key_t *key, int *pcmp = 0) {
+      if (get_count() == 0)
+        return (HAM_KEY_NOT_FOUND);
       Comparator cmp(m_page->get_db());
       return (m_impl.find(key, cmp, pcmp));
     }
@@ -548,31 +532,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       }
     }
 
-    // Replaces the |dest|-key with the key in |slot|
-    // Note that |dest| MUST be an internal node!
-    virtual void replace_key(ham_u32_t slot, BtreeNodeProxy *dest_node,
-                    int dest_slot) {
-      ham_key_t key = {0};
-
-      ByteArray arena;
-      get_key_direct(slot, &arena, &key);
-
-      dest_node->replace_key(&key, dest_slot);
-    }
-
-    // Replaces the |dest|-key with the key in |source|
-    // Note that |dest| MUST be an internal node!
-    virtual void replace_key(ham_key_t *source, int dest_slot) {
-      ham_assert(!is_leaf());
-
-      // release the extended blob of the destination key (if there is one)
-      if (dest_slot < (int)get_count())
-        m_impl.erase_key(dest_slot);
-
-      typename NodeImpl::Iterator it = m_impl.at(dest_slot);
-      m_impl.replace_key(source, it);
-    }
-
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual void insert(ham_u32_t slot, const ham_key_t *key) {
@@ -624,29 +583,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
       set_count(get_count() + other->get_count());
       other->set_count(0);
-    }
-
-    // Shifts |count| keys from the |other| node to this node
-    virtual void shift_from_right(BtreeNodeProxy *other_node, int count) {
-      ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ham_assert(other != 0);
-
-      m_impl.shift_from_right(&other->m_impl, count);
-
-      set_count(get_count() + count);
-      other->set_count(other->get_count() - count);
-    }
-
-    // Prepends |count| keys from this node to the |other| node
-    virtual void shift_to_right(BtreeNodeProxy *other_node,
-                    ham_u32_t slot, int count) {
-      ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ham_assert(other != 0);
-
-      m_impl.shift_to_right(&other->m_impl, slot, count);
-
-      set_count(get_count() - count);
-      other->set_count(other->get_count() + count);
     }
 
     // Prints the node to stdout (for debugging)
