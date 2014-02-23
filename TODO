@@ -14,10 +14,7 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.1.6 ..................................................
-x improve static code analysis
-x erlang api
-x improved logging/journalling
+high-level plan for 2.1.7 ..................................................
 o simplified btree SMOs
     paper:
         describe current solution
@@ -28,45 +25,10 @@ o simplified btree SMOs
         show before/after benchmarks
 o delta updates
 
+--------------
 
-x clang's scan-build ignores ham_assert macros
-    http://clang-analyzer.llvm.org/annotations.html#custom_assertions
-    x also for coverity
-
-x improved logging/journalling
-    x change journal magic
-    x add trailer for each entry (type + size)
-    x need to keep track of the newest lsn (is currently written to the
-        log file header)
-    x files must be buffered
-        x flush buffers if a txn is committed (fsync!)
-        x if the buffer becomes too big
-        x if the file is closed (no - just clear the buffer!)
-    x merge both files (log + journal) into one
-        x add new journal entry for "changeset"
-        x then write the full changeset to the journal
-        x flush buffers after the changeset was written (fsync)
-        x remove log.h, log.cc
-        x os_writev still required?
-    x recovery processes physical log "backwards" and logical journal
-        "forwards"
-        x first go backwards; but if there's no trailer magic then skip the
-            changeset
-        x when going forwards: skip ALL changesets
-        x ... and start with lsn of the applied changeset
-    x still has to work if journalling is disabled but recovery is enabled
-    x check recovery tests
-    x collect metric for bytes flushed to disk
-        x add to ham_bench
-    x changeset flush - always log if > 1 page is flushed
-    x add documentation
-
-x erlang API
-    x with quickcheck coverage for...
-        x database operations (create/close/open/erase/rename)
-        x database operations with insert/erase/find
-
-x fix issue #30
+o PageManager state: also store m_last_blob_page_id persistently
+    (try not to break backwards compatibility, though)
 
 x there'S a bug (already in 2.1.6)
     ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 --stop-ops=25000
@@ -81,9 +43,11 @@ x there'S a bug (already in 2.1.6)
 . web-page requires updates
     x deployed html differs from git-repository
     o www1-repository and hamsterdb-www should be identical
+        o updates for 2.1.6 are missing
         o samples fehlen
         o download-dateien fehlen
         o doku fehlt
+    o download/sources: add erlang, remove 1.x
     o www1
         o merge git repository of www1 (host on github, keep remote branch)
         o clean up 'dl' directory
