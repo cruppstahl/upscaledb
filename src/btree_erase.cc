@@ -85,27 +85,50 @@ class BtreeEraseAction
         Page *child_page = m_btree->find_internal(page, m_key, &slot);
         BtreeNodeProxy *child_node = m_btree->get_node_from_page(child_page);
 
-        // we can merge this child iff...
+        // We can merge this child with the RIGHT sibling iff...
         // 1. it's not the right-most slot (and therefore the right sibling has
         //      the same parent as the child)
-        // 2. it's empty or has too few elements
-        // 3. its right sibling is also empty
-        bool merge_candidate = false;
+        // 2. the child is a leaf!
+        // 3. it's empty or has too few elements
+        // 4. its right sibling is also empty
         if (slot < (int)node->get_count() - 1
+            && child_node->is_leaf()
             && child_node->requires_merge()
             && child_node->get_right() != 0) {
           sib_page = env->get_page_manager()->fetch_page(db,
-                                child_node->get_right());
-          BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
-          if (sib_node->requires_merge())
-            merge_candidate = true;
+                                child_node->get_right(), true);
+          if (sib_page != 0) {
+            BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
+            if (sib_node->requires_merge()) {
+              merge_page(child_page, sib_page);
+              // also remove the link to the sibling from the parent
+              remove_entry(page, slot + 1);
+            }
+          }
         }
 
-        // iff the child can be merged with its right sibling then do it now
-        if (merge_candidate) {
-          merge_page(child_page, sib_page);
-          // also remove the link to the sibling from the parent
-          remove_entry(page, slot + 1);
+        // We can also merge this child with the LEFT sibling iff...
+        // 1. it's not the left-most slot
+        // 2. the child is a leaf!
+        // 3. it's empty or has too few elements
+        // 4. its left sibling is also empty
+        else if (slot > 0
+            && child_node->is_leaf()
+            && child_node->requires_merge()
+            && child_node->get_left() != 0) {
+          sib_page = env->get_page_manager()->fetch_page(db,
+                                child_node->get_left(), true);
+          if (sib_page != 0) {
+            BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
+            if (sib_node->requires_merge()) {
+              merge_page(sib_page, child_page);
+              // also remove the link to the sibling from the parent
+              remove_entry(page, slot);
+              // continue with the sibling
+              child_page = sib_page;
+              child_node = sib_node;
+            }
+          }
         }
 
         // go down one level in the tree
@@ -114,8 +137,9 @@ class BtreeEraseAction
       }
 
       // we have reached the leaf; search the leaf for the key
-      slot = node->find(m_key);
-      if (slot < 0) {
+      int cmp;
+      slot = node->find(m_key, &cmp);
+      if (slot < 0 || cmp != 0) {
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }
@@ -135,6 +159,7 @@ class BtreeEraseAction
       ham_assert(slot < (int)node->get_count());
 
       /* uncouple all cursors */
+      // TODO better adjust them and decrement the coupled index
       BtreeCursor::uncouple_all_cursors(page, slot + 1);
 
       // delete the record, but only on leaf nodes! internal nodes don't have
@@ -220,6 +245,16 @@ class BtreeEraseAction
 
       node->merge_from(sib_node);
       page->set_dirty(true);
+
+      // fix the linked list
+      node->set_right(sib_node->get_right());
+      Page *new_right = env->get_page_manager()->fetch_page(db,
+                                node->get_right());
+      if (node->get_right()) {
+        BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
+        new_right_node->set_left(page->get_address());
+        new_right->set_dirty(true);
+      }
 
       m_btree->get_statistics()->reset_page(sibling);
       m_btree->get_statistics()->reset_page(page);

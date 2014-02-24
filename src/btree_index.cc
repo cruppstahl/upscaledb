@@ -120,7 +120,6 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
 
   // make sure that we're not in a leaf page, and that the
   // page is not empty
-  ham_assert(node->get_count() > 0);
   ham_assert(node->get_ptr_down() != 0);
 
   int slot = node->find(key);

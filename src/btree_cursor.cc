@@ -286,24 +286,22 @@ BtreeCursor::move_first(ham_u32_t flags)
   set_to_nil();
 
   // get the root page
-  if (!m_btree->get_root_address())
-    return (HAM_KEY_NOT_FOUND);
-
   Page *page = env->get_page_manager()->fetch_page(db,
           m_btree->get_root_address());
+  BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-  // while we've not reached the leaf: pick the smallest element
-  // and traverse down
-  while (1) {
-    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-    // check for an empty root page
-    if (node->get_count() == 0)
-      return (HAM_KEY_NOT_FOUND);
-    // leave the loop when we've reached the leaf page
-    if (node->is_leaf())
-      break;
-
+  // traverse down to the leafs
+  while (!node->is_leaf()) {
     page = env->get_page_manager()->fetch_page(db, node->get_ptr_down());
+    node = m_btree->get_node_from_page(page);
+  }
+
+  // and to the next page that is NOT empty
+  while (node->get_count() == 0) {
+    if (node->get_right() == 0)
+      return (HAM_KEY_NOT_FOUND);
+    page = env->get_page_manager()->fetch_page(db, node->get_right());
+    node = m_btree->get_node_from_page(page);
   }
 
   // couple this cursor to the smallest key in this page
@@ -349,9 +347,17 @@ BtreeCursor::move_next(ham_u32_t flags)
   if (!node->get_right())
     return (HAM_KEY_NOT_FOUND);
 
-  remove_cursor_from_page(m_coupled_page);
-
   Page *page = env->get_page_manager()->fetch_page(db, node->get_right());
+  node = m_btree->get_node_from_page(page);
+
+  // if the right node is empty then continue searching for the next
+  // non-empty page
+  while (node->get_count() == 0) {
+    if (!node->get_right())
+      return (HAM_KEY_NOT_FOUND);
+    page = env->get_page_manager()->fetch_page(db, node->get_right());
+    node = m_btree->get_node_from_page(page);
+  }
 
   // couple this cursor to the smallest key in this page
   couple_to_page(page, 0, 0);
@@ -393,10 +399,17 @@ BtreeCursor::move_previous(ham_u32_t flags)
     if (!node->get_left())
       return (HAM_KEY_NOT_FOUND);
 
-    remove_cursor_from_page(m_coupled_page);
-
     Page *page = env->get_page_manager()->fetch_page(db, node->get_left());
     node = m_btree->get_node_from_page(page);
+
+    // if the left node is empty then continue searching for the next
+    // non-empty page
+    while (node->get_count() == 0) {
+      if (!node->get_left())
+        return (HAM_KEY_NOT_FOUND);
+      page = env->get_page_manager()->fetch_page(db, node->get_left());
+      node = m_btree->get_node_from_page(page);
+    }
 
     // couple this cursor to the highest key in this page
     couple_to_page(page, node->get_count() - 1);
@@ -425,21 +438,24 @@ BtreeCursor::move_last(ham_u32_t flags)
 
   Page *page = env->get_page_manager()->fetch_page(db,
           m_btree->get_root_address());
+  BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-  // while we've not reached the leaf: pick the largest element
-  // and traverse down
-  BtreeNodeProxy *node;
-  while (1) {
-    node = m_btree->get_node_from_page(page);
-    // check for an empty root page
+  // traverse down to the leafs
+  while (!node->is_leaf()) {
     if (node->get_count() == 0)
-      return (HAM_KEY_NOT_FOUND);
-    // leave the loop when we've reached a leaf page
-    if (node->is_leaf())
-      break;
+      page = env->get_page_manager()->fetch_page(db, node->get_ptr_down());
+    else
+      page = env->get_page_manager()->fetch_page(db,
+                        node->get_record_id(node->get_count() - 1));
+    node = m_btree->get_node_from_page(page);
+  }
 
-    page = env->get_page_manager()->fetch_page(db,
-            node->get_record_id(node->get_count() - 1));
+  // and to the last page that is NOT empty
+  while (node->get_count() == 0) {
+    if (node->get_left() == 0)
+      return (HAM_KEY_NOT_FOUND);
+    page = env->get_page_manager()->fetch_page(db, node->get_left());
+    node = m_btree->get_node_from_page(page);
   }
 
   // couple this cursor to the largest key in this page
@@ -455,6 +471,11 @@ BtreeCursor::move_last(ham_u32_t flags)
 void
 BtreeCursor::couple_to_page(Page *page, ham_u32_t index)
 {
+  ham_assert(page != 0);
+
+  if (m_state == kStateCoupled && m_coupled_page != page)
+    remove_cursor_from_page(m_coupled_page);
+
   m_coupled_index = index;
   m_state = kStateCoupled;
   if (m_coupled_page == page)

@@ -1140,7 +1140,7 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
   }
 
   /* this function will do all the work */
-  st=cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
+  st = cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
 
   /* clear the changeset */
   get_local_env()->get_changeset().clear();

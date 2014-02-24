@@ -415,8 +415,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
     virtual int find(ham_key_t *key, int *pcmp = 0) {
-      if (get_count() == 0)
-        return (HAM_KEY_NOT_FOUND);
+      if (get_count() == 0) {
+        if (pcmp)
+          *pcmp = 1;
+        return (-1);
+      }
       Comparator cmp(m_page->get_db());
       return (m_impl.find(key, cmp, pcmp));
     }
@@ -459,6 +462,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns the number of records of a key at the given |slot|
     virtual ham_u32_t get_record_count(ham_u32_t slot) {
+      ham_assert(slot < get_count());
       return (m_impl.get_total_record_count(slot));
     }
 
@@ -468,6 +472,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void get_record(ham_u32_t slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u32_t duplicate_index = 0) {
+      ham_assert(slot < get_count());
       m_impl.get_record(slot, arena, record, flags, duplicate_index);
     }
 
@@ -480,12 +485,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns the record size of a key or one of its duplicates
     virtual ham_u64_t get_record_size(ham_u32_t slot, int duplicate_index) {
+      ham_assert(slot < get_count());
       return (m_impl.get_record_size(slot, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
     virtual ham_u64_t get_record_id(ham_u32_t slot) const {
+      ham_assert(slot < get_count());
       typename NodeImpl::Iterator it = m_impl.at(slot);
       return (it->get_record_id());
     }
@@ -501,6 +508,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // to clean up (a potential) extended key, and |erase_record| on each
     // record that is associated with the key.
     virtual void erase(ham_u32_t slot) {
+      ham_assert(slot < get_count());
       m_impl.erase(slot);
       set_count(get_count() - 1);
     }
@@ -511,6 +519,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // after the current one was deleted.
     virtual void erase_record(ham_u32_t slot, int duplicate_index,
                     bool all_duplicates, bool *has_duplicates_left) {
+      ham_assert(slot < get_count());
       m_impl.erase_record(slot, duplicate_index, all_duplicates);
       if (has_duplicates_left)
         *has_duplicates_left = get_record_count(slot) > 0;

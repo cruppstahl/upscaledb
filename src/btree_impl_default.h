@@ -551,17 +551,17 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
   return (lhs.offset < rhs.offset);
 }
 
-// move every key > threshold to a blob. For testing purposes.
+// Move every key > threshold to a blob. For testing purposes.
 extern ham_u32_t g_extended_threshold;
 
-// create duplicate table if amount of duplicates > threshold. For testing
+// Create duplicate table if amount of duplicates > threshold. For testing
 // purposes.
 extern ham_u32_t g_duplicate_threshold;
 
-// for counting extended keys
+// For counting extended keys; for metrics only
 extern ham_u64_t g_extended_keys;
 
-// for counting extended duplicate tables
+// For counting extended duplicate tables; for metrics only
 extern ham_u64_t g_extended_duptables;
 
 //
@@ -1086,7 +1086,9 @@ class DefaultNodeImpl
       clear_caches();
     }
 
-    // Returns the actual key size (including overhead, without record)
+    // Returns the actual key size (including overhead, without record).
+    // This is a rough guess and only for calculating the initial node
+    // capacity.
     static ham_u16_t get_actual_key_size(ham_u32_t key_size,
                         bool enable_duplicates = false) {
       // unlimited/variable keys require 5 bytes for flags + key size + offset;
@@ -2026,22 +2028,19 @@ class DefaultNodeImpl
       insert(slot, &key);
     }
 
-    // Returns true if |key| cannot be inserted because a split is required
-    // Rearranges the node if required
-    // Leaves some additional headroom in internal pages, in case we
-    // overwrite small keys with longer keys and need more space
+    // Returns true if |key| cannot be inserted because a split is required.
+    // Unlike implied by the name, this function will try to re-arrange the
+    // node in order for the key to fit in.
     bool requires_split() {
       ham_key_t key = {0};
-      key.size = 32;
-      return (!has_enough_space(&key, true, false, 0));
-      // TODO re-enable this when erase SMOs are cleaned up
-#if 0
-      if (has_enough_space(&key, true, false, (!m_node->is_leaf() ? 128 : 0)))
+      key.size = m_page->get_db()->get_btree_index()->get_key_size();
+      if (key.size == HAM_KEY_SIZE_UNLIMITED)
+        key.size = get_extended_threshold();
+      if (has_enough_space(&key, true))
         return (false);
 
       rearrange(m_node->get_count());
       return (resize(m_node->get_count() + 1, &key));
-#endif
     }
 
     // Returns true if the node requires a merge or a shift
@@ -2795,8 +2794,7 @@ class DefaultNodeImpl
     }
 
     // Returns true if |key| can be inserted without splitting the page
-    bool has_enough_space(const ham_key_t *key, bool use_extended,
-                    bool force = false, int headroom = 0) {
+    bool has_enough_space(const ham_key_t *key, bool use_extended_keys) {
       ham_u32_t count = m_node->get_count();
 
       if (count == 0) {
@@ -2807,15 +2805,14 @@ class DefaultNodeImpl
 
       // leave some headroom - a few operations create new indices; make sure
       // that they have index capacity left
-      if (count + get_freelist_count() >= get_capacity() - 
-                      (force ? 1 : 2))
+      if (count + get_freelist_count() >= get_capacity() - 2)
         return (false);
 
-      ham_u32_t offset = headroom + get_next_offset();
-      if (use_extended)
+      ham_u32_t offset = get_next_offset();
+      if (use_extended_keys)
         offset += key->size > get_extended_threshold()
-                      ? sizeof(ham_u64_t)
-                      : key->size;
+                    ? sizeof(ham_u64_t)
+                    : key->size;
       else
         offset += key->size;
 
@@ -2903,10 +2900,10 @@ class DefaultNodeImpl
         return (g_extended_threshold);
       ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
       if (page_size == 1024)
-        return (64);
+        return (g_extended_threshold = 64);
       if (page_size <= 1024 * 8)
-        return (128);
-      return (256);
+        return (g_extended_threshold = 128);
+      return (g_extended_threshold = 256);
     }
 
     // Returns the threshold for duplicate tables
@@ -2915,14 +2912,14 @@ class DefaultNodeImpl
         return (g_duplicate_threshold);
       ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
       if (page_size == 1024)
-        return (32);
+        return (g_duplicate_threshold = 32);
       if (page_size <= 1024 * 8)
-        return (64);
+        return (g_duplicate_threshold = 64);
       if (page_size <= 1024 * 16)
-        return (128);
+        return (g_duplicate_threshold = 128);
       // 0xff/255 is the maximum that we can store in the record
       // counter (1 byte!)
-      return (255);
+      return (g_duplicate_threshold = 255);
     }
 
     // Returns the usable page size that can be used for actually
@@ -2931,35 +2928,6 @@ class DefaultNodeImpl
       return (m_page->get_db()->get_local_env()->get_usable_page_size()
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset());
-    }
-
-    // Generate more space for at least |required| bytes; returns the offset
-    // to this space
-    void force_more_space() {
-      // pick the largest key
-      ham_u32_t count = m_node->get_count();
-      for (ham_u32_t i = 0; i < count; i++) {
-        Iterator it = at(i);
-        // can we move this key to an extended key?
-        // we need 8 byte for the extkey + 16 byte for the new key and record
-        // id
-        if (it->get_key_flags() & BtreeKey::kExtendedKey)
-          continue;
-
-        if (m_layout.get_key_size(i) >= 24) {
-          ham_u64_t rid = it->get_record_id();
-          ham_key_t key = {0};
-          key.data = it->get_key_data();
-          key.size = it->get_key_size();
-          ham_u64_t blobid = add_extended_key(&key);
-          it->set_extended_blob_id(blobid);
-          it->set_key_flags(BtreeKey::kExtendedKey);
-          it->set_record_id(rid);
-          break;
-        }
-      }
-
-      rearrange(m_node->get_count(), true);
     }
 
     // The page that we're operating on

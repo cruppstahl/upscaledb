@@ -124,9 +124,12 @@ class BtreeCheckAction
         if (page->get_address() == m_btree->get_root_address())
           return;
 
-        ham_log(("integrity check failed in page 0x%llx: empty page!\n",
-                page->get_address()));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        // for internal nodes: ptr_down HAS to be set!
+        if (!node->is_leaf() && node->get_ptr_down() == 0) {
+          ham_log(("integrity check failed in page 0x%llx: empty page!\n",
+                  page->get_address()));
+          throw Exception(HAM_INTEGRITY_VIOLATED);
+        }
       }
 
       // check if the largest item of the left sibling is smaller than
@@ -138,15 +141,17 @@ class BtreeCheckAction
 
         node->check_integrity();
 
-        sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
-        node->get_key(0, &m_barray2, &key2);
+        if (node->get_count() > 0 && sibnode->get_count() > 0) {
+          sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
+          node->get_key(0, &m_barray2, &key2);
 
-        int cmp = node->compare(&key1, &key2);
-        if (cmp >= 0) {
-          ham_log(("integrity check failed in page 0x%llx: item #0 "
-                  "< left sibling item #%d\n", page->get_address(),
-                  sibnode->get_count() - 1));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+          int cmp = node->compare(&key1, &key2);
+          if (cmp >= 0) {
+            ham_log(("integrity check failed in page 0x%llx: item #0 "
+                    "< left sibling item #%d\n", page->get_address(),
+                    sibnode->get_count() - 1));
+            throw Exception(HAM_INTEGRITY_VIOLATED);
+          }
         }
       }
 
@@ -155,12 +160,14 @@ class BtreeCheckAction
 
       node->check_integrity();
 
-      for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
-        int cmp = compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i + 1));
-        if (cmp >= 0) {
-          ham_log(("integrity check failed in page 0x%llx: item #%d "
-                  "< item #%d", page->get_address(), i, i + 1));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+      if (node->get_count() > 0) {
+        for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
+          int cmp = compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i + 1));
+          if (cmp >= 0) {
+            ham_log(("integrity check failed in page 0x%llx: item #%d "
+                    "< item #%d", page->get_address(), i, i + 1));
+            throw Exception(HAM_INTEGRITY_VIOLATED);
+          }
         }
       }
 

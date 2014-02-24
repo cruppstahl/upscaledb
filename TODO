@@ -27,8 +27,10 @@ o delta updates
 
 --------------
 
-o PageManager state: also store m_last_blob_page_id persistently
-    (try not to break backwards compatibility, though)
+o Separate/Refactor SMOs: we want to run them separated from the actual
+    operation in order to move them to the background sooner or later. Also,
+    the erase SMOs are causing issues and have huge complexity but do not have
+    many benefits.
 
 x there'S a bug (already in 2.1.6)
     ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 --stop-ops=25000
@@ -55,10 +57,10 @@ x there'S a bug (already in 2.1.6)
         o backup and deploy to www2, use round-robin DNS
 
 o delta updates (DU)
-    o insert SMOs (splits) are applied when "going down"
+    x insert SMOs (splits) are applied when "going down"
         x make sure that all tests are still running
-        o also check monster tests
-    o erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
+        x also check monster tests
+    x erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
         x leaf nodes can become empty
         x internal nodes must at least set ptr_down
         x when going down: only merge pages if they have the same parent and
@@ -67,56 +69,106 @@ o delta updates (DU)
             empty nodes; this can then be compact()ed offline or asynchronously
         x get rid of shifting and replace_key
         x BtreeImpl/Proxy: remove shifts, replace_key etc
-        o also merge with the left sibling
-        o is there a cheap way to visualize the tree?
-            -> yes: http://www.graphviz.org/content/datastruct
+        x also merge with the left sibling
+        x check the monster tests
 
-        o review BtreeImplDefault::requires_split
+        x review BtreeImplDefault::requires_split
             -> causes segfaults because insert() assumes that there's enough
-                space in the node. how to fix this? either
-                - either use extkey if there is not enough space
-                - or resize node in insert(), and then split in the caller
-                    if insert() fails
+                space in the node. how to fix this?
+                instead of 32 bytes, use...
+                - fixed key length if keys are fixed length (but min. 16 bytes)
+                - extkey-threshold if keys are variable length
 
-    o find a single solution for transactions AND regular updates
-        is this possible? they both serve different purposes, and the
-        consolidation could become very tricky (think of cursors, 
-        approx. matching...)
-        -> but maybe the txn opnode/op could *point* to the DU?
-        o what about cursor logic? does it always require merging the DUs?
-            are DUs even avoided if there's a cursor coupled to the page?
-        o the janitor makes sure that DUs of aborted txn's are silently removed
-    o the actual operation now becomes atomic and simply attachs a DU to
-        the modified page
-        o creating a DU requires a single memory allocation!
-    o merge the DUs when...
-        o a lookup happens (really?)
-        o if the number of DUs exceed a limit 
-        o when the page is split
-        o when the page is merged
-        o when the page is flushed
+    o test everything
+        x run unittests tests
+        x run recovery tests
+        x run valgrind tests
+        o run monster tests
+        o run performance tests
+
+    o is there a cheap way to visualize the tree?
+        -> yes: http://www.graphviz.org/content/datastruct
+        dot -Tpng -o test.png ~/test
+        o embed into ham_db_check_integrity (add |flags| parameter)
+        o check with multi-level (> 4) trees and bulk-erase
+            -> only the lowest two levels should become empty
+
+    o the erase algorithm only merges leaf nodes; if the tree has more than 2
+        levels then it will not degenerate properly when all entries are
+        deleted -> improve this
+
+. web-page requires updates
+    x deployed html differs from git-repository
+    x download/sources: add erlang, remove 1.x
+    x www1-repository and hamsterdb-www should be identical
+        x updates for 2.1.6 are missing
+        x samples fehlen
+        x doku fehlt
+        x download-dateien fehlen
+    o www1
+        x www1 and www2 are already combined in a single remote target
+        o 'htdocs' should also push to staging.hamsterdb.com
+        o if everything works then also to hamsterdb.com
+        o merge all repositories (host on github, keep remote branch)
+            hamsterdb-www is the main repository, master pushes to staging
+            'stable' pushes to hamsterdb.com, www1, www2
+        o clean up 'dl' directory
+        o where to host static files?
+        o activate www1, www2
+
+o Delta Updates
+    o stage #1: DUs are disabled in combination with Transactions
+        o need flag to disable delta updates
+            o always set flag if Transactions are enabled (for now)
+            o add to .NET
+            o add to java
+            o add to erlang
+            o add to ham_bench
+        o btree_delta.h -> allocation, initialization, linked list routines
+            o creating a DU requires a single memory allocation!
+        o DUs are added with every insert/erase/overwrite_record operation
+        o need a really efficient merging operation, i.e. by pre-sorting
+            the DUs (using their pointers, not their structures)
+            o needs good unittest coverage
+        o DUs are merged automatically IF
+            o a threshold is reached
+            o during a page split (OR: must re-assign the DUs)
+            o before the page is flushed
+                this is tricky because the merge might cause a split, and
+                this split maybe is not possible in the context of purging
+                the caches or closing the database!
+                o do not flush page if DUs cannot be merged
+                o when closing the db: iterate over all levels, apply DUs,
+                    merge/split etc instead of walking over the page-list
+            o there's a range scan on that page
+            o there's a cursor coupled to that page (later: try to add DU
+                if the cursor is coupled to a *different* key)
+        o make the threshold configurable through a parameter
+            o expose parameter in ham_bench
+        o Attn with "direct" cursor operations in BtreeInsertAction::run,
+            BtreeEraseAction::run and btree_cursor.cc
+    
+    o stage #2: Transaction operations now point to their DU
+        o if a txn is flushed: flag those DUs as "flushed"
+        o insert/erase/find: ignore those DUs that are not yet flushed;
+            they were already handled by the Txn code
+        o the aborted DUs are cleaned up when the chain is merged again
+
     o how does recovery work? all DUs that were already flushed (can find out
         by looking at their lsn) are ignored; only those are applied that
         are not yet written to disk
-        x each journal entry of a DU must store the current lsn AND the txn-id
+        o each journal entry of a DU must store the current lsn AND the txn-id
         o whenever a page is flushed then the page must contain the lsn
             of the latest DU that was merged! (??)
 
-    o separate SMOs from the actual operation
-        -> check the literature
-        http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-        o move SMO operations to "the janitor"
-        o janitor has a work queue
-        o if there's an underflow during ham_erase: the path to this
-            underflow is added to the janitor's queue
-        o same regarding ham_insert
-    o reorg on demand (new compact() API) or in background? better in
-        background. then come up with very simple rules to merge empty pages
-        and clean up the tree.
-        -> just rinse and repeat: merge children with the same parent (see
-            above). The merges will start at the bottom and then slowly move
-            up. repeat till there's no more merging to be done. just figure
-            out a way how to do that efficiently!
+o separate SMOs from the actual operation (#2)
+    -> check the literature
+    http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
+    o move SMO operations to "the janitor"
+    o janitor has a work queue
+    o if there's an underflow during ham_db_erase: the path to this
+        underflow is added to the janitor's queue
+    o same regarding ham_db_insert
 
 o improve: ham_bench --cache=310241024 --reopen=true --key=binary \
     --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase \
@@ -126,8 +178,16 @@ o improve: ham_bench --cache=310241024 --reopen=true --key=binary \
 . cache purge: purges 20 pages at once. is that a good number? try others
     o maybe the number should depend on the page size?
 
+o PageManager state: also store m_last_blob_page_id persistently
+    (try not to break backwards compatibility, though)
+
+o Make cursor cleanup logic after erase less cheesy
+    if a key is erased (remove_entry) then all cursors are uncoupled.
+    Shortly afterwards, they're coupled again for the points_to() check.
+    -> assert(slot < get_count()) in btree_node_proxy/get_key
+
 o can we come up with olap functions that operate directly on the btree data?
-    -> working on keys only!! does that make sense?
+    -> working on keys only!! does that make sense? - yes, absolutely
     - should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
     o MIN()
     o MAX()
@@ -142,7 +202,7 @@ o can we come up with olap functions that operate directly on the btree data?
     o JOIN(predicate, other table, join-callback, result-callback)
     -> look for erlang map functions (foldl, foldr etc) for interfaces
     -> the SELECTs should return VIEWs which then can used as input for other
-        SELECTs; this way you can build a "tree" of statements:
+        SELECTs; this way users can build a "tree" of statements:
         SELECT(callback1,
             JOIN(callback2, table1,
                 SELECT(callback3, table2)))
