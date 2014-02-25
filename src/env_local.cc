@@ -99,7 +99,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager = new PageManager(this,
                         flags & HAM_CACHE_UNLIMITED
-                            ? 0xffffffffffffffff
+                            ? 0xffffffffffffffffull
                             : cache_size);
 
   /* create a logfile and a journal (if requested) */
@@ -216,7 +216,7 @@ fail_with_fake_cleansing:
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager = new PageManager(this,
                         flags & HAM_CACHE_UNLIMITED
-                            ? 0xffffffffffffffff
+                            ? 0xffffffffffffffffull
                             : cache_size);
 
   /*
