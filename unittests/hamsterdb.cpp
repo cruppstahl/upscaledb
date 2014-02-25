@@ -444,7 +444,7 @@ struct HamsterdbFixture {
 
     // std::cerr << std::endl;
 
-    REQUIRE(0 == ham_db_check_integrity(db, NULL));
+    REQUIRE(0 == ham_db_check_integrity(db, 0, 0));
 
     my_rec_t *r;
     my_key_t *k;
@@ -466,7 +466,7 @@ struct HamsterdbFixture {
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
     REQUIRE(0 == ham_cursor_close(cursor));
 
-    REQUIRE(0 == ham_db_check_integrity(db, NULL));
+    REQUIRE(0 == ham_db_check_integrity(db, 0, 0));
 
     /*
      * A)

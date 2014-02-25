@@ -649,13 +649,13 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-LocalDatabase::check_integrity(Transaction *txn)
+LocalDatabase::check_integrity(Transaction *txn, ham_u32_t flags)
 {
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
   /* call the btree function */
-  m_btree_index->check_integrity();
+  m_btree_index->check_integrity(flags);
   get_local_env()->get_changeset().clear();
 
   return (0);

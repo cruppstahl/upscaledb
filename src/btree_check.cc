@@ -14,6 +14,10 @@
 #include <set>
 #include <string.h>
 #include <stdio.h>
+#if HAM_DEBUG
+#  include <sstream>
+#  include <fstream>
+#endif
 
 #include "db.h"
 #include "env.h"
@@ -33,8 +37,8 @@ class BtreeCheckAction
 {
   public:
     // Constructor
-    BtreeCheckAction(BtreeIndex *btree)
-      : m_btree(btree) {
+    BtreeCheckAction(BtreeIndex *btree, ham_u32_t flags)
+      : m_btree(btree), m_flags(flags) {
     }
 
     // This is the main method; it starts the verification.
@@ -49,6 +53,21 @@ class BtreeCheckAction
       // get the root page of the tree
       page = env->get_page_manager()->fetch_page(db,
               m_btree->get_root_address());
+
+#if HAM_DEBUG
+      if (m_flags & HAM_PRINT_GRAPH) {
+        m_graph << "digraph g {" << std::endl
+                << "  graph [" << std::endl
+                << "    rankdir = \"TD\"" << std::endl
+                << "  ];" << std::endl
+                << "  node [" << std::endl
+                << "    fontsize = \"8\"" << std::endl
+                << "    shape = \"ellipse\"" << std::endl
+                << "  ];" << std::endl
+                << "  edge [" << std::endl
+                << "  ];" << std::endl;
+      }
+#endif
 
       // for each level...
       while (page) {
@@ -66,8 +85,18 @@ class BtreeCheckAction
           page = 0;
 
         ++level;
+      }
+
+#if HAM_DEBUG
+      if (m_flags & HAM_PRINT_GRAPH) {
+        m_graph << "}" << std::endl;
+
+        std::ofstream file;
+        file.open("graph.dot");
+        file << m_graph.str();
+      }
+#endif
     }
-  }
 
   private:
     // Verifies a whole level in the tree - start with "page" and traverse
@@ -118,6 +147,47 @@ class BtreeCheckAction
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+
+#if HAM_DEBUG
+      if (m_flags & HAM_PRINT_GRAPH) {
+        std::stringstream ss;
+        ss << "node" << page->get_address();
+        m_graph << "  \"" << ss.str() << "\" [" << std::endl
+                << "    label = \"";
+        m_graph << "<fl>L|<fd>D|";
+        for (ham_u32_t i = 0; i < node->get_count(); i++) {
+          m_graph << "<f" << i << ">" << i << "|";
+        }
+        m_graph << "<fr>R\"" << std::endl
+                << "    shape = \"record\"" << std::endl
+                << "  ];" << std::endl;
+#if 0
+        // edge to the left sibling
+        if (node->get_left())
+          m_graph << "\"" << ss.str() << "\":fl -> \"node"
+                << node->get_left() << "\":fr [" << std::endl
+                << "  ];" << std::endl;
+        // to the right sibling
+        if (node->get_right())
+          m_graph << "  \"" << ss.str() << "\":fr -> \"node"
+                << node->get_right() << "\":fl [" << std::endl
+                << "  ];" << std::endl;
+#endif
+        // to ptr_down
+        if (node->get_ptr_down())
+          m_graph << "  \"" << ss.str() << "\":fd -> \"node"
+                << node->get_ptr_down() << "\":fd [" << std::endl
+                << "  ];" << std::endl;
+        // to all children
+        if (!node->is_leaf()) {
+          for (ham_u32_t i = 0; i < node->get_count(); i++) {
+            m_graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
+                    << node->get_record_id(i) << "\":fd [" << std::endl
+                    << "  ];" << std::endl;
+          }
+        }
+      }
+#endif
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
@@ -211,18 +281,26 @@ class BtreeCheckAction
     // The BtreeIndex on which we operate
     BtreeIndex *m_btree;
 
+    // The flags as specified when calling ham_db_check_integrity
+    ham_u32_t m_flags;
+
     // ByteArrays to avoid frequent memory allocations
     ByteArray m_barray1;
     ByteArray m_barray2;
 
     // For checking uniqueness of record IDs on an internal level
     std::set<ham_u64_t> m_children;
+
+#if HAM_DEBUG
+    // For printing the graph
+    std::ostringstream m_graph;
+#endif
 };
 
 void
-BtreeIndex::check_integrity()
+BtreeIndex::check_integrity(ham_u32_t flags)
 {
-  BtreeCheckAction bta(this);
+  BtreeCheckAction bta(this, flags);
   bta.run();
 }
 

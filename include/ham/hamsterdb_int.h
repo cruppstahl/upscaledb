@@ -52,12 +52,23 @@ extern "C" {
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
+ * @param flags Optional flags for the integrity check, combined with
+ *      bitwise OR. Possible flags are:
+ *    <ul>
+ *     <li>@ref HAM_PRINT_GRAPH</li> Prints the Btree as a graph; stores
+ *      the image as "graph.png" in the current working directory. It uses
+ *      the "dot" tool from graphviz to generate the image.
+ *      This functionality is only available in DEBUG builds!
+ *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INTEGRITY_VIOLATED if the Database is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *db, ham_txn_t *txn);
+ham_db_check_integrity(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
+
+/** Flag for ham_db_check_integrity */
+#define HAM_PRINT_GRAPH             1
 
 /**
  * Set a user-provided context pointer

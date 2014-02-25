@@ -411,7 +411,7 @@ HamsterDatabase::do_find(Transaction *txn, ham_key_t *key, ham_record_t *record)
 ham_status_t
 HamsterDatabase::do_check_integrity(Transaction *txn)
 {
-  return (ham_db_check_integrity(m_db, (ham_txn_t *)txn));
+  return (ham_db_check_integrity(m_db, (ham_txn_t *)txn, 0));
 }
 
 Database::Transaction *

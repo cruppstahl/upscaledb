@@ -16,18 +16,11 @@ to scale with the number of cores.
 
 high-level plan for 2.1.7 ..................................................
 o simplified btree SMOs
-    paper:
-        describe current solution
-        describe new solution
-            split SMOs from actual operation
-            show degenerated tree
-            show SMO operations (which can run in background)
-        show before/after benchmarks
 o delta updates
 
 --------------
 
-o Separate/Refactor SMOs: we want to run them separated from the actual
+x Separate/Refactor SMOs: we want to run them separated from the actual
     operation in order to move them to the background sooner or later. Also,
     the erase SMOs are causing issues and have huge complexity but do not have
     many benefits.
@@ -79,23 +72,25 @@ o delta updates (DU)
                 - fixed key length if keys are fixed length (but min. 16 bytes)
                 - extkey-threshold if keys are variable length
 
-    o test everything
+    x test everything
         x run unittests tests
         x run recovery tests
         x run valgrind tests
-        o run monster tests
-        o run performance tests
+        x run monster tests
+        x run performance tests
 
-    o is there a cheap way to visualize the tree?
+    x is there a cheap way to visualize the tree?
         -> yes: http://www.graphviz.org/content/datastruct
         dot -Tpng -o test.png ~/test
-        o embed into ham_db_check_integrity (add |flags| parameter)
-        o check with multi-level (> 4) trees and bulk-erase
+        x embed into ham_db_check_integrity (add |flags| parameter)
+        x check with multi-level (> 4) trees and bulk-erase
             -> only the lowest two levels should become empty
 
-    o the erase algorithm only merges leaf nodes; if the tree has more than 2
+    x the erase algorithm only merges leaf nodes; if the tree has more than 2
         levels then it will not degenerate properly when all entries are
-        deleted -> improve this
+        deleted.
+        x is this a problem? what if data is then re-inserted? -> seems
+            to be fine, but needs more tests
 
 . web-page requires updates
     x deployed html differs from git-repository
@@ -107,7 +102,7 @@ o delta updates (DU)
         x download-dateien fehlen
     o www1
         x www1 and www2 are already combined in a single remote target
-        o 'htdocs' should also push to staging.hamsterdb.com
+        o 'htdocs' should push to staging.hamsterdb.com
         o if everything works then also to hamsterdb.com
         o merge all repositories (host on github, keep remote branch)
             hamsterdb-www is the main repository, master pushes to staging
@@ -118,14 +113,17 @@ o delta updates (DU)
 
 o Delta Updates
     o stage #1: DUs are disabled in combination with Transactions
-        o need flag to disable delta updates
-            o always set flag if Transactions are enabled (for now)
+        o need flag to disable delta updates, and a parameter to set the
+            merge threshold
+            o always disable if Transactions are enabled (for now)
             o add to .NET
             o add to java
             o add to erlang
-            o add to ham_bench
+            o add to ham_bench (both!)
         o btree_delta.h -> allocation, initialization, linked list routines
             o creating a DU requires a single memory allocation!
+            o link to the Page object
+            o need atomic operation to add a new one
         o DUs are added with every insert/erase/overwrite_record operation
         o need a really efficient merging operation, i.e. by pre-sorting
             the DUs (using their pointers, not their structures)
@@ -143,8 +141,6 @@ o Delta Updates
             o there's a range scan on that page
             o there's a cursor coupled to that page (later: try to add DU
                 if the cursor is coupled to a *different* key)
-        o make the threshold configurable through a parameter
-            o expose parameter in ham_bench
         o Attn with "direct" cursor operations in BtreeInsertAction::run,
             BtreeEraseAction::run and btree_cursor.cc
     

@@ -329,11 +329,9 @@ struct RemoteFixture {
     ham_db_t *db;
     ham_env_t *env;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
-    REQUIRE(0 == ham_db_check_integrity(db, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ham_db_check_integrity(db, 0, 0));
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -343,10 +341,8 @@ struct RemoteFixture {
     ham_db_t *db;
     ham_env_t *env;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
 
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
@@ -367,10 +363,8 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
@@ -396,10 +390,8 @@ struct RemoteFixture {
     ham_record_t rec2 = {};
     ham_u64_t keycount;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
 
     key.data = (void *)"123";
     key.size = 4;
@@ -430,10 +422,8 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -448,14 +438,12 @@ struct RemoteFixture {
 #if 0 /* TODO - partial r/w is disabled with transactions */
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec2.data,
-          "hello\0\0\0\0\0\0\0\0\0"));
+    REQUIRE(0 == strcmp((char *)rec2.data, "hello\0\0\0\0\0\0\0\0\0"));
 
     rec.partial_offset=5;
     rec.partial_size=7;
     rec.data=(void *)" chris";
-    REQUIRE(0 ==
-                ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -474,10 +462,8 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 33, 0, 0));
 
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(8 == key.size);
@@ -504,11 +490,9 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     (void)ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
 
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
@@ -548,11 +532,9 @@ struct RemoteFixture {
     rec2.size = sizeof(buf);
     rec2.flags = HAM_RECORD_USER_ALLOC;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);

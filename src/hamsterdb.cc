@@ -1254,7 +1254,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
+ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1264,10 +1264,15 @@ ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
     return (HAM_INV_PARAMETER);
   }
 
+  if (flags && flags != HAM_PRINT_GRAPH) {
+    ham_trace(("unknown flag 0x%u", flags));
+    return (HAM_INV_PARAMETER);
+  }
+
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error(db->check_integrity(txn)));
+    return (db->set_error(db->check_integrity(txn, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);

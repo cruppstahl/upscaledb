@@ -6,3 +6,4 @@ ham_bench.exe
 gnuplot*
 *.dat
 *.png
+graph.dot

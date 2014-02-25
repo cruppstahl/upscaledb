@@ -263,7 +263,7 @@ class BtreeIndex
                     bool visit_internal_nodes = false);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
-    void check_integrity();
+    void check_integrity(ham_u32_t flags);
 
     // Counts the keys in the btree (ham_db_get_key_count)
     ham_u64_t get_key_count(ham_u32_t flags);

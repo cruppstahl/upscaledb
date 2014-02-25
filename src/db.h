@@ -83,8 +83,8 @@ class Database
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
-    // Checks Database integrity (ham_check_integrity)
-    virtual ham_status_t check_integrity(Transaction *txn) = 0;
+    // Checks Database integrity (ham_db_check_integrity)
+    virtual ham_status_t check_integrity(Transaction *txn, ham_u32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
