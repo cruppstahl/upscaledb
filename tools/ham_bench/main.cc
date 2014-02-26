@@ -950,20 +950,18 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
 
   gen1->tee("FULLCHECK");
 
+  // perform an integrity check
+  st1 = gen1->get_db()->check_integrity(0);
+  if (st1 != 0) {
+    LOG_ERROR(("integrity check failed: hamster integrity status %d\n", st1));
+    return (false);
+  }
+
   do {
     ham_key_t key1 = {0};
     ham_record_t rec1 = {0};
     ham_key_t key2 = {0};
     ham_record_t rec2 = {0};
-
-    // perform an integrity check
-#if 0
-    st1 = gen1->get_db()->check_integrity(0);
-    if (st1 != 0) {
-      LOG_ERROR(("integrity check failed: hamster integrity status %d\n", st1));
-      return (false);
-    }
-#endif
 
     // iterate over both databases
     if (conf->fullcheck == Configuration::kFullcheckFind) {

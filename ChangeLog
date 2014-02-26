@@ -1,3 +1,7 @@
+Feb 26, 2014 - chris ---------------------------------------------------
+o Fixed a freelist bug; the persistent freelist state was sometimes not
+	correctly initialized
+
 Feb 21, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.6
 

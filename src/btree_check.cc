@@ -116,6 +116,7 @@ class BtreeCheckAction
     // Verifies a single page
     void verify_page(Page *parent, Page *leftsib, Page *page, ham_u32_t level) {
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       if (node->get_count() == 0) {
@@ -177,6 +178,11 @@ class BtreeCheckAction
           if (m_children.find(child_id) != m_children.end()) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is not unique", page->get_address(), i));
+            throw Exception(HAM_INTEGRITY_VIOLATED);
+          }
+          if (env->get_page_manager()->is_page_free(child_id)) {
+            ham_log(("integrity check failed in page 0x%llx: record of item "
+                    "#%d is in freelist", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);
           }
           m_children.insert(child_id);

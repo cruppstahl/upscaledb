@@ -92,14 +92,14 @@ PageManager::store_state()
 
   m_needs_flush = false;
 
+  // no freelist pages, no freelist state? then don't store anything
+  if (!m_state_page && m_free_pages.empty())
+    return (0);
+
+  // otherwise allocate a new page, if required
   if (!m_state_page) {
     m_state_page = new Page(m_env, 0);
     m_state_page->allocate(Page::kTypePageManager);
-    // reset the overflow pointer and the counter
-    ham_u8_t *p = m_state_page->get_payload();
-    *(ham_u64_t *)p = 0;
-    p += sizeof(ham_u64_t);
-    *(ham_u32_t *)p = 0;
   }
 
   ham_u32_t page_size = m_env->get_page_size();
@@ -108,15 +108,32 @@ PageManager::store_state()
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
     m_env->get_changeset().add_page(m_state_page);
 
-  FreeMap::const_iterator it = m_free_pages.begin();
   Page *page = m_state_page;
 
   // make sure that the page is logged
   page->set_dirty(true);
 
+  // reset the overflow pointer and the counter
+  // TODO here we lose a whole chain of overflow pointers if there was such
+  // a chain. We only save the first. That's not critical but also not nice.
+  ham_u8_t *p = m_state_page->get_payload();
+  ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
+  if (next_pageid)
+    m_free_pages[next_pageid] = 1;
+
+  // No freelist entries? then we're done. Make sure that there's no
+  // overflow pointer or other garbage in the page!
+  if (m_free_pages.empty()) {
+    *(ham_u64_t *)p = 0;
+    p += sizeof(ham_u64_t);
+    *(ham_u32_t *)p = 0;
+    return (m_state_page->get_address());
+  }
+
+  FreeMap::const_iterator it = m_free_pages.begin();
   while (it != m_free_pages.end()) {
     // this is where we will store the data
-    ham_u8_t *p = page->get_payload();
+    p = page->get_payload();
     p += 8;   // leave room for the pointer to the next page
     p += 4;   // leave room for the counter
 
@@ -293,6 +310,11 @@ done:
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(db);
+
+  if (page->get_node_proxy()) {
+    delete page->get_node_proxy();
+    page->set_node_proxy(0);
+  }
 
   /* an allocated page is always flushed if recovery is enabled */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)

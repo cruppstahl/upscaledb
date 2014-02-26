@@ -74,6 +74,16 @@ o PageManager state now writes deltas to journal while flushing a txn-op.
     o the deltas must be applied during recovery of the changeset
     o check recovery tests
 
+x there'S a bug (already in 2.1.6)
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --cache=104857600 --stop-ops=25000
+
+    x the overflow chain and state is not cleaned up properly if the
+        new state is empty
+    x needs more test
+
 . web-page requires updates
     x deployed html differs from git-repository
     o www1-repository and hamsterdb-www should be identical

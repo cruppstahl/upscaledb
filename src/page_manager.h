@@ -143,9 +143,9 @@ class PageManager {
       m_cache.remove_page(page);
     }
 
-    // Returns true if a page is free; only for testing. Ignores
-    // multi-pages
-    bool test_is_page_free(ham_u64_t pageid) {
+    // Returns true if a page is free. Ignores multi-pages; only for
+    // testing and integrity checks
+    bool is_page_free(ham_u64_t pageid) {
       FreeMap::iterator it = m_free_pages.find(pageid);
       return (it != m_free_pages.end());
     }

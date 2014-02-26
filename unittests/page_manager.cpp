@@ -283,10 +283,10 @@ struct PageManagerFixture {
     // is_page_free)
     for (int i = 2; i < 5; i++) {
       pm->add_to_freelist(page[i]);
-      REQUIRE(true == pm->test_is_page_free(page[i]->get_address()));
+      REQUIRE(true == pm->is_page_free(page[i]->get_address()));
     }
     for (int i = 0; i < 2; i++) {
-      REQUIRE(false == pm->test_is_page_free(page[i]->get_address()));
+      REQUIRE(false == pm->is_page_free(page[i]->get_address()));
     }
 
     // verify file size
@@ -301,7 +301,7 @@ struct PageManagerFixture {
     pm = lenv->get_page_manager();
 
     for (int i = 0; i < 2; i++)
-      REQUIRE(false == pm->test_is_page_free((3 + i) * page_size));
+      REQUIRE(false == pm->is_page_free((3 + i) * page_size));
 
     // verify file size
 #ifndef WIN32
