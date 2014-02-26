@@ -92,6 +92,19 @@ o delta updates (DU)
         x is this a problem? what if data is then re-inserted? -> seems
             to be fine, but needs more tests
 
+x there's a bug (already in 2.1.6)
+    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000
+    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000
+    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000
+    --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000
+
+    x the overflow chain and state is not cleaned up properly if the
+        new state is empty
+    x needs more test
+
+    x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=descending --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420356
+    x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420495
+
 . web-page requires updates
     x deployed html differs from git-repository
     x download/sources: add erlang, remove 1.x

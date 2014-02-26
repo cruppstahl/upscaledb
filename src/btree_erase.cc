@@ -248,9 +248,9 @@ class BtreeEraseAction
 
       // fix the linked list
       node->set_right(sib_node->get_right());
-      Page *new_right = env->get_page_manager()->fetch_page(db,
-                                node->get_right());
       if (node->get_right()) {
+        Page *new_right = env->get_page_manager()->fetch_page(db,
+                                  node->get_right());
         BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
         new_right_node->set_left(page->get_address());
         new_right->set_dirty(true);
