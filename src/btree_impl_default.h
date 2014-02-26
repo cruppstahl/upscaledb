@@ -1899,8 +1899,7 @@ class DefaultNodeImpl
     // Inserts a new key at |slot|. 
     // Also inserts an empty record which has to be overwritten in
     // the next call of set_record().
-    void insert(ham_u32_t slot, const ham_key_t *key,
-                    bool is_recursive = false) {
+    void insert(ham_u32_t slot, const ham_key_t *key) {
       ham_u32_t count = m_node->get_count();
 
 #ifdef HAM_DEBUG
@@ -1942,26 +1941,10 @@ class DefaultNodeImpl
                   >= get_usable_page_size()) {
             extended_key = true;
             // check once more if the key fits
-            if (offset
+            ham_assert(offset
                   + m_layout.get_key_index_span() * get_capacity()
                   + sizeof(ham_u64_t) + get_total_inline_record_size()
-                      >= get_usable_page_size()) {
-              // Arghl, still does not fit - rearrange the page, try again.
-              //
-              // This scenario can occur when we're inserting an anchor element
-              // while two pages are merged (during erase). These pages are
-              // both nearly empty, and calling rearrange() will give us ample
-              // free space.
-              //
-              // This can NOT occur durning regular inserts, because the page
-              // would have been splitted already.
-              ham_verify(is_recursive == false);
-              if (!is_recursive) {
-                rearrange(m_node->get_count(), true);
-                insert(slot, key, true);
-                return;
-              }
-            }
+                      < get_usable_page_size());
           }
         }
 
@@ -2039,7 +2022,12 @@ class DefaultNodeImpl
       if (has_enough_space(&key, true))
         return (false);
 
+      // get rid of freelist entries and gaps
       rearrange(m_node->get_count());
+      if (has_enough_space(&key, true))
+        return (false);
+
+      // shift data area to left or right to make more space
       return (resize(m_node->get_count() + 1, &key));
     }
 

@@ -93,10 +93,10 @@ o delta updates (DU)
             to be fine, but needs more tests
 
 x there's a bug (already in 2.1.6)
-    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000
-    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000
-    --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000
-    --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000
+    ./ham_bench --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000
 
     x the overflow chain and state is not cleaned up properly if the
         new state is empty
@@ -104,6 +104,15 @@ x there's a bug (already in 2.1.6)
 
     x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=descending --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420356
     x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420495
+
+x another bug
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000 --seed=1393445737
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000 --seed=1393445737
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000 --seed=1393445737
+    (next line is repeated 3 times, 3rd time crashes)
+    ./ham_bench --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000 --seed=1393445762
+
+x improve: ./ham_bench --recsize=1048576
 
 . web-page requires updates
     x deployed html differs from git-repository
@@ -124,65 +133,32 @@ x there's a bug (already in 2.1.6)
         o where to host static files?
         o activate www1, www2
 
-o Delta Updates
-    o stage #1: DUs are disabled in combination with Transactions
-        o need flag to disable delta updates, and a parameter to set the
-            merge threshold
-            o always disable if Transactions are enabled (for now)
-            o add to .NET
-            o add to java
-            o add to erlang
-            o add to ham_bench (both!)
-        o btree_delta.h -> allocation, initialization, linked list routines
-            o creating a DU requires a single memory allocation!
-            o link to the Page object
-            o need atomic operation to add a new one
-        o DUs are added with every insert/erase/overwrite_record operation
-        o need a really efficient merging operation, i.e. by pre-sorting
-            the DUs (using their pointers, not their structures)
-            o needs good unittest coverage
-        o DUs are merged automatically IF
-            o a threshold is reached
-            o during a page split (OR: must re-assign the DUs)
-            o before the page is flushed
-                this is tricky because the merge might cause a split, and
-                this split maybe is not possible in the context of purging
-                the caches or closing the database!
-                o do not flush page if DUs cannot be merged
-                o when closing the db: iterate over all levels, apply DUs,
-                    merge/split etc instead of walking over the page-list
-            o there's a range scan on that page
-            o there's a cursor coupled to that page (later: try to add DU
-                if the cursor is coupled to a *different* key)
-        o Attn with "direct" cursor operations in BtreeInsertAction::run,
-            BtreeEraseAction::run and btree_cursor.cc
-    
-    o stage #2: Transaction operations now point to their DU
-        o if a txn is flushed: flag those DUs as "flushed"
-        o insert/erase/find: ignore those DUs that are not yet flushed;
-            they were already handled by the Txn code
-        o the aborted DUs are cleaned up when the chain is merged again
+o Improve transaction delta updates
+    o improve transaction structures, decouple them
+        o TransactionOperation -> TransactionUpdate
+        o each TransactionUpdate should be a single allocation
+            including key and record
+        o get rid of the TransactionNode - no longer required
+        o update to new rb-tree if available
+    o structures should ONLY have a TransactionIndex, a Transaction and
+        the TransactionUpdates; the TransactionUpdate is linked to the
+        Transaction (and vice versa). It is stored in the TransactionIndex.
+    o keep committed transactions in memory, but only flush if their
+        data consumption exceeds a certain size, or if the number of elements
+        grows too much
+        o set this threshold through a parameter
+        o also in ham_bench!
+    o then apply them page by page, and later even asynchronously
+    o how would a bulk update API look like??
+    o allow use of Transactions without journalling/recovery
 
-    o how does recovery work? all DUs that were already flushed (can find out
-        by looking at their lsn) are ignored; only those are applied that
-        are not yet written to disk
-        o each journal entry of a DU must store the current lsn AND the txn-id
-        o whenever a page is flushed then the page must contain the lsn
-            of the latest DU that was merged! (??)
-
-o separate SMOs from the actual operation (#2)
-    -> check the literature
-    http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-    o move SMO operations to "the janitor"
-    o janitor has a work queue
-    o if there's an underflow during ham_db_erase: the path to this
-        underflow is added to the janitor's queue
-    o same regarding ham_db_insert
-
-o improve: ham_bench --cache=310241024 --reopen=true --key=binary \
-    --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase \
-    --distribution=random --extkey-threshold=20 --recsize=0 \
-    --stop-ops=1000000 --seed=1391686926
+o QuickCheck:
+    o extend existing test with overwrite and duplicates
+    o new test: create a database with generated configuration; use
+        insert/erase/find/close/open; use very low pagesize with large
+        key size, if possible; also use multi-page blobs
+    o boost the existing tests and create much larger sequences; no issue
+        if each test runs for an hour or more
 
 . cache purge: purges 20 pages at once. is that a good number? try others
     o maybe the number should depend on the page size?
@@ -194,6 +170,23 @@ o Make cursor cleanup logic after erase less cheesy
     if a key is erased (remove_entry) then all cursors are uncoupled.
     Shortly afterwards, they're coupled again for the points_to() check.
     -> assert(slot < get_count()) in btree_node_proxy/get_key
+
+o improve integration of static code analysis in release process
+    o oclint
+    o coverity
+
+----------------------------------
+
+o reduce the linked lists - they're hard to be updated with concurrent
+    operations
+    o page
+    o transaction and dependent objects
+    o ...
+
+o separate SMOs from the actual operation (#2)
+    -> check the literature
+    http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
+    o move SMO operations to "the janitor" (btree_smo.h)
 
 o can we come up with olap functions that operate directly on the btree data?
     -> working on keys only!! does that make sense? - yes, absolutely
@@ -217,22 +210,6 @@ o can we come up with olap functions that operate directly on the btree data?
                 SELECT(callback3, table2)))
     -> allow database operations while such a process is performed
     -> use lua to specify operations on a higher level??
-
-o improve integration of static code analysis in release process
-    o oclint
-    o coverity
-
-high-level plan for 2.1.7 ...................................................
-
-- page flushes/cache purges/flushing txns is handled asynchronously in the
-    background
-    TODO TODO TODO
-
-- reduce the linked lists - they're hard to be updated with concurrent
-    operations
-    o page
-    o transaction and dependent objects
-    o ...
 
 
 - prefetch cache lines when searching

@@ -271,7 +271,10 @@ struct PageManagerFixture {
     // force-flush the state of the PageManager; otherwise it will be
     // written AFTER the allocated pages, and disable the reclaim
     pm->m_needs_flush = true;
+    // pretend there is data to write, otherwise store_state() is a nop
+    pm->m_free_pages[page_size] = 0;
     pm->store_state();
+    pm->m_free_pages.clear(); // clean up again
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
