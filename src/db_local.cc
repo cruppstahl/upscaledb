@@ -194,19 +194,16 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
 
   // append a new operation to this node
   op = node->append(txn, flags,
-          (flags & HAM_PARTIAL) |
-          ((flags & HAM_DUPLICATE)
-            ? TransactionOperation::kInsertDuplicate
-            : (flags & HAM_OVERWRITE)
-              ? TransactionOperation::kInsertOverwrite
-              : TransactionOperation::kInsert),
-          get_local_env()->get_incremented_lsn(), record);
-  if (!op)
-    return (HAM_OUT_OF_MEMORY);
+                (flags & HAM_PARTIAL) |
+                ((flags & HAM_DUPLICATE)
+                    ? TransactionOperation::kInsertDuplicate
+                    : (flags & HAM_OVERWRITE)
+                    ? TransactionOperation::kInsertOverwrite
+                    : TransactionOperation::kInsert),
+                get_local_env()->get_incremented_lsn(), record);
 
   // if there's a cursor then couple it to the op; also store the
-  // dupecache-index in the op (it's needed for
-  // DUPLICATE_INSERT_BEFORE/NEXT) */
+  // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
   if (cursor) {
     Cursor *c = cursor->get_parent();
     if (c->get_dupecache_index())
@@ -228,7 +225,8 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
               op->get_lsn());
   }
 
-  return (st);
+  ham_assert(st == 0);
+  return (0);
 }
 
 ham_status_t
@@ -456,8 +454,6 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   /* append a new operation to this node */
   op = node->append(txn, flags, TransactionOperation::kErase,
                   get_local_env()->get_incremented_lsn(), 0);
-  if (!op)
-    return (HAM_OUT_OF_MEMORY);
 
   /* is this function called through ham_cursor_erase? then add the
    * duplicate ID */
@@ -482,7 +478,8 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
               op->get_lsn());
   }
 
-  return (st);
+  ham_assert(st == 0);
+  return (0);
 }
 
 ham_status_t
@@ -695,24 +692,13 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
 
 ham_status_t
 LocalDatabase::insert(Transaction *txn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, ham_u32_t flags)
 {
   Transaction *local_txn = 0;
   ham_status_t st;
   ham_u64_t recno = 0;
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &get_key_arena()
-            : &txn->get_key_arena();
-
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != 0 && key->size != get_key_size()) {
-      ham_trace(("invalid record number key size (%u instead of 0 or %u)",
-            key->size, get_key_size()));
-      return (HAM_INV_KEY_SIZE);
-    }
-  }
-  else if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
+  if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
       && key->size != get_key_size()) {
     ham_trace(("invalid key size (%u instead of %u)",
           key->size, get_key_size()));
@@ -724,12 +710,6 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
           record->size, get_record_size()));
     return (HAM_INV_RECORD_SIZE);
   }
-
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
 
   /*
    * record number: make sure that we have a valid key structure,
@@ -766,6 +746,16 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
       flags |= HAM_OVERWRITE;
   }
 
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+            ? &get_key_arena()
+            : &txn->get_key_arena();
+
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
+    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+
   /*
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
@@ -793,8 +783,8 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   }
 
   /*
-   * record numbers: return key in host endian! and store the incremented
-   * record number
+   * record numbers: return key in host endian! and return the incremented
+   * record number in the key.
    */
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     recno = ham_db2h64(recno);
@@ -802,14 +792,13 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
     key->size = sizeof(ham_u64_t);
   }
 
-  ham_assert(st == 0);
-
   if (local_txn)
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
     get_local_env()->get_changeset().flush(DUMMY_LSN);
 
+  ham_assert(st == 0);
   return (0);
 }
 
@@ -875,7 +864,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 
 ham_status_t
 LocalDatabase::find(Transaction *txn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, ham_u32_t flags)
 {
   Transaction *local_txn = 0;
   ham_status_t st;
@@ -894,7 +883,10 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
 
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
-   * only available in ham_cursor_find */
+   * only available in ham_cursor_find
+   *
+   * TODO create cursor on the stack and avoid the memory allocation!
+   */
   if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
     Cursor *c;
     st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
@@ -931,19 +923,18 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   else
     st = m_btree_index->find(txn, 0, key, record, flags);
 
+  get_local_env()->get_changeset().clear();
+
   if (st) {
     if (local_txn)
       local_txn->abort();
 
-    get_local_env()->get_changeset().clear();
     return (st);
   }
 
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
     *(ham_u64_t *)key->data = ham_db2h64(recno);
-
-  get_local_env()->get_changeset().clear();
 
   if (local_txn)
     local_txn->commit();

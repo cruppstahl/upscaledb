@@ -498,7 +498,7 @@ recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
       *ptxn = txn;
       return;
     }
-    txn = txn->get_newer();
+    txn = txn->get_next();
   }
 
   *ptxn = 0;
@@ -527,7 +527,7 @@ __abort_uncommitted_txns(Environment *env)
   Transaction *newer, *txn = env->get_oldest_txn();
 
   while (txn) {
-    newer = txn->get_newer();
+    newer = txn->get_next();
     if (!txn->is_committed()) {
       st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
       if (st)

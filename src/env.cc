@@ -18,7 +18,7 @@
 namespace hamsterdb {
 
 void
-Environment::append_txn(Transaction *txn)
+Environment::append_txn_at_tail(Transaction *txn)
 {
   if (!get_newest_txn()) {
     ham_assert(get_oldest_txn() == 0);
@@ -26,8 +26,7 @@ Environment::append_txn(Transaction *txn)
     set_newest_txn(txn);
   }
   else {
-    txn->set_older(get_newest_txn());
-    get_newest_txn()->set_newer(txn);
+    get_newest_txn()->set_next(txn);
     set_newest_txn(txn);
     /* if there's no oldest txn (this means: all txn's but the
      * current one were already flushed) then set this txn as
@@ -38,25 +37,13 @@ Environment::append_txn(Transaction *txn)
 }
 
 void
-Environment::remove_txn(Transaction *txn)
+Environment::remove_txn_from_head(Transaction *txn)
 {
   if (get_newest_txn() == txn)
-    set_newest_txn(txn->get_older());
+    set_newest_txn(0);
 
-  if (get_oldest_txn() == txn) {
-    Transaction *n = txn->get_newer();
-    set_oldest_txn(n);
-    if (n)
-      n->set_older(0);
-  }
-  else {
-    Transaction *n = txn->get_newer();
-    Transaction *o = txn->get_older();
-    if (o)
-      o->set_newer(n);
-    if (n)
-      n->set_older(o);
-  }
+  ham_assert (get_oldest_txn() == txn);
+  set_oldest_txn(txn->get_next());
 }
 
 } // namespace hamsterdb

@@ -63,41 +63,29 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn3, m_env, 0, 0, 0));
 
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn1)->get_older());
     REQUIRE((Transaction *)txn2 ==
-        ((Transaction *)txn1)->get_newer());
+        ((Transaction *)txn1)->get_next());
 
-    REQUIRE((Transaction *)txn1 ==
-        ((Transaction *)txn2)->get_older());
     REQUIRE((Transaction *)txn3 ==
-        ((Transaction *)txn2)->get_newer());
+        ((Transaction *)txn2)->get_next());
 
-    REQUIRE((Transaction *)txn2 ==
-        ((Transaction *)txn3)->get_older());
     REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_newer());
+        ((Transaction *)txn3)->get_next());
 
     /* have to commit the txns in the same order as they were created,
      * otherwise env_flush_committed_txns() will not flush the oldest
      * transaction */
     REQUIRE(0 == ham_txn_commit(txn1, 0));
 
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn2)->get_older());
     REQUIRE((Transaction *)txn3 ==
-        ((Transaction *)txn2)->get_newer());
-    REQUIRE((Transaction *)txn2 ==
-        ((Transaction *)txn3)->get_older());
+        ((Transaction *)txn2)->get_next());
     REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_newer());
+        ((Transaction *)txn3)->get_next());
 
     REQUIRE(0 == ham_txn_commit(txn2, 0));
 
     REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_older());
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_newer());
+        ((Transaction *)txn3)->get_next());
 
     REQUIRE(0 == ham_txn_commit(txn3, 0));
   }
@@ -128,13 +116,9 @@ struct TxnFixture {
     REQUIRE((TransactionOperation *)2 == txn->get_newest_op());
     txn->set_newest_op((TransactionOperation *)0);
 
-    txn->set_newer((Transaction *)1);
-    REQUIRE((Transaction *)1 == txn->get_newer());
-    txn->set_newer((Transaction *)0);
-
-    txn->set_older((Transaction *)3);
-    REQUIRE((Transaction *)3 == txn->get_older());
-    txn->set_older((Transaction *)0);
+    txn->set_next((Transaction *)1);
+    REQUIRE((Transaction *)1 == txn->get_next());
+    txn->set_next((Transaction *)0);
 
     REQUIRE(0 == ham_txn_commit((ham_txn_t *)txn, 0));
   }

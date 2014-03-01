@@ -224,6 +224,7 @@
     <ClInclude Include="..\..\src\statistics.h" />
     <ClInclude Include="..\..\src\txn.h" />
     <ClInclude Include="..\..\src\txn_cursor.h" />
+    <ClInclude Include="..\..\src\txn_factory.h" />
     <ClInclude Include="..\..\src\util.h" />
     <ClInclude Include="..\..\src\version.h" />
   </ItemGroup>

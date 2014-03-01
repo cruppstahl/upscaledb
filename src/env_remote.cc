@@ -391,7 +391,7 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
 
   *txn = new Transaction(this, name, flags);
   (*txn)->set_remote_handle(reply->txn_begin_reply().txn_handle());
-  append_txn(*txn);
+  append_txn_at_tail(*txn);
 
   return (0);
 }
@@ -409,7 +409,7 @@ RemoteEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 
   ham_status_t st = reply->txn_commit_reply().status();
   if (st == 0) {
-    remove_txn(txn);
+    remove_txn_from_head(txn);
     delete (txn);
   }
 
@@ -429,7 +429,7 @@ RemoteEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
 
   ham_status_t st = reply->txn_abort_reply().status();
   if (st == 0) {
-    remove_txn(txn);
+    remove_txn_from_head(txn);
     delete txn;
   }
 

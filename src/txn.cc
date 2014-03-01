@@ -22,6 +22,7 @@
 #include "btree_stats.h"
 #include "txn.h"
 #include "txn_cursor.h"
+#include "txn_factory.h"
 #include "cursor.h"
 #include "btree_index.h"
 
@@ -65,9 +66,34 @@ copy_key_data(ham_key_t *key)
   return (data);
 }
 
-TransactionOperation::~TransactionOperation()
+rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
+
+void
+TransactionOperation::initialize(Transaction *txn, TransactionNode *node,
+            ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
+            ham_record_t *record)
 {
-  Memory::release(m_record.data);
+  memset(this, 0, sizeof(*this));
+
+  m_txn = txn;
+  m_node = node;
+  m_flags = flags;
+  m_lsn = lsn;
+  m_orig_flags = orig_flags;
+
+  /* create a copy of the record structure */
+  if (record) {
+    m_record = *record;
+    if (record->size) {
+      m_record.data = &m_data[0];
+      memcpy(m_record.data, record->data, record->size);
+    }
+  }
+}
+
+void
+TransactionOperation::destroy()
+{
   m_record.data = 0;
 
   /* remove this operation from the two linked lists */
@@ -94,51 +120,27 @@ TransactionOperation::~TransactionOperation()
   /* if the node is empty: remove the node from the tree */
   // TODO should this be done in here??
   if (node->get_oldest_op() == 0) {
-    node->get_txn_index()->remove(node);
+    node->get_db()->get_txn_index()->remove(node);
     delete node;
   }
-}
 
-rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
-
-TransactionOperation::TransactionOperation(Transaction *txn,
-    TransactionNode *node, ham_u32_t flags, ham_u32_t orig_flags,
-    ham_u64_t lsn, ham_record_t *record)
-  : m_txn(txn), m_node(node), m_flags(flags), m_orig_flags(orig_flags),
-  m_referenced_dupe(0), m_lsn(lsn), m_cursor_list(0), m_node_next(0),
-  m_node_prev(0), m_txn_next(0), m_txn_prev(0)
-{
-  /* create a copy of the record structure */
-  if (record) {
-    m_record = *record;
-    if (record->size && record->data) {
-      m_record.data = Memory::allocate<void>(record->size);
-      memcpy(m_record.data, record->data, record->size);
-    }
-    else {
-      m_record.size = 0;
-      m_record.data = 0;
-    }
-  }
-  else
-    memset(&m_record, 0, sizeof(m_record));
+  Memory::release(this);
 }
 
 TransactionNode *
 TransactionNode::get_next_sibling()
 {
-  return (rbt_next(m_txn_index, this));
+  return (rbt_next(get_db()->get_txn_index(), this));
 }
 
 TransactionNode *
 TransactionNode::get_previous_sibling()
 {
-  return (rbt_prev(m_txn_index, this));
+  return (rbt_prev(get_db()->get_txn_index(), this));
 }
 
 TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key)
-  : m_db(db), m_txn_index(db ? db->get_txn_index() : 0),
-    m_oldest_op(0), m_newest_op(0)
+  : m_db(db), m_oldest_op(0), m_newest_op(0)
 {
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
@@ -162,8 +164,8 @@ TransactionOperation *
 TransactionNode::append(Transaction *txn, ham_u32_t orig_flags,
       ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
-  TransactionOperation *op = new TransactionOperation(txn, this, flags,
-      orig_flags, lsn, record);
+  TransactionOperation *op = TransactionFactory::create_operation(txn,
+                                    this, flags, orig_flags, lsn, record);
 
   /* store it in the chronological list which is managed by the node */
   if (!get_newest_op()) {
@@ -209,7 +211,7 @@ TransactionIndex::remove(TransactionNode *node)
 Transaction::Transaction(Environment *env, const char *name,
                 ham_u32_t flags)
   : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
-    m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
+    m_remote_handle(0), m_next(0), m_oldest_op(0), m_newest_op(0) {
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
   if (lenv)
     m_id = lenv->get_incremented_txn_id();
@@ -220,12 +222,6 @@ Transaction::Transaction(Environment *env, const char *name,
 Transaction::~Transaction()
 {
   free_operations();
-
-  /* fix double linked transaction list */
-  if (get_older())
-    get_older()->set_newer(get_newer());
-  if (get_newer())
-    get_newer()->set_older(get_older());
 }
 
 void
@@ -273,7 +269,7 @@ Transaction::free_operations()
 
   while (op) {
     n = op->get_next_in_txn();
-    delete op;
+    TransactionFactory::destroy_operation(op);
     op = n;
   }
 

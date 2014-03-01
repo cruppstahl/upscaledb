@@ -160,10 +160,10 @@ class Environment
 
   protected:
     // Adds a new transaction to this Environment
-    void append_txn(Transaction *txn);
+    void append_txn_at_tail(Transaction *txn);
 
     // Removes a transaction from this Environment
-    void remove_txn(Transaction *txn);
+    void remove_txn_from_head(Transaction *txn);
 
     // A mutex to serialize access to this Environment
     Mutex m_mutex;

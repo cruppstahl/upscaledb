@@ -641,6 +641,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\txn_factory.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\include\ham\types.h"
 			>
 		</File>

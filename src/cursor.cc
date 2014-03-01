@@ -101,7 +101,6 @@ Cursor::update_dupecache(ham_u32_t what)
 
     /* now start integrating the items from the transactions */
     op = node->get_oldest_op();
-
     while (op) {
       Transaction *optxn = op->get_txn();
       /* collect all ops that are valid (even those that are

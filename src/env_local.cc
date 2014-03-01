@@ -760,7 +760,7 @@ LocalEnvironment::txn_begin(Transaction **txn, const char *name,
 
   /* link this txn with the Environment */
   if (st == 0)
-    append_txn(t);
+    append_txn_at_tail(t);
 
   *txn = t;
 
@@ -890,7 +890,7 @@ LocalEnvironment::flush_committed_txns()
       break;
 
     /* now remove the txn from the linked list */
-    remove_txn(oldest);
+    remove_txn_from_head(oldest);
 
     /* and free the whole memory */
     delete oldest;
@@ -932,7 +932,7 @@ LocalEnvironment::flush_txn(Transaction *txn)
      * have to be uncoupled, as their parent (btree) cursor was
      * already coupled to the btree item instead
      */
-    op->mark_flushed();
+    op->set_flushed();
 next_op:
     while ((cursor = op->get_cursor_list())) {
       Cursor *pc = cursor->get_parent();

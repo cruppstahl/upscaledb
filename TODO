@@ -135,14 +135,23 @@ x improve: ./ham_bench --recsize=1048576
 
 o Improve transaction delta updates
     o improve transaction structures, decouple them
-        o TransactionOperation -> TransactionUpdate
-        o each TransactionUpdate should be a single allocation
-            including key and record
-        o get rid of the TransactionNode - no longer required
-        o update to new rb-tree if available
-    o structures should ONLY have a TransactionIndex, a Transaction and
-        the TransactionUpdates; the TransactionUpdate is linked to the
-        Transaction (and vice versa). It is stored in the TransactionIndex.
+        x update to new rb-tree if available - nope
+        x each TransactionUpdate should be a single allocation
+        o Transaction should be a single-linked list
+            head is the chronologically oldest txn
+            tail is the chronologically newest txn
+            append new transactions at tail
+            flush them from head
+        o split LocalTransaction, RemoteTransaction?
+        o temp. Transaction should be allocated in hamsterdb.cc
+        o TransactionNode requires head/tail of TransactionOperations
+            list? Is a single list w/ head only sufficient?
+        o there are more linked lists... clean up as much as possible
+        o improve splits of txn logic vs. btree logic, i.e. in
+            check_insert_conflicts et al
+        o move the whole insert/erase/find logic to the TransactionIndex?
+            then it's analoguous to the btree logic
+        o db_local::find_txn should not require a temp. transaction
     o keep committed transactions in memory, but only flush if their
         data consumption exceeds a certain size, or if the number of elements
         grows too much

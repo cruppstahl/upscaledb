@@ -92,21 +92,13 @@ class TransactionOperation
       kIsFlushed        = 0x100000u
     };
 
-    // Constructor; creates a deep copy of |record|
-    TransactionOperation(Transaction *txn, TransactionNode *node,
-            ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
-            ham_record_t *record);
-
-    // Destructor; releases the memory
-    ~TransactionOperation();
-
     // Returns the flags
     ham_u32_t get_flags() const {
       return (m_flags);
     }
 
     // This Operation was flushed to disk
-    void mark_flushed() {
+    void set_flushed() {
       m_flags |= kIsFlushed;
     }
 
@@ -121,17 +113,16 @@ class TransactionOperation
     }
 
     // Sets the referenced duplicate id
-    // TODO try to make this private
     void set_referenced_dupe(ham_u32_t id) {
       m_referenced_dupe = id;
     }
 
-    // Returns the Transaction pointer
+    // Returns a pointer to the Transaction of this update
     Transaction *get_txn() {
       return (m_txn);
     }
 
-    // Returns the parent node pointer */
+    // Returns a pointer to the parent node of this update */
     TransactionNode *get_node() {
       return (m_node);
     }
@@ -180,6 +171,15 @@ class TransactionOperation
 
   private:
     friend class TransactionNode;
+    friend struct TransactionFactory;
+
+    // Initialization
+    void initialize(Transaction *txn, TransactionNode *node,
+                    ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
+                    ham_record_t *record);
+
+    // Destructor
+    void destroy();
 
     // Sets the next TransactionOperation which modifies the
     // same TransactionNode
@@ -225,9 +225,6 @@ class TransactionOperation
     // the log serial number (lsn) of this operation
     ham_u64_t m_lsn;
 
-    // the record which is inserted or overwritten
-    ham_record_t m_record;
-
     // a linked list of cursors which are attached to this operation
     TransactionCursor *m_cursor_list;
 
@@ -242,6 +239,12 @@ class TransactionOperation
 
     // previous in linked list (managed in Transaction)
     TransactionOperation *m_txn_prev;
+
+    // the record which is inserted or overwritten
+    ham_record_t m_record;
+
+    // Storage for record->data. This saves us one memory allocation.
+    ham_u8_t m_data[1];
 };
 
 
@@ -265,11 +268,6 @@ class TransactionNode
     // Returns the database
     LocalDatabase *get_db() {
       return (m_db);
-    }
-
-    // Returns the TransactionIndex
-    TransactionIndex *get_txn_index() {
-      return (m_txn_index);
     }
 
     // Returns the modified key
@@ -317,20 +315,20 @@ class TransactionNode
     rb_node(TransactionNode) node;
 
   private:
-    // the database - need this pointer for the compare function
+    // the database - need this to get the compare function
     LocalDatabase *m_db;
-
-    // this is the key which is modified in this node
-    ham_key_t m_key;
-
-    // the TransactionIndex which stores this node
-    TransactionIndex *m_txn_index;
 
     // the linked list of operations - head is oldest operation
     TransactionOperation *m_oldest_op;
 
     // the linked list of operations - tail is newest operation
     TransactionOperation *m_newest_op;
+
+    // this is the key which is modified in this node
+    ham_key_t m_key;
+
+    // Storage for key->data. This saves us one memory allocation.
+    ham_u8_t m_data[1];
 };
 
 
@@ -370,7 +368,7 @@ class TransactionIndex
     // tree is empty
     TransactionNode *get_first();
 
-    // Returns the last (= "largest") node of the tree, or NULL if the
+    // Returns the last (= "greatest") node of the tree, or NULL if the
     // tree is empty
     TransactionNode *get_last();
 
@@ -385,6 +383,7 @@ class TransactionIndex
     TransactionNode *rbt_root;
     TransactionNode rbt_nil;
 };
+
 
 //
 // a Transaction structure
@@ -485,28 +484,14 @@ class Transaction
       return (m_record_arena);
     }
 
-    // Returns the next (or 'newer') Transaction in the linked list */
-    // TODO required?
-    Transaction *get_newer() const {
-      return (m_newer);
+    // Returns the next Transaction in the linked list */
+    Transaction *get_next() const {
+      return (m_next);
     }
 
-    // Sets the next (or 'newer') Transaction in the linked list */
-    // TODO required?
-    void set_newer(Transaction *n) {
-      m_newer = n;
-    }
-
-    // Returns the previous (or 'older') Transaction in the linked list */
-    // TODO required?
-    Transaction *get_older() const {
-      return (m_older);
-    }
-
-    // Sets the previous (or 'older') Transaction in the linked list */
-    // TODO required?
-    void set_older(Transaction *o) {
-      m_older = o;
+    // Sets the next Transaction in the linked list */
+    void set_next(Transaction *n) {
+      m_next = n;
     }
 
     // Returns the first (or 'oldest') TransactionOperation of this Transaction
@@ -580,7 +565,7 @@ class Transaction
     ham_u64_t m_remote_handle;
 
     // the linked list of all transactions
-    Transaction *m_newer, *m_older;
+    Transaction *m_next;
 
     // the linked list of operations - head is oldest operation
     TransactionOperation *m_oldest_op;

@@ -883,10 +883,10 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 #endif
 
     /* auto-abort (or commit) all pending transactions */
-    if (env && env->get_newest_txn()) {
-      Transaction *n, *t = env->get_newest_txn();
+    if (env && env->get_oldest_txn()) {
+      Transaction *n, *t = env->get_oldest_txn();
       while (t) {
-        n = t->get_older();
+        n = t->get_next();
         if (t->is_aborted() || t->is_committed())
           ; /* nop */
         else {
