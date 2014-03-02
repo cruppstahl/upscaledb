@@ -1075,8 +1075,7 @@ Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
       return (dc->get_count());
     }
     else {
-      /* obviously the key exists, since the cursor is coupled to
-       * a valid item */
+      /* obviously the key exists, since the cursor is coupled */
       return (1);
     }
   }

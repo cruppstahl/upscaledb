@@ -142,19 +142,19 @@ o Improve transaction delta updates
             tail is the chronologically newest txn
             append new transactions at tail
             flush them from head
-        x db_local::find_txn should not require a temp. transaction
-        o temp. transactions should not be required at all
+        x temp. transactions should not be required for read-only ops
             x db::find
-            o db::insert
-            o db::erase
-            o cursor::insert
-            o cursor::erase
-            o cursor::find
-            o cursor::get_record_count
-            o cursor::get_record_size
-            o cursor::overwrite
-            o cursor::move
-            o get rid of HAM_TXN_TEMPORARY
+            x cursor::find
+            x cursor::get_record_count
+            x cursor::get_record_size
+            x cursor::move
+        o temp. transactions must not write to the journal
+            o for insert/erase and all cursor functions
+            o recovery: must accept updates w/ txn-id 0 (for temp.
+                transactions)
+        o how can we get rid of the remaining temp transactions?
+            the operations could be appended to the last committed transaction!
+            only create a temp transaction if there is no last committed one
         o split LocalTransaction, RemoteTransaction?
         o TransactionNode requires head/tail of TransactionOperations
             list? Is a single list w/ head only sufficient?

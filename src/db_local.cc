@@ -1161,7 +1161,6 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st;
   ham_u64_t recno = 0;
-  Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
@@ -1188,13 +1187,6 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
-    cursor->set_txn(local_txn);
-  }
-
   /* reset the dupecache */
   cursor->clear_dupecache();
 
@@ -1205,7 +1197,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
    *
    * in non-Transaction mode directly search through the btree.
    */
-  if (cursor->get_txn() || local_txn) {
+  if (cursor->get_txn() || (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
     st = cursor->get_txn_cursor()->find(key, flags);
     /* if the key was erased in a transaction then fail with an error
      * (unless we have duplicates - they're checked below) */
@@ -1300,16 +1292,10 @@ check_dupes:
   }
 
 bail:
-  /* if we created a temp. txn then clean it up again */
-  if (local_txn)
-    cursor->set_txn(0);
+  get_local_env()->get_changeset().clear();
 
-  if (st) {
-    if (local_txn)
-      local_txn->abort();
-    get_local_env()->get_changeset().clear();
+  if (st)
     return (st);
-  }
 
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
@@ -1319,12 +1305,6 @@ bail:
    * operation; this information is needed in ham_cursor_move */
   cursor->set_lastop(Cursor::kLookupOrInsert);
 
-  if (local_txn)
-    local_txn->commit();
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
-
   return (0);
 }
 
@@ -1332,7 +1312,6 @@ ham_status_t
 LocalDatabase::cursor_get_record_count(Cursor *cursor,
           ham_u32_t *count, ham_u32_t flags)
 {
-  Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
@@ -1341,31 +1320,16 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor,
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
-    cursor->set_txn(local_txn);
-  }
-
   /* this function will do all the work */
   *count = cursor->get_record_count(
-            cursor->get_txn() ? cursor->get_txn() : local_txn,
+            cursor->get_txn() ? cursor->get_txn() : 0,
             flags);
-
-  /* if we created a temp. txn then clean it up again */
-  if (local_txn)
-    cursor->set_txn(0);
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
   cursor->set_lastop(Cursor::kLookupOrInsert);
 
-  if (local_txn)
-    local_txn->commit();
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+  get_local_env()->get_changeset().clear();
 
   return (0);
 }
@@ -1373,7 +1337,6 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor,
 ham_status_t
 LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {
-  Transaction *local_txn = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
@@ -1382,32 +1345,15 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
-    cursor->set_txn(local_txn);
-  }
-
   /* this function will do all the work */
   *size = cursor->get_record_size(
-                cursor->get_txn() ? cursor->get_txn() : local_txn);
-
-  /* if we created a temp. txn then clean it up again */
-  if (local_txn)
-    cursor->set_txn(0);
+                cursor->get_txn() ? cursor->get_txn() : 0);
 
   get_local_env()->get_changeset().clear();
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
   cursor->set_lastop(Cursor::kLookupOrInsert);
-
-  if (local_txn)
-    local_txn->commit();
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
 
   return (0);
 }
@@ -1416,7 +1362,6 @@ ham_status_t
 LocalDatabase::cursor_overwrite(Cursor *cursor,
           ham_record_t *record, ham_u32_t flags)
 {
-  ham_status_t st;
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
@@ -1430,9 +1375,10 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   }
 
   /* this function will do all the work */
-  st = cursor->overwrite(
-            cursor->get_txn() ? cursor->get_txn() : local_txn,
-            record, flags);
+  ham_status_t st = cursor->overwrite(cursor->get_txn()
+                                        ? cursor->get_txn()
+                                        : local_txn,
+                                      record, flags);
 
   /* if we created a temp. txn then clean it up again */
   if (local_txn)
@@ -1444,8 +1390,6 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     get_local_env()->get_changeset().clear();
     return (st);
   }
-
-  ham_assert(st == 0);
 
   /* the journal entry is appended in insert_txn() */
 
@@ -1463,7 +1407,6 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st = 0;
-  Transaction *local_txn = 0;
 
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -1503,19 +1446,8 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
     return (st);
   }
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
-    cursor->set_txn(local_txn);
-  }
-
   /* everything else is handled by the cursor function */
   st = cursor->move(key, record, flags);
-
-  /* if we created a temp. txn then clean it up again */
-  if (local_txn)
-    cursor->set_txn(0);
 
   get_local_env()->get_changeset().clear();
 
@@ -1528,22 +1460,13 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
     cursor->set_lastop(0);
 
   if (st) {
-    if (local_txn)
-      local_txn->abort();
     if (st == HAM_KEY_ERASED_IN_TXN)
       st = HAM_KEY_NOT_FOUND;
     /* trigger a sync when the function is called again */
     cursor->set_lastop(0);
-    /* make sure that the changeset is empty */
-    ham_assert(get_local_env()->get_changeset().is_empty());
     return (st);
   }
 
-  if (local_txn)
-    local_txn->commit();
-
-  /* make sure that the changeset is empty */
-  ham_assert(get_local_env()->get_changeset().is_empty());
   return (0);
 }
 
