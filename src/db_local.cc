@@ -698,7 +698,14 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   ham_status_t st;
   ham_u64_t recno = 0;
 
-  if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+    if (key->size != 0 && key->size != get_key_size()) {
+      ham_trace(("invalid record number key size (%u instead of 0 or %u)",
+            key->size, get_key_size()));
+      return (HAM_INV_KEY_SIZE);
+    }
+  }
+  else if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
       && key->size != get_key_size()) {
     ham_trace(("invalid key size (%u instead of %u)",
           key->size, get_key_size()));
@@ -710,6 +717,10 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
           record->size, get_record_size()));
     return (HAM_INV_RECORD_SIZE);
   }
+
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+            ? &get_key_arena()
+            : &txn->get_key_arena();
 
   /*
    * record number: make sure that we have a valid key structure,
@@ -745,10 +756,6 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
     if (txn)
       flags |= HAM_OVERWRITE;
   }
-
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &get_key_arena()
-            : &txn->get_key_arena();
 
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -866,7 +873,6 @@ ham_status_t
 LocalDatabase::find(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
-  Transaction *local_txn = 0;
   ham_status_t st;
 
   ham_u64_t recno = 0;
@@ -908,41 +914,22 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
     *(ham_u64_t *)key->data = recno;
   }
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->txn_begin(&local_txn, 0,
-                    HAM_TXN_READ_ONLY | HAM_TXN_TEMPORARY);
-
   /*
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
    */
-  if (txn || local_txn)
-    st = find_txn(txn ? txn : local_txn, key, record, flags);
+  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
+    st = find_txn(txn, key, record, flags);
   else
     st = m_btree_index->find(txn, 0, key, record, flags);
 
   get_local_env()->get_changeset().clear();
 
-  if (st) {
-    if (local_txn)
-      local_txn->abort();
-
-    return (st);
-  }
-
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
     *(ham_u64_t *)key->data = ham_db2h64(recno);
 
-  if (local_txn)
-    local_txn->commit();
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
-
-  return (0);
+  return (st);
 }
 
 Cursor *
