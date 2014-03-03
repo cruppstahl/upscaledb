@@ -17,6 +17,8 @@
 #else
 #   include <unistd.h>
 #   include <stdlib.h>
+#   include <boost/filesystem.hpp>
+using namespace boost::filesystem;
 #endif
 #include <string.h>
 #include <stdio.h>
@@ -41,8 +43,8 @@ protected:
             NULL, errorcode,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
             (LPSTR)buf, buflen, NULL);
-    buf[buflen-1]=0;
-    return buf;
+    buf[buflen - 1] = 0;
+    return (buf);
   }
 #endif
 
@@ -58,19 +60,18 @@ public:
       if (!fail_silently) {
         char buf[1024];
         char buf2[1024];
-        DWORD st;
-        st = GetLastError();
+        DWORD st = GetLastError();
         _snprintf(buf2, sizeof(buf2),
-          "DeleteFileA('%s') failed with OS status %u (%s)",
-          path, st, DisplayError(buf, sizeof(buf), st));
+                "DeleteFileA('%s') failed with OS status %u (%s)",
+                path, st, DisplayError(buf, sizeof(buf), st));
         buf2[sizeof(buf2)-1] = 0;
         ham_log(("%s", buf2));
       }
-      return false;
+      return (false);
     }
-    return true;
+    return (true);
 #else
-    return (0==::unlink(path));
+    return (0 == ::unlink(path));
 #endif
   }
 
@@ -83,23 +84,23 @@ public:
     if (!rv) {
       char buf[2048];
       char buf2[1024];
-      DWORD st;
-      st = GetLastError();
+      DWORD st = GetLastError();
       _snprintf(buf2, sizeof(buf2),
-        "CopyFileA('%s', '%s') failed with OS status %u (%s)",
-        src, dest, st, DisplayError(buf, sizeof(buf), st));
-      buf2[sizeof(buf2)-1] = 0;
+            "CopyFileA('%s', '%s') failed with OS status %u (%s)",
+            src, dest, st, DisplayError(buf, sizeof(buf), st));
+      buf2[sizeof(buf2) - 1] = 0;
       ham_log(("%s", buf2));
-      return false;
+      return (false);
     }
-    return true;
 #else
-    char buffer[1024*4];
+    copy_file(path(src), path(dest), copy_option::overwrite_if_exists);
+    //char buffer[1024 * 4];
 
-    snprintf(buffer, sizeof(buffer), "\\cp %s %s && chmod 644 %s",
-            src, dest, dest);
-    return (0==system(buffer));
+    //snprintf(buffer, sizeof(buffer), "cp %s %s && chmod 644 %s",
+            //src, dest, dest);
+    //return (0 == system(buffer));
 #endif
+    return (true);
   }
 
   /*
@@ -107,11 +108,11 @@ public:
    */
   static bool file_exists(const char *path) {
 #ifdef WIN32
-    struct _stat buf={0};
-    if (::_stat(path, &buf)<0)
+    struct _stat buf = {0};
+    if (::_stat(path, &buf) < 0)
       return (false);
 #else
-    struct stat buf={0};
+    struct stat buf = {0};
     if (::stat(path, &buf)<0)
       return (false);
 #endif

@@ -165,6 +165,8 @@ Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env,
   if (m_disable_logging)
     return;
 
+  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+
   PJournalEntry entry;
   entry.txn_id = txn->get_id();
   entry.type = kEntryTypeTxnBegin;
@@ -203,6 +205,8 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
   if (m_disable_logging)
     return;
 
+  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+
   int idx;
   PJournalEntry entry;
   entry.lsn = lsn;
@@ -228,7 +232,8 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
   if (m_disable_logging)
     return;
 
-  int idx;
+  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+
   PJournalEntry entry;
   entry.lsn = lsn;
   entry.txn_id = txn->get_id();
@@ -239,7 +244,7 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
   trailer.full_size = sizeof(entry) + entry.followup_size;
 
   // update the transaction counters of this logfile
-  idx = txn->get_log_desc();
+  int idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
@@ -263,9 +268,18 @@ Journal::append_insert(Database *db, Transaction *txn,
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
-  entry.txn_id = txn->get_id();
   entry.type = kEntryTypeInsert;
   entry.followup_size = size;
+
+  int idx;
+  if (txn->get_flags() & HAM_TXN_TEMPORARY) {
+    entry.txn_id = 0;
+    idx = m_current_fd;
+  }
+  else {
+    entry.txn_id = txn->get_id();
+    idx = txn->get_log_desc();
+  }
 
   insert.key_size = key->size;
   insert.record_size = record->size;
@@ -279,8 +293,7 @@ Journal::append_insert(Database *db, Transaction *txn,
                 + key->size + record->size;
 
   // append the entry to the logfile
-  append_entry(txn->get_log_desc(),
-                &entry, sizeof(entry),
+  append_entry(idx, &entry, sizeof(entry),
                 &insert, sizeof(PJournalEntryInsert) - 1,
                 key->data, key->size,
                 record->data, record->size,
@@ -300,12 +313,21 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
-  entry.txn_id = txn->get_id();
   entry.type = kEntryTypeErase;
   entry.followup_size = size;
   erase.key_size = key->size;
   erase.erase_flags = flags;
   erase.duplicate = dupe;
+
+  int idx;
+  if (txn->get_flags() & HAM_TXN_TEMPORARY) {
+    entry.txn_id = 0;
+    idx = m_current_fd;
+  }
+  else {
+    entry.txn_id = txn->get_id();
+    idx = txn->get_log_desc();
+  }
 
   PJournalTrailer trailer;
   trailer.type = entry.type;
@@ -313,8 +335,7 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
                 + key->size;
 
   // append the entry to the logfile
-  append_entry(txn->get_log_desc(),
-                &entry, sizeof(entry),
+  append_entry(idx, &entry, sizeof(entry),
                 (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
                 key->data, key->size,
                 &trailer, sizeof(trailer));
@@ -475,33 +496,31 @@ Journal::close(bool noclear)
   }
 }
 
-static void
-__recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
+static Database *
+recover_get_db(Environment *env, ham_u16_t dbname)
 {
   // first check if the Database is already open
   Environment::DatabaseMap::iterator it = env->get_database_map().find(dbname);
-  if (it != env->get_database_map().end()) {
-    *pdb = it->second;
-    return;
-  }
+  if (it != env->get_database_map().end())
+    return (it->second);
 
   // not found - open it
-  env->open_db(pdb, dbname, 0, 0);
+  Database *db = 0;
+  env->open_db(&db, dbname, 0, 0);
+  return (db);
 }
 
-static void
-recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
+static Transaction *
+recover_get_txn(Environment *env, ham_u64_t txn_id)
 {
   Transaction *txn = env->get_oldest_txn();
   while (txn) {
-    if (txn->get_id() == txn_id) {
-      *ptxn = txn;
-      return;
-    }
+    if (txn->get_id() == txn_id)
+      return (txn);
     txn = txn->get_next();
   }
 
-  *ptxn = 0;
+  return (0);
 }
 
 static void
@@ -542,6 +561,8 @@ Journal::recover()
 {
   // first re-apply the last changeset
   ham_u64_t start_lsn = recover_changeset();
+  if (start_lsn > m_lsn)
+    m_lsn = start_lsn;
 
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
@@ -555,12 +576,14 @@ Journal::recover()
   }
 
   // then start the normal recovery
-  recover_journal(start_lsn);
+  if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
+    recover_journal(start_lsn);
 }
 
 ham_u64_t 
 Journal::recover_changeset()
 {
+  ham_u64_t start_lsn = 0;
   ham_u64_t log_size = os_get_file_size(m_fd[m_current_fd]);
   ham_u64_t file_size = m_env->get_device()->get_file_size();
   PJournalEntry entry;
@@ -625,17 +648,31 @@ Journal::recover_changeset()
       page->fetch(page_header.address);
     }
 
-    // overwrite the page data
-    memcpy(page->get_data(), arena.get_ptr(), page_size);
+    // only overwrite the page data if the page's last modification
+    // is OLDER than the changeset!
+    bool skip = false;
+    if ((page->get_flags() & Page::kNpersNoHeader) == 0) {
+      if (page->get_lsn() > entry.lsn) {
+        skip = true;
+        start_lsn = page->get_lsn();
+      }
+    }
 
-    ham_assert(page->get_address() == page_header.address);
+    if (!skip) {
+      // overwrite the page data
+      memcpy(page->get_data(), arena.get_ptr(), page_size);
 
-    // flush the modified page to disk
-    page->set_dirty(true);
-    m_env->get_page_manager()->flush_page(page);
+      ham_assert(page->get_address() == page_header.address);
+
+      // flush the modified page to disk
+      page->set_dirty(true);
+      m_env->get_page_manager()->flush_page(page);
+    }
+
     delete page;
   }
-  return (entry.lsn);
+
+  return (std::max(start_lsn, entry.lsn));
 }
 
 void
@@ -700,20 +737,18 @@ Journal::recover_journal(ham_u64_t start_lsn)
         break;
       }
       case kEntryTypeTxnAbort: {
-        Transaction *txn = 0;
-        recover_get_txn(m_env, entry.txn_id, &txn);
+        Transaction *txn = recover_get_txn(m_env, entry.txn_id);
         st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
       case kEntryTypeTxnCommit: {
-        Transaction *txn = 0;
-        recover_get_txn(m_env, entry.txn_id, &txn);
+        Transaction *txn = recover_get_txn(m_env, entry.txn_id);
         st = ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
       case kEntryTypeInsert: {
         PJournalEntryInsert *ins = (PJournalEntryInsert *)buffer.get_ptr();
-        Transaction *txn;
+        Transaction *txn = 0;
         Database *db;
         ham_key_t key = {0};
         ham_record_t record = {0};
@@ -732,15 +767,16 @@ Journal::recover_journal(ham_u64_t start_lsn)
         record.size = ins->record_size;
         record.partial_size = ins->record_partial_size;
         record.partial_offset = ins->record_partial_offset;
-        recover_get_txn(m_env, entry.txn_id, &txn);
-        __recover_get_db(m_env, entry.dbname, &db);
+        if (entry.txn_id)
+          txn = recover_get_txn(m_env, entry.txn_id);
+        db = recover_get_db(m_env, entry.dbname);
         st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, 
                     &key, &record, ins->insert_flags | HAM_DONT_LOCK);
         break;
       }
       case kEntryTypeErase: {
         PJournalEntryErase *e = (PJournalEntryErase *)buffer.get_ptr();
-        Transaction *txn;
+        Transaction *txn = 0;
         Database *db;
         ham_key_t key = {0};
         if (!e) {
@@ -752,8 +788,9 @@ Journal::recover_journal(ham_u64_t start_lsn)
         if (entry.lsn <= start_lsn)
           continue;
 
-        recover_get_txn(m_env, entry.txn_id, &txn);
-        __recover_get_db(m_env, entry.dbname, &db);
+        if (entry.txn_id)
+          txn = recover_get_txn(m_env, entry.txn_id);
+        db = recover_get_db(m_env, entry.dbname);
         key.data = e->get_key_data();
         key.size = e->key_size;
         st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
@@ -776,7 +813,8 @@ Journal::recover_journal(ham_u64_t start_lsn)
       if (st)
         goto bail;
 
-      m_lsn = entry.lsn;
+      if (m_lsn < entry.lsn)
+        m_lsn = entry.lsn;
   } while (1);
 
 bail:
@@ -784,7 +822,7 @@ bail:
   (void)__abort_uncommitted_txns(m_env);
 
   // also close and delete all open databases - they were created in
-  // __recover_get_db()
+  // recover_get_db()
   (void)__close_all_databases(m_env);
 
   // re-enable the logging
@@ -801,12 +839,17 @@ void
 Journal::clear_file(int idx)
 {
   if (m_fd[idx] != HAM_INVALID_FD) {
-    os_truncate(m_fd[idx], sizeof(PJournalHeader));
+    os_truncate(m_fd[idx], 0);
 
     // after truncate, the file pointer is far beyond the new end of file;
     // reset the file pointer, or the next write will resize the file to
     // the original size
-    os_seek(m_fd[idx], sizeof(PJournalHeader), HAM_OS_SEEK_SET);
+    os_seek(m_fd[idx], 0, HAM_OS_SEEK_SET);
+
+    // now write the header with the up-to-date lsn
+    PJournalHeader header;
+    header.lsn = m_lsn;
+    os_write(m_fd[idx], &header, sizeof(header));
   }
 
   // clear the transaction counters

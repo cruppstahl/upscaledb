@@ -580,6 +580,7 @@ class Transaction
     ByteArray m_record_arena;
 };
 
+
 } // namespace hamsterdb
 
 #endif /* HAM_TXN_H__ */

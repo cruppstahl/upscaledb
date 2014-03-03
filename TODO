@@ -148,25 +148,25 @@ o Improve transaction delta updates
             x cursor::get_record_count
             x cursor::get_record_size
             x cursor::move
-        o temp. transactions must not write to the journal
-            o for insert/erase and all cursor functions
-            o recovery: must accept updates w/ txn-id 0 (for temp.
-                transactions)
-        o how can we get rid of the remaining temp transactions?
-            the operations could be appended to the last committed transaction!
-            only create a temp transaction if there is no last committed one
+        x temp. transactions must not write to the journal
+            x for insert/erase and all cursor functions
+            x recovery: must accept updates w/ txn-id 0 (for temp. transactions)
+            x add new test
         o split LocalTransaction, RemoteTransaction?
+            move logic from env to txn
+            txn_begin returns Transaction*; txn_commit and txn_abort ret. void
+        o improve splits of txn logic vs. btree logic, i.e. in
+            check_insert_conflicts et al; need a very clear separation of
+            code, otherwise locking will be very tricky
+        o move the whole insert/erase/find logic to the TransactionIndex?
+            then it's analoguous to the btree logic
         o TransactionNode requires head/tail of TransactionOperations
             list? Is a single list w/ head only sufficient?
         o there are more linked lists... clean up as much as possible
-        o improve splits of txn logic vs. btree logic, i.e. in
-            check_insert_conflicts et al
-        o move the whole insert/erase/find logic to the TransactionIndex?
-            then it's analoguous to the btree logic
-    o keep committed transactions in memory, but only flush if their
-        data consumption exceeds a certain size, or if the number of elements
-        grows too much
-        o set this threshold through a parameter
+    o do not flush committed transactions as long as their data consumption
+        does not exceed a certain size, or the number of elements is not
+        too high
+        o set threshold through a parameter
         o also in ham_bench!
     o then apply them page by page, and later even asynchronously
     o how would a bulk update API look like??
@@ -194,6 +194,9 @@ o Make cursor cleanup logic after erase less cheesy
 o improve integration of static code analysis in release process
     o oclint
     o coverity
+
+. come up with a list of all functions, define which locking operation
+    is required; then review the code and make sure this will work
 
 ----------------------------------
 

@@ -21,12 +21,14 @@
  * written to disk. The journal only can "redo" operations.
  *
  * The journal is organized in two files. If one of the files grows too large
- * then all new transactions are stored in the other file.
- * ("Log file switching")
+ * then all new Transactions are stored in the other file
+ * ("Log file switching"). When all Transactions from file #0 are committed,
+ * and file #1 exceeds a limit, then the files are switched back again.
  *
  * For writing, files are buffered. The buffers are flushed when they
  * exceed a certain threshold, when a Transaction is committed or a Changeset
- * was written.
+ * was written. In case of a commit or a changeset there will also be an
+ * fsync, if HAM_ENABLE_FSYNC is enabled.
  *
  * The physical information is a collection of pages which are modified in
  * a single database operation (i.e. ham_db_erase). This collection is
@@ -36,6 +38,10 @@
  * Otherwise the whole changeset is appended to the journal, and afterwards
  * the database file is modified.
  *
+ * For recovery to work, each page stores the lsn of its last modification.
+ * In addition, the journal also stores the last lsn - in the header structure
+ * of each file, but also in each entry. 
+ *
  * When recovering, the Journal first extracts the newest/latest entry.
  * If this entry is a changeset then the changeset is reapplied, because
  * we assume that there was a crash immediately AFTER the changeset was
@@ -43,10 +49,14 @@
  * idempotent; if the database file was successfully modified then the
  * changes are re-applied; this is not a problem.)
  *
- * Afterwards, the journal is processed from start to end. All operations
- * are re-applied. Since they're idempotent it's not a problem if they
- * are applied twice. In this phase all changesets are skipped because the
- * newest changeset was already applied, and we know that all older changesets
+ * Afterwards, hamsterdb uses the lsn's to figure out whether an update
+ * was already applied or not. If the journal's last entry is a changeset then
+ * this changeset's lsn marks the beginning of the sequence. Otherwise the lsn
+ * is fetched from the journal file headers. All journal entries with an lsn
+ * *older* than this start-lsn will be skipped, all others are re-applied.
+ *
+ * In this phase all changesets are skipped because the newest changeset was
+ * already applied, and we know that all older changesets
  * have already been written successfully to the database file.
  */
 

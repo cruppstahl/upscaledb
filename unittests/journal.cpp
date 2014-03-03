@@ -442,7 +442,7 @@ struct JournalFixture {
         continue;
 
       if (s == size) {
-        REQUIRE(0ull == entry.lsn);
+        REQUIRE(2ull == entry.lsn);
         break;
       }
 #if 0
@@ -611,7 +611,7 @@ struct JournalFixture {
     verifyJournalIsEmpty();
 
     /* verify the lsn */
-    Journal *j = m_lenv->get_journal();
+    //Journal *j = m_lenv->get_journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == j->test_get_lsn());
     REQUIRE(5ull == m_lenv->test_get_txn_id());
@@ -756,6 +756,75 @@ struct JournalFixture {
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, 0, &key, &rec, 0));
+    }
+#endif
+  }
+
+  void recoverTempTxns() {
+#ifndef WIN32
+    unsigned p = 0;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    /* insert keys with anonymous transactions */
+    for (int i = 0; i < 5; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv->get_journal()->flush_buffer(0);
+    m_lenv->get_journal()->flush_buffer(1);
+
+    /* backup the journal files; then re-create the Environment from the
+     * journal */
+    REQUIRE(true == os::copy(Globals::opath(".test.jrn0"),
+          Globals::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Globals::opath(".test.jrn1"),
+          Globals::opath(".test.bak1")));
+    REQUIRE(0 == ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
+          Globals::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
+          Globals::opath(".test.jrn1")));
+    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    m_lenv = (LocalEnvironment *)m_env;
+    
+    Journal *j = new Journal(m_lenv);
+    j->open();
+    m_lenv->test_set_journal(j);
+    LogEntry vec[1];
+    compareJournal(j, vec, p); // journal must be empty
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+
+    /* by re-creating the database we make sure that it's definitely
+     * empty */
+    REQUIRE(0 ==
+          ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+
+    /* now open and recover */
+    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
+          Globals::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
+          Globals::opath(".test.jrn1")));
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS
+            | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    /* verify that the journal is empty */
+    verifyJournalIsEmpty();
+
+    /* now verify that the transactions were committed */
+    for (int i = 0; i < 5; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
@@ -1076,6 +1145,12 @@ TEST_CASE("Journal/recoverAutoAbortedTxns", "")
 {
   JournalFixture f;
   f.recoverAutoAbortTxnsTest();
+}
+
+TEST_CASE("Journal/recoverTempTxns", "")
+{
+  JournalFixture f;
+  f.recoverTempTxns();
 }
 
 TEST_CASE("Journal/recoverSkipAlreadyFlushed", "")

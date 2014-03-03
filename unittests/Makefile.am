@@ -76,14 +76,21 @@ test_SOURCES    = api110.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp
 
+recovery_SOURCES = recovery.cpp
+
 test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
-				  $(BOOST_SYSTEM_LIBS) -lpthread -ldl
-test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS)
+				  $(BOOST_SYSTEM_LIBS) $(BOOST_FILESYSTEM_LIBS) -lpthread -ldl
+recovery_LDADD  = $(top_builddir)/src/.libs/libhamsterdb.a \
+				  $(BOOST_SYSTEM_LIBS) $(BOOST_FILESYSTEM_LIBS) -lpthread -ldl
+test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
+recovery_LDFLAGS= $(BOOST_SYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
 test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
+				  -lprotobuf -luv -ldl
+recovery_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 endif
 
@@ -91,12 +98,6 @@ valgrind:
 	valgrind --suppressions=valgrind.supp --leak-check=full \
 			--num-callers=20 --show-reachable=yes \
 			--log-file=valgrind-out.txt ./test
-
-recovery_SOURCES = recovery.cpp
-
-recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la \
-				   $(BOOST_SYSTEM_LIBS) -ldl
-recovery_LDFLAGS = $(BOOST_SYSTEM_LDFLAGS)
 
 test_recovery:
 	perl recovery.pl

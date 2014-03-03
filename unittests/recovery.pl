@@ -49,10 +49,10 @@ sub extended_test {
     print "===========================================================\n";
     print "inserting $max keys...\n";
     for ($k = 0; $k < $max; $k++) {
-      check(system("./recovery insert 1024 1024 $k 0 $txn $i"));
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery insert 1024 1024 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 1024 1024 $k 0 $txn 1"));
     }

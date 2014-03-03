@@ -744,27 +744,22 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
 
 ham_status_t
 LocalEnvironment::txn_begin(Transaction **txn, const char *name,
-    ham_u32_t flags)
+                ham_u32_t flags)
 {
-  ham_status_t st = 0;
-
-  *txn = 0;
-  
   Transaction *t = new Transaction(this, name, flags);
 
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+      && get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(flags & HAM_TXN_TEMPORARY)) {
     get_journal()->append_txn_begin(t, this, name, get_incremented_lsn());
   }
 
   /* link this txn with the Environment */
-  if (st == 0)
-    append_txn_at_tail(t);
+  append_txn_at_tail(t);
 
   *txn = t;
-
-  return (st);
+  return (0);
 }
 
 ham_status_t
@@ -779,7 +774,8 @@ LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+      && get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(flags & HAM_TXN_TEMPORARY)) {
     get_journal()->append_txn_commit(txn, get_incremented_lsn());
   }
 
@@ -799,7 +795,8 @@ LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
 
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+      && get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(flags & HAM_TXN_TEMPORARY)) {
     get_journal()->append_txn_abort(txn, get_incremented_lsn());
   }
 

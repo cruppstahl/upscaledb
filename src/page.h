@@ -40,8 +40,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   ham_u32_t _flags;
 
-  // reserved space
-  ham_u64_t _reserved;
+  // the lsn of the last operation
+  ham_u64_t _lsn;
 
   // the persistent data blob
   ham_u8_t _payload[1];
@@ -216,6 +216,16 @@ class Page {
     // Sets the page's type (kType*)
     void set_type(ham_u32_t type) {
       m_data->_s._flags = ham_h2db32(type);
+    }
+
+    // Returns the lsn of the last modification
+    ham_u64_t get_lsn() const {
+      return (ham_db2h64(m_data->_s._lsn));
+    }
+
+    // Sets the lsn of the last modification
+    void set_lsn(ham_u64_t lsn) {
+      m_data->_s._lsn = ham_h2db64(lsn);
     }
 
     // Sets the pointer to the persistent data

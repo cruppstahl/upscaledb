@@ -146,11 +146,20 @@ Changeset::flush(ham_u64_t lsn)
   // Blob pages do not need to be logged because they are idempotent. The
   // Journal will re-apply the logical operation of this lsn, and this
   // will update the blob space as required.
-  if (m_others_size || m_page_manager_size || m_indices_size > 1) {
-    m_env->get_journal()->append_changeset(m_blobs, m_blobs_size,
-                    m_page_manager, m_page_manager_size,
+  //
+  // Make sure that blob pages are logged at the end. Multi-page blob pages
+  // do not have a header and therefore don't store a lsn. But the lsn is
+  // required for recovery. Therefore make sure that pages WITH a page header
+  // are logged first, and Journal::recover_changeset can extract a valid
+  // lsn from those pages.
+  if (m_others_size
+      || m_page_manager_size
+      || m_indices_size > 1
+      || m_blobs_size) {
+    m_env->get_journal()->append_changeset(m_page_manager, m_page_manager_size,
                     m_indices, m_indices_size,
                     m_others, m_others_size,
+                    m_blobs, m_blobs_size,
                     lsn);
   }
 
@@ -169,6 +178,8 @@ Changeset::flush(ham_u64_t lsn)
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
   while (p) {
+    if (!(p->get_flags() & Page::kNpersNoHeader))
+      p->set_lsn(lsn);
     m_env->get_page_manager()->flush_page(p);
     p = p->get_next(Page::kListChangeset);
 

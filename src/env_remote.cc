@@ -373,8 +373,6 @@ ham_status_t
 RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
                 ham_u32_t flags)
 {
-  ham_status_t st;
-
   Protocol request(Protocol::TXN_BEGIN_REQUEST);
   request.mutable_txn_begin_request()->set_env_handle(m_remote_handle);
   request.mutable_txn_begin_request()->set_flags(flags);
@@ -385,7 +383,7 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
 
   ham_assert(reply->has_txn_begin_reply());
 
-  st = reply->txn_begin_reply().status();
+  ham_status_t st = reply->txn_begin_reply().status();
   if (st)
     return (st);
 
