@@ -86,7 +86,8 @@ ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
     }
 
     /* initialize the txn structure */
-    return (env->txn_begin(txn, name, flags));
+    *txn = env->txn_begin(name, flags);
+    return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -132,7 +133,8 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
     /* mark this transaction as committed; will also call
      * env->signal_commit() to write committed transactions
      * to disk */
-    return (env->txn_commit(txn, flags));
+    env->txn_commit(txn, flags);
+    return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -155,7 +157,8 @@ ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
-    return (env->txn_abort(txn, flags));
+    env->txn_abort(txn, flags);
+    return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -890,14 +893,10 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         if (t->is_aborted() || t->is_committed())
           ; /* nop */
         else {
-          if (flags & HAM_TXN_AUTO_COMMIT) {
-            if ((st = env->txn_commit(t, 0)))
-              return (st);
-          }
-          else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-            if ((st = env->txn_abort(t, 0)))
-              return (st);
-          }
+          if (flags & HAM_TXN_AUTO_COMMIT)
+            env->txn_commit(t, 0);
+          else /* if (flags&HAM_TXN_AUTO_ABORT) */
+            env->txn_abort(t, 0);
         }
         t = n;
       }

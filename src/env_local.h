@@ -25,6 +25,7 @@ class PFreelistPayload;
 class Journal;
 class PageManager;
 class BlobManager;
+class LocalTransaction;
 
 //
 // The Environment implementation for local file access
@@ -178,14 +179,13 @@ class LocalEnvironment : public Environment
                     ham_u32_t flags, const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t txn_begin(Transaction **txn, const char *name,
-                    ham_u32_t flags);
+    virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
 
     // Aborts a transaction (ham_txn_abort)
-    virtual ham_status_t txn_abort(Transaction *txn, ham_u32_t flags);
+    virtual void txn_abort(Transaction *txn, ham_u32_t flags);
 
     // Commits a transaction (ham_txn_commit)
-    virtual ham_status_t txn_commit(Transaction *txn, ham_u32_t flags);
+    virtual void txn_commit(Transaction *txn, ham_u32_t flags);
 
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags);
@@ -198,7 +198,7 @@ class LocalEnvironment : public Environment
 
   private:
     // Flushes a single, committed transaction to disk
-    void flush_txn(Transaction *txn);
+    void flush_txn(LocalTransaction *txn);
 
     // Runs the recovery process
     void recover(ham_u32_t flags);

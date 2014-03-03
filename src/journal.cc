@@ -19,13 +19,12 @@
 
 #include "db.h"
 #include "device.h"
-#include "env_local.h"
 #include "error.h"
-#include "mem.h"
 #include "os.h"
-#include "txn.h"
 #include "util.h"
 #include "journal.h"
+#include "txn_local.h"
+#include "env_local.h"
 #include "page_manager.h"
 
 namespace hamsterdb {
@@ -138,7 +137,7 @@ Journal::open()
 }
 
 void
-Journal::switch_files_maybe(Transaction *txn)
+Journal::switch_files_maybe(LocalTransaction *txn)
 {
   int cur = m_current_fd;
   int other = cur ? 0 : 1;
@@ -159,7 +158,7 @@ Journal::switch_files_maybe(Transaction *txn)
 }
 
 void
-Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env, 
+Journal::append_txn_begin(LocalTransaction *txn, LocalEnvironment *env, 
                 const char *name, ham_u64_t lsn)
 {
   if (m_disable_logging)
@@ -200,7 +199,7 @@ Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env,
 }
 
 void
-Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
+Journal::append_txn_abort(LocalTransaction *txn, ham_u64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -227,7 +226,7 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
 }
 
 void
-Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
+Journal::append_txn_commit(LocalTransaction *txn, ham_u64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -255,7 +254,7 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
 }
 
 void
-Journal::append_insert(Database *db, Transaction *txn,
+Journal::append_insert(Database *db, LocalTransaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn)
 {
@@ -301,7 +300,7 @@ Journal::append_insert(Database *db, Transaction *txn,
 }
 
 void
-Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
+Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
   if (m_disable_logging)

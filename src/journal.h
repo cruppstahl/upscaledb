@@ -64,13 +64,20 @@
 #define HAM_JOURNAL_H__
 
 #include <cstdio>
+#include <string>
+
+#include <ham/hamsterdb_int.h> // for metrics
 
 #include "os.h"
 #include "util.h"
-#include "env_local.h"
 #include "journal_entries.h"
 
 namespace hamsterdb {
+
+class Page;
+class Database;
+class LocalEnvironment;
+class LocalTransaction;
 
 #include "packstart.h"
 
@@ -204,22 +211,23 @@ class Journal
     }
 
     // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
-    void append_txn_begin(Transaction *txn, LocalEnvironment *env,
+    // TODO |env| parameter is not necessary
+    void append_txn_begin(LocalTransaction *txn, LocalEnvironment *env,
                 const char *name, ham_u64_t lsn);
 
     // Appends a journal entry for ham_txn_abort/kEntryTypeTxnAbort
-    void append_txn_abort(Transaction *txn, ham_u64_t lsn);
+    void append_txn_abort(LocalTransaction *txn, ham_u64_t lsn);
 
     // Appends a journal entry for ham_txn_commit/kEntryTypeTxnCommit
-    void append_txn_commit(Transaction *txn, ham_u64_t lsn);
+    void append_txn_commit(LocalTransaction *txn, ham_u64_t lsn);
 
     // Appends a journal entry for ham_insert/kEntryTypeInsert
-    void append_insert(Database *db, Transaction *txn,
+    void append_insert(Database *db, LocalTransaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn);
 
     // Appends a journal entry for ham_erase/kEntryTypeErase
-    void append_erase(Database *db, Transaction *txn,
+    void append_erase(Database *db, LocalTransaction *txn,
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
@@ -270,7 +278,7 @@ class Journal
 
     // Switches the log file if necessary; sets the new log descriptor in the
     // transaction
-    void switch_files_maybe(Transaction *txn);
+    void switch_files_maybe(LocalTransaction *txn);
 
     // returns the path of the journal file
     std::string get_path(int i);

@@ -27,7 +27,7 @@ namespace hamsterdb {
 struct TransactionFactory
 {
   // Creates a new TransactionOperation
-  static TransactionOperation *create_operation(Transaction *txn,
+  static TransactionOperation *create_operation(LocalTransaction *txn,
             TransactionNode *node, ham_u32_t flags, ham_u32_t orig_flags,
             ham_u64_t lsn, ham_record_t *record) {
     TransactionOperation *op;

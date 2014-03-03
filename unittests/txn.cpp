@@ -24,6 +24,7 @@
 #include "../src/os.h"
 #include "../src/db_local.h"
 #include "../src/env_local.h"
+#include "../src/txn_local.h"
 
 namespace hamsterdb {
 
@@ -98,7 +99,7 @@ struct TxnFixture {
   }
 
   void txnStructureTest() {
-    Transaction *txn;
+    LocalTransaction *txn;
 
     REQUIRE(0 == ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
     REQUIRE(m_env == (ham_env_t *)txn->get_env());
@@ -234,13 +235,13 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key);
     m_dbp->get_txn_index()->store(node);
-    op1 = node->append((Transaction *)txn, 
+    op1 = node->append((LocalTransaction *)txn, 
         0, TransactionOperation::kInsertDuplicate, 55, &rec);
     REQUIRE(op1);
-    op2 = node->append((Transaction *)txn,
+    op2 = node->append((LocalTransaction *)txn,
         0, TransactionOperation::kErase, 55, &rec);
     REQUIRE(op2);
-    op3 = node->append((Transaction *)txn,
+    op3 = node->append((LocalTransaction *)txn,
         0, TransactionOperation::kNop, 55, &rec);
     REQUIRE(op3);
 
@@ -514,11 +515,9 @@ aber nicht)
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
     REQUIRE(0 == ham_db_erase(m_db, txn2, &key, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_find(m_db, txn2, &key, &rec2, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, txn2, &key, &rec2, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, 0, &key, 0));
   }
 
   void txnInsertFindErase2Test() {
@@ -541,11 +540,9 @@ aber nicht)
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
     REQUIRE(0 == ham_db_erase(m_db, txn2, &key, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_find(m_db, txn2, &key, &rec2, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, txn2, &key, &rec2, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, 0, &key, 0));
   }
 
   void txnInsertFindErase3Test() {
@@ -1122,11 +1119,9 @@ struct HighLevelTxnFixture {
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* after commit */
-    REQUIRE(0 ==
-          ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
     REQUIRE(4ull == count);
-    REQUIRE(0 ==
-          ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
   }
 
@@ -1164,11 +1159,9 @@ struct HighLevelTxnFixture {
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* after commit */
-    REQUIRE(0 ==
-          ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
     REQUIRE(3ull == count);
-    REQUIRE(0 ==
-          ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
   }
 };

@@ -224,6 +224,8 @@
     <ClInclude Include="..\..\src\statistics.h" />
     <ClInclude Include="..\..\src\txn.h" />
     <ClInclude Include="..\..\src\txn_cursor.h" />
+    <ClInclude Include="..\..\src\txn_local.h" />
+    <ClInclude Include="..\..\src\txn_remote.h" />
     <ClInclude Include="..\..\src\txn_factory.h" />
     <ClInclude Include="..\..\src\util.h" />
     <ClInclude Include="..\..\src\version.h" />
@@ -256,6 +258,8 @@
     <ClCompile Include="..\..\src\page_manager.cc" />
     <ClCompile Include="..\..\src\txn.cc" />
     <ClCompile Include="..\..\src\txn_cursor.cc" />
+    <ClCompile Include="..\..\src\txn_local.cc" />
+    <ClCompile Include="..\..\src\txn_remote.cc" />
     <ClCompile Include="..\..\src\util.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

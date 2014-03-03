@@ -25,7 +25,7 @@
 #include "os.h"
 #include "page.h"
 #include "page_manager.h"
-#include "txn.h"
+#include "txn_local.h"
 #include "txn_cursor.h"
 #include "version.h"
 
@@ -34,7 +34,7 @@ namespace hamsterdb {
 #define DUMMY_LSN                 1
 
 ham_status_t
-LocalDatabase::check_insert_conflicts(Transaction *txn,
+LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
         TransactionNode *node, ham_key_t *key, ham_u32_t flags)
 {
   ham_status_t st;
@@ -53,7 +53,7 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
    */
   op = node->get_newest_op();
   while (op) {
-    Transaction *optxn = op->get_txn();
+    LocalTransaction *optxn = op->get_txn();
     if (optxn->is_aborted())
       ; /* nop */
     else if (optxn->is_committed() || txn == optxn) {
@@ -104,7 +104,7 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
 }
 
 ham_status_t
-LocalDatabase::check_erase_conflicts(Transaction *txn,
+LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
         TransactionNode *node, ham_key_t *key, ham_u32_t flags)
 {
   TransactionOperation *op = 0;
@@ -160,7 +160,7 @@ LocalDatabase::check_erase_conflicts(Transaction *txn,
 }
 
 ham_status_t
-LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
+LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags,
             TransactionCursor *cursor)
 {
@@ -230,7 +230,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::find_txn(Transaction *txn, ham_key_t *key,
+LocalDatabase::find_txn(LocalTransaction *txn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st = 0;
@@ -418,7 +418,7 @@ retry:
 }
 
 ham_status_t
-LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
+LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
         TransactionCursor *cursor)
 {
   ham_status_t st = 0;
@@ -659,10 +659,11 @@ LocalDatabase::check_integrity(Transaction *txn, ham_u32_t flags)
 }
 
 ham_status_t
-LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
+LocalDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
                 ham_u64_t *pkeycount)
 {
   ham_status_t st = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
@@ -691,11 +692,11 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
 }
 
 ham_status_t
-LocalDatabase::insert(Transaction *txn, ham_key_t *key,
+LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
-  Transaction *local_txn = 0;
-  ham_status_t st;
+  LocalTransaction *local_txn = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   ham_u64_t recno = 0;
 
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
@@ -761,12 +762,13 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   get_local_env()->get_page_manager()->purge_cache();
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+    local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
 
   /*
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
+  ham_status_t st;
   if (txn || local_txn)
     st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
   else
@@ -810,10 +812,11 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
+LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
 {
   ham_status_t st;
-  Transaction *local_txn = 0;
+  LocalTransaction *local_txn = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   ham_u64_t recno = 0;
 
   if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
@@ -835,7 +838,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
   }
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+    local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
 
   /*
    * if transactions are enabled: append a 'erase key' operation into
@@ -870,10 +873,11 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t
-LocalDatabase::find(Transaction *txn, ham_key_t *key,
+LocalDatabase::find(Transaction *htxn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   ham_u64_t recno = 0;
 
@@ -950,8 +954,8 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st;
   ham_u64_t recno = 0;
-  Transaction *local_txn = 0;
-  Transaction *txn = cursor->get_txn();
+  LocalTransaction *local_txn = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(cursor->get_txn());
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &get_key_arena()
@@ -1018,15 +1022,15 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
   if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+    local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
     cursor->set_txn(local_txn);
   }
 
   if (cursor->get_txn() || local_txn) {
-    st = insert_txn(cursor->get_txn()
-              ? cursor->get_txn()
-              : local_txn,
-            key, record, flags, cursor->get_txn_cursor());
+    st = insert_txn((LocalTransaction *)(cursor->get_txn()
+                      ? cursor->get_txn()
+                      : local_txn),
+                key, record, flags, cursor->get_txn_cursor());
     if (st == 0) {
       DupeCache *dc = cursor->get_dupecache();
       cursor->couple_to_txnop();
@@ -1113,7 +1117,7 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
   if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+    local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
     cursor->set_txn(local_txn);
   }
 
@@ -1370,7 +1374,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
   if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->txn_begin(&local_txn, 0, HAM_TXN_TEMPORARY);
+    local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
     cursor->set_txn(local_txn);
   }
 
@@ -1500,8 +1504,8 @@ LocalDatabase::close_impl(ham_u32_t flags)
 
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY) {
-    Transaction *txn;
-    m_env->txn_begin(&txn, 0, HAM_TXN_TEMPORARY);
+    Transaction *txn = new LocalTransaction(get_local_env(), 0,
+                            HAM_TXN_TEMPORARY);
     m_btree_index->release();
     txn->commit();
   }
@@ -1585,7 +1589,7 @@ next:
 }
 
 void
-LocalDatabase::nil_all_cursors_in_node(Transaction *txn, Cursor *current,
+LocalDatabase::nil_all_cursors_in_node(LocalTransaction *txn, Cursor *current,
                 TransactionNode *node)
 {
   TransactionOperation *op = node->get_newest_op();
@@ -1686,7 +1690,8 @@ next:
 }
 
 ham_status_t
-LocalDatabase::flush_txn_operation(Transaction *txn, TransactionOperation *op)
+LocalDatabase::flush_txn_operation(LocalTransaction *txn,
+                TransactionOperation *op)
 {
   ham_status_t st = 0;
   TransactionNode *node = op->get_node();

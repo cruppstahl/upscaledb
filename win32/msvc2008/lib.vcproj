@@ -593,6 +593,22 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\txn_local.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\txn_local.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\txn_remote.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\txn_remote.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\txn_factory.h"
 			>
 		</File>

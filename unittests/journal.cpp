@@ -19,6 +19,7 @@
 
 #include "../src/journal.h"
 #include "../src/txn.h"
+#include "../src/env_local.h"
 #include "os.hpp"
 
 using namespace hamsterdb;
@@ -206,7 +207,7 @@ struct JournalFixture {
     REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
-    j->append_txn_abort((Transaction *)txn, lsn);
+    j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
@@ -235,7 +236,7 @@ struct JournalFixture {
     REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
-    j->append_txn_commit((Transaction *)txn, lsn);
+    j->append_txn_commit((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
@@ -258,7 +259,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
-    j->append_insert((Database *)m_db, (Transaction *)txn,
+    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
@@ -299,7 +300,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
-    j->append_insert((Database *)m_db, (Transaction *)txn,
+    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
@@ -336,7 +337,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
-    j->append_erase((Database *)m_db, (Transaction *)txn, &key, 1, 0, lsn);
+    j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
 
@@ -404,7 +405,7 @@ struct JournalFixture {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(1ull == j->test_get_lsn());
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((Transaction *)txn, m_lenv, 0, j->test_get_lsn());
+    j->append_txn_begin((LocalTransaction *)txn, m_lenv, 0, j->test_get_lsn());
     j->close(true);
 
     j->open();
@@ -856,7 +857,7 @@ struct JournalFixture {
       if (i == 0)
         REQUIRE(0 == ham_txn_commit(txn[i], 0));
       else
-        j->append_txn_commit((Transaction *)txn[i], lsn - 1);
+        j->append_txn_commit((LocalTransaction *)txn[i], lsn - 1);
     }
 
     j->flush_buffer(0);

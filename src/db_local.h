@@ -21,8 +21,8 @@ class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
 class TransactionOperation;
-class ExtKeyCache;
 class LocalEnvironment;
+class LocalTransaction;
 
 //
 // The database implementation for local file access
@@ -117,15 +117,15 @@ class LocalDatabase : public Database {
     // Inserts a key/record pair in a txn node; if cursor is not NULL it will
     // be attached to the new txn_op structure
     // TODO this should be private
-    ham_status_t insert_txn(Transaction *txn, ham_key_t *key,
+    ham_status_t insert_txn(LocalTransaction *txn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags,
                 TransactionCursor *cursor);
 
     // Erases a key/record pair from a txn; on success, cursor will be set to
     // nil
     // TODO should be private
-    ham_status_t erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
-                TransactionCursor *cursor);
+    ham_status_t erase_txn(LocalTransaction *txn, ham_key_t *key,
+                ham_u32_t flags, TransactionCursor *cursor);
 
     // Returns the default comparison function
     ham_compare_func_t get_compare_func() {
@@ -154,7 +154,7 @@ class LocalDatabase : public Database {
     ham_u32_t get_record_size();
 
     // Flushes a TransactionOperation to the btree
-    ham_status_t flush_txn_operation(Transaction *txn,
+    ham_status_t flush_txn_operation(LocalTransaction *txn,
                     TransactionOperation *op);
 
   protected:
@@ -186,12 +186,12 @@ class LocalDatabase : public Database {
 
     // Checks if an insert operation conflicts with another txn; this is the
     // case if the same key is modified by another active txn.
-    ham_status_t check_insert_conflicts(Transaction *txn,
+    ham_status_t check_insert_conflicts(LocalTransaction *txn,
                 TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     // Checks if an erase operation conflicts with another txn; this is the
     // case if the same key is modified by another active txn.
-    ham_status_t check_erase_conflicts(Transaction *txn,
+    ham_status_t check_erase_conflicts(LocalTransaction *txn,
                 TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     // Increments dupe index of all cursors with a dupe index > |start|;
@@ -200,7 +200,7 @@ class LocalDatabase : public Database {
                     ham_u32_t start);
 
     // Sets all cursors attached to a TransactionNode to nil
-    void nil_all_cursors_in_node(Transaction *txn, Cursor *current,
+    void nil_all_cursors_in_node(LocalTransaction *txn, Cursor *current,
                     TransactionNode *node);
 
     // Sets all cursors to nil if they point to |key| in the btree index
@@ -209,7 +209,7 @@ class LocalDatabase : public Database {
     // Lookup of a key/record pair in the Transaction index and in the btree,
     // if transactions are disabled/not successful; copies the
     // record into |record|. Also performs approx. matching.
-    ham_status_t find_txn(Transaction *txn, ham_key_t *key,
+    ham_status_t find_txn(LocalTransaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
 
     // the current record number

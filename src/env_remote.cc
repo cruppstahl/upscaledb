@@ -14,12 +14,11 @@
 
 #include "config.h"
 
-#include "txn.h"
-#include "mem.h"
 #include "os.h"
 #include "cursor.h"
 #include "db_remote.h"
 #include "env_remote.h"
+#include "txn_remote.h"
 
 #include "protocol/protocol.h"
 
@@ -369,9 +368,8 @@ RemoteEnvironment::close(ham_u32_t flags)
   return (st);
 }
 
-ham_status_t
-RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
-                ham_u32_t flags)
+Transaction *
+RemoteEnvironment::txn_begin(const char *name, ham_u32_t flags)
 {
   Protocol request(Protocol::TXN_BEGIN_REQUEST);
   request.mutable_txn_begin_request()->set_env_handle(m_remote_handle);
@@ -385,53 +383,35 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
 
   ham_status_t st = reply->txn_begin_reply().status();
   if (st)
-    return (st);
+    return (0);
 
-  *txn = new Transaction(this, name, flags);
-  (*txn)->set_remote_handle(reply->txn_begin_reply().txn_handle());
-  append_txn_at_tail(*txn);
+  RemoteTransaction *txn = new RemoteTransaction(this, name, flags);
+  txn->set_remote_handle(reply->txn_begin_reply().txn_handle());
+  append_txn_at_tail(txn);
 
-  return (0);
+  return (txn);
 }
 
-ham_status_t
-RemoteEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
+void
+RemoteEnvironment::txn_commit(Transaction *htxn, ham_u32_t flags)
 {
-  Protocol request(Protocol::TXN_COMMIT_REQUEST);
-  request.mutable_txn_commit_request()->set_txn_handle(txn->get_remote_handle());
-  request.mutable_txn_commit_request()->set_flags(flags);
+  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+  txn->commit(flags);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
-
-  ham_assert(reply->has_txn_commit_reply());
-
-  ham_status_t st = reply->txn_commit_reply().status();
-  if (st == 0) {
-    remove_txn_from_head(txn);
-    delete (txn);
-  }
-
-  return (st);
+  // TODO are we really removing from head??
+  remove_txn_from_head(txn);
+  delete (txn);
 }
 
-ham_status_t
-RemoteEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
+void
+RemoteEnvironment::txn_abort(Transaction *htxn, ham_u32_t flags)
 {
-  Protocol request(Protocol::TXN_ABORT_REQUEST);
-  request.mutable_txn_abort_request()->set_txn_handle(txn->get_remote_handle());
-  request.mutable_txn_abort_request()->set_flags(flags);
+  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+  txn->abort(flags);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
-
-  ham_assert(reply->has_txn_abort_reply());
-
-  ham_status_t st = reply->txn_abort_reply().status();
-  if (st == 0) {
-    remove_txn_from_head(txn);
-    delete txn;
-  }
-
-  return (st);
+  // TODO are we really removing from head??
+  remove_txn_from_head(txn);
+  delete (txn);
 }
 
 } // namespace hamsterdb

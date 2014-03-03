@@ -9,12 +9,12 @@
  * See files COPYING.* for License information.
  */
 
-#include "txn_cursor.h"
-#include "txn.h"
 #include "db.h"
 #include "env.h"
-#include "mem.h"
 #include "cursor.h"
+#include "txn.h"
+#include "txn_cursor.h"
+#include "txn_local.h"
 #include "btree_cursor.h"
 
 namespace hamsterdb {
@@ -64,7 +64,7 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
 ham_status_t
 TransactionCursor::overwrite(ham_record_t *record)
 {
-  Transaction *txn = m_parent->get_txn();
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
 
   if (is_nil())
     return (HAM_CURSOR_IS_NIL);
@@ -329,7 +329,7 @@ TransactionCursor::erase()
 {
   ham_status_t st;
   TransactionNode *node;
-  Transaction *txn = m_parent->get_txn();
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
 
   /* don't continue if cursor is nil */
   // TODO not nice to access the btree cursor here
@@ -382,7 +382,7 @@ ham_status_t
 TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
-  Transaction *txn = m_parent->get_txn();
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
 
   return (get_db()->insert_txn(txn, key, record, flags, this));
 }

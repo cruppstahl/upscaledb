@@ -20,6 +20,7 @@
 #include "serial.h"
 #include "version.h"
 #include "txn.h"
+#include "txn_local.h"
 #include "mem.h"
 #include "cursor.h"
 #include "txn_cursor.h"
@@ -742,66 +743,26 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
   return (0);
 }
 
-ham_status_t
-LocalEnvironment::txn_begin(Transaction **txn, const char *name,
-                ham_u32_t flags)
+Transaction *
+LocalEnvironment::txn_begin(const char *name, ham_u32_t flags)
 {
-  Transaction *t = new Transaction(this, name, flags);
-
-  /* append journal entry */
-  if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(flags & HAM_TXN_TEMPORARY)) {
-    get_journal()->append_txn_begin(t, this, name, get_incremented_lsn());
-  }
-
-  /* link this txn with the Environment */
-  append_txn_at_tail(t);
-
-  *txn = t;
-  return (0);
+  return (new LocalTransaction(this, name, flags));
 }
 
-ham_status_t
-LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
+void
+LocalEnvironment::txn_commit(Transaction *htxn, ham_u32_t flags)
 {
-  /* are cursors attached to this txn? if yes, fail */
-  if (txn->get_cursor_refcount()) {
-    ham_trace(("Transaction cannot be committed till all attached "
-          "Cursors are closed"));
-    throw Exception(HAM_CURSOR_STILL_OPEN);
-  }
-
-  /* append journal entry */
-  if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(flags & HAM_TXN_TEMPORARY)) {
-    get_journal()->append_txn_commit(txn, get_incremented_lsn());
-  }
+  LocalTransaction *txn = (LocalTransaction *)htxn;
 
   txn->commit(flags);
-  return (0);
 }
 
-ham_status_t
-LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
+void
+LocalEnvironment::txn_abort(Transaction *htxn, ham_u32_t flags)
 {
-  /* are cursors attached to this txn? if yes, fail */
-  if (txn->get_cursor_refcount()) {
-    ham_trace(("Transaction cannot be aborted till all attached "
-          "Cursors are closed"));
-    throw Exception(HAM_CURSOR_STILL_OPEN);
-  }
-
-  /* append journal entry */
-  if (get_flags() & HAM_ENABLE_RECOVERY
-      && get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(flags & HAM_TXN_TEMPORARY)) {
-    get_journal()->append_txn_abort(txn, get_incremented_lsn());
-  }
+  LocalTransaction *txn = (LocalTransaction *)htxn;
 
   txn->abort(flags);
-  return (0);
 }
 
 void
@@ -878,7 +839,7 @@ LocalEnvironment::flush_committed_txns()
       if (last_id)
         ham_assert(last_id != oldest->get_id());
       last_id = oldest->get_id();
-      flush_txn(oldest);
+      flush_txn((LocalTransaction *)oldest);
     }
     else if (oldest->is_aborted()) {
       ; /* nop */
@@ -899,7 +860,7 @@ LocalEnvironment::flush_committed_txns()
 }
 
 void
-LocalEnvironment::flush_txn(Transaction *txn)
+LocalEnvironment::flush_txn(LocalTransaction *txn)
 {
   TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;

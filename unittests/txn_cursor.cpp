@@ -74,7 +74,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn,
+    op = node->append((LocalTransaction *)txn,
             0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
@@ -105,7 +105,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn,
+    op = node->append((LocalTransaction *)txn,
             0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
@@ -130,7 +130,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn,
+    op = node->append((LocalTransaction *)txn,
             0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
@@ -157,7 +157,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn, 0,
+    op = node->append((LocalTransaction *)txn, 0,
             TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
@@ -181,7 +181,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn, 0,
+    op = node->append((LocalTransaction *)txn, 0,
             TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
@@ -212,7 +212,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn, 0,
+    op = node->append((LocalTransaction *)txn, 0,
             TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
@@ -237,7 +237,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn, 0,
+    op = node->append((LocalTransaction *)txn, 0,
             TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
@@ -262,7 +262,7 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
-    op = node->append((Transaction *)txn, 0,
+    op = node->append((LocalTransaction *)txn, 0,
             TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 

@@ -57,10 +57,10 @@ struct ham_txn_t
 
 namespace hamsterdb {
 
-class Transaction;
 class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
+class LocalTransaction;
 class LocalDatabase;
 class Environment;
 
@@ -118,7 +118,7 @@ class TransactionOperation
     }
 
     // Returns a pointer to the Transaction of this update
-    Transaction *get_txn() {
+    LocalTransaction *get_txn() {
       return (m_txn);
     }
 
@@ -174,7 +174,7 @@ class TransactionOperation
     friend struct TransactionFactory;
 
     // Initialization
-    void initialize(Transaction *txn, TransactionNode *node,
+    void initialize(LocalTransaction *txn, TransactionNode *node,
                     ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
                     ham_record_t *record);
 
@@ -204,7 +204,7 @@ class TransactionOperation
     }
 
     // the Transaction of this operation
-    Transaction *m_txn;
+    LocalTransaction *m_txn;
 
     // the parent node
     TransactionNode *m_node;
@@ -276,7 +276,7 @@ class TransactionNode
     }
 
     // Appends an actual operation to this node
-    TransactionOperation *append(Transaction *txn, ham_u32_t orig_flags,
+    TransactionOperation *append(LocalTransaction *txn, ham_u32_t orig_flags,
               ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
     // Retrieves the next larger sibling of a given node, or NULL if there
@@ -373,7 +373,7 @@ class TransactionIndex
     TransactionNode *get_last();
 
     // Returns the key count of this index
-    ham_u64_t get_key_count(Transaction *txn, ham_u32_t flags);
+    ham_u64_t get_key_count(LocalTransaction *txn, ham_u32_t flags);
 
  // private: //TODO re-enable this; currently disabled because rb.h needs it
     // the Database for all operations in this tree
@@ -386,11 +386,12 @@ class TransactionIndex
 
 
 //
-// a Transaction structure
+// An abstract base class for a Transaction. Overwritten for local and
+// remote implementations
 //
 class Transaction
 {
-  private:
+  protected:
     enum {
       // Transaction was aborted
       kStateAborted   = 0x10000,
@@ -404,15 +405,14 @@ class Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
     Transaction(Environment *env, const char *name, ham_u32_t flags);
 
-    // Destructor; frees all TransactionOperation structures associated
-    // with this Transaction
-    ~Transaction();
+    // Destructor
+    virtual ~Transaction() { }
 
     // Commits the Transaction
-    void commit(ham_u32_t flags = 0);
+    virtual void commit(ham_u32_t flags = 0) = 0;
 
     // Aborts the Transaction
-    void abort(ham_u32_t flags = 0);
+    virtual void abort(ham_u32_t flags = 0) = 0;
 
     // Returns true if the Transaction was aborted
     bool is_aborted() const {
@@ -460,16 +460,6 @@ class Transaction
       m_cursor_refcount--;
     }
 
-    // Returns the remote database handle
-    ham_u64_t get_remote_handle() const {
-      return (m_remote_handle);
-    }
-
-    // Sets the remote database handle
-    void set_remote_handle(ham_u64_t handle) {
-      m_remote_handle = handle;
-    }
-
     // Returns the memory buffer for the key data.
     // Used to allocate array in ham_find, ham_cursor_move etc. which is
     // then returned to the user.
@@ -494,55 +484,7 @@ class Transaction
       m_next = n;
     }
 
-    // Returns the first (or 'oldest') TransactionOperation of this Transaction
-    // TODO required?
-    TransactionOperation *get_oldest_op() const {
-      return (m_oldest_op);
-    }
-
-    // Sets the first (or 'oldest') TransactionOperation of this Transaction
-    // TODO required?
-    void set_oldest_op(TransactionOperation *op) {
-      m_oldest_op = op;
-    }
-
-    // Returns the last (or 'newest') TransactionOperation of this Transaction
-    // TODO required?
-    TransactionOperation *get_newest_op() const {
-      return (m_newest_op);
-    }
-
-    // Sets the last (or 'newest') TransactionOperation of this Transaction
-    // TODO required?
-    void set_newest_op(TransactionOperation *op) {
-      m_newest_op = op;
-    }
-
-  private:
-    friend class Journal;
-    friend struct TxnFixture;
-    friend struct TxnCursorFixture;
-
-    // Frees the internal structures; releases all the memory. This is
-    // called in the destructor, but also when aborting a Transaction
-    // (before it's deleted by the Environment).
-    void free_operations();
-
-    // Sets the unique id of this Transaction
-    void set_id(ham_u64_t id) {
-      m_id = id;
-    }
-
-    // Returns the index of the journal's log file descriptor
-    int get_log_desc() const {
-      return (m_log_desc);
-    }
-
-    // Sets the index of the journal's log file descriptor
-    void set_log_desc(int desc) {
-      m_log_desc = desc;
-    }
-
+  protected:
     // the id of this Transaction
     ham_u64_t m_id;
 
@@ -555,29 +497,26 @@ class Transaction
     // the Transaction name
     std::string m_name;
 
-    // reference counter for cursors (number of cursors attached to this txn)
-    ham_u32_t m_cursor_refcount;
-
-    // index of the log file descriptor for this transaction [0..1]
-    int m_log_desc;
-
-    // the remote database handle
-    ham_u64_t m_remote_handle;
-
     // the linked list of all transactions
     Transaction *m_next;
 
-    // the linked list of operations - head is oldest operation
-    TransactionOperation *m_oldest_op;
-
-    // the linked list of operations - tail is newest operation
-    TransactionOperation *m_newest_op;
+    // reference counter for cursors (number of cursors attached to this txn)
+    ham_u32_t m_cursor_refcount;
 
     // this is where key->data points to when returning a key to the user
     ByteArray m_key_arena;
 
     // this is where record->data points to when returning a record to the user
     ByteArray m_record_arena;
+
+  private:
+    friend class Journal;
+
+    // Sets the unique id of this Transaction; the journal needs this to patch
+    // in the id when recovering a Transaction 
+    void set_id(ham_u64_t id) {
+      m_id = id;
+    }
 };
 
 

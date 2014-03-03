@@ -15,16 +15,15 @@
 #include <string.h>
 
 #include "db.h"
-#include "env_local.h"
 #include "error.h"
 #include "mem.h"
 #include "page.h"
-#include "btree_stats.h"
+#include "env_local.h"
+#include "btree_index.h"
 #include "txn.h"
 #include "txn_cursor.h"
 #include "txn_factory.h"
-#include "cursor.h"
-#include "btree_index.h"
+#include "txn_local.h"
 
 namespace hamsterdb {
 
@@ -69,7 +68,7 @@ copy_key_data(ham_key_t *key)
 rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 
 void
-TransactionOperation::initialize(Transaction *txn, TransactionNode *node,
+TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
             ham_record_t *record)
 {
@@ -161,7 +160,7 @@ TransactionNode::~TransactionNode()
 }
 
 TransactionOperation *
-TransactionNode::append(Transaction *txn, ham_u32_t orig_flags,
+TransactionNode::append(LocalTransaction *txn, ham_u32_t orig_flags,
       ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
   TransactionOperation *op = TransactionFactory::create_operation(txn,
@@ -210,71 +209,12 @@ TransactionIndex::remove(TransactionNode *node)
 
 Transaction::Transaction(Environment *env, const char *name,
                 ham_u32_t flags)
-  : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
-    m_remote_handle(0), m_next(0), m_oldest_op(0), m_newest_op(0) {
+  : m_id(0), m_env(env), m_flags(flags), m_next(0), m_cursor_refcount(0) {
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
   if (lenv)
     m_id = lenv->get_incremented_txn_id();
   if (name)
     m_name = name;
-}
-
-Transaction::~Transaction()
-{
-  free_operations();
-}
-
-void
-Transaction::commit(ham_u32_t flags)
-{
-  /* are cursors attached to this txn? if yes, fail */
-  ham_assert(get_cursor_refcount() == 0);
-
-  /* this transaction is now committed!  */
-  m_flags |= kStateCommitted;
-
-  // TODO ugly - better move flush_committed_txns() in the caller
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
-  if (lenv)
-    lenv->flush_committed_txns();
-}
-
-void
-Transaction::abort(ham_u32_t flags)
-{
-  /* are cursors attached to this txn? if yes, fail */
-  // TODO not required - already in LocalEnvironment::txn_abort
-  if (get_cursor_refcount()) {
-    ham_trace(("Transaction cannot be aborted till all attached "
-          "Cursors are closed"));
-    throw Exception(HAM_CURSOR_STILL_OPEN);
-  }
-
-  /* this transaction is now aborted!  */
-  m_flags |= kStateAborted;
-
-  /* immediately release memory of the cached operations */
-  free_operations();
-
-  /* clean up the changeset */
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
-  if (lenv)
-    lenv->get_changeset().clear();
-}
-
-void
-Transaction::free_operations()
-{
-  TransactionOperation *n, *op = get_oldest_op();
-
-  while (op) {
-    n = op->get_next_in_txn();
-    TransactionFactory::destroy_operation(op);
-    op = n;
-  }
-
-  set_oldest_op(0);
-  set_newest_op(0);
 }
 
 TransactionIndex::TransactionIndex(LocalDatabase *db)
@@ -380,7 +320,7 @@ TransactionIndex::enumerate(TransactionIndex::Visitor *visitor)
 
 struct KeyCounter : public TransactionIndex::Visitor
 {
-  KeyCounter(LocalDatabase *_db, Transaction *_txn, ham_u32_t _flags)
+  KeyCounter(LocalDatabase *_db, LocalTransaction *_txn, ham_u32_t _flags)
     : counter(0), flags(_flags), txn(_txn), db(_db) {
   }
 
@@ -403,7 +343,7 @@ struct KeyCounter : public TransactionIndex::Visitor
      */
     op = node->get_newest_op();
     while (op) {
-      Transaction *optxn = op->get_txn();
+      LocalTransaction *optxn = op->get_txn();
       if (optxn->is_aborted())
         ; // nop
       else if (optxn->is_committed() || txn == optxn) {
@@ -456,12 +396,12 @@ struct KeyCounter : public TransactionIndex::Visitor
 
   ham_u64_t counter;
   ham_u32_t flags;
-  Transaction *txn;
+  LocalTransaction *txn;
   LocalDatabase *db;
 };
 
 ham_u64_t
-TransactionIndex::get_key_count(Transaction *txn, ham_u32_t flags)
+TransactionIndex::get_key_count(LocalTransaction *txn, ham_u32_t flags)
 {
   KeyCounter k(m_db, txn, flags);
   enumerate(&k);

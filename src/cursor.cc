@@ -17,8 +17,7 @@
 #include "cursor.h"
 #include "db.h"
 #include "env_local.h"
-#include "error.h"
-#include "mem.h"
+#include "txn_local.h"
 #include "btree_cursor.h"
 #include "btree_index.h"
 
@@ -1097,9 +1096,10 @@ Cursor::get_record_size(Transaction *txn)
 }
 
 ham_status_t
-Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
+Cursor::overwrite(Transaction *htxn, ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   /*
    * if we're in transactional mode then just append an "insert/OW" operation

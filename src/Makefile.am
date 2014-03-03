@@ -79,6 +79,10 @@ libhamsterdb_la_SOURCES = \
 	txn_cursor.cc \
 	txn_cursor.h \
 	txn_factory.h \
+	txn_local.cc \
+	txn_local.h \
+	txn_remote.cc \
+	txn_remote.h \
 	txn.h \
 	util.cc \
 	util.h \

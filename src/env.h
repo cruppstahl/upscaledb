@@ -133,14 +133,13 @@ class Environment
                     ham_u32_t flags, const ham_parameter_t *param) = 0;
 
     // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t txn_begin(Transaction **txn, const char *name,
-                    ham_u32_t flags) = 0;
+    virtual Transaction *txn_begin(const char *name, ham_u32_t flags) = 0;
 
     // Aborts a transaction (ham_txn_abort)
-    virtual ham_status_t txn_abort(Transaction *txn, ham_u32_t flags) = 0;
+    virtual void txn_abort(Transaction *txn, ham_u32_t flags) = 0;
 
     // Commits a transaction (ham_txn_commit)
-    virtual ham_status_t txn_commit(Transaction *txn, ham_u32_t flags) = 0;
+    virtual void txn_commit(Transaction *txn, ham_u32_t flags) = 0;
 
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags) = 0;
@@ -158,13 +157,13 @@ class Environment
       return (m_newest_txn);
     }
 
-  protected:
     // Adds a new transaction to this Environment
     void append_txn_at_tail(Transaction *txn);
 
     // Removes a transaction from this Environment
     void remove_txn_from_head(Transaction *txn);
 
+  protected:
     // A mutex to serialize access to this Environment
     Mutex m_mutex;
 
