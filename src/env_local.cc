@@ -886,6 +886,10 @@ next_op:
     /* continue with the next operation of this txn */
     op = op->get_next_in_txn();
   }
+
+  /* this transaction was flushed! */
+  if (m_journal && (txn->get_flags() & HAM_TXN_TEMPORARY) == 0)
+    m_journal->transaction_flushed(txn);
 }
 
 ham_u64_t

@@ -36,6 +36,10 @@ class LocalEnvironment;
  */
 class Changeset
 {
+    enum {
+      kDummyLsn = 1
+    };
+
   public:
     Changeset(LocalEnvironment *env)
     : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
@@ -79,7 +83,7 @@ class Changeset
      *
      * on success: will clear the changeset and the journal
      */
-    void flush(ham_u64_t lsn);
+    void flush(ham_u64_t lsn = kDummyLsn);
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {

@@ -31,8 +31,6 @@
 
 namespace hamsterdb {
 
-#define DUMMY_LSN                 1
-
 ham_status_t
 LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
             TransactionNode *node, ham_key_t *key, ham_u32_t flags)
@@ -813,7 +811,7 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    get_local_env()->get_changeset().flush();
 
   return (0);
 }
@@ -874,7 +872,7 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    get_local_env()->get_changeset().flush();
 
   return (0);
 }
@@ -1109,7 +1107,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    get_local_env()->get_changeset().flush();
 
   return (0);
 }
@@ -1162,7 +1160,7 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    get_local_env()->get_changeset().flush();
 
   return (0);
 }
@@ -1409,7 +1407,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     local_txn->commit();
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush(DUMMY_LSN);
+    get_local_env()->get_changeset().flush();
 
   return (0);
 }

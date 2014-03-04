@@ -238,6 +238,8 @@ struct JournalFixture {
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     j->append_txn_commit((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
+    // simulate a txn flush
+    j->transaction_flushed((LocalTransaction *)txn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
     REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);

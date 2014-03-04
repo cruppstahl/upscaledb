@@ -248,25 +248,21 @@ class TransactionNode
     TransactionNode *get_previous_sibling();
 
     // Returns the first (oldest) TransactionOperation in this node
-    // TODO is this required?
     TransactionOperation *get_oldest_op() {
       return (m_oldest_op);
     };
 
     // Sets the first (oldest) TransactionOperation in this node
-    // TODO is this required?
     void set_oldest_op(TransactionOperation *oldest) {
       m_oldest_op = oldest;
     }
 
     // Returns the last (newest) TransactionOperation in this node
-    // TODO is this required?
     TransactionOperation *get_newest_op() {
       return (m_newest_op);
     };
 
     // Sets the last (newest) TransactionOperation in this node
-    // TODO is this required?
     void set_newest_op(TransactionOperation *newest) {
       m_newest_op = newest;
     }
@@ -366,25 +362,21 @@ class LocalTransaction : public Transaction
     void abort(ham_u32_t flags = 0);
 
     // Returns the first (or 'oldest') TransactionOperation of this Transaction
-    // TODO required?
     TransactionOperation *get_oldest_op() const {
       return (m_oldest_op);
     }
 
     // Sets the first (or 'oldest') TransactionOperation of this Transaction
-    // TODO required?
     void set_oldest_op(TransactionOperation *op) {
       m_oldest_op = op;
     }
 
     // Returns the last (or 'newest') TransactionOperation of this Transaction
-    // TODO required?
     TransactionOperation *get_newest_op() const {
       return (m_newest_op);
     }
 
     // Sets the last (or 'newest') TransactionOperation of this Transaction
-    // TODO required?
     void set_newest_op(TransactionOperation *op) {
       m_newest_op = op;
     }

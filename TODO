@@ -134,7 +134,7 @@ x improve: ./ham_bench --recsize=1048576
         o activate www1, www2
 
 o Improve transaction delta updates
-    o improve transaction structures, decouple them
+    x improve transaction structures, decouple them
         x update to new rb-tree if available - nope
         x each TransactionUpdate should be a single allocation
         x Transaction should be a single-linked list
@@ -162,19 +162,23 @@ o Improve transaction delta updates
             x check_insert_conflicts et al; need a very clear separation of
                 code, otherwise locking will be very tricky
 
-        o Clean up the linked lists, try to avoid double-linked lists
-            o TransactionNode currently requires head/tail of
-                TransactionOperations list. Is a single list w/ head
-                only sufficient?
-            o same for linked list of operations in a Transaction
-
     o do not flush committed transactions as long as their data consumption
         does not exceed a certain size, or the number of elements is not
         too high
-        o set threshold through a parameter
+        x log file must not be switched before the txn is flushed!
+        o set threshold through an internal (global) variable
         o also in ham_bench!
+        o ham_env_flush and when closing: flush EVERYTHING
+        o flush immediately if HAM_DISABLE_COMMITTED_TRANSACTION_DELAY
+            o dotnet
+            o java
+            o erlang
+            o ham_bench
         o then apply them page by page (is this possible??), and later even
             asynchronously
+        o can we combine multiple operations in the same changeset??
+            -> only if they're for the same database! (really?? why?)
+            -> also, we need to remove many asserts...? :-/
 
     o allow use of Transactions without journalling/recovery
         o needs (documented!) feature in ham_bench
@@ -182,6 +186,7 @@ o Improve transaction delta updates
         o needs monster tests, performance tests, valgrind tests
 
     o think about delta updates managed in the BtreeNode
+        o do not buffer "append" operations because they are not costly
         o totally transparent to the caller
         o requires_split() takes delta updates into account
         o when flushing a TransactionOperation, the TransactionOperation could
@@ -198,9 +203,6 @@ o QuickCheck:
     o boost the existing tests and create much larger sequences; no issue
         if each test runs for an hour or more
 
-. cache purge: purges 20 pages at once. is that a good number? try others
-    o maybe the number should depend on the page size?
-
 o PageManager state: also store m_last_blob_page_id persistently
     (try not to break backwards compatibility, though)
 
@@ -215,6 +217,10 @@ o improve integration of static code analysis in release process
 
 . come up with a list of all functions, define which locking operation
     is required; then review the code and make sure this will work
+. come up with a list of functions for which concurrency makes most sense
+    - flushing transactions asynchronously
+    - purging caches asynchronously
+    - have concurrent lookups/find
 
 ----------------------------------
 

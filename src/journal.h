@@ -237,6 +237,9 @@ class Journal
                     Page **bucket4, ham_u32_t bucket4_size,
                     ham_u32_t lsn);
 
+    // Adjusts the transaction counters; called whenever |txn| is flushed.
+    void transaction_flushed(LocalTransaction *txn);
+
     // Empties the journal, removes all entries
     void clear() {
       for (int i = 0; i < 2; i++)

@@ -242,10 +242,10 @@ Journal::append_txn_commit(LocalTransaction *txn, ham_u64_t lsn)
   trailer.type = entry.type;
   trailer.full_size = sizeof(entry) + entry.followup_size;
 
-  // update the transaction counters of this logfile
+  // do not yet update the transaction counters of this logfile; just
+  // because the txn was committed does not mean that it will be flushed
+  // immediately. The counters will be modified in transaction_flushed().
   int idx = txn->get_log_desc();
-  m_open_txn[idx]--;
-  m_closed_txn[idx]++;
 
   append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
 
@@ -399,6 +399,19 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
 
   // and flush the file
   flush_buffer(m_current_fd, m_env->get_flags() & HAM_ENABLE_FSYNC);
+}
+
+void
+Journal::transaction_flushed(LocalTransaction *txn)
+{
+  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+  if (m_disable_logging) // ignore this call during recovery
+    return;
+
+  int idx = txn->get_log_desc();
+  ham_assert(m_open_txn[idx] > 0);
+  m_open_txn[idx]--;
+  m_closed_txn[idx]++;
 }
 
 void
