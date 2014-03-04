@@ -342,7 +342,7 @@ BerkeleyDatabase::do_find(Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-BerkeleyDatabase::do_check_integrity(Transaction *txn)
+BerkeleyDatabase::do_check_integrity()
 {
   return (0);
 }

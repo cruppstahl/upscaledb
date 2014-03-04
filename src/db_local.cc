@@ -35,9 +35,8 @@ namespace hamsterdb {
 
 ham_status_t
 LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
-        TransactionNode *node, ham_key_t *key, ham_u32_t flags)
+            TransactionNode *node, ham_key_t *key, ham_u32_t flags)
 {
-  ham_status_t st;
   TransactionOperation *op = 0;
 
   /*
@@ -95,17 +94,24 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
    */
   if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
     return (0);
-  st = m_btree_index->find(0, 0, key, 0, flags);
-  if (st == HAM_KEY_NOT_FOUND)
-    return (0);
-  if (st == HAM_SUCCESS)
-    return (HAM_DUPLICATE_KEY);
-  return (st);
+
+  ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
+
+  get_local_env()->get_changeset().clear();
+
+  switch (st) {
+    case HAM_KEY_NOT_FOUND:
+      return (0);
+    case HAM_SUCCESS:
+      return (HAM_DUPLICATE_KEY);
+    default:
+      return (st);
+  }
 }
 
 ham_status_t
 LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
-        TransactionNode *node, ham_key_t *key, ham_u32_t flags)
+            TransactionNode *node, ham_key_t *key, ham_u32_t flags)
 {
   TransactionOperation *op = 0;
 
@@ -156,7 +162,9 @@ LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
    * were no conflicts. Now check all transactions which are already
    * flushed - basically that's identical to a btree lookup.
    */
-  return (m_btree_index->find(0, 0, key, 0, flags));
+  ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
+  get_local_env()->get_changeset().clear();
+  return (st);
 }
 
 ham_status_t
@@ -183,7 +191,6 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
   // afterwards, clear the changeset; check_insert_conflicts()
   // checks if a key already exists, and this fills the changeset
   st = check_insert_conflicts(txn, node, key, flags);
-  get_local_env()->get_changeset().clear();
   if (st) {
     if (node_created) {
       get_txn_index()->remove(node);
@@ -441,7 +448,6 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
    * duplicate key. dupes are checked for conflicts in _local_cursor_move */
   if (!pc || (!pc->get_dupecache_index())) {
     st = check_erase_conflicts(txn, node, key, flags);
-    get_local_env()->get_changeset().clear();
     if (st) {
       if (node_created) {
         get_txn_index()->remove(node);
@@ -646,7 +652,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-LocalDatabase::check_integrity(Transaction *txn, ham_u32_t flags)
+LocalDatabase::check_integrity(ham_u32_t flags)
 {
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -761,18 +767,20 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
     local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
+    txn = local_txn;
+  }
 
   /*
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
   ham_status_t st;
-  if (txn || local_txn)
-    st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
+  if (txn)
+    st = insert_txn(txn, key, record, flags, 0);
   else
-    st = m_btree_index->insert(txn, 0, key, record, flags);
+    st = m_btree_index->insert(0, 0, key, record, flags);
 
   if (st) {
     if (local_txn)
@@ -807,14 +815,12 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
     get_local_env()->get_changeset().flush(DUMMY_LSN);
 
-  ham_assert(st == 0);
   return (0);
 }
 
 ham_status_t
 LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
 {
-  ham_status_t st;
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   ham_u64_t recno = 0;
@@ -837,17 +843,20 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
     *(ham_u64_t *)key->data = recno;
   }
 
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
     local_txn = new LocalTransaction(get_local_env(), 0, HAM_TXN_TEMPORARY);
+    txn = local_txn;
+  }
 
   /*
    * if transactions are enabled: append a 'erase key' operation into
    * the txn tree; otherwise immediately erase the key from disk
    */
-  if (txn || local_txn)
-    st = erase_txn(txn ? txn : local_txn, key, flags, 0);
+  ham_status_t st;
+  if (txn)
+    st = erase_txn(txn, key, flags, 0);
   else
-    st = m_btree_index->erase(txn, 0, key, 0, flags);
+    st = m_btree_index->erase(0, 0, key, 0, flags);
 
   if (st) {
     if (local_txn)
@@ -860,8 +869,6 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
     *(ham_u64_t *)key->data = ham_db2h64(recno);
-
-  ham_assert(st == 0);
 
   if (local_txn)
     local_txn->commit();
@@ -925,7 +932,7 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
     st = find_txn(txn, key, record, flags);
   else
-    st = m_btree_index->find(txn, 0, key, record, flags);
+    st = m_btree_index->find(0, 0, key, record, flags);
 
   get_local_env()->get_changeset().clear();
 
@@ -952,7 +959,6 @@ ham_status_t
 LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
-  ham_status_t st;
   ham_u64_t recno = 0;
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(cursor->get_txn());
@@ -1026,6 +1032,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     cursor->set_txn(local_txn);
   }
 
+  ham_status_t st;
   if (cursor->get_txn() || local_txn) {
     st = insert_txn((LocalTransaction *)(cursor->get_txn()
                       ? cursor->get_txn()
@@ -1040,12 +1047,11 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
       /* if duplicate keys are enabled: set the duplicate index of
        * the new key  */
       if (st == 0 && cursor->get_dupecache_count()) {
-        ham_u32_t i;
         TransactionCursor *txnc = cursor->get_txn_cursor();
         TransactionOperation *op = txnc->get_coupled_op();
         ham_assert(op != 0);
 
-        for (i = 0; i < dc->get_count(); i++) {
+        for (ham_u32_t i = 0; i < dc->get_count(); i++) {
           DupeCacheLine *l = dc->get_element(i);
           if (!l->use_btree() && l->get_txn_op() == op) {
             cursor->set_dupecache_index(i + 1);
@@ -1069,12 +1075,14 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   if (st) {
     if (local_txn)
       local_txn->abort();
+
     if ((get_rt_flags() & HAM_RECORD_NUMBER) && !(flags & HAM_OVERWRITE)) {
       if (!(key->flags & HAM_KEY_USER_ALLOC)) {
         key->data = 0;
         key->size = 0;
       }
       ham_assert(st != HAM_DUPLICATE_KEY);
+      // fall through
     }
 
     get_local_env()->get_changeset().clear();
@@ -1093,8 +1101,6 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     key->size = sizeof(ham_u64_t);
   }
 
-  ham_assert(st == 0);
-
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
   cursor->set_lastop(Cursor::kLookupOrInsert);
@@ -1111,7 +1117,6 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 ham_status_t
 LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
-  ham_status_t st;
   Transaction *local_txn = 0;
 
   /* if user did not specify a transaction, but transactions are enabled:
@@ -1122,7 +1127,10 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
   }
 
   /* this function will do all the work */
-  st = cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
+  ham_status_t st = cursor->erase(cursor->get_txn()
+                                    ? cursor->get_txn()
+                                    : local_txn,
+                                  flags);
 
   /* clear the changeset */
   get_local_env()->get_changeset().clear();
@@ -1163,7 +1171,6 @@ ham_status_t
 LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
           ham_record_t *record, ham_u32_t flags)
 {
-  ham_status_t st;
   ham_u64_t recno = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
@@ -1201,6 +1208,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
    *
    * in non-Transaction mode directly search through the btree.
    */
+  ham_status_t st;
   if (cursor->get_txn() || (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
     st = cursor->get_txn_cursor()->find(key, flags);
     /* if the key was erased in a transaction then fail with an error
@@ -1410,8 +1418,6 @@ ham_status_t
 LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
-  ham_status_t st = 0;
-
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
@@ -1442,6 +1448,8 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
         flags |= HAM_CURSOR_FIRST;
     }
   }
+
+  ham_status_t st = 0;
 
   /* in non-transactional mode - just call the btree function and return */
   if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {

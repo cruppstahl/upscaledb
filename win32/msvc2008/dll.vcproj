@@ -625,10 +625,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\txn.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\txn.h"
 			>
 		</File>

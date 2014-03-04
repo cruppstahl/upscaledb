@@ -27,7 +27,7 @@
 #ifndef HAM_TXN_CURSOR_H__
 #define HAM_TXN_CURSOR_H__
 
-#include "txn.h"
+#include "txn_local.h"
 
 namespace hamsterdb {
 

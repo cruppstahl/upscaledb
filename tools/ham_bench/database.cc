@@ -76,9 +76,9 @@ Database::find(Transaction *txn, ham_key_t *key, ham_record_t *record)
 }
 
 ham_status_t 
-Database::check_integrity(Transaction *txn)
+Database::check_integrity()
 {
-  return (do_check_integrity(txn));
+  return (do_check_integrity());
 }
 
 Database::Transaction *

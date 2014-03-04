@@ -256,7 +256,6 @@
     <ClCompile Include="..\..\src\os_win32.cc" />
     <ClCompile Include="..\..\src\page.cc" />
     <ClCompile Include="..\..\src\page_manager.cc" />
-    <ClCompile Include="..\..\src\txn.cc" />
     <ClCompile Include="..\..\src\txn_cursor.cc" />
     <ClCompile Include="..\..\src\txn_local.cc" />
     <ClCompile Include="..\..\src\txn_remote.cc" />

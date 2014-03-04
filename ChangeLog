@@ -1,3 +1,6 @@
+Mar 04, 2014 - chris ---------------------------------------------------
+o Removed the txn parameter from ham_db_check_integrity()
+
 Feb 26, 2014 - chris ---------------------------------------------------
 o Fixed a freelist bug; the persistent freelist state was sometimes not
 	correctly initialized

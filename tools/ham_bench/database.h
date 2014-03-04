@@ -74,7 +74,7 @@ class Database
     ham_status_t insert(Transaction *txn, ham_key_t *key, ham_record_t *record);
     ham_status_t erase(Transaction *txn, ham_key_t *key);
     ham_status_t find(Transaction *txn, ham_key_t *key, ham_record_t *record);
-    ham_status_t check_integrity(Transaction *txn);
+    ham_status_t check_integrity();
 
     Transaction *txn_begin();
     ham_status_t txn_commit(Transaction *txn);
@@ -109,7 +109,7 @@ class Database
     virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key) = 0;
     virtual ham_status_t do_find(Transaction *txn, ham_key_t *key,
                     ham_record_t *record) = 0;
-    virtual ham_status_t do_check_integrity(Transaction *txn) = 0;
+    virtual ham_status_t do_check_integrity() = 0;
 
     virtual Transaction *do_txn_begin() = 0;
     virtual ham_status_t do_txn_commit(Transaction *txn) = 0;

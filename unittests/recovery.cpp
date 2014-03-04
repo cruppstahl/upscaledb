@@ -318,7 +318,7 @@ verify(int argc, char **argv) {
     exit(-1);
   }
 
-  st = ham_db_check_integrity(db, 0, 0);
+  st = ham_db_check_integrity(db, 0);
   if (st) {
     printf("ham_db_check_integrity failed: %d\n", (int)st);
     exit(-1);

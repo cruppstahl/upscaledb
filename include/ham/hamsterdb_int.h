@@ -51,7 +51,6 @@ extern "C" {
  * This function is only interesting if you want to debug hamsterdb.
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
  * @param flags Optional flags for the integrity check, combined with
  *      bitwise OR. Possible flags are:
  *    <ul>
@@ -65,7 +64,7 @@ extern "C" {
  * @return @ref HAM_INTEGRITY_VIOLATED if the Database is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
+ham_db_check_integrity(ham_db_t *db, ham_u32_t flags);
 
 /** Flag for ham_db_check_integrity */
 #define HAM_PRINT_GRAPH             1

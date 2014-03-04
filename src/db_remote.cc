@@ -86,16 +86,12 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-RemoteDatabase::check_integrity(Transaction *htxn, ham_u32_t flags)
+RemoteDatabase::check_integrity(ham_u32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
-  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
   Protocol request(Protocol::DB_CHECK_INTEGRITY_REQUEST);
   request.mutable_db_check_integrity_request()->set_db_handle(get_remote_handle());
-  request.mutable_db_check_integrity_request()->set_txn_handle(txn
-            ? txn->get_remote_handle()
-            : 0);
   request.mutable_db_check_integrity_request()->set_flags(flags);
 
   std::auto_ptr<Protocol> reply(env->perform_request(&request));

@@ -43,8 +43,8 @@ struct CheckIntegrityFixture {
   ham_env_t *m_env;
 
   void emptyDatabaseTest() {
-    REQUIRE(HAM_INV_PARAMETER == ham_db_check_integrity(0, 0, 0));
-    REQUIRE(0 == ham_db_check_integrity(m_db, 0, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_db_check_integrity(0, 0));
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
   }
 
   void smallDatabaseTest() {
@@ -57,7 +57,7 @@ struct CheckIntegrityFixture {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    REQUIRE(0 == ham_db_check_integrity(m_db, 0, 0));
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
   }
 
   void levelledDatabaseTest() {
@@ -83,7 +83,7 @@ struct CheckIntegrityFixture {
       key.data = &buffer[0];
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(0 == ham_db_check_integrity(m_db, 0, 0));
+      REQUIRE(0 == ham_db_check_integrity(m_db, 0));
     }
   }
 };

@@ -63,7 +63,7 @@ class HamsterDatabase : public Database
     virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key);
     virtual ham_status_t do_find(Transaction *txn, ham_key_t *key,
                     ham_record_t *record);
-    virtual ham_status_t do_check_integrity(Transaction *txn);
+    virtual ham_status_t do_check_integrity();
 
     virtual Transaction *do_txn_begin();
     virtual ham_status_t do_txn_commit(Transaction *txn);

@@ -458,23 +458,16 @@ handle_db_check_integrity(ServerContext *srv, uv_stream_t *tcp,
   ham_assert(request != 0);
   ham_assert(request->has_db_check_integrity_request());
 
-  Transaction *txn = 0;
   Database *db = 0;
 
   ham_u32_t flags = request->db_check_integrity_request().flags();
-
-  if (request->db_check_integrity_request().txn_handle()) {
-    txn = srv->get_txn(request->db_check_integrity_request().txn_handle());
-    if (!txn)
-      st = HAM_INV_PARAMETER;
-  }
 
   if (st == 0) {
     db = srv->get_db(request->db_check_integrity_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else
-      st = ham_db_check_integrity((ham_db_t *)db, (ham_txn_t *)txn, flags);
+      st = ham_db_check_integrity((ham_db_t *)db, flags);
   }
 
   Protocol reply(Protocol::DB_CHECK_INTEGRITY_REPLY);

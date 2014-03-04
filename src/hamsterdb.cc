@@ -1250,10 +1250,9 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags)
+ham_db_check_integrity(ham_db_t *hdb, ham_u32_t flags)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
 
   if (!db) {
     ham_trace(("parameter 'db' must not be NULL"));
@@ -1268,7 +1267,7 @@ ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags)
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error(db->check_integrity(txn, flags)));
+    return (db->set_error(db->check_integrity(flags)));
   }
   catch (Exception &ex) {
     return (ex.code);

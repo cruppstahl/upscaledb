@@ -850,7 +850,7 @@ run_single_test(Configuration *conf)
 #if 0
     // verify hamsterdb integrity
     if (db->is_open()) {
-      ham_status_t st = db->check_integrity(0);
+      ham_status_t st = db->check_integrity();
       if (st != 0) {
         LOG_ERROR(("fullcheck failed: hamster integrity status %d\n", st));
         return false;
@@ -949,7 +949,7 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
   gen1->tee("FULLCHECK");
 
   // perform an integrity check
-  st1 = gen1->get_db()->check_integrity(0);
+  st1 = gen1->get_db()->check_integrity();
   if (st1 != 0) {
     LOG_ERROR(("integrity check failed: hamster integrity status %d\n", st1));
     return (false);
