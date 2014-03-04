@@ -44,7 +44,9 @@ struct BaseCursorFixture {
   virtual void setup() {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
+                    HAM_FLUSH_WHEN_COMMITTED
+                    | HAM_ENABLE_RECOVERY
+                    | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
@@ -236,10 +238,8 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     ham_cursor_t *clone;
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ham_cursor_clone(m_cursor, &clone));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_clone(m_cursor, &clone));
 
     REQUIRE(false == cursor_is_nil((Cursor *)clone, Cursor::kBtree));
     REQUIRE(0 == ham_cursor_close(clone));
@@ -371,7 +371,8 @@ struct NoTxnCursorFixture {
 
   void setup() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
+        ham_env_create(&m_env, Globals::opath(".test"),
+            HAM_FLUSH_WHEN_COMMITTED, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
@@ -443,7 +444,7 @@ struct InMemoryCursorFixture : public BaseCursorFixture {
   virtual void setup() {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-                HAM_IN_MEMORY, 0664, 0));
+                HAM_FLUSH_WHEN_COMMITTED | HAM_IN_MEMORY, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
   }
@@ -470,7 +471,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   virtual void setup() {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
+                    HAM_FLUSH_WHEN_COMMITTED
+                    | HAM_ENABLE_RECOVERY
+                    | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
@@ -4130,7 +4133,8 @@ struct DupeCacheFixture {
 
   DupeCacheFixture() {
     REQUIRE(0 ==
-            ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
+            ham_env_create(&m_env, Globals::opath(".test"),
+                HAM_FLUSH_WHEN_COMMITTED, 0664, 0));
     REQUIRE(0 ==
             ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
@@ -4368,7 +4372,7 @@ struct DupeCursorFixture {
   DupeCursorFixture() {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS, 0664, 0));
+            HAM_FLUSH_WHEN_COMMITTED | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
@@ -6344,7 +6348,7 @@ struct DupeCursorFixture {
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS, 0664, 0));
+            HAM_FLUSH_WHEN_COMMITTED | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));

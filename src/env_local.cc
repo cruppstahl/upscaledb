@@ -613,6 +613,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     key_type = HAM_TYPE_UINT64;
 
   ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
+                    | HAM_FLUSH_WHEN_COMMITTED
                     | HAM_ENABLE_DUPLICATE_KEYS
                     | HAM_RECORD_NUMBER;
   if (flags & ~mask) {
@@ -688,6 +689,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
   *pdb = 0;
 
   ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
+                    | HAM_FLUSH_WHEN_COMMITTED
                     | HAM_READ_ONLY;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
@@ -814,17 +816,12 @@ void
 LocalEnvironment::flush_committed_txns()
 {
   Transaction *oldest;
-  ham_u64_t last_id = 0;
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
   while ((oldest = get_oldest_txn())) {
-    if (oldest->is_committed()) {
-      if (last_id)
-        ham_assert(last_id != oldest->get_id());
-      last_id = oldest->get_id();
+    if (oldest->is_committed())
       flush_txn((LocalTransaction *)oldest);
-    }
     else if (oldest->is_aborted()) {
       ; /* nop */
     }
@@ -834,7 +831,7 @@ LocalEnvironment::flush_committed_txns()
     /* now remove the txn from the linked list */
     remove_txn_from_head(oldest);
 
-    /* and free the whole memory */
+    /* and release the memory */
     delete oldest;
   }
 

@@ -83,7 +83,9 @@ struct JournalFixture {
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, 0644, 0));
+                HAM_FLUSH_WHEN_COMMITTED
+                | HAM_ENABLE_TRANSACTIONS
+                | HAM_ENABLE_RECOVERY, 0644, 0));
     REQUIRE(0 ==
             ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
@@ -488,20 +490,18 @@ struct JournalFixture {
       // journal entry
       char name[16];
       sprintf(name, "name%d", i);
-      REQUIRE(0 ==
-          ham_txn_begin(&txn, m_env, name, 0, 0));
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, name, 0, 0));
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0, &name[0]);
-      REQUIRE(0 == ham_txn_abort(txn, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
+      REQUIRE(0 == ham_txn_abort(txn, 0));
     }
 
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-    REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
@@ -521,9 +521,9 @@ struct JournalFixture {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0);
-      REQUIRE(0 == ham_txn_abort(txn, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
+      REQUIRE(0 == ham_txn_abort(txn, 0));
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -548,13 +548,13 @@ struct JournalFixture {
 
     for (int i = 0; i <= 10; i++) {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-      if (i >= 5)
+      if (i >= 5) {
         vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0);
-      REQUIRE(0 == ham_txn_abort(txn, 0));
-      if (i >= 5)
         vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
+      }
+      REQUIRE(0 == ham_txn_abort(txn, 0));
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -590,10 +590,9 @@ struct JournalFixture {
       REQUIRE((ham_u64_t)(i + 1) == ((Transaction *)txn)->get_id());
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
-      ham_u64_t txnid = ((Transaction *)txn)->get_id();
-      REQUIRE(0 == ham_txn_commit(txn, 0));
-      vec[p++] = LogEntry(2 + i * 2, txnid,
+      vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeTxnCommit, 0);
+      REQUIRE(0 == ham_txn_commit(txn, 0));
     }
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -602,12 +601,14 @@ struct JournalFixture {
     /* reopen the database */
     REQUIRE(HAM_NEED_RECOVERY ==
         ham_env_open(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_ENABLE_RECOVERY, 0));
+                HAM_FLUSH_WHEN_COMMITTED
+                | HAM_ENABLE_TRANSACTIONS
+                | HAM_ENABLE_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open(&m_env, Globals::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
+                HAM_FLUSH_WHEN_COMMITTED
+                | HAM_ENABLE_TRANSACTIONS
+                | HAM_AUTO_RECOVERY, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     /* verify that the journal is empty */
@@ -736,7 +737,8 @@ struct JournalFixture {
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
+          ham_env_create(&m_env, Globals::opath(".test"),
+                HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
@@ -805,7 +807,8 @@ struct JournalFixture {
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
+          ham_env_create(&m_env, Globals::opath(".test"),
+                HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 

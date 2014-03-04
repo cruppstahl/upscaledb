@@ -33,6 +33,8 @@ typedef int bool;
 #define false (!true)
 #endif /* __cpluscplus */
 
+int g_flush_threshold = 10;
+
 static int
 compare(void *vlhs, void *vrhs)
 {
@@ -237,20 +239,20 @@ LocalTransaction::commit(ham_u32_t flags)
     throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(m_flags & HAM_TXN_TEMPORARY)) {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    lenv->get_journal()->append_txn_commit(this, lenv->get_incremented_lsn());
-  }
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
 
   /* this transaction is now committed! */
   m_flags |= kStateCommitted;
 
+  /* append journal entry */
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(m_flags & HAM_TXN_TEMPORARY))
+    lenv->get_journal()->append_txn_commit(this, lenv->get_incremented_lsn());
+
   /* flush committed transactions */
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
-  if (lenv)
+  if (m_id % g_flush_threshold == 0
+        || (lenv->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
     lenv->flush_committed_txns();
 }
 
@@ -264,24 +266,30 @@ LocalTransaction::abort(ham_u32_t flags)
     throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(m_flags & HAM_TXN_TEMPORARY)) {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    lenv->get_journal()->append_txn_abort(this, lenv->get_incremented_lsn());
-  }
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
 
   /* this transaction is now aborted!  */
   m_flags |= kStateAborted;
+
+  /* append journal entry */
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(m_flags & HAM_TXN_TEMPORARY))
+    lenv->get_journal()->append_txn_abort(this, lenv->get_incremented_lsn());
 
   /* immediately release memory of the cached operations */
   free_operations();
 
   /* clean up the changeset */
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
   if (lenv)
     lenv->get_changeset().clear();
+
+  /* flush committed transactions; while this one was not committed,
+   * we might have cleared the way now to flush other committed
+   * transactions */
+  if (m_id % g_flush_threshold == 0
+        || (lenv->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
+    lenv->flush_committed_txns();
 }
 
 void

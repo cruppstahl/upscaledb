@@ -1508,6 +1508,9 @@ LocalDatabase::close_impl(ham_u32_t flags)
     }
   }
 
+  /* flush all committed transactions */
+  get_local_env()->flush_committed_txns();
+
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY) {
     Transaction *txn = new LocalTransaction(get_local_env(), 0,

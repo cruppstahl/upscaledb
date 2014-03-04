@@ -166,16 +166,30 @@ o Improve transaction delta updates
         does not exceed a certain size, or the number of elements is not
         too high
         x log file must not be switched before the txn is flushed!
-        o set threshold through an internal (global) variable
-        o also in ham_bench!
-        o ham_env_flush and when closing: flush EVERYTHING
-        o flush immediately if HAM_DISABLE_COMMITTED_TRANSACTION_DELAY
+        x ham_env_flush and when closing: flush EVERYTHING
+        x flush immediately if HAM_FLUSH_WHEN_COMMITTED
+        x set threshold through an internal (global) variable
+        o add unittest
+            for i in 0 .. 30:
+                env = create
+                txn = begin
+                for j in 0 .. i:
+                    insert(txn, j)
+                commit txn
+                close env
+
+                env = open
+                # verify that all keys were inserted
+                close env
+        o expose new flag and/or parameter
             o dotnet
             o java
             o erlang
             o ham_bench
-        o then apply them page by page (is this possible??), and later even
-            asynchronously
+        o add to monster test, valgrind test, performance test
+
+        o then apply the committed transactions page by page (is this
+            possible??), and later even asynchronously
         o can we combine multiple operations in the same changeset??
             -> only if they're for the same database! (really?? why?)
             -> also, we need to remove many asserts...? :-/

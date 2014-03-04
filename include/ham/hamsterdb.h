@@ -1160,6 +1160,9 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 /* internal use only! (persistent) */
 #define HAM_FORCE_RECORDS_INLINE                    0x00800000
 
+/* internal use only! (not persistent) */
+#define HAM_FLUSH_WHEN_COMMITTED                    0x01000000
+
 /**
  * Returns the last error code
  *

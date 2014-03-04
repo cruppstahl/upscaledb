@@ -361,20 +361,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   if (flags & HAM_IN_MEMORY)
     flags &= ~HAM_ENABLE_RECOVERY;
 
-  ham_u32_t mask = HAM_ENABLE_FSYNC
-            | HAM_IN_MEMORY
-            | HAM_DISABLE_MMAP
-            | HAM_CACHE_UNLIMITED
-            | HAM_ENABLE_RECOVERY
-            | HAM_AUTO_RECOVERY
-            | HAM_ENABLE_TRANSACTIONS
-            | HAM_DISABLE_RECLAIM_INTERNAL;
-  if (flags & ~mask) {
-    ham_trace(("ham_env_create() called with invalid flag 0x%x (%d)", 
-                (int)(flags & ~mask), (int)(flags & ~mask)));
-    return (HAM_INV_PARAMETER);
-  }
-
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
