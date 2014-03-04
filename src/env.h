@@ -135,17 +135,14 @@ class Environment
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags) = 0;
 
-    // Aborts a transaction (ham_txn_abort)
-    virtual void txn_abort(Transaction *txn, ham_u32_t flags) = 0;
-
-    // Commits a transaction (ham_txn_commit)
-    virtual void txn_commit(Transaction *txn, ham_u32_t flags) = 0;
-
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags) = 0;
 
     // Fills in the current metrics
     virtual void get_metrics(ham_env_metrics_t *metrics) const { };
+
+    // Flushes all committed transactions to disk
+    virtual void flush_committed_txns() = 0;
 
     // Returns the oldest transaction which not yet flushed to disk
     Transaction *get_oldest_txn() {

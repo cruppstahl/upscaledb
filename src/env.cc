@@ -42,7 +42,7 @@ Environment::remove_txn_from_head(Transaction *txn)
   if (get_newest_txn() == txn)
     set_newest_txn(0);
 
-  ham_assert (get_oldest_txn() == txn);
+  ham_assert(get_oldest_txn() == txn);
   set_oldest_txn(txn->get_next());
 }
 

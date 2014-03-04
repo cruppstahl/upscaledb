@@ -78,12 +78,6 @@ class RemoteEnvironment : public Environment
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
 
-    // Aborts a transaction (ham_txn_abort)
-    virtual void txn_abort(Transaction *txn, ham_u32_t flags);
-
-    // Commits a transaction (ham_txn_commit)
-    virtual void txn_commit(Transaction *txn, ham_u32_t flags);
-
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags);
 
@@ -91,8 +85,17 @@ class RemoteEnvironment : public Environment
     // was fully received
     Protocol *perform_request(Protocol *request);
 
+    // Flushes all committed transactions to disk; this just releases the
+    // memory of all aborted and committed transactions.
+    virtual void flush_committed_txns();
+
+    // Returns the remote handle
+    ham_u64_t get_remote_handle() const {
+      return (m_remote_handle);
+    }
+
   private:
-    // the remote database handle
+    // the remote handle
     ham_u64_t m_remote_handle;
 
     // the socket

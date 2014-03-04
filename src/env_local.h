@@ -181,12 +181,6 @@ class LocalEnvironment : public Environment
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
 
-    // Aborts a transaction (ham_txn_abort)
-    virtual void txn_abort(Transaction *txn, ham_u32_t flags);
-
-    // Commits a transaction (ham_txn_commit)
-    virtual void txn_commit(Transaction *txn, ham_u32_t flags);
-
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags);
 
@@ -194,7 +188,7 @@ class LocalEnvironment : public Environment
     virtual void get_metrics(ham_env_metrics_t *metrics) const;
 
     // Flushes all committed transactions to disk
-    void flush_committed_txns();
+    virtual void flush_committed_txns();
 
   private:
     // Flushes a single, committed transaction to disk

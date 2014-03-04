@@ -371,47 +371,22 @@ RemoteEnvironment::close(ham_u32_t flags)
 Transaction *
 RemoteEnvironment::txn_begin(const char *name, ham_u32_t flags)
 {
-  Protocol request(Protocol::TXN_BEGIN_REQUEST);
-  request.mutable_txn_begin_request()->set_env_handle(m_remote_handle);
-  request.mutable_txn_begin_request()->set_flags(flags);
-  if (name)
-    request.mutable_txn_begin_request()->set_name(name);
-
-  std::auto_ptr<Protocol> reply(perform_request(&request));
-
-  ham_assert(reply->has_txn_begin_reply());
-
-  ham_status_t st = reply->txn_begin_reply().status();
-  if (st)
-    return (0);
-
-  RemoteTransaction *txn = new RemoteTransaction(this, name, flags);
-  txn->set_remote_handle(reply->txn_begin_reply().txn_handle());
-  append_txn_at_tail(txn);
-
-  return (txn);
+  return (new RemoteTransaction(this, name, flags));
 }
 
 void
-RemoteEnvironment::txn_commit(Transaction *htxn, ham_u32_t flags)
+RemoteEnvironment::flush_committed_txns()
 {
-  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
-  txn->commit(flags);
+  Transaction *oldest;
 
-  // TODO are we really removing from head??
-  remove_txn_from_head(txn);
-  delete (txn);
-}
-
-void
-RemoteEnvironment::txn_abort(Transaction *htxn, ham_u32_t flags)
-{
-  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
-  txn->abort(flags);
-
-  // TODO are we really removing from head??
-  remove_txn_from_head(txn);
-  delete (txn);
+  while ((oldest = get_oldest_txn())) {
+    if (oldest->is_committed() || oldest->is_aborted()) {
+      remove_txn_from_head(oldest);
+      delete oldest;
+    }
+    else
+      return;
+  }
 }
 
 } // namespace hamsterdb

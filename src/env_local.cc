@@ -750,22 +750,6 @@ LocalEnvironment::txn_begin(const char *name, ham_u32_t flags)
 }
 
 void
-LocalEnvironment::txn_commit(Transaction *htxn, ham_u32_t flags)
-{
-  LocalTransaction *txn = (LocalTransaction *)htxn;
-
-  txn->commit(flags);
-}
-
-void
-LocalEnvironment::txn_abort(Transaction *htxn, ham_u32_t flags)
-{
-  LocalTransaction *txn = (LocalTransaction *)htxn;
-
-  txn->abort(flags);
-}
-
-void
 LocalEnvironment::recover(ham_u32_t flags)
 {
   ham_status_t st = 0;

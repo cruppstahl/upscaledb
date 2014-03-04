@@ -152,20 +152,21 @@ o Improve transaction delta updates
             x for insert/erase and all cursor functions
             x recovery: must accept updates w/ txn-id 0 (for temp. transactions)
             x add new test
-        o more code cleanups
+        x more code cleanups
             x split LocalTransaction, RemoteTransaction?
             x txn_begin returns Transaction*; txn_commit and txn_abort ret. void
-            o move logic from env to txn
-            o check TODOs in txn_remote.cc
+            x move logic from env to txn
+            x check TODOs in txn_remote.cc
+        o journal should decide whether what is logged and what is not logged
+        o check_integrity should not require a |txn| parameter
         o improve splits of txn logic vs. btree logic, i.e. in
-            check_insert_conflicts et al; need a very clear separation of
-            code, otherwise locking will be very tricky
-        o move the whole insert/erase/find logic to the TransactionIndex?
-            then it's analoguous to the btree logic
+            o move the whole insert/erase/find logic to the TransactionIndex?
+                then it's analoguous to the btree logic
+            o check_insert_conflicts et al; need a very clear separation of
+                code, otherwise locking will be very tricky
         o TransactionNode requires head/tail of TransactionOperations
             list? Is a single list w/ head only sufficient?
         o there are more linked lists... clean up as much as possible
-        o check_integrity should not require a |txn| parameter
     o think about delta updates managed in the BtreeNode
         o totally transparent to the caller
         o requires_split() takes delta updates into account

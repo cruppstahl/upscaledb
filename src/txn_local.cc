@@ -61,10 +61,10 @@ LocalTransaction::commit(ham_u32_t flags)
     lenv->get_journal()->append_txn_commit(this, lenv->get_incremented_lsn());
   }
 
-  /* this transaction is now committed!  */
+  /* this transaction is now committed! */
   m_flags |= kStateCommitted;
 
-  // TODO ugly - better move flush_committed_txns() in the caller
+  /* flush committed transactions */
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
   if (lenv)
     lenv->flush_committed_txns();

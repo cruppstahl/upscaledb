@@ -130,10 +130,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
-    /* mark this transaction as committed; will also call
-     * env->signal_commit() to write committed transactions
-     * to disk */
-    env->txn_commit(txn, flags);
+    txn->commit(flags);
     return (0);
   }
   catch (Exception &ex) {
@@ -157,7 +154,7 @@ ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
-    env->txn_abort(txn, flags);
+    txn->abort(flags);
     return (0);
   }
   catch (Exception &ex) {
@@ -894,9 +891,9 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
           ; /* nop */
         else {
           if (flags & HAM_TXN_AUTO_COMMIT)
-            env->txn_commit(t, 0);
+            t->commit(0);
           else /* if (flags&HAM_TXN_AUTO_ABORT) */
-            env->txn_abort(t, 0);
+            t->abort(0);
         }
         t = n;
       }

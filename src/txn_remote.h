@@ -12,6 +12,8 @@
 #ifndef HAM_TXN_REMOTE_H__
 #define HAM_TXN_REMOTE_H__
 
+#ifdef HAM_ENABLE_REMOTE
+
 #include "txn.h"
 
 namespace hamsterdb {
@@ -24,9 +26,7 @@ class RemoteTransaction : public Transaction
   public:
     // Constructor; "begins" the Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
-    RemoteTransaction(Environment *env, const char *name, ham_u32_t flags)
-      : Transaction(env, name, flags), m_remote_handle(0) {
-    }
+    RemoteTransaction(Environment *env, const char *name, ham_u32_t flags);
 
     // Commits the Transaction
     virtual void commit(ham_u32_t flags = 0);
@@ -51,5 +51,7 @@ class RemoteTransaction : public Transaction
 
 
 } // namespace hamsterdb
+
+#endif // HAM_ENABLE_REMOTE
 
 #endif /* HAM_TXN_REMOTE_H__ */
