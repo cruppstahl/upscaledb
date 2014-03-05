@@ -246,7 +246,6 @@
     <ClCompile Include="..\..\src\db.cc" />
     <ClCompile Include="..\..\src\db_local.cc" />
     <ClCompile Include="..\..\src\db_remote.cc" />
-    <ClCompile Include="..\..\src\env.cc" />
     <ClCompile Include="..\..\src\env_local.cc" />
     <ClCompile Include="..\..\src\env_remote.cc" />
     <ClCompile Include="..\..\src\error.cc" />

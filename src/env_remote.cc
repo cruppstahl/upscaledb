@@ -24,9 +24,20 @@
 
 namespace hamsterdb {
 
+RemoteEnvironment::RemoteEnvironment()
+: Environment(), m_remote_handle(0), m_socket(HAM_INVALID_FD),
+  m_buffer(1024 * 4), m_timeout(0)
+{
+}
+
 RemoteEnvironment::~RemoteEnvironment()
 {
   os_socket_close(&m_socket);
+
+  if (m_txn_manager) {
+    delete m_txn_manager;
+    m_txn_manager = 0;
+  }
 }
 
 Protocol *
@@ -103,6 +114,9 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
     m_filename = url;
     set_flags(flags | reply->connect_reply().env_flags());
     m_remote_handle = reply->connect_reply().env_handle();
+
+    if (get_flags() & HAM_ENABLE_TRANSACTIONS)
+      m_txn_manager = new RemoteTransactionManager(this);
   }
 
   return (st);
@@ -371,22 +385,7 @@ RemoteEnvironment::close(ham_u32_t flags)
 Transaction *
 RemoteEnvironment::txn_begin(const char *name, ham_u32_t flags)
 {
-  return (new RemoteTransaction(this, name, flags));
-}
-
-void
-RemoteEnvironment::flush_committed_txns()
-{
-  Transaction *oldest;
-
-  while ((oldest = get_oldest_txn())) {
-    if (oldest->is_committed() || oldest->is_aborted()) {
-      remove_txn_from_head(oldest);
-      delete oldest;
-    }
-    else
-      return;
-  }
+  return (m_txn_manager->begin(name, flags));
 }
 
 } // namespace hamsterdb

@@ -412,6 +412,42 @@ class LocalTransaction : public Transaction
 };
 
 
+//
+// A TransactionManager for local Transactions
+//
+class LocalTransactionManager : public TransactionManager
+{
+  public:
+    // Constructor
+    LocalTransactionManager(Environment *env)
+      : TransactionManager(env) {
+    }
+
+    // Begins a new Transaction
+    virtual Transaction *begin(const char *name, ham_u32_t flags);
+
+    // Commits a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void commit(Transaction *txn, ham_u32_t flags = 0);
+
+    // Aborts a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void abort(Transaction *txn, ham_u32_t flags = 0);
+
+    // Flushes committed (queued) transactions
+    virtual void flush_committed_txns();
+
+  private:
+    // Flushes a single committed Transaction
+    void flush_txn(LocalTransaction *txn);
+
+    // Casts m_env to a LocalEnvironment
+    LocalEnvironment *get_local_env() {
+      return ((LocalEnvironment *)m_env);
+    }
+};
+
+
 } // namespace hamsterdb
 
 #endif /* HAM_TXN_LOCAL_H__ */

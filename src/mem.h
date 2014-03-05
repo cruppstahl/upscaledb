@@ -53,7 +53,6 @@ class Memory {
     static T *allocate(size_t size) {
       ms_total_allocations++;
       ms_current_allocations++;
-
 #ifdef HAM_USE_TCMALLOC
       T *t = (T *)::tc_malloc(size);
 #else

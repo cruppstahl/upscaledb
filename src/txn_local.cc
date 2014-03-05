@@ -14,6 +14,7 @@
 
 #include <string.h>
 
+#include "cursor.h"
 #include "journal.h"
 #include "txn_local.h"
 #include "txn_factory.h"
@@ -219,9 +220,6 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
     env->get_journal()->append_txn_begin(this, env, name,
             env->get_incremented_lsn());
   }
-
-  /* link this txn with the Environment */
-  env->append_txn_at_tail(this);
 }
 
 LocalTransaction::~LocalTransaction()
@@ -239,21 +237,8 @@ LocalTransaction::commit(ham_u32_t flags)
     throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
-
   /* this transaction is now committed! */
   m_flags |= kStateCommitted;
-
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(m_flags & HAM_TXN_TEMPORARY))
-    lenv->get_journal()->append_txn_commit(this, lenv->get_incremented_lsn());
-
-  /* flush committed transactions */
-  if (m_id % g_flush_threshold == 0
-        || (lenv->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
-    lenv->flush_committed_txns();
 }
 
 void
@@ -266,30 +251,11 @@ LocalTransaction::abort(ham_u32_t flags)
     throw Exception(HAM_CURSOR_STILL_OPEN);
   }
 
-  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
-
   /* this transaction is now aborted!  */
   m_flags |= kStateAborted;
 
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(m_flags & HAM_TXN_TEMPORARY))
-    lenv->get_journal()->append_txn_abort(this, lenv->get_incremented_lsn());
-
   /* immediately release memory of the cached operations */
   free_operations();
-
-  /* clean up the changeset */
-  if (lenv)
-    lenv->get_changeset().clear();
-
-  /* flush committed transactions; while this one was not committed,
-   * we might have cleared the way now to flush other committed
-   * transactions */
-  if (m_id % g_flush_threshold == 0
-        || (lenv->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
-    lenv->flush_committed_txns();
 }
 
 void
@@ -498,5 +464,138 @@ TransactionIndex::get_key_count(LocalTransaction *txn, ham_u32_t flags)
   return (k.counter);
 }
 
+Transaction *
+LocalTransactionManager::begin(const char *name, ham_u32_t flags)
+{
+  Transaction *txn = new LocalTransaction(get_local_env(), name, flags);
+
+  /* link this txn with the Environment */
+  append_txn_at_tail(txn);
+
+  return (txn);
+}
+
+void 
+LocalTransactionManager::commit(Transaction *htxn, ham_u32_t flags)
+{
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+
+  txn->commit(flags);
+
+  /* append journal entry */
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+    get_local_env()->get_journal()->append_txn_commit(txn,
+                    get_local_env()->get_incremented_lsn());
+
+  /* flush committed transactions */
+  if (txn->get_id() % g_flush_threshold == 0
+        || (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
+    flush_committed_txns();
+}
+
+void 
+LocalTransactionManager::abort(Transaction *htxn, ham_u32_t flags)
+{
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+
+  txn->abort(flags);
+
+  /* append journal entry */
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+      && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+    get_local_env()->get_journal()->append_txn_abort(txn,
+                    get_local_env()->get_incremented_lsn());
+
+  /* clean up the changeset */
+  get_local_env()->get_changeset().clear();
+
+  /* flush committed transactions; while this one was not committed,
+   * we might have cleared the way now to flush other committed
+   * transactions */
+  if (txn->get_id() % g_flush_threshold == 0
+        || (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
+    flush_committed_txns();
+}
+
+void 
+LocalTransactionManager::flush_committed_txns()
+{
+  Transaction *oldest;
+
+  /* always get the oldest transaction; if it was committed: flush
+   * it; if it was aborted: discard it; otherwise return */
+  while ((oldest = get_oldest_txn())) {
+    if (oldest->is_committed())
+      flush_txn((LocalTransaction *)oldest);
+    else if (oldest->is_aborted()) {
+      ; /* nop */
+    }
+    else
+      break;
+
+    /* now remove the txn from the linked list */
+    remove_txn_from_head(oldest);
+
+    /* and release the memory */
+    delete oldest;
+  }
+
+  /* clear the changeset; if the loop above was not entered or the
+   * transaction was empty then it may still contain pages */
+  get_local_env()->get_changeset().clear();
+}
+
+void
+LocalTransactionManager::flush_txn(LocalTransaction *txn)
+{
+  TransactionOperation *op = txn->get_oldest_op();
+  TransactionCursor *cursor = 0;
+
+  while (op) {
+    TransactionNode *node = op->get_node();
+
+    if (op->get_flags() & TransactionOperation::kIsFlushed)
+      goto next_op;
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+      ham_assert(get_local_env()->get_changeset().is_empty());
+#endif
+
+    node->get_db()->flush_txn_operation(txn, op);
+
+    /* now flush the changeset to disk */
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+      get_local_env()->get_changeset().flush(op->get_lsn());
+
+    /*
+     * this op is about to be flushed!
+     *
+     * as a consequence, all (txn)cursors which are coupled to this op
+     * have to be uncoupled, as their parent (btree) cursor was
+     * already coupled to the btree item instead
+     */
+    op->set_flushed();
+next_op:
+    while ((cursor = op->get_cursor_list())) {
+      Cursor *pc = cursor->get_parent();
+      ham_assert(pc->get_txn_cursor() == cursor);
+      pc->couple_to_btree(); // TODO merge both calls?
+      pc->set_to_nil(Cursor::kTxn);
+    }
+
+    /* continue with the next operation of this txn */
+    op = op->get_next_in_txn();
+  }
+
+  /* this transaction was flushed! */
+  Journal *journal = get_local_env()->get_journal();
+  if (journal && (txn->get_flags() & HAM_TXN_TEMPORARY) == 0)
+    journal->transaction_flushed(txn);
+}
 
 } // namespace hamsterdb

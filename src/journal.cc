@@ -525,7 +525,7 @@ recover_get_db(Environment *env, ham_u16_t dbname)
 static Transaction *
 recover_get_txn(Environment *env, ham_u64_t txn_id)
 {
-  Transaction *txn = env->get_oldest_txn();
+  Transaction *txn = env->get_txn_manager()->get_oldest_txn();
   while (txn) {
     if (txn->get_id() == txn_id)
       return (txn);
@@ -555,7 +555,7 @@ static void
 __abort_uncommitted_txns(Environment *env)
 {
   ham_status_t st;
-  Transaction *newer, *txn = env->get_oldest_txn();
+  Transaction *newer, *txn = env->get_txn_manager()->get_oldest_txn();
 
   while (txn) {
     newer = txn->get_next();
@@ -718,7 +718,7 @@ Journal::recover_journal(ham_u64_t start_lsn)
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  ham_assert(m_env->get_oldest_txn() == 0);
+  ham_assert(m_env->get_txn_manager()->get_oldest_txn() == 0);
   ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 

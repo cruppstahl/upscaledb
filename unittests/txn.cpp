@@ -1164,6 +1164,46 @@ struct HighLevelTxnFixture {
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
   }
+
+  void insertTransactionsWithDelay(int loop) {
+    ham_txn_t *txn;
+
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
+                        HAM_ENABLE_TRANSACTIONS, 0644, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
+
+    for (int i = 0; i < loop; i++) {
+      ham_key_t key = {0};
+      ham_record_t rec = {0};
+      key.size = sizeof(i);
+      key.data = &i;
+      rec.size = sizeof(i);
+      rec.data = &i;
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+      REQUIRE(0 == ham_txn_commit(txn, 0));
+    }
+
+    // reopen the environment
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    // and check that the values exist
+    for (int i = 0; i < loop; i++) {
+      ham_key_t key = {0};
+      ham_record_t rec = {0};
+      key.size = sizeof(i);
+      key.data = &i;
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(rec.size == sizeof(i));
+      REQUIRE(*(int *)rec.data == i);
+    }
+
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    m_env = 0;
+  }
 };
 
 TEST_CASE("Txn-high/noPersistentDatabaseFlagTest", "")
@@ -1248,6 +1288,13 @@ TEST_CASE("Txn-high/getKeyCountOverwriteTest", "")
 {
   HighLevelTxnFixture f;
   f.getKeyCountOverwriteTest();
+}
+
+TEST_CASE("Txn-high/insertTransactionsWithDelay", "")
+{
+  HighLevelTxnFixture f;
+  for (int i = 1; i < 30; i++)
+    f.insertTransactionsWithDelay(i);
 }
 
 

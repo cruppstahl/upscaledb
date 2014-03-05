@@ -187,13 +187,7 @@ class LocalEnvironment : public Environment
     // Fills in the current metrics
     virtual void get_metrics(ham_env_metrics_t *metrics) const;
 
-    // Flushes all committed transactions to disk
-    virtual void flush_committed_txns();
-
   private:
-    // Flushes a single, committed transaction to disk
-    void flush_txn(LocalTransaction *txn);
-
     // Runs the recovery process
     void recover(ham_u32_t flags);
 

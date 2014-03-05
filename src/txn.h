@@ -197,6 +197,87 @@ class Transaction
 };
 
 
+//
+// An abstract base class for the TransactionManager. Overwritten for local and
+// remote implementations.
+//
+// The TransactionManager is part of the Environment and manages all
+// Transactions.
+//
+class TransactionManager
+{
+  public:
+    // Constructor
+    TransactionManager(Environment *env)
+      : m_env(env), m_oldest_txn(0), m_newest_txn(0) {
+    }
+
+    // Destructor
+    virtual ~TransactionManager() { }
+
+    // Begins a new Transaction
+    virtual Transaction *begin(const char *name, ham_u32_t flags) = 0;
+
+    // Commits a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void commit(Transaction *txn, ham_u32_t flags = 0) = 0;
+
+    // Aborts a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void abort(Transaction *txn, ham_u32_t flags = 0) = 0;
+
+    // Flushes committed (queued) transactions
+    virtual void flush_committed_txns() = 0;
+
+    // Returns the oldest transaction which not yet flushed to disk
+    Transaction *get_oldest_txn() {
+      return (m_oldest_txn);
+    }
+
+    // Returns the newest transaction which not yet flushed to disk
+    Transaction *get_newest_txn() {
+      return (m_newest_txn);
+    }
+
+  protected:
+    // Adds a new transaction to this Environment
+    void append_txn_at_tail(Transaction *txn) {
+      if (!m_newest_txn) {
+        ham_assert(m_oldest_txn == 0);
+        m_oldest_txn = txn;
+        m_newest_txn = txn;
+      }
+      else {
+        m_newest_txn->set_next(txn);
+        m_newest_txn = txn;
+        /* if there's no oldest txn (this means: all txn's but the
+         * current one were already flushed) then set this txn as
+         * the oldest txn */
+        if (!m_oldest_txn)
+          m_oldest_txn = txn;
+      }
+    }
+
+    // Removes a transaction from this Environment
+    void remove_txn_from_head(Transaction *txn) {
+      if (m_newest_txn == txn)
+        m_newest_txn = 0;
+
+      ham_assert(m_oldest_txn == txn);
+      m_oldest_txn = txn->get_next();
+    }
+
+    // The Environment which created this TransactionManager
+    Environment *m_env;
+
+    // The head of the transaction list (the oldest transaction)
+    Transaction *m_oldest_txn;
+
+    // The tail of the transaction list (the youngest/newest transaction)
+    Transaction *m_newest_txn;
+};
+
+
 } // namespace hamsterdb
 
 #endif /* HAM_TXN_H__ */

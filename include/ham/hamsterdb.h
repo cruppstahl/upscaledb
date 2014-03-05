@@ -523,7 +523,7 @@ ham_get_license(const char **licensee, const char **product);
  *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
- *      Database. This flag implies @ref HAM_ENABLE_RECOVERY.
+ *      Environment. This flag implies @ref HAM_ENABLE_RECOVERY.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -617,8 +617,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
- *      Database.
- *      This flag imples @ref HAM_ENABLE_RECOVERY.
+ *      Environment. This flag imples @ref HAM_ENABLE_RECOVERY.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:

@@ -32,6 +32,7 @@ namespace hamsterdb {
 
 class Database;
 class Transaction;
+class TransactionManager;
 
 //
 // The Environment is the "root" of all hamsterdb objects. It's a container
@@ -45,8 +46,7 @@ class Environment
 
     // Constructor
     Environment()
-      : m_file_mode(0644), m_context(0), m_flags(0),
-        m_oldest_txn(0), m_newest_txn(0) {
+      : m_file_mode(0644), m_txn_manager(0), m_context(0), m_flags(0) {
     }
 
     // Virtual destructor can be overwritten in derived classes
@@ -141,24 +141,10 @@ class Environment
     // Fills in the current metrics
     virtual void get_metrics(ham_env_metrics_t *metrics) const { };
 
-    // Flushes all committed transactions to disk
-    virtual void flush_committed_txns() = 0;
-
-    // Returns the oldest transaction which not yet flushed to disk
-    Transaction *get_oldest_txn() {
-      return (m_oldest_txn);
+    // The transaction manager
+    TransactionManager *get_txn_manager() {
+      return (m_txn_manager);
     }
-
-    // Returns the newest transaction which not yet flushed to disk
-    Transaction *get_newest_txn() {
-      return (m_newest_txn);
-    }
-
-    // Adds a new transaction to this Environment
-    void append_txn_at_tail(Transaction *txn);
-
-    // Removes a transaction from this Environment
-    void remove_txn_from_head(Transaction *txn);
 
   protected:
     // A mutex to serialize access to this Environment
@@ -170,17 +156,10 @@ class Environment
     // The file access 'mode' parameter of ham_env_create */
     ham_u32_t m_file_mode;
 
+    // The Transaction manager; can be 0
+    TransactionManager *m_txn_manager;
+
   private:
-    // Sets the oldest transaction which not yet flushed to disk
-    void set_oldest_txn(Transaction *txn) {
-      m_oldest_txn = txn;
-    }
-
-    // Sets the newest transaction which not yet flushed to disk
-    void set_newest_txn(Transaction *txn) {
-      m_newest_txn = txn;
-    }
-
     // The user-provided context data
     void *m_context;
 
@@ -191,11 +170,6 @@ class Environment
     // and runtime flags
     ham_u32_t m_flags;
 
-    // The head of the transaction list (the oldest transaction)
-    Transaction *m_oldest_txn;
-
-    // The tail of the transaction list (the youngest/newest transaction)
-    Transaction *m_newest_txn;
 };
 
 } // namespace hamsterdb

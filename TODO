@@ -169,18 +169,21 @@ o Improve transaction delta updates
         x ham_env_flush and when closing: flush EVERYTHING
         x flush immediately if HAM_FLUSH_WHEN_COMMITTED
         x set threshold through an internal (global) variable
-        o add unittest
-            for i in 0 .. 30:
-                env = create
-                txn = begin
-                for j in 0 .. i:
-                    insert(txn, j)
-                commit txn
-                close env
+        x add unittest
 
-                env = open
-                # verify that all keys were inserted
-                close env
+===============================
+        o clean up the code; the current one is a hack
+            x have a central authority for dealing with transactions and
+                for flushing them ("TransactionManager"
+                    -> "LocalTransactionManager" etc)
+            x commits/aborts are also routed through the TransactionManager,
+                which will do the logging (if reqd)
+            o split in multiple files (txn_mgr.h, txn_mgr_local.h etc)
+            o also manages the Transaction Id
+            o TransactionManager keeps threshold and counters
+                - only one threshold for committed transactions, or also one
+                    for number of committed ops or consumed memory?
+===============================
         o expose new flag and/or parameter
             o dotnet
             o java

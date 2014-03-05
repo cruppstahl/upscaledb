@@ -19,10 +19,10 @@ sub simple_test {
     print "===========================================================\n";
     print "inserting $max keys...\n";
     for ($k = 0; $k < $max; $k++) {
-      check(system("./recovery insert 64 8 $k 0 $txn $i"));
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery insert 64 8 $k 0 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 64 8 $k 0 $txn 1"));
     }
@@ -79,10 +79,10 @@ sub duplicate_test {
     print "===========================================================\n";
     print "inserting $max keys...\n";
     for ($k = 0; $k < $max; $k++) {
-      check(system("./recovery insert 8 8 $k 1 $txn $i"));
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery insert 8 8 $k 1 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 8 8 $k 1 $txn 1"));
     }
@@ -105,10 +105,10 @@ sub extended_duplicate_test {
 
     print "inserting $max keys...\n";
     for ($k = 0; $k < $max; $k++) {
-      check(system("./recovery insert 1024 1024 $k 1 $txn $i"));
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery insert 1024 1024 $k 1 $txn $i"));
       check(system("./recovery recover $txn"));
       check(system("./recovery verify 1024 1024 $k 1 $txn 1"));
     }

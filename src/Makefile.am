@@ -49,7 +49,6 @@ libhamsterdb_la_SOURCES = \
 	device_factory.h \
 	endianswap.h \
 	env.h \
-	env.cc \
 	env_header.h \
 	env_local.h \
 	env_local.cc \

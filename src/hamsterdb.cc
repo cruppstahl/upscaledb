@@ -130,7 +130,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
-    txn->commit(flags);
+    env->get_txn_manager()->commit(txn, flags);
     return (0);
   }
   catch (Exception &ex) {
@@ -154,7 +154,7 @@ ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
-    txn->abort(flags);
+    env->get_txn_manager()->abort(txn, flags);
     return (0);
   }
   catch (Exception &ex) {
@@ -869,17 +869,17 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 #endif
 
     /* auto-abort (or commit) all pending transactions */
-    if (env && env->get_oldest_txn()) {
-      Transaction *n, *t = env->get_oldest_txn();
+    if (env->get_txn_manager()) {
+      Transaction *n, *t = env->get_txn_manager()->get_oldest_txn();
       while (t) {
         n = t->get_next();
         if (t->is_aborted() || t->is_committed())
           ; /* nop */
         else {
           if (flags & HAM_TXN_AUTO_COMMIT)
-            t->commit(0);
+            env->get_txn_manager()->commit(t, 0);
           else /* if (flags&HAM_TXN_AUTO_ABORT) */
-            t->abort(0);
+            env->get_txn_manager()->abort(t, 0);
         }
         t = n;
       }

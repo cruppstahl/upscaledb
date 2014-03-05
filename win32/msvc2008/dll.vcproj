@@ -505,10 +505,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\env.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\env.h"
 			>
 		</File>

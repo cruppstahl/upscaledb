@@ -12,22 +12,20 @@
 
 #include "config.h"
 
+#include "serial.h"
+#include "version.h"
 #include "db.h"
 #include "btree_index.h"
 #include "btree_stats.h"
 #include "device_factory.h"
 #include "blob_manager_factory.h"
-#include "serial.h"
-#include "version.h"
-#include "txn.h"
-#include "txn_local.h"
-#include "mem.h"
-#include "cursor.h"
-#include "txn_cursor.h"
 #include "page_manager.h"
 #include "journal.h"
-#include "os.h"
+#include "txn.h"
+#include "txn_local.h"
 #include "env_local.h"
+#include "cursor.h"
+#include "txn_cursor.h"
 
 using namespace hamsterdb;
 
@@ -71,6 +69,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
   m_device = DeviceFactory::create(this, flags);
+  if (flags & HAM_ENABLE_TRANSACTIONS)
+    m_txn_manager = new LocalTransactionManager(this);
 
   /* create the file */
   m_device->create(filename, flags, mode);
@@ -119,9 +119,9 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-        ham_u64_t cache_size)
+            ham_u64_t cache_size)
 {
-  ham_status_t st;
+  ham_status_t st = 0;
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
@@ -133,6 +133,9 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 
   /* open the file */
   m_device->open(filename, flags);
+
+  if (flags & HAM_ENABLE_TRANSACTIONS)
+    m_txn_manager = new LocalTransactionManager(this);
 
   /* create the configuration object */
   m_header = new EnvironmentHeader(m_device);
@@ -383,7 +386,8 @@ LocalEnvironment::close(ham_u32_t flags)
   Device *device = get_device();
 
   /* flush all committed transactions */
-  flush_committed_txns();
+  if (get_txn_manager())
+    get_txn_manager()->flush_committed_txns();
 
   /* close all databases */
   Environment::DatabaseMap::iterator it = get_database_map().begin();
@@ -415,7 +419,11 @@ LocalEnvironment::close(ham_u32_t flags)
   }
 
   /* flush all committed transactions */
-  flush_committed_txns();
+  if (get_txn_manager()) {
+    get_txn_manager()->flush_committed_txns();
+    delete m_txn_manager;
+    m_txn_manager = 0;
+  }
 
   /* flush all pages and the freelist, reduce the file size */
   if (m_page_manager)
@@ -532,7 +540,8 @@ LocalEnvironment::flush(ham_u32_t flags)
     return (0);
 
   /* flush all committed transactions */
-  flush_committed_txns();
+  if (get_txn_manager())
+    get_txn_manager()->flush_committed_txns();
 
   /* flush the header page, if necessary */
   if (m_header->get_header_page()->is_dirty())
@@ -748,7 +757,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
 Transaction *
 LocalEnvironment::txn_begin(const char *name, ham_u32_t flags)
 {
-  return (new LocalTransaction(this, name, flags));
+  return (m_txn_manager->begin(name, flags));
 }
 
 void
@@ -810,83 +819,6 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
     m_journal->get_metrics(metrics);
   // and of the btrees
   BtreeIndex::get_metrics(metrics);
-}
-
-void
-LocalEnvironment::flush_committed_txns()
-{
-  Transaction *oldest;
-
-  /* always get the oldest transaction; if it was committed: flush
-   * it; if it was aborted: discard it; otherwise return */
-  while ((oldest = get_oldest_txn())) {
-    if (oldest->is_committed())
-      flush_txn((LocalTransaction *)oldest);
-    else if (oldest->is_aborted()) {
-      ; /* nop */
-    }
-    else
-      break;
-
-    /* now remove the txn from the linked list */
-    remove_txn_from_head(oldest);
-
-    /* and release the memory */
-    delete oldest;
-  }
-
-  /* clear the changeset; if the loop above was not entered or the
-   * transaction was empty then it may still contain pages */
-  get_changeset().clear();
-}
-
-void
-LocalEnvironment::flush_txn(LocalTransaction *txn)
-{
-  TransactionOperation *op = txn->get_oldest_op();
-  TransactionCursor *cursor = 0;
-
-  while (op) {
-    TransactionNode *node = op->get_node();
-
-    if (op->get_flags() & TransactionOperation::kIsFlushed)
-      goto next_op;
-
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (get_flags() & HAM_ENABLE_RECOVERY)
-      ham_assert(get_changeset().is_empty());
-#endif
-
-    node->get_db()->flush_txn_operation(txn, op);
-
-    /* now flush the changeset to disk */
-    if (get_flags() & HAM_ENABLE_RECOVERY)
-      get_changeset().flush(op->get_lsn());
-
-    /*
-     * this op is about to be flushed!
-     *
-     * as a consequence, all (txn)cursors which are coupled to this op
-     * have to be uncoupled, as their parent (btree) cursor was
-     * already coupled to the btree item instead
-     */
-    op->set_flushed();
-next_op:
-    while ((cursor = op->get_cursor_list())) {
-      Cursor *pc = cursor->get_parent();
-      ham_assert(pc->get_txn_cursor() == cursor);
-      pc->couple_to_btree(); // TODO merge both calls?
-      pc->set_to_nil(Cursor::kTxn);
-    }
-
-    /* continue with the next operation of this txn */
-    op = op->get_next_in_txn();
-  }
-
-  /* this transaction was flushed! */
-  if (m_journal && (txn->get_flags() & HAM_TXN_TEMPORARY) == 0)
-    m_journal->transaction_flushed(txn);
 }
 
 ham_u64_t

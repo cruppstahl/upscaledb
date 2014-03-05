@@ -28,12 +28,10 @@ namespace hamsterdb {
 class RemoteEnvironment : public Environment
 {
   public:
-    RemoteEnvironment()
-      : Environment(), m_remote_handle(0), m_socket(HAM_INVALID_FD),
-        m_buffer(1024 * 4), m_timeout(0) {
-      set_flags(get_flags() | HAM_IS_REMOTE_INTERNAL);
-    }
+    // Constructor
+    RemoteEnvironment();
 
+    // Destructor
     virtual ~RemoteEnvironment();
 
     // Sets the timeout (in seconds)
@@ -84,10 +82,6 @@ class RemoteEnvironment : public Environment
     // Sends |request| to the remote server and blocks till the reply
     // was fully received
     Protocol *perform_request(Protocol *request);
-
-    // Flushes all committed transactions to disk; this just releases the
-    // memory of all aborted and committed transactions.
-    virtual void flush_committed_txns();
 
     // Returns the remote handle
     ham_u64_t get_remote_handle() const {

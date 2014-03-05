@@ -45,7 +45,6 @@ RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
   m_flags |= kStateCommitted;
 
   set_remote_handle(reply->txn_begin_reply().txn_handle());
-  renv->append_txn_at_tail(this);
 }
 
 void
@@ -66,9 +65,6 @@ RemoteTransaction::commit(ham_u32_t flags)
 
   /* this transaction is now aborted! */
   m_flags |= kStateAborted;
-
-  /* "flush" (remove) committed and aborted transactions */
-  renv->flush_committed_txns();
 }
 
 void
@@ -86,9 +82,48 @@ RemoteTransaction::abort(ham_u32_t flags)
   ham_status_t st = reply->txn_abort_reply().status();
   if (st)
     throw Exception(st);
+}
+
+Transaction *
+RemoteTransactionManager::begin(const char *name, ham_u32_t flags)
+{
+  Transaction *txn = new RemoteTransaction(m_env, name, flags);
+
+  append_txn_at_tail(txn);
+  return (txn);
+}
+
+void 
+RemoteTransactionManager::commit(Transaction *txn, ham_u32_t flags)
+{
+  txn->commit(flags);
 
   /* "flush" (remove) committed and aborted transactions */
-  renv->flush_committed_txns();
+  flush_committed_txns();
+}
+
+void 
+RemoteTransactionManager::abort(Transaction *txn, ham_u32_t flags)
+{
+  txn->abort(flags);
+
+  /* "flush" (remove) committed and aborted transactions */
+  flush_committed_txns();
+}
+
+void 
+RemoteTransactionManager::flush_committed_txns()
+{
+  Transaction *oldest;
+
+  while ((oldest = get_oldest_txn())) {
+    if (oldest->is_committed() || oldest->is_aborted()) {
+      remove_txn_from_head(oldest);
+      delete oldest;
+    }
+    else
+      return;
+  }
 }
 
 #endif // HAM_ENABLE_REMOTE

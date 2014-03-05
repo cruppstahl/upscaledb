@@ -918,9 +918,8 @@ struct JournalFixture {
     ham_txn_t *txn[2];
     LogEntry vec[200];
     unsigned p = 0;
-    ham_key_t key = {};
-    ham_record_t rec = {};
-    Journal *j = new Journal(m_lenv);
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
     ham_u64_t lsn = 2;
 
     /* create two transactions with many keys that are inserted */
@@ -932,8 +931,8 @@ struct JournalFixture {
     for (int i = 0; i < 100; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn[i&1], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i&1])->get_id(),
+      REQUIRE(0 == ham_db_insert(m_db, txn[i & 1], &key, &rec, 0));
+      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i & 1])->get_id(),
             Journal::kEntryTypeInsert, 1);
     }
     /* commit the first txn, abort the second */
@@ -950,12 +949,12 @@ struct JournalFixture {
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
-    j->close();
-    delete j;
-    j = new Journal(m_lenv);
+
+    Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test_set_journal(j);
     compareJournal(j, vec, p);
+
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 ==
@@ -983,9 +982,8 @@ struct JournalFixture {
     ham_txn_t *txn;
     LogEntry vec[200];
     unsigned p = 0;
-    ham_key_t key = {};
-    ham_record_t rec = {};
-    Journal *j = new Journal(m_lenv);
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
     ham_u64_t lsn = 2;
 
     /* create a transaction with many keys that are inserted, mostly
@@ -1019,13 +1017,13 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+
     m_lenv = (LocalEnvironment *)m_env;
-    j->close();
-    delete j;
-    j = new Journal(m_lenv);
+    Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test_set_journal(j);
     compareJournal(j, vec, p);
+
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 ==

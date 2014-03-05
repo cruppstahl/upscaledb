@@ -50,6 +50,33 @@ class RemoteTransaction : public Transaction
 };
 
 
+//
+// A TransactionManager for remote Transactions
+//
+class RemoteTransactionManager : public TransactionManager
+{
+  public:
+    // Constructor
+    RemoteTransactionManager(Environment *env)
+      : TransactionManager(env) {
+    }
+
+    // Begins a new Transaction
+    virtual Transaction *begin(const char *name, ham_u32_t flags);
+
+    // Commits a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void commit(Transaction *txn, ham_u32_t flags = 0);
+
+    // Aborts a Transaction; the derived subclass has to take care of
+    // flushing and/or releasing memory
+    virtual void abort(Transaction *txn, ham_u32_t flags = 0);
+
+    // Flushes committed (queued) transactions
+    virtual void flush_committed_txns();
+};
+
+
 } // namespace hamsterdb
 
 #endif // HAM_ENABLE_REMOTE
