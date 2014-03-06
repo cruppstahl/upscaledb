@@ -98,32 +98,6 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 
-  void txnStructureTest() {
-    LocalTransaction *txn;
-
-    REQUIRE(0 == ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
-    REQUIRE(m_env == (ham_env_t *)txn->get_env());
-    REQUIRE((ham_u64_t)1 == txn->get_id());
-
-    txn->set_log_desc(4);
-    REQUIRE(4 == txn->get_log_desc());
-    txn->set_log_desc(0);
-
-    txn->set_oldest_op((TransactionOperation *)2);
-    REQUIRE((TransactionOperation *)2 == txn->get_oldest_op());
-    txn->set_oldest_op((TransactionOperation *)0);
-
-    txn->set_newest_op((TransactionOperation *)2);
-    REQUIRE((TransactionOperation *)2 == txn->get_newest_op());
-    txn->set_newest_op((TransactionOperation *)0);
-
-    txn->set_next((Transaction *)1);
-    REQUIRE((Transaction *)1 == txn->get_next());
-    txn->set_next((Transaction *)0);
-
-    REQUIRE(0 == ham_txn_commit((ham_txn_t *)txn, 0));
-  }
-
   void txnTreeStructureTest() {
     ham_txn_t *txn;
     TransactionIndex *tree;
@@ -616,12 +590,6 @@ TEST_CASE("Txn/beginAbortTest", "")
 {
   TxnFixture f;
   f.beginAbortTest();
-}
-
-TEST_CASE("Txn/txnStructureTest", "")
-{
-  TxnFixture f;
-  f.txnStructureTest();
 }
 
 TEST_CASE("Txn/txnTreeStructureTest", "")

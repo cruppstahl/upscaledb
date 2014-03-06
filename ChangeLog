@@ -1,3 +1,7 @@
+Mar 05, 2014 - chris ---------------------------------------------------
+o Committed Transactions are no longer flushed immediately, but can be
+	buffered and flushed together with other committed Transactions
+
 Mar 04, 2014 - chris ---------------------------------------------------
 o Removed the txn parameter from ham_db_check_integrity()
 

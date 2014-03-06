@@ -68,7 +68,7 @@ class BerkeleyDatabase : public Database
     virtual ham_status_t do_txn_commit(Transaction *txn);
     virtual ham_status_t do_txn_abort(Transaction *txn);
 
-	virtual Cursor *do_cursor_create(Transaction *txn);
+	virtual Cursor *do_cursor_create();
     virtual ham_status_t do_cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record);
     virtual ham_status_t do_cursor_erase(Cursor *cursor, ham_key_t *key);

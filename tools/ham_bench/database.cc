@@ -100,9 +100,9 @@ Database::txn_abort(Database::Transaction *txn)
 }
 
 Database::Cursor *
-Database::cursor_create(Transaction *txn)
+Database::cursor_create()
 {
-  return (do_cursor_create(txn));
+  return (do_cursor_create());
 }
 
 ham_status_t 

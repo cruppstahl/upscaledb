@@ -162,7 +162,7 @@ o Improve transaction delta updates
             x check_insert_conflicts et al; need a very clear separation of
                 code, otherwise locking will be very tricky
 
-    o do not flush committed transactions as long as their data consumption
+    x do not flush committed transactions as long as their data consumption
         does not exceed a certain size, or the number of elements is not
         too high
         x log file must not be switched before the txn is flushed!
@@ -171,31 +171,36 @@ o Improve transaction delta updates
         x set threshold through an internal (global) variable
         x add unittest
 
-===============================
-        o clean up the code; the current one is a hack
+        x clean up the code; make it less hackish
             x have a central authority for dealing with transactions and
                 for flushing them ("TransactionManager"
                     -> "LocalTransactionManager" etc)
             x commits/aborts are also routed through the TransactionManager,
                 which will do the logging (if reqd)
-            o split in multiple files (txn_mgr.h, txn_mgr_local.h etc)
-            o also manages the Transaction Id
-            o TransactionManager keeps threshold and counters
-                - only one threshold for committed transactions, or also one
-                    for number of committed ops or consumed memory?
-===============================
-        o expose new flag and/or parameter
-            o dotnet
-            o java
-            o erlang
-            o ham_bench
-        o add to monster test, valgrind test, performance test
+            x also manages the Transaction Id
+            x TransactionManager keeps the threshold
+            x also keep track of number of committed operations
+            x ... and the consumed memory
+            x check threshold for number of committed operations
+            x check threshold for consumed memory (should be same as
+                journal buffer size)
+            x check with valgrind
 
-        o then apply the committed transactions page by page (is this
-            possible??), and later even asynchronously
-        o can we combine multiple operations in the same changeset??
-            -> only if they're for the same database! (really?? why?)
-            -> also, we need to remove many asserts...? :-/
+        x expose the new flag
+            x dotnet
+            x java
+            x ham_bench
+            x erlang
+        x add documentation to header file
+
+        x add to monster test, valgrind test, performance test
+
+    o check monster tests
+
+    o combine operations of all flushed transactions in the same changeset
+        -> we need to remove many asserts... :-/
+        o when fetching a page: give a flag kReadOnly; then do not add
+            the page to the changeset
 
     o allow use of Transactions without journalling/recovery
         o needs (documented!) feature in ham_bench
@@ -220,26 +225,61 @@ o QuickCheck:
     o boost the existing tests and create much larger sequences; no issue
         if each test runs for an hour or more
 
-o PageManager state: also store m_last_blob_page_id persistently
-    (try not to break backwards compatibility, though)
-
 o Make cursor cleanup logic after erase less cheesy
     if a key is erased (remove_entry) then all cursors are uncoupled.
     Shortly afterwards, they're coupled again for the points_to() check.
     -> assert(slot < get_count()) in btree_node_proxy/get_key
 
-o improve integration of static code analysis in release process
-    o oclint
-    o coverity
+o improve the release process
+    o improve integration of static code analysis in release process
+        o oclint
+        o coverity
+    o move the critical stages up front, and the non critical ones towards
+        the end (critical: packaging, unittests, tools, samples, valgrind)
 
 . come up with a list of all functions, define which locking operation
     is required; then review the code and make sure this will work
 . come up with a list of functions for which concurrency makes most sense
+    - parallel lookups (using the same memory arena)
     - flushing transactions asynchronously
     - purging caches asynchronously
     - have concurrent lookups/find
 
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o reserve CRC32 for each page
+
 ----------------------------------
+
+o can we come up with olap functions that operate directly on the btree data?
+    -> working on keys only!! does that make sense? - yes, absolutely
+    - should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
+    o MIN()
+    o MAX()
+    o TOP(N)
+    o COUNT(predicate)
+    o AGGREGATE(predicate, result)
+    o AVERAGE(predicate, result)
+
+    o SELECT(predicate) -> View
+    o SORT(predicate) -> View
+    o MAP(predicate, callback) -> View
+    o FOLDL(predicate, callback, Acc) -> Acc
+    o FOLDR(predicate, callback, Acc) -> Acc
+    o JOIN(predicate, other view, callback) -> View
+    -> the SELECTs should return VIEWs which then can used as input for other
+        SELECTs; this way users can build a "tree" of statements:
+        SELECT(callback1,
+            JOIN(callback2, table1,
+                SELECT(callback3, table2)))
+    -> Views can be generated programmatically
+    -> allow database operations while such a process is performed
+    -> how to specify the predicates? callbacks? or c++ functors? this would
+        require recompiling hamsterdb (at least document how this would work)
+    -> use lua to specify operations on a higher level??
+    -> also: can we come up with a way to add complex structures to the
+        txn-tree, and then "marshal" them transparently to the databases?
 
 o reduce the linked lists - they're hard to be updated with concurrent
     operations
@@ -252,35 +292,12 @@ o separate SMOs from the actual operation (#2)
     http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
     o move SMO operations to "the janitor" (btree_smo.h)
 
-o can we come up with olap functions that operate directly on the btree data?
-    -> working on keys only!! does that make sense? - yes, absolutely
-    - should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
-    o MIN()
-    o MAX()
-    o TOP(N, predicate)
-    o COUNT(predicate)
-    o AGGREGATE(predicate, result)
-    o AVERAGE(predicate, result)
-    o SELECT(predicate, callback)
-    o MAP(predicate, callback, result-callback)
-    o FOLDL
-    o FOLDR
-    o JOIN(predicate, other table, join-callback, result-callback)
-    -> look for erlang map functions (foldl, foldr etc) for interfaces
-    -> the SELECTs should return VIEWs which then can used as input for other
-        SELECTs; this way users can build a "tree" of statements:
-        SELECT(callback1,
-            JOIN(callback2, table1,
-                SELECT(callback3, table2)))
-    -> allow database operations while such a process is performed
-    -> use lua to specify operations on a higher level??
-
 
 - prefetch cache lines when searching
 - linear SIMD search -> PRO
+- encrypt the log and the environment file with AES -> PRO
 - compress the log with snappy -> PRO
 - compress the records with snappy -> PRO
-- encrypt the log and the environment file with AES -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
 - bulk updates -> PRO
     - give users API to allocate memory for keys/records
@@ -293,7 +310,7 @@ o can we come up with olap functions that operate directly on the btree data?
 - cache-oblivious page distribution?
     http://supertech.csail.mit.edu/cacheObliviousBTree.html
 - bloom filter -> PRO
-- concurrency
+- concurrency -> PRO
 - operations on compressed data (COUNT(), MIN(), MAX(), ...)?
 - C-Store style projections? (requires complex schema types)
     - introduce a new library with complex schema types, projections

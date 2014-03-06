@@ -378,7 +378,24 @@ class LocalTransaction : public Transaction
 
     // Sets the last (or 'newest') TransactionOperation of this Transaction
     void set_newest_op(TransactionOperation *op) {
+      if (op) {
+        m_op_counter++;
+        m_accum_data_size += op->get_record()
+                            ? op->get_record()->size
+                            : 0;
+        m_accum_data_size += op->get_node()->get_key()->size;
+      }
       m_newest_op = op;
+    }
+
+    // Returns the number of operations attached to this Transaction
+    int get_op_counter() const {
+      return (m_op_counter);
+    }
+
+    // Returns the accumulated data size of all operations
+    int get_accum_data_size() const {
+      return (m_accum_data_size);
     }
 
   private:
@@ -409,6 +426,13 @@ class LocalTransaction : public Transaction
 
     // the linked list of operations - tail is newest operation
     TransactionOperation *m_newest_op;
+
+    // For counting the operations
+    int m_op_counter;
+
+    // The approximate accumulated memory consumed by this Transaction
+    // (sums up key->size and record->size over all operations)
+    int m_accum_data_size;
 };
 
 
@@ -417,11 +441,20 @@ class LocalTransaction : public Transaction
 //
 class LocalTransactionManager : public TransactionManager
 {
+    enum {
+      // flush if this limit is exceeded
+      kFlushTxnThreshold = 64,
+
+      // flush if this limit is exceeded
+      kFlushOperationsThreshold = kFlushTxnThreshold * 20,
+
+      // flush if this limit is exceeded
+      kFlushBytesThreshold = 1024 * 1024 // 1 mb - same as journal buffer
+    };
+
   public:
     // Constructor
-    LocalTransactionManager(Environment *env)
-      : TransactionManager(env) {
-    }
+    LocalTransactionManager(Environment *env);
 
     // Begins a new Transaction
     virtual Transaction *begin(const char *name, ham_u32_t flags);
@@ -437,6 +470,22 @@ class LocalTransactionManager : public TransactionManager
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns();
 
+    // Increments the global transaction ID and returns the new value. 
+    ham_u64_t get_incremented_txn_id() {
+      return (++m_txn_id);
+    }
+
+    // Returns the current transaction ID; only for testing!
+    ham_u64_t test_get_txn_id() const {
+      return (m_txn_id);
+    }
+
+    // Sets the current transaction ID; used by the Journal to
+    // reset the original txn id during recovery.
+    void set_txn_id(ham_u64_t id) {
+      m_txn_id = id;
+    }
+
   private:
     // Flushes a single committed Transaction
     void flush_txn(LocalTransaction *txn);
@@ -445,6 +494,31 @@ class LocalTransactionManager : public TransactionManager
     LocalEnvironment *get_local_env() {
       return ((LocalEnvironment *)m_env);
     }
+
+    // Flushes committed transactions if there are enough committed
+    // transactions waiting to be flushed, or if other conditions apply
+    void maybe_flush_committed_txns();
+
+    // The current transaction ID
+    ham_u64_t m_txn_id;
+
+    // Number of Transactions waiting to be flushed
+    int m_queued_txn_for_flush;
+
+    // Combined number of Operations in these transactions waiting to be flushed
+    int m_queued_ops_for_flush;
+
+    // Approx. memory consumption of all these operations in the flush queue
+    int m_queued_bytes_for_flush;
+
+    // Threshold for transactio queue
+    int m_txn_threshold;
+
+    // Threshold for transactio queue
+    int m_ops_threshold;
+
+    // Threshold for transactio queue
+    int m_bytes_threshold;
 };
 
 

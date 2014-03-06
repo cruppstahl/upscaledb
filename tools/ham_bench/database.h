@@ -80,7 +80,7 @@ class Database
     ham_status_t txn_commit(Transaction *txn);
     ham_status_t txn_abort(Transaction *txn);
 
-	Cursor *cursor_create(Transaction *txn);
+	Cursor *cursor_create();
     ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record);
     ham_status_t cursor_erase(Cursor *cursor, ham_key_t *key);
@@ -115,7 +115,7 @@ class Database
     virtual ham_status_t do_txn_commit(Transaction *txn) = 0;
     virtual ham_status_t do_txn_abort(Transaction *txn) = 0;
 
-	virtual Cursor *do_cursor_create(Transaction *txn) = 0;
+	virtual Cursor *do_cursor_create() = 0;
     virtual ham_status_t do_cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record) = 0;
     virtual ham_status_t do_cursor_erase(Cursor *cursor, ham_key_t *key) = 0;

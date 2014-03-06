@@ -124,6 +124,8 @@ namespace Hamster
     public const int HAM_ENABLE_TRANSACTIONS    =  0x20000;
     /// <summary>Flag for Database.Create, Database.Open</summary>
     public const int HAM_CACHE_UNLIMITED        =  0x40000;
+    /// <summary>Flag for Environment.Create, Environment.Open</summary>
+    public const int HAM_FLUSH_WHEN_COMMITTED   =  0x01000000;
 
     // Extended parameters
     /// <summary>Parameter name for Database.Open, Database.Create</summary>

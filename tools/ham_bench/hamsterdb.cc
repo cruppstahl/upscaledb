@@ -95,6 +95,7 @@ HamsterDatabase::do_create_env()
     flags |= m_config->cacheunlimited ? HAM_CACHE_UNLIMITED : 0;
     flags |= m_config->use_transactions ? HAM_ENABLE_TRANSACTIONS : 0;
     flags |= m_config->use_fsync ? HAM_ENABLE_FSYNC : 0;
+    flags |= m_config->flush_txn_immediately ? HAM_FLUSH_WHEN_COMMITTED : 0;
 
     boost::filesystem::remove("test-ham.db");
 
@@ -160,10 +161,12 @@ HamsterDatabase::do_open_env()
     flags |= m_config->cacheunlimited ? HAM_CACHE_UNLIMITED : 0;
     flags |= m_config->use_transactions ? HAM_ENABLE_TRANSACTIONS : 0;
     flags |= m_config->use_fsync ? HAM_ENABLE_FSYNC : 0;
+    flags |= m_config->flush_txn_immediately ? HAM_FLUSH_WHEN_COMMITTED : 0;
 
     st = ham_env_open(&ms_env, "test-ham.db", flags, &params[0]);
     if (st) {
-      LOG_ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
+      LOG_ERROR(("ham_env_open failed with error %d (%s)\n",
+                              st, ham_strerror(st)));
       return (st);
     }
   }
@@ -417,39 +420,47 @@ HamsterDatabase::do_check_integrity()
 Database::Transaction *
 HamsterDatabase::do_txn_begin()
 {
-  ham_txn_t *txn;
-  ham_status_t st = ham_txn_begin(&txn, m_env ? m_env : ms_env, 0, 0, 0);
+  ham_status_t st = ham_txn_begin(&m_txn, m_env ? m_env : ms_env, 0, 0, 0);
   if (st) {
-    LOG_ERROR(("ham_txn_begin failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_begin failed with error %d (%s)\n",
+                st, ham_strerror(st)));
     return (0);
   }
-  return ((Database::Transaction *)txn);
+  return ((Database::Transaction *)m_txn);
 }
 
 ham_status_t
 HamsterDatabase::do_txn_commit(Transaction *txn)
 {
+  assert((ham_txn_t *)txn == m_txn);
+
   ham_status_t st = ham_txn_commit((ham_txn_t *)txn, 0);
   if (st)
-    LOG_ERROR(("ham_txn_commit failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_commit failed with error %d (%s)\n",
+                st, ham_strerror(st)));
+  m_txn = 0;
   return (st);
 }
 
 ham_status_t
 HamsterDatabase::do_txn_abort(Transaction *txn)
 {
+  assert((ham_txn_t *)txn == m_txn);
+
   ham_status_t st = ham_txn_abort((ham_txn_t *)txn, 0);
   if (st)
-    LOG_ERROR(("ham_txn_abort failed with error %d (%s)\n", st, ham_strerror(st)));
+    LOG_ERROR(("ham_txn_abort failed with error %d (%s)\n",
+                st, ham_strerror(st)));
+  m_txn = 0;
   return (st);
 }
 
 Database::Cursor *
-HamsterDatabase::do_cursor_create(Transaction *txn)
+HamsterDatabase::do_cursor_create()
 {
   ham_cursor_t *cursor;
 
-  ham_status_t st = ham_cursor_create(&cursor, m_db, (ham_txn_t *)txn, 0);
+  ham_status_t st = ham_cursor_create(&cursor, m_db, m_txn, 0);
   if (st) {
     LOG_ERROR(("ham_cursor_create failed with error %d (%s)\n", st,
                             ham_strerror(st)));

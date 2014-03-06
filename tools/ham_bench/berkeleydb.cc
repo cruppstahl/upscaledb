@@ -367,7 +367,7 @@ BerkeleyDatabase::do_txn_abort(Transaction *txn)
 }
 
 Database::Cursor *
-BerkeleyDatabase::do_cursor_create(Transaction *txn)
+BerkeleyDatabase::do_cursor_create()
 {
   DBC *cursor;
 

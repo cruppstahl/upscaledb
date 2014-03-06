@@ -20,6 +20,7 @@
 #include "../src/journal.h"
 #include "../src/txn.h"
 #include "../src/env_local.h"
+#include "../src/txn_local.h"
 #include "os.hpp"
 
 using namespace hamsterdb;
@@ -618,7 +619,7 @@ struct JournalFixture {
     //Journal *j = m_lenv->get_journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == j->test_get_lsn());
-    REQUIRE(5ull == m_lenv->test_get_txn_id());
+    REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->get_txn_manager()))->test_get_txn_id());
 
     /* create another transaction and make sure that the transaction
      * IDs and the lsn's continue seamlessly */

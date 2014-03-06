@@ -34,8 +34,6 @@ typedef int bool;
 #define false (!true)
 #endif /* __cpluscplus */
 
-int g_flush_threshold = 10;
-
 static int
 compare(void *vlhs, void *vrhs)
 {
@@ -206,12 +204,28 @@ TransactionIndex::remove(TransactionNode *node)
   rbt_remove(this, node);
 }
 
+LocalTransactionManager::LocalTransactionManager(Environment *env)
+  : TransactionManager(env), m_txn_id(0), m_queued_txn_for_flush(0),
+    m_queued_ops_for_flush(0), m_queued_bytes_for_flush(0),
+    m_txn_threshold(kFlushTxnThreshold),
+    m_ops_threshold(kFlushOperationsThreshold),
+    m_bytes_threshold(kFlushBytesThreshold)
+{
+  if (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED) {
+    m_txn_threshold = 0;
+    m_ops_threshold = 0;
+    m_bytes_threshold = 0;
+  }
+}
+
 LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
         ham_u32_t flags)
   : Transaction(env, name, flags), m_log_desc(0), m_oldest_op(0),
-    m_newest_op(0)
+    m_newest_op(0), m_op_counter(0), m_accum_data_size(0)
 {
-  m_id = env->get_incremented_txn_id();
+  LocalTransactionManager *ltm = 
+        (LocalTransactionManager *)env->get_txn_manager();
+  m_id = ltm->get_incremented_txn_id();
 
   /* append journal entry */
   if (env->get_flags() & HAM_ENABLE_RECOVERY
@@ -490,9 +504,10 @@ LocalTransactionManager::commit(Transaction *htxn, ham_u32_t flags)
                     get_local_env()->get_incremented_lsn());
 
   /* flush committed transactions */
-  if (txn->get_id() % g_flush_threshold == 0
-        || (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
-    flush_committed_txns();
+  m_queued_txn_for_flush++;
+  m_queued_ops_for_flush += txn->get_op_counter();
+  m_queued_bytes_for_flush += txn->get_accum_data_size();
+  maybe_flush_committed_txns();
 }
 
 void 
@@ -515,26 +530,44 @@ LocalTransactionManager::abort(Transaction *htxn, ham_u32_t flags)
   /* flush committed transactions; while this one was not committed,
    * we might have cleared the way now to flush other committed
    * transactions */
-  if (txn->get_id() % g_flush_threshold == 0
-        || (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED))
+  m_queued_txn_for_flush++;
+  // no need to increment m_queued_{ops,bytes}_for_flush because this
+  // operation does no longer contain any operations
+  maybe_flush_committed_txns();
+}
+
+void
+LocalTransactionManager::maybe_flush_committed_txns()
+{
+  if (m_queued_txn_for_flush > m_txn_threshold
+      || m_queued_ops_for_flush > m_ops_threshold
+      || m_queued_bytes_for_flush > m_bytes_threshold)
     flush_committed_txns();
 }
 
 void 
 LocalTransactionManager::flush_committed_txns()
 {
-  Transaction *oldest;
+  LocalTransaction *oldest;
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
-  while ((oldest = get_oldest_txn())) {
-    if (oldest->is_committed())
+  while ((oldest = (LocalTransaction *)get_oldest_txn())) {
+    if (oldest->is_committed()) {
+      m_queued_ops_for_flush -= oldest->get_op_counter();
+      ham_assert(m_queued_ops_for_flush >= 0);
+      m_queued_bytes_for_flush -= oldest->get_accum_data_size();
+      ham_assert(m_queued_bytes_for_flush >= 0);
       flush_txn((LocalTransaction *)oldest);
+    }
     else if (oldest->is_aborted()) {
       ; /* nop */
     }
     else
       break;
+
+    ham_assert(m_queued_txn_for_flush > 0);
+    m_queued_txn_for_flush--;
 
     /* now remove the txn from the linked list */
     remove_txn_from_head(oldest);

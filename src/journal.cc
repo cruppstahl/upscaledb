@@ -744,7 +744,9 @@ Journal::recover_journal(ham_u64_t start_lsn)
         // on success: patch the txn ID
         if (st == 0) {
           txn->set_id(entry.txn_id);
-          m_env->set_txn_id(entry.txn_id);
+          LocalTransactionManager *ltm
+                  = (LocalTransactionManager *)m_env->get_txn_manager();
+          ltm->set_txn_id(entry.txn_id);
         }
         break;
       }

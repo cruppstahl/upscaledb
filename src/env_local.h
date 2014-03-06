@@ -78,22 +78,6 @@ class LocalEnvironment : public Environment
     // is disabled then a dummy value |1| is returned.
     ham_u64_t get_incremented_lsn();
 
-    // Increments the global transaction ID and returns the new value. 
-    ham_u64_t get_incremented_txn_id() {
-      return (++m_txn_id);
-    }
-
-    // Returns the current transaction ID; only for testing!
-    ham_u64_t test_get_txn_id() const {
-      return (m_txn_id);
-    }
-
-    // Sets the current transaction ID; used by the Journal to
-    // reset the original txn id during recovery.
-    void set_txn_id(ham_u64_t id) {
-      m_txn_id = id;
-    }
-
     // Returns the page_size as specified in ham_env_create
     ham_u32_t get_page_size() const {
       return (m_page_size);
@@ -209,9 +193,6 @@ class LocalEnvironment : public Environment
 
     // The logical journal
     Journal *m_journal;
-
-    // The current transaction ID
-    ham_u64_t m_txn_id;
 
     // The directory with the log file and journal files
     std::string m_log_directory;

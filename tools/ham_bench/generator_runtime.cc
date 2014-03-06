@@ -294,7 +294,7 @@ RuntimeGenerator::create()
   m_last_status = m_db->create_db(m_id);
   
   if (m_config->use_cursors)
-    m_cursor = m_db->cursor_create(m_txn);
+    m_cursor = m_db->cursor_create();
 
   if (m_last_status != 0)
     m_success = false;
@@ -310,7 +310,7 @@ RuntimeGenerator::open()
   m_last_status = m_db->open_db(m_id);
 
   if (m_config->use_cursors)
-    m_cursor = m_db->cursor_create(m_txn);
+    m_cursor = m_db->cursor_create();
 
   if (m_last_status != 0)
     m_success = false;
@@ -450,7 +450,7 @@ RuntimeGenerator::tablescan()
 
   Database::Cursor *cursor = m_cursor;
   if (!cursor)
-    cursor = m_db->cursor_create(m_txn);
+    cursor = m_db->cursor_create();
 
   ham_key_t key = {0};
   ham_record_t rec = {0};
@@ -472,7 +472,7 @@ RuntimeGenerator::tablescan()
 void
 RuntimeGenerator::txn_begin()
 {
-  tee("TXN_BEGIN");
+  tee("BEGIN_TXN");
   assert(m_txn == 0);
 
   if (m_cursor) {
@@ -483,7 +483,7 @@ RuntimeGenerator::txn_begin()
   m_txn = m_db->txn_begin();
 
   if (m_config->use_cursors)
-    m_cursor = m_db->cursor_create(m_txn);
+    m_cursor = m_db->cursor_create();
 
   m_metrics.other_ops++;
 }

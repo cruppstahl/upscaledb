@@ -80,7 +80,8 @@ struct Configuration
       num_threads(1), use_cursors(false), direct_access(false),
       use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
-      extkey_threshold(0), duptable_threshold(0), bulk_erase(false) {
+      extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
+      flush_txn_immediately(false) {
   }
 
   void print() const {
@@ -121,6 +122,8 @@ struct Configuration
       printf("--use-hamsterdb=false ");
     if (bulk_erase)
       printf("--bulk-erase ");
+    if (flush_txn_immediately)
+      printf("--flush-txn-immediately ");
     if (use_transactions) {
       if (!transactions_nth)
         printf("--use-transactions=tmp ");
@@ -241,6 +244,7 @@ struct Configuration
   int extkey_threshold;
   int duptable_threshold;
   bool bulk_erase;
+  bool flush_txn_immediately;
 };
 
 #endif /* CONFIGURATION_H__ */

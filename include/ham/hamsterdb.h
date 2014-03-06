@@ -524,6 +524,10 @@ ham_get_license(const char **licensee, const char **product);
  *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Environment. This flag implies @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
+ *      Transactions and writes them to the Btree. Disabled by default. If
+ *      disabled then hamsterdb buffers committed Transactions and only starts
+ *      flushing when too many Transactions were committed.  
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -618,6 +622,10 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Environment. This flag imples @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
+ *      Transactions and writes them to the Btree. Disabled by default. If
+ *      disabled then hamsterdb buffers committed Transactions and only starts
+ *      flushing when too many Transactions were committed.  
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
@@ -1159,7 +1167,8 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 /* internal use only! (persistent) */
 #define HAM_FORCE_RECORDS_INLINE                    0x00800000
 
-/* internal use only! (not persistent) */
+/** Flag for @ref ham_env_open, @ref ham_env_create.
+ * This flag is non persistent. */
 #define HAM_FLUSH_WHEN_COMMITTED                    0x01000000
 
 /**

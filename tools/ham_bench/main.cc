@@ -77,6 +77,7 @@
 #define ARG_EXTKEY_THRESHOLD        57
 #define ARG_DUPTABLE_THRESHOLD      58
 #define ARG_BULK_ERASE              59
+#define ARG_FLUSH_TXN_IMMEDIATELY   60
 
 /*
  * command line parameters
@@ -354,7 +355,12 @@ static option_t opts[] = {
     "bulk-erase",
     "Performs bulk erase of all inserted keys, empties the database",
     0 },
-  { 0, 0, 0, 0, 0 }
+  {
+    ARG_FLUSH_TXN_IMMEDIATELY,
+    0,
+    "flush-txn-immediately",
+    "Immediately flushes transactions instead of buffering them",
+    0 },
 };
 
 static void
@@ -653,6 +659,9 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_BULK_ERASE) {
       c->bulk_erase = true;
     }
+    else if (opt == ARG_FLUSH_TXN_IMMEDIATELY) {
+      c->flush_txn_immediately = true;
+    }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
     }
@@ -943,8 +952,8 @@ static bool
 run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
 {
   ham_status_t st1, st2;
-  Database::Cursor *c1 = gen1->get_db()->cursor_create(0);
-  Database::Cursor *c2 = gen2->get_db()->cursor_create(0);
+  Database::Cursor *c1 = gen1->get_db()->cursor_create();
+  Database::Cursor *c2 = gen2->get_db()->cursor_create();
 
   gen1->tee("FULLCHECK");
 

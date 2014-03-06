@@ -870,9 +870,8 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 
     /* auto-abort (or commit) all pending transactions */
     if (env->get_txn_manager()) {
-      Transaction *n, *t = env->get_txn_manager()->get_oldest_txn();
-      while (t) {
-        n = t->get_next();
+      Transaction *t;
+      while ((t = env->get_txn_manager()->get_oldest_txn())) {
         if (t->is_aborted() || t->is_committed())
           ; /* nop */
         else {
@@ -881,7 +880,8 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
           else /* if (flags&HAM_TXN_AUTO_ABORT) */
             env->get_txn_manager()->abort(t, 0);
         }
-        t = n;
+
+        env->get_txn_manager()->flush_committed_txns();
       }
     }
 

@@ -28,7 +28,7 @@ class HamsterDatabase : public Database
 {
   public:
     HamsterDatabase(int id, Configuration *config)
-      : Database(id, config), m_env(0), m_db(0) {
+      : Database(id, config), m_env(0), m_db(0), m_txn(0) {
       memset(&m_hamster_metrics, 0, sizeof(m_hamster_metrics));
     }
 
@@ -69,7 +69,7 @@ class HamsterDatabase : public Database
     virtual ham_status_t do_txn_commit(Transaction *txn);
     virtual ham_status_t do_txn_abort(Transaction *txn);
 
-	virtual Cursor *do_cursor_create(Transaction *txn);
+	virtual Cursor *do_cursor_create();
     virtual ham_status_t do_cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record);
     virtual ham_status_t do_cursor_erase(Cursor *cursor, ham_key_t *key);
@@ -93,6 +93,7 @@ class HamsterDatabase : public Database
     ham_env_t *m_env; // only used to access remote servers
     ham_db_t *m_db;
     ham_env_metrics_t m_hamster_metrics;
+    ham_txn_t *m_txn;
 };
 
 #endif /* HAMSTERDB_H__ */
