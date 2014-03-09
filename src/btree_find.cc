@@ -62,7 +62,7 @@ class BtreeFindAction
          * should be discarded.
          */
         page = env->get_page_manager()->fetch_page(db, hints.leaf_page_addr,
-                                            true);
+                                            PageManager::kOnlyFromCache);
         if (page) {
           node = m_btree->get_node_from_page(page);
           ham_assert(node->is_leaf());
@@ -92,7 +92,7 @@ class BtreeFindAction
 
         /* load the root page */
         page = env->get_page_manager()->fetch_page(db,
-                m_btree->get_root_address());
+                        m_btree->get_root_address());
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
         node = m_btree->get_node_from_page(page);

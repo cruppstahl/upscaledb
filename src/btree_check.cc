@@ -52,7 +52,7 @@ class BtreeCheckAction
 
       // get the root page of the tree
       page = env->get_page_manager()->fetch_page(db,
-              m_btree->get_root_address());
+                    m_btree->get_root_address());
 
 #if HAM_DEBUG
       if (m_flags & HAM_PRINT_GRAPH) {

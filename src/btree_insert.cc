@@ -114,7 +114,7 @@ class BtreeInsertAction
        * be discarded.
        */
       page = env->get_page_manager()->fetch_page(db,
-                    m_hints.leaf_page_addr, true);
+                    m_hints.leaf_page_addr, PageManager::kOnlyFromCache);
       /* if the page is not in cache: do a regular insert */
       if (!page)
         return (insert());

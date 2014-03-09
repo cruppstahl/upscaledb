@@ -99,7 +99,7 @@ struct BtreeCursorFixture {
     Page *page;
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
     REQUIRE((page = pm->fetch_page((LocalDatabase *)m_db,
-                        be->get_root_address())));
+                            be->get_root_address())));
     REQUIRE(page != 0);
     BtreeCursor::uncouple_all_cursors(page);
 

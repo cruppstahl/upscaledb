@@ -287,7 +287,7 @@ BtreeCursor::move_first(ham_u32_t flags)
 
   // get the root page
   Page *page = env->get_page_manager()->fetch_page(db,
-          m_btree->get_root_address());
+                m_btree->get_root_address());
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
   // traverse down to the leafs
@@ -437,7 +437,7 @@ BtreeCursor::move_last(ham_u32_t flags)
     return (HAM_KEY_NOT_FOUND);
 
   Page *page = env->get_page_manager()->fetch_page(db,
-          m_btree->get_root_address());
+                m_btree->get_root_address());
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
   // traverse down to the leafs

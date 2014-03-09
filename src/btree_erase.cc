@@ -67,7 +67,7 @@ class BtreeEraseAction
       }
 
       Page *page = env->get_page_manager()->fetch_page(db,
-                    m_btree->get_root_address());
+                        m_btree->get_root_address());
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       // if the root page is empty with children then collapse it
@@ -96,7 +96,8 @@ class BtreeEraseAction
             && child_node->requires_merge()
             && child_node->get_right() != 0) {
           sib_page = env->get_page_manager()->fetch_page(db,
-                                child_node->get_right(), true);
+                                child_node->get_right(),
+                                PageManager::kOnlyFromCache);
           if (sib_page != 0) {
             BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
             if (sib_node->requires_merge()) {
@@ -118,7 +119,8 @@ class BtreeEraseAction
             && child_node->requires_merge()
             && child_node->get_left() != 0) {
           sib_page = env->get_page_manager()->fetch_page(db,
-                                child_node->get_left(), true);
+                                child_node->get_left(),
+                                PageManager::kOnlyFromCache);
           if (sib_page != 0) {
             BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
             if (sib_node->requires_merge()) {
@@ -276,7 +278,7 @@ class BtreeEraseAction
       m_btree->set_root_address(node->get_ptr_down());
 
       Page *new_root = env->get_page_manager()->fetch_page(root_page->get_db(),
-                    m_btree->get_root_address());
+                            m_btree->get_root_address());
       new_root->set_type(Page::kTypeBroot);
       env->get_page_manager()->add_to_freelist(root_page);
       return (new_root);

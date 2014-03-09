@@ -195,12 +195,19 @@ o Improve transaction delta updates
 
         x add to monster test, valgrind test, performance test
 
-    o check monster tests
+    x check monster tests
 
     o combine operations of all flushed transactions in the same changeset
         -> we need to remove many asserts... :-/
-        o when fetching a page: give a flag kReadOnly; then do not add
+        x when fetching a page: give a flag kReadOnly; then do not add
             the page to the changeset
+        o make read-only operations fetch pages in read-only mode
+            (btree_find, btree_check, BlobManager::read, others?)
+        o then combine the operations
+        o run monster test and benchmarks
+
+    o BtreeErase: remove ifdef
+        o then check monster tests
 
     o allow use of Transactions without journalling/recovery
         o needs (documented!) feature in ham_bench

@@ -48,7 +48,13 @@ class PageManager {
       kPurgeAtLeast = 20,
 
       // Only pages above this age are purged
-      kPurgeThreshold = 100
+      kPurgeThreshold = 100,
+
+      // Flag for fetch_page(): only fetches from cache, not from disk
+      kOnlyFromCache = 1,
+
+      // Flag for fetch_page(): does not add page to the Changeset
+      kReadOnly = 2
     };
 
     // Default constructor
@@ -73,8 +79,8 @@ class PageManager {
     //
     // @param db The Database which fetches this page
     // @param address The page's address
-    Page *fetch_page(LocalDatabase *db, ham_u64_t address,
-                    bool only_from_cache = false);
+    // @param flags bitwise OR'd: kOnlyFromCache, kReadOnly
+    Page *fetch_page(LocalDatabase *db, ham_u64_t address, ham_u32_t flags = 0);
 
     // Allocates a new page
     //

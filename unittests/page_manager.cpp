@@ -59,11 +59,12 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull, false)));
+    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull)));
     REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
-    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull, true)));
+    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull,
+                    PageManager::kOnlyFromCache)));
     REQUIRE(page->get_address() == 16 * 1024ull);
     REQUIRE(page);
   }

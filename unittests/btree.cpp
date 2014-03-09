@@ -244,7 +244,7 @@ struct BtreeFixture {
 
     Page *page;
     REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
-                1024 * 16)));
+                        1024 * 16)));
     PBtreeNode *node = PBtreeNode::from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);

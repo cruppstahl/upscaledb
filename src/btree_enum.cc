@@ -39,7 +39,7 @@ class BtreeEnumAction
 
       // get the root page of the tree
       Page *page = env->get_page_manager()->fetch_page(db,
-          m_btree->get_root_address());
+                    m_btree->get_root_address());
 
       // go down to the leaf
       while (page) {

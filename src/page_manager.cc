@@ -225,7 +225,7 @@ PageManager::get_metrics(ham_env_metrics_t *metrics) const
 
 Page *
 PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
-                bool only_from_cache)
+                ham_u32_t flags)
 {
   Page *page = 0;
 
@@ -234,12 +234,12 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   if (page) {
     ham_assert(page->get_data());
     /* store the page in the changeset if recovery is enabled */
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+    if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().add_page(page);
     return (page);
   }
 
-  if (only_from_cache || m_env->get_flags() & HAM_IN_MEMORY)
+  if ((flags & kOnlyFromCache) || m_env->get_flags() & HAM_IN_MEMORY)
     return (0);
 
   page = new Page(m_env, db);
@@ -257,7 +257,7 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   store_page(page);
 
   /* store the page in the changeset */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+  if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
     m_env->get_changeset().add_page(page);
 
   m_page_count_fetched++;
