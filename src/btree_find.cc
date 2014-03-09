@@ -62,7 +62,8 @@ class BtreeFindAction
          * should be discarded.
          */
         page = env->get_page_manager()->fetch_page(db, hints.leaf_page_addr,
-                                            PageManager::kOnlyFromCache);
+                                            PageManager::kOnlyFromCache
+                                            | PageManager::kReadOnly);
         if (page) {
           node = m_btree->get_node_from_page(page);
           ham_assert(node->is_leaf());
@@ -92,7 +93,8 @@ class BtreeFindAction
 
         /* load the root page */
         page = env->get_page_manager()->fetch_page(db,
-                        m_btree->get_root_address());
+                        m_btree->get_root_address(),
+                        PageManager::kReadOnly);
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
         node = m_btree->get_node_from_page(page);
@@ -158,7 +160,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              page = env->get_page_manager()->fetch_page(db, node->get_left());
+              page = env->get_page_manager()->fetch_page(db, node->get_left(),
+                                                    PageManager::kReadOnly);
               node = m_btree->get_node_from_page(page);
               slot = node->get_count() - 1;
             }
@@ -177,7 +180,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              page = env->get_page_manager()->fetch_page(db, node->get_right());
+              page = env->get_page_manager()->fetch_page(db, node->get_right(),
+                                                PageManager::kReadOnly);
               node = m_btree->get_node_from_page(page);
               slot = 0;
             }
@@ -228,7 +232,8 @@ class BtreeFindAction
                     }
 
                     page = env->get_page_manager()->fetch_page(db,
-                                    node->get_right());
+                                    node->get_right(),
+                                    PageManager::kReadOnly);
                     node = m_btree->get_node_from_page(page);
                     slot = 0;
                   }
@@ -242,7 +247,8 @@ class BtreeFindAction
               }
               else {
                 page = env->get_page_manager()->fetch_page(db,
-                                node->get_left());
+                                    node->get_left(),
+                                    PageManager::kReadOnly);
                 node = m_btree->get_node_from_page(page);
                 slot = node->get_count() - 1;
 
@@ -262,7 +268,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              page = env->get_page_manager()->fetch_page(db, node->get_right());
+              page = env->get_page_manager()->fetch_page(db, node->get_right(),
+                                                PageManager::kReadOnly);
               node = m_btree->get_node_from_page(page);
               slot = 0;
             }

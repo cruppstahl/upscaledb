@@ -160,7 +160,8 @@ class DiskBlobManager : public BlobManager
 
     // same as above, but for reading chunks from the file
     void read_chunk(Page *page, Page **fpage, ham_u64_t addr,
-                    LocalDatabase *db, ham_u8_t *data, ham_u32_t size);
+                    LocalDatabase *db, ham_u8_t *data, ham_u32_t size,
+                    bool fetch_read_only);
 
     // adds a free chunk to the freelist
     void add_to_freelist(PBlobPageHeader *header, ham_u32_t offset,

@@ -62,7 +62,8 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t address,
 
 void
 DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
-        LocalDatabase *db, ham_u8_t *data, ham_u32_t size)
+            LocalDatabase *db, ham_u8_t *data, ham_u32_t size,
+            bool fetch_read_only)
 {
   ham_u32_t page_size = m_env->get_page_size();
 
@@ -75,7 +76,8 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
     if (page && page->get_address() != pageid)
       page = 0;
     if (!page)
-      page = m_env->get_page_manager()->fetch_page(db, pageid);
+      page = m_env->get_page_manager()->fetch_page(db, pageid,
+                        fetch_read_only ? PageManager::kReadOnly : 0);
 
     // now read the data from the page
     ham_u32_t read_start = (ham_u32_t)(address - page->get_address());
@@ -270,7 +272,7 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
   // first step: read the blob header
   PBlobHeader blob_header;
   read_chunk(0, &page, blobid, db, (ham_u8_t *)&blob_header,
-          sizeof(blob_header));
+          sizeof(blob_header), true);
 
   // sanity check
   if (blob_header.get_self() != blobid) {
@@ -311,7 +313,7 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
-                  db, (ham_u8_t *)record->data, blobsize);
+                  db, (ham_u8_t *)record->data, blobsize, true);
 }
 
 ham_u64_t
@@ -319,8 +321,8 @@ DiskBlobManager::get_blob_size(LocalDatabase *db, ham_u64_t blobid)
 {
   // read the blob header
   PBlobHeader blob_header;
-  read_chunk(0, 0, blobid, db,
-          (ham_u8_t *)&blob_header, sizeof(blob_header));
+  read_chunk(0, 0, blobid, db, (ham_u8_t *)&blob_header,
+          sizeof(blob_header), true);
 
   if (blob_header.get_self() != blobid)
     throw Exception(HAM_BLOB_NOT_FOUND);
@@ -350,8 +352,8 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
   // first, read the blob header; if the new blob fits into the
   // old blob, we overwrite the old blob (and add the remaining
   // space to the freelist, if there is any)
-  read_chunk(0, &page, old_blobid, db,
-                  (ham_u8_t *)&old_blob_header, sizeof(old_blob_header));
+  read_chunk(0, &page, old_blobid, db, (ham_u8_t *)&old_blob_header,
+          sizeof(old_blob_header), false);
 
   // sanity check
   ham_assert(old_blob_header.get_self() == old_blobid);
@@ -427,7 +429,7 @@ DiskBlobManager::erase(LocalDatabase *db, ham_u64_t blobid, Page *page,
   // fetch the blob header
   PBlobHeader blob_header;
   read_chunk(0, &page, blobid, db, (ham_u8_t *)&blob_header,
-                  sizeof(blob_header));
+                  sizeof(blob_header), false);
 
   // sanity check
   ham_verify(blob_header.get_self() == blobid);
