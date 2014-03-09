@@ -487,8 +487,9 @@ class LocalTransactionManager : public TransactionManager
     }
 
   private:
-    // Flushes a single committed Transaction
-    void flush_txn(LocalTransaction *txn);
+    // Flushes a single committed Transaction; returns the lsn of the
+    // last operation in this transaction
+    ham_u64_t flush_txn(LocalTransaction *txn);
 
     // Casts m_env to a LocalEnvironment
     LocalEnvironment *get_local_env() {

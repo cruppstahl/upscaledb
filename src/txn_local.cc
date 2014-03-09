@@ -549,6 +549,14 @@ void
 LocalTransactionManager::flush_committed_txns()
 {
   LocalTransaction *oldest;
+  Journal *journal = get_local_env()->get_journal();
+  ham_u64_t highest_lsn = 0;
+
+  /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+    ham_assert(get_local_env()->get_changeset().is_empty());
+#endif
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
@@ -558,7 +566,13 @@ LocalTransactionManager::flush_committed_txns()
       ham_assert(m_queued_ops_for_flush >= 0);
       m_queued_bytes_for_flush -= oldest->get_accum_data_size();
       ham_assert(m_queued_bytes_for_flush >= 0);
-      flush_txn((LocalTransaction *)oldest);
+      ham_u64_t lsn = flush_txn((LocalTransaction *)oldest);
+      if (lsn > highest_lsn)
+        highest_lsn = lsn;
+
+      /* this transaction was flushed! */
+      if (journal && (oldest->get_flags() & HAM_TXN_TEMPORARY) == 0)
+        journal->transaction_flushed(oldest);
     }
     else if (oldest->is_aborted()) {
       ; /* nop */
@@ -576,16 +590,19 @@ LocalTransactionManager::flush_committed_txns()
     delete oldest;
   }
 
-  /* clear the changeset; if the loop above was not entered or the
-   * transaction was empty then it may still contain pages */
-  get_local_env()->get_changeset().clear();
+  /* now flush the changeset and write the modified pages to disk */
+  if (highest_lsn && m_env->get_flags() & HAM_ENABLE_RECOVERY)
+    get_local_env()->get_changeset().flush(highest_lsn);
+
+  ham_assert(get_local_env()->get_changeset().is_empty());
 }
 
-void
+ham_u64_t
 LocalTransactionManager::flush_txn(LocalTransaction *txn)
 {
   TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;
+  ham_u64_t highest_lsn = 0;
 
   while (op) {
     TransactionNode *node = op->get_node();
@@ -593,17 +610,8 @@ LocalTransactionManager::flush_txn(LocalTransaction *txn)
     if (op->get_flags() & TransactionOperation::kIsFlushed)
       goto next_op;
 
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      ham_assert(get_local_env()->get_changeset().is_empty());
-#endif
-
+    // perform the actual operation in the btree
     node->get_db()->flush_txn_operation(txn, op);
-
-    /* now flush the changeset to disk */
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      get_local_env()->get_changeset().flush(op->get_lsn());
 
     /*
      * this op is about to be flushed!
@@ -621,14 +629,14 @@ next_op:
       pc->set_to_nil(Cursor::kTxn);
     }
 
+    ham_assert(op->get_lsn() > highest_lsn);
+    highest_lsn = op->get_lsn();
+
     /* continue with the next operation of this txn */
     op = op->get_next_in_txn();
   }
 
-  /* this transaction was flushed! */
-  Journal *journal = get_local_env()->get_journal();
-  if (journal && (txn->get_flags() & HAM_TXN_TEMPORARY) == 0)
-    journal->transaction_flushed(txn);
+  return (highest_lsn);
 }
 
 } // namespace hamsterdb

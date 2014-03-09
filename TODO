@@ -201,10 +201,12 @@ o Improve transaction delta updates
         -> we need to remove many asserts... :-/
         x when fetching a page: give a flag kReadOnly; then do not add
             the page to the changeset
-        o make read-only operations fetch pages in read-only mode
+        x make read-only operations fetch pages in read-only mode
             (btree_find, btree_check, BlobManager::read, others?)
         o then combine the operations
-        o run monster test and benchmarks
+            -> continue here: Txn/txnMultipleOpsTest
+        o add to monster tests and perftests (with and without immediate flush)
+        o run all tests
 
     o BtreeErase: remove ifdef
         o then check monster tests
