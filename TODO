@@ -199,7 +199,7 @@ o Improve transaction delta updates
 
     x check monster tests
 
-    o combine operations of all flushed transactions in the same changeset
+    x combine operations of all flushed transactions in the same changeset
         -> we need to remove many asserts... :-/
         x when fetching a page: give a flag kReadOnly; then do not add
             the page to the changeset
@@ -207,14 +207,19 @@ o Improve transaction delta updates
             (btree_find, btree_check, BlobManager::read, others?)
         x then combine the operations
         x run recovery tests
-        o add to monster tests and perftests (with and without immediate flush)
+        x add to monster tests and perftests (with and without immediate flush)
 
-    o BtreeErase: remove ifdef
-        o then check monster tests
+    x BtreeErase: remove ifdef
 
     o allow use of Transactions without journalling/recovery
         o needs (documented!) feature in ham_bench
         o needs documentation in header file
+            also document the transactional modes:
+                o ACID (w/ journalling)
+                o ACID w/ buffering: a little bit faster
+                o ACID w/o buffering: stable performance
+                o ACI (no 'D') (w/o journalling)
+                o in-memory (w/o journalling)
         o needs monster tests, performance tests, valgrind tests
 
     o think about delta updates managed in the BtreeNode
@@ -223,6 +228,8 @@ o Improve transaction delta updates
         o requires_split() takes delta updates into account
         o when flushing a TransactionOperation, the TransactionOperation could
             just be removed from the TxnTree and attached to the node
+        o list with atomic updates with one allocation per update
+                (or even less with a pool allocator?)
         o needs an efficient merge algorithm
 
     o how would a bulk update API look like??

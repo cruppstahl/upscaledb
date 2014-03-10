@@ -108,7 +108,6 @@ class BtreeEraseAction
           }
         }
 
-#if 0
         // We can also merge this child with the LEFT sibling iff...
         // 1. it's not the left-most slot
         // 2. the child is a leaf!
@@ -133,7 +132,6 @@ class BtreeEraseAction
             }
           }
         }
-#endif
 
         // go down one level in the tree
         page = child_page;
