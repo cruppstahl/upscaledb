@@ -15,7 +15,9 @@ to scale with the number of cores.
 ==============================================================================
 
 high-level plan for 2.1.7 ..................................................
-o simplified btree SMOs
+x simplified btree SMOs
+o improve recovery performance/scalability
+o improve QuickCheck coverage
 o delta updates
 
 --------------
@@ -203,10 +205,9 @@ o Improve transaction delta updates
             the page to the changeset
         x make read-only operations fetch pages in read-only mode
             (btree_find, btree_check, BlobManager::read, others?)
-        o then combine the operations
-            -> continue here: Txn/txnMultipleOpsTest
+        x then combine the operations
+        x run recovery tests
         o add to monster tests and perftests (with and without immediate flush)
-        o run all tests
 
     o BtreeErase: remove ifdef
         o then check monster tests
@@ -245,6 +246,8 @@ o improve the release process
         o coverity
     o move the critical stages up front, and the non critical ones towards
         the end (critical: packaging, unittests, tools, samples, valgrind)
+
+o extend ham_bench documentation for --flush-txn-immediately
 
 . come up with a list of all functions, define which locking operation
     is required; then review the code and make sure this will work

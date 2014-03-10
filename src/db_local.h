@@ -63,7 +63,7 @@ class LocalDatabase : public Database {
                         ham_u16_t key_size, ham_u32_t rec_size);
 
     // Erases this Database
-    ham_status_t erase_me();
+    void erase_me();
 
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);

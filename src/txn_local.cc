@@ -205,7 +205,7 @@ TransactionIndex::remove(TransactionNode *node)
 }
 
 LocalTransactionManager::LocalTransactionManager(Environment *env)
-  : TransactionManager(env), m_txn_id(0), m_queued_txn_for_flush(0),
+  : TransactionManager(env), m_txn_id(0), m_lsn(0), m_queued_txn_for_flush(0),
     m_queued_ops_for_flush(0), m_queued_bytes_for_flush(0),
     m_txn_threshold(kFlushTxnThreshold),
     m_ops_threshold(kFlushOperationsThreshold),

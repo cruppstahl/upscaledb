@@ -213,10 +213,10 @@ struct TxnFixture {
         0, TransactionOperation::kInsertDuplicate, 55, &rec);
     REQUIRE(op1);
     op2 = node->append((LocalTransaction *)txn,
-        0, TransactionOperation::kErase, 55, &rec);
+        0, TransactionOperation::kErase, 56, &rec);
     REQUIRE(op2);
     op3 = node->append((LocalTransaction *)txn,
-        0, TransactionOperation::kNop, 55, &rec);
+        0, TransactionOperation::kNop, 57, &rec);
     REQUIRE(op3);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));

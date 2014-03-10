@@ -326,11 +326,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
    * also delete all pages and move them to the freelist; if they're
    * cached, delete them from the cache
    */
-  st = db->erase_me();
-  if (st) {
-    (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
-    return (st);
-  }
+  db->erase_me();
 
   /* now set database name to 0 and set the header page to dirty */
   for (ham_u16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
@@ -343,14 +339,14 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 
   mark_header_page_dirty();
 
-  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
-
   /* if logging is enabled: flush the changeset because the header page
    * was modified */
-  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
+  if (get_flags() & HAM_ENABLE_RECOVERY)
     get_changeset().flush(get_incremented_lsn());
 
-  return (st);
+  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+
+  return (0);
 }
 
 ham_status_t
@@ -419,11 +415,8 @@ LocalEnvironment::close(ham_u32_t flags)
   }
 
   /* flush all committed transactions */
-  if (get_txn_manager()) {
+  if (m_txn_manager)
     get_txn_manager()->flush_committed_txns();
-    delete m_txn_manager;
-    m_txn_manager = 0;
-  }
 
   /* flush all pages and the freelist, reduce the file size */
   if (m_page_manager)
@@ -436,6 +429,13 @@ LocalEnvironment::close(ham_u32_t flags)
       && get_device() && get_device()->is_open()
       && (!(get_flags() & HAM_READ_ONLY))) {
     m_header->get_header_page()->flush();
+  }
+
+  /* now delete the TransactionManager (it's required during
+   * PageManager::close(), therefore it cannot be deleted earlier) */
+  if (m_txn_manager) {
+    delete m_txn_manager;
+    m_txn_manager = 0;
   }
 
   /* close the page manager (includes cache and freelist) */
@@ -825,7 +825,10 @@ ham_u64_t
 LocalEnvironment::get_incremented_lsn()
 {
   Journal *j = get_journal();
-  return (j ? j->get_incremented_lsn() : 1);
+  if (j)
+    return (j->get_incremented_lsn());
+  LocalTransactionManager *ltm = (LocalTransactionManager *)m_txn_manager;
+  return (ltm->get_incremented_lsn());
 }
 
 } // namespace hamsterdb

@@ -1759,11 +1759,10 @@ LocalDatabase::flush_txn_operation(LocalTransaction *txn,
   return (st);
 }
 
-ham_status_t
+void
 LocalDatabase::erase_me()
 {
   m_btree_index->release();
-  return (0);
 }
 
 } // namespace hamsterdb
