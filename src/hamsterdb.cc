@@ -349,8 +349,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
     return (HAM_INV_PARAMETER);
   }
 
-  /* since 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY */
-  if (flags & HAM_ENABLE_TRANSACTIONS)
+  /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
+   * disabled */
+  if ((flags & HAM_ENABLE_TRANSACTIONS) && !(flags & HAM_DISABLE_RECOVERY))
     flags |= HAM_ENABLE_RECOVERY;
 
   /* flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY */
@@ -604,15 +605,17 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     return (HAM_INV_PARAMETER);
   }
 
-  /* HAM_ENABLE_DUPLICATE_KEYS has to be specified in ham_create, not ham_open */
+  /* HAM_ENABLE_DUPLICATE_KEYS has to be specified in ham_env_create_db,
+   * not ham_env_open */
   if (flags & HAM_ENABLE_DUPLICATE_KEYS) {
     ham_trace(("invalid flag HAM_ENABLE_DUPLICATE_KEYS (only allowed when "
         "creating a database"));
     return (HAM_INV_PARAMETER);
   }
 
-  /* since 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY */
-  if (flags & HAM_ENABLE_TRANSACTIONS)
+  /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
+   * disabled */
+  if ((flags & HAM_ENABLE_TRANSACTIONS) && !(flags & HAM_DISABLE_RECOVERY))
     flags |= HAM_ENABLE_RECOVERY;
 
   /* flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY */

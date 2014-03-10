@@ -54,8 +54,8 @@ LocalEnvironment::~LocalEnvironment()
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
-        ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
-        ham_u16_t max_databases)
+            ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
+            ham_u16_t max_databases)
 {
   if (flags & HAM_IN_MEMORY)
     flags |= HAM_DISABLE_RECLAIM_INTERNAL;

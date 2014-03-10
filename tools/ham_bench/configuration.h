@@ -81,7 +81,7 @@ struct Configuration
       use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
-      flush_txn_immediately(false) {
+      flush_txn_immediately(false), disable_recovery(false) {
   }
 
   void print() const {
@@ -94,6 +94,8 @@ struct Configuration
       printf("--use-fsync ");
     if (use_recovery)
       printf("--use-recovery ");
+    if (disable_recovery)
+      printf("--disable-recovery ");
     if (use_cursors)
       printf("--use-cursors ");
     if (duplicate == kDuplicateFirst)
@@ -245,6 +247,7 @@ struct Configuration
   int duptable_threshold;
   bool bulk_erase;
   bool flush_txn_immediately;
+  bool disable_recovery;
 };
 
 #endif /* CONFIGURATION_H__ */

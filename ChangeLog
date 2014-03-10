@@ -1,4 +1,8 @@
-Mar 05, 2014 - chris ---------------------------------------------------
+Mar 10, 2014 - chris ---------------------------------------------------
+o Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
+	combination with HAM_ENABLE_TRANSACTIONS
+
+Mar 09, 2014 - chris ---------------------------------------------------
 o Committed Transactions are no longer flushed immediately, but can be
 	buffered and flushed together with other committed Transactions
 

@@ -1927,7 +1927,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void recreateInMemoryDatabase() {
+  void recreateInMemoryDatabaseTest() {
     ham_db_t *db;
     ham_env_t *env;
 
@@ -1941,6 +1941,39 @@ struct HamsterdbFixture {
     // re-create the database (id = 1)
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
+  void disableRecoveryTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_txn_t *txn;
+
+    os::unlink("test.db.jrn0");
+    os::unlink("test.db.jrn1");
+
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+                        HAM_ENABLE_TRANSACTIONS | HAM_DISABLE_RECOVERY, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
+
+    REQUIRE(false == os::file_exists("test.db.jrn0"));
+    REQUIRE(false == os::file_exists("test.db.jrn1"));
+
+    // insert a key
+    REQUIRE(0 == ham_txn_begin(&txn, env, 0, 0, 0));
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
+    REQUIRE(0 == ham_db_insert(db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+
+    REQUIRE(false == os::file_exists("test.db.jrn0"));
+    REQUIRE(false == os::file_exists("test.db.jrn1"));
+
+    // close the database
+    REQUIRE(0 == ham_db_close(db, 0));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    REQUIRE(false == os::file_exists("test.db.jrn0"));
+    REQUIRE(false == os::file_exists("test.db.jrn1"));
   }
 };
 
@@ -2310,10 +2343,16 @@ TEST_CASE("Hamsterdb/invalidKeySizeTest", "")
   f.invalidKeySizeTest();
 }
 
-TEST_CASE("Hamsterdb/recreateInMemoryDatabase", "")
+TEST_CASE("Hamsterdb/recreateInMemoryDatabaseTest", "")
 {
   HamsterdbFixture f;
-  f.recreateInMemoryDatabase();
+  f.recreateInMemoryDatabaseTest();
+}
+
+TEST_CASE("Hamsterdb/disableRecoveryTest", "")
+{
+  HamsterdbFixture f;
+  f.disableRecoveryTest();
 }
 
 } // namespace hamsterdb

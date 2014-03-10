@@ -211,31 +211,48 @@ o Improve transaction delta updates
 
     x BtreeErase: remove ifdef
 
-    o allow use of Transactions without journalling/recovery
-        o needs (documented!) feature in ham_bench
-        o needs documentation in header file
-            also document the transactional modes:
-                o ACID (w/ journalling)
-                o ACID w/ buffering: a little bit faster
-                o ACID w/o buffering: stable performance
-                o ACI (no 'D') (w/o journalling)
-                o in-memory (w/o journalling)
-        o needs monster tests, performance tests, valgrind tests
+    x allow use of Transactions without journalling/recovery
+        x implement
+        x requires a test; just make sure that the journal is not created
+        x needs documentation in header file
+        x needs monster tests
+
+    x how would a bulk update API look like??
+        -> it would allocate memory for the user, and immediately add
+            it to the txn-tree or append as a delta update.
+        -> the user specifies whether transactions are bypassed or not
+        -> the user specifies whether the data is already sorted or not
+        -> the user specifies whether existing keys are overwritten
+            or not
 
     o think about delta updates managed in the BtreeNode
+        the catch is that the actual insert operation is separated from
+        the user's insert operation. The page will be logged and flushed,
+        but the update is not performed.
+        -> make sure the page is not "dirty" if the delta update is appended,
+        -> ... only when it's merged
+        -> then how will it be added to the changeset?
+
         o do not buffer "append" operations because they are not costly
-        o totally transparent to the caller
+        o totally transparent to the caller, handled in the proxy
         o requires_split() takes delta updates into account
+        o do not add 'erase' updates as deltas; only inserts
+            (reason is that we can pre-sort inserts and then merge
+                more efficiently)
         o when flushing a TransactionOperation, the TransactionOperation could
             just be removed from the TxnTree and attached to the node
+        o if the deltas are merged then the page must be added to the
+            changeset; invest more time in thinking about recovery and
+            make this water proof!!
         o list with atomic updates with one allocation per update
                 (or even less with a pool allocator?)
         o needs an efficient merge algorithm
 
-    o how would a bulk update API look like??
+x why is --enable-recovery twice as fast as --use-transactions?
+    -> mostly related to malloc/free in the rb-tree
 
 o QuickCheck:
-    o extend existing test with overwrite and duplicates
+    x extend existing test with overwrite and duplicates
     o new test: create a database with generated configuration; use
         insert/erase/find/close/open; use very low pagesize with large
         key size, if possible; also use multi-page blobs
@@ -255,6 +272,7 @@ o improve the release process
         the end (critical: packaging, unittests, tools, samples, valgrind)
 
 o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
 
 . come up with a list of all functions, define which locking operation
     is required; then review the code and make sure this will work

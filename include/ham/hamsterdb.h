@@ -488,10 +488,25 @@ ham_get_license(const char **licensee, const char **product);
  * Specify a URL instead of a filename (i.e.
  * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
+ * To enable ACID Transactions, supply the flag @ref HAM_ENABLE_TRANSACTIONS.
+ * By default, hamsterdb will use a Journal for recovering the Environment
+ * and its data in case of a crash, and also to re-apply committed Transactions
+ * which were not yet flushed to disk. This Journalling can be disabled
+ * with the flag @ref HAM_DISABLE_RECOVERY. (It is disabled if the Environment
+ * is in-memory.)
+ *
+ * If Transactions are not required, but hamsterdb should still be able to
+ * recover in case of a crash or power outage, then the flag
+ * @ref HAM_ENABLE_RECOVERY will enable the Journal (without allowing
+ * Transactions.)
+ *
+ * For performance reasons the Journal does not use fsync(2) (or
+ * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
+ * @ref HAM_ENABLE_FSYNC to force the use of fsync.
+ *
  * Starting with version 2.1.2, hamsterdb can transparently encrypt the
- * generated file using 128bit AES in CBC mode. The write-ahead log used
- * for recovery is also encrypted (with exception of some metadata), but the 
- * transactional journal is not. Encryption can be enabled by specifying
+ * generated file using 128bit AES in CBC mode. The transactional journal is
+ * not encrypted. Encryption can be enabled by specifying
  * @ref HAM_PARAM_ENCRYPTION_KEY (see below). The identical key has to be
  * provided in @ref ham_env_open as well. Ignored for remote Environments.
  *
@@ -520,10 +535,12 @@ ham_get_license(const char **licensee, const char **product);
  *     <li>@ref HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
- *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Environment. This flag implies @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
+ *      Environment. Not allowed in combination with @ref HAM_IN_MEMORY.
+ *     <li>@ref HAM_DISABLE_RECOVERY</li> Disables logging/recovery for this
+ *      Environment.
  *     <li>@ref HAM_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
@@ -592,6 +609,9 @@ ham_env_create(ham_env_t **env, const char *filename,
  * Specify a URL instead of a filename (i.e.
  * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
+ * Also see the documentation @ref ham_env_create about Transactions, Recovery
+ * and the use of fsync.
+ *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file, or URL of a hamsterdb
  *      Server
@@ -614,14 +634,16 @@ ham_env_create(ham_env_t **env, const char *filename,
  *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
- *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
- *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY.
- *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
- *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Environment. This flag imples @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
+ *      Environment. Will return @ref HAM_NEED_RECOVERY, if the Environment
+ *      is in an inconsistent state. Not allowed in combination
+ *      with @ref HAM_IN_MEMORY.
+ *     <li>@ref HAM_DISABLE_RECOVERY</li> Disables logging/recovery for this
+ *      Environment.
+ *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Environment,
+ *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
@@ -1156,7 +1178,9 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * This flag is non persistent. */
 #define HAM_CACHE_UNLIMITED                         0x00040000
 
-/* unused                                           0x00080000 */
+/** Flag for @ref ham_env_create, @ref ham_env_open.
+ * This flag is non persistent. */
+#define HAM_DISABLE_RECOVERY                        0x00080000
 
 /* internal use only! (not persistent) */
 #define HAM_IS_REMOTE_INTERNAL                      0x00200000

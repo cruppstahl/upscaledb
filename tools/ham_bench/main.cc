@@ -78,6 +78,7 @@
 #define ARG_DUPTABLE_THRESHOLD      58
 #define ARG_BULK_ERASE              59
 #define ARG_FLUSH_TXN_IMMEDIATELY   60
+#define ARG_DISABLE_RECOVERY        61
 
 /*
  * command line parameters
@@ -360,6 +361,12 @@ static option_t opts[] = {
     0,
     "flush-txn-immediately",
     "Immediately flushes transactions instead of buffering them",
+    0 },
+  {
+    ARG_DISABLE_RECOVERY,
+    0,
+    "disable-recovery",
+    "Disables recovery (HAM_DISABLE_RECOVERY)",
     0 },
 };
 
@@ -661,6 +668,9 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_FLUSH_TXN_IMMEDIATELY) {
       c->flush_txn_immediately = true;
+    }
+    else if (opt == ARG_DISABLE_RECOVERY) {
+      c->disable_recovery = true;
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
