@@ -14,6 +14,7 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
+<<<<<<< HEAD
 high-level plan for 2.1.7 pro ..............................................
 x hamsterdb pro: compression for journal
 x hamsterdb pro: compression for records
@@ -33,6 +34,111 @@ o hamsterdb: delta updates
 
 
 o web-page requires updates
+=======
+high-level plan for 2.1.7 ..................................................
+x simplified btree SMOs
+x improve recovery performance/scalability
+o improve QuickCheck coverage
+o delta updates
+
+--------------
+
+x Separate/Refactor SMOs: we want to run them separated from the actual
+    operation in order to move them to the background sooner or later. Also,
+    the erase SMOs are causing issues and have huge complexity but do not have
+    many benefits.
+
+x there'S a bug (already in 2.1.6)
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --cache=104857600 --stop-ops=25000
+    ./ham_bench --use-berkeleydb=true --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --cache=104857600 --stop-ops=25000
+
+    x the overflow chain and state is not cleaned up properly if the
+        new state is empty
+    x needs more test
+
+. web-page requires updates
+    x deployed html differs from git-repository
+    o www1-repository and hamsterdb-www should be identical
+        o updates for 2.1.6 are missing
+        o samples fehlen
+        o download-dateien fehlen
+        o doku fehlt
+    o download/sources: add erlang, remove 1.x
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
+
+o delta updates (DU)
+    x insert SMOs (splits) are applied when "going down"
+        x make sure that all tests are still running
+        x also check monster tests
+    x erase SMOs are vastly simplified (only delete pages; no merges, no shifts)
+        x leaf nodes can become empty
+        x internal nodes must at least set ptr_down
+        x when going down: only merge pages if they have the same parent and
+            if they are both (nearly) empty
+        -> in the end there's a btree skeleton with empty leafs and nearly-
+            empty nodes; this can then be compact()ed offline or asynchronously
+        x get rid of shifting and replace_key
+        x BtreeImpl/Proxy: remove shifts, replace_key etc
+        x also merge with the left sibling
+        x check the monster tests
+
+        x review BtreeImplDefault::requires_split
+            -> causes segfaults because insert() assumes that there's enough
+                space in the node. how to fix this?
+                instead of 32 bytes, use...
+                - fixed key length if keys are fixed length (but min. 16 bytes)
+                - extkey-threshold if keys are variable length
+
+    x test everything
+        x run unittests tests
+        x run recovery tests
+        x run valgrind tests
+        x run monster tests
+        x run performance tests
+
+    x is there a cheap way to visualize the tree?
+        -> yes: http://www.graphviz.org/content/datastruct
+        dot -Tpng -o test.png ~/test
+        x embed into ham_db_check_integrity (add |flags| parameter)
+        x check with multi-level (> 4) trees and bulk-erase
+            -> only the lowest two levels should become empty
+
+    x the erase algorithm only merges leaf nodes; if the tree has more than 2
+        levels then it will not degenerate properly when all entries are
+        deleted.
+        x is this a problem? what if data is then re-inserted? -> seems
+            to be fine, but needs more tests
+
+x there's a bug (already in 2.1.6)
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000
+    ./ham_bench --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000
+
+    x the overflow chain and state is not cleaned up properly if the
+        new state is empty
+    x needs more test
+
+    x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=descending --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420356
+    x --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=100000 --seed=1393420495
+
+x another bug
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --stop-ops=25000 --seed=1393445737
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --stop-ops=25000 --seed=1393445737
+    ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --erase-pct=100 --stop-ops=25000 --seed=1393445737
+    (next line is repeated 3 times, 3rd time crashes)
+    ./ham_bench --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000 --seed=1393445762
+
+x improve: ./ham_bench --recsize=1048576
+
+. web-page requires updates
+>>>>>>> Improved transaction performance by reducing memory allocations
     x deployed html differs from git-repository
     x download/sources: add erlang, remove 1.x
     x www1-repository and hamsterdb-www should be identical
@@ -222,6 +328,7 @@ o PRO: additional stuff for the first release
         o file compatibility
         o ...
 
+<<<<<<< HEAD
     o need a database with commercial users
         o upgrade the current users
         o need a "download gate" api which verifies download links
@@ -313,6 +420,100 @@ o insert: if HAM_HINT_APPEND is set then page splits should only create a
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload
+=======
+        x clean up the code; make it less hackish
+            x have a central authority for dealing with transactions and
+                for flushing them ("TransactionManager"
+                    -> "LocalTransactionManager" etc)
+            x commits/aborts are also routed through the TransactionManager,
+                which will do the logging (if reqd)
+            x also manages the Transaction Id
+            x TransactionManager keeps the threshold
+            x also keep track of number of committed operations
+            x ... and the consumed memory
+            x check threshold for number of committed operations
+            x check threshold for consumed memory (should be same as
+                journal buffer size)
+            x check with valgrind
+
+        x expose the new flag
+            x dotnet
+            x java
+            x ham_bench
+            x erlang
+        x add documentation to header file
+
+        x add to monster test, valgrind test, performance test
+
+    x check monster tests
+
+    x combine operations of all flushed transactions in the same changeset
+        -> we need to remove many asserts... :-/
+        x when fetching a page: give a flag kReadOnly; then do not add
+            the page to the changeset
+        x make read-only operations fetch pages in read-only mode
+            (btree_find, btree_check, BlobManager::read, others?)
+        x then combine the operations
+        x run recovery tests
+        x add to monster tests and perftests (with and without immediate flush)
+
+    x BtreeErase: remove ifdef
+
+    x allow use of Transactions without journalling/recovery
+        x implement
+        x requires a test; just make sure that the journal is not created
+        x needs documentation in header file
+        x needs monster tests
+
+    x how would a bulk update API look like??
+        -> it would allocate memory for the user, and immediately add
+            it to the txn-tree or append as a delta update.
+        -> the user specifies whether transactions are bypassed or not
+        -> the user specifies whether the data is already sorted or not
+        -> the user specifies whether existing keys are overwritten
+            or not
+
+x Make cursor cleanup logic after erase less cheesy
+    if a key is erased (remove_entry) then all cursors are uncoupled.
+    Shortly afterwards, they're coupled again for the points_to() check.
+
+x why is --enable-recovery twice as fast as --use-transactions?
+    -> mostly related to malloc/free in the rb-tree
+    x what can we do to reduce the allocations? a typical insert requires
+        three allocations (we could get down to two):
+        - node
+        - key
+        - op + record (already combined)
+        -> rb.h requires a single key; how can we re-structure? 
+        --> allocate a single structure (same as DeltaUpdate), and let the
+            TransactionTree point to this update. The TransactionNode
+            can manage a list of DeltaUpdates for the same key. As soon as
+            one DeltaUpdate is removed, the key will be provided by the
+            next update.
+            Later, the DUs can then be attached to the Btree node.
+    x the TransactionOperation structure also stores the key (one single
+        allocation!)
+    x the TransactionNode no longer stores the key but uses the one from a
+        connected TransactionOperation
+
+o QuickCheck:
+    x extend existing test with overwrite and duplicates
+    o document the various tests
+    o new test: create a database with generated configuration; use
+        insert/erase/find/close/open; use very low pagesize with large
+        key size, if possible; also use multi-page blobs
+    o boost the existing tests and create much larger sequences; no issue
+        if each test runs for an hour or more
+
+o improve the release process
+    o improve/add integration of static code analysis to release process
+        o oclint: create helper file in bin/
+            oclint $FILE -- -I ../include/ -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -c
+            filter out P1 problems, report P2, ignore P3
+        o coverity
+    o move the critical stages up front, and the non critical ones towards
+        the end (critical: packaging, unittests, tools, samples, valgrind)
+>>>>>>> Improved transaction performance by reducing memory allocations
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -329,6 +530,12 @@ o delta updates managed in the BtreeNode
             -> absolutely worth the effort, about 60% are spent in memmove
         x Default
             -> also worth the effort, about 15% are spent in memmove
+
+    o perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        o Default
 
     o if the deltas are merged then the page must be added to the
         changeset; invest more time in thinking about recovery and
@@ -372,16 +579,35 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
+<<<<<<< HEAD
+=======
+o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
+
+>>>>>>> Improved transaction performance by reducing memory allocations
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
         (try not to break backwards compatibility, though)
     o EnvHeader is completely full; add at least 8 bytes for flags + reserved
     o reserve CRC32 for each page
 
+<<<<<<< HEAD
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 o PRO: bulk updates
     - require delta updates
+=======
+----------------------------------
+
+- "hola" - olap functions that operate directly on the btree data
+- prefetch cache lines when searching
+- linear SIMD search -> PRO
+- encrypt the log and the environment file with AES -> PRO
+- compress the log with snappy -> PRO
+- compress the records with snappy -> PRO
+- hot backups (vacuumizes to a different file) -> PRO
+- bulk updates -> PRO
+>>>>>>> Improved transaction performance by reducing memory allocations
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the btree node,
