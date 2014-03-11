@@ -6622,8 +6622,7 @@ struct DupeCursorFixture {
     /* erase k1/2 */
     REQUIRE(0 == move("k1", "1", HAM_CURSOR_FIRST));
     REQUIRE(0 == move("k1", "2", HAM_CURSOR_NEXT));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* flush the transaction to disk */
     REQUIRE(0 == ham_cursor_close(m_cursor));

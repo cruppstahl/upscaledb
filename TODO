@@ -225,31 +225,57 @@ o Improve transaction delta updates
         -> the user specifies whether existing keys are overwritten
             or not
 
-    o think about delta updates managed in the BtreeNode
-        the catch is that the actual insert operation is separated from
-        the user's insert operation. The page will be logged and flushed,
-        but the update is not performed.
-        -> make sure the page is not "dirty" if the delta update is appended,
-        -> ... only when it's merged
-        -> then how will it be added to the changeset?
+x Make cursor cleanup logic after erase less cheesy
+    if a key is erased (remove_entry) then all cursors are uncoupled.
+    Shortly afterwards, they're coupled again for the points_to() check.
 
-        o do not buffer "append" operations because they are not costly
-        o totally transparent to the caller, handled in the proxy
-        o requires_split() takes delta updates into account
-        o do not add 'erase' updates as deltas; only inserts
-            (reason is that we can pre-sort inserts and then merge
-                more efficiently)
-        o when flushing a TransactionOperation, the TransactionOperation could
-            just be removed from the TxnTree and attached to the node
-        o if the deltas are merged then the page must be added to the
-            changeset; invest more time in thinking about recovery and
-            make this water proof!!
-        o list with atomic updates with one allocation per update
-                (or even less with a pool allocator?)
-        o needs an efficient merge algorithm
-
-x why is --enable-recovery twice as fast as --use-transactions?
+o why is --enable-recovery twice as fast as --use-transactions?
     -> mostly related to malloc/free in the rb-tree
+    x what can we do to reduce the allocations? a typical insert requires
+        three allocations (we could get down to two):
+        - node
+        - key
+        - op + record (already combined)
+        -> rb.h requires a single key; how can we re-structure? 
+        --> allocate a single structure (same as DeltaUpdate), and let the
+            TransactionTree point to this update. The TransactionNode
+            can manage a list of DeltaUpdates for the same key. As soon as
+            one DeltaUpdate is removed, the key will be provided by the
+            next update.
+            Later, the DUs can then be attached to the Btree node.
+    o the TransactionOperation structure also stores the key (one single
+        allocation!)
+    o the TransactionNode no longer stores the key but uses the one from a
+        connected TransactionOperation
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+
+o delta updates managed in the BtreeNode
+    the catch is that the actual insert operation is separated from
+    the user's insert operation. The page will be logged and flushed,
+    but the update is not performed.
+    -> make sure the page is not "dirty" if the delta update is appended,
+    -> ... only when it's merged
+    -> then how will it be added to the changeset?
+    -> is a page dirty if it has DUs?
+
+    o if the deltas are merged then the page must be added to the
+        changeset; invest more time in thinking about recovery and
+        make this water proof!!
+
+    o need a flag to disable DeltaUpdates
+    o totally transparent to the caller, handled in the proxy
+    o merge them when reading and flushing
+    o requires_split() takes delta updates into account
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should immediately go down to
+        the node
+    o make the merge algorithm more efficient
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
 
 o QuickCheck:
     x extend existing test with overwrite and duplicates
@@ -258,11 +284,6 @@ o QuickCheck:
         key size, if possible; also use multi-page blobs
     o boost the existing tests and create much larger sequences; no issue
         if each test runs for an hour or more
-
-o Make cursor cleanup logic after erase less cheesy
-    if a key is erased (remove_entry) then all cursors are uncoupled.
-    Shortly afterwards, they're coupled again for the points_to() check.
-    -> assert(slot < get_count()) in btree_node_proxy/get_key
 
 o improve the release process
     o improve integration of static code analysis in release process
@@ -274,14 +295,6 @@ o improve the release process
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery
 
-. come up with a list of all functions, define which locking operation
-    is required; then review the code and make sure this will work
-. come up with a list of functions for which concurrency makes most sense
-    - parallel lookups (using the same memory arena)
-    - flushing transactions asynchronously
-    - purging caches asynchronously
-    - have concurrent lookups/find
-
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
         (try not to break backwards compatibility, though)
@@ -290,20 +303,37 @@ o extend ham_bench documentation for --disable-recovery
 ----------------------------------
 
 o can we come up with olap functions that operate directly on the btree data?
-    -> working on keys only!! does that make sense? - yes, absolutely
-    - should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
+    x working on keys only!! does that make sense? - yes, absolutely
+    -> should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
+    -> should work with C style callbacks but also with C++ templates!
+    -> would be awesome if the C++ templates directly run in the Btree,
+        but this would require a recompilation of the library. Still, this
+        should be documented and there should be samples.
+    -> records should never be fetched; this has to be handled by
+        the caller!
+    -> how can we allow database operations while scans and olap-operations
+        are running?
+    -> how can we make sure that the transactional integrity is respected?
+        i.e. an operation must run in a transactional setting, if required
+        (when enumerating a page: check if a transaction modifies a key in
+        this page. if not then just run over the btree. otherwise use a
+        normal cursor. slower, but should not happen often.)
+    -> results are copied into a buffer and then performed in the next stage.
+        the caller will receive the whole buffer at once. At this stage, the
+        Environment is not locked and requests can be performed.
+
     o MIN()
     o MAX()
-    o TOP(N)
     o COUNT(predicate)
     o AGGREGATE(predicate, result)
     o AVERAGE(predicate, result)
+    o FOLDL(predicate, callback, Acc) -> Acc
+    o FOLDR(predicate, callback, Acc) -> Acc
 
+    o TOP(predicate, N)
     o SELECT(predicate) -> View
     o SORT(predicate) -> View
     o MAP(predicate, callback) -> View
-    o FOLDL(predicate, callback, Acc) -> Acc
-    o FOLDR(predicate, callback, Acc) -> Acc
     o JOIN(predicate, other view, callback) -> View
     -> the SELECTs should return VIEWs which then can used as input for other
         SELECTs; this way users can build a "tree" of statements:
@@ -317,18 +347,6 @@ o can we come up with olap functions that operate directly on the btree data?
     -> use lua to specify operations on a higher level??
     -> also: can we come up with a way to add complex structures to the
         txn-tree, and then "marshal" them transparently to the databases?
-
-o reduce the linked lists - they're hard to be updated with concurrent
-    operations
-    o page
-    o transaction and dependent objects
-    o ...
-
-o separate SMOs from the actual operation (#2)
-    -> check the literature
-    http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-    o move SMO operations to "the janitor" (btree_smo.h)
-
 
 - prefetch cache lines when searching
 - linear SIMD search -> PRO
@@ -382,10 +400,13 @@ o introduce PRO version
     o define file format interoperability?
     o what are the minimum features required for the first release?
         - (evaluation licenses)
+        - lightweight compression for the journal
+        - lightweight compression for records
+        - AES encryption for journal and file
+      optional:
+        - SIMD for searches
         - prefix compression for strings
         - lightweight compression for binary keys
-        - SIMD for searches
-        - AES encryption
         - hot backups
 
 o PRO: btree can compress keys
@@ -417,6 +438,27 @@ o PRO: use SIMD for fixed-length scans and __builtin_prefetch
         or the subrange in the binary search is low enough, and if the
         performance makes sense) -> also for MIT
     o if both layouts use binary search then move it back to the proxy!
+
+o the bucket for concurrency TODOs
+    o reduce the linked lists - they're hard to be updated with concurrent
+        operations
+        o page
+        o transaction and dependent objects
+        o ...
+
+    . come up with a list of all functions, define which locking operation
+        is required; then review the code and make sure this will work
+    . come up with a list of functions for which concurrency makes most sense
+        - parallel lookups (using the same memory arena)
+        - flushing transactions asynchronously
+        - purging caches asynchronously
+        - async. merging of delta updates
+        - have concurrent lookups/find
+
+    o separate SMOs from the actual operation (#2)
+        -> check the literature
+        http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
+        o move SMO operations to "the janitor" (btree_smo.h)
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information

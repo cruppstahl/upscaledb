@@ -160,10 +160,6 @@ class BtreeEraseAction
       ham_assert(slot >= 0);
       ham_assert(slot < (int)node->get_count());
 
-      /* uncouple all cursors */
-      // TODO better adjust them and decrement the coupled index
-      BtreeCursor::uncouple_all_cursors(page, slot + 1);
-
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete
       // those.
@@ -180,60 +176,65 @@ class BtreeEraseAction
       page->set_dirty(true);
 
       // still got duplicates left? then adjust all cursors
-      if (node->is_leaf()) {
-        BtreeCursor *btc = 0;
+      if (node->is_leaf() && has_duplicates_left && db->get_cursor_list()) {
         Cursor *cursors = db->get_cursor_list();
-        if (cursors)
-          btc = cursors->get_btree_cursor();
+        BtreeCursor *btcur = cursors->get_btree_cursor();
 
-        if (has_duplicates_left) {
-          while (btc && m_cursor) {
-            BtreeCursor *next = 0;
-            if (cursors->get_next()) {
-              cursors = cursors->get_next();
-              next = cursors->get_btree_cursor();
-            }
-
-            if (btc != m_cursor && btc->points_to(page, slot)) {
-              if (btc->get_duplicate_index()
-                              == m_cursor->get_duplicate_index())
-                  btc->set_to_nil();
-              else if (btc->get_duplicate_index()
-                              > m_cursor->get_duplicate_index())
-                btc->set_duplicate_index(btc->get_duplicate_index() - 1);
-            }
-            btc = next;
+        while (btcur) {
+          BtreeCursor *next = 0;
+          if (cursors->get_next()) {
+            cursors = cursors->get_next();
+            next = cursors->get_btree_cursor();
           }
-          // all cursors were adjusted, the duplicate was deleted. return
-          // to caller!
-          return;
+
+          if (btcur != m_cursor && btcur->points_to(page, slot)) {
+            if (btcur->get_duplicate_index()
+                            == m_cursor->get_duplicate_index())
+                btcur->set_to_nil();
+            else if (btcur->get_duplicate_index()
+                            > m_cursor->get_duplicate_index())
+              btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
+          }
+          btcur = next;
         }
-        // the full key was deleted; all cursors pointing to this key
-        // are set to nil
-        else {
-          if (cursors) {
-            btc = cursors->get_btree_cursor();
+        // all cursors were adjusted, the duplicate was deleted. return
+        // to caller!
+        return;
+      }
 
-            /* make sure that no cursor is pointing to this key */
-            while (btc) {
-              BtreeCursor *cur = btc;
-              BtreeCursor *next = 0;
-              if (cursors->get_next()) {
-                cursors = cursors->get_next();
-                next = cursors->get_btree_cursor();
-              }
-              if (btc != m_cursor) {
-                if (cur->points_to(page, slot))
-                  cur->set_to_nil();
-              }
-              btc = next;
-            }
+      // no duplicates left, the key was deleted; all cursors pointing to
+      // this key are set to nil, all cursors pointing to a key in the same
+      // page are adjusted, if necessary
+      if (node->is_leaf() && !has_duplicates_left && db->get_cursor_list()) {
+        Cursor *cursors = db->get_cursor_list();
+        BtreeCursor *btcur = cursors->get_btree_cursor();
+
+        /* 'nil' every cursor which points to the deleted key, and adjust
+         * other cursors attached to the same page */
+        while (btcur) {
+          BtreeCursor *cur = btcur;
+          BtreeCursor *next = 0;
+          if (cursors->get_next()) {
+            cursors = cursors->get_next();
+            next = cursors->get_btree_cursor();
           }
+          if (btcur != m_cursor && cur->points_to(page, slot))
+            cur->set_to_nil();
+          else if (btcur != m_cursor
+                  && (cur->get_state() & BtreeCursor::kStateCoupled)) {
+            Page *coupled_page;
+            ham_u32_t coupled_slot;
+            cur->get_coupled_key(&coupled_page, &coupled_slot);
+            if (coupled_page == page && coupled_slot > (ham_u32_t)slot)
+              cur->uncouple_from_page();
+          }
+          btcur = next;
         }
       }
 
       // now remove the key
-      node->erase(slot);
+      if (!has_duplicates_left)
+        node->erase(slot);
     }
 
     /* Merges the |sibling| into |page|, returns the merged page and moves
