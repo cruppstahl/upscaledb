@@ -67,7 +67,7 @@ rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 void
 TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
-            ham_record_t *record)
+            ham_key_t *key, ham_record_t *record)
 {
   memset(this, 0, sizeof(*this));
 
@@ -77,11 +77,20 @@ TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
   m_lsn = lsn;
   m_orig_flags = orig_flags;
 
-  /* create a copy of the record structure */
+  /* copy the key data */
+  if (key) {
+    m_key = *key;
+    if (key->size) {
+      m_key.data = &m_data[0];
+      memcpy(m_key.data, key->data, key->size);
+    }
+  }
+
+  /* copy the record data */
   if (record) {
     m_record = *record;
     if (record->size) {
-      m_record.data = &m_data[0];
+      m_record.data = &m_data[key ? key->size : 0];
       memcpy(m_record.data, record->data, record->size);
     }
   }
@@ -161,7 +170,8 @@ TransactionNode::append(LocalTransaction *txn, ham_u32_t orig_flags,
       ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
   TransactionOperation *op = TransactionFactory::create_operation(txn,
-                                    this, flags, orig_flags, lsn, record);
+                                    this, flags, orig_flags, lsn,
+                                    &m_key, record);
 
   /* store it in the chronological list which is managed by the node */
   if (!get_newest_op()) {

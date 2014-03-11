@@ -29,11 +29,12 @@ struct TransactionFactory
   // Creates a new TransactionOperation
   static TransactionOperation *create_operation(LocalTransaction *txn,
             TransactionNode *node, ham_u32_t flags, ham_u32_t orig_flags,
-            ham_u64_t lsn, ham_record_t *record) {
+            ham_u64_t lsn, ham_key_t *key, ham_record_t *record) {
     TransactionOperation *op;
     op = (TransactionOperation *)Memory::allocate<char>(sizeof(*op)
-                                            + (record ? record->size - 1 : 0));
-    op->initialize(txn, node, flags, orig_flags, lsn, record);
+                                            + (record ? record->size : 0)
+                                            + (key ? key->size : 0));
+    op->initialize(txn, node, flags, orig_flags, lsn, key, record);
     return (op);
   }
 

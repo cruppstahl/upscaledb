@@ -136,7 +136,7 @@ class TransactionOperation
     // Initialization
     void initialize(LocalTransaction *txn, TransactionNode *node,
                     ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
-                    ham_record_t *record);
+                    ham_key_t *key, ham_record_t *record);
 
     // Destructor
     void destroy();
@@ -199,6 +199,9 @@ class TransactionOperation
 
     // previous in linked list (managed in Transaction)
     TransactionOperation *m_txn_prev;
+
+    // the key which is inserted or overwritten
+    ham_key_t m_key;
 
     // the record which is inserted or overwritten
     ham_record_t m_record;
