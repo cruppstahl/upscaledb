@@ -205,7 +205,7 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
                     : (flags & HAM_OVERWRITE)
                     ? TransactionOperation::kInsertOverwrite
                     : TransactionOperation::kInsert),
-                get_local_env()->get_incremented_lsn(), record);
+                get_local_env()->get_incremented_lsn(), key, record);
 
   // if there's a cursor then couple it to the op; also store the
   // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
@@ -457,7 +457,7 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
 
   /* append a new operation to this node */
   op = node->append(txn, flags, TransactionOperation::kErase,
-                  get_local_env()->get_incremented_lsn(), 0);
+                  get_local_env()->get_incremented_lsn(), key, 0);
 
   /* is this function called through ham_cursor_erase? then add the
    * duplicate ID */

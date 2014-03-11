@@ -92,6 +92,11 @@ class TransactionOperation
       return (m_lsn);
     }
 
+    // Returns the key of this operation
+    ham_key_t *get_key() {
+      return (&m_key);
+    }
+
     // Returns the record of this operation
     ham_record_t *get_record() {
       return (&m_record);
@@ -216,12 +221,22 @@ class TransactionOperation
 // Manages a group of TransactionOperation objects which all modify the
 // same key.
 //
+// To avoid chicken-egg problems when inserting a new TransactionNode
+// into the TransactionTree, it is possible to assign a temporary key
+// to this node. However, as soon as an operation is attached to this node,
+// the TransactionNode class will use the key structure in this operation.
+//
+// This basically avoids one memory allocation.
+//
 class TransactionNode
 {
   public:
-    // Constructor; creates a deep copy of |key|. Inserts itself into the
-    // TransactionIndex of |db| (unless |dont_insert| is true).
+    // Constructor;
     // The default parameters are required for the compilation of rb.h.
+    // |key| is just a temporary pointer which allows to create a
+    // TransactionNode without further memory allocations/copying. The actual
+    // key is then fetched from |m_oldest_op| as soon as this node is fully
+    // initialized.
     TransactionNode(LocalDatabase *db = 0, ham_key_t *key = 0);
 
     // Destructor; removes this node from the tree, unless |dont_insert|
@@ -235,12 +250,8 @@ class TransactionNode
 
     // Returns the modified key
     ham_key_t *get_key() {
-      return (&m_key);
+      return (m_oldest_op ? m_oldest_op->get_key() : m_key);
     }
-
-    // Appends an actual operation to this node
-    TransactionOperation *append(LocalTransaction *txn, ham_u32_t orig_flags,
-              ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
     // Retrieves the next larger sibling of a given node, or NULL if there
     // is no sibling
@@ -270,10 +281,17 @@ class TransactionNode
       m_newest_op = newest;
     }
 
+    // Appends an actual operation to this node
+    TransactionOperation *append(LocalTransaction *txn, ham_u32_t orig_flags,
+                ham_u32_t flags, ham_u64_t lsn, ham_key_t *key,
+                ham_record_t *record);
+
     // red-black tree stub, required for rb.h
     rb_node(TransactionNode) node;
 
   private:
+    friend struct TxnFixture;
+
     // the database - need this to get the compare function
     LocalDatabase *m_db;
 
@@ -283,11 +301,9 @@ class TransactionNode
     // the linked list of operations - tail is newest operation
     TransactionOperation *m_newest_op;
 
-    // this is the key which is modified in this node
-    ham_key_t m_key;
-
-    // Storage for key->data. This saves us one memory allocation.
-    ham_u8_t m_data[1];
+    // Pointer to the key data; only used as long as there are no operations
+    // attached. Otherwise we have a chicken-egg problem in rb.h.
+    ham_key_t *m_key;
 };
 
 

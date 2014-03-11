@@ -50,14 +50,12 @@ using namespace hamsterdb;
 static bool
 __filename_is_local(const char *filename)
 {
-  if (filename && strstr(filename, "ham://") == filename)
-    return (false);
-  return (true);
+  return (filename && strstr(filename, "ham://") != filename);
 }
 
 ham_status_t
 ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
-        void *reserved, ham_u32_t flags)
+            void *, ham_u32_t flags)
 {
   Transaction **txn = (Transaction **)htxn;
 
@@ -396,11 +394,11 @@ ham_env_create(ham_env_t **henv, const char *filename,
         }
         encryption_key = (ham_u8_t *)param->value;
         flags |= HAM_DISABLE_MMAP;
+        break;
 #else
         ham_trace(("aes encrpytion was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
 #endif
-        break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);
@@ -643,11 +641,11 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #ifdef HAM_ENABLE_ENCRYPTION
         encryption_key = (ham_u8_t *)param->value;
         flags |= HAM_DISABLE_MMAP;
+        break;
 #else
         ham_trace(("aes encryption was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
 #endif
-        break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);
@@ -875,9 +873,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (env->get_txn_manager()) {
       Transaction *t;
       while ((t = env->get_txn_manager()->get_oldest_txn())) {
-        if (t->is_aborted() || t->is_committed())
-          ; /* nop */
-        else {
+        if (!t->is_aborted() && !t->is_committed()) {
           if (flags & HAM_TXN_AUTO_COMMIT)
             env->get_txn_manager()->commit(t, 0);
           else /* if (flags&HAM_TXN_AUTO_ABORT) */
@@ -1041,11 +1037,10 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     }
 
     /* record number: make sure that we have a valid key structure */
-    if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
-      if (key->size != sizeof(ham_u64_t) || !key->data) {
-        ham_trace(("key->size must be 8, key->data must not be NULL"));
-        return (db->set_error(HAM_INV_PARAMETER));
-      }
+    if ((db->get_rt_flags() & HAM_RECORD_NUMBER)
+        && (key->size != sizeof(ham_u64_t) || !key->data)) {
+      ham_trace(("key->size must be 8, key->data must not be NULL"));
+      return (db->set_error(HAM_INV_PARAMETER));
     }
 
     if (!__prepare_key(key) || !__prepare_record(record))
@@ -1844,8 +1839,7 @@ ham_cursor_get_database(ham_cursor_t *hcursor)
     Cursor *cursor = (Cursor *)hcursor;
     return ((ham_db_t *)cursor->get_db());
   }
-  else
-    return (0);
+  return (0);
 }
 
 ham_env_t * HAM_CALLCONV

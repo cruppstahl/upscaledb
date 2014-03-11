@@ -47,21 +47,6 @@ compare(void *vlhs, void *vrhs)
   return (db->get_btree_index()->compare_keys(lhs->get_key(), rhs->get_key()));
 }
 
-static void *
-copy_key_data(ham_key_t *key)
-{
-  void *data = 0;
-
-  if (key->data && key->size) {
-    data = Memory::allocate<void>(key->size);
-    if (!data)
-      return (0);
-    memcpy(data, key->data, key->size);
-  }
-
-  return (data);
-}
-
 rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 
 void
@@ -99,7 +84,19 @@ TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
 void
 TransactionOperation::destroy()
 {
-  m_record.data = 0;
+  bool delete_node = false;
+
+  /* remove this op from the node */
+  TransactionNode *node = get_node();
+  if (node->get_oldest_op() == this) {
+    /* if the node is empty: remove the node from the tree */
+    // TODO should this be done in here??
+    if (get_next_in_node() == 0) {
+      node->get_db()->get_txn_index()->remove(node);
+      delete_node = true;
+    }
+    node->set_oldest_op(get_next_in_node());
+  }
 
   /* remove this operation from the two linked lists */
   TransactionOperation *next = get_next_in_node();
@@ -116,18 +113,8 @@ TransactionOperation::destroy()
   if (prev)
     prev->set_next_in_txn(next);
 
-  /* remove this op from the node */
-  // TODO should this be done in here??
-  TransactionNode *node = get_node();
-  if (node->get_oldest_op() == this)
-    node->set_oldest_op(get_next_in_node());
-
-  /* if the node is empty: remove the node from the tree */
-  // TODO should this be done in here??
-  if (node->get_oldest_op() == 0) {
-    node->get_db()->get_txn_index()->remove(node);
+  if (delete_node)
     delete node;
-  }
 
   Memory::release(this);
 }
@@ -145,33 +132,26 @@ TransactionNode::get_previous_sibling()
 }
 
 TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key)
-  : m_db(db), m_oldest_op(0), m_newest_op(0)
+  : m_db(db), m_oldest_op(0), m_newest_op(0), m_key(key)
 {
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
   // TransactionIndex::get() creates a new TransactionNode
   // ham_assert(TransactionIndex::get(key, 0) == 0);
-
-  if (key) {
-    m_key = *key;
-    m_key.data = copy_key_data(key);
-  }
-  else
-    memset(&m_key, 0, sizeof(m_key));
 }
 
 TransactionNode::~TransactionNode()
 {
-  Memory::release(m_key.data);
 }
 
 TransactionOperation *
 TransactionNode::append(LocalTransaction *txn, ham_u32_t orig_flags,
-      ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
+            ham_u32_t flags, ham_u64_t lsn, ham_key_t *key,
+            ham_record_t *record)
 {
   TransactionOperation *op = TransactionFactory::create_operation(txn,
                                     this, flags, orig_flags, lsn,
-                                    &m_key, record);
+                                    key, record);
 
   /* store it in the chronological list which is managed by the node */
   if (!get_newest_op()) {
@@ -198,6 +178,10 @@ TransactionNode::append(LocalTransaction *txn, ham_u32_t orig_flags,
     op->set_previous_in_txn(newest);
     txn->set_newest_op(op);
   }
+
+  // now that an operation is attached make sure that the node no
+  // longer uses the temporary key pointer
+  m_key = 0;
 
   return (op);
 }

@@ -16,7 +16,7 @@ to scale with the number of cores.
 
 high-level plan for 2.1.7 ..................................................
 x simplified btree SMOs
-o improve recovery performance/scalability
+x improve recovery performance/scalability
 o improve QuickCheck coverage
 o delta updates
 
@@ -37,21 +37,7 @@ x there'S a bug (already in 2.1.6)
         new state is empty
     x needs more test
 
-. web-page requires updates
-    x deployed html differs from git-repository
-    o www1-repository and hamsterdb-www should be identical
-        o updates for 2.1.6 are missing
-        o samples fehlen
-        o download-dateien fehlen
-        o doku fehlt
-    o download/sources: add erlang, remove 1.x
-    o www1
-        o merge git repository of www1 (host on github, keep remote branch)
-        o clean up 'dl' directory
-        o where to host static files?
-        o backup and deploy to www2, use round-robin DNS
-
-o delta updates (DU)
+x delta updates (DU)
     x insert SMOs (splits) are applied when "going down"
         x make sure that all tests are still running
         x also check monster tests
@@ -135,7 +121,7 @@ x improve: ./ham_bench --recsize=1048576
         o where to host static files?
         o activate www1, www2
 
-o Improve transaction delta updates
+x Improve transaction delta updates
     x improve transaction structures, decouple them
         x update to new rb-tree if available - nope
         x each TransactionUpdate should be a single allocation
@@ -229,7 +215,7 @@ x Make cursor cleanup logic after erase less cheesy
     if a key is erased (remove_entry) then all cursors are uncoupled.
     Shortly afterwards, they're coupled again for the points_to() check.
 
-o why is --enable-recovery twice as fast as --use-transactions?
+x why is --enable-recovery twice as fast as --use-transactions?
     -> mostly related to malloc/free in the rb-tree
     x what can we do to reduce the allocations? a typical insert requires
         three allocations (we could get down to two):
@@ -243,11 +229,28 @@ o why is --enable-recovery twice as fast as --use-transactions?
             one DeltaUpdate is removed, the key will be provided by the
             next update.
             Later, the DUs can then be attached to the Btree node.
-    o the TransactionOperation structure also stores the key (one single
+    x the TransactionOperation structure also stores the key (one single
         allocation!)
-    o the TransactionNode no longer stores the key but uses the one from a
+    x the TransactionNode no longer stores the key but uses the one from a
         connected TransactionOperation
-    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+
+o QuickCheck:
+    x extend existing test with overwrite and duplicates
+    o document the various tests
+    o new test: create a database with generated configuration; use
+        insert/erase/find/close/open; use very low pagesize with large
+        key size, if possible; also use multi-page blobs
+    o boost the existing tests and create much larger sequences; no issue
+        if each test runs for an hour or more
+
+o improve the release process
+    o improve/add integration of static code analysis to release process
+        o oclint: create helper file in bin/
+            oclint $FILE -- -I ../include/ -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -c
+            filter out P1 problems, report P2, ignore P3
+        o coverity
+    o move the critical stages up front, and the non critical ones towards
+        the end (critical: packaging, unittests, tools, samples, valgrind)
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -258,11 +261,18 @@ o delta updates managed in the BtreeNode
     -> then how will it be added to the changeset?
     -> is a page dirty if it has DUs?
 
+    o perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        o Default
+
     o if the deltas are merged then the page must be added to the
         changeset; invest more time in thinking about recovery and
         make this water proof!!
 
     o need a flag to disable DeltaUpdates
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
     o totally transparent to the caller, handled in the proxy
     o merge them when reading and flushing
     o requires_split() takes delta updates into account
@@ -277,23 +287,22 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
-o QuickCheck:
-    x extend existing test with overwrite and duplicates
-    o new test: create a database with generated configuration; use
-        insert/erase/find/close/open; use very low pagesize with large
-        key size, if possible; also use multi-page blobs
-    o boost the existing tests and create much larger sequences; no issue
-        if each test runs for an hour or more
-
-o improve the release process
-    o improve integration of static code analysis in release process
-        o oclint
-        o coverity
-    o move the critical stages up front, and the non critical ones towards
-        the end (critical: packaging, unittests, tools, samples, valgrind)
-
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery
+
+. web-page requires updates
+    x deployed html differs from git-repository
+    o www1-repository and hamsterdb-www should be identical
+        o updates for 2.1.6 are missing
+        o samples fehlen
+        o download-dateien fehlen
+        o doku fehlt
+    o download/sources: add erlang, remove 1.x
+    o www1
+        o merge git repository of www1 (host on github, keep remote branch)
+        o clean up 'dl' directory
+        o where to host static files?
+        o backup and deploy to www2, use round-robin DNS
 
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
@@ -302,54 +311,9 @@ o extend ham_bench documentation for --disable-recovery
 
 ----------------------------------
 
-o can we come up with olap functions that operate directly on the btree data?
-    x working on keys only!! does that make sense? - yes, absolutely
-    -> should be nested, i.e. TOP(20, SELECT(SELECT(t1, p1), t2))
-    -> should work with C style callbacks but also with C++ templates!
-    -> would be awesome if the C++ templates directly run in the Btree,
-        but this would require a recompilation of the library. Still, this
-        should be documented and there should be samples.
-    -> records should never be fetched; this has to be handled by
-        the caller!
-    -> how can we allow database operations while scans and olap-operations
-        are running?
-    -> how can we make sure that the transactional integrity is respected?
-        i.e. an operation must run in a transactional setting, if required
-        (when enumerating a page: check if a transaction modifies a key in
-        this page. if not then just run over the btree. otherwise use a
-        normal cursor. slower, but should not happen often.)
-    -> results are copied into a buffer and then performed in the next stage.
-        the caller will receive the whole buffer at once. At this stage, the
-        Environment is not locked and requests can be performed.
-
-    o MIN()
-    o MAX()
-    o COUNT(predicate)
-    o AGGREGATE(predicate, result)
-    o AVERAGE(predicate, result)
-    o FOLDL(predicate, callback, Acc) -> Acc
-    o FOLDR(predicate, callback, Acc) -> Acc
-
-    o TOP(predicate, N)
-    o SELECT(predicate) -> View
-    o SORT(predicate) -> View
-    o MAP(predicate, callback) -> View
-    o JOIN(predicate, other view, callback) -> View
-    -> the SELECTs should return VIEWs which then can used as input for other
-        SELECTs; this way users can build a "tree" of statements:
-        SELECT(callback1,
-            JOIN(callback2, table1,
-                SELECT(callback3, table2)))
-    -> Views can be generated programmatically
-    -> allow database operations while such a process is performed
-    -> how to specify the predicates? callbacks? or c++ functors? this would
-        require recompiling hamsterdb (at least document how this would work)
-    -> use lua to specify operations on a higher level??
-    -> also: can we come up with a way to add complex structures to the
-        txn-tree, and then "marshal" them transparently to the databases?
-
-- prefetch cache lines when searching
-- linear SIMD search -> PRO
+x prefetch cache lines when searching -> no effect
+- "hola" - olap functions that operate directly on the btree data
+- linear SIMD search -> PRO (see topic/linear)
 - encrypt the log and the environment file with AES -> PRO
 - compress the log with snappy -> PRO
 - compress the records with snappy -> PRO

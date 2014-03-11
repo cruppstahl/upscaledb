@@ -14,7 +14,6 @@
 
 #include <stdio.h>
 #include <limits.h>
-#include <vector>
 
 #include <ham/types.h>
 

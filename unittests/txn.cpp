@@ -145,7 +145,7 @@ struct TxnFixture {
 
   void txnNodeCreatedOnceTest() {
     ham_txn_t *txn;
-    TransactionNode *node, *node2;
+    TransactionNode *node1, *node2;
     ham_key_t key1, key2;
     memset(&key1, 0, sizeof(key1));
     key1.data = (void *)"hello";
@@ -157,15 +157,21 @@ struct TxnFixture {
     memset(&rec, 0, sizeof(rec));
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode(m_dbp, &key1);
-    m_dbp->get_txn_index()->store(node);
+    node1 = new TransactionNode(m_dbp, &key1);
+    m_dbp->get_txn_index()->store(node1);
     node2 = m_dbp->get_txn_index()->get(&key1, 0);
-    REQUIRE(node == node2);
+    REQUIRE(node1 == node2);
     node2 = m_dbp->get_txn_index()->get(&key2, 0);
     REQUIRE((TransactionNode *)NULL == node2);
     node2 = new TransactionNode(m_dbp, &key2);
     m_dbp->get_txn_index()->store(node2);
-    REQUIRE(node != node2);
+    REQUIRE(node1 != node2);
+
+    // clean up
+    m_dbp->get_txn_index()->remove(node1);
+    delete node1;
+    m_dbp->get_txn_index()->remove(node2);
+    delete node2;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -173,22 +179,31 @@ struct TxnFixture {
   void txnMultipleNodesTest() {
     ham_txn_t *txn;
     TransactionNode *node1, *node2, *node3;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"1111";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key1 = {0};
+    ham_key_t key2 = {0};
+    ham_key_t key3 = {0};
+    key1.data = (void *)"1111";
+    key1.size = 5;
+    key2.data = (void *)"2222";
+    key2.size = 5;
+    key3.data = (void *)"3333";
+    key3.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = new TransactionNode(m_dbp, &key);
+    node1 = new TransactionNode(m_dbp, &key1);
     m_dbp->get_txn_index()->store(node1);
-    key.data = (void *)"2222";
-    node2 = new TransactionNode(m_dbp, &key);
+    node2 = new TransactionNode(m_dbp, &key2);
     m_dbp->get_txn_index()->store(node2);
-    key.data = (void *)"3333";
-    node3 = new TransactionNode(m_dbp, &key);
+    node3 = new TransactionNode(m_dbp, &key3);
     m_dbp->get_txn_index()->store(node3);
+
+    // clean up
+    m_dbp->get_txn_index()->remove(node1);
+    delete node1;
+    m_dbp->get_txn_index()->remove(node2);
+    delete node2;
+    m_dbp->get_txn_index()->remove(node3);
+    delete node3;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -210,13 +225,13 @@ struct TxnFixture {
     node = new TransactionNode(m_dbp, &key);
     m_dbp->get_txn_index()->store(node);
     op1 = node->append((LocalTransaction *)txn, 
-        0, TransactionOperation::kInsertDuplicate, 55, &rec);
+                0, TransactionOperation::kInsertDuplicate, 55, &key, &rec);
     REQUIRE(op1);
     op2 = node->append((LocalTransaction *)txn,
-        0, TransactionOperation::kErase, 56, &rec);
+                0, TransactionOperation::kErase, 56, &key, &rec);
     REQUIRE(op2);
     op3 = node->append((LocalTransaction *)txn,
-        0, TransactionOperation::kNop, 57, &rec);
+                0, TransactionOperation::kNop, 57, &key, &rec);
     REQUIRE(op3);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));

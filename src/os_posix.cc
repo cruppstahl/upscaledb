@@ -64,9 +64,8 @@ lock_exclusive(int fd, bool lock)
     ham_log(("flock failed with status %u (%s)", errno, strerror(errno)));
     // it seems that linux does not only return EWOULDBLOCK, as stated
     // in the documentation (flock(2)), but also other errors...
-    if (errno)
-      if (lock)
-        throw Exception(HAM_WOULD_BLOCK);
+    if (errno && lock)
+      throw Exception(HAM_WOULD_BLOCK);
     throw Exception(HAM_IO_ERROR);
   }
 #endif
@@ -289,10 +288,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
 #endif
   (void)flags;
 
-  if (!mode)
-    mode = 0644;
-
-  ham_fd_t fd = open(filename, osflags, mode);
+  ham_fd_t fd = open(filename, osflags, mode ? mode : 0644);
   if (fd < 0) {
     ham_log(("creating file %s failed with status %u (%s)", filename,
         errno, strerror(errno)));
