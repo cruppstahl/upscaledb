@@ -66,6 +66,9 @@
 
 namespace hamsterdb {
 
+// gates for ham_bench
+extern int g_linear_threshold;
+
 template<typename KeyList, typename RecordList>
 class PaxNodeImpl;
 
@@ -269,6 +272,60 @@ class PodKeyList
       m_data[slot] = *(T *)ptr;
     }
 
+    // Returns the threshold when switching from binary search to
+    // linear search
+    int get_linear_search_threshold() const {
+      if (g_linear_threshold)
+        return (g_linear_threshold);
+      return (128 / sizeof(T));
+    }
+
+    // Performs a linear search in a given range between |start| and
+    // |start + length|
+    template<typename Cmp>
+    int linear_search(ham_u32_t start, ham_u32_t count, ham_key_t *hkey,
+                    Cmp &comparator, int *pcmp) {
+      T key = *(T *)hkey->data;
+
+      ham_u32_t c = start;
+      ham_u32_t end = start + count;
+
+#define COMPARE(c)      if (key <= m_data[c]) {                         \
+                          if (key < m_data[c]) {                        \
+                            if (c == 0)                                 \
+                              *pcmp = -1; /* key < m_data[0] */         \
+                            else                                        \
+                              *pcmp = +1; /* key > m_data[c - 1] */     \
+                            return ((c) - 1);                           \
+                          }                                             \
+                          *pcmp = 0;                                    \
+                          return (c);                                   \
+                        }
+
+      while (c + 8 < end) {
+        COMPARE(c)
+        COMPARE(c + 1)
+        COMPARE(c + 2)
+        COMPARE(c + 3)
+        COMPARE(c + 4)
+        COMPARE(c + 5)
+        COMPARE(c + 6)
+        COMPARE(c + 7)
+        c += 8;
+      }
+
+      while (c < end) {
+        COMPARE(c)
+        c++;
+      }
+
+#undef COMPARE
+
+      /* the new key is > the last key in the page */
+      *pcmp = 1;
+      return (start + count - 1);
+    }
+
   private:
     // The actual array of T's
     T *m_data;
@@ -307,6 +364,54 @@ class BinaryKeyList
     void set_key_data(ham_u32_t slot, const void *ptr, ham_u32_t size) {
       ham_assert(size == get_key_size());
       memcpy(&m_data[slot * m_key_size], ptr, size);
+    }
+
+    // Returns the threshold when switching from binary search to
+    // linear search
+    int get_linear_search_threshold() const {
+      if (g_linear_threshold)
+        return (g_linear_threshold);
+      if (m_key_size > 32)
+        return (0xffffffff); // disable linear search for large keys
+      return (128 / m_key_size);
+
+    }
+
+    // Performs a linear search in a given range between |start| and
+    // |start + length|
+    template<typename Cmp>
+    int linear_search(ham_u32_t start, ham_u32_t count, ham_key_t *key,
+                    Cmp &comparator, int *pcmp) {
+      ham_u8_t *begin = &m_data[start * m_key_size];
+      ham_u8_t *end = &m_data[(start + count) * m_key_size];
+      ham_u8_t *current = begin;
+
+      int c = start;
+
+      while (current < end) {
+        /* compare it against the key */
+        int cmp = comparator(key->data, key->size, current, m_key_size);
+
+        /* found it, or moved past the key? */
+        if (cmp <= 0) {
+          if (cmp < 0) {
+            if (c == 0)
+              *pcmp = -1; // key is < #m_data[0]
+            else
+              *pcmp = +1; // key is > #m_data[c - 1]!
+            return (c - 1);
+          }
+          *pcmp = 0;
+          return (c);
+        }
+
+        current += m_key_size;
+        c++;
+      }
+
+      /* the new key is > the last key in the page */
+      *pcmp = 1;
+      return (start + count - 1);
     }
 
   private:
@@ -676,23 +781,20 @@ class PaxNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find(ham_key_t *key, Cmp &comparator, int *pcmp = 0) {
+    int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
       ham_u32_t count = m_node->get_count();
-      int i, l = 1, r = count - 1;
-      int ret = 0, last = count + 1;
-      int cmp = -1;
-
       ham_assert(count > 0);
 
-      /* only one element in this node? */
-      if (r == 0) {
-        cmp = compare(key, at(0), comparator);
-        if (pcmp)
-          *pcmp = cmp;
-        return (cmp < 0 ? -1 : 0);
-      }
+      // Run a binary search, but fall back to linear search as soon as
+      // the remaining range is too small
+      int threshold = m_keys.get_linear_search_threshold();
+      int i, l = 0, r = count;
+      int last = count + 1;
+      int cmp = -1;
 
-      for (;;) {
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > threshold) {
         /* get the median item; if it's identical with the "last" item,
          * we've found the slot */
         i = (l + r) / 2;
@@ -700,9 +802,8 @@ class PaxNodeImpl
         if (i == last) {
           ham_assert(i >= 0);
           ham_assert(i < (int)count);
-          cmp = 1;
-          ret = i;
-          break;
+          *pcmp = 1;
+          return (i);
         }
 
         /* compare it against the key */
@@ -710,28 +811,28 @@ class PaxNodeImpl
 
         /* found it? */
         if (cmp == 0) {
-          ret = i;
-          break;
+          *pcmp = cmp;
+          return (i);
         }
-
         /* if the key is bigger than the item: search "to the left" */
-        if (cmp < 0) {
+        else if (cmp < 0) {
           if (r == 0) {
             ham_assert(i == 0);
-            ret = -1;
-            break;
+            *pcmp = cmp;
+            return (-1);
           }
-          r = i - 1;
+          r = i;
         }
+        /* otherwise search "to the right" */
         else {
           last = i;
-          l = i + 1;
+          l = i;
         }
       }
 
-      if (pcmp)
-        *pcmp = cmp;
-      return (ret);
+      // still here? then perform a linear search for the remaining range
+      ham_assert(r - l <= threshold);
+      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
     }
 
     // Returns a copy of a key and stores it in |dest|

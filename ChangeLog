@@ -1,3 +1,7 @@
+Apr 08, 2014 - chris ---------------------------------------------------
+o PAX layout now uses linear search for small ranges; this improves search
+	performance by 5-10%
+
 Apr 05, 2014 - chris ---------------------------------------------------
 o Removed the ham_get_license API (and serial.h)
 

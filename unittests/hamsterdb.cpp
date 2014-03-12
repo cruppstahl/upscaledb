@@ -361,11 +361,7 @@ struct HamsterdbFixture {
   }
 
   void nearFindStressTest() {
-#if defined(HAM_DEBUG)
-    const int RECORD_COUNT_PER_DB = 20000;
-#else
     const int RECORD_COUNT_PER_DB = 50000;
-#endif
     ham_env_t *env;
     ham_db_t *db;
     struct my_key_t {

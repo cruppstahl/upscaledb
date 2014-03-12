@@ -1218,7 +1218,7 @@ class DefaultNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find(ham_key_t *key, Cmp &comparator, int *pcmp = 0) {
+    int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
       ham_u32_t count = m_node->get_count();
       int i, l = 1, r = count - 1;
       int ret = 0, last = count + 1;
@@ -1233,8 +1233,7 @@ class DefaultNodeImpl
       /* only one element in this node? */
       if (r == 0) {
         cmp = compare(key, at(0), comparator);
-        if (pcmp)
-          *pcmp = cmp;
+        *pcmp = cmp;
         return (cmp < 0 ? -1 : 0);
       }
 
@@ -1259,9 +1258,8 @@ class DefaultNodeImpl
           ret = i;
           break;
         }
-
-        /* if the key is bigger than the item: search "to the left" */
-        if (cmp < 0) {
+        /* if the key is bigger than the current item: search "to the left" */
+        else if (cmp < 0) {
           if (r == 0) {
             ham_assert(i == 0);
             ret = -1;
@@ -1269,14 +1267,14 @@ class DefaultNodeImpl
           }
           r = i - 1;
         }
+        /* if the key is smaller than the current item: search "to the right" */
         else {
           last = i;
           l = i + 1;
         }
       }
 
-      if (pcmp)
-        *pcmp = cmp;
+      *pcmp = cmp;
       return (ret);
     }
 

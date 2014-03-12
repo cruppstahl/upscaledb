@@ -407,13 +407,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
     virtual int find(ham_key_t *key, int *pcmp = 0) {
+      int dummy;
       if (get_count() == 0) {
         if (pcmp)
           *pcmp = 1;
         return (-1);
       }
       Comparator cmp(m_page->get_db());
-      return (m_impl.find(key, cmp, pcmp));
+      return (m_impl.find(key, cmp, pcmp ? pcmp : &dummy));
     }
 
     // Returns the full key at the |slot|. Also resolves extended keys
@@ -574,12 +575,12 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         }
         else {
          printf("%03u:    ", i);
-         //printf("    %08d -> %08llx\n", *(int *)it->get_key_data(),
-                  //(unsigned long long)it->get_record_id());
-         for (ham_u32_t j = 0; j < it->get_key_size(); j++)
-           printf("%c", ((const char *)it->get_key_data())[j]);
-         printf(" (%d) -> %08llx\n", it->get_key_size(),
-                          (unsigned long long)it->get_record_id());
+         printf("    %08u -> %08llx\n", *(ham_u32_t *)it->get_key_data(),
+                  (unsigned long long)it->get_record_id());
+         //for (ham_u32_t j = 0; j < it->get_key_size(); j++)
+           //printf("%c", ((const char *)it->get_key_data())[j]);
+         //printf(" (%d) -> %08llx\n", it->get_key_size(),
+                          //(unsigned long long)it->get_record_id());
         }
       }
     }

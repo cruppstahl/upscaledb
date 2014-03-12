@@ -87,6 +87,7 @@
 #define ARG_JOURNAL_COMPRESSION                 62
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
+#define ARG_PAX_LINEAR_THRESHOLD                65
 
 /*
  * command line parameters
@@ -394,6 +395,12 @@ static option_t opts[] = {
     "key-compression",
     "PRO: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_PAX_LINEAR_THRESHOLD,
+    0,
+    "pax-linear-threshold",
+    "Sets the threshold when switching from binary search to linear search (PAX only",
+    GETOPTS_NEED_ARGUMENT },
   {0, 0}
 };
 
@@ -415,6 +422,10 @@ parse_compression_type(const char *param)
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
+
+namespace hamsterdb {
+extern int g_linear_threshold;
+};
 
 static void
 parse_config(int argc, char **argv, Configuration *c)
@@ -726,6 +737,9 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_KEY_COMPRESSION) {
       c->key_compression = parse_compression_type(param);
+    }
+    else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
+      hamsterdb::g_linear_threshold = strtoul(param, 0, 0);
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
