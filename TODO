@@ -17,7 +17,7 @@ to scale with the number of cores.
 high-level plan for 2.1.7 ..................................................
 x simplified btree SMOs
 x improve recovery performance/scalability
-o improve QuickCheck coverage
+x improve QuickCheck coverage
 o delta updates
 
 --------------
@@ -101,25 +101,6 @@ x another bug
     ./ham_bench --reopen=true --key=binary --keysize=64 --pagesize=1024 --recsize=0 --open --bulk-erase --stop-ops=25000 --seed=1393445762
 
 x improve: ./ham_bench --recsize=1048576
-
-. web-page requires updates
-    x deployed html differs from git-repository
-    x download/sources: add erlang, remove 1.x
-    x www1-repository and hamsterdb-www should be identical
-        x updates for 2.1.6 are missing
-        x samples fehlen
-        x doku fehlt
-        x download-dateien fehlen
-    o www1
-        x www1 and www2 are already combined in a single remote target
-        o 'htdocs' should push to staging.hamsterdb.com
-        o if everything works then also to hamsterdb.com
-        o merge all repositories (host on github, keep remote branch)
-            hamsterdb-www is the main repository, master pushes to staging
-            'stable' pushes to hamsterdb.com, www1, www2
-        o clean up 'dl' directory
-        o where to host static files?
-        o activate www1, www2
 
 x Improve transaction delta updates
     x improve transaction structures, decouple them
@@ -234,14 +215,14 @@ x why is --enable-recovery twice as fast as --use-transactions?
     x the TransactionNode no longer stores the key but uses the one from a
         connected TransactionOperation
 
-o QuickCheck:
+x QuickCheck
     x extend existing test with overwrite and duplicates
-    o document the various tests
-    o new test: create a database with generated configuration; use
+    x document the various tests
+    x new test: create a database with generated configuration; use
         insert/erase/find/close/open; use very low pagesize with large
         key size, if possible; also use multi-page blobs
-    o boost the existing tests and create much larger sequences; no issue
-        if each test runs for an hour or more
+
+o webpage copyright is still 2013
 
 o improve the release process
     o improve/add integration of static code analysis to release process
@@ -249,8 +230,46 @@ o improve the release process
             oclint $FILE -- -I ../include/ -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -c
             filter out P1 problems, report P2, ignore P3
         o coverity
+    o packaging currently creates the documentation tarball with the
+        full directory
+    o run both as part of the release process
     o move the critical stages up front, and the non critical ones towards
         the end (critical: packaging, unittests, tools, samples, valgrind)
+
+o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
+
+x web-page requires updates
+    x deployed html differs from git-repository
+    x download/sources: add erlang, remove 1.x
+    x www1-repository and hamsterdb-www should be identical
+        x updates for 2.1.6 are missing
+        x samples fehlen
+        x doku fehlt
+        x download-dateien fehlen
+    x www1
+        x www1 and www2 are already combined in a single remote target
+        x where to host static files? - hetzner server
+        x clean up 'dl' directory
+    o 'htdocs' should push to staging.hamsterdb.com
+        o if everything works then also to hamsterdb.com
+        o then use a different branch for staging
+    o merge all repositories (host on github, keep remote branch)
+        hamsterdb-www is the main repository, master pushes to staging
+        'stable' pushes to hamsterdb.com, www1, www2
+
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o reserve CRC32 for each page
+
+. QuickCheck
+    o create a new property for testing duplicates; the key is always the
+        same. The number of duplicate keys is tracked and periodically checked
+        with the API. A cursor can be used to remove a specific duplicate,
+        or to fetch a specific duplicate.
+
+----------------------------------
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -287,41 +306,149 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
-o extend ham_bench documentation for --flush-txn-immediately
-o extend ham_bench documentation for --disable-recovery
+o Start with the PRO version
+    x API to get licensee information (can use ham_get_license())
+        x also for wrapper APIs
+    x update all file header comments; describe copyright, licensing options
+        and point to the COPYING file.
+    o change file header for include files, too
+    o fork a closed repository
+        x replace COPYING file
+        o PRO is able to open MIT files, but not vice versa
+        o change ham_get_license()
+            o needs a test
+        o enable AES encryption (also for the journal)
+            o journal header: store flags ("Encryption enabled")
+            o journal entries: requires padding??
+            o apply encryption on the lowest level (whereas compression
+                will be on entry-level)
+            o MIT should return "HAM_NOT_IMPLEMENTED"
+            o needs unittests, perftests and monster tests
+        o enable zlib/snappy/others compression (for records and the journal)
+            o compressor.h
+            o compressor_snappy.h
+            o compressor_zlib.h
+            o compressor_lzf.h
+                http://oldhome.schmorp.de/marc/liblzf.html - BSD license
+                o add to alien/lzf
+            o compressor_lzop.h
+                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
+            o compressor_factory.h
+            o compressor_factory.cc
+            o unittest for compressors, also acts as performance test
 
-. web-page requires updates
-    x deployed html differs from git-repository
-    o www1-repository and hamsterdb-www should be identical
-        o updates for 2.1.6 are missing
-        o samples fehlen
-        o download-dateien fehlen
-        o doku fehlt
-    o download/sources: add erlang, remove 1.x
-    o www1
-        o merge git repository of www1 (host on github, keep remote branch)
-        o clean up 'dl' directory
-        o where to host static files?
-        o backup and deploy to www2, use round-robin DNS
+            o new persistent parameter HAM_PARAM_ENABLE_COMPRESSION
+                        = Record | Jrnal
+            o new parameter HAM_PARAM_SET_RECORD_COMPRESSION_LIBRARY = library
+            o new parameter HAM_PARAM_SET_RECORD_COMPRESSION_LEVEL
+            o new parameter HAM_PARAM_SET_JOURNAL_COMPRESSION_LIBRARY = library
+            o new parameter HAM_PARAM_SET_JOURNAL_COMPRESSION_LEVEL
 
-. collect file format updates
-    o PageManager state: also store m_last_blob_page_id persistently
-        (try not to break backwards compatibility, though)
-    o reserve CRC32 for each page
+            o MIT should return "HAM_NOT_IMPLEMENTED"
+            o do not allow partial updates for compressed records
+                o unittests
+            o add to java, .NET, erlang
+            o implement for the journal
+            o implement for the records
 
-----------------------------------
+            o for the actual defaults: run tests, also with string input (from
+                    the word list - already supported in ham_bench)
+                o then pick the fastest option as the default
+
+            o needs unittests, perftests and monster tests
+        o replace GPL with MIT license (in hamsterdb, then merge)
+
+    o work over the license agreement
+
+    o 30 day evaluation library
+        o insert 30day trial check macros at various positions
+            o dynamically generate those macros
+        o needs different licensing output in the tools
+        o print to stdout in ham_env_create, ham_env_open
+        o evaluate source obfuscators
+        o create one source/win32 package starting at each week, running
+                4 weeks
+            o requires a build tool for unix and win32
+
+    o new release process for the commercial build
+        o also create the 30day trial packages
+
+    o admin webpage
+        o database is in openshift
+        o admin webpage is secured by htaccess (has a non-standard path)
+        o has a dashboard
+            o number of customers
+            o number of customers which will expire in less than 1 month
+            o number of trial customers
+            o number of trial customers which will expire in less than 1 week
+        o has a table with the releases
+        o has a table with the customers and their license status
+                (trial from-to, customer from-to)
+        o has a table with the links/guids for the customers
+        o can list, add, edit, remove releases
+        o can list, add, edit, remove customers
+        o can create a new trial customer
+        o can create a new (non-trial) customer
+        o can upgrade a customer
+        o can list trial customers which expire soon
+        o can list real customers which expire soon
+        o has an api to verify the GUIDs
+        o daily backup of the database to the other server
+
+        o need a second installation for testing!
+
+    o webpage
+        o overview, catch lines
+        o customers
+        o feature matrix MIT vs. closed source
+        o integrate blog, use disqus comments
+        o can download commercial files using the admin-API to verify the
+            login
+        o daily backups of the database
+
+    o expired 30day licenses will be removed automatically from the server
+        o and from the backup server
+        o and from the database
+
+    o what are the minimum features required for the first release?
+        - (evaluation licenses)
+        - lightweight compression for the journal
+        - lightweight compression for records
+        - AES encryption for journal and file
+        - hot backups
+      optional:
+        - bulk updates
+        - prefix compression for strings (requires delta updates)
+        - lightweight compression for binary keys (requires delta updates)
+        - SIMD for searches
+
+o compression for variable-length keys
+    - if key is appended at the end: just write the delta
+    - otherwise things get tricky, because the keys to the "right" of the
+        inserted key have to be re-compressed; and in this case it is
+        possible that the space will overflow
+    - when re-compressing: key size might grow or shrink, which means that
+        the keys "to the right" should be rearranged as well
+    ===> it really makes sense to have delta updates and bulk inserts first!!
+    - try to save a full key every Nth bytes, to avoid extensive re-compressing
+
+- "hola" - olap functions that operate directly on the btree data
 
 x prefetch cache lines when searching -> no effect
-- "hola" - olap functions that operate directly on the btree data
-- linear SIMD search -> PRO (see topic/linear)
 - encrypt the log and the environment file with AES -> PRO
-- compress the log with snappy -> PRO
-- compress the records with snappy -> PRO
+- compress the log with snappy, zlib, others -> PRO
+- compress the records with snappy, zlib, others -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
+    - copies the database file
+    - if compaction is enabled: copies keys w/ iterator
+        (later: performs bulk updates)
+    - then applies all committed transactions to the other file
 - bulk updates -> PRO
+    - require delta updates
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the stream
+- linear SIMD search -> PRO (see topic/linear)
 - first PRO release
     o webpage updates, PR, mailings
 
@@ -343,36 +470,6 @@ x prefetch cache lines when searching -> no effect
     - erase(predicate_t)
     - explain(predicate_t, column_descriptor_t)
 
-o introduce PRO version
-    o start a closed repository
-    o one source base with different licensing headers, different licensing
-        string (also for tools), different version tag
-    o API to get licensee information (is_pro_version())
-    o new release process
-    o prebuilt win32 files
-    o get rid of serial.h - it's not really required and only creates efforts
-    o how to share files with customers? need a login area,
-        downloadable, customized files (win32, serial.h, tarballs...)
-        -> send out mails if a new file is available
-    o evaluation license: build binaries for the most common architectures
-        o insert expiration date checks
-        o special copyright strings
-        o prebuilt for win32/win64
-        o unix: obfuscated source code
-        o need an automated flow for signups, for evaluation licenses etc
-    o extra documentation
-    o define file format interoperability?
-    o what are the minimum features required for the first release?
-        - (evaluation licenses)
-        - lightweight compression for the journal
-        - lightweight compression for records
-        - AES encryption for journal and file
-      optional:
-        - SIMD for searches
-        - prefix compression for strings
-        - lightweight compression for binary keys
-        - hot backups
-
 o PRO: btree can compress keys
     x get rid of the whole minkey/maxkey handling because these numbers
         are irrelevant with compression
@@ -391,17 +488,7 @@ o PRO: btree can compress keys
     o do we need delta updates for efficient inserts? - i think not yet...
 
 o PRO: use SIMD for fixed-length scans and __builtin_prefetch
-    o use valgrind to track cache misses
-    http://pcl.intel-research.net/publications/palm.pdf
-    http://www.cs.toronto.edu/~ryanjohn/teaching/csc2531-f11/slides/Ioan-SIMD-DBMS.pdf
-    http://gcc.gnu.org/onlinedocs/gcc-3.3.6/gcc/Other-Builtins.html
-    http://stackoverflow.com/questions/8460563/builtin-prefetch-how-much-does-it-read
-    http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/include/linux/prefetch.h
-    http://stackoverflow.com/questions/7327994/prefetching-examples
-    o use linear search with fixed length keys (if max-keys-per-page
-        or the subrange in the binary search is low enough, and if the
-        performance makes sense) -> also for MIT
-    o if both layouts use binary search then move it back to the proxy!
+    -> see topic/linear for a partial implementation
 
 o the bucket for concurrency TODOs
     o reduce the linked lists - they're hard to be updated with concurrent
