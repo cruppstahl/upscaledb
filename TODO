@@ -311,7 +311,7 @@ o Start with the PRO version
         x also for wrapper APIs
     x update all file header comments; describe copyright, licensing options
         and point to the COPYING file.
-    o change file header for include files, too
+    x change file header for include files, too
     o fork a closed repository
         x replace COPYING file
         o PRO is able to open MIT files, but not vice versa
@@ -325,16 +325,15 @@ o Start with the PRO version
             o MIT should return "HAM_NOT_IMPLEMENTED"
             o needs unittests, perftests and monster tests
         o enable zlib/snappy/others compression (for records and the journal)
-            o compressor.h
-            o compressor_snappy.h
-            o compressor_zlib.h
-            o compressor_lzf.h
-                http://oldhome.schmorp.de/marc/liblzf.html - BSD license
-                o add to alien/lzf
+            x compressor.h
+            x compressor_snappy.h
+            x compressor_zlib.h
+            x compressor_lzf.h
+                x add to 3rdparty/lzf
             o compressor_lzop.h
                 http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
-            o compressor_factory.h
-            o compressor_factory.cc
+            x compressor_factory.h
+            x compressor_factory.cc
             o unittest for compressors, also acts as performance test
 
             o new persistent parameter HAM_PARAM_ENABLE_COMPRESSION
@@ -356,6 +355,7 @@ o Start with the PRO version
                 o then pick the fastest option as the default
 
             o needs unittests, perftests and monster tests
+            o add test to release-pro.pl
         o replace GPL with MIT license (in hamsterdb, then merge)
 
     o work over the license agreement

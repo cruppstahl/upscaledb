@@ -50,7 +50,7 @@ using namespace hamsterdb;
 static bool
 __filename_is_local(const char *filename)
 {
-  return (filename && strstr(filename, "ham://") != filename);
+  return (!filename || strstr(filename, "ham://") != filename);
 }
 
 ham_status_t
