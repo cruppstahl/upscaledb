@@ -211,6 +211,27 @@ public class Const {
     /** Parameter name for Database.getParameters() */
     public final static int HAM_PARAM_MAX_KEYS_PER_PAGE         =    0x204;
 
+    /** hamsterdb pro: Parameter name for Environment.create() */
+    public final static int HAM_PARAM_ENABLE_JOURNAL_COMPRESSION = 0x01000;
+
+    /** hamsterdb pro: Parameter name for Database.create() */
+    public final static int HAM_PARAM_ENABLE_RECORD_COMPRESSION  = 0x01001;
+
+    /** hamsterdb pro: "null" compression */
+    public final static int HAM_COMPRESSOR_NONE                 =        0;
+
+    /** hamsterdb pro: Zlib compression */
+    public final static int HAM_COMPRESSOR_ZLIB                 =        1;
+
+    /** hamsterdb pro: Snappy compression */
+    public final static int HAM_COMPRESSOR_SNAPPY               =        2;
+
+    /** hamsterdb pro: lzf compression */
+    public final static int HAM_COMPRESSOR_LZF                  =        3;
+
+    /** hamsterdb pro: lzop compression */
+    public final static int HAM_COMPRESSOR_LZOP                 =        4;
+
     /** Flag for Database.insert(), Cursor.insert() */
     public final static int HAM_OVERWRITE                       =        1;
 

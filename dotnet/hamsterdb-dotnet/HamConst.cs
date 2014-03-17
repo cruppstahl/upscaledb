@@ -161,6 +161,21 @@ namespace Hamster
     /// <summary>Value for HAM_PARAM_RECORD_SIZE</summary>
     public const long HAM_RECORD_SIZE_UNLIMITED     = 0xffffffff;
 
+    /// <summary>hamsterdb pro: Value for Environment.Create</summary>
+    public const int HAM_PARAM_ENABLE_JOURNAL_COMPRESSION = 0x1000;
+    /// <summary>hamsterdb pro: Value for Database.Create</summary>
+    public const int HAM_PARAM_ENABLE_RECORD_COMPRESSION  = 0x1001;
+    /// <summary>hamsterdb pro: "null" compression</summary>
+    public const int HAM_COMPRESSION_NONE                 =      0;
+    /// <summary>hamsterdb pro: zlib compression</summary>
+    public const int HAM_COMPRESSION_ZLIB                 =      1;
+    /// <summary>hamsterdb pro: snappy compression</summary>
+    public const int HAM_COMPRESSION_SNAPPY               =      2;
+    /// <summary>hamsterdb pro: lzf compression</summary>
+    public const int HAM_COMPRESSION_LZF                  =      3;
+    /// <summary>hamsterdb pro: lzop compression</summary>
+    public const int HAM_COMPRESSION_LZOP                 =      4;
+
     // Database operations
     /// <summary>Flag for Database.Insert, Cursor.Insert</summary>
     public const int HAM_OVERWRITE                  =    0x0001;
