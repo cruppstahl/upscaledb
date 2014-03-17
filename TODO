@@ -335,6 +335,8 @@ o Start with the PRO version
             x new parameter HAM_PARAM_ENABLE_RECORD_COMPRESSION
                         = (none | zlib | snappy | lzf | lzop)
             x MIT should return "HAM_NOT_IMPLEMENTED"
+            x add to java, .NET, erlang
+
             o env: persist journal compression parameter
                 o create compressor in journal (w/ autoptr)
                 o unittest
@@ -343,7 +345,6 @@ o Start with the PRO version
                 o unittest
             o do not allow partial updates for compressed records
                 o unittests
-            o add to java, .NET, erlang
 
             o implement for the records
                 o only store compressed data if compression results in < 100%
@@ -356,7 +357,7 @@ o Start with the PRO version
                     the word list - already supported in ham_bench)
                 o then pick the fastest option as the default
 
-            o documentation
+            o documentation in header file
             o add to ham_bench
             o needs unittests, perftests and monster tests
             o add test to release-pro.pl
