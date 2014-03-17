@@ -1670,9 +1670,6 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /**
  * Retrieve the Database 'name' number of this @ref ham_db_t Database within
  * the current @ref ham_env_t Environment.
- *
- * When the Database is not related to an Environment, the reserved 'name'
- * 0xf001 is used for this Database.
 */
 #define HAM_PARAM_DATABASE_NAME         0x00000203
 
@@ -1682,6 +1679,18 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * have constant sizes or if duplicate keys are used.
  */
 #define HAM_PARAM_MAX_KEYS_PER_PAGE     0x00000204
+
+/**
+ * hamsterdb pro: Parameter name for @ref ham_env_create; enables compression
+ * for the journal
+ */
+#define HAM_PARAM_ENABLE_JOURNAL_COMPRESSION 0x1000
+
+/**
+ * hamsterdb pro: Parameter name for @ref ham_env_create_db; enables compression
+ * for the records of a Database
+ */
+#define HAM_PARAM_ENABLE_RECORD_COMPRESSION  0x1001
 
 /**
  * Retrieve the Environment handle of a Database

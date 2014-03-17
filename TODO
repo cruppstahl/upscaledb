@@ -322,19 +322,13 @@ o Start with the PRO version
                 x add to 3rdparty/lzf
             x compressor_factory.h
             x compressor_factory.cc
-<<<<<<< Updated upstream
             x unittest for compressors
             x compressor_lzop.h
                 x configure should print warning b/c it's GPL
                 http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
-=======
             x fix configure scripts etc
                 x snappy nur linken wenn's da ist
                 x zlib nur linken wenn's da ist
-            o compressor_lzop.h
-                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
-            o unittest for compressors, also acts as performance test
->>>>>>> Stashed changes
 
             o env: new persistent parameter HAM_PARAM_ENABLE_JOURNAL_COMPRESSION
                         = (none | zlib | snappy | lzf | lzop)
@@ -380,8 +374,6 @@ o Start with the PRO version
 
     o adjust documentation in the header files
     o adjust doxygen file
-=======
->>>>>>> Stashed changes
 
     o work over the license agreement; PRO will be similar to an NDA
 

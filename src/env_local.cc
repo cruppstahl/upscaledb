@@ -576,6 +576,9 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
+        case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
+          ham_trace(("Record compression is only available in hamsterdb pro"));
+          return (HAM_NOT_IMPLEMENTED);
         case HAM_PARAM_KEY_TYPE:
           key_type = (ham_u16_t)param->value;
           break;
