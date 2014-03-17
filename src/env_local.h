@@ -125,6 +125,19 @@ class LocalEnvironment : public Environment
       return (m_encryption_enabled);
     }
 
+    // Enables compression for the journal
+    void enable_journal_compression(int library, int level) {
+      m_journal_compression = library;
+      m_journal_compression_level = level;
+    }
+
+    // Returns the compression type for the journal, or 0 if compression
+    // is disabled
+    int is_journal_compression_enabled(int *level) const {
+      *level = m_journal_compression_level;
+      return (m_journal_compression);
+    }
+
     // Returns the AES encryption key
     const ham_u8_t *get_encryption_key() const {
       return (m_encryption_key);
@@ -204,6 +217,12 @@ class LocalEnvironment : public Environment
 
     // The AES encryption key
     ham_u8_t m_encryption_key[16];
+
+    // The journal compression algorithm
+    bool m_journal_compression;
+
+    // The journal compression level (for zlib)
+    int m_journal_compression_level;
 
     // The page_size which was specified when the env was created
     ham_u32_t m_page_size;

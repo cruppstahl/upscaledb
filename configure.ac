@@ -39,6 +39,9 @@ AC_CHECK_HEADERS([fcntl.h unistd.h malloc.h uv.h])
 m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
 AX_CXX_GCC_ABI_DEMANGLE
 
+# include hamsterdb-pro stuff
+m4_include([configure-pro.ac])
+
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.36])
 BOOST_SYSTEM()

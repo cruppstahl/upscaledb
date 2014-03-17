@@ -72,6 +72,7 @@
 
 #include "os.h"
 #include "util.h"
+#include "compressor.h"
 #include "journal_entries.h"
 
 namespace hamsterdb {
@@ -80,6 +81,7 @@ class Page;
 class Database;
 class LocalEnvironment;
 class LocalTransaction;
+class Compressor;
 
 #include "packstart.h"
 
@@ -364,6 +366,9 @@ class Journal
 
     // Set to false to disable logging; used during recovery
     bool m_disable_logging;
+
+    // The compressor; can be null
+    std::auto_ptr<Compressor> m_compressor;
 
     // Counting the flushed bytes (for ham_env_get_metrics)
     ham_u64_t m_count_bytes_flushed;

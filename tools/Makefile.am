@@ -20,6 +20,17 @@ ham_export_SOURCES  = export.pb.cc ham_export.cc $(COMMON)
 ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a \
 					  -lprotobuf $(BOOST_SYSTEM_LIBS)
 ham_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
+if ENABLE_COMPRESSION
+if WITH_ZLIB
+ham_export_LDADD   += -lz
+endif
+if WITH_SNAPPY
+ham_export_LDADD   += -lsnappy
+endif
+if WITH_LZOP
+ham_export_LDADD   += -llzo2
+endif
+endif
 
 ham_import_SOURCES  = export.pb.cc ham_import.cc export.pb.h $(COMMON)
 ham_import_LDADD    = $(top_builddir)/src/libhamsterdb.la -lprotobuf \

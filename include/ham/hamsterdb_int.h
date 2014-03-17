@@ -16,7 +16,7 @@
 
 /**
  * @file hamsterdb_int.h
- * @brief Internal hamsterdb Embedded Storage functions.
+ * @brief Internal hamsterdb Embedded Storage PRO functions.
  * @author Christoph Rupp, chris@crupp.de
  *
  * Please be aware that the interfaces in this file are mostly for internal

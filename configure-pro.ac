@@ -1,0 +1,44 @@
+dnl
+dnl configuration script for hamsterdb
+dnl
+dnl Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+dnl All rights reserved. See file COPYING for licence and copyright
+dnl information.
+dnl
+
+# -------------------------------------------------------------------------
+# Disable compression?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(compression,
+  AS_HELP_STRING([--disable-compression], [Disables compression]))
+AM_CONDITIONAL(ENABLE_COMPRESSION, test x$enable_compression != xno)
+if test x$enable_compression = xno; then
+  settings="$settings (no compression)"
+else
+  settings="$settings (compression)"
+
+  AC_CHECK_HEADERS(zlib.h)
+  if test x$ac_cv_header_zlib_h = xyes; then
+    AM_CONDITIONAL(WITH_ZLIB, true)
+  else
+    AM_CONDITIONAL(WITH_ZLIB, false)
+  fi
+
+  AC_LANG(C++)
+  AC_CHECK_HEADERS(snappy.h)
+  AC_LANG(C)
+  if test x$ac_cv_header_snappy_h = xyes; then
+    AM_CONDITIONAL(WITH_SNAPPY, true)
+  else
+    AM_CONDITIONAL(WITH_SNAPPY, false)
+  fi
+
+  AC_CHECK_HEADERS(lzo/lzo1x.h)
+  if test x$ac_cv_header_lzo_lzo1x_h = xyes; then
+    AM_CONDITIONAL(WITH_LZOP, true)
+  else
+    AM_CONDITIONAL(WITH_LZOP, false)
+  fi
+fi
+
+AC_CONFIG_FILES(3rdparty/liblzf/Makefile)

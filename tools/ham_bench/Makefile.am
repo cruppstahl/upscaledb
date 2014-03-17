@@ -53,3 +53,15 @@ ham_bench_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
 				   -lprotobuf -luv -ldl
 endif
 
+if ENABLE_COMPRESSION
+if WITH_ZLIB
+ham_bench_LDADD += -lz
+endif
+if WITH_SNAPPY
+ham_bench_LDADD += -lsnappy
+endif
+if WITH_LZOP
+ham_bench_LDADD += -llzo2
+endif
+endif
+

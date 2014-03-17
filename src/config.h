@@ -64,6 +64,9 @@
 #  endif
 #endif
 
+// the default compression level (for zlib)
+#define HAM_DEFAULT_COMPRESSION_LEVEL       7
+
 #include <stddef.h>
 #define OFFSETOF(type, member) offsetof(type, member)
 

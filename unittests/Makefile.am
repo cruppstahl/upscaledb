@@ -18,6 +18,7 @@ test_SOURCES    = api110.cpp \
 				  btree_key.cpp \
 				  changeset.cpp \
 				  check.cpp \
+				  compression.cpp \
 				  cppapi.cpp \
 				  cursor.cpp \
 				  db.cpp \
@@ -91,6 +92,22 @@ test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 recovery_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
+endif
+
+if ENABLE_COMPRESSION
+AM_CPPFLAGS    += -DHAM_ENABLE_COMPRESSION
+if WITH_ZLIB
+test_LDADD     += -lz
+recovery_LDADD += -lz
+endif
+if WITH_SNAPPY
+test_LDADD     += -lsnappy
+recovery_LDADD += -lsnappy
+endif
+if WITH_LZOP
+test_LDADD     += -llzo2
+recovery_LDADD += -llzo2
+endif
 endif
 
 valgrind:

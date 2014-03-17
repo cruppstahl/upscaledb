@@ -22,6 +22,8 @@
  *
  * @mainpage
  *
+ * <b>This is the commercial closed-source version of hamsterdb!</b>
+ *
  * This manual documents the hamsterdb C API. hamsterdb is a key/value database
  * that is linked directly into your application, avoiding all the overhead
  * that is related to external databases and RDBMS systems.
@@ -499,6 +501,20 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref HAM_ENABLE_FSYNC to force the use of fsync.
  *
+ * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * to provide recovery if the system crashes. These journal files can be
+ * compressed by supplying the parameter
+ * @ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
+ *
+ * <Pro</b> hamsterdb can transparently encrypt the generated file using
+ * 128bit AES in CBC mode. The transactional journal is not encrypted.
+ * Encryption can be enabled by specifying @ref HAM_PARAM_ENCRYPTION_KEY
+ * (see below). The identical key has to be provided in @ref ham_env_open
+ * as well. Ignored for remote Environments.
+ *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
@@ -554,6 +570,14 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
+ *      the journal files to reduce I/O. See notes above.
+ *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Sets the
+ *      compression level for the journal compression. Only used in the
+ *      zlib compressor; otherwise ignored.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *      encryption key; enables AES encryption for the Environment file. Not
+ *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -595,8 +619,16 @@ ham_env_create(ham_env_t **env, const char *filename,
  * Specify a URL instead of a filename (i.e.
  * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
- * Also see the documentation @ref ham_env_create about Transactions, Recovery
- * and the use of fsync.
+ * Also see the documentation @ref ham_env_create about Transactions, Recovery,
+ * AES encryption and the use of fsync.
+ *
+ * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * to provide recovery if the system crashes. These journal files can be
+ * compressed by supplying the parameter
+ * @ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
  *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file, or URL of a hamsterdb
@@ -646,6 +678,14 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
+ *      the journal files to reduce I/O. See notes above.
+ *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Sets the
+ *      compression level for the journal compression. Only used in the
+ *      zlib compressor; otherwise ignored.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *      encryption key; enables AES encryption for the Environment file. Not
+ *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -1703,6 +1743,9 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * a Database.
  */
 #define HAM_PARAM_KEY_COMPRESSION       0x1002
+
+/** hamsterdb pro: helper macro for disabling compression */
+#define HAM_COMPRESSOR_NONE         0
 
 /** hamsterdb pro: helper macro for disabling compression */
 #define HAM_COMPRESSOR_NONE         0

@@ -315,6 +315,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_u64_t cache_size = 0;
   ham_u16_t max_databases = 0;
   ham_u32_t timeout = 0;
+  int journal_compression = HAM_COMPRESSOR_NONE;
+  int journal_compression_level = HAM_DEFAULT_COMPRESSION_LEVEL;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
@@ -354,9 +356,17 @@ ham_env_create(ham_env_t **henv, const char *filename,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-      case HAM_PARAM_JOURNAL_COMPRESSION:
-        ham_trace(("Journal compression is only available in hamsterdb pro"));
-        return (HAM_NOT_IMPLEMENTED);
+      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+        if (param->value > 4) {
+          ham_trace(("invalid algorithm for journal compression"));
+          return (HAM_INV_PARAMETER);
+        }
+        journal_compression = (int)param->value;
+        break;
+      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
+        journal_compression_level = (int)param->value;
+        break;
+>>>>>>> Adding journal compression
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
         if (flags & HAM_IN_MEMORY && cache_size != 0) {
@@ -423,6 +433,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
+      if (journal_compression)
+        lenv->enable_journal_compression(journal_compression,
+                        journal_compression_level);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -571,6 +584,8 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
+  int journal_compression = HAM_COMPRESSOR_NONE;
+  int journal_compression_level = HAM_DEFAULT_COMPRESSION_LEVEL;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -610,9 +625,16 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-      case HAM_PARAM_JOURNAL_COMPRESSION:
-        ham_trace(("Journal compression is only available in hamsterdb pro"));
-        return (HAM_NOT_IMPLEMENTED);
+      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+        if (param->value > 4) {
+          ham_trace(("invalid algorithm for journal compression"));
+          return (HAM_INV_PARAMETER);
+        }
+        journal_compression = (int)param->value;
+        break;
+      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
+        journal_compression_level = (int)param->value;
+        break;
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
         break;
@@ -653,6 +675,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
+      if (journal_compression)
+        lenv->enable_journal_compression(journal_compression,
+                        journal_compression_level);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -1907,7 +1932,7 @@ ham_is_debug()
 ham_bool_t HAM_CALLCONV
 ham_is_pro()
 {
-  return (HAM_FALSE);
+  return (HAM_TRUE);
 }
 
 ham_u32_t HAM_CALLCONV

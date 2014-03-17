@@ -1,5 +1,5 @@
 
-SUBDIRS = 
+SUBDIRS = liblzf
 
 if ENABLE_REMOTE
 SUBDIRS += json
