@@ -314,9 +314,62 @@ o Start with the PRO version
     x change file header for include files, too
     o fork a closed repository
         x replace COPYING file
+        o enable zlib/snappy/others compression (for records and the journal)
+            x compressor.h
+            x compressor_snappy.h
+            x compressor_zlib.h
+            x compressor_lzf.h
+                x add to 3rdparty/lzf
+            x compressor_factory.h
+            x compressor_factory.cc
+<<<<<<< Updated upstream
+            x unittest for compressors
+            x compressor_lzop.h
+                x configure should print warning b/c it's GPL
+                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
+=======
+            x fix configure scripts etc
+                x snappy nur linken wenn's da ist
+                x zlib nur linken wenn's da ist
+            o compressor_lzop.h
+                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
+            o unittest for compressors, also acts as performance test
+>>>>>>> Stashed changes
+
+            o env: new persistent parameter HAM_PARAM_ENABLE_JOURNAL_COMPRESSION
+                        = (none | zlib | snappy | lzf | lzop)
+            o db: new persistent parameter HAM_PARAM_ENABLE_RECORD_COMPRESSION
+                        = (none | zlib | snappy | lzf | lzop)
+
+            o MIT should return "HAM_NOT_IMPLEMENTED"
+            o do not allow partial updates for compressed records
+                o unittests
+            o add to java, .NET, erlang
+
+            o implement for the records
+                o only store compressed data if compression results in < 100%
+                    of the original size!
+                o blob_header already stores the uncompressed size
+                    -> no need to store it in Compressor::encode
+            o implement for the journal
+
+            o for the actual defaults: run tests, also with string input (from
+                    the word list - already supported in ham_bench)
+                o then pick the fastest option as the default
+
+            o documentation
+            o add to ham_bench
+            o needs unittests, perftests and monster tests
+            o add test to release-pro.pl
         o PRO is able to open MIT files, but not vice versa
-        o change ham_get_license()
-            o needs a test
+            o use msb in file version for a marker
+            o when loading a MIT file in PRO: set the flag, write back
+            o MIT will automatically reject the file
+            o print in ham_info
+            o add a test
+        o remove ham_get_license(), add ham_is_pro()
+            o also for hamsterdb
+            o print in the tools
         o enable AES encryption (also for the journal)
             o journal header: store flags ("Encryption enabled")
             o journal entries: requires padding??
@@ -324,44 +377,17 @@ o Start with the PRO version
                 will be on entry-level)
             o MIT should return "HAM_NOT_IMPLEMENTED"
             o needs unittests, perftests and monster tests
-        o enable zlib/snappy/others compression (for records and the journal)
-            x compressor.h
-            x compressor_snappy.h
-            x compressor_zlib.h
-            x compressor_lzf.h
-                x add to 3rdparty/lzf
-            o compressor_lzop.h
-                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
-            x compressor_factory.h
-            x compressor_factory.cc
-            o unittest for compressors, also acts as performance test
 
-            o new persistent parameter HAM_PARAM_ENABLE_COMPRESSION
-                        = Record | Jrnal
-            o new parameter HAM_PARAM_SET_RECORD_COMPRESSION_LIBRARY = library
-            o new parameter HAM_PARAM_SET_RECORD_COMPRESSION_LEVEL
-            o new parameter HAM_PARAM_SET_JOURNAL_COMPRESSION_LIBRARY = library
-            o new parameter HAM_PARAM_SET_JOURNAL_COMPRESSION_LEVEL
+    o adjust documentation in the header files
+    o adjust doxygen file
+=======
+>>>>>>> Stashed changes
 
-            o MIT should return "HAM_NOT_IMPLEMENTED"
-            o do not allow partial updates for compressed records
-                o unittests
-            o add to java, .NET, erlang
-            o implement for the journal
-            o implement for the records
-
-            o for the actual defaults: run tests, also with string input (from
-                    the word list - already supported in ham_bench)
-                o then pick the fastest option as the default
-
-            o needs unittests, perftests and monster tests
-            o add test to release-pro.pl
-        o replace GPL with MIT license (in hamsterdb, then merge)
-
-    o work over the license agreement
+    o work over the license agreement; PRO will be similar to an NDA
 
     o 30 day evaluation library
-        o insert 30day trial check macros at various positions
+        o time_t ham_is_evaluation(); -> returns end time
+        o insert 30 day trial check macros at various positions
             o dynamically generate those macros
         o needs different licensing output in the tools
         o print to stdout in ham_env_create, ham_env_open
@@ -370,10 +396,35 @@ o Start with the PRO version
                 4 weeks
             o requires a build tool for unix and win32
 
+    o hamsterdb: replace GPL with MIT license
+
     o new release process for the commercial build
         o also create the 30day trial packages
 
-    o admin webpage
+    o replace GPL with MIT license (in hamsterdb, then merge)
+
+    o webpage
+        o overview, catch lines
+        o customers
+        o feature matrix MIT vs. closed source
+        o integrate blog, use disqus comments
+        o can download commercial files using the admin-API to verify the
+            login
+        o daily backups of the database
+
+    o what are the minimum features required for the first release?
+        - (evaluation licenses)
+        - heavyweight compression for the journal
+        - heavyweight compression for records
+        - AES encryption for journal and file
+        - hot backups
+      optional:
+        - SIMD for searches
+        - bulk updates
+        - prefix compression for strings (requires delta updates)
+        - lightweight compression for binary keys (requires delta updates)
+
+    . admin webpage
         o database is in openshift
         o admin webpage is secured by htaccess (has a non-standard path)
         o has a dashboard
@@ -397,32 +448,16 @@ o Start with the PRO version
 
         o need a second installation for testing!
 
-    o webpage
-        o overview, catch lines
-        o customers
-        o feature matrix MIT vs. closed source
-        o integrate blog, use disqus comments
-        o can download commercial files using the admin-API to verify the
-            login
-        o daily backups of the database
-
-    o expired 30day licenses will be removed automatically from the server
+    . expired 30day licenses will be removed automatically from the server
         o and from the backup server
         o and from the database
 
-    o what are the minimum features required for the first release?
-        - (evaluation licenses)
-        - lightweight compression for the journal
-        - lightweight compression for records
-        - AES encryption for journal and file
-        - hot backups
-      optional:
-        - bulk updates
-        - prefix compression for strings (requires delta updates)
-        - lightweight compression for binary keys (requires delta updates)
-        - SIMD for searches
+o lightweight compression for variable-length keys
+    o currently the compressor prepends a 4 byte marker with the original
+        size; reduce this to 2 bytes for the index (but not for records
+        and log)
 
-o compression for variable-length keys
+o prefix compression for variable-length keys
     - if key is appended at the end: just write the delta
     - otherwise things get tricky, because the keys to the "right" of the
         inserted key have to be re-compressed; and in this case it is
@@ -430,9 +465,7 @@ o compression for variable-length keys
     - when re-compressing: key size might grow or shrink, which means that
         the keys "to the right" should be rearranged as well
     ===> it really makes sense to have delta updates and bulk inserts first!!
-    - try to save a full key every Nth bytes, to avoid extensive re-compressing
-
-- "hola" - olap functions that operate directly on the btree data
+    - try to store a full key every Nth bytes, to avoid extensive re-compressing
 
 x prefetch cache lines when searching -> no effect
 - encrypt the log and the environment file with AES -> PRO
@@ -443,12 +476,13 @@ x prefetch cache lines when searching -> no effect
     - if compaction is enabled: copies keys w/ iterator
         (later: performs bulk updates)
     - then applies all committed transactions to the other file
+- "hola" - olap functions that operate directly on the btree data
+- linear SIMD search -> PRO (see topic/linear)
 - bulk updates -> PRO
     - require delta updates
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the stream
-- linear SIMD search -> PRO (see topic/linear)
 - first PRO release
     o webpage updates, PR, mailings
 
