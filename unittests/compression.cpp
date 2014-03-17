@@ -165,8 +165,8 @@ TEST_CASE("Compression/LzfJournalTest", "")
 TEST_CASE("Compression/partialTest", "")
 {
   ham_parameter_t params[] = {
-          {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_ZLIB},
-          {0, 0}
+    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_ZLIB},
+    {0, 0}
   };
   ham_db_t *db;
   ham_env_t *env;
@@ -416,6 +416,5 @@ TEST_CASE("Compression/negativeKeyTest", "")
 
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
-
 
 #endif // HAM_ENABLE_COMPRESSION
