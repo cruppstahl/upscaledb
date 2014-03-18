@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -17,6 +17,7 @@
 #include <ham/hamsterdb.h>
 
 #include "getopts.h"
+#include "common.h"
 
 #define ARG_HELP            1
 #define ARG_DBNAME          2
@@ -240,11 +241,6 @@ main(int argc, char **argv) {
   ham_env_t *env;
   ham_db_t *db;
 
-  ham_u32_t maj, min, rev;
-  const char *licensee, *product;
-  ham_get_license(&licensee, &product);
-  ham_get_version(&maj, &min, &rev);
-
   getopts_init(argc, argv, "ham_dump");
 
   while ((opt = getopts(&opts[0], &param))) {
@@ -300,22 +296,7 @@ main(int argc, char **argv) {
         filename = param;
         break;
       case ARG_HELP:
-        printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2014 "
-           "Christoph Rupp (chris@crupp.de).\n\n",
-           maj, min, rev);
-
-        if (licensee[0] == '\0')
-          printf(
-           "This program is free software; you can redistribute "
-           "it and/or modify it\nunder the terms of the GNU "
-           "General Public License as published by the Free\n"
-           "Software Foundation; either version 2 of the License,\n"
-           "or (at your option) any later version.\n\n"
-           "See file COPYING.GPL2 and COPYING.GPL3 for License "
-           "information.\n\n");
-        else
-          printf("Commercial version; licensed for %s (%s)\n\n",
-              licensee, product);
+        print_banner("ham_dump");
 
         printf("usage: ham_dump [-db DBNAME] [-key FMT] [-maxkey N] "
            "[-rec FMT] [-maxrec N] file\n");

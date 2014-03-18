@@ -211,11 +211,19 @@ public class Const {
     /** Parameter name for Database.getParameters() */
     public final static int HAM_PARAM_MAX_KEYS_PER_PAGE         =    0x204;
 
-    /** hamsterdb pro: Parameter name for Environment.create() */
+    /** hamsterdb pro: Parameter name for Environment.create(),
+     * Environment.open() */
     public final static int HAM_PARAM_ENABLE_JOURNAL_COMPRESSION = 0x01000;
 
-    /** hamsterdb pro: Parameter name for Database.create() */
-    public final static int HAM_PARAM_ENABLE_RECORD_COMPRESSION  = 0x01001;
+    /** hamsterdb pro: Parameter name for Environment.create(),
+     * Environment.open() */
+    public final static int HAM_PARAM_JOURNAL_COMPRESSION_LEVEL  = 0x01001;
+
+    /** hamsterdb pro: Parameter name for Database.create(), Database.open() */
+    public final static int HAM_PARAM_ENABLE_RECORD_COMPRESSION  = 0x01002;
+
+    /** hamsterdb pro: Parameter name for Database.create(), Database.open() */
+    public final static int HAM_PARAM_RECORD_COMPRESSION_LEVEL   = 0x01003;
 
     /** hamsterdb pro: "null" compression */
     public final static int HAM_COMPRESSOR_NONE                 =        0;

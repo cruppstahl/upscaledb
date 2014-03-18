@@ -458,7 +458,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *
  * @param licensee If not NULL, will point to the licensee name, or to
  *    an empty string "" for non-commercial versions
- * @param product If not NULL, will point to the product name
+ * @param product Points to the product name
  */
 HAM_EXPORT void HAM_CALLCONV
 ham_get_license(const char **licensee, const char **product);
@@ -1681,16 +1681,31 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 
 /**
- * hamsterdb pro: Parameter name for @ref ham_env_create; enables compression
- * for the journal
+ * hamsterdb pro: Parameter name for @ref ham_env_create, @ref ham_env_open;
+ * enables compression for the journal. This parameter is not persisted.
  */
 #define HAM_PARAM_ENABLE_JOURNAL_COMPRESSION 0x1000
 
 /**
- * hamsterdb pro: Parameter name for @ref ham_env_create_db; enables compression
- * for the records of a Database
+ * hamsterdb pro: Parameter name for @ref ham_env_create,
+ * @ref ham_env_open; sets the journal compression level for zlib. Values range
+ * from [0 .. 9], default is 7. This parameter is not persisted.
  */
-#define HAM_PARAM_ENABLE_RECORD_COMPRESSION  0x1001
+#define HAM_PARAM_JOURNAL_COMPRESSION_LEVEL  0x1001
+
+/**
+ * hamsterdb pro: Parameter name for @ref ham_env_create_db,
+ * @ref ham_env_open_db; enables compression for the records of
+ * a Database. This parameter is not persisted.
+ */
+#define HAM_PARAM_ENABLE_RECORD_COMPRESSION  0x1002
+
+/**
+ * hamsterdb pro: Parameter name for @ref ham_env_create_db,
+ * @ref ham_env_open_db; sets the record compression level for zlib. Values
+ * range from [0 .. 9], default is 7. This parameter is not persisted.
+ */
+#define HAM_PARAM_RECORD_COMPRESSION_LEVEL   0x1003
 
 /**
  * Retrieve the Environment handle of a Database

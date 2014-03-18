@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -18,6 +18,7 @@
 #include <ham/hamsterdb.h>
 
 #include "getopts.h"
+#include "common.h"
 #include "export.pb.h"
 
 #define ARG_HELP          1
@@ -245,20 +246,7 @@ main(int argc, char **argv) {
         infilename = param;
         break;
       case ARG_HELP:
-        printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2014 "
-              "Christoph Rupp (chris@crupp.de).\n\n", maj, min, rev);
-
-        if (licensee[0] == '\0')
-          printf("This program is free software; you can redistribute "
-                 "it and/or modify it\nunder the terms of the GNU "
-                 "General Public License as published by the Free\n"
-                 "Software Foundation; either version 2 of the License,\n"
-                 "or (at your option) any later version.\n\n"
-                 "See file COPYING.GPL2 and COPYING.GPL3 for License "
-                 "information.\n\n");
-        else
-          printf("Commercial version; licensed for %s (%s)\n\n",
-                 licensee, product);
+        print_banner("ham_export");
 
         printf("usage: ham_export [--output=file] [file]\n");
         printf("usage: ham_export --help\n");

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -8,7 +8,6 @@
  *
  * See files COPYING.* for License information.
  */
-
 
 #include <iostream>
 #include <cstdio>
@@ -20,6 +19,7 @@
 #include <ham/hamsterdb.h>
 
 #include "../getopts.h"
+#include "../common.h"
 #include "configuration.h"
 #include "datasource.h"
 #include "datasource_numeric.h"
@@ -1175,11 +1175,6 @@ run_both_tests(Configuration *conf)
 int
 main(int argc, char **argv)
 {
-  ham_u32_t maj, min, rev;
-  const char *licensee, *product;
-  ham_get_license(&licensee, &product);
-  ham_get_version(&maj, &min, &rev);
-
   Configuration c;
   parse_config(argc, argv, &c);
 
@@ -1187,30 +1182,14 @@ main(int argc, char **argv)
   if (c.seed == 0)
     c.seed = ::time(0);
 
-  if (!c.quiet) {
-    printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2014 "
-         "Christoph Rupp (chris@crupp.de).\n\n",
-         maj, min, rev);
+  if (!c.quiet)
+    print_banner("ham_bench");
 
-    if (licensee[0] == '\0')
-      printf(
-         "This program is free software; you can redistribute "
-         "it and/or modify it\nunder the terms of the GNU "
-         "General Public License as published by the Free\n"
-         "Software Foundation; either version 2 of the License,\n"
-         "or (at your option) any later version.\n\n"
-         "See file COPYING.GPL2 and COPYING.GPL3 for License "
-         "information.\n\n");
-    else
-      printf("Commercial version; licensed for %s (%s)\n\n",
-          licensee, product);
-  }
-
-  if (ham_is_debug_build()) {
-      printf("\t!!!!!!!! DEBUG BUILD\n");
-      printf("\tDebug builds contain many integrity checks and are "
-             "extremely\n\tslow. Please do not use for "
-             "benchmarking!\n\n");
+  if (ham_is_debug()) {
+    printf("\t!!!!!!!! DEBUG BUILD\n");
+    printf("\tDebug builds contain many integrity checks and are "
+           "extremely\n\tslow. Please do not use for "
+           "benchmarking!\n\n");
   }
 
   // ALWAYS dump the configuration

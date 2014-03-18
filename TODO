@@ -258,133 +258,93 @@ x web-page requires updates
         hamsterdb-www is the main repository, master pushes to staging
         'stable' pushes to hamsterdb.com, www1, www2
 
-. collect file format updates
-    o PageManager state: also store m_last_blob_page_id persistently
-        (try not to break backwards compatibility, though)
-    o reserve CRC32 for each page
-
-. QuickCheck
-    o create a new property for testing duplicates; the key is always the
-        same. The number of duplicate keys is tracked and periodically checked
-        with the API. A cursor can be used to remove a specific duplicate,
-        or to fetch a specific duplicate.
-
-----------------------------------
-
-o delta updates managed in the BtreeNode
-    the catch is that the actual insert operation is separated from
-    the user's insert operation. The page will be logged and flushed,
-    but the update is not performed.
-    -> make sure the page is not "dirty" if the delta update is appended,
-    -> ... only when it's merged
-    -> then how will it be added to the changeset?
-    -> is a page dirty if it has DUs?
-
-    o perform a benchmark/profiling: random inserts vs. ascending inserts;
-        the difference should be caused by memcopy/memmove (is it?)
-        x PAX
-            -> absolutely worth the effort, about 60% are spent in memmove
-        o Default
-
-    o if the deltas are merged then the page must be added to the
-        changeset; invest more time in thinking about recovery and
-        make this water proof!!
-
-    o need a flag to disable DeltaUpdates
-    o rename TransactionOperation to DeltaUpdate, decouple code from txn
-    o totally transparent to the caller, handled in the proxy
-    o merge them when reading and flushing
-    o requires_split() takes delta updates into account
-    o only add deltas to leaf nodes; internal nodes have too many read
-        operations and would anyway require immediate flushes
-    o DeltaUpdate objects from a txn-flush should immediately go down to
-        the node
-    o make the merge algorithm more efficient
-        o sort deltas by key
-        o first execute all 'erase' either against other deltas or against
-            the node
-        o then merge the remaining inserts
-        o this needs lots of tests
-
 o Start with the PRO version
     x API to get licensee information (can use ham_get_license())
         x also for wrapper APIs
     x update all file header comments; describe copyright, licensing options
         and point to the COPYING file.
     x change file header for include files, too
-    o fork a closed repository
+
+    x add ham_is_pro()
+        x also for hamsterdb
+            x rename ham_is_debug_build() -> ham_is_debug()
+        x print in the tools
+            x move the whole banner printing to a common file
+
+    x fork a closed repository
         x replace COPYING file
-        o enable zlib/snappy/others compression (for records and the journal)
-            x compressor.h
-            x compressor_snappy.h
-            x compressor_zlib.h
-            x compressor_lzf.h
-                x add to 3rdparty/lzf
-            x compressor_factory.h
-            x compressor_factory.cc
-            x unittest for compressors
-            x compressor_lzop.h
-                x configure should print warning b/c it's GPL
-                http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
-            x fix configure scripts etc
-                x snappy nur linken wenn's da ist
-                x zlib nur linken wenn's da ist
+        x adjust doxygen file
+        x adjust documentation in the header files
+        x change file headers for ham_bench and the tools
 
-            x new parameter HAM_PARAM_ENABLE_JOURNAL_COMPRESSION
-                        = (none | zlib | snappy | lzf | lzop)
-            x new parameter HAM_PARAM_ENABLE_RECORD_COMPRESSION
-                        = (none | zlib | snappy | lzf | lzop)
-            x MIT should return "HAM_NOT_IMPLEMENTED"
-            x add to java, .NET, erlang
+    o enable zlib/snappy/others compression (for records and the journal)
+        x compressor.h
+        x compressor_snappy.h
+        x compressor_zlib.h
+        x compressor_lzf.h
+            x add to 3rdparty/lzf
+        x compressor_factory.h
+        x compressor_factory.cc
+        x unittest for compressors
+        x compressor_lzop.h
+            x configure should print warning b/c it's GPL
+            http://www.oberhumer.com/opensource/lzo/ - GPL license (+ comm)
+        x fix configure scripts etc
+            x snappy nur linken wenn's da ist
+            x zlib nur linken wenn's da ist
 
-            o env: persist journal compression parameter
-                o create compressor in journal (w/ autoptr)
-                o unittest
-            o db: persist journal compression parameter
-                o create compressor in database (w/ autoptr)
-                o unittest
+        x new parameter HAM_PARAM_ENABLE_JOURNAL_COMPRESSION
+                    = (none | zlib | snappy | lzf | lzop)
+        x new parameter HAM_PARAM_ENABLE_RECORD_COMPRESSION
+                    = (none | zlib | snappy | lzf | lzop)
+        x MIT should return "HAM_NOT_IMPLEMENTED"
+        x add to java, .NET, erlang
+        x CompressorFactory: really needs the enum?? - no
+
+        x zlib: also specify the compression level as a parameter
+            -> HAM_PARAM_*_COMPRESSION_LEVEL = <n>
+
+        o env: add journal compression parameter
+            x when creating an environment
+            x when opening an environment
+            x create compressor in journal (w/ autoptr)
+            o compress the buffer when writing
+                x store length field in caller, not in Compressor
+                o do not compress if compressed data is > original
+            o decompress the buffer when reading
+
+        o db: add record compression parameter
+            o when creating a database
+            o when opening a database
             o do not allow partial updates for compressed records
                 o unittests
+            o create compressor in database (w/ autoptr)
+            o blob_header already stores the uncompressed size
+                x no need to store it in Compressor::encode
+            o do not compress if compressed data is > original
+                (use BlobHeader::unused_flags to store algorithm) 
 
-            o implement for the records
-                o only store compressed data if compression results in < 100%
-                    of the original size!
-                o blob_header already stores the uncompressed size
-                    -> no need to store it in Compressor::encode
-            o implement for the journal
+        o add to ham_bench
+        o needs unittests, perftests and monster tests
 
-            o for the actual defaults: run tests, also with string input (from
-                    the word list - already supported in ham_bench)
-                o then pick the fastest option as the default
+        o documentation in header file
+            o run performance tests with the various compressors (10 mio
+                keys) then document the results in the header file,
+                recommend good defaults
 
-            o documentation in header file
-            o add to ham_bench
-            o needs unittests, perftests and monster tests
-            o add test to release-pro.pl
-        o PRO is able to open MIT files, but not vice versa
-            o use msb in file version for a marker
-            o when loading a MIT file in PRO: set the flag, write back
-            o MIT will automatically reject the file
-            o print in ham_info
-            o add a test
-        o remove ham_get_license(), add ham_is_pro()
-            o also for hamsterdb
-            o print in the tools
-        o enable AES encryption (also for the journal)
-            o journal header: store flags ("Encryption enabled")
-            o journal entries: requires padding??
-            o apply encryption on the lowest level (whereas compression
-                will be on entry-level)
-            o MIT should return "HAM_NOT_IMPLEMENTED"
-            o needs unittests, perftests and monster tests
+        o add test for --disable-compression to release-pro.pl
 
-    o adjust documentation in the header files
-    o adjust doxygen file
+    o PRO is able to open MIT files, but not vice versa
+        o use msb in file version for a marker
+        o when loading a MIT file in PRO: set the flag, write back
+        o MIT will automatically reject the file
+        o print in ham_info
+        o add a test
 
     o work over the license agreement; PRO will be similar to an NDA
 
     o 30 day evaluation library
-        o time_t ham_is_evaluation(); -> returns end time
+        o ham_time_t ham_is_evaluation(); -> returns end time, or 0
         o insert 30 day trial check macros at various positions
             o dynamically generate those macros
         o needs different licensing output in the tools
@@ -393,19 +353,27 @@ o Start with the PRO version
         o create one source/win32 package starting at each week, running
                 4 weeks
             o requires a build tool for unix and win32
+            o on windows only build the DLLs, then run a quick test
+                    (subset of the unittests)
+                    and also check ham_is_evaluation(), ham_is_pro()
+
+    o enable AES encryption (also for the journal)
+        o journal header: store flags ("Encryption enabled")
+        o journal entries: requires padding??
+        o apply encryption on the lowest level (whereas compression
+            will be on entry-level)
+        o MIT should return "HAM_NOT_IMPLEMENTED"
+        o needs unittests, perftests and monster tests
 
     o hamsterdb: replace GPL with MIT license
 
     o new release process for the commercial build
         o also create the 30day trial packages
 
-    o replace GPL with MIT license (in hamsterdb, then merge)
-
     o webpage
         o overview, catch lines
         o customers
         o feature matrix MIT vs. closed source
-        o integrate blog, use disqus comments
         o can download commercial files using the admin-API to verify the
             login
         o daily backups of the database
@@ -415,9 +383,9 @@ o Start with the PRO version
         - heavyweight compression for the journal
         - heavyweight compression for records
         - AES encryption for journal and file
+        - SIMD for searches
         - hot backups
       optional:
-        - SIMD for searches
         - bulk updates
         - prefix compression for strings (requires delta updates)
         - lightweight compression for binary keys (requires delta updates)
@@ -450,10 +418,77 @@ o Start with the PRO version
         o and from the backup server
         o and from the database
 
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o reserve CRC32 for each page
+
+. QuickCheck
+    o create a new property for testing duplicates; the key is always the
+        same. The number of duplicate keys is tracked and periodically checked
+        with the API. A cursor can be used to remove a specific duplicate,
+        or to fetch a specific duplicate.
+
+o PRO: linear SIMD search (see topic/linear)
+
+----------------------------------
+
+o "hola" - olap functions that operate directly on the btree data
+    -> see wiki
+
+o PRO: hot backups (vacuumizes to a different file)
+    - copies the database file
+    - if compaction is enabled: copies keys w/ iterator
+        (later: performs bulk updates)
+    - then applies all committed transactions to the other file
+    --> think this through; how to deal with delta updates?
+        what if only a few databases should be backed up?
+        what if i want to back up in a neutral format (i.e. csv)?
+
+o delta updates managed in the BtreeNode
+    the catch is that the actual insert operation is separated from
+    the user's insert operation. The page will be logged and flushed,
+    but the update is not performed.
+    -> make sure the page is not "dirty" if the delta update is appended,
+    -> ... only when it's merged
+    -> then how will it be added to the changeset?
+    -> is a page dirty if it has DUs?
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o if the deltas are merged then the page must be added to the
+        changeset; invest more time in thinking about recovery and
+        make this water proof!!
+        -> also think about hot backups and how they can work with DUs
+
+    o need a flag to disable DeltaUpdates
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o merge them when reading and flushing
+    o requires_split() takes delta updates into account
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should immediately go down to
+        the node
+    o make the merge algorithm more efficient
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+
+o bulk updates -> PRO
+    - require delta updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort
+    - add those delta updates to the txn-trees or to the stream
+
 o lightweight compression for variable-length keys
-    o currently the compressor prepends a 4 byte marker with the original
-        size; reduce this to 2 bytes for the index (but not for records
-        and log)
 
 o prefix compression for variable-length keys
     - if key is appended at the end: just write the delta
@@ -464,25 +499,6 @@ o prefix compression for variable-length keys
         the keys "to the right" should be rearranged as well
     ===> it really makes sense to have delta updates and bulk inserts first!!
     - try to store a full key every Nth bytes, to avoid extensive re-compressing
-
-x prefetch cache lines when searching -> no effect
-- encrypt the log and the environment file with AES -> PRO
-- compress the log with snappy, zlib, others -> PRO
-- compress the records with snappy, zlib, others -> PRO
-- hot backups (vacuumizes to a different file) -> PRO
-    - copies the database file
-    - if compaction is enabled: copies keys w/ iterator
-        (later: performs bulk updates)
-    - then applies all committed transactions to the other file
-- "hola" - olap functions that operate directly on the btree data
-- linear SIMD search -> PRO (see topic/linear)
-- bulk updates -> PRO
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort
-    - add those delta updates to the txn-trees or to the stream
-- first PRO release
-    o webpage updates, PR, mailings
 
 - compression -> PRO
 - cache-oblivious page distribution?
@@ -501,26 +517,6 @@ x prefetch cache lines when searching -> no effect
                                                 \- keeps track of offset, count
     - erase(predicate_t)
     - explain(predicate_t, column_descriptor_t)
-
-o PRO: btree can compress keys
-    x get rid of the whole minkey/maxkey handling because these numbers
-        are irrelevant with compression
-    o try to reduce the changes to a new KeyProxy object
-    o prefix-compression for strings
-        o each 2kb have a full string (indexed by skiplist)
-    o delta-compression for numeric data types (>= 32bit)
-        (can this be combined with a bitmap compression? the deltas are
-        compressed in a bit-stream? but then we end up with variable
-        length encodings...)
-    o lightweight compression for keys
-        http://oldhome.schmorp.de/marc/liblzf.html
-        http://lzop.org
-    o record compression for blobs (lzop.org? snappy?)
-        better postpone this and compress all pages in the lss
-    o do we need delta updates for efficient inserts? - i think not yet...
-
-o PRO: use SIMD for fixed-length scans and __builtin_prefetch
-    -> see topic/linear for a partial implementation
 
 o the bucket for concurrency TODOs
     o reduce the linked lists - they're hard to be updated with concurrent

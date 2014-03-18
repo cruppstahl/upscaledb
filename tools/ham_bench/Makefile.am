@@ -22,6 +22,8 @@ ham_bench_SOURCES = berkeleydb.h \
 				  generator_runtime.cc \
 				  ../getopts.h \
 				  ../getopts.c \
+				  ../common.h \
+				  ../common.c \
 				  graph.h \
 				  hamsterdb.h \
 				  hamsterdb.cc \

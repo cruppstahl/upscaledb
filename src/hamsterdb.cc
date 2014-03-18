@@ -364,6 +364,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
       case HAM_PARAM_CACHESIZE:
@@ -632,6 +633,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
       case HAM_PARAM_CACHESIZE:
@@ -1922,11 +1924,17 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
 }
 
 ham_bool_t HAM_CALLCONV
-ham_is_debug_build()
+ham_is_debug()
 {
 #ifdef HAM_DEBUG
-  return ((ham_bool_t)1);
+  return (HAM_TRUE);
 #else
-  return ((ham_bool_t)0);
+  return (HAM_FALSE);
 #endif
+}
+
+ham_bool_t HAM_CALLCONV
+ham_is_pro()
+{
+  return (HAM_FALSE);
 }

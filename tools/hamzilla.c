@@ -55,6 +55,7 @@ static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Da
 #include <ham/hamsterdb_srv.h>
 
 #include "getopts.h"
+#include "common.h"
 #include "config.h"
 
 #define ARG_HELP                1
@@ -707,11 +708,6 @@ main(int argc, char **argv) {
   int win32_action = ARG_RUN;
 #endif
 
-  ham_u32_t maj, min, rev;
-  const char *licensee, *product;
-  ham_get_license(&licensee, &product);
-  ham_get_version(&maj, &min, &rev);
-
   memset(&cfg, 0, sizeof(cfg));
   getopts_init(argc, argv, EXENAME);
   strcpy(configbuffer, argv[0]);
@@ -732,22 +728,7 @@ main(int argc, char **argv) {
         hlog(LOG_DBG, "Paramter: pid file is %s\n", pidfile);
         break;
       case ARG_HELP:
-        printf("hamsterdb server %d.%d.%d - Copyright (C) 2005-2010 "
-             "Christoph Rupp (chris@crupp.de).\n\n",
-             maj, min, rev);
-
-        if (licensee[0] == '\0')
-          printf(
-             "This program is free software; you can redistribute "
-             "it and/or modify it\nunder the terms of the GNU "
-             "General Public License as published by the Free\n"
-             "Software Foundation; either version 2 of the License,\n"
-             "or (at your option) any later version.\n\n"
-             "See file COPYING.GPL2 and COPYING.GPL3 for License "
-             "information.\n\n");
-        else
-          printf("Commercial version; licensed for %s (%s)\n\n",
-              licensee, product);
+        print_banner(EXENAME);
 
         printf("usage: %s [-f] -c configfile\n", EXENAME);
         printf("usage: %s -h\n", EXENAME);

@@ -558,7 +558,7 @@ LocalEnvironment::flush(ham_u32_t flags)
 
 ham_status_t
 LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
-    ham_u32_t flags, const ham_parameter_t *param)
+            ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_u16_t key_type = HAM_TYPE_BINARY;
   ham_u32_t key_size = HAM_KEY_SIZE_UNLIMITED;
@@ -577,6 +577,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
+        case HAM_PARAM_RECORD_COMPRESSION_LEVEL:
           ham_trace(("Record compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
         case HAM_PARAM_KEY_TYPE:
@@ -708,9 +709,18 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
     return (HAM_INV_PARAMETER);
   }
 
-  if (param && param->name != 0) {
-    ham_trace(("invalid parameter"));
-    return (HAM_INV_PARAMETER);
+  if (param) {
+    for (; param->name; param++) {
+      switch (param->name) {
+        case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
+        case HAM_PARAM_RECORD_COMPRESSION_LEVEL:
+          ham_trace(("Record compression is only available in hamsterdb pro"));
+          return (HAM_NOT_IMPLEMENTED);
+        default:
+          ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
+          return (HAM_INV_PARAMETER);
+      }
+    }
   }
 
   /* make sure that this database is not yet open */

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -8,7 +8,6 @@
  *
  * See files COPYING.* for License information.
  */
-
 
 #ifndef DATASOURCE_STRING_H__
 #define DATASOURCE_STRING_H__

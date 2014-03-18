@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
