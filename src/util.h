@@ -50,7 +50,7 @@ class ByteArray
       clear();
     }
 
-    void append(void *ptr, ham_u32_t size) {
+    void append(const void *ptr, ham_u32_t size) {
       ham_u32_t oldsize = m_size;
       char *p = (char *)resize(m_size + size);
       ::memcpy(p + oldsize, ptr, size);

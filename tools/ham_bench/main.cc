@@ -16,7 +16,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
-#include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 
 #include "../getopts.h"
 #include "../common.h"

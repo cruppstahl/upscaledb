@@ -239,6 +239,10 @@ o improve the release process
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery
 
+o bug: when the journal appends insert-entries then it writes the partial
+    offset and size, but always tries to append a record with the full size
+    o add a unittest
+
 x web-page requires updates
     x deployed html differs from git-repository
     x download/sources: add erlang, remove 1.x
@@ -308,10 +312,12 @@ o Start with the PRO version
             x when creating an environment
             x when opening an environment
             x create compressor in journal (w/ autoptr)
-            o compress the buffer when writing
+            o compress the buffer when writing, decompress when reading
                 x store length field in caller, not in Compressor
+                x compress/decompress the page data in the changeset
+                o compress/decompress the payload of erase
+                o compress/decompress the payload of insert
                 o do not compress if compressed data is > original
-            o decompress the buffer when reading
 
         o db: add record compression parameter
             o when creating a database
@@ -343,6 +349,14 @@ o Start with the PRO version
 
     o work over the license agreement; PRO will be similar to an NDA
 
+    o enable AES encryption (also for the journal)
+        o journal header: store flags ("Encryption enabled")
+        o journal entries: requires padding??
+        o apply encryption on the lowest level (whereas compression
+            will be on entry-level)
+        o MIT should return "HAM_NOT_IMPLEMENTED"
+        o needs unittests, perftests and monster tests
+
     o 30 day evaluation library
         o ham_time_t ham_is_evaluation(); -> returns end time, or 0
         o insert 30 day trial check macros at various positions
@@ -356,14 +370,6 @@ o Start with the PRO version
             o on windows only build the DLLs, then run a quick test
                     (subset of the unittests)
                     and also check ham_is_evaluation(), ham_is_pro()
-
-    o enable AES encryption (also for the journal)
-        o journal header: store flags ("Encryption enabled")
-        o journal entries: requires padding??
-        o apply encryption on the lowest level (whereas compression
-            will be on entry-level)
-        o MIT should return "HAM_NOT_IMPLEMENTED"
-        o needs unittests, perftests and monster tests
 
     o hamsterdb: replace GPL with MIT license
 
@@ -465,12 +471,33 @@ o delta updates managed in the BtreeNode
         changeset; invest more time in thinking about recovery and
         make this water proof!!
         -> also think about hot backups and how they can work with DUs
+        -> no clue yet on how to make this water proof.
+            the DUs are logged in the journal. As long as the DUs are not
+            flushed, the journal also must remain. But it's non-trivial
+            to figure out when the journal can be cleaned up, because the
+            DUs are not flushed in order of their lsn!
+        -> we could log the DUs separately from the journal, but this would
+            cause additional I/O and cleaning up the journal would not become
+            easier
+
+        => whenever DUs are flushed: write the lsn's of all merged DUs
+            to the log (as part of the changeset). When recovering then 
+            skip those DUs and do not re-apply them. (alternatively:
+            re-applying must be idempotent. but that sounds more complex.)
+            => the lsn of the last operation is currently stored in the
+                page; but this lsn is no longer relevant for skipping
+                operations during recovery.
+        => when to clean up the journal? we could keep track of all flushed
+            LSNs, but that's too much effort. We could also count the
+            DUs that were flushed; if all DUs with a lsn in the range of a
+            specific file were flushed then we know we're done.
 
     o need a flag to disable DeltaUpdates
     o rename TransactionOperation to DeltaUpdate, decouple code from txn
     o totally transparent to the caller, handled in the proxy
     o merge them when reading and flushing
     o requires_split() takes delta updates into account
+    o ham_env_flush also flushes the DUs 
     o only add deltas to leaf nodes; internal nodes have too many read
         operations and would anyway require immediate flushes
     o DeltaUpdate objects from a txn-flush should immediately go down to

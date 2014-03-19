@@ -30,8 +30,14 @@ namespace hamsterdb {
  */
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
   // Constructor - sets all fields to 0
-  PJournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0),
-        dbname(0), _reserved(0) { }
+  PJournalEntry()
+    : flags(0), lsn(0), followup_size(0), txn_id(0), type(0),
+        dbname(0), _reserved(0) {
+  }
+
+  // the flags of this entry
+  // PRO: used for compression
+  ham_u32_t flags;
 
   // the lsn of this entry
   ham_u64_t lsn;
@@ -62,14 +68,24 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
 //
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   // Constructor - sets all fields to 0
-  PJournalEntryInsert() : key_size(0), record_size(0), record_partial_size(0),
-    record_partial_offset(0), insert_flags(0) { data[0]=0; }
+  PJournalEntryInsert()
+    : key_size(0), compressed_key_size(0), record_size(0),
+      compressed_record_size(0), record_partial_size(0),
+      record_partial_offset(0), insert_flags(0) {
+    data[0] = 0;
+  }
 
   // key size
   ham_u16_t key_size;
 
+  // PRO: compressed key size
+  ham_u16_t compressed_key_size;
+
   // record size
   ham_u32_t record_size;
+
+  // PRO: compressed record size
+  ham_u32_t compressed_record_size;
 
   // record partial size
   ham_u32_t record_partial_size;
@@ -82,6 +98,8 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
 
   // data follows here - first |key_size| bytes for the key, then
   // |record_size| bytes for the record (and maybe some padding)
+  //
+  // PRO: this data can be compressed
   ham_u8_t data[1];
 
   // Returns a pointer to the key data
@@ -120,6 +138,8 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   ham_u32_t duplicate;
 
   // the key data
+  //
+  // PRO: this data can be compressed
   ham_u8_t data[1];
 
   // Returns a pointer to the key data
@@ -157,11 +177,14 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
   // Constructor - sets all fields to 0
   PJournalEntryPageHeader(ham_u64_t _address = 0)
-    : address(_address) {
+    : address(_address), compressed_size(0) {
   }
 
   // the page address
   ham_u64_t address;
+
+  // PRO: the compressed size, if compression is enabled
+  ham_u32_t compressed_size;
 } HAM_PACK_2;
 
 #include "packstop.h"

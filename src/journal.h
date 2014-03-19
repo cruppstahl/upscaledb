@@ -97,7 +97,10 @@ class Journal
       kHeaderMagic = ('h' << 24) | ('j' << 16) | ('o' << 8) | '2',
 
       // magic for a journal trailer
-      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1'
+      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1',
+
+      // flag for a journal entry: entry is compressed
+      kFlagCompressed = 1
     };
 
   public:
@@ -132,7 +135,7 @@ class Journal
       // the magic
       ham_u32_t magic;
 
-      // a reserved field
+      // reserved, for padding
       ham_u32_t _reserved;
 
       // the last used lsn
@@ -299,11 +302,11 @@ class Journal
 
     // Appends an entry to the journal
     void append_entry(int idx,
-                void *ptr1 = 0, ham_u32_t ptr1_size = 0,
-                void *ptr2 = 0, ham_u32_t ptr2_size = 0,
-                void *ptr3 = 0, ham_u32_t ptr3_size = 0,
-                void *ptr4 = 0, ham_u32_t ptr4_size = 0,
-                void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
+                const void *ptr1 = 0, ham_u32_t ptr1_size = 0,
+                const void *ptr2 = 0, ham_u32_t ptr2_size = 0,
+                const void *ptr3 = 0, ham_u32_t ptr3_size = 0,
+                const void *ptr4 = 0, ham_u32_t ptr4_size = 0,
+                const void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
       if (ptr1_size)
         m_buffer[idx].append(ptr1, ptr1_size);
       if (ptr2_size)
