@@ -312,12 +312,18 @@ o Start with the PRO version
             x when creating an environment
             x when opening an environment
             x create compressor in journal (w/ autoptr)
-            o compress the buffer when writing, decompress when reading
+            x compress the buffer when writing, decompress when reading
                 x store length field in caller, not in Compressor
                 x compress/decompress the page data in the changeset
-                o compress/decompress the payload of erase
-                o compress/decompress the payload of insert
-                o do not compress if compressed data is > original
+                x compress/decompress the payload of erase
+                x compress/decompress the payload of insert
+                x do not compress if compressed data is > original
+            x add unittests
+            x add parameters to ham_bench
+            o run recovery test w/ compression
+            o add perftests, monster tests
+            o add documentation (header file)
+            o add documentation (wiki)
 
         o db: add record compression parameter
             o when creating a database
@@ -329,14 +335,15 @@ o Start with the PRO version
                 x no need to store it in Compressor::encode
             o do not compress if compressed data is > original
                 (use BlobHeader::unused_flags to store algorithm) 
+            o add unittests
+            o add parameters to ham_bench
+            o add perftests, monster tests
+            o add documentation (header file)
+            o add documentation (wiki)
 
-        o add to ham_bench
-        o needs unittests, perftests and monster tests
-
-        o documentation in header file
-            o run performance tests with the various compressors (10 mio
-                keys) then document the results in the header file,
-                recommend good defaults
+        o run performance tests with the various compressors (10 mio
+            keys) then document the results in the header file,
+            recommend good defaults
 
         o add test for --disable-compression to release-pro.pl
 
@@ -356,6 +363,7 @@ o Start with the PRO version
             will be on entry-level)
         o MIT should return "HAM_NOT_IMPLEMENTED"
         o needs unittests, perftests and monster tests
+        o make sure it works in combination with compression
 
     o 30 day evaluation library
         o ham_time_t ham_is_evaluation(); -> returns end time, or 0

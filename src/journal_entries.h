@@ -31,13 +31,9 @@ namespace hamsterdb {
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
   // Constructor - sets all fields to 0
   PJournalEntry()
-    : flags(0), lsn(0), followup_size(0), txn_id(0), type(0),
+    : lsn(0), followup_size(0), txn_id(0), type(0),
         dbname(0), _reserved(0) {
   }
-
-  // the flags of this entry
-  // PRO: used for compression
-  ham_u32_t flags;
 
   // the lsn of this entry
   ham_u64_t lsn;
@@ -69,23 +65,19 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   // Constructor - sets all fields to 0
   PJournalEntryInsert()
-    : key_size(0), compressed_key_size(0), record_size(0),
-      compressed_record_size(0), record_partial_size(0),
-      record_partial_offset(0), insert_flags(0) {
+    : compressed_payload_size(0), key_size(0), record_size(0),
+      record_partial_size(0), record_partial_offset(0), insert_flags(0) {
     data[0] = 0;
   }
+
+  // PRO: compressed payload size - combines key and record data
+  ham_u32_t compressed_payload_size;
 
   // key size
   ham_u16_t key_size;
 
-  // PRO: compressed key size
-  ham_u16_t compressed_key_size;
-
   // record size
   ham_u32_t record_size;
-
-  // PRO: compressed record size
-  ham_u32_t compressed_record_size;
 
   // record partial size
   ham_u32_t record_partial_size;
@@ -124,12 +116,15 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   // Constructor - sets all fields to 0
   PJournalEntryErase()
-    : key_size(0), erase_flags(0), duplicate(0) {
+    : key_size(0), compressed_key_size(0), erase_flags(0), duplicate(0) {
     data[0] = 0;
   }
 
   // key size
   ham_u16_t key_size;
+
+  // PRO: compressed key size
+  ham_u16_t compressed_key_size;
 
   // flags of ham_erase(), ham_cursor_erase()
   ham_u32_t erase_flags;
