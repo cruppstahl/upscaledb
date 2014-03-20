@@ -1,12 +1,17 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
- * (at your option) any later version.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  *
  * See files COPYING.* for License information.
+ *
  */
 
 #include <iostream>
@@ -79,14 +84,26 @@ HamsterDatabase::do_create_env()
   hamsterdb::g_extended_threshold = m_config->extkey_threshold;
   hamsterdb::g_duplicate_threshold = m_config->duptable_threshold;
 
+  int p = 0;
   if (ms_env == 0) {
-    params[0].name = HAM_PARAM_CACHESIZE;
-    params[0].value = m_config->cachesize;
-    params[1].name = HAM_PARAM_PAGESIZE;
-    params[1].value = m_config->pagesize;
+    params[p].name = HAM_PARAM_CACHESIZE;
+    params[p].value = m_config->cachesize;
+    p++;
+    params[p].name = HAM_PARAM_PAGESIZE;
+    params[p].value = m_config->pagesize;
+    p++;
     if (m_config->use_encryption) {
-      params[2].name = HAM_PARAM_ENCRYPTION_KEY;
-      params[2].value = (ham_u64_t)"1234567890123456";
+      params[p].name = HAM_PARAM_ENCRYPTION_KEY;
+      params[p].value = (ham_u64_t)"1234567890123456";
+      p++;
+    }
+    if (m_config->journal_compression) {
+      params[p].name = HAM_PARAM_ENABLE_JOURNAL_COMPRESSION;
+      params[p].value = m_config->journal_compression;
+      p++;
+      params[p].name = HAM_PARAM_JOURNAL_COMPRESSION_LEVEL;
+      params[p].value = m_config->journal_compression_level;
+      p++;
     }
 
     flags |= m_config->inmemory ? HAM_IN_MEMORY : 0; 
@@ -128,7 +145,8 @@ HamsterDatabase::do_create_env()
     // flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
     st = ham_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
     if (st)
-      LOG_ERROR(("ham_env_open failed with error %d (%s)\n", st, ham_strerror(st)));
+      LOG_ERROR(("ham_env_open failed with error %d (%s)\n",
+                              st, ham_strerror(st)));
   }
 #endif
 
@@ -151,11 +169,22 @@ HamsterDatabase::do_open_env()
 
   // check if another thread was faster
   if (ms_env == 0) {
-    params[0].name = HAM_PARAM_CACHESIZE;
-    params[0].value = m_config->cachesize;
+    int p = 0;
+    params[p].name = HAM_PARAM_CACHESIZE;
+    params[p].value = m_config->cachesize;
+    p++;
     if (m_config->use_encryption) {
-      params[1].name = HAM_PARAM_ENCRYPTION_KEY;
-      params[1].value = (ham_u64_t)"1234567890123456";
+      params[p].name = HAM_PARAM_ENCRYPTION_KEY;
+      params[p].value = (ham_u64_t)"1234567890123456";
+      p++;
+    }
+    if (m_config->journal_compression) {
+      params[p].name = HAM_PARAM_ENABLE_JOURNAL_COMPRESSION;
+      params[p].value = m_config->journal_compression;
+      p++;
+      params[p].name = HAM_PARAM_JOURNAL_COMPRESSION_LEVEL;
+      params[p].value = m_config->journal_compression_level;
+      p++;
     }
 
     flags |= m_config->no_mmap ? HAM_DISABLE_MMAP : 0; 

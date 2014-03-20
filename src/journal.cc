@@ -29,6 +29,19 @@
 
 namespace hamsterdb {
 
+Journal::Journal(LocalEnvironment *env)
+  : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
+    m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
+    m_count_bytes_flushed(0)
+{
+  m_fd[0] = HAM_INVALID_FD;
+  m_fd[1] = HAM_INVALID_FD;
+  m_open_txn[0] = 0;
+  m_open_txn[1] = 0;
+  m_closed_txn[0] = 0;
+  m_closed_txn[1] = 0;
+}
+
 void
 Journal::create()
 {
@@ -353,52 +366,56 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   PJournalEntry entry;
   PJournalEntryChangeset changeset;
   ham_u32_t page_size = m_env->get_page_size();
-  ham_u32_t num_pages = bucket1_size + bucket2_size
-          + bucket3_size + bucket4_size;
-  ham_u32_t size = sizeof(PJournalEntryChangeset)
-          + num_pages * (page_size + sizeof(PJournalEntryPageHeader));
-
+  
   entry.lsn = lsn;
   entry.dbname = 0;
   entry.txn_id = 0;
   entry.type = kEntryTypeChangeset;
-  entry.followup_size = size;
-  changeset.num_pages = num_pages;
+  // followup_size is incomplete - the actual page sizes are added later
+  entry.followup_size = sizeof(PJournalEntryChangeset);
+  changeset.num_pages = bucket1_size + bucket2_size
+                            + bucket3_size + bucket4_size;
 
   PJournalTrailer trailer;
   trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + entry.followup_size;
+
+  // we need the current position in the file buffer. if compression is enabled
+  // then we do not know the actual followup-size of this entry. it will be
+  // patched in later.
+  ham_u32_t entry_position = m_buffer[m_current_fd].get_size();
 
   // write the data to the file
   append_entry(m_current_fd, &entry, sizeof(entry),
                 &changeset, sizeof(PJournalEntryChangeset));
 
-  for (ham_u32_t i = 0; i < bucket1_size; i++) {
-    PJournalEntryPageHeader header(bucket1[i]->get_address());
-    append_entry(m_current_fd, &header, sizeof(header),
-                    bucket1[i]->get_raw_payload(), page_size);
-  }
-  for (ham_u32_t i = 0; i < bucket2_size; i++) {
-    PJournalEntryPageHeader header(bucket2[i]->get_address());
-    append_entry(m_current_fd, &header, sizeof(header),
-                    bucket2[i]->get_raw_payload(), page_size);
-  }
-  for (ham_u32_t i = 0; i < bucket3_size; i++) {
-    PJournalEntryPageHeader header(bucket3[i]->get_address());
-    append_entry(m_current_fd, &header, sizeof(header),
-                    bucket3[i]->get_raw_payload(), page_size);
-  }
-  for (ham_u32_t i = 0; i < bucket4_size; i++) {
-    PJournalEntryPageHeader header(bucket4[i]->get_address());
-    append_entry(m_current_fd, &header, sizeof(header),
-                    bucket4[i]->get_raw_payload(), page_size);
-  }
+  for (ham_u32_t i = 0; i < bucket1_size; i++)
+    entry.followup_size += append_changeset_page(bucket1[i], page_size);
+  for (ham_u32_t i = 0; i < bucket2_size; i++)
+    entry.followup_size += append_changeset_page(bucket2[i], page_size);
+  for (ham_u32_t i = 0; i < bucket3_size; i++)
+    entry.followup_size += append_changeset_page(bucket3[i], page_size);
+  for (ham_u32_t i = 0; i < bucket4_size; i++)
+    entry.followup_size += append_changeset_page(bucket4[i], page_size);
 
   // finally append the trailer
+  trailer.full_size = sizeof(entry) + entry.followup_size;
   append_entry(m_current_fd, &trailer, sizeof(trailer));
+
+  // and patch in the followup-size
+  m_buffer[m_current_fd].overwrite(entry_position, &entry, sizeof(entry));
 
   // and flush the file
   flush_buffer(m_current_fd, m_env->get_flags() & HAM_ENABLE_FSYNC);
+}
+
+ham_u32_t
+Journal::append_changeset_page(Page *page, ham_u32_t page_size)
+{
+  PJournalEntryPageHeader header(page->get_address());
+
+  append_entry(m_current_fd, &header, sizeof(header),
+                page->get_raw_payload(), page_size);
+  return (page_size + sizeof(header));
 }
 
 void

@@ -81,11 +81,16 @@ struct Configuration
       use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
-      flush_txn_immediately(false), disable_recovery(false) {
+      flush_txn_immediately(false), disable_recovery(false),
+      journal_compression(0), journal_compression_level(7) {
   }
 
   void print() const {
     printf("Configuration: --seed=%lu ", seed);
+    if (journal_compression)
+      printf("--journal-compression=%d ", journal_compression);
+    if (journal_compression_level != 7)
+      printf("--journal-compression-level=%d ", journal_compression_level);
     if (use_encryption)
       printf("--use-encryption ");
     if (use_remote)
@@ -248,6 +253,8 @@ struct Configuration
   bool bulk_erase;
   bool flush_txn_immediately;
   bool disable_recovery;
+  int journal_compression;
+  int journal_compression_level;
 };
 
 #endif /* CONFIGURATION_H__ */

@@ -36,12 +36,12 @@ create_key(ham_key_t *key, int i) {
 void
 usage() {
   printf("usage: ./recovery insert <key_size> <rec_size> <i> <dupes> "
-       "<use_txn> <inducer>\n");
+       "<use_compression> <inducer>\n");
   printf("usage: ./recovery erase <key_size> <i> <dupes> "
-       "<use_txn> <inducer>\n");
-  printf("usage: ./recovery recover <use_txn>\n");
+       "<use_compression> <inducer>\n");
+  printf("usage: ./recovery recover <use_compression>\n");
   printf("usage: ./recovery verify <key_size> <rec_size> <i> <dupes> "
-       "<use_txn> <exist>\n");
+       "<use_compression> <exist>\n");
 }
 
 void
@@ -59,10 +59,11 @@ insert(int argc, char **argv) {
   int rec_size = (int)strtol(argv[3], 0, 0);
   int i     = (int)strtol(argv[4], 0, 0);
   int dupes   = (int)strtol(argv[5], 0, 0);
-  int use_txn = (int)strtol(argv[6], 0, 0);
+  int use_compression = (int)strtol(argv[6], 0, 0);
   int inducer = (int)strtol(argv[7], 0, 0);
-  printf("insert: key_size=%d, rec_size=%d, i=%d, dupes=%d, use_txn=%d, "
-       "inducer=%d\n", key_size, rec_size, i, dupes, use_txn, inducer);
+  printf("insert: key_size=%d, rec_size=%d, i=%d, dupes=%d, "
+         "use_compression=%d, inducer=%d\n", key_size, rec_size, i,
+         dupes, use_compression, inducer);
 
   ham_key_t key = {0};
   key.data = malloc(key_size);
@@ -74,19 +75,27 @@ insert(int argc, char **argv) {
   rec.size = rec_size;
   memset(rec.data, 0, rec.size);
 
+  ham_parameter_t oparams[] = {
+    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
+                                              ? HAM_COMPRESSOR_SNAPPY
+                                              : 0 },
+    { 0, 0 }
+  };
+
   // if db does not yet exist: create it, otherwise open it
   st = ham_env_open(&env, "recovery.db",
-          (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-          | HAM_ENABLE_RECOVERY, 0);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
   if (st == HAM_FILE_NOT_FOUND) {
-    ham_parameter_t params[] = {
+    ham_parameter_t cparams[] = {
       { HAM_PARAM_PAGE_SIZE, 1024 },
+      { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
+                                                ? HAM_COMPRESSOR_SNAPPY
+                                                : 0 },
       { 0, 0 }
     };
     st = ham_env_create(&env, "recovery.db",
-              (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-              | HAM_ENABLE_RECOVERY, 0644,
-            &params[0]);
+              HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, 0644,
+              &cparams[0]);
     if (st) {
       printf("ham_env_create failed: %d\n", (int)st);
       exit(-1);
@@ -113,12 +122,10 @@ insert(int argc, char **argv) {
   // create a new txn and insert the new key/value pair.
   // flushing the txn will fail b/c of the error inducer
   ham_txn_t *txn = 0;
-  if (use_txn) {
-    st = ham_txn_begin(&txn, env, 0, 0, 0);
-    if (st) {
-      printf("ham_txn_begin failed: %d\n", (int)st);
-      exit(-1);
-    }
+  st = ham_txn_begin(&txn, env, 0, 0, 0);
+  if (st) {
+    printf("ham_txn_begin failed: %d\n", (int)st);
+    exit(-1);
   }
 
   ErrorInducer *ei = new ErrorInducer();
@@ -129,14 +136,11 @@ insert(int argc, char **argv) {
     create_key(&key, i * NUM_STEPS + j);
     st = ham_db_insert(db, txn, &key, &rec, dupes ? HAM_DUPLICATE : 0);
     if (st) {
-      if (st == HAM_INTERNAL_ERROR && !use_txn)
+      if (st == HAM_INTERNAL_ERROR)
         break;
       printf("ham_db_insert failed: %d (%s)\n", (int)st, ham_strerror(st));
       exit(-1);
     }
-    // only loop once if transactions are disabled
-    if (!use_txn)
-      break;
   }
 
   if (txn)
@@ -163,19 +167,25 @@ erase(int argc, char **argv) {
   int key_size = (int)strtol(argv[2], 0, 0);
   int i     = (int)strtol(argv[3], 0, 0);
   int dupes   = (int)strtol(argv[4], 0, 0);
-  int use_txn = (int)strtol(argv[5], 0, 0);
+  int use_compression = (int)strtol(argv[5], 0, 0);
   int inducer = (int)strtol(argv[6], 0, 0);
-  printf("erase: key_size=%d, i=%d, dupes=%d, use_txn=%d, inducer=%d\n",
-      key_size, i, dupes, use_txn, inducer);
+  printf("erase: key_size=%d, i=%d, dupes=%d, use_compression=%d, inducer=%d\n",
+      key_size, i, dupes, use_compression, inducer);
 
   ham_key_t key = {0};
   key.data = malloc(key_size);
   key.size = key_size;
   memset(key.data, 0, key.size);
 
+  ham_parameter_t oparams[] = {
+    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
+                                              ? HAM_COMPRESSOR_SNAPPY
+                                              : 0 },
+    { 0, 0 }
+  };
+
   st = ham_env_open(&env, "recovery.db",
-          (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-          | HAM_ENABLE_RECOVERY, 0);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
   if (st) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
@@ -189,12 +199,10 @@ erase(int argc, char **argv) {
   // create a new txn and erase the keys
   // flushing the txn will fail b/c of the error inducer
   ham_txn_t *txn = 0;
-  if (use_txn) {
-    st = ham_txn_begin(&txn, env, 0, 0, 0);
-    if (st) {
-      printf("ham_txn_begin failed: %d\n", (int)st);
-      exit(-1);
-    }
+  st = ham_txn_begin(&txn, env, 0, 0, 0);
+  if (st) {
+    printf("ham_txn_begin failed: %d\n", (int)st);
+    exit(-1);
   }
 
   ErrorInducer *ei = new ErrorInducer();
@@ -206,7 +214,7 @@ erase(int argc, char **argv) {
     if (dupes) {
       st = ham_db_erase(db, txn, &key, 0);
       if (st) {
-        if (st == HAM_INTERNAL_ERROR && !use_txn)
+        if (st == HAM_INTERNAL_ERROR)
           break;
         printf("ham_db_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
         exit(-1);
@@ -215,15 +223,12 @@ erase(int argc, char **argv) {
     else {
       st = ham_db_erase(db, txn, &key, 0);
       if (st) {
-        if (st == HAM_INTERNAL_ERROR && !use_txn)
+        if (st == HAM_INTERNAL_ERROR)
           break;
         printf("ham_db_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
         exit(-1);
       }
     }
-    // only loop once if transactions are disabled
-    if (!use_txn)
-      break;
   }
 
   if (txn)
@@ -243,14 +248,21 @@ recover(int argc, char **argv) {
     exit(-1);
   }
 
-  int use_txn = (int)strtol(argv[2], 0, 0);
-  printf("recover: use_txn=%d\n", use_txn);
+  int use_compression = (int)strtol(argv[2], 0, 0);
+  printf("recover: use_compression=%d\n", use_compression);
 
   ham_status_t st;
   ham_env_t *env;
 
+  ham_parameter_t oparams[] = {
+    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
+                                              ? HAM_COMPRESSOR_SNAPPY
+                                              : 0 },
+    { 0, 0 }
+  };
+
   st = ham_env_open(&env, "recovery.db",
-        (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) | HAM_ENABLE_RECOVERY, 0);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
   if (st == 0)
     exit(0);
   if (st != HAM_NEED_RECOVERY) {
@@ -259,7 +271,7 @@ recover(int argc, char **argv) {
   }
 
   st = ham_env_open(&env, "recovery.db",
-        (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) | HAM_AUTO_RECOVERY, 0);
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, &oparams[0]);
   if (st != 0) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
@@ -285,10 +297,11 @@ verify(int argc, char **argv) {
   int rec_size = (int)strtol(argv[3], 0, 0);
   int maxi    = (int)strtol(argv[4], 0, 0);
   int dupes   = (int)strtol(argv[5], 0, 0);
-  int use_txn = (int)strtol(argv[6], 0, 0);
+  int use_compression = (int)strtol(argv[6], 0, 0);
   int exist   = (int)strtol(argv[7], 0, 0);
-  printf("verify: key_size=%d, rec_size=%d, i=%d, dupes=%d, use_txn=%d, "
-       "exist=%d\n", key_size, rec_size, maxi, dupes, use_txn, exist);
+  printf("verify: key_size=%d, rec_size=%d, i=%d, dupes=%d, "
+         "use_compression=%d, exist=%d\n", key_size, rec_size, maxi,
+         dupes, use_compression, exist);
 
   ham_status_t st;
   ham_db_t *db;
@@ -354,9 +367,6 @@ verify(int argc, char **argv) {
           exit(-1);
         }
       }
-      // only loop once if transactions are disabled
-      if (!use_txn)
-        break;
     }
   }
 }

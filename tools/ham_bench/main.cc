@@ -79,6 +79,8 @@
 #define ARG_BULK_ERASE              59
 #define ARG_FLUSH_TXN_IMMEDIATELY   60
 #define ARG_DISABLE_RECOVERY        61
+#define ARG_JOURNAL_COMPRESSION     62
+#define ARG_JOURNAL_COMPRESSION_LEVEL 63
 
 /*
  * command line parameters
@@ -368,6 +370,18 @@ static option_t opts[] = {
     "disable-recovery",
     "Disables recovery (HAM_DISABLE_RECOVERY)",
     0 },
+  {
+    ARG_JOURNAL_COMPRESSION,
+    0,
+    "journal-compression",
+    "Enables journal compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_JOURNAL_COMPRESSION_LEVEL,
+    0,
+    "journal-compression-level",
+    "Sets the journal compression (0 .. 9, default: 7); only for zlib",
+    GETOPTS_NEED_ARGUMENT },
 };
 
 static void
@@ -671,6 +685,12 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_DISABLE_RECOVERY) {
       c->disable_recovery = true;
+    }
+    else if (opt == ARG_JOURNAL_COMPRESSION) {
+      c->journal_compression = strtoul(param, 0, 0);
+    }
+    else if (opt == ARG_JOURNAL_COMPRESSION_LEVEL) {
+      c->journal_compression_level = strtoul(param, 0, 0);
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;

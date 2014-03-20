@@ -97,10 +97,7 @@ class Journal
       kHeaderMagic = ('h' << 24) | ('j' << 16) | ('o' << 8) | '2',
 
       // magic for a journal trailer
-      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1',
-
-      // flag for a journal entry: entry is compressed
-      kFlagCompressed = 1
+      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1'
     };
 
   public:
@@ -179,17 +176,7 @@ class Journal
     };
 
     // Constructor
-    Journal(LocalEnvironment *env)
-      : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
-        m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
-        m_count_bytes_flushed(0) {
-      m_fd[0] = HAM_INVALID_FD;
-      m_fd[1] = HAM_INVALID_FD;
-      m_open_txn[0] = 0;
-      m_open_txn[1] = 0;
-      m_closed_txn[0] = 0;
-      m_closed_txn[1] = 0;
-    }
+    Journal(LocalEnvironment *env);
 
     // Creates a new journal
     void create();
@@ -275,6 +262,11 @@ class Journal
   private:
     friend struct JournalFixture;
 
+    // Helper function which adds a single page from the changeset to
+    // the Journal; returns the page size (or compressed size, if compression
+    // was enabled)
+    ham_u32_t append_changeset_page(Page *page, ham_u32_t page_size);
+
     // Recovers (re-applies) the physical changelog; returns the lsn of the
     // Changelog
     ham_u64_t recover_changeset();
@@ -328,8 +320,8 @@ class Journal
       if (m_buffer[idx].get_size() > 0) {
         os_write(m_fd[idx], m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
         m_count_bytes_flushed += m_buffer[idx].get_size();
-        m_buffer[idx].clear();
 
+        m_buffer[idx].clear();
         if (fsync)
           os_flush(m_fd[idx]);
       }

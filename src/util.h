@@ -62,6 +62,10 @@ class ByteArray
       m_size = size;
     }
 
+    void overwrite(ham_u32_t position, const void *ptr, ham_u32_t size) {
+      ::memcpy(((ham_u8_t *)m_ptr) + position, ptr, size);
+    }
+
     void *resize(ham_u32_t size) {
       if (size > m_size) {
         m_ptr = Memory::reallocate<void>(m_ptr, size);
