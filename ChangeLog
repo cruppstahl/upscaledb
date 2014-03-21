@@ -1,3 +1,6 @@
+Mar 21, 2014 - chris ---------------------------------------------------
+o Fixed a journalling bug; partial records were not logged correctly
+
 Mar 10, 2014 - chris ---------------------------------------------------
 o Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
 	combination with HAM_ENABLE_TRANSACTIONS

@@ -276,7 +276,12 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
   PJournalEntry entry;
   PJournalEntryInsert insert;
-  ham_u32_t size = sizeof(PJournalEntryInsert) + key->size + record->size - 1;
+  ham_u32_t size = sizeof(PJournalEntryInsert)
+                        + key->size
+                        + (flags & HAM_PARTIAL
+                            ? record->partial_size
+                            : record->size)
+                        - 1;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
@@ -301,14 +306,15 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
   PJournalTrailer trailer;
   trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + sizeof(PJournalEntryInsert) - 1
-                + key->size + record->size;
+  trailer.full_size = sizeof(entry) + size;
 
   // append the entry to the logfile
   append_entry(idx, &entry, sizeof(entry),
                 &insert, sizeof(PJournalEntryInsert) - 1,
                 key->data, key->size,
-                record->data, record->size,
+                record->data, (flags & HAM_PARTIAL
+                                ? record->partial_size
+                                : record->size),
                 &trailer, sizeof(trailer));
 }
 

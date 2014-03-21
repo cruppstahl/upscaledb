@@ -222,28 +222,17 @@ x QuickCheck
         insert/erase/find/close/open; use very low pagesize with large
         key size, if possible; also use multi-page blobs
 
-o webpage copyright is still 2013
-
-o improve the release process
-    o improve/add integration of static code analysis to release process
-        o oclint: create helper file in bin/
-            oclint $FILE -- -I ../include/ -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -c
-            filter out P1 problems, report P2, ignore P3
-        o coverity
-    o packaging currently creates the documentation tarball with the
-        full directory
-    o run both as part of the release process
-    o move the critical stages up front, and the non critical ones towards
-        the end (critical: packaging, unittests, tools, samples, valgrind)
-
-o extend ham_bench documentation for --flush-txn-immediately
-o extend ham_bench documentation for --disable-recovery
-
-o bug: when the journal appends insert-entries then it writes the partial
+x bug: when the journal appends insert-entries then it writes the partial
     offset and size, but always tries to append a record with the full size
-    o add a unittest
+    x add a unittest
 
-x web-page requires updates
+x improve the release process
+    x move the critical stages up front, and the non critical ones towards
+        the end (critical: packaging, unittests, tools, samples, valgrind)
+    x packaging currently creates the documentation tarball with the
+        full directory path
+
+o web-page requires updates
     x deployed html differs from git-repository
     x download/sources: add erlang, remove 1.x
     x www1-repository and hamsterdb-www should be identical
@@ -255,6 +244,7 @@ x web-page requires updates
         x www1 and www2 are already combined in a single remote target
         x where to host static files? - hetzner server
         x clean up 'dl' directory
+    o webpage copyright is still 2013
     o 'htdocs' should push to staging.hamsterdb.com
         o if everything works then also to hamsterdb.com
         o then use a different branch for staging
@@ -308,7 +298,7 @@ o Start with the PRO version
         x zlib: also specify the compression level as a parameter
             -> HAM_PARAM_*_COMPRESSION_LEVEL = <n>
 
-        o env: add journal compression parameter
+        x env: add journal compression parameter
             x when creating an environment
             x when opening an environment
             x create compressor in journal (w/ autoptr)
@@ -320,10 +310,9 @@ o Start with the PRO version
                 x do not compress if compressed data is > original
             x add unittests
             x add parameters to ham_bench
-            o run recovery test w/ compression
-            o add perftests, monster tests
-            o add documentation (header file)
-            o add documentation (wiki)
+            x run recovery test w/ compression
+            x add documentation (header file)
+            x add perftests, monster tests
 
         o db: add record compression parameter
             o when creating a database
@@ -331,6 +320,9 @@ o Start with the PRO version
             o do not allow partial updates for compressed records
                 o unittests
             o create compressor in database (w/ autoptr)
+            o BlobManager should directly decode into output buffer,
+                not in internal buffer of the compressor
+            o should also work for inmemory-databases!
             o blob_header already stores the uncompressed size
                 x no need to store it in Compressor::encode
             o do not compress if compressed data is > original
@@ -339,13 +331,19 @@ o Start with the PRO version
             o add parameters to ham_bench
             o add perftests, monster tests
             o add documentation (header file)
-            o add documentation (wiki)
 
         o run performance tests with the various compressors (10 mio
             keys) then document the results in the header file,
             recommend good defaults
 
-        o add test for --disable-compression to release-pro.pl
+    o enable AES encryption (also for the journal)
+        o journal header: store flags ("Encryption enabled")
+        o journal entries: requires padding??
+        o apply encryption on the lowest level (whereas compression
+            will be on entry-level)
+        o MIT should return "HAM_NOT_IMPLEMENTED"
+        o needs unittests, perftests and monster tests
+        o make sure it works in combination with compression
 
     o PRO is able to open MIT files, but not vice versa
         o use msb in file version for a marker
@@ -356,14 +354,12 @@ o Start with the PRO version
 
     o work over the license agreement; PRO will be similar to an NDA
 
-    o enable AES encryption (also for the journal)
-        o journal header: store flags ("Encryption enabled")
-        o journal entries: requires padding??
-        o apply encryption on the lowest level (whereas compression
-            will be on entry-level)
-        o MIT should return "HAM_NOT_IMPLEMENTED"
-        o needs unittests, perftests and monster tests
-        o make sure it works in combination with compression
+    o extend release-tool
+        o new switch --product=mit|pro
+        o for pro: use different version tag
+        o for pro: use different packaging directory
+        o for pro: use different file list
+        o for pro: add test for --disable-compression
 
     o 30 day evaluation library
         o ham_time_t ham_is_evaluation(); -> returns end time, or 0
@@ -378,59 +374,41 @@ o Start with the PRO version
             o on windows only build the DLLs, then run a quick test
                     (subset of the unittests)
                     and also check ham_is_evaluation(), ham_is_pro()
+            o use source obfuscator
+            o ... but also rename the files (f01.cc, f02.cc, ...)
+        o create automagically in release-build.pl
 
     o hamsterdb: replace GPL with MIT license
 
-    o new release process for the commercial build
-        o also create the 30day trial packages
+    o create new documentation page (wiki) for pro
+        o journal compression
+        o zlib compression
+        o aes encryption
+        o file compatibility
+        o ...
 
     o webpage
         o overview, catch lines
         o customers
         o feature matrix MIT vs. closed source
+        o daily backups of the database
         o can download commercial files using the admin-API to verify the
             login
-        o daily backups of the database
 
     o what are the minimum features required for the first release?
-        - (evaluation licenses)
-        - heavyweight compression for the journal
-        - heavyweight compression for records
-        - AES encryption for journal and file
-        - SIMD for searches
-        - hot backups
+        x heavyweight compression for the journal
+        o heavyweight compression for records
+        o AES encryption for journal and file
+        o (evaluation licenses)
+        o SIMD for searches
+        o hot backups
       optional:
-        - bulk updates
-        - prefix compression for strings (requires delta updates)
-        - lightweight compression for binary keys (requires delta updates)
+        o bulk updates
+        o prefix compression for strings (requires delta updates)
+        o lightweight compression for binary keys (requires delta updates)
 
-    . admin webpage
-        o database is in openshift
-        o admin webpage is secured by htaccess (has a non-standard path)
-        o has a dashboard
-            o number of customers
-            o number of customers which will expire in less than 1 month
-            o number of trial customers
-            o number of trial customers which will expire in less than 1 week
-        o has a table with the releases
-        o has a table with the customers and their license status
-                (trial from-to, customer from-to)
-        o has a table with the links/guids for the customers
-        o can list, add, edit, remove releases
-        o can list, add, edit, remove customers
-        o can create a new trial customer
-        o can create a new (non-trial) customer
-        o can upgrade a customer
-        o can list trial customers which expire soon
-        o can list real customers which expire soon
-        o has an api to verify the GUIDs
-        o daily backup of the database to the other server
-
-        o need a second installation for testing!
-
-    . expired 30day licenses will be removed automatically from the server
-        o and from the backup server
-        o and from the database
+o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
 
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
@@ -444,6 +422,34 @@ o Start with the PRO version
         or to fetch a specific duplicate.
 
 o PRO: linear SIMD search (see topic/linear)
+
+o pro: admin webpage
+    o database is in openshift
+    o admin webpage is secured by htaccess (has a non-standard path)
+    o has a dashboard
+        o number of customers
+        o number of customers which will expire in less than 1 month
+        o number of trial customers
+        o number of trial customers which will expire in less than 1 week
+    o has a table with the releases
+    o has a table with the customers and their license status
+            (trial from-to, customer from-to)
+    o has a table with the links/guids for the customers
+    o can list, add, edit, remove releases
+    o can list, add, edit, remove customers
+    o can create a new trial customer
+    o can create a new (non-trial) customer
+    o can upgrade a customer
+    o can list trial customers which expire soon
+    o can list real customers which expire soon
+    o has an api to verify the GUIDs
+    o daily backup of the database to the other server
+
+    o need a second installation for testing!
+
+    . expired 30day licenses will be removed automatically from the server
+        o and from the backup server
+        o and from the database
 
 ----------------------------------
 

@@ -16,6 +16,7 @@
 #include <vector>
 #include <sstream>
 
+#include <ham/hamsterdb_int.h>
 #include "../src/env_local.h"
 #include "../src/errorinducer.h"
 #include "os.hpp"
@@ -23,6 +24,32 @@
 using namespace hamsterdb;
 
 #define NUM_STEPS     10
+
+int
+default_compressor() {
+#ifdef HAM_COMPRESSOR_SNAPPY
+  return (HAM_COMPRESSOR_SNAPPY);
+#else
+  return (2);
+#endif
+}
+
+ham_parameter_t *
+get_parameters(bool use_compression, int page_size = 0) {
+  static ham_parameter_t params[3] = {{0, 0}};
+  int p = 0;
+  if (use_compression) {
+    params[p].name = HAM_PARAM_ENABLE_JOURNAL_COMPRESSION;
+    params[p].value = default_compressor();
+    p++;
+  }
+  if (page_size) {
+    params[p].name = HAM_PARAM_PAGE_SIZE;
+    params[p].value = page_size;
+    p++;
+  }
+  return (&params[0]);
+}
 
 void
 create_key(ham_key_t *key, int i) {
@@ -75,27 +102,14 @@ insert(int argc, char **argv) {
   rec.size = rec_size;
   memset(rec.data, 0, rec.size);
 
-  ham_parameter_t oparams[] = {
-    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
-                                              ? HAM_COMPRESSOR_SNAPPY
-                                              : 0 },
-    { 0, 0 }
-  };
-
   // if db does not yet exist: create it, otherwise open it
   st = ham_env_open(&env, "recovery.db",
-            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
+            get_parameters(use_compression));
   if (st == HAM_FILE_NOT_FOUND) {
-    ham_parameter_t cparams[] = {
-      { HAM_PARAM_PAGE_SIZE, 1024 },
-      { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
-                                                ? HAM_COMPRESSOR_SNAPPY
-                                                : 0 },
-      { 0, 0 }
-    };
     st = ham_env_create(&env, "recovery.db",
               HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, 0644,
-              &cparams[0]);
+              get_parameters(use_compression, 1024));
     if (st) {
       printf("ham_env_create failed: %d\n", (int)st);
       exit(-1);
@@ -177,15 +191,9 @@ erase(int argc, char **argv) {
   key.size = key_size;
   memset(key.data, 0, key.size);
 
-  ham_parameter_t oparams[] = {
-    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
-                                              ? HAM_COMPRESSOR_SNAPPY
-                                              : 0 },
-    { 0, 0 }
-  };
-
   st = ham_env_open(&env, "recovery.db",
-            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
+            get_parameters(use_compression));
   if (st) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
@@ -254,15 +262,9 @@ recover(int argc, char **argv) {
   ham_status_t st;
   ham_env_t *env;
 
-  ham_parameter_t oparams[] = {
-    { HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, use_compression
-                                              ? HAM_COMPRESSOR_SNAPPY
-                                              : 0 },
-    { 0, 0 }
-  };
-
   st = ham_env_open(&env, "recovery.db",
-            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, &oparams[0]);
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
+            get_parameters(use_compression));
   if (st == 0)
     exit(0);
   if (st != HAM_NEED_RECOVERY) {
@@ -271,7 +273,8 @@ recover(int argc, char **argv) {
   }
 
   st = ham_env_open(&env, "recovery.db",
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, &oparams[0]);
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY,
+            get_parameters(use_compression));
   if (st != 0) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
@@ -363,7 +366,7 @@ verify(int argc, char **argv) {
       if (exist) {
         if (rec.size != rec2.size
             || memcmp(rec.data, rec2.data, rec2.size)) {
-          printf("key mismatch\n");
+          printf("record mismatch\n");
           exit(-1);
         }
       }

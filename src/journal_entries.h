@@ -65,19 +65,23 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   // Constructor - sets all fields to 0
   PJournalEntryInsert()
-    : compressed_payload_size(0), key_size(0), record_size(0),
-      record_partial_size(0), record_partial_offset(0), insert_flags(0) {
+    : key_size(0), compressed_key_size(0), record_size(0),
+      compressed_record_size(0), record_partial_size(0),
+      record_partial_offset(0), insert_flags(0) {
     data[0] = 0;
   }
-
-  // PRO: compressed payload size - combines key and record data
-  ham_u32_t compressed_payload_size;
 
   // key size
   ham_u16_t key_size;
 
+  // PRO: compressed key size
+  ham_u16_t compressed_key_size;
+
   // record size
   ham_u32_t record_size;
+
+  // PRO: compressed record size
+  ham_u32_t compressed_record_size;
 
   // record partial size
   ham_u32_t record_partial_size;

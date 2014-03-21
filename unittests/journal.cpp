@@ -299,7 +299,7 @@ struct JournalFixture {
     key.data = (void *)"key1";
     key.size = 5;
     rec.data = (void *)"rec1";
-    rec.size = 15;
+    rec.size = 1024;
     rec.partial_size = 5;
     rec.partial_offset = 10;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -322,8 +322,10 @@ struct JournalFixture {
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((ham_u64_t)2 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
+    REQUIRE(auxbuffer.get_size() == sizeof(PJournalEntryInsert) - 1
+                                    + ins->key_size + ins->record_partial_size);
     REQUIRE(5 == ins->key_size);
-    REQUIRE(15u == ins->record_size);
+    REQUIRE(1024u == ins->record_size);
     REQUIRE(5u == ins->record_partial_size);
     REQUIRE(10u == ins->record_partial_offset);
     REQUIRE((unsigned)HAM_PARTIAL == ins->insert_flags);
