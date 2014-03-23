@@ -14,8 +14,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              AUTHORS                                    \
              README                                     \
              CREDITS                                    \
-             COPYING.GPL2                               \
-             COPYING.GPL3                               \
+             COPYING                                    \
              3rdparty/catch/catch.hpp                   \
              win32/msvc2008/hamsterdb.sln               \
              win32/msvc2008/*.vcproj                    \

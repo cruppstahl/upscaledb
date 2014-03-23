@@ -5,7 +5,7 @@ Version: 2.1.6
 Release: 1%{?dist}
 Source0: http://hamsterdb.com/public/dl/%{name}-%{version}.tar.gz
 URL: http://hamsterdb.com
-License: GPL3
+License: MIT
 Group: System Environment/Libraries
 BuildRequires: protobuf-devel, libtool, curl-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -76,7 +76,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING.GPL3 COPYING.GPL2 README
+%doc AUTHORS COPYING README
 %{_bindir}/*
 %{_libdir}/*.so.*
 

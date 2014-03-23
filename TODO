@@ -264,6 +264,11 @@ x create new issue - see Julien's mail
 x remove AES encryption
 
 o release everything as MIT
+    x everything incl dotnet, java
+    x erlang
+    x also update the readme!
+    o wiki
+    o webpage
 
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery

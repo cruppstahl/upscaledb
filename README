@@ -56,7 +56,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
   merging freelist entries
-- Open source and released under the GPL 2.0 or later
+- Open source and released under MIT license
 - Wrappers for C++, Java, .NET, Erlang, Ada and others
 
 5. Known Issues/Bugs
@@ -151,14 +151,12 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb Embedded Storage can be licensed on a per-developer basis for
-closed source applications. For more details, see
-http://hamsterdb.com/licensing and http://hamsterdb.com/store.
+hamsterdb Embedded Storage is released under the MIT license, which allows
+unrestricted use for commercial and non-commercial applications. See the
+file COPYING for more information.
 
-hamsterdb Embedded Storage is released under GPL2 or later. There are several
-exceptions for other open source licenses (see
-http://hamsterdb.com/licensing/exceptions for legal information and a license
-list).
+A commercial, closed source version hamsterdb pro with additional functionality
+is available on request. See http://hamsterdb.com for more information.
 
 13. Contact
 
