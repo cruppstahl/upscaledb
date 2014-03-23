@@ -7,7 +7,6 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 libhamsterdb_la_SOURCES = \
 	abi.h \
-	aes.h \
 	blob_manager.h \
 	blob_manager_inmem.h \
 	blob_manager_inmem.cc \
@@ -91,10 +90,6 @@ EXTRA_DIST = os_win32.cc
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:1:0 $(BOOST_SYSTEM_LDFLAGS)
 libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
-
-if ENABLE_ENCRYPTION
-AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
-endif
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE

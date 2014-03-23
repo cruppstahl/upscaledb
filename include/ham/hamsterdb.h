@@ -504,12 +504,6 @@ ham_get_license(const char **licensee, const char **product);
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref HAM_ENABLE_FSYNC to force the use of fsync.
  *
- * Starting with version 2.1.2, hamsterdb can transparently encrypt the
- * generated file using 128bit AES in CBC mode. The transactional journal is
- * not encrypted. Encryption can be enabled by specifying
- * @ref HAM_PARAM_ENCRYPTION_KEY (see below). The identical key has to be
- * provided in @ref ham_env_open as well. Ignored for remote Environments.
- *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
@@ -563,9 +557,6 @@ ham_get_license(const char **licensee, const char **product);
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file. Ignored for remote Environments.
- *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
- *      key; enables AES encryption for the Environment file. Not allowed
- *      for In-Memory Environments. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
  *    </ul>
@@ -658,9 +649,6 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file. Ignored for remote Environments.
- *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
- *      key; enables AES encryption for the Environment file. Ignored for
- *      remote Environmens.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
  *    </ul>
@@ -1633,7 +1621,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
 
-/** Parameter name for @ref ham_env_open, @ref ham_env_create;
+/** hamsterdb pro: Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the AES encryption key */
 #define HAM_PARAM_ENCRYPTION_KEY        0x00000106
 

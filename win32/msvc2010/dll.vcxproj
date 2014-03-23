@@ -191,7 +191,6 @@
     <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
     <ClInclude Include="..\..\include\ham\types.h" />
     <ClInclude Include="..\..\src\abi.h" />
-    <ClInclude Include="..\..\src\aes.h" />
     <ClInclude Include="..\..\src\blob_manager.h" />
     <ClInclude Include="..\..\src\blob_manager_disk.h" />
     <ClInclude Include="..\..\src\blob_manager_factory.h" />

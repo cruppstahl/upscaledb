@@ -244,13 +244,33 @@ o web-page requires updates
         x www1 and www2 are already combined in a single remote target
         x where to host static files? - hetzner server
         x clean up 'dl' directory
-    o webpage copyright is still 2013
-    o 'htdocs' should push to staging.hamsterdb.com
-        o if everything works then also to hamsterdb.com
-        o then use a different branch for staging
+    x webpage copyright is still 2013
+    o hamsterdb.com has read-only access to git repository, can do "git pull"
+        for deployment
+        "deploy" -> openshift, dann auch hamsterdb.com
+================
+        "staging" -> staging.hamsterdb.com
+        auf dem server noch fertig einrichten
+================
+
+    o same for staging.hamsterdb.com, but uses the staging-branch
     o merge all repositories (host on github, keep remote branch)
         hamsterdb-www is the main repository, master pushes to staging
         'stable' pushes to hamsterdb.com, www1, www2
+
+x create new issue - see Julien's mail
+    x with unittest!
+
+o remove AES encryption
+
+o release everything as MIT
+
+o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
+
+---------------------------- 2.1.7 ----------------------
+
+
 
 o Start with the PRO version
     x API to get licensee information (can use ham_get_license())
@@ -406,9 +426,6 @@ o Start with the PRO version
         o bulk updates
         o prefix compression for strings (requires delta updates)
         o lightweight compression for binary keys (requires delta updates)
-
-o extend ham_bench documentation for --flush-txn-immediately
-o extend ham_bench documentation for --disable-recovery
 
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently

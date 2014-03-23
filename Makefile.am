@@ -44,7 +44,7 @@ html-dist: doc
 	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
 
 test:
-	cd unittests && make && ./test
+	cd unittests && make && ./test && ./issue32 -i && ./issue32 -r
 if ENABLE_JAVA
 	cd java && make test
 endif

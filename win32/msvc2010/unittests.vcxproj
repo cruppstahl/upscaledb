@@ -178,7 +178,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\unittests\aes.cpp" />
     <ClCompile Include="..\..\unittests\api110.cpp" />
     <ClCompile Include="..\..\unittests\approx.cpp" />
     <ClCompile Include="..\..\unittests\blob_manager.cpp" />

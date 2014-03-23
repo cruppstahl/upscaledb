@@ -297,10 +297,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\aes.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\blob_manager.h"
 			>
 		</File>

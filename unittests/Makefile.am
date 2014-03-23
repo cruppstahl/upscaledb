@@ -1,14 +1,13 @@
 
 EXTRA_DIST      = recovery.pl valgrind.supp data/*
 
-noinst_PROGRAMS = test recovery
-noinst_BIN      = test recovery
+noinst_PROGRAMS = test recovery issue32
+noinst_BIN      = test recovery issue32
 
 
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
 test_SOURCES    = api110.cpp \
-				  aes.cpp \
 			      approx.cpp \
 				  blob_manager.cpp \
 				  btree.cpp \
@@ -101,3 +100,6 @@ valgrind:
 
 test_recovery:
 	perl recovery.pl
+
+issue32_SOURCES = issue32.c
+issue32_LDADD   = $(top_builddir)/src/libhamsterdb.la

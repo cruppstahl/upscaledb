@@ -336,10 +336,6 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\unittests\aes.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\api110.cpp"
 			>
 		</File>
