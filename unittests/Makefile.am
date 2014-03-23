@@ -8,6 +8,7 @@ noinst_BIN      = test recovery issue32
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
 test_SOURCES    = api110.cpp \
+				  aes.cpp \
 			      approx.cpp \
 				  blob_manager.cpp \
 				  btree.cpp \

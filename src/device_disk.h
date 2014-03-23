@@ -19,6 +19,9 @@
 #include "db.h"
 #include "device.h"
 #include "env_local.h"
+#ifdef HAM_ENABLE_ENCRYPTION
+#  include "aes.h"
+#endif
 
 namespace hamsterdb {
 
@@ -105,12 +108,30 @@ class DiskDevice : public Device {
     // reads from the device; this function does NOT use mmap
     virtual void read(ham_u64_t offset, void *buffer, ham_u64_t size) {
       os_pread(m_fd, offset, buffer, size);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.decrypt((ham_u8_t *)buffer, (ham_u8_t *)buffer, size);
+      }
+#endif
     }
 
     // writes to the device; this function does not use mmap,
     // and is responsible for writing the data is run through the file
     // filters
     virtual void write(ham_u64_t offset, void *buffer, ham_u64_t size) {
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        // encryption disables direct I/O -> only full pages are allowed
+        ham_assert(offset % size == 0);
+
+        m_encryption_buffer.resize(size);
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.encrypt((ham_u8_t *)buffer,
+                        (ham_u8_t *)m_encryption_buffer.get_ptr(), size);
+        buffer = m_encryption_buffer.get_ptr();
+      }
+#endif
       os_pwrite(m_fd, offset, buffer, size);
     }
 
@@ -137,6 +158,13 @@ class DiskDevice : public Device {
       }
 
       os_pread(m_fd, page->get_address(), page->get_data(), page_size);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        AesCipher aes(m_env->get_encryption_key(), page->get_address());
+        aes.decrypt((ham_u8_t *)page->get_data(),
+                        (ham_u8_t *)page->get_data(), page_size);
+      }
+#endif
     }
 
     // writes a page to the device

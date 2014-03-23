@@ -389,8 +389,20 @@ ham_env_create(ham_env_t **henv, const char *filename,
         timeout = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
-        ham_trace(("Encryption is only available in hamsterdb pro"));
+#ifdef HAM_ENABLE_ENCRYPTION
+        /* in-memory? encryption is not possible */
+        if (flags & HAM_IN_MEMORY) {
+          ham_trace(("aes encryption not allowed in combination with "
+                  "HAM_IN_MEMORY"));
+          return (HAM_INV_PARAMETER);
+        }
+        encryption_key = (ham_u8_t *)param->value;
+        flags |= HAM_DISABLE_MMAP;
+        break;
+#else
+        ham_trace(("aes encrpytion was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
+#endif
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);
@@ -645,8 +657,14 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         timeout = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
-        ham_trace(("Encryption is only available in hamsterdb pro"));
+#ifdef HAM_ENABLE_ENCRYPTION
+        encryption_key = (ham_u8_t *)param->value;
+        flags |= HAM_DISABLE_MMAP;
+        break;
+#else
+        ham_trace(("aes encryption was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
+#endif
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);

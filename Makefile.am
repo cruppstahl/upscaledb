@@ -13,7 +13,6 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              hamsterdb.spec                             \
              AUTHORS                                    \
              README                                     \
-             CREDITS                                    \
              COPYING                                    \
              3rdparty/catch/catch.hpp                   \
              win32/msvc2008/hamsterdb.sln               \

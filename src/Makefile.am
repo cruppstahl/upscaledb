@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 libhamsterdb_la_SOURCES = \
 	abi.h \
+	aes.h \
 	blob_manager.h \
 	blob_manager.cc \
 	blob_manager_inmem.h \
