@@ -1,5 +1,6 @@
 Mar 23, 2014 - chris ---------------------------------------------------
 o Added a unittest for issue #32
+o Removed AES encryption; will be available as a commercial add-on.
 
 Mar 21, 2014 - chris ---------------------------------------------------
 o Fixed a journalling bug; partial records were not logged correctly
