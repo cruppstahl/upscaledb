@@ -34,108 +34,24 @@
 using namespace hamsterdb;
 
 
-void
-DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t address,
-        ham_u8_t **chunk_data, ham_u32_t *chunk_size, ham_u32_t chunks)
-{
-  ham_u32_t page_size = m_env->get_page_size();
-
-  // for each chunk...
-  for (ham_u32_t i = 0; i < chunks; i++) {
-    ham_u32_t size = chunk_size[i];
-    ham_u8_t *data = chunk_data[i];
-
-    while (size) {
-      // get the page-id from this chunk
-      ham_u64_t pageid = address - (address % page_size);
-
-      // is this the current page? if yes then continue working with this page,
-      // otherwise fetch the page
-      if (page && page->get_address() != pageid)
-        page = 0;
-      if (!page)
-        page = m_env->get_page_manager()->fetch_page(db, pageid);
-
-      // now write the data
-      ham_u32_t write_start = (ham_u32_t)(address - page->get_address());
-      ham_u32_t write_size = (ham_u32_t)(page_size - write_start);
-      if (write_size > size)
-        write_size = size;
-      memcpy(&page->get_raw_payload()[write_start], data, write_size);
-      page->set_dirty(true);
-      address += write_size;
-      data += write_size;
-      size -= write_size;
-    }
-  }
-}
-
-void
-DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
-            LocalDatabase *db, ham_u8_t *data, ham_u32_t size,
-            bool fetch_read_only)
-{
-  ham_u32_t page_size = m_env->get_page_size();
-
-  while (size) {
-    // get the page-id from this chunk
-    ham_u64_t pageid = address - (address % page_size);
-
-    // is this the current page? if yes then continue working with this page,
-    // otherwise fetch the page
-    if (page && page->get_address() != pageid)
-      page = 0;
-    if (!page)
-      page = m_env->get_page_manager()->fetch_page(db, pageid,
-                        fetch_read_only ? PageManager::kReadOnly : 0);
-
-    // now read the data from the page
-    ham_u32_t read_start = (ham_u32_t)(address - page->get_address());
-    ham_u32_t read_size = (ham_u32_t)(page_size - read_start);
-    if (read_size > size)
-      read_size = size;
-    memcpy(data, &page->get_raw_payload()[read_start], read_size);
-    address += read_size;
-    data += read_size;
-    size -= read_size;
-  }
-
-  if (ppage)
-    *ppage = page;
-}
-
 ham_u64_t
-DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
+DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
                 ham_u32_t flags)
 {
-  ham_u32_t page_size = m_env->get_page_size();
-
-  PBlobPageHeader *header = 0;
-  ham_u64_t address = 0;
   ham_u8_t *chunk_data[2];
   ham_u32_t chunk_size[2];
-  ByteArray zeroes;
-  ham_u64_t blobid = 0;
+  ham_u32_t page_size = m_env->get_page_size();
 
   m_blob_total_allocated++;
 
-  // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
-  }
-
   PBlobHeader blob_header;
-
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
   Page *page = m_env->get_page_manager()->get_last_blob_page(db);
 
+  PBlobPageHeader *header = 0;
+  ham_u64_t address = 0;
   if (page) {
     header = PBlobPageHeader::from_page(page);
     // allocate space for the blob
@@ -192,6 +108,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   // PARTIAL WRITE
   //
   // are there gaps at the beginning? If yes, then we'll fill with zeros
+  ByteArray zeroes;
   if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
     ham_u32_t gapsize = record->partial_offset;
 
@@ -236,7 +153,7 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
   }
 
   // store the blobid; it will be returned to the caller
-  blobid = blob_header.get_self();
+  ham_u64_t blobid = blob_header.get_self();
 
   // PARTIAL WRITES:
   //
@@ -272,8 +189,8 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 }
 
 void
-DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
-        ham_u32_t flags, ByteArray *arena)
+DiskBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
+                ham_record_t *record, ham_u32_t flags, ByteArray *arena)
 {
   m_blob_total_read++;
 
@@ -291,12 +208,11 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
   }
 
   ham_u32_t blobsize = (ham_u32_t)blob_header.get_size();
-
   record->size = blobsize;
 
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
-      ham_trace(("partial offset+size is greater than the total record size"));
+      ham_trace(("partial offset is greater than the total record size"));
       throw Exception(HAM_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
@@ -327,7 +243,7 @@ DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
 }
 
 ham_u64_t
-DiskBlobManager::get_blob_size(LocalDatabase *db, ham_u64_t blobid)
+DiskBlobManager::do_get_blob_size(LocalDatabase *db, ham_u64_t blobid)
 {
   // read the blob header
   PBlobHeader blob_header;
@@ -341,21 +257,11 @@ DiskBlobManager::get_blob_size(LocalDatabase *db, ham_u64_t blobid)
 }
 
 ham_u64_t
-DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
+DiskBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                 ham_record_t *record, ham_u32_t flags)
 {
   PBlobHeader old_blob_header, new_blob_header;
   Page *page;
-
-  // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
-  }
 
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
@@ -433,7 +339,7 @@ DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
 }
 
 void
-DiskBlobManager::erase(LocalDatabase *db, ham_u64_t blobid, Page *page,
+DiskBlobManager::do_erase(LocalDatabase *db, ham_u64_t blobid, Page *page,
                 ham_u32_t flags)
 {
   // fetch the blob header
@@ -614,3 +520,74 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
 
   return (true);
 }
+
+void
+DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t address,
+            ham_u8_t **chunk_data, ham_u32_t *chunk_size, ham_u32_t chunks)
+{
+  ham_u32_t page_size = m_env->get_page_size();
+
+  // for each chunk...
+  for (ham_u32_t i = 0; i < chunks; i++) {
+    ham_u32_t size = chunk_size[i];
+    ham_u8_t *data = chunk_data[i];
+
+    while (size) {
+      // get the page-id from this chunk
+      ham_u64_t pageid = address - (address % page_size);
+
+      // is this the current page? if yes then continue working with this page,
+      // otherwise fetch the page
+      if (page && page->get_address() != pageid)
+        page = 0;
+      if (!page)
+        page = m_env->get_page_manager()->fetch_page(db, pageid);
+
+      // now write the data
+      ham_u32_t write_start = (ham_u32_t)(address - page->get_address());
+      ham_u32_t write_size = (ham_u32_t)(page_size - write_start);
+      if (write_size > size)
+        write_size = size;
+      memcpy(&page->get_raw_payload()[write_start], data, write_size);
+      page->set_dirty(true);
+      address += write_size;
+      data += write_size;
+      size -= write_size;
+    }
+  }
+}
+
+void
+DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
+            LocalDatabase *db, ham_u8_t *data, ham_u32_t size,
+            bool fetch_read_only)
+{
+  ham_u32_t page_size = m_env->get_page_size();
+
+  while (size) {
+    // get the page-id from this chunk
+    ham_u64_t pageid = address - (address % page_size);
+
+    // is this the current page? if yes then continue working with this page,
+    // otherwise fetch the page
+    if (page && page->get_address() != pageid)
+      page = 0;
+    if (!page)
+      page = m_env->get_page_manager()->fetch_page(db, pageid,
+                        fetch_read_only ? PageManager::kReadOnly : 0);
+
+    // now read the data from the page
+    ham_u32_t read_start = (ham_u32_t)(address - page->get_address());
+    ham_u32_t read_size = (ham_u32_t)(page_size - read_start);
+    if (read_size > size)
+      read_size = size;
+    memcpy(data, &page->get_raw_payload()[read_start], read_size);
+    address += read_size;
+    data += read_size;
+    size -= read_size;
+  }
+
+  if (ppage)
+    *ppage = page;
+}
+

@@ -40,7 +40,7 @@ print_banner(const char *program_name)
 
   if (!ham_is_pro())
     printf(
-"This program is free software released under the MIT license.\n\n",
+"This program is free software released under the MIT license.\n\n"
 "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
 "of this software and associated documentation files (the \"Software\"), to\n"
 "deal in the Software without restriction, including without limitation the\n"

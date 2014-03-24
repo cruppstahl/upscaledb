@@ -30,20 +30,10 @@ using namespace hamsterdb;
 
 
 ham_u64_t
-InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
+InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
             ham_u32_t flags)
 {
   m_blob_total_allocated++;
-
-  // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
-  }
 
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
@@ -74,7 +64,7 @@ InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 }
 
 void
-InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
+InMemoryBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
 {
@@ -92,7 +82,6 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
   }
 
   ham_u32_t blobsize = (ham_u32_t)blob_header->get_size();
-
   record->size = blobsize;
 
   if (flags & HAM_PARTIAL) {
@@ -133,19 +122,9 @@ InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
 }
 
 ham_u64_t
-InMemoryBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
+InMemoryBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                     ham_record_t *record, ham_u32_t flags)
 {
-  // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
-  }
-
   // free the old blob, allocate a new blob (but if both sizes are equal,
   // just overwrite the data)
   PBlobHeader *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);

@@ -18,7 +18,7 @@ high-level plan for 2.1.7 ..................................................
 x simplified btree SMOs
 x improve recovery performance/scalability
 x improve QuickCheck coverage
-o delta updates
+o start with hamsterdb-pro
 
 --------------
 
@@ -232,52 +232,18 @@ x improve the release process
     x packaging currently creates the documentation tarball with the
         full directory path
 
-o web-page requires updates
-    x deployed html differs from git-repository
-    x download/sources: add erlang, remove 1.x
-    x www1-repository and hamsterdb-www should be identical
-        x updates for 2.1.6 are missing
-        x samples fehlen
-        x doku fehlt
-        x download-dateien fehlen
-    x www1
-        x www1 and www2 are already combined in a single remote target
-        x where to host static files? - hetzner server
-        x clean up 'dl' directory
-    x webpage copyright is still 2013
-    o hamsterdb.com has read-only access to git repository, can do "git pull"
-        for deployment
-        "deploy" -> openshift, dann auch hamsterdb.com
-================
-        "staging" -> staging.hamsterdb.com
-        auf dem server noch fertig einrichten
-================
-
-    o same for staging.hamsterdb.com, but uses the staging-branch
-    o merge all repositories (host on github, keep remote branch)
-        hamsterdb-www is the main repository, master pushes to staging
-        'stable' pushes to hamsterdb.com, www1, www2
-
 x create new issue - see Julien's mail
     x with unittest!
 
 x remove AES encryption
 
-o release everything as MIT
-    x everything incl dotnet, java
-    x erlang
-    x also update the readme!
-    o wiki
-    o webpage
+o ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp --inmemorydb --metrics=all
+-> has 50% more allocations than 2.1.6
 
-o extend ham_bench documentation for --flush-txn-immediately
-o extend ham_bench documentation for --disable-recovery
+o ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp --metrics=all
+    -> segfaults
 
----------------------------- 2.1.7 ----------------------
-
-
-
-o Start with the PRO version
+x Start with the PRO version
     x API to get licensee information (can use ham_get_license())
         x also for wrapper APIs
     x update all file header comments; describe copyright, licensing options
@@ -296,7 +262,7 @@ o Start with the PRO version
         x adjust documentation in the header files
         x change file headers for ham_bench and the tools
 
-    o enable zlib/snappy/others compression (for records and the journal)
+    x enable zlib/snappy/others compression for the journal
         x compressor.h
         x compressor_snappy.h
         x compressor_zlib.h
@@ -339,72 +305,127 @@ o Start with the PRO version
             x add documentation (header file)
             x add perftests, monster tests
 
-        o db: add record compression parameter
-            o when creating a database
-            o when opening a database
-            o do not allow partial updates for compressed records
-                o unittests
-            o create compressor in database (w/ autoptr)
-            o BlobManager should directly decode into output buffer,
-                not in internal buffer of the compressor
-            o should also work for inmemory-databases!
-            o blob_header already stores the uncompressed size
-                x no need to store it in Compressor::encode
-            o do not compress if compressed data is > original
-                (use BlobHeader::unused_flags to store algorithm) 
-            o add unittests
-            o add parameters to ham_bench
-            o add perftests, monster tests
-            o add documentation (header file)
+o release everything as MIT
+    x everything incl dotnet, java
+    x erlang
+    x also update the readme!
+    o wiki
+    o webpage
 
-        o run performance tests with the various compressors (10 mio
-            keys) then document the results in the header file,
-            recommend good defaults
+o extend ham_bench documentation for --flush-txn-immediately
+o extend ham_bench documentation for --disable-recovery
 
-    o enable AES encryption (also for the journal)
-        o journal header: store flags ("Encryption enabled")
-        o journal entries: requires padding??
-        o apply encryption on the lowest level (whereas compression
-            will be on entry-level)
-        o MIT should return "HAM_NOT_IMPLEMENTED"
-        o needs unittests, perftests and monster tests
-        o make sure it works in combination with compression
+o web-page requires updates
+    x deployed html differs from git-repository
+    x download/sources: add erlang, remove 1.x
+    x www1-repository and hamsterdb-www should be identical
+        x updates for 2.1.6 are missing
+        x samples fehlen
+        x doku fehlt
+        x download-dateien fehlen
+    x www1
+        x www1 and www2 are already combined in a single remote target
+        x where to host static files? - hetzner server
+        x clean up 'dl' directory
+    x webpage copyright is still 2013
+    o hamsterdb.com has read-only access to git repository, can do "git pull"
+        for deployment
+        "deploy" -> openshift, dann auch hamsterdb.com
+================
+        "staging" -> staging.hamsterdb.com
+        auf dem server noch fertig einrichten
+================
 
-    o PRO is able to open MIT files, but not vice versa
-        o use msb in file version for a marker
-        o when loading a MIT file in PRO: set the flag, write back
-        o MIT will automatically reject the file
-        o print in ham_info
-        o add a test
+    o same for staging.hamsterdb.com, but uses the staging-branch
+    o merge all repositories (host on github, keep remote branch)
+        hamsterdb-www is the main repository, master pushes to staging
+        'stable' pushes to hamsterdb.com, www1, www2
 
-    o work over the license agreement; PRO will be similar to an NDA
+---------------------------- 2.1.7 ----------------------
 
-    o extend release-tool
-        o new switch --product=mit|pro
-        o for pro: use different version tag
-        o for pro: use different packaging directory
-        o for pro: use different file list
-        o for pro: add test for --disable-compression
+o PRO: enable zlib/snappy/others compression for the records
+    x add documentation to header file
+    x db: add record compression parameter
+        x when creating a database
+        x when opening a database
+    x create compressor in database (w/ autoptr)
+    x refactor BlobManager: should have common functionality, subclasses
+            implement do_overwrite, do_allocate etc
+        x move parameter checks and duplicate code to parent class
+        x do not allow partial updates if compression is enabled
+            x unittests
+    x implement the actual compression/decompression
+        x for in-memory AND disk
+        x compression: store flag in BlobHeader
+        x only compress if compressed size < original size
+        x directly uncompress into output buffer,
+            not in internal buffer of the compressor
+            (or into user allocated buffer)
+        x add unittests (disk and inmemory)
+    o add parameters to ham_bench
+    o add perftests, monster tests
+    o add documentation to the ham_bench wiki
 
-    o 30 day evaluation library
-        o ham_time_t ham_is_evaluation(); -> returns end time, or 0
-        o insert 30 day trial check macros at various positions
-            o dynamically generate those macros
-        o needs different licensing output in the tools
-        o print to stdout in ham_env_create, ham_env_open
-        o evaluate source obfuscators
-        o create one source/win32 package starting at each week, running
-                4 weeks
-            o requires a build tool for unix and win32
-            o on windows only build the DLLs, then run a quick test
-                    (subset of the unittests)
-                    and also check ham_is_evaluation(), ham_is_pro()
-            o use source obfuscator
-            o ... but also rename the files (f01.cc, f02.cc, ...)
-        o create automagically in release-build.pl
+o PRO: should journal and record compression settings really
+    be non-persistent?
+    -> should be persistent, makes things easier
 
-    o hamsterdb: replace GPL with MIT license
+o PRO: improve AES encryption, also encrypt the journal
+    x MIT should return "HAM_NOT_IMPLEMENTED"
+    o journal header: store flags ("Encryption enabled")
+    o journal entries: requires padding??
+    o apply encryption on the lowest level (whereas compression
+        will be on entry-level)
+    o needs unittests, perftests and monster tests
+    o make sure it works in combination with compression
 
+o PRO: is able to open MIT files, but not vice versa
+    o use msb in file version for a marker
+    o when loading a MIT file in PRO: set the flag, write back
+    o MIT will automatically reject the file
+    o print in ham_info
+    o add a test
+
+o PRO: work over the license agreement; PRO will be similar to an NDA
+
+o PRO: extend release-tool
+    o new switch --product=mit|pro
+    o for pro: use different version tag
+    o for pro: use different packaging directory
+    o for pro: use different file list
+    o for pro: add test for --disable-compression
+
+o PRO: 30 day evaluation library
+    o ham_time_t ham_is_evaluation(); -> returns end time, or 0
+    o insert 30 day trial check macros at various positions
+        o dynamically generate those macros
+    o needs different licensing output in the tools
+    o print to stdout in ham_env_create, ham_env_open
+    o evaluate source obfuscators
+    o create one source/win32 package starting at each week, running
+            4 weeks
+        o requires a build tool for unix and win32
+        o on windows only build the DLLs, then run a quick test
+                (subset of the unittests)
+                and also check ham_is_evaluation(), ham_is_pro()
+        o use source obfuscator
+        o ... but also rename the files (f01.cc, f02.cc, ...)
+    o create automagically in release-build.pl
+
+o PRO: heavyweight compression for keys
+    -> support compression with lzf and the other libraries
+    -> keys are stored compressed IF the compressed keys are smaller than the
+        uncompressed keys
+    o compressor: should return 0 if that's not the case
+    o uncompress directly into extkey-cache 
+
+o use linear search for PAX (see topic/linear), but improve the
+    performance!
+
+o PRO: use SIMD instructions for the linear search
+    http://openproceedings.org/EDBT/2014/paper_107.pdf
+
+o PRO: additional stuff for the first release
     o create new documentation page (wiki) for pro
         o journal compression
         o zlib compression
@@ -422,30 +443,21 @@ o Start with the PRO version
 
     o what are the minimum features required for the first release?
         x heavyweight compression for the journal
+        x AES encryption for the file
         o heavyweight compression for records
-        o AES encryption for journal and file
         o (evaluation licenses)
-        o SIMD for searches
-        o hot backups
-      optional:
-        o bulk updates
-        o prefix compression for strings (requires delta updates)
-        o lightweight compression for binary keys (requires delta updates)
+        o SIMD for searches (PAX)
+        o heavyweight compression for keys
+        . AES encryption for the journal
 
-. collect file format updates
-    o PageManager state: also store m_last_blob_page_id persistently
-        (try not to break backwards compatibility, though)
-    o reserve CRC32 for each page
+o QuickCheck: create a new property for testing duplicates; the key is always
+        the same. The number of duplicate keys is tracked and periodically
+        checked with the API. A cursor can be used to remove a specific
+        duplicate, or to fetch a specific duplicate.
 
-. QuickCheck
-    o create a new property for testing duplicates; the key is always the
-        same. The number of duplicate keys is tracked and periodically checked
-        with the API. A cursor can be used to remove a specific duplicate,
-        or to fetch a specific duplicate.
+o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
-o PRO: linear SIMD search (see topic/linear)
-
-o pro: admin webpage
+. pro: admin webpage
     o database is in openshift
     o admin webpage is secured by htaccess (has a non-standard path)
     o has a dashboard
@@ -473,19 +485,12 @@ o pro: admin webpage
         o and from the backup server
         o and from the database
 
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o reserve CRC32 for each page
+
 ----------------------------------
-
-o "hola" - olap functions that operate directly on the btree data
-    -> see wiki
-
-o PRO: hot backups (vacuumizes to a different file)
-    - copies the database file
-    - if compaction is enabled: copies keys w/ iterator
-        (later: performs bulk updates)
-    - then applies all committed transactions to the other file
-    --> think this through; how to deal with delta updates?
-        what if only a few databases should be backed up?
-        what if i want to back up in a neutral format (i.e. csv)?
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -494,7 +499,7 @@ o delta updates managed in the BtreeNode
     -> make sure the page is not "dirty" if the delta update is appended,
     -> ... only when it's merged
     -> then how will it be added to the changeset?
-    -> is a page dirty if it has DUs?
+    -> is a page dirty if it has DUs, but the payload was not modified? - no!
 
     x perform a benchmark/profiling: random inserts vs. ascending inserts;
         the difference should be caused by memcopy/memmove (is it?)
@@ -545,15 +550,16 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
-o bulk updates -> PRO
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort
-    - add those delta updates to the txn-trees or to the stream
+o PRO: hot backups (vacuumizes to a different file)
+    - copies the database file
+    - if compaction is enabled: copies keys w/ iterator
+        (later: performs bulk updates)
+    - then applies all committed transactions to the other file
+    --> think this through; how to deal with delta updates?
+        what if only a few databases should be backed up?
+        what if i want to back up in a neutral format (i.e. csv)?
 
-o lightweight compression for variable-length keys
-
-o prefix compression for variable-length keys
+o PRO: prefix compression for variable-length keys
     - if key is appended at the end: just write the delta
     - otherwise things get tricky, because the keys to the "right" of the
         inserted key have to be re-compressed; and in this case it is
@@ -563,23 +569,24 @@ o prefix compression for variable-length keys
     ===> it really makes sense to have delta updates and bulk inserts first!!
     - try to store a full key every Nth bytes, to avoid extensive re-compressing
 
-- compression -> PRO
-- cache-oblivious page distribution?
+o PRO: bulk updates
+    - require delta updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort
+    - add those delta updates to the txn-trees or to the stream
+
+o "hola" - olap functions that operate directly on the btree data
+    -> see wiki
+    -> see java8 stream API:
+        http://download.java.net/jdk8/docs/api/java/util/stream/Stream.html
+    o create a design
+    o operations on compressed data (COUNT(), MIN(), MAX(), ...)?
+
+- cache-oblivious page distribution? -> PRO
     http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    see below
 - bloom filter -> PRO
 - concurrency -> PRO
-- operations on compressed data (COUNT(), MIN(), MAX(), ...)?
-- C-Store style projections? (requires complex schema types)
-    - introduce a new library with complex schema types, projections
-    - analytic functions
-        count, min, max, sum, product, average, ln, sqrt, exp, round, trunc,
-        date/time functions and interval functions
-    - select(predicate_t, column_descriptor_t, select_state_t)
-             \- an AST of functors
-                          \- existing columns or generated columns (i.e. sum())
-                                                \- keeps track of offset, count
-    - erase(predicate_t)
-    - explain(predicate_t, column_descriptor_t)
 
 o the bucket for concurrency TODOs
     o reduce the linked lists - they're hard to be updated with concurrent

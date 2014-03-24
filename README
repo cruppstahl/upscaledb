@@ -1,4 +1,4 @@
-hamsterdb Embedded Storage 2.1.6               Fr 21. Feb 22:01:12 CET 2014
+hamsterdb Embedded Storage 2.1.7               Mo 24. Mär 07:43:08 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -10,22 +10,29 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release fixes issue #30 (file size grew exponentially if cache size was
-very low and therefore the cache was purged very often). Also, the code
-of Journal and the Log were merged, and the phyical log is now also stored
-in the Journal files. The Journal now uses a buffer to reduce I/O.
-Performance increased compared to previous releases if recovery is enabled.
+This release fixes a few bugs and improves Transactional performance. Also,
+the license was changed to MIT.
+
+The AES encryption was removed. This will be part of a commercial "pro" version
+which will be available soon, together with more new functionality (i.e.
+compression, hot backups etc). No other features were removed. Visit the blog
+(http://crupp.de) for more background information regarding the license change.
 
 2. Changes
+* New license is now MIT
 
 New Features
-* none
+* Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
+	combination with HAM_ENABLE_TRANSACTIONS
 
 Bugfixes
-* issue #30: file size no longer grows exponentially if cache size is low
+* issue #32: fixed segfault during recovery
+* Fixed a journalling bug; partial records were not logged correctly
 
 Other Changes
-* The Journal and the Log were merged and the Journal is now buffered
+* Committed Transactions are no longer flushed immediately, but can be
+	buffered and flushed together with other committed Transactions
+* Removed a parameter from ham_db_check_integrity
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -44,18 +51,15 @@ To see a list of all changes, look in the file ChangeLog.
 - Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases) via TCP/Protocol Buffers
-- Support for transparent AES encryption (using libcrypto)
 - Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
 - Very fast database cursors
-- Configurable page size, cache size and index key size
+- Configurable page size, cache size, key size etc
 - Runs on Linux, Unices, Microsoft Windows and other architectures
 - Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
-- Supports rudimentary live-reorganization by automatically
-  merging freelist entries
 - Open source and released under MIT license
 - Wrappers for C++, Java, .NET, Erlang, Ada and others
 

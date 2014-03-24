@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.1.6.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
 				GenerateDebugInformation="true"
@@ -147,7 +147,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.1.6.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
 				GenerateDebugInformation="true"
@@ -224,7 +224,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.1.6.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
 				GenerateDebugInformation="true"
@@ -303,7 +303,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.1.6.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
 				GenerateDebugInformation="true"
@@ -346,6 +346,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\blob_manager.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager.cc"
 			>
 		</File>
 		<File

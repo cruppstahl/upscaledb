@@ -1,23 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "config.h"
@@ -425,22 +416,31 @@ class BtreeInsertAction
         // actually insert the key
         node->insert(slot, key);
 
-        if (node->is_leaf()) {
-          // allocate record id
-          node->set_record(slot, m_record,
-                        m_cursor
-                            ? m_cursor->get_duplicate_index()
-                            : 0,
-                        m_hints.flags, &new_dupe_id);
+        try {
+          if (node->is_leaf()) {
+            // allocate record id
+            node->set_record(slot, m_record,
+                          m_cursor
+                              ? m_cursor->get_duplicate_index()
+                              : 0,
+                          m_hints.flags, &new_dupe_id);
 
-          m_hints.processed_leaf_page = page;
-          m_hints.processed_slot = slot;
+            m_hints.processed_leaf_page = page;
+            m_hints.processed_slot = slot;
+          }
+          else {
+            // set the internal record id
+            node->set_record_id(slot, rid);
+          }
         }
-        else {
-          // set the internal record id
-          node->set_record_id(slot, rid);
+        // In case of an error: undo the insert. This happens very rarely but
+        // it's possible, i.e. if the BlobManager fails to allocate storage.
+        catch (Exception &ex) {
+          node->erase(slot);
+          throw ex;
         }
       }
+
       page->set_dirty(true);
 
       /* if we have a cursor (and this is a leaf node): couple it to the

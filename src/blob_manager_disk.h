@@ -131,30 +131,31 @@ class DiskBlobManager : public BlobManager
       : BlobManager(env) {
     }
 
+  protected:
     // allocate/create a blob
     // returns the blob-id (the start address of the blob header)
-    ham_u64_t allocate(LocalDatabase *db, ham_record_t *record,
+    virtual ham_u64_t do_allocate(LocalDatabase *db, ham_record_t *record,
                     ham_u32_t flags);
 
     // reads a blob and stores the data in |record|. The pointer |record.data|
     // is backed by the |arena|, unless |HAM_RECORD_USER_ALLOC| is set.
     // flags: either 0 or HAM_DIRECT_ACCESS
-    void read(LocalDatabase *db, ham_u64_t blobid,
+    virtual void do_read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    ham_u64_t get_blob_size(LocalDatabase *db, ham_u64_t blobid);
+    virtual ham_u64_t do_get_blob_size(LocalDatabase *db, ham_u64_t blobid);
 
     // overwrite an existing blob
     //
     // will return an error if the blob does not exist
     // returns the blob-id (the start address of the blob header) in |blobid|
-    ham_u64_t overwrite(LocalDatabase *db, ham_u64_t old_blobid,
+    virtual ham_u64_t do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                     ham_record_t *record, ham_u32_t flags);
 
     // delete an existing blob
-    void erase(LocalDatabase *db, ham_u64_t blobid,
+    virtual void do_erase(LocalDatabase *db, ham_u64_t blobid,
                     Page *page = 0, ham_u32_t flags = 0);
 
   private:

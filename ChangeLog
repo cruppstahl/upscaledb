@@ -1,3 +1,6 @@
+Mar 26, 2014 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.7
+
 Mar 23, 2014 - chris ---------------------------------------------------
 o Added a unittest for issue #32
 o Removed AES encryption; will be available as a commercial add-on.
