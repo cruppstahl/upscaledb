@@ -7,7 +7,7 @@
 ham_status_t st;
 #define CHECK(status)       \
   while ((st = (status))) { \
-    printf("Error in line %d: %s", __LINE__, ham_strerror(st)); \
+    printf("Error in line %d: %s\n", __LINE__, ham_strerror(st)); \
     exit(-2); \
   }
 
@@ -51,7 +51,7 @@ static void insert ()
   CHECK(ham_db_insert (db, txn, &db_key2, &db_data2, HAM_OVERWRITE));
   CHECK(ham_txn_commit (txn, 0));
 
-  exit (2);
+  exit (0);
 }
 
 static void recover ()
