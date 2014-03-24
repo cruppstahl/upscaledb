@@ -10,8 +10,14 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release fixes a few bugs and improves Transactional performance. Also,
-the license was changed to MIT.
+This release fixes a few bugs and improves Transactional performance.
+Committed Transactions are no longer flushed immediately to the btree but
+are buffered and flushed together with other committed Transactions. If
+you prefer the old behavior then use the flag HAM_FLUSH_WHEN_COMMITTED when
+creating or opening your Environment.
+
+Also, the license was changed to MIT. hamsterdb is now free to use for
+closed-source applications.
 
 The AES encryption was removed. This will be part of a commercial "pro" version
 which will be available soon, together with more new functionality (i.e.
@@ -19,7 +25,6 @@ compression, hot backups etc). No other features were removed. Visit the blog
 (http://crupp.de) for more background information regarding the license change.
 
 2. Changes
-* New license is now MIT
 
 New Features
 * Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
@@ -30,6 +35,7 @@ Bugfixes
 * Fixed a journalling bug; partial records were not logged correctly
 
 Other Changes
+* License is now MIT
 * Committed Transactions are no longer flushed immediately, but can be
 	buffered and flushed together with other committed Transactions
 * Removed a parameter from ham_db_check_integrity

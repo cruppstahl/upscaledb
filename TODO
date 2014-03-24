@@ -237,12 +237,6 @@ x create new issue - see Julien's mail
 
 x remove AES encryption
 
-o ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp --inmemorydb --metrics=all
--> has 50% more allocations than 2.1.6
-
-o ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp --metrics=all
-    -> segfaults
-
 x Start with the PRO version
     x API to get licensee information (can use ham_get_license())
         x also for wrapper APIs
@@ -305,12 +299,17 @@ x Start with the PRO version
             x add documentation (header file)
             x add perftests, monster tests
 
+x ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp
+    -> segfaults
+
 o release everything as MIT
     x everything incl dotnet, java
     x erlang
     x also update the readme!
     o wiki
-    o webpage
+    o webpage (incl. features/about etc)
+
+o perftest: add switch --product=mit|pro
 
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery
@@ -550,6 +549,13 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
+o PRO: bulk updates
+    - require delta updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort
+    - add those delta updates to the txn-trees or to the btree node,
+        transfer ownership of the memory
+
 o PRO: hot backups (vacuumizes to a different file)
     - copies the database file
     - if compaction is enabled: copies keys w/ iterator
@@ -568,12 +574,6 @@ o PRO: prefix compression for variable-length keys
         the keys "to the right" should be rearranged as well
     ===> it really makes sense to have delta updates and bulk inserts first!!
     - try to store a full key every Nth bytes, to avoid extensive re-compressing
-
-o PRO: bulk updates
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort
-    - add those delta updates to the txn-trees or to the stream
 
 o "hola" - olap functions that operate directly on the btree data
     -> see wiki

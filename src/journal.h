@@ -320,8 +320,10 @@ class Journal
         m_buffer[idx].append(ptr4, ptr4_size);
       if (ptr5_size)
         m_buffer[idx].append(ptr5, ptr5_size);
+    }
 
-      // flush buffer if size limit is exceeded
+    // flush buffer if size limit is exceeded
+    void maybe_flush_buffer(int idx) {
       if (m_buffer[idx].get_size() >= kBufferLimit)
         flush_buffer(idx);
     }

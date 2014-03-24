@@ -212,6 +212,7 @@ Journal::append_txn_begin(LocalTransaction *txn, LocalEnvironment *env,
   else
     append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
                 (void *)&trailer, sizeof(trailer));
+  maybe_flush_buffer(cur);
 
   m_open_txn[cur]++;
 
@@ -245,6 +246,7 @@ Journal::append_txn_abort(LocalTransaction *txn, ham_u64_t lsn)
   m_closed_txn[idx]++;
 
   append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
+  maybe_flush_buffer(idx);
   // no need for fsync - incomplete transactions will be aborted anyway
 }
 
@@ -326,6 +328,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                                 ? record->partial_size
                                 : record->size),
                 &trailer, sizeof(trailer));
+  maybe_flush_buffer(idx);
 }
 
 void
@@ -367,6 +370,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
                 (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
                 key->data, key->size,
                 &trailer, sizeof(trailer));
+  maybe_flush_buffer(idx);
 }
 
 void
