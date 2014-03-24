@@ -44,54 +44,56 @@
 #include "metrics.h"
 #include "misc.h"
 
-#define ARG_HELP                    1
-#define ARG_VERBOSE                 2
-#define ARG_QUIET                   3
-#define ARG_NO_PROGRESS             4
-#define ARG_REOPEN                  5
-#define ARG_METRICS                 6
-#define ARG_OPEN                    8
-#define ARG_INMEMORY                10
-#define ARG_OVERWRITE               11
-#define ARG_DISABLE_MMAP            12
-#define ARG_PAGESIZE                13
-#define ARG_KEYSIZE                 14
-#define ARG_KEYSIZE_FIXED           15
-#define ARG_RECSIZE                 16
-#define ARG_RECSIZE_FIXED           17
-#define ARG_REC_INLINE              18
-#define ARG_CACHE                   19
-#define ARG_USE_CURSORS             23
-#define ARG_KEY                     24
-#define ARG_DUPLICATE               26
-#define ARG_FULLCHECK               27
-#define ARG_FULLCHECK_FREQUENCY     28
-#define ARG_RECOVERY                34
-#define ARG_HINTING                 37
-#define ARG_DIRECT_ACCESS           39
-#define ARG_USE_TRANSACTIONS        41
-#define ARG_USE_FSYNC               42
-#define ARG_USE_BERKELEYDB          43
-#define ARG_USE_HAMSTERDB           47
-#define ARG_NUM_THREADS             44
-#define ARG_ENABLE_ENCRYPTION       45
-#define ARG_USE_REMOTE              46
-#define ARG_ERASE_PCT               48
-#define ARG_FIND_PCT                49
-#define ARG_TABLE_SCAN_PCT          50
-#define ARG_STOP_TIME               51
-#define ARG_STOP_OPS                52
-#define ARG_STOP_BYTES              53
-#define ARG_TEE                     54
-#define ARG_SEED                    55
-#define ARG_DISTRIBUTION            56
-#define ARG_EXTKEY_THRESHOLD        57
-#define ARG_DUPTABLE_THRESHOLD      58
-#define ARG_BULK_ERASE              59
-#define ARG_FLUSH_TXN_IMMEDIATELY   60
-#define ARG_DISABLE_RECOVERY        61
-#define ARG_JOURNAL_COMPRESSION     62
-#define ARG_JOURNAL_COMPRESSION_LEVEL 63
+#define ARG_HELP                                1
+#define ARG_VERBOSE                             2
+#define ARG_QUIET                               3
+#define ARG_NO_PROGRESS                         4
+#define ARG_REOPEN                              5
+#define ARG_METRICS                             6
+#define ARG_OPEN                                8
+#define ARG_INMEMORY                            10
+#define ARG_OVERWRITE                           11
+#define ARG_DISABLE_MMAP                        12
+#define ARG_PAGESIZE                            13
+#define ARG_KEYSIZE                             14
+#define ARG_KEYSIZE_FIXED                       15
+#define ARG_RECSIZE                             16
+#define ARG_RECSIZE_FIXED                       17
+#define ARG_REC_INLINE                          18
+#define ARG_CACHE                               19
+#define ARG_USE_CURSORS                         23
+#define ARG_KEY                                 24
+#define ARG_DUPLICATE                           26
+#define ARG_FULLCHECK                           27
+#define ARG_FULLCHECK_FREQUENCY                 28
+#define ARG_RECOVERY                            34
+#define ARG_HINTING                             37
+#define ARG_DIRECT_ACCESS                       39
+#define ARG_USE_TRANSACTIONS                    41
+#define ARG_USE_FSYNC                           42
+#define ARG_USE_BERKELEYDB                      43
+#define ARG_USE_HAMSTERDB                       47
+#define ARG_NUM_THREADS                         44
+#define ARG_ENABLE_ENCRYPTION                   45
+#define ARG_USE_REMOTE                          46
+#define ARG_ERASE_PCT                           48
+#define ARG_FIND_PCT                            49
+#define ARG_TABLE_SCAN_PCT                      50
+#define ARG_STOP_TIME                           51
+#define ARG_STOP_OPS                            52
+#define ARG_STOP_BYTES                          53
+#define ARG_TEE                                 54
+#define ARG_SEED                                55
+#define ARG_DISTRIBUTION                        56
+#define ARG_EXTKEY_THRESHOLD                    57
+#define ARG_DUPTABLE_THRESHOLD                  58
+#define ARG_BULK_ERASE                          59
+#define ARG_FLUSH_TXN_IMMEDIATELY               60
+#define ARG_DISABLE_RECOVERY                    61
+#define ARG_JOURNAL_COMPRESSION                 62
+#define ARG_JOURNAL_COMPRESSION_LEVEL           63
+#define ARG_RECORD_COMPRESSION                  64
+#define ARG_RECORD_COMPRESSION_LEVEL            65
 
 /*
  * command line parameters
@@ -385,13 +387,25 @@ static option_t opts[] = {
     ARG_JOURNAL_COMPRESSION,
     0,
     "journal-compression",
-    "Enables journal compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    "PRO: Enables journal compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_JOURNAL_COMPRESSION_LEVEL,
     0,
     "journal-compression-level",
-    "Sets the journal compression (0 .. 9, default: 7); only for zlib",
+    "PRO: Sets the journal compression (0 .. 9, default: 7); only for zlib",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_RECORD_COMPRESSION,
+    0,
+    "record-compression",
+    "PRO: Enables record compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_RECORD_COMPRESSION_LEVEL,
+    0,
+    "record-compression-level",
+    "PRO: Sets the record compression (0 .. 9, default: 7); only for zlib",
     GETOPTS_NEED_ARGUMENT },
 };
 
@@ -702,6 +716,12 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_JOURNAL_COMPRESSION_LEVEL) {
       c->journal_compression_level = strtoul(param, 0, 0);
+    }
+    else if (opt == ARG_RECORD_COMPRESSION) {
+      c->record_compression = strtoul(param, 0, 0);
+    }
+    else if (opt == ARG_RECORD_COMPRESSION_LEVEL) {
+      c->record_compression_level = strtoul(param, 0, 0);
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;

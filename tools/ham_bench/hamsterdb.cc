@@ -333,6 +333,14 @@ HamsterDatabase::do_create_db(int id)
   params[n].name = HAM_PARAM_RECORD_SIZE;
   params[n].value = m_config->rec_size_fixed;
   n++;
+  if (m_config->record_compression) {
+    params[n].name = HAM_PARAM_ENABLE_RECORD_COMPRESSION;
+    params[n].value = m_config->record_compression;
+    n++;
+    params[n].name = HAM_PARAM_RECORD_COMPRESSION_LEVEL;
+    params[n].value = m_config->record_compression_level;
+    n++;
+  }
 
   ham_u32_t flags = 0;
 
@@ -366,6 +374,15 @@ HamsterDatabase::do_open_db(int id)
   ham_status_t st;
 
   ham_parameter_t params[6] = {{0, 0}};
+  int n = 0;
+  if (m_config->record_compression) {
+    params[n].name = HAM_PARAM_ENABLE_RECORD_COMPRESSION;
+    params[n].value = m_config->record_compression;
+    n++;
+    params[n].name = HAM_PARAM_RECORD_COMPRESSION_LEVEL;
+    params[n].value = m_config->record_compression_level;
+    n++;
+  }
 
   st = ham_env_open_db(m_env ? m_env : ms_env, &m_db, 1 + id, 0, &params[0]);
   if (st) {

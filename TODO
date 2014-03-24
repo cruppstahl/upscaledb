@@ -361,13 +361,18 @@ o PRO: enable zlib/snappy/others compression for the records
             not in internal buffer of the compressor
             (or into user allocated buffer)
         x add unittests (disk and inmemory)
-    o add parameters to ham_bench
+    x add parameters to ham_bench
     o add perftests, monster tests
-    o add documentation to the ham_bench wiki
 
 o PRO: should journal and record compression settings really
     be non-persistent?
     -> should be persistent, makes things easier
+
+o add documentation to the ham_bench wiki
+    o record-compression
+    o record-compression-level
+    o journal-compression
+    o journal-compression-level
 
 o PRO: improve AES encryption, also encrypt the journal
     x MIT should return "HAM_NOT_IMPLEMENTED"
