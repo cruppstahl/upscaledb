@@ -264,18 +264,6 @@ class BtreeIndex
     // Calculates the answer for "HAM_PARAM_MAX_KEYS_PER_PAGE"
     ham_u32_t get_max_keys_per_page() const;
 
-    // Creates and initializes the btree
-    //
-    // This function is called after the ham_db_t structure was allocated
-    // and the file was opened
-    void create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size);
-
-    // Opens and initializes the btree
-    //
-    // This function is called after the ham_db_t structure was allocated
-    // and the file was opened
-    void open();
-
     // Sets the record compression algorithm
     void set_record_compression(int algo);
 
@@ -287,6 +275,18 @@ class BtreeIndex
 
     // Returns the key compression algorithm
     int get_key_compression();
+
+    // Creates and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
+    void create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size);
+
+    // Opens and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
+    void open();
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,

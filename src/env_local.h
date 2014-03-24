@@ -217,7 +217,7 @@ class LocalEnvironment : public Environment
     ham_u8_t m_encryption_key[16];
 
     // The journal compression algorithm
-    bool m_journal_compression;
+    int m_journal_compression;
 
     // The page_size which was specified when the env was created
     ham_u32_t m_page_size;

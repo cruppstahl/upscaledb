@@ -1,6 +1,6 @@
 environment
   page_size:            16384
-  version:              2.1.7.3 
+  version:              2.1.7.3 pro!
   max databases:        676
 
   database 1 (0x1)

@@ -16,6 +16,11 @@
 
 #include "db.h"
 
+// need to include the header file, a forward declaration of class Compressor
+// is not sufficient because std::auto_ptr then fails to call the
+// destructor
+#include "compressor.h"
+
 namespace hamsterdb {
 
 class BtreeIndex;

@@ -96,11 +96,11 @@ complex_journal_test(int library)
     {HAM_PARAM_JOURNAL_COMPRESSION, (ham_u64_t)library},
     {0, 0}
   };
-  ham_db_t *m_db;
-  ham_env_t *m_env;
-  REQUIRE(0 == ham_env_create(&m_env, Globals::opath("test.db"),
+  ham_db_t *db;
+  ham_env_t *env;
+  REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
                           HAM_ENABLE_TRANSACTIONS, 0, &params[0]));
-  REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
+  REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
 
   char key_buffer[64] = {0};
   for (size_t i = 0; i < sizeof(key_buffer); i++)
@@ -119,21 +119,26 @@ complex_journal_test(int library)
   for (int i = 0; i < 20; i++) {
     sprintf(key_buffer, "%02d", i);
     sprintf(rec_buffer, "%02d", i);
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
   }
-  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-  REQUIRE(0 == ham_env_open(&m_env, Globals::opath("test.db"),
-                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, &params[0]));
-  REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+  REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+  REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
   for (int i = 0; i < 20; i++) {
     sprintf(key_buffer, "%02d", i);
     sprintf(rec_buffer, "%02d", i);
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(db, 0, &key, &rec, 0));
     REQUIRE(rec.size == sizeof(rec_buffer));
     REQUIRE(!memcmp(rec_buffer, rec.data, rec.size));
   }
-  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+
+  params[0].value = 0;
+  REQUIRE(0 == ham_env_get_parameters(env, &params[0]));
+  REQUIRE(library == (int)params[0].value);
+
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
 TEST_CASE("Compression/ZlibJournalTest", "")
@@ -283,6 +288,31 @@ TEST_CASE("Compression/LzfRecordTest", "")
   simple_record_test(HAM_COMPRESSOR_LZF);
 }
 
+TEST_CASE("Compression/negativeOpenTest", "")
+{
+  ham_parameter_t params[] = {
+    {HAM_PARAM_JOURNAL_COMPRESSION, HAM_COMPRESSOR_LZF},
+    {0, 0}
+  };
+  ham_env_t *env;
+  REQUIRE(HAM_INV_PARAMETER == ham_env_open(&env, Globals::opath("test.db"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, &params[0]));
+}
+
+TEST_CASE("Compression/negativeOpenDbTest", "")
+{
+  ham_parameter_t params[] = {
+    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_LZF},
+    {0, 0}
+  };
+  ham_env_t *env;
+  ham_db_t *db;
+  REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+  REQUIRE(HAM_INV_PARAMETER == ham_env_open_db(env, &db, 1, 0, &params[0]));
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}
+
 static void
 simple_key_test(int library)
 {
@@ -396,15 +426,15 @@ TEST_CASE("Compression/LzfKeyTest", "")
 TEST_CASE("Compression/negativeKeyTest", "")
 {
   ham_parameter_t param1[] = {
-      {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
-      {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-      {0, 0}
+    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+    {0, 0}
   };
 
   ham_parameter_t param2[] = {
-      {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
-      {HAM_PARAM_KEY_SIZE, 16},
-      {0, 0}
+    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
+    {HAM_PARAM_KEY_SIZE, 16},
+    {0, 0}
   };
 
   ham_db_t *db;
@@ -413,7 +443,6 @@ TEST_CASE("Compression/negativeKeyTest", "")
   REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
   REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &param1[0]));
   REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &param2[0]));
-
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 

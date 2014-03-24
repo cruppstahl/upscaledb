@@ -44,7 +44,7 @@ LocalEnvironment::get_btree_descriptor(int i)
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_header(0), m_device(0), m_changeset(this),
     m_blob_manager(0), m_page_manager(0), m_journal(0), 
-    m_encryption_enabled(false), m_journal_compression(false), m_page_size(0)
+    m_encryption_enabled(false), m_journal_compression(0), m_page_size(0)
 {
 }
 
@@ -87,10 +87,12 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     page->set_type(Page::kTypeHeader);
     m_header->set_header_page(page);
 
-    /* initialize the header */
+    /* initialize the header; hamsterdb pro always sets the msb of the
+     * file version */
     m_header->set_magic('H', 'A', 'M', '\0');
     m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
-            HAM_FILE_VERSION);
+            HAM_FILE_VERSION | 0x80);
+    m_header->set_serialno(HAM_SERIALNO);
     m_header->set_page_size(m_page_size);
     m_header->set_max_databases(max_databases);
 
@@ -108,6 +110,11 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     m_journal = new Journal(this);
     m_journal->create();
   }
+
+  /* Now that the header was created we can finally store the compression
+   * information */
+  if (m_journal_compression)
+    m_header->set_journal_compression(m_journal_compression);
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
@@ -181,7 +188,17 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 
     /* check the database version; everything with a different file version
      * is incompatible */
-    if (m_header->get_version(3) != HAM_FILE_VERSION) {
+    if (m_header->get_version(3) == HAM_FILE_VERSION) {
+      // this file was created with the APL version; upgrade it to
+      // the commercial license by setting the msb of the file version
+      if ((get_flags() & HAM_READ_ONLY) == 0) {
+        m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
+              HAM_FILE_VERSION | 0x80);
+        m_header->get_header_page()->set_dirty(true);
+        m_device->write(0, hdrbuf, sizeof(hdrbuf));
+      }
+    }
+    else if (m_header->get_version(3) != (HAM_FILE_VERSION | 0x80)) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
@@ -216,6 +233,10 @@ fail_with_fake_cleansing:
     page->fetch(0);
     m_header->set_header_page(page);
   }
+
+  /* Now that the header page was fetched we can retrieve the compression
+   * information */
+  m_journal_compression = m_header->get_journal_compression();
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager = new PageManager(this,
@@ -521,7 +542,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
           p->value = 0;
         break;
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        p->value = 0;
+        p->value = m_journal_compression;
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));

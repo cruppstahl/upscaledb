@@ -44,7 +44,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   /** maximum number of databases for this environment */
   ham_u16_t _max_databases;
 
-  /** PRO: for storing journal compression algorithm and level */
+  /** PRO: for storing journal compression algorithm */
   ham_u8_t _journal_compression;
 
   /** reserved */
@@ -143,14 +143,13 @@ class EnvironmentHeader
     }
 
     // Returns the Journal compression configuration
-    int get_journal_compression(int *level) {
-      *level = get_header()->_journal_compression & 0x0f;
+    int get_journal_compression() {
       return (get_header()->_journal_compression >> 4);
     }
 
     // Sets the Journal compression configuration
-    void set_journal_compression(int algorithm, int level) {
-      get_header()->_journal_compression = (algorithm << 4) | level;
+    void set_journal_compression(int algorithm) {
+      get_header()->_journal_compression = algorithm << 4;
     }
 
     // Returns the header page with persistent configuration settings

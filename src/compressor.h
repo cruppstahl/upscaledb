@@ -10,7 +10,7 @@
  * this information or reproduction of this material is strictly forbidden
  * unless prior written permission is obtained from Christoph Rupp.
  *
- * See files COPYING.* for License information.
+ * See the file COPYING for License information.
  *
  */
 

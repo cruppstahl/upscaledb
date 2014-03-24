@@ -590,7 +590,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
-  int journal_compression = HAM_COMPRESSOR_NONE;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -631,12 +630,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        if (param->value > 4) {
-          ham_trace(("invalid algorithm for journal compression"));
-          return (HAM_INV_PARAMETER);
-        }
-        journal_compression = (int)param->value;
-        break;
+        ham_trace(("Journal compression parameters are only allowed in "
+                    "ham_env_create"));
+        return (HAM_INV_PARAMETER);
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
         break;
@@ -683,8 +679,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
-      if (journal_compression)
-        lenv->enable_journal_compression(journal_compression);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
