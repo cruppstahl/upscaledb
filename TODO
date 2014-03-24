@@ -18,7 +18,7 @@ high-level plan for 2.1.7 ..................................................
 x simplified btree SMOs
 x improve recovery performance/scalability
 x improve QuickCheck coverage
-o start with hamsterdb-pro
+x start with hamsterdb-pro
 
 --------------
 
