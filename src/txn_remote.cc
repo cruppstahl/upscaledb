@@ -136,6 +136,6 @@ RemoteTransactionManager::flush_committed_txns()
   }
 }
 
-#endif // HAM_ENABLE_REMOTE
-
 } // namespace hamsterdb
+
+#endif // HAM_ENABLE_REMOTE

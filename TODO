@@ -306,7 +306,7 @@ o release everything as MIT
     x everything incl dotnet, java
     x erlang
     x also update the readme!
-    o wiki
+    o wiki/tutorial
     o webpage (incl. features/about etc)
 
 o perftest: add switch --product=mit|pro
