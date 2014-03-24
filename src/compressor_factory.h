@@ -14,6 +14,9 @@
  *
  */
 
+#ifndef HAM_COMPRESSOR_FACTORY_H__
+#define HAM_COMPRESSOR_FACTORY_H__
+
 #include "error.h"
 
 #include "compressor.h"
@@ -24,9 +27,9 @@ class CompressorFactory {
   public:
     // Creates a new Compressor instance for the specified |type| (being
     // HAM_COMPRESSOR_ZLIB, HAM_COMPRESSOR_SNAPPY etc)
-    //
-    // The compression |level| is currently only used for zlib.
-    static Compressor *create(int type, int level = 7);
+    static Compressor *create(int type);
 };
 
 }; // namespace hamsterdb
+
+#endif // HAM_COMPRESSOR_FACTORY_H__

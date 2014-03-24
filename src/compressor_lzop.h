@@ -34,7 +34,7 @@ namespace hamsterdb {
 class LzopCompressor : public Compressor {
   public:
     // Constructor
-    LzopCompressor(int level)
+    LzopCompressor()
       : m_work(LZO1X_1_MEM_COMPRESS) {
       if (::lzo_init() != LZO_E_OK)
         throw Exception(HAM_INTERNAL_ERROR);

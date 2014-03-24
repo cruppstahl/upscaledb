@@ -126,15 +126,13 @@ class LocalEnvironment : public Environment
     }
 
     // Enables compression for the journal
-    void enable_journal_compression(int library, int level) {
+    void enable_journal_compression(int library) {
       m_journal_compression = library;
-      m_journal_compression_level = level;
     }
 
     // Returns the compression type for the journal, or 0 if compression
     // is disabled
-    int is_journal_compression_enabled(int *level) const {
-      *level = m_journal_compression_level;
+    int is_journal_compression_enabled() const {
       return (m_journal_compression);
     }
 
@@ -220,9 +218,6 @@ class LocalEnvironment : public Environment
 
     // The journal compression algorithm
     bool m_journal_compression;
-
-    // The journal compression level (for zlib)
-    int m_journal_compression_level;
 
     // The page_size which was specified when the env was created
     ham_u32_t m_page_size;

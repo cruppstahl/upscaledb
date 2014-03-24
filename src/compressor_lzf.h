@@ -31,7 +31,7 @@ namespace hamsterdb {
 class LzfCompressor : public Compressor {
   public:
     // Constructor
-    LzfCompressor(int level) {
+    LzfCompressor() {
     }
 
   protected:

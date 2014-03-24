@@ -33,8 +33,7 @@ namespace hamsterdb {
 class ZlibCompressor : public Compressor {
   public:
     // Constructor
-    ZlibCompressor(int level = 7)
-      : m_level(level) {
+    ZlibCompressor() {
     }
 
   protected:
@@ -51,8 +50,8 @@ class ZlibCompressor : public Compressor {
     virtual ham_u32_t do_compress(const ham_u8_t *inp, ham_u32_t inlength,
                             ham_u8_t *outp, ham_u32_t outlength) {
       uLongf real_outlength = outlength;
-      int zret = ::compress2((Bytef *)outp, &real_outlength,
-                        (const Bytef *)inp, inlength, m_level);
+      int zret = ::compress((Bytef *)outp, &real_outlength,
+                        (const Bytef *)inp, inlength);
       if (zret != 0)
         throw Exception(HAM_INTERNAL_ERROR);
       return (real_outlength);
@@ -68,10 +67,6 @@ class ZlibCompressor : public Compressor {
       if (zret != 0)
         throw Exception(HAM_INTERNAL_ERROR);
     }
-
-  private:
-    // the compression level for zlib
-    int m_level;
 };
 
 }; // namespace hamsterdb;

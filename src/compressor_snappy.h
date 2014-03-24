@@ -33,7 +33,7 @@ namespace hamsterdb {
 class SnappyCompressor : public Compressor {
   public:
     // Constructor
-    SnappyCompressor(int level = 7) {
+    SnappyCompressor() {
     }
 
   protected:

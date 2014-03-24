@@ -276,6 +276,18 @@ class BtreeIndex
     // and the file was opened
     void open();
 
+    // Sets the record compression algorithm
+    void set_record_compression(int algo);
+
+    // Returns the record compression algorithm
+    int get_record_compression();
+
+    // Sets the key compression algorithm
+    void set_key_compression(int algo);
+
+    // Returns the key compression algorithm
+    int get_key_compression();
+
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,
             ham_key_t *key, ham_record_t *record, ham_u32_t flags);

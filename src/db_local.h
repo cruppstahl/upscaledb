@@ -25,6 +25,7 @@ class TransactionCursor;
 class TransactionOperation;
 class LocalEnvironment;
 class LocalTransaction;
+class Compressor;
 
 //
 // The database implementation for local file access
@@ -39,7 +40,7 @@ class LocalDatabase : public Database {
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_txn_index(0), m_cmp_func(0) {
+        m_txn_index(0), m_cmp_func(0), m_key_compressor(0) {
     }
 
     // Returns the btree index
@@ -159,6 +160,22 @@ class LocalDatabase : public Database {
     ham_status_t flush_txn_operation(LocalTransaction *txn,
                     TransactionOperation *op);
 
+    // Enables record compression for this database
+    void enable_record_compression(int algo);
+
+    // Enables key compression for this database
+    void enable_key_compression(int algo);
+
+    // Returns the compressor for compressing/uncompressing the records
+    Compressor *get_record_compressor() {
+      return (m_record_compressor.get());
+    }
+
+    // Returns the key compression algorithm
+    int get_key_compression_algorithm() {
+      return (m_key_compressor);
+    }
+
   protected:
     // Copies the ham_record_t structure from |op| into |record|
     static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
@@ -225,6 +242,12 @@ class LocalDatabase : public Database {
 
     // the comparison function
     ham_compare_func_t m_cmp_func;
+
+    // The record compressor; can be null
+    std::auto_ptr<Compressor> m_record_compressor;
+
+    // The key compression algorithm
+    int m_key_compressor;
 };
 
 } // namespace hamsterdb

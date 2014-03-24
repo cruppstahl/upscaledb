@@ -25,6 +25,11 @@ namespace hamsterdb {
 
 class Compressor {
   public:
+    // Constructor
+    Compressor()
+      : m_skip(0) {
+    }
+
     // Virtual destructor - can be overwritten
     virtual ~Compressor() {
     }
@@ -37,17 +42,25 @@ class Compressor {
     ham_u32_t compress(const ham_u8_t *inp1, ham_u32_t inlength1,
                     const ham_u8_t *inp2 = 0, ham_u32_t inlength2 = 0) {
       if (inp2)
-        m_arena.resize(get_compressed_length(inlength1)
+        m_arena.resize(m_skip
+                        + get_compressed_length(inlength1)
                         + get_compressed_length(inlength2));
       else
-        m_arena.resize(get_compressed_length(inlength1));
+        m_arena.resize(m_skip + get_compressed_length(inlength1));
 
-      ham_u8_t *out = (ham_u8_t *)m_arena.get_ptr();
-      ham_u32_t len = do_compress(inp1, inlength1, out, m_arena.get_size());
+      ham_u8_t *out = (ham_u8_t *)m_arena.get_ptr() + m_skip;
+      ham_u32_t len = do_compress(inp1, inlength1, out,
+                                    m_arena.get_size() - m_skip);
       if (inp2)
         len += do_compress(inp2, inlength2, out + len,
-                            m_arena.get_size() - len);
+                            m_arena.get_size() - len - m_skip);
       return (len);
+    }
+
+    // Reserves |n| bytes in the output buffer; can be used by the caller
+    // to insert flags or sizes
+    void reserve(int n) {
+      m_skip = n;
     }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
@@ -55,12 +68,25 @@ class Compressor {
     void decompress(const ham_u8_t *inp, ham_u32_t inlength,
                     ham_u32_t outlength) {
       m_arena.resize(outlength);
-
       do_decompress(inp, inlength, (ham_u8_t *)m_arena.get_ptr(), outlength);
+    }
+
+    // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
+    // expected size of the decompressed data. Uses the caller's |arena|
+    // for storage.
+    void decompress(const ham_u8_t *inp, ham_u32_t inlength,
+                    ham_u32_t outlength, ByteArray *arena) {
+      arena->resize(outlength);
+      do_decompress(inp, inlength, (ham_u8_t *)arena->get_ptr(), outlength);
     }
 
     // Retrieves the compressed (or decompressed) data, including its size
     const ham_u8_t *get_output_data() const {
+      return ((ham_u8_t *)m_arena.get_ptr());
+    }
+
+    // Same as above, but non-const
+    ham_u8_t *get_output_data() {
       return ((ham_u8_t *)m_arena.get_ptr());
     }
 
@@ -84,6 +110,9 @@ class Compressor {
   private:
     // The ByteArray which stores the compressed (or decompressed) data
     ByteArray m_arena;
+
+    // Number of bytes to reserve for the caller
+    int m_skip;
 };
 
 }; // namespace hamsterdb

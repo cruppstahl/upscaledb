@@ -93,6 +93,7 @@
 #include "blob_manager.h"
 #include "env_local.h"
 #include "btree_index.h"
+#include "compressor_factory.h"
 
 #ifdef WIN32
 // MSVC: disable warning about use of 'this' in base member initializer list
@@ -1087,13 +1088,18 @@ class DefaultNodeImpl
     DefaultNodeImpl(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(m_page)),
         m_records(this, m_page->get_db()->get_record_size()),
-        m_extkey_cache(0), m_duptable_cache(0), m_recalc_capacity(false) {
+        m_extkey_cache(0), m_duptable_cache(0), m_recalc_capacity(false),
+        m_compressor(0) {
+      int algo = m_page->get_db()->get_key_compression_algorithm();
+      if (algo)
+        m_compressor = CompressorFactory::create(algo);
       initialize();
     }
 
     // Destructor
     ~DefaultNodeImpl() {
       clear_caches();
+      delete m_compressor;
     }
 
     // Returns the actual key size (including overhead, without record).
@@ -1148,9 +1154,10 @@ class DefaultNodeImpl
       ham_u32_t count = m_node->get_count();
       Iterator it = begin();
       for (ham_u32_t i = 0; i < count; i++, it->next()) {
-        // internal nodes: only allowed flag is kExtendedKey
+        // internal nodes: only allowed flag is kExtendedKey and kCompressed
         if ((it->get_key_flags() != 0
-            && it->get_key_flags() != BtreeKey::kExtendedKey)
+            && it->get_key_flags() & ~(BtreeKey::kExtendedKey
+                                        | BtreeKey::kCompressed))
             && !m_node->is_leaf()) {
           ham_log(("integrity check failed in page 0x%llx: item #%u "
                   "has flags but it's not a leaf page",
@@ -1206,11 +1213,29 @@ class DefaultNodeImpl
     // Compares two keys
     template<typename Cmp>
     int compare(const ham_key_t *lhs, Iterator it, Cmp &cmp) {
-      if (it->get_key_flags() & BtreeKey::kExtendedKey) {
+      ham_u32_t key_flags = it->get_key_flags();
+
+      // key is extended?
+      if (key_flags & BtreeKey::kExtendedKey) {
         ham_key_t tmp = {0};
         get_extended_key(it->get_extended_blob_id(), &tmp);
+
+        // ... AND compressed!
+        if (key_flags & BtreeKey::kCompressed)
+          uncompress(&tmp, &tmp);
+
         return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
       }
+
+      // key is compressed
+      if (key_flags & BtreeKey::kCompressed) {
+        ham_key_t tmp = {0};
+        tmp.data = it->get_key_data();
+        tmp.size = it->get_key_size();
+        uncompress(&tmp, &tmp);
+      }
+
+      // key is not compressed and not extended
       return (cmp(lhs->data, lhs->size, it->get_key_data(),
                               it->get_key_size()));
     }
@@ -1303,11 +1328,32 @@ class DefaultNodeImpl
         dest->size = it->get_key_size();
       }
 
+      // key is extended
       if (it->get_key_flags() & BtreeKey::kExtendedKey) {
         ham_key_t tmp = {0};
         get_extended_key(it->get_extended_blob_id(), &tmp);
+
+        // ... AND compressed
+        if (it->get_key_flags() & BtreeKey::kCompressed) {
+          uncompress(&tmp, &tmp);
+          dest->size = tmp.size;
+          arena->resize(tmp.size);
+          dest->data = arena->get_ptr();
+        }
         memcpy(dest->data, tmp.data, tmp.size);
       }
+      // key is compressed
+      else if (it->get_key_flags() & BtreeKey::kExtendedKey) {
+        ham_key_t tmp = {0};
+        tmp.data = (void *)it->get_key_data();
+        tmp.size = it->get_key_size();
+        uncompress(&tmp, &tmp);
+        arena->resize(tmp.size);
+        dest->data = arena->get_ptr();
+        dest->size = tmp.size;
+        memcpy(dest->data, tmp.data, tmp.size);
+      }
+      // key is neither compressed nor extended
       else
         memcpy(dest->data, it->get_key_data(), it->get_key_size());
 
@@ -1926,6 +1972,14 @@ class DefaultNodeImpl
       check_index_integrity(count);
 #endif
 
+      // try to compress the key
+      ham_u32_t key_flags = 0;
+      ham_key_t helper = {0};
+      if (m_compressor && compress(key, &helper)) {
+        key_flags = BtreeKey::kCompressed;
+        key = &helper;
+      }
+
       ham_u32_t offset = (ham_u32_t)-1;
       bool extended_key = key->size > get_extended_threshold();
 
@@ -1998,11 +2052,13 @@ class DefaultNodeImpl
 
         it->set_extended_blob_id(blobid);
         // remove all flags, set Extended flag
-        it->set_key_flags(BtreeKey::kExtendedKey | BtreeKey::kInitialized);
+        it->set_key_flags(key_flags
+                            | BtreeKey::kExtendedKey
+                            | BtreeKey::kInitialized);
         it->set_key_size(key->size);
       }
       else {
-        it->set_key_flags(BtreeKey::kInitialized);
+        it->set_key_flags(key_flags | BtreeKey::kInitialized);
         it->set_key_size(key->size);
         it->set_key_data(key->data, key->size);
       }
@@ -2925,6 +2981,41 @@ class DefaultNodeImpl
                     - PBtreeNode::get_entry_offset());
     }
 
+    bool compress(const ham_key_t *src, ham_key_t *dest) {
+      ham_assert(m_compressor != 0);
+
+      // reserve 2 bytes for the uncompressed key length
+      m_compressor->reserve(sizeof(ham_u16_t));
+
+      // perform compression, but abort if the compressed data exceeds
+      // the uncompressed data
+      ham_u32_t clen = m_compressor->compress((ham_u8_t *)src->data, src->size);
+      if (clen >= src->size)
+        return (false);
+
+      // fill in the length
+      ham_u8_t *ptr = m_compressor->get_output_data();
+      *(ham_u16_t *)ptr = ham_h2db16(src->size);
+
+      dest->data = ptr;
+      dest->size = clen + sizeof(ham_u16_t);
+      return (true);
+    }
+
+    void uncompress(const ham_key_t *src, ham_key_t *dest) {
+      ham_assert(m_compressor != 0);
+
+      ham_u8_t *ptr = (ham_u8_t *)src->data;
+
+      // first 2 bytes are the uncompressed length
+      ham_u16_t uclen = ham_db2h16(*(ham_u16_t *)ptr);
+      m_compressor->decompress(ptr + sizeof(ham_u16_t),
+                      src->size - sizeof(ham_u16_t), uclen);
+
+      dest->size = uclen;
+      dest->data = m_compressor->get_output_data();
+    }
+
     // The page that we're operating on
     Page *m_page;
 
@@ -2948,6 +3039,9 @@ class DefaultNodeImpl
 
     // Allow the capacity to be recalculated later on
     bool m_recalc_capacity;
+
+    // Compressor for the keys
+    Compressor *m_compressor;
 };
 
 } // namespace hamsterdb

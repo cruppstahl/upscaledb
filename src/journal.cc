@@ -45,10 +45,9 @@ Journal::Journal(LocalEnvironment *env)
   m_closed_txn[0] = 0;
   m_closed_txn[1] = 0;
 
-  int level;
-  int algo = m_env->is_journal_compression_enabled(&level);
+  int algo = m_env->is_journal_compression_enabled();
   if (algo)
-    m_compressor.reset(CompressorFactory::create(algo, level));
+    m_compressor.reset(CompressorFactory::create(algo));
 }
 
 void

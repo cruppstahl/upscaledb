@@ -219,6 +219,9 @@ typedef struct ham_env_metrics_t {
   // PRO: set to the max. SIMD lane width (0 if SIMD is not available)
   int simd_lane_width;
 
+  // PRO: set to true if AVX is enabled
+  ham_bool_t is_avx_enabled;
+
 } ham_env_metrics_t;
 
 /**

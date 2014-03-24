@@ -1,14 +1,23 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
- * All Rights Reserved.
  *
- * NOTICE: All information contained herein is, and remains the property
- * of Christoph Rupp and his suppliers, if any. The intellectual and
- * technical concepts contained herein are proprietary to Christoph Rupp
- * and his suppliers and may be covered by Patents, patents in process,
- * and are protected by trade secret or copyright law. Dissemination of
- * this information or reproduction of this material is strictly forbidden
- * unless prior written permission is obtained from Christoph Rupp.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 #include <algorithm>
@@ -21,6 +30,7 @@
 #include "page_manager.h"
 
 #include "blob_manager_disk.h"
+#include "compressor.h"
 
 using namespace hamsterdb;
 
@@ -33,8 +43,25 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   ham_u32_t chunk_size[2];
   ham_u32_t page_size = m_env->get_page_size();
 
+  void *record_data = record->data;
+  ham_u32_t record_size = record->size;
+  ham_u32_t original_size = record->size;
+
+  // compression enabled? then try to compress the data
+  Compressor *compressor = db->get_record_compressor();
+  if (compressor) {
+    ham_u32_t len = compressor->compress((ham_u8_t *)record->data,
+                        record->size);
+    if (len < record->size) {
+      record_data = (void *)compressor->get_output_data();
+      record_size = len;
+    }
+  }
+
+  m_blob_total_allocated++;
+
   PBlobHeader blob_header;
-  ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
+  ham_u32_t alloc_size = sizeof(PBlobHeader) + record_size;
 
   // first check if we can add another blob to the last used page
   Page *page = m_env->get_page_manager()->get_last_blob_page(db);
@@ -92,12 +119,16 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
   // initialize the blob header
   blob_header.set_alloc_size(alloc_size);
-  blob_header.set_size(record->size);
+  blob_header.set_size(original_size);
   blob_header.set_self(address);
+  blob_header.set_flags(original_size != record_size ? kIsCompressed : 0);
 
   // PARTIAL WRITE
   //
-  // are there gaps at the beginning? If yes, then we'll fill with zeros
+  // Are there gaps at the beginning? If yes, then we'll fill with zeros.
+  // Partial updates are not allowed in combination with compression,
+  // therefore we do not have to check any compression conditions if
+  // HAM_PARTIAL is set.
   ByteArray zeroes;
   if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
     ham_u32_t gapsize = record->partial_offset;
@@ -133,10 +164,10 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     // not writing partially: write header and data, then we're done
     chunk_data[0] = (ham_u8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    chunk_data[1] = (ham_u8_t *)record->data;
+    chunk_data[1] = (ham_u8_t *)record_data;
     chunk_size[1] = (flags & HAM_PARTIAL)
                         ? record->partial_size
-                        : record->size;
+                        : record_size;
 
     write_chunks(db, page, address, chunk_data, chunk_size, 2);
     address += chunk_size[0] + chunk_size[1];
@@ -195,39 +226,61 @@ DiskBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
     throw Exception(HAM_BLOB_NOT_FOUND);
   }
 
-  ham_u32_t blobsize = (ham_u32_t)blob_header.get_size();
-  record->size = blobsize;
+  ham_u32_t record_size = (ham_u32_t)blob_header.get_size();
+  record->size = record_size;
 
   if (flags & HAM_PARTIAL) {
-    if (record->partial_offset > blobsize) {
+    if (record->partial_offset > record_size) {
       ham_trace(("partial offset is greater than the total record size"));
       throw Exception(HAM_INV_PARAMETER);
     }
-    if (record->partial_offset + record->partial_size > blobsize)
-      record->partial_size = blobsize = blobsize - record->partial_offset;
+    if (record->partial_offset + record->partial_size > record_size)
+      record->partial_size = record_size = record_size - record->partial_offset;
     else
-      blobsize = record->partial_size;
+      record_size = record->partial_size;
   }
 
   // empty blob?
-  if (!blobsize) {
+  if (!record_size) {
     record->data = 0;
     record->size = 0;
     return;
   }
 
-  // second step: resize the blob buffer
-  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-    arena->resize(blobsize);
-    record->data = arena->get_ptr();
-  }
+  // read the blob data. if compression is enabled then
+  // read into the Compressor's arena, otherwise read directly into the
+  // caller's arena
+  if (blob_header.get_flags() & kIsCompressed) {
+    // still need temporary memory
+    arena->resize(record_size);
 
-  // third step: read the blob data
-  read_chunk(page, 0,
+    Compressor *compressor = db->get_record_compressor();
+    if (!compressor)
+      throw Exception(HAM_NOT_READY);
+    read_chunk(page, 0, blobid + sizeof(PBlobHeader),
+                    db, (ham_u8_t *)arena->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader), true);
+    // now uncompress
+    compressor->decompress((ham_u8_t *)arena->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader),
+                    record_size);
+    // and return the uncompressed data
+    record->data = (void *)compressor->get_output_data();
+  }
+  else {
+    // resize the blob buffer
+    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      arena->resize(record_size);
+      record->data = arena->get_ptr();
+    }
+
+    // and directly read the data into the buffer
+    read_chunk(page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
-                  db, (ham_u8_t *)record->data, blobsize, true);
+                  db, (ham_u8_t *)record->data, record_size, true);
+  }
 }
 
 ham_u64_t
@@ -248,6 +301,15 @@ ham_u64_t
 DiskBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                 ham_record_t *record, ham_u32_t flags)
 {
+  // This routine basically ignores compression. The likelyhood, that a
+  // compressed buffer has an identical size as the record that's overwritten,
+  // is very small. In most cases this check will be false, and then
+  // the record would be compressed again in do_allocate().
+  //
+  // As a consequence, the existing record is only overwritten if the
+  // uncompressed record would fit in. Otherwise a new record is allocated,
+  // and this one then is compressed.
+
   PBlobHeader old_blob_header, new_blob_header;
   Page *page;
 

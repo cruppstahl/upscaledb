@@ -29,6 +29,7 @@
 #include "txn_local.h"
 #include "txn_cursor.h"
 #include "version.h"
+#include "compressor_factory.h"
 
 namespace hamsterdb {
 
@@ -528,6 +529,14 @@ LocalDatabase::open(ham_u16_t descriptor)
    * the btree index */
   m_rt_flags = get_rt_flags(true) | m_btree_index->get_flags();
 
+  /* is record compression enabled? */
+  int record_algo = desc->get_record_compression();
+  if (record_algo)
+    m_record_compressor.reset(CompressorFactory::create(record_algo));
+
+  /* is key compression enabled? */
+  m_key_compressor = desc->get_key_compression();
+
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
 
@@ -641,10 +650,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = get_btree_index()->get_max_keys_per_page();
         break;
       case HAM_PARAM_RECORD_COMPRESSION:
-        p->value = 0;
+        p->value = get_btree_index()->get_record_compression();
         break;
       case HAM_PARAM_KEY_COMPRESSION:
-        p->value = 0;
+        p->value = get_btree_index()->get_key_compression();
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
@@ -1772,6 +1781,20 @@ void
 LocalDatabase::erase_me()
 {
   m_btree_index->release();
+}
+
+void
+LocalDatabase::enable_record_compression(int algo)
+{
+  m_record_compressor.reset(CompressorFactory::create(algo));
+  m_btree_index->set_record_compression(algo);
+}
+
+void
+LocalDatabase::enable_key_compression(int algo)
+{
+  m_key_compressor = algo;
+  m_btree_index->set_key_compression(algo);
 }
 
 } // namespace hamsterdb

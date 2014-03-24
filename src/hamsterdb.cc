@@ -316,7 +316,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_u16_t max_databases = 0;
   ham_u32_t timeout = 0;
   int journal_compression = HAM_COMPRESSOR_NONE;
-  int journal_compression_level = HAM_DEFAULT_COMPRESSION_LEVEL;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
@@ -356,17 +355,13 @@ ham_env_create(ham_env_t **henv, const char *filename,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+      case HAM_PARAM_JOURNAL_COMPRESSION:
         if (param->value > 4) {
           ham_trace(("invalid algorithm for journal compression"));
           return (HAM_INV_PARAMETER);
         }
         journal_compression = (int)param->value;
         break;
-      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
-        journal_compression_level = (int)param->value;
-        break;
->>>>>>> Adding journal compression
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
         if (flags & HAM_IN_MEMORY && cache_size != 0) {
@@ -446,8 +441,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
       if (journal_compression)
-        lenv->enable_journal_compression(journal_compression,
-                        journal_compression_level);
+        lenv->enable_journal_compression(journal_compression);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -597,7 +591,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   std::string logdir;
   ham_u8_t *encryption_key = 0;
   int journal_compression = HAM_COMPRESSOR_NONE;
-  int journal_compression_level = HAM_DEFAULT_COMPRESSION_LEVEL;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -637,15 +630,12 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+      case HAM_PARAM_JOURNAL_COMPRESSION:
         if (param->value > 4) {
           ham_trace(("invalid algorithm for journal compression"));
           return (HAM_INV_PARAMETER);
         }
         journal_compression = (int)param->value;
-        break;
-      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
-        journal_compression_level = (int)param->value;
         break;
       case HAM_PARAM_CACHESIZE:
         cache_size = param->value;
@@ -694,8 +684,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
       if (journal_compression)
-        lenv->enable_journal_compression(journal_compression,
-                        journal_compression_level);
+        lenv->enable_journal_compression(journal_compression);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
@@ -1001,7 +990,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 
 ham_status_t HAM_CALLCONV
 ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, ham_u32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1625,7 +1614,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
             "transactions"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL)
+    if ((flags & HAM_PARTIAL)
         && (record->partial_size + record->partial_offset > record->size)) {
       ham_trace(("partial offset+size is greater than the total "
             "record size"));

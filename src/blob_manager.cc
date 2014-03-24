@@ -12,6 +12,7 @@
  */
 
 #include "config.h"
+#include "db_local.h"
 #include "blob_manager.h"
 
 using namespace hamsterdb;
@@ -22,11 +23,16 @@ BlobManager::allocate(LocalDatabase *db, ham_record_t *record,
             ham_u32_t flags)
 {
   // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
   if (flags & HAM_PARTIAL) {
+    // Partial updates are not allowed if the records are compressed
+    if (db->get_record_compressor()) {
+      ham_trace(("Partial operations are not allowed if records "
+                              "are compressed"));
+      throw Exception(HAM_INV_PARAMETER);
+    }
+    // if offset + partial_size equals the full record size then there won't
+    // be any gaps. In this case we just write the full record and ignore
+    // the partial parameters.
     if (record->partial_offset == 0 && record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }
@@ -43,6 +49,16 @@ BlobManager::read(LocalDatabase *db, ham_u64_t blobid,
 {
   m_metric_total_read++;
 
+  // PARTIAL READ
+  if (flags & HAM_PARTIAL) {
+    // Partial updates are not allowed if the records are compressed
+    if (db->get_record_compressor()) {
+      ham_trace(("Partial operations are not allowed if records "
+                              "are compressed"));
+      throw Exception(HAM_INV_PARAMETER);
+    }
+  }
+
   return (do_read(db, blobid, record, flags, arena));
 }
 
@@ -51,11 +67,16 @@ BlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                     ham_record_t *record, ham_u32_t flags)
 {
   // PARTIAL WRITE
-  //
-  // if offset+partial_size equals the full record size, then we won't
-  // have any gaps. In this case we just write the full record and ignore
-  // the partial parameters.
   if (flags & HAM_PARTIAL) {
+    // Partial updates are not allowed if the records are compressed
+    if (db->get_record_compressor()) {
+      ham_trace(("Partial operations are not allowed if records "
+                              "are compressed"));
+      throw Exception(HAM_INV_PARAMETER);
+    }
+    // if offset+partial_size equals the full record size, then we won't
+    // have any gaps. In this case we just write the full record and ignore
+    // the partial parameters.
     if (record->partial_offset == 0 && record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }

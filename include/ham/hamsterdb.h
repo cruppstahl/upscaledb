@@ -817,6 +817,13 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * vs "key doesn't exist"). The default record size is
  * @ref HAM_RECORD_SIZE_UNLIMITED.
  *
+ * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * I/O and disk space. Compression is enabled with
+ * @ref HAM_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
+ *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *      Database. To close the handle, use @ref ham_db_close.
@@ -851,6 +858,11 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <li>@ref HAM_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref HAM_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Compresses
+ *      the records.
+ *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Sets the
+ *      compression level for the record compression. Only used in the
+ *      zlib compressor; otherwise ignored.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -878,6 +890,13 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
  *
+ * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * I/O and disk space. Compression is enabled with
+ * @ref HAM_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
+ *
  * @param env A valid Environment handle
  * @param db A valid Database handle, which will point to the opened
  *      Database. To close the handle, use @see ham_db_close.
@@ -891,7 +910,15 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  *      Operations that need write access (i.e. @ref ham_db_insert) will
  *      return @ref HAM_WRITE_PROTECTED.
  *   </ul>
- * @param params Reserved; set to NULL
+ * @param params An array of ham_parameter_t structures. The following
+ *    parameters are available:
+ *   <ul>
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Compresses
+ *      the records.
+ *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Sets the
+ *      compression level for the record compression. Only used in the
+ *      zlib compressor; otherwise ignored.
+ *   </ul>
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an

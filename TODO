@@ -20,6 +20,7 @@ x hamsterdb pro: compression for records
 x hamsterdb pro: aes encryption
 x hamsterdb pro: compression for keys
 x hamsterdb: linear searches
+<<<<<<< HEAD
 x hamsterdb: upgrade libuv
 x hamsterdb pro: SIMD instructions
 o hamsterdb pro: 30 day evaluation
@@ -28,6 +29,14 @@ high-level plan for 2.1.8 ..................................................
 o hamsterdb-pro: improve SIMD
 o hamsterdb: more quickcheck tests
 o hamsterdb: code cleanups
+=======
+o hamsterdb pro: 30 day evaluation
+o hamsterdb pro: SIMD instructions
+
+high-level plan for 2.1.8 ..................................................
+o hamsterdb: upgrade libuv
+o hamsterdb: more quickcheck tests
+>>>>>>> SIMD preparations, part 2
 o hamsterdb: performance improvements for remote
 o hamsterdb: improve page splits
 o hamsterdb: delta updates
@@ -159,7 +168,7 @@ x PRO: if a compressor does not exist then ham_env_create_db should immediately
     return an error (this is currently not the case)
     x unittest
 
-x use linear search for PAX (see topic/linear), but improve the
+o use linear search for PAX (see topic/linear), but improve the
     performance!
 
 x run benchmark with this:
@@ -186,12 +195,23 @@ x PRO: use SIMD instructions for the linear search
     x metrics: add flag whether sse2 is supported
     x need unittest: if sse is enabled and supported then perform an
         sse comparison
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> SIMD preparations, part 2
     x rewrite configure settings
         x a generic enable/disable SIMD option
         x if enabled: use avx if available; otherwise fallback to sse2
     x metrics should return the LANE width, not bools (default is 0)
 
+<<<<<<< HEAD
     o replace linear search with the SSE2 variant
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+    x replace linear search with the SSE2 variant
+>>>>>>> SIMD preparations
         x move SSE-related code to a template function in simd.h
         x simd available? -> the find function calls the function in simd.h
             x if HAM_ENABLE_SIMD is true
@@ -264,13 +284,115 @@ o port everything to Win32/Visual Studio
 
 o port everything to MacOS
 o port everything to Win32/Visual Studio
+=======
+    x https://github.com/genericsimd/generic_simd
+
+=======
+>>>>>>> updated TODO
+=======
+>>>>>>> Updated TODO
+    x rewrite configure settings
+        x a generic enable/disable SIMD option
+        x if enabled: use avx if available; otherwise fallback to sse2
+    x metrics should return the LANE width, not bools (default is 0)
+
+    o replace linear search with the SSE2 variant
+        x move SSE-related code to a template function in simd.h
+        x simd available? -> the find function calls the function in simd.h
+            x if HAM_ENABLE_SIMD is true
+            x if os_get_simd_lane_width() > 1
+        o if threshold is reached: continue with linear search
+            x the linear search implementation is not working identically to
+                the SIMD functions; add unittest (i.e. for signed int)
+                -> no, it's ok
+            x threshold depends on supported instruction set (AVX, SSE2)
+            x implement linear search with SIMD (SSE - 4x4)
+                -> only for exact searches!
+                x ham_u16_t
+                x ham_u32_t
+                x float
+                x ham_u64_t
+                x add unittests for sse
+=====================================
+currently, the SSE2 version of ham_uint32_t is a bit SLOWER than the
+regular version
+-> check with a profiler
+-> also check the linear search
+
+x w/o SIMD: improved binary search
+x w/o SIMD: find optimal linear search threshold
+x w/ SIMD: improve uint32 
+x w/ SIMD: improve uint16 
+o w/ SIMD: improve uint64 
+o w/ SIMD: improve float 
+o w/ SIMD: improve double 
+====>> Änderungen in APL-Version übertragen?
+x get_record ist tief verschachtelt, nicht inline
+=====================================
+            x how to dispatch the function for AVX?
+            o implement linear search with SIMD (AVX - 8x4?)
+                really required?
+                o ham_u16_t
+                o ham_u32_t
+                o float
+                o ham_u64_t
+                o double
+                x add unittests for avx
+            o all monster tests must be working
+    x ham_bench: add flag to disable simd
+    x review the changes - some can maybe be ported back to hamsterdb (APL)?
+        -> find_exact!
+    x test compilation with clang
+    o test compilation with msvc
+<<<<<<< HEAD
+    o sse: compare 4x4 ints in parallel (schani.blogspot.com...)
+    o support AVX!
+>>>>>>> SIMD preparations, part 2
+=======
+    o add monster tests
+<<<<<<< HEAD
+    o add performance tests for all types (no records, many finds)
+>>>>>>> Updated TODO
+=======
+    o add performance tests for all types (no records, many finds, with
+        and without SSE)
+
+o performance question: running ham_bench with 10mio keys (uint32, no records)
+    and then performing --open --find-pct=100 -> 6.5 sec;
+    with --cache=unlimited -> 6.5 sec
+    why is there no difference? this is random access, and pages should be
+    purged frequently. disabling mmap does not make a difference (SSD!).
+    -> try with a spinning disk
+>>>>>>> More SIMD related changes
 
 o PRO: 30 day evaluation library
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> Removed ham_get_license
     x remove the ham_get_license() API - it doesn't make sense and people
         will not use it anyway
         x also from erlang
     x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
     x insert 30 day trial check macros at various positions
+<<<<<<< HEAD
+=======
+=======
+    o remove the ham_get_license() API - it doesn't make sense and people
+=======
+    x remove the ham_get_license() API - it doesn't make sense and people
+>>>>>>> Removed ham_get_license
+        will not use it anyway
+        x also from erlang
+    x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
+<<<<<<< HEAD
+    o insert 30 day trial check macros at various positions
+>>>>>>> Removed ham_get_license
+=======
+    x insert 30 day trial check macros at various positions
+>>>>>>> Removed ham_get_license
+>>>>>>> Removed ham_get_license
         x insert code in
             x ham_env_create
             x ham_env_open
@@ -337,12 +459,32 @@ o PRO: additional stuff for the first release
 >>>>>>> Updated TODO
 
     x create new documentation page (wiki) for pro (tutorial + ham_bench)
+=======
+    o needs a ChangeLog
+
+    o create new documentation page (wiki) for pro (tutorial + ham_bench)
+>>>>>>> Updated TODO
+=======
+    o update the ChangeLog (don't use a new one!)
+    o update the README
+
+    x create new documentation page (wiki) for pro (tutorial + ham_bench)
+>>>>>>> Updated TODO
         x journal compression
         x record compression
         x zlib compression
         x aes encryption
         x file compatibility
+<<<<<<< HEAD
+<<<<<<< HEAD
         x simd
+=======
+        o simd
+        o ...
+>>>>>>> Updated TODO
+=======
+        x simd
+>>>>>>> Updated TODO
 
     o need a database with commercial users
         o upgrade the current users
@@ -360,11 +502,14 @@ o PRO: additional stuff for the first release
         o daily backups of the mysql database
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Updated TODO
         o request evaluation version: similar to contact form with additional
             details about the product; also has to sign off (= checkbutton)
             the evaluation license agreement
+=======
+>>>>>>> SIMD preparations
 
     o send email to all customers (add this to the release process)
         -> needs a link generator!
@@ -388,15 +533,113 @@ o PRO: additional stuff for the first release
 =======
 >>>>>>> Updated TODO
 
+    o collect/publish benchmark against leveldb (with and without SSD)
+        - each with 10 mio keys
+        o uint32, small records, random write
+        o uint32, small records, linear write
+        o uint32, small records, random read
+        o uint32, small records, linear read
+        o bin16, default records, random write (w/o compression)
+        o bin16, default records, linear write (w/o compression)
+        o bin16, default records, random read (w/o compression)
+        o bin16, default records, linear read (w/o compression)
+        o bin16, default records, random write (w/ compression)
+        o bin16, default records, linear write (w/ compression)
+        o bin16, default records, random read (w/ compression)
+        o bin16, default records, linear read (w/ compression)
+
+        o can download commercial files using the admin-API to verify the
+            login
+            o add to google analytics!
+            . use /download/commercial/<guid>/file for download; extract
+                <guid>, connect to the API and verify if it's valid
+
+. PRO: admin webpage
+    o database is hosted in openshift (mysql)
+    o install phpmyadmin
+    o create databases
+        company {
+            id
+            name
+            address
+            status: lead, trial, buyer, expired
+            contract start_date
+            contract end_date
+            notes
+        }
+        user {
+            company-id
+            user name
+            user email
+            phone
+            notes
+        }
+        release {
+            version
+            status: trial, pro
+            release_date
+            trial start_date
+            trial end_date
+            directory-location
+        }
+        download {
+            guid
+            company-id
+            release
+        }
+    o admin webpage is secured by htaccess (has a non-standard path)
+
+    o create php models for the different tables
+    o ... and methods to overwrite/add/remove them
+    o ... and views to list/display/edit them
+
+    o dashboard
+        o number of customers
+        o number of customers which will expire in less than 1 month
+        o number of trial customers
+        o number of trial customers ordered by expire date
+
+    o can list, add, edit, remove releases
+    o can list, add, edit, remove trial customers (w/ users)
+        o can upgrade to customer
+    o has an api to verify the GUIDs
+    o daily backup of the database to the other server
+
+    . expired 30day licenses will be removed automatically from the server
+        o and from the backup server
+        o and from the database
+
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
 o remote code: get rid of protocol buffers (but leave them in the server
-    for other languages). they are too expensive.
+    for other languages). they are too costly
     x write a code generator which creates serialize/deserialize routines
         for the messages 
     x perform a benchmark - looks good, nearly 50% faster
     o port all functions
-    o investigate libuv memory leaks reported by valgrind
+
+o look into hive-integration
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+    o write down everything i find, collect information and estimate
+        efforts/gains (will do the same for mysql and mongodb later)
+
+o clean up globals; currently, many metrics and test gates are stored
+    in global variables. collect them and store them in a struct Globals
+    (globals.h).
+
+o remove os.h, split to file.h and socket.h; file handle/socket handle
+    will become a class member. No longer directly access the file handle.
+    All remaining functions are moved to the static class Os.
+
+o QuickCheck: create a new property for testing duplicates; the key is always
+<<<<<<< HEAD
+        the same. The number of duplicate keys is tracked and periodically
+        checked with the API. A cursor can be used to remove a specific
+        duplicate, or to fetch a specific duplicate.
+>>>>>>> SIMD preparations
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
@@ -435,17 +678,29 @@ o remove os.h, split to file.h and socket.h; file handle/socket handle
     All remaining functions are moved to the static class Os.
 
 o QuickCheck: create a new property for testing duplicates; the key is always
+=======
+>>>>>>> Updated TODO
     the same. The number of duplicate keys is tracked and periodically
     checked with the API. A cursor can be used to remove a specific
     duplicate, or to fetch a specific duplicate.
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Updated TODO
 o do not purge pages if a cursor is attached
     o run performance tests
 
+=======
+>>>>>>> More SIMD related changes
 o insert: if HAM_HINT_APPEND is set then page splits should only create a
     new page, and not shifting any keys to the new sibling. only the new
     key is inserted in the new sibling.
     o run performance tests
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload
 
 o find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
@@ -470,33 +725,13 @@ o find a way how to execute user's code in the btree; similar to the hola
         records, whereas the actual record data is only fetched when requested
     -> users need to be aware that it's not allowed to call into hamsterdb
         during such a scan (would create a deadlock)
-    -> scans "pick up" other processors and run them at once, on the same
-        data
-    -> like this? where is the "return" value of the processor? how to specify
-            multiple processors?
+    -> like this?
         void ham_db_scan(ham_cursor_t *cursor,
                      ham_key_t *begin, // can be null
                      ham_key_t *end, // can be null
                      ham_processor_cb_t *processor,
                      void *context,
                      ham_u32_t flags);
-
-o collect/publish benchmark against leveldb (with and without SSD)
-    - each with 100k and 100m keys
-    o uint64, small records, random write
-    o uint64, small records, linear write
-    o uint64, small records, random read
-    o uint64, small records, linear read
-    o bin16, default records, random write (w/o compression)
-    o bin16, default records, linear write (w/o compression)
-    o bin16, default records, random read (w/o compression)
-    o bin16, default records, linear read (w/o compression)
-    o bin16, default records, random write (w/ compression)
-    o bin16, default records, linear write (w/ compression)
-    o bin16, default records, random read (w/ compression)
-    o bin16, default records, linear read (w/ compression)
-    o uint64, calculate sum()
-    o bin16, use count_if() of all keys with lsb == 1
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -550,6 +785,7 @@ o delta updates managed in the BtreeNode
             the node
         o then merge the remaining inserts
         o this needs lots of tests
+<<<<<<< HEAD
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
@@ -558,6 +794,33 @@ o architecture for a new webpage
     o pick an awesome design
         i.e. similar to http://foundationdb.com, http://laravel.com,
         http://rethinkdb.com
+    o come up with the full site structure/contents
+    o pick a framework for routing and infrastructure (phalcon? laravel?)
+    o page contents are written in markdown or
+        reStructuredText (http://sphinx-doc.org/rest.html)
+    o documentation comments are hosted on disqus
+        o try to seamlessly integrate the doxygen documentation,
+            the javagen documentation, the erlang docs and the .NET docs 
+            (and whatever comes in the future)
+        o keep the documentation in the source tree, not in -www?
+    o blog comments are hosted on disqus, articles also use rest
+    o Makefile converts markdown to html
+    o Makefile can "scp -r" everything to the servers (staging or production)
+    o client area with
+        o authentication
+        o collection of files
+        o analytics (who downloads what and when?)
+    o admin area with
+        o authentication
+        o customer database
+        o implementing business processes
+        o sending out release emails
+        o importing new releases
+        o etc
+
+o architecture for a new webpage
+    o pick an awesome design
+        i.e. similar to http://foundationdb.com, http://laravel.com
     o come up with the full site structure/contents
     o pick a framework for routing and infrastructure (phalcon? laravel?)
     o page contents are written in markdown or
@@ -599,6 +862,12 @@ o PRO: add sse support for real64
 
 >>>>>>> Updated TODO
 o PRO: bulk updates (really only for pro?)
+=======
+
+o QuickCheck: automatically test the recovery feature by invoking "crashes"
+
+o PRO: bulk updates
+>>>>>>> SIMD preparations, part 2
     - require delta updates
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
@@ -646,6 +915,7 @@ o PRO: prefix compression for variable-length keys
     o key search: jumps from full key to full key; in between, there's a
         linear search for the key
 
+<<<<<<< HEAD
 o PRO: use grouped varints for compressing int32/int64, record IDs and
     duplicate tables
     -> the concept will be similar to prefix compression
@@ -686,6 +956,7 @@ o PRO: CRC32-checksums (as soon as the file format is updated)
 ------------- hamsterdb 2.1.9 ---------------------------------------
 >>>>>>> Updated TODO
 
+<<<<<<< HEAD
 o use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
     o see roadmap document for more information
@@ -705,6 +976,8 @@ o use cache-oblivious b-tree layout
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
+=======
+>>>>>>> Updated TODO
 . binary search in the nodes: keep track of the last result, use this as
     a starting point? or use a weighted search with "hot spots" for the first
     few lookups? this would require tests with different lookup characteristics,
@@ -714,6 +987,14 @@ o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
+=======
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+<<<<<<< HEAD
+        (try not to break backwards compatibility, though)
+>>>>>>> SIMD preparations, part 2
+=======
+>>>>>>> More SIMD related changes
     o EnvHeader is completely full; add at least 8 bytes for flags + reserved
     o reserve CRC32 for each page
 
@@ -773,6 +1054,24 @@ o the bucket for concurrency TODOs
     o the global environment-lock should go because it's expensive; rather
         increment an atomic latch, and refuse to close/erase the database as
         long as the latch is > 0 
+<<<<<<< HEAD
+=======
+
+o use cache-oblivious b-tree layout
+    o see roadmap document for more information
+    o run a performance test/prototype if this is worth the effort
+        o allocate a fixed number of pages (20) for the index
+        o PageManager: when allocating a new page then use the distribution
+            function to fetch a page from the reserved storage
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+>>>>>>> Updated TODO
 
 . clean up approx. matching
     o ONLY for cursors

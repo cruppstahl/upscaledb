@@ -100,6 +100,36 @@ BtreeIndex::open()
 }
 
 void
+BtreeIndex::set_record_compression(int algo)
+{
+  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
+  desc->set_record_compression(algo);
+  flush_descriptor();
+}
+
+int
+BtreeIndex::get_record_compression()
+{
+  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
+  return (desc->get_record_compression());
+}
+
+void
+BtreeIndex::set_key_compression(int algo)
+{
+  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
+  desc->set_key_compression(algo);
+  flush_descriptor();
+}
+
+int
+BtreeIndex::get_key_compression()
+{
+  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
+  return (desc->get_key_compression());
+}
+
+void
 BtreeIndex::flush_descriptor()
 {
   if (m_db->get_rt_flags() & HAM_READ_ONLY)

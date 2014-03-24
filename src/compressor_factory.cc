@@ -25,34 +25,34 @@
 namespace hamsterdb {
 
 Compressor *
-CompressorFactory::create(int type, int level)
+CompressorFactory::create(int type)
 {
 #ifdef HAM_ENABLE_COMPRESSION
   switch (type) {
     case HAM_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
-      return (new ZlibCompressor(level));
+      return (new ZlibCompressor());
 #else
       ham_log(("hamsterdb was built without support for zlib compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_SNAPPY:
 #ifdef HAVE_SNAPPY_H
-      return (new SnappyCompressor(level));
+      return (new SnappyCompressor());
 #else
       ham_log(("hamsterdb was built without support for snappy compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_LZO:
 #ifdef HAVE_LZO_LZO1X_H
-      return (new LzopCompressor(level));
+      return (new LzopCompressor());
 #else
       ham_log(("hamsterdb was built without support for lzop compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_LZF:
       // this is always available
-      return (new LzfCompressor(level));
+      return (new LzfCompressor());
     default:
       ham_log(("Unknown compressor type %d", type));
       throw Exception(HAM_INV_PARAMETER);

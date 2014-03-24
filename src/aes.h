@@ -33,8 +33,8 @@ class AesCipher {
   public:
     AesCipher(const ham_u8_t key[kAesBlockSize], ham_u64_t salt = 0) {
       ham_u64_t iv[2];
-      memset(iv, 0, sizeof(iv));
       iv[0] = ham_h2db64(salt);
+      iv[1] = 0;
   
       EVP_CIPHER_CTX_init(&m_encrypt_ctx);
       EVP_EncryptInit_ex(&m_encrypt_ctx, EVP_aes_128_cbc(), NULL, key,
@@ -52,7 +52,10 @@ class AesCipher {
     }
 
     /*
-     * Encrypt len bytes of binary data
+     * Encrypt |len| bytes of binary data in |plaintext|, stores the
+     * encrypted data in |ciphertext|.
+     *
+     * The input data length must be aligned to the aes block size (16 bytes)!
      */
     void encrypt(const ham_u8_t *plaintext, ham_u8_t *ciphertext, int len) {
       ham_assert(len % kAesBlockSize == 0);
@@ -68,7 +71,10 @@ class AesCipher {
     }
 
     /*
-     * Decrypt len bytes of ciphertext
+     * Decrypts |len| bytes of |ciphertext|, stores the decoded data in
+     * |plaintext|.
+     *
+     * The input data length must be aligned to the aes block size (16 bytes)!
      */
     void decrypt(const ham_u8_t *ciphertext, ham_u8_t *plaintext, int len) {
       ham_assert(len % kAesBlockSize == 0);
