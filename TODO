@@ -276,7 +276,7 @@ x Start with the PRO version
                     = (none | zlib | snappy | lzf | lzop)
         x new parameter HAM_PARAM_ENABLE_RECORD_COMPRESSION
                     = (none | zlib | snappy | lzf | lzop)
-        x MIT should return "HAM_NOT_IMPLEMENTED"
+        x APL should return "HAM_NOT_IMPLEMENTED"
         x add to java, .NET, erlang
         x CompressorFactory: really needs the enum?? - no
 
@@ -302,14 +302,12 @@ x Start with the PRO version
 x ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp
     -> segfaults
 
-o release everything as MIT
+o release everything under apache license/MIT license (which one?)
     x everything incl dotnet, java
-    x erlang
     x also update the readme!
+    o erlang
     o wiki/tutorial
     o webpage (incl. features/about etc)
-
-o perftest: add switch --product=mit|pro
 
 o extend ham_bench documentation for --flush-txn-immediately
 o extend ham_bench documentation for --disable-recovery
@@ -375,7 +373,7 @@ o add documentation to the ham_bench wiki
     o journal-compression-level
 
 o PRO: improve AES encryption, also encrypt the journal
-    x MIT should return "HAM_NOT_IMPLEMENTED"
+    x APL should return "HAM_NOT_IMPLEMENTED"
     o journal header: store flags ("Encryption enabled")
     o journal entries: requires padding??
     o apply encryption on the lowest level (whereas compression
@@ -383,17 +381,17 @@ o PRO: improve AES encryption, also encrypt the journal
     o needs unittests, perftests and monster tests
     o make sure it works in combination with compression
 
-o PRO: is able to open MIT files, but not vice versa
+o PRO: is able to open APL files, but not vice versa
     o use msb in file version for a marker
-    o when loading a MIT file in PRO: set the flag, write back
-    o MIT will automatically reject the file
+    o when loading a APL file in PRO: set the flag, write back
+    o APL will automatically reject the file
     o print in ham_info
     o add a test
 
 o PRO: work over the license agreement; PRO will be similar to an NDA
 
 o PRO: extend release-tool
-    o new switch --product=mit|pro
+    o new switch --product=os|pro
     o for pro: use different version tag
     o for pro: use different packaging directory
     o for pro: use different file list
@@ -440,7 +438,7 @@ o PRO: additional stuff for the first release
     o webpage
         o overview, catch lines
         o customers
-        o feature matrix MIT vs. closed source
+        o feature matrix APL vs. closed source
         o daily backups of the database
         o can download commercial files using the admin-API to verify the
             login
