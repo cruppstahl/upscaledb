@@ -305,7 +305,7 @@ x ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp
 o release everything under apache license/MIT license (which one?)
     x everything incl dotnet, java
     x also update the readme!
-    o erlang
+    x erlang
     o wiki/tutorial
     o webpage (incl. features/about etc)
 
@@ -340,7 +340,7 @@ o web-page requires updates
 
 ---------------------------- 2.1.7 ----------------------
 
-o PRO: enable zlib/snappy/others compression for the records
+x PRO: enable zlib/snappy/others compression for the records
     x add documentation to header file
     x db: add record compression parameter
         x when creating a database
@@ -360,26 +360,21 @@ o PRO: enable zlib/snappy/others compression for the records
             (or into user allocated buffer)
         x add unittests (disk and inmemory)
     x add parameters to ham_bench
-    o add perftests, monster tests
+    x add perftests, monster tests
 
 o PRO: should journal and record compression settings really
     be non-persistent?
     -> should be persistent, makes things easier
-
-o add documentation to the ham_bench wiki
-    o record-compression
-    o record-compression-level
-    o journal-compression
-    o journal-compression-level
-
-o PRO: improve AES encryption, also encrypt the journal
-    x APL should return "HAM_NOT_IMPLEMENTED"
-    o journal header: store flags ("Encryption enabled")
-    o journal entries: requires padding??
-    o apply encryption on the lowest level (whereas compression
-        will be on entry-level)
-    o needs unittests, perftests and monster tests
-    o make sure it works in combination with compression
+    o journal compression: store in env-header
+        env-header has 2 reserved bytes, use them for compression
+        o unittest
+    o journal compression: disallow in ham_env_open
+        o unittest
+    o record compression: store in db-header
+        BtreeHeader has 2 bytes reserved for padding, use them for compression
+        o unittest
+    o record compression: disallow in ham_env_open_db
+        o unittest
 
 o PRO: is able to open APL files, but not vice versa
     o use msb in file version for a marker
@@ -388,14 +383,30 @@ o PRO: is able to open APL files, but not vice versa
     o print in ham_info
     o add a test
 
-o PRO: work over the license agreement; PRO will be similar to an NDA
+o PRO: improve AES encryption, also encrypt the journal
+    x APL should return "HAM_NOT_IMPLEMENTED"
+    o requires padding; how to do that? if padding is required then the
+        trailers are not recognized anymore
+        -> could align the payload structures, and make sure that the trailer
+            is then automatically aligned
+    o journal header: store flags ("Encryption enabled")
+    o apply encryption on the lowest level (whereas compression
+        will be on entry-level)
+    o needs unittests, perftests and monster tests
+    o make sure it works in combination with compression
 
-o PRO: extend release-tool
-    o new switch --product=os|pro
-    o for pro: use different version tag
-    o for pro: use different packaging directory
-    o for pro: use different file list
-    o for pro: add test for --disable-compression
+o PRO: heavyweight compression for keys
+    -> support compression with lzf and the other libraries
+    -> keys are stored compressed IF the compressed keys are smaller than the
+        uncompressed keys
+    o compressor: should return 0 if that's not the case
+    o uncompress directly into extkey-cache 
+
+o use linear search for PAX (see topic/linear), but improve the
+    performance!
+
+o PRO: use SIMD instructions for the linear search
+    http://openproceedings.org/EDBT/2014/paper_107.pdf
 
 o PRO: 30 day evaluation library
     o ham_time_t ham_is_evaluation(); -> returns end time, or 0
@@ -414,22 +425,21 @@ o PRO: 30 day evaluation library
         o ... but also rename the files (f01.cc, f02.cc, ...)
     o create automagically in release-build.pl
 
-o PRO: heavyweight compression for keys
-    -> support compression with lzf and the other libraries
-    -> keys are stored compressed IF the compressed keys are smaller than the
-        uncompressed keys
-    o compressor: should return 0 if that's not the case
-    o uncompress directly into extkey-cache 
+o PRO: work over the license agreement; PRO will be similar to an NDA
 
-o use linear search for PAX (see topic/linear), but improve the
-    performance!
-
-o PRO: use SIMD instructions for the linear search
-    http://openproceedings.org/EDBT/2014/paper_107.pdf
+o PRO: extend release-tool
+    o new switch --product=os|pro
+    o for pro: use different version tag
+    o for pro: use different packaging directory
+    o for pro: use different file list
+    o for pro: add test for --disable-compression
 
 o PRO: additional stuff for the first release
-    o create new documentation page (wiki) for pro
+    o needs a ChangeLog
+
+    o create new documentation page (wiki) for pro (tutorial + ham_bench)
         o journal compression
+        o record compression
         o zlib compression
         o aes encryption
         o file compatibility
@@ -437,7 +447,7 @@ o PRO: additional stuff for the first release
 
     o webpage
         o overview, catch lines
-        o customers
+        o customers, deployments
         o feature matrix APL vs. closed source
         o daily backups of the database
         o can download commercial files using the admin-API to verify the
@@ -446,7 +456,7 @@ o PRO: additional stuff for the first release
     o what are the minimum features required for the first release?
         x heavyweight compression for the journal
         x AES encryption for the file
-        o heavyweight compression for records
+        x heavyweight compression for records
         o (evaluation licenses)
         o SIMD for searches (PAX)
         o heavyweight compression for keys
@@ -490,6 +500,7 @@ o QuickCheck: automatically test the recovery feature by invoking "crashes"
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently
         (try not to break backwards compatibility, though)
+    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
     o reserve CRC32 for each page
 
 ----------------------------------

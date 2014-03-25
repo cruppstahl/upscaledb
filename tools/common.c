@@ -47,7 +47,7 @@ print_banner(const char *program_name)
 "limitations under the License.\n\n");
   else
     printf(
-       "Commercial version; licensed for %s (%s)\n\n",
-       licensee, product);
+       "Commercial version; licensed to %s (%s).\n\n",
+       licensee ? licensee : "", product);
 }
 

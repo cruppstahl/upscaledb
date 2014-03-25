@@ -1051,7 +1051,7 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
     if (st1 != st2) {
       LOG_ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
                               st1, st2));
-      failed = true;
+      return (false);
     }
     // compare keys
     if (!are_keys_equal(&key1, &key2))
