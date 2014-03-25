@@ -16,6 +16,9 @@ are buffered and flushed together with other committed Transactions. If
 you prefer the old behavior then use the flag HAM_FLUSH_WHEN_COMMITTED when
 creating or opening your Environment.
 
+The Btree code was cleaned up and most of the complexity was removed by
+reorganizing the SMOs.
+
 Also, the license was changed to APL (Apache Public License 2.0).
 hamsterdb is now free to use for closed-source applications.
 

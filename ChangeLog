@@ -32,6 +32,11 @@ o ham_db_check_integrity() has an additional parameter for flags; currently
 	"dot". Only if HAM_DEBUG is enabled.
 
 Feb 21, 2014 - chris ---------------------------------------------------
+o The Btree SMOs were completely rewritten. Insert SMOs (splits) now happen
+	on the "way down" instead of returning. Erase SMOs no longer shift but
+	merge only; this reduced 90% of the erase complexity.
+
+Feb 21, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.6
 
 Feb 21, 2014 - chris ---------------------------------------------------
