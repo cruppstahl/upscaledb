@@ -30,6 +30,10 @@
  * hamsterdb is neither backwards- nor forwards-compatible regarding file
  * format changes. 
  *
+ * If a file was created with hamsterdb pro then the msb of the file version
+ * is set. hamsterdb pro is able to open files created with hamsterdb (APL
+ * version), but not vice versa.
+ *
  * History of file versions:
  *   2.1.0: introduced the file version; version is 0
  *   2.1.3: new btree format, file format cleanups; version is 1

@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include <ham/hamsterdb.h>
-
 #include "../src/env_local.h"
 
 #include "getopts.h"
@@ -69,30 +68,65 @@ error(const char *foo, ham_status_t st) {
   exit(-1);
 }
 
+static const char *
+get_compressor_name(int library) {
+  switch (library) {
+    case HAM_COMPRESSOR_ZLIB:
+      return ("zlib");
+    case HAM_COMPRESSOR_SNAPPY:
+      return ("snappy");
+    case HAM_COMPRESSOR_LZF:
+      return ("lzf");
+    case HAM_COMPRESSOR_LZO:
+      return ("lzo");
+    default:
+      return ("???");
+  }
+}
+
 static void
 print_environment(ham_env_t *env) {
-  hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
+  ham_parameter_t params[] = {
+    {HAM_PARAM_PAGE_SIZE, 0},
+    {HAM_PARAM_MAX_DATABASES, 0},
+    {HAM_PARAM_ENABLE_JOURNAL_COMPRESSION, 0},
+    {HAM_PARAM_JOURNAL_COMPRESSION_LEVEL, 0},
+    {0, 0}
+  };
+
+  ham_status_t st = ham_env_get_parameters(env, &params[0]);
+  if (st != 0)
+    error("ham_env_get_parameters", st);
+
   if (!quiet) {
+    hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
+
     printf("environment\n");
-    printf("  page_size:           %u\n", lenv->get_page_size());
-    printf("  version:          %u.%u.%u.%u\n",
+    printf("  page_size:            %u\n", (unsigned)params[0].value);
+    printf("  version:              %u.%u.%u.%u %s\n",
             lenv->get_header()->get_version(0),
             lenv->get_header()->get_version(1),
             lenv->get_header()->get_version(2),
-            lenv->get_header()->get_version(3));
-    printf("  max databases:        %u\n",
-            lenv->get_header()->get_max_databases());
+            lenv->get_header()->get_version(3) & ~0x80,
+            lenv->get_header()->get_version(3) & 0x80
+                ? "pro!"
+                : "");
+    printf("  max databases:        %u\n", (unsigned)params[1].value);
+    if (params[2].value) {
+      printf("  journal compression:  %s ",
+                      get_compressor_name((int)params[2].value));
+      if (params[3].value == HAM_COMPRESSOR_ZLIB)
+        printf("(level %d)", (int)params[3].value);
+      printf("\n");
+    }
   }
 }
 
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full) {
   ham_cursor_t *cursor;
-  ham_status_t st;
-  ham_key_t key;
-  ham_record_t rec;
-  memset(&key, 0, sizeof(key));
-  memset(&rec, 0, sizeof(rec));
+  ham_key_t key = {0};
+  ham_record_t rec = {0};
 
   // get the database information
   ham_parameter_t params[] = {
@@ -101,10 +135,12 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     {HAM_PARAM_RECORD_SIZE, 0},
     {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
     {HAM_PARAM_FLAGS, 0},
+    {HAM_PARAM_ENABLE_RECORD_COMPRESSION, 0},
+    {HAM_PARAM_RECORD_COMPRESSION_LEVEL, 0},
     {0, 0}
   };
 
-  st = ham_db_get_parameters(db, &params[0]);
+  ham_status_t st = ham_db_get_parameters(db, &params[0]);
   if (st != 0)
     error("ham_db_get_parameters", st);
 
@@ -146,6 +182,13 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    max key size:         %u\n", (unsigned)params[1].value);
     printf("    max keys per page:    %u\n", (unsigned)params[3].value);
     printf("    flags:                0x%04x\n", (unsigned)params[4].value);
+    if (params[5].value) {
+      printf("    record compression:   %s ",
+                      get_compressor_name((int)params[4].value));
+      if (params[5].value == HAM_COMPRESSOR_ZLIB)
+        printf("(level %d)", (int)params[5].value);
+      printf("\n");
+    }
     if (params[2].value == HAM_RECORD_SIZE_UNLIMITED)
       printf("    record size:          unlimited\n");
     else

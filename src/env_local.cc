@@ -183,8 +183,8 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
       goto fail_with_fake_cleansing;
     }
 
-    /* check the database version; everything < 1.0.9 or with a different
-     * file version is incompatible */
+    /* check the database version; everything with a different file version
+     * is incompatible */
     if (m_header->get_version(3) != HAM_FILE_VERSION) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;

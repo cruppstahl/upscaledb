@@ -382,9 +382,9 @@ x PRO: should journal and record compression settings really
     x fix memory leaks in unittests
 
 o PRO: is able to open APL files, but not vice versa
-    o use msb in file version for a marker
-    o when loading a APL file in PRO: set the flag, write back
-    o APL will automatically reject the file
+    x use msb in file version for a marker
+    x when loading a APL file in PRO: set the flag, write back
+    x APL will automatically reject the file
     o ham_info: show whether db is pro
     o ham_info should print compression information
     o make ham_info a 100% user of the public API; do not access
@@ -398,6 +398,7 @@ o PRO: improve AES encryption, also encrypt the journal
         -> could align the payload structures, and make sure that the trailer
             is then automatically aligned
     o journal header: store flags ("Encryption enabled")
+        (why? it's already stored in the Environment header)
     o apply encryption on the lowest level (whereas compression
         will be on entry-level)
     o needs unittests, perftests and monster tests
@@ -442,6 +443,8 @@ o PRO: extend release-tool
     o for pro: use different file list
     o for pro: add test for --disable-compression
     o for pro: add test for --disable-encryption
+    o for pro: generate 30 day trials for the following 3 months,
+        starting at every calendar week
 
 o PRO: additional stuff for the first release
     o needs a ChangeLog
@@ -467,10 +470,10 @@ o PRO: additional stuff for the first release
         x AES encryption for the file
         x heavyweight compression for records
         o file format compatibility
-        o (evaluation licenses)
-        o SIMD for searches (PAX)
+        o AES encryption for the journal
         o heavyweight compression for keys
-        . AES encryption for the journal
+        o SIMD for searches (PAX)
+        o (evaluation licenses)
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 

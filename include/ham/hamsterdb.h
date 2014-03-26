@@ -1712,8 +1712,29 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  */
 #define HAM_PARAM_RECORD_COMPRESSION_LEVEL   0x1003
 
+/** hamsterdb pro: selects zlib compression */
+#define HAM_COMPRESSOR_ZLIB         1
+
 /**
- * Retrieve the Environment handle of a Database
+ * hamsterdb pro: selects google snappy compression
+ * http://code.google.com/p/snappy
+ */
+#define HAM_COMPRESSOR_SNAPPY       2
+
+/**
+ * hamsterdb pro: selects lzf compression
+ * http://oldhome.schmorp.de/marc/liblzf.html
+ */
+#define HAM_COMPRESSOR_LZF          3
+
+/**
+ * hamsterdb pro: selects lzop compression
+ * http://www.oberhumer.com/opensource/lzo
+ */
+#define HAM_COMPRESSOR_LZO          4
+
+/**
+ * Retrieves the Environment handle of a Database
  *
  * @param db A valid Database handle
  *
