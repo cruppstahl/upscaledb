@@ -381,35 +381,28 @@ x PRO: should journal and record compression settings really
     x add ham_*_get_parameters to header documentation
     x fix memory leaks in unittests
 
-o PRO: is able to open APL files, but not vice versa
+x PRO: is able to open APL files, but not vice versa
     x use msb in file version for a marker
     x when loading a APL file in PRO: set the flag, write back
     x APL will automatically reject the file
-    o ham_info: show whether db is pro
-    o ham_info should print compression information
-    o make ham_info a 100% user of the public API; do not access
+    x ham_info: show whether db is pro
+    x ham_info should print compression information
+    x make ham_info a 100% user of the public API; do not access
         internal classes!
-    o add a test
-
-o PRO: improve AES encryption, also encrypt the journal
-    x APL should return "HAM_NOT_IMPLEMENTED"
-    o requires padding; how to do that? if padding is required then the
-        trailers are not recognized anymore
-        -> could align the payload structures, and make sure that the trailer
-            is then automatically aligned
-    o journal header: store flags ("Encryption enabled")
-        (why? it's already stored in the Environment header)
-    o apply encryption on the lowest level (whereas compression
-        will be on entry-level)
-    o needs unittests, perftests and monster tests
-    o make sure it works in combination with compression
 
 o PRO: heavyweight compression for keys
     -> support compression with lzf and the other libraries
     -> keys are stored compressed IF the compressed keys are smaller than the
         uncompressed keys
-    o compressor: should return 0 if that's not the case
-    o cache the uncompressed keys
+    -> key->size in the node is the compressed size, and it might further
+            be extended! the uncompressed size is part of the payload (16bit
+            at the front)
+    o compress before inserting
+    o uncompress in get_key(), get_key_direct(), compare() etc
+    o test in combination with extended keys (very low threshold)
+    o metrics: keep track of compression ratio, number of compressed and
+        uncompressed keys
+    o cache the uncompressed keys?
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
@@ -470,7 +463,6 @@ o PRO: additional stuff for the first release
         x AES encryption for the file
         x heavyweight compression for records
         o file format compatibility
-        o AES encryption for the journal
         o heavyweight compression for keys
         o SIMD for searches (PAX)
         o (evaluation licenses)
@@ -604,6 +596,8 @@ o PRO: prefix compression for variable-length keys
     ===> it really makes sense to have delta updates and bulk inserts first!!
     - try to store a full key every Nth bytes, to avoid extensive re-compressing
     - full keys can be further compressed with lzf or lzo
+    - key search: jumps from full key to full key; in between, there's a
+        linear search for the key
 
 o "hola" - olap functions that operate directly on the btree data
     -> see wiki

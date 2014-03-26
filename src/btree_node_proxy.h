@@ -138,19 +138,10 @@ class BtreeNodeProxy
     // compare operation.
     virtual int find(ham_key_t *key, int *pcmp = 0) = 0;
 
-    // Searches the node for the key, and returns the slot of this key
-    // If |pcmp| is not null then it will store the result of the last
-    // compare operation.
-    virtual int find(BtreeNodeProxy *key_node, int key_slot, int *pcmp = 0) = 0;
-
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
     // are endian-translated.
     virtual void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) = 0;
-
-    // Same as above, but does not create a copy (unless the key is extended)
-    virtual void get_key_direct(ham_u32_t slot, ByteArray *arena,
-                    ham_key_t *dest) = 0;
 
     // Returns the number of records of a key at the given |slot|. This is
     // either 1 or higher, but only if duplicate keys exist.
@@ -203,10 +194,6 @@ class BtreeNodeProxy
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual void insert(ham_u32_t slot, const ham_key_t *key) = 0;
-
-    // High level function to insert a new key
-    virtual void insert(ham_u32_t slot, BtreeNodeProxy *source,
-                   int source_slot) = 0;
 
     // Returns true if a node requires a split to insert a new |key|
     virtual bool requires_split() = 0;
@@ -429,17 +416,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       return (m_impl.find(key, cmp, pcmp));
     }
 
-    // Searches the node for the key and returns the slot of this key.
-    // If |pcmp| is not null then it will store the result of the last
-    // compare operation.
-    virtual int find(BtreeNodeProxy *key_node, int key_slot, int *pcmp = 0) {
-      ham_key_t key = {0};
-      ByteArray arena;
-      key_node->get_key_direct(key_slot, &arena, &key);
-
-      return (find(&key, pcmp));
-    }
-
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
     // are endian-translated.
@@ -449,20 +425,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         arena->disown();
       }
       m_impl.get_key(slot, arena, dest);
-    }
-
-    // Same as above, but does not create a copy (unless the key is extended)
-    virtual void get_key_direct(ham_u32_t slot, ByteArray *arena,
-                    ham_key_t *key) {
-      typename NodeImpl::Iterator it = m_impl.at(slot);
-      if (it->get_key_flags() & BtreeKey::kExtendedKey) {
-        get_key(slot, arena, key);
-      }
-      else {
-        key->_flags = it->get_key_flags();
-        key->data   = it->get_key_data();
-        key->size   = it->get_key_size();
-      }
     }
 
     // Returns the number of records of a key at the given |slot|
@@ -550,15 +512,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // actual record is then updated with |set_record|.
     virtual void insert(ham_u32_t slot, const ham_key_t *key) {
       m_impl.insert(slot, key);
-      set_count(get_count() + 1);
-    }
-
-    // High level function to insert a new key
-    virtual void insert(ham_u32_t slot, BtreeNodeProxy *source,
-                    int source_slot) {
-      ClassType *other = dynamic_cast<ClassType *>(source);
-      ham_assert(other != 0);
-      m_impl.insert(slot, &other->m_impl, source_slot);
       set_count(get_count() + 1);
     }
 

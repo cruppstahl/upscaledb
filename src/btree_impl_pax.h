@@ -897,15 +897,6 @@ class PaxNodeImpl
       }
     }
 
-    // Same as above, but copies the key from |src_node[src_slot]|
-    void insert(ham_u32_t slot, PaxNodeImpl *src_node, ham_u32_t src_slot) {
-      ham_key_t key = {0};
-      ConstIterator it = src_node->at(src_slot);
-      key.data = it->get_key_data();
-      key.size = it->get_key_size();
-      insert(slot, &key);
-    }
-
     // Inserts a new key
     void insert(ham_u32_t slot, const ham_key_t *key) {
       ham_assert(key->size == get_key_size());

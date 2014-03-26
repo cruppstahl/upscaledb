@@ -2003,21 +2003,6 @@ class DefaultNodeImpl
 #endif
     }
 
-    // Same as above, but copies the key from |src_node[src_slot]|
-    void insert(ham_u32_t slot, DefaultNodeImpl *src_node,
-                    ham_u32_t src_slot) {
-      ham_key_t key = {0};
-      ConstIterator it = src_node->at(src_slot);
-      if (it->get_key_flags() & BtreeKey::kExtendedKey) {
-        src_node->get_extended_key(it->get_extended_blob_id(), &key);
-      }
-      else {
-        key.data = (void *)it->get_key_data();
-        key.size = it->get_key_size();
-      }
-      insert(slot, &key);
-    }
-
     // Returns true if |key| cannot be inserted because a split is required.
     // Unlike implied by the name, this function will try to re-arrange the
     // node in order for the key to fit in.
