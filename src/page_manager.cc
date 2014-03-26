@@ -238,6 +238,8 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   page = m_cache.get_page(address);
   if (page) {
     ham_assert(page->get_data());
+    if (flags & kNoHeader)
+      page->set_flags(page->get_flags() | Page::kNpersNoHeader);
     /* store the page in the changeset if recovery is enabled */
     if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().add_page(page);
@@ -260,6 +262,9 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
 
   /* store the page in the list */
   store_page(page);
+
+  if (flags & kNoHeader)
+    page->set_flags(page->get_flags() | Page::kNpersNoHeader);
 
   /* store the page in the changeset */
   if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -367,6 +372,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, int num_pages)
           if (i == 0) {
             page = fetch_page(db, it->first);
             page->set_type(Page::kTypeBlob);
+            page->set_flags(page->get_flags() & ~Page::kNpersNoHeader);
           }
           else {
             Page *p = fetch_page(db, it->first + (i * page_size));

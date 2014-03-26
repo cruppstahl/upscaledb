@@ -59,7 +59,10 @@ class PageManager {
       kOnlyFromCache = 1,
 
       // Flag for fetch_page(): does not add page to the Changeset
-      kReadOnly = 2
+      kReadOnly = 2,
+
+      // Flag for fetch_page(): page is part of a multi-page blob, has no header
+      kNoHeader = 4
     };
 
     // Default constructor

@@ -66,6 +66,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
     page = m_env->get_page_manager()->alloc_multiple_blob_pages(db, num_pages);
+    ham_assert(page->get_flags() & ~Page::kNpersNoHeader);
 
     // initialize the PBlobPageHeader
     header = PBlobPageHeader::from_page(page);
@@ -535,11 +536,13 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t address,
       if (page && page->get_address() != pageid)
         page = 0;
       if (!page)
-        page = m_env->get_page_manager()->fetch_page(db, pageid);
+        page = m_env->get_page_manager()->fetch_page(db, pageid,
+                        PageManager::kNoHeader);
 
-      // now write the data
       ham_u32_t write_start = (ham_u32_t)(address - page->get_address());
       ham_u32_t write_size = (ham_u32_t)(page_size - write_start);
+
+      // now write the data
       if (write_size > size)
         write_size = size;
       memcpy(&page->get_raw_payload()[write_start], data, write_size);

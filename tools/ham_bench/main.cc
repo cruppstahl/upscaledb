@@ -401,6 +401,7 @@ static option_t opts[] = {
     "record-compression-level",
     "PRO: Sets the record compression (0 .. 9, default: 7); only for zlib",
     GETOPTS_NEED_ARGUMENT },
+  {0, 0}
 };
 
 static void

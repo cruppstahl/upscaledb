@@ -1060,7 +1060,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
 
 ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, ham_u32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1307,7 +1307,7 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
-        ham_u32_t flags)
+            ham_u32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
