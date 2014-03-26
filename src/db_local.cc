@@ -1210,6 +1210,8 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   /* reset the dupecache */
   cursor->clear_dupecache();
 
+  cursor->set_to_nil(Cursor::kBoth);
+
   /*
    * first try to find the key in the transaction tree. If it exists and
    * is NOT a duplicate then return its record. If it does not exist or

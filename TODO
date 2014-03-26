@@ -338,6 +338,17 @@ o web-page requires updates
         hamsterdb-www is the main repository, master pushes to staging
         'stable' pushes to hamsterdb.com, www1, www2
 
+o fix regressions
+    o ./ham_bench --use-berkeleydb=true --use-cursors --duplicate=last --use-transactions=5 --reopen 41.tst
+    -> im reopen/fullcheck gibt es eine duplicate table, in der der record
+        kaputt ist (record ist inline, aber das flag für die größenangabe
+        ist nicht gesetzt)
+    -> alle anderen parameter sind zwingend notwendig!
+    -> 1. in 41.tst direkt vor dem close ein FULLCHECK setzen, dann --reopen
+        raus. findet der fullcheck das Problem? Wenn ja dann verschiedene
+        FULLCHECKS setzen. wenn nicht dann scheint das Problem im
+        abschliessenden flush zu sein!? Denn ein recovery gibt es nicht.
+
 ---------------------------- 2.1.7 ----------------------
 
 x PRO: enable zlib/snappy/others compression for the records

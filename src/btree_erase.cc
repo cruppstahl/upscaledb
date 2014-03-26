@@ -193,11 +193,9 @@ class BtreeEraseAction
           }
 
           if (btcur != m_cursor && btcur->points_to(page, slot)) {
-            if (btcur->get_duplicate_index()
-                            == m_cursor->get_duplicate_index())
+            if (btcur->get_duplicate_index() == m_duplicate_index)
                 btcur->set_to_nil();
-            else if (btcur->get_duplicate_index()
-                            > m_cursor->get_duplicate_index())
+            else if (btcur->get_duplicate_index() > m_duplicate_index)
               btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
           }
           btcur = next;

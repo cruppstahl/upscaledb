@@ -1036,6 +1036,7 @@ Cursor::set_to_nil(int what)
       ham_assert(what == 0);
       get_btree_cursor()->set_to_nil();
       get_txn_cursor()->set_to_nil();
+      couple_to_btree(); /* reset flag */
       m_is_first_use = true;
       break;
   }
