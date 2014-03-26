@@ -362,25 +362,33 @@ x PRO: enable zlib/snappy/others compression for the records
     x add parameters to ham_bench
     x add perftests, monster tests
 
-o PRO: should journal and record compression settings really
+x PRO: should journal and record compression settings really
     be non-persistent?
     -> should be persistent, makes things easier
-    o journal compression: store in env-header
-        env-header has 2 reserved bytes, use them for compression
-        o unittest
-    o journal compression: disallow in ham_env_open
-        o unittest
-    o record compression: store in db-header
-        BtreeHeader has 2 bytes reserved for padding, use them for compression
-        o unittest
-    o record compression: disallow in ham_env_open_db
-        o unittest
+    x journal compression: store in env-header
+        x env-header has 2 reserved bytes, use them for compression
+    x journal compression: disallow in ham_env_open
+        x unittest
+    x record compression: store in db-header
+        x BtreeHeader has 2 bytes reserved for padding, use them for compression
+    x record compression: disallow in ham_env_open_db
+        x unittest
+    x support ham_env_get_parameters
+        x unittest
+    x support ham_db_get_parameters
+        x unittest
+    x fix ham_bench
+    x add ham_*_get_parameters to header documentation
+    x fix memory leaks in unittests
 
 o PRO: is able to open APL files, but not vice versa
     o use msb in file version for a marker
     o when loading a APL file in PRO: set the flag, write back
     o APL will automatically reject the file
-    o print in ham_info
+    o ham_info: show whether db is pro
+    o ham_info should print compression information
+    o make ham_info a 100% user of the public API; do not access
+        internal classes!
     o add a test
 
 o PRO: improve AES encryption, also encrypt the journal
@@ -400,7 +408,7 @@ o PRO: heavyweight compression for keys
     -> keys are stored compressed IF the compressed keys are smaller than the
         uncompressed keys
     o compressor: should return 0 if that's not the case
-    o uncompress directly into extkey-cache 
+    o cache the uncompressed keys
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
@@ -428,11 +436,12 @@ o PRO: 30 day evaluation library
 o PRO: work over the license agreement; PRO will be similar to an NDA
 
 o PRO: extend release-tool
-    o new switch --product=os|pro
+    o new switch --product=apl|pro
     o for pro: use different version tag
     o for pro: use different packaging directory
     o for pro: use different file list
     o for pro: add test for --disable-compression
+    o for pro: add test for --disable-encryption
 
 o PRO: additional stuff for the first release
     o needs a ChangeLog
@@ -457,10 +466,13 @@ o PRO: additional stuff for the first release
         x heavyweight compression for the journal
         x AES encryption for the file
         x heavyweight compression for records
+        o file format compatibility
         o (evaluation licenses)
         o SIMD for searches (PAX)
         o heavyweight compression for keys
         . AES encryption for the journal
+
+------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
 o QuickCheck: create a new property for testing duplicates; the key is always
         the same. The number of duplicate keys is tracked and periodically
@@ -468,42 +480,6 @@ o QuickCheck: create a new property for testing duplicates; the key is always
         duplicate, or to fetch a specific duplicate.
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
-
-. pro: admin webpage
-    o database is in openshift
-    o admin webpage is secured by htaccess (has a non-standard path)
-    o has a dashboard
-        o number of customers
-        o number of customers which will expire in less than 1 month
-        o number of trial customers
-        o number of trial customers which will expire in less than 1 week
-    o has a table with the releases
-    o has a table with the customers and their license status
-            (trial from-to, customer from-to)
-    o has a table with the links/guids for the customers
-    o can list, add, edit, remove releases
-    o can list, add, edit, remove customers
-    o can create a new trial customer
-    o can create a new (non-trial) customer
-    o can upgrade a customer
-    o can list trial customers which expire soon
-    o can list real customers which expire soon
-    o has an api to verify the GUIDs
-    o daily backup of the database to the other server
-
-    o need a second installation for testing!
-
-    . expired 30day licenses will be removed automatically from the server
-        o and from the backup server
-        o and from the database
-
-. collect file format updates
-    o PageManager state: also store m_last_blob_page_id persistently
-        (try not to break backwards compatibility, though)
-    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
-    o reserve CRC32 for each page
-
-----------------------------------
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -563,6 +539,42 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
+. pro: admin webpage
+    o database is in openshift
+    o admin webpage is secured by htaccess (has a non-standard path)
+    o has a dashboard
+        o number of customers
+        o number of customers which will expire in less than 1 month
+        o number of trial customers
+        o number of trial customers which will expire in less than 1 week
+    o has a table with the releases
+    o has a table with the customers and their license status
+            (trial from-to, customer from-to)
+    o has a table with the links/guids for the customers
+    o can list, add, edit, remove releases
+    o can list, add, edit, remove customers
+    o can create a new trial customer
+    o can create a new (non-trial) customer
+    o can upgrade a customer
+    o can list trial customers which expire soon
+    o can list real customers which expire soon
+    o has an api to verify the GUIDs
+    o daily backup of the database to the other server
+
+    o need a second installation for testing!
+
+    . expired 30day licenses will be removed automatically from the server
+        o and from the backup server
+        o and from the database
+
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
+    o reserve CRC32 for each page
+
+o PRO: CRC32-checksums (as soon as the file format is updated)
+
 o PRO: bulk updates
     - require delta updates
     - give users API to allocate memory for keys/records
@@ -588,6 +600,7 @@ o PRO: prefix compression for variable-length keys
         the keys "to the right" should be rearranged as well
     ===> it really makes sense to have delta updates and bulk inserts first!!
     - try to store a full key every Nth bytes, to avoid extensive re-compressing
+    - full keys can be further compressed with lzf or lzo
 
 o "hola" - olap functions that operate directly on the btree data
     -> see wiki
@@ -603,7 +616,7 @@ o "hola" - olap functions that operate directly on the btree data
 - concurrency -> PRO
 
 o the bucket for concurrency TODOs
-    o reduce the linked lists - they're hard to be updated with concurrent
+    o reduce the linked lists - they're hard to be updated with atomic
         operations
         o page
         o transaction and dependent objects
@@ -621,7 +634,7 @@ o the bucket for concurrency TODOs
     o separate SMOs from the actual operation (#2)
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-        o move SMO operations to "the janitor" (btree_smo.h)
+        o move SMO operations to "the janitor" (btree_janitor.h)
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -680,8 +693,6 @@ o btree_impl_default::set_record: if the duplicate is LAST of the last key
 o asynchronous prefetching of pages
     -> see posix_fadvice, libprefetch
 
-o flush transactions in background (when the btree is concurrent)
-
 o Improve leaf pages caching
     Store start/end key of each leaf page in a separate lookup table in order
     to avoid btree traversals. This could be part of the hinter.
@@ -696,53 +707,9 @@ o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
     o needs a function to enumerate them
 
-o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
-    then flush all of them together. This way we can "merge" multiple changes
-    for the same page.
-    Also review the whole flush process - when not to log etc.
-    - only 1 page affected: no need to log it because it is idempotent
-    - freelist pages are always idempotent
-    - more than 1 index page? not idempotent (most likely)
-    - more than 1 blob page? not idempotent (maybe)
-    o define a few benchmarks
-    o be careful: if N operations are modifying the same changelog, and
-        then #N+1 aborts then the aborting operation must NOT clear the
-        changelog!
-
 o A new transactional mode: read-only transactions can run "in the past" - only
     on committed transactions. therefore they avoid conflicts and will always
     succeed.
-
-o changeset: instead of simply adding pages to the changeset, the caller
-    could already specify whether this page needs logging or not;
-    i.e. after freelist rewrite, the blob pages do not need logging if a
-    blob is deleted  
-
-o is there a way to group all changeset flushes of a Transaction into one
-    changeset, and batch-commit multiple commits? that way we would avoid the
-    frequent syncs and performance would be improved
-    o would have to remove all of assert(changeset.is_empty())
-    o but we can use that assert prior to txn_begin
-
-o flush in background (asynchronously)
-    o need new flag file HAM_DISABLE_ASYNCHRONOUS_FLUSH
-    o if in-memory database: disable async flush
-    o if transactions are disabled: disable async flush
-    o if enabled: create background thread, wait for signal
-    o ham_env_flush: if txn are enabled then try to flush them to disk
-    o how to deal with an error in the background thread???
-        o store in Environment, then return in every exported function
-    o default: async flush is OFF!
-
-    o extend monster tests
-        o with async flush
-        o without async flush
-        o extend/run performance test
-        o run monster tests
-
-    o documentation
-        o tutorial
-        o faq
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
@@ -772,18 +739,9 @@ o need a function to get the txn of a conflict (same as in v2)
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
-. new flag for transactions: HAM_TXN_WILL_COMMIT
+. new flag for Transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the file, not
     to the log. the log will only contain the rid.
-    -> or: make this the default; call the new flag HAM_TXN_MAYBE_WILL_ABORT
     o in case of an abort: move the record to the freelist
     -> this affects all temporary ham_insert-transactions
     (not sure if this should get high priority)
-
-. if memory consumption in the txn-tree is too high: flush records to disk
-    (not sure if this should get high priority)
-
-o ham_get_count: could be atomically updated with every journal entry
-
-=======
->>>>>>> Updated TODO

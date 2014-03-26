@@ -47,8 +47,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   /** maximum number of databases for this environment */
   ham_u16_t _max_databases;
 
+  /** PRO: for storing journal compression algorithm and level */
+  ham_u8_t _journal_compression;
+
   /** reserved */
-  ham_u16_t _reserved1;
+  ham_u8_t _reserved1;
 
   /** blob id of the PageManager's state */
   ham_u64_t _pm_state;
@@ -150,6 +153,17 @@ class EnvironmentHeader
     // Sets the page size in the header page
     void set_page_manager_blobid(ham_u64_t blobid) {
       get_header()->_pm_state = ham_h2db64(blobid);
+    }
+
+    // Returns the Journal compression configuration
+    int get_journal_compression(int *level) {
+      *level = get_header()->_journal_compression & 0x0f;
+      return (get_header()->_journal_compression >> 4);
+    }
+
+    // Sets the Journal compression configuration
+    void set_journal_compression(int algorithm, int level) {
+      get_header()->_journal_compression = (algorithm << 4) | level;
     }
 
     // Returns the header page with persistent configuration settings

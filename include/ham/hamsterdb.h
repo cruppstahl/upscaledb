@@ -696,6 +696,12 @@ ham_env_open(ham_env_t **env, const char *filename,
  *        ham_u64_t variable)
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *        and the journal files. Ignored for remote Environments.
+ *    <li>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Returns the
+ *        selected algorithm for journal compression, or 0 if compression
+ *        is disabled
+ *    <li>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Returns the
+ *        compression level for journal compression, or 0 if compression
+ *        is disabled
  *    </ul>
  *
  * @param env A valid Environment handle
@@ -1587,6 +1593,12 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page. This number is precise if the key size is fixed
  *        and duplicates are disabled; otherwise it's an estimate.
+ *    <li>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Returns the
+ *        selected algorithm for record compression, or 0 if compression
+ *        is disabled
+ *    <li>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Returns the
+ *        compression level for record compression, or 0 if compression
+ *        is disabled
  *    </ul>
  *
  * @param db A valid Database handle

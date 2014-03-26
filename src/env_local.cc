@@ -524,6 +524,10 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
         else
           p->value = 0;
         break;
+      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
+      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
+        p->value = 0;
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
         return (HAM_INV_PARAMETER);

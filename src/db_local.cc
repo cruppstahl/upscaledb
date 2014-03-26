@@ -643,6 +643,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         p->value = get_btree_index()->get_max_keys_per_page();
         break;
+      case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
+      case HAM_PARAM_RECORD_COMPRESSION_LEVEL:
+        p->value = 0;
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
         return (HAM_INV_PARAMETER);
