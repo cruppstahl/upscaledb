@@ -413,6 +413,10 @@ x PRO: is able to open APL files, but not vice versa
     x make ham_info a 100% user of the public API; do not access
         internal classes!
 
+x do we really need the compression LEVEL parameters? if not then we can
+    store the key compression flags very conveniently. otherwise we
+    need extra storage! - no, remove it
+
 o PRO: heavyweight compression for keys
     -> support compression with lzf and the other libraries
     -> keys are stored compressed IF the compressed keys are smaller than the
@@ -421,15 +425,16 @@ o PRO: heavyweight compression for keys
             be extended! the uncompressed size is part of the payload (16bit
             at the front)
     o compress before inserting
+        x need 2 key flags; for 1byte length indicator and for 2bytes
+        o store the uncompressed size up-front (1 byte if uncompressed size
+            < 256, otherwise 2 bytes)
+        o try to move the logic to a Compressor template class
     o uncompress in get_key(), get_key_direct(), compare() etc
     o test in combination with extended keys (very low threshold)
     o metrics: keep track of compression ratio, number of compressed and
         uncompressed keys
+        o same for records and journals?
     o cache the uncompressed keys?
-
-o do we really need the compression LEVEL parameters? if not then we can
-    store the key compression flags very conveniently. otherwise we
-    need extra storage!
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
