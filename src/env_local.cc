@@ -524,8 +524,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
         else
           p->value = 0;
         break;
-      case HAM_PARAM_ENABLE_JOURNAL_COMPRESSION:
-      case HAM_PARAM_JOURNAL_COMPRESSION_LEVEL:
+      case HAM_PARAM_JOURNAL_COMPRESSION:
         p->value = 0;
         break;
       default:
@@ -584,8 +583,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-        case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
-        case HAM_PARAM_RECORD_COMPRESSION_LEVEL:
+        case HAM_PARAM_RECORD_COMPRESSION:
           ham_trace(("Record compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
         case HAM_PARAM_KEY_TYPE:
@@ -720,8 +718,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-        case HAM_PARAM_ENABLE_RECORD_COMPRESSION:
-        case HAM_PARAM_RECORD_COMPRESSION_LEVEL:
+        case HAM_PARAM_RECORD_COMPRESSION:
           ham_trace(("Record compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
         default:

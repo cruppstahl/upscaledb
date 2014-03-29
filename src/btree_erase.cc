@@ -185,6 +185,11 @@ class BtreeEraseAction
         Cursor *cursors = db->get_cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
+        ham_u32_t duplicate_index =
+                m_cursor
+                    ? m_cursor->get_duplicate_index()
+                    : m_duplicate_index;
+
         while (btcur) {
           BtreeCursor *next = 0;
           if (cursors->get_next()) {
@@ -193,9 +198,9 @@ class BtreeEraseAction
           }
 
           if (btcur != m_cursor && btcur->points_to(page, slot)) {
-            if (btcur->get_duplicate_index() == m_duplicate_index)
+            if (btcur->get_duplicate_index() == duplicate_index)
                 btcur->set_to_nil();
-            else if (btcur->get_duplicate_index() > m_duplicate_index)
+            else if (btcur->get_duplicate_index() > duplicate_index)
               btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
           }
           btcur = next;

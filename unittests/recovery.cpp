@@ -44,7 +44,7 @@ get_parameters(bool use_compression, int page_size = 0) {
   static ham_parameter_t params[3] = {{0, 0}};
   int p = 0;
   if (use_compression) {
-    params[p].name = HAM_PARAM_ENABLE_JOURNAL_COMPRESSION;
+    params[p].name = HAM_PARAM_JOURNAL_COMPRESSION;
     params[p].value = default_compressor();
     p++;
   }

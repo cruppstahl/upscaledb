@@ -33,7 +33,9 @@ class BtreeStatistics {
       kOperationFind      = 0,
       kOperationInsert    = 1,
       kOperationErase     = 2,
-      kOperationMax       = 3
+      kOperationMax       = 3,
+
+      kMaxCapacities      = 5
     };
 
     struct FindHints {
@@ -103,6 +105,13 @@ class BtreeStatistics {
     // Resets the statistics for a single page
     void reset_page(Page *page);
 
+    // Sets the capacity of a page
+    void set_page_capacity(ham_u32_t capacity);
+
+    // Returns the default capacity for a page (default layout), or 0
+    // if there was not enough data
+    ham_u32_t get_default_page_capacity() const;
+
   private:
     // last leaf page for find/insert/erase
     ham_u64_t m_last_leaf_pages[kOperationMax];
@@ -115,6 +124,9 @@ class BtreeStatistics {
 
     // count the number of prepends
     ham_u32_t m_prepend_count;
+
+    // the page capacities of the last couple of pages
+    ham_u32_t m_page_capacities[kMaxCapacities];
 };
 
 } // namespace hamsterdb

@@ -343,6 +343,24 @@ o web-page requires updates
 x fix regressions:
     x ./ham_bench --use-berkeleydb=true --use-cursors --duplicate=last --use-transactions=5 --reopen 41.tst
 
+x header file: document HAM_HINT_APPEND for fast sequential insert
+
+x segfault when running leveldb benchmark
+
+x sequential inserts with PAX are extremely fast; with default they're not.
+    why? too many calls to rearrange()?
+    x investigate
+    x use heuristics/statistics to decide whether rearranging makes
+        sense (or not); i.e. try to max out a few pages, and then look
+        at their average use. if the following page exceeds the average then
+        split immediately if HAM_HINT_APPEND is set
+    x also, requires_split() performs many calculations. can we cache some
+        values, and avoid some of the calculations? 
+    x wtf, why is --key_size=16 so much faster than --key_size=8?
+        -> because there was a bug in the test AND because a binary u64
+            has a different sort order than the sprintf's! and therefore
+            inserts became random instead of sequential
+
 ---------------------------- 2.1.7 ----------------------
 
 x PRO: enable zlib/snappy/others compression for the records
@@ -409,11 +427,22 @@ o PRO: heavyweight compression for keys
         uncompressed keys
     o cache the uncompressed keys?
 
+o do we really need the compression LEVEL parameters? if not then we can
+    store the key compression flags very conveniently. otherwise we
+    need extra storage!
+
 o use linear search for PAX (see topic/linear), but improve the
     performance!
 
 o PRO: use SIMD instructions for the linear search
     http://openproceedings.org/EDBT/2014/paper_107.pdf
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+
+o insert: if HAM_HINT_APPEND is set then page splits should only create a
+    new page, and not shifting any keys to the new sibling. only the new
+    key is inserted in the new sibling.
 
 o PRO: 30 day evaluation library
     o ham_time_t ham_is_evaluation(); -> returns end time, or 0

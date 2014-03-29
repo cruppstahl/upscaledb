@@ -32,6 +32,7 @@ BtreeStatistics::BtreeStatistics()
 {
   memset(&m_last_leaf_pages[0], 0, sizeof(m_last_leaf_pages));
   memset(&m_last_leaf_count[0], 0, sizeof(m_last_leaf_count));
+  memset(&m_page_capacities, 0, sizeof(m_page_capacities));
 }
 
 void
@@ -153,6 +154,38 @@ BtreeStatistics::get_insert_hints(ham_u32_t flags)
     hints.leaf_page_addr = m_last_leaf_pages[kOperationInsert];
 
   return (hints);
+}
+
+void
+BtreeStatistics::set_page_capacity(ham_u32_t capacity)
+{
+  // store the capacity in the first free slot; if all slots are full then
+  // remove the oldest one
+  for (int i = 0; i < kMaxCapacities; i++) {
+    if (m_page_capacities[i] == 0) {
+      m_page_capacities[i] = capacity;
+      return;
+    }
+  }
+
+  for (int i = 0; i < kMaxCapacities - 1; i++)
+    m_page_capacities[i] = m_page_capacities[i + 1];
+  m_page_capacities[kMaxCapacities - 1] = capacity;
+}
+
+ham_u32_t
+BtreeStatistics::get_default_page_capacity() const
+{
+  ham_u32_t total = 0;
+  ham_u32_t count = 0;
+  for (int i = 0; i < kMaxCapacities; i++) {
+    if (m_page_capacities[i] != 0) {
+      total += m_page_capacities[i];
+      count++;
+    }
+  }
+
+  return (count ? total / count : 0);
 }
 
 } // namespace hamsterdb

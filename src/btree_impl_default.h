@@ -1084,7 +1084,7 @@ class DefaultNodeImpl
     DefaultNodeImpl(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(m_page)),
         m_records(this, m_page->get_db()->get_record_size()),
-        m_extkey_cache(0), m_duptable_cache(0) {
+        m_extkey_cache(0), m_duptable_cache(0), m_recalc_capacity(false) {
       initialize();
     }
 
@@ -1511,11 +1511,10 @@ class DefaultNodeImpl
         if (it->get_inline_record_count() >= threshold)
           force_duptable = true;
         else {
-          ham_key_t tmpkey = {0};
-          tmpkey.size = get_total_key_data_size(slot)
+          ham_u32_t tmpsize = get_total_key_data_size(slot)
                         + get_total_inline_record_size();
 
-          if (!has_enough_space(&tmpkey, false))
+          if (!has_enough_space(tmpsize, false))
             force_duptable = true;
         }
 
@@ -2007,20 +2006,21 @@ class DefaultNodeImpl
     // Unlike implied by the name, this function will try to re-arrange the
     // node in order for the key to fit in.
     bool requires_split() {
-      ham_key_t key = {0};
-      key.size = m_page->get_db()->get_btree_index()->get_key_size();
-      if (key.size == HAM_KEY_SIZE_UNLIMITED)
-        key.size = get_extended_threshold();
-      if (has_enough_space(&key, true))
+      ham_u32_t size = m_page->get_db()->get_btree_index()->get_key_size();
+      if (size == HAM_KEY_SIZE_UNLIMITED)
+        size = get_extended_threshold();
+      if (has_enough_space(size, true))
         return (false);
 
       // get rid of freelist entries and gaps
-      rearrange(m_node->get_count());
-      if (has_enough_space(&key, true))
+      if (rearrange(m_node->get_count()) && has_enough_space(size, true))
         return (false);
 
       // shift data area to left or right to make more space
-      return (resize(m_node->get_count() + 1, &key));
+      if (m_recalc_capacity)
+        return (resize(m_node->get_count() + 1, size));
+
+      return (true);
     }
 
     // Returns true if the node requires a merge or a shift
@@ -2161,19 +2161,29 @@ class DefaultNodeImpl
       m_layout.initialize(m_node->get_data() + kPayloadOffset, key_size);
 
       if (m_node->get_count() == 0 && !(db->get_rt_flags() & HAM_READ_ONLY)) {
-        ham_u32_t page_size = get_usable_page_size();
+        // ask the btree for the default capacity (it keeps track of the
+        // average capacity of older pages).
+        ham_u32_t capacity = db->get_btree_index()->get_statistics()->get_default_page_capacity();
+        // no data so far? then come up with a good default
+        if (capacity == 0) {
+          ham_u32_t page_size = get_usable_page_size();
 
-        ham_u32_t rec_size = db->get_btree_index()->get_record_size();
-        if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
-          rec_size = 9;
+          ham_u32_t rec_size = db->get_btree_index()->get_record_size();
+          if (rec_size == HAM_RECORD_SIZE_UNLIMITED || rec_size > 32)
+            rec_size = 9;
 
-        bool has_duplicates = db->get_local_env()->get_flags()
+          bool has_duplicates = db->get_local_env()->get_flags()
                                 & HAM_ENABLE_DUPLICATES;
-        ham_u32_t capacity = page_size
+          capacity = page_size
                             / (m_layout.get_key_index_span()
                               + get_actual_key_size(key_size, has_duplicates)
                               + rec_size);
-        capacity = (capacity & 1 ? capacity - 1 : capacity);
+          // TODO why does capacity have to be an even number?
+          capacity = (capacity & 1 ? capacity - 1 : capacity);
+
+          // the default might not be precise and might be recalculated later
+          m_recalc_capacity = true;
+        }
 
         set_capacity(capacity);
         set_freelist_count(0);
@@ -2656,11 +2666,11 @@ class DefaultNodeImpl
 
     // Re-arranges the node: moves all keys sequentially to the beginning
     // of the key space, removes the whole freelist
-    void rearrange(ham_u32_t count, bool force = false) {
+    bool rearrange(ham_u32_t count, bool force = false) {
       // only continue if it's very likely that we can make free space;
       // otherwise this call would be too expensive
       if (!force && get_freelist_count() == 0 && count > 10)
-        return;
+        return false;
 
       // get rid of the freelist - this node is now completely rewritten,
       // and the freelist would just complicate things
@@ -2700,14 +2710,15 @@ class DefaultNodeImpl
 #ifdef HAM_DEBUG
       check_index_integrity(count);
 #endif
+      return (true);
     }
 
     // Tries to resize the node's capacity to fit |new_count| keys and at
-    // least |key->size| additional bytes
+    // least |size| additional bytes
     //
     // Returns true if the resize operation was not successful and a split
     // is required
-    bool resize(ham_u32_t new_count, const ham_key_t *key) {
+    bool resize(ham_u32_t new_count, ham_u32_t size) {
       ham_u32_t page_size = get_usable_page_size();
 
       // increase capacity of the indices by shifting keys "to the right"
@@ -2715,9 +2726,9 @@ class DefaultNodeImpl
         // the absolute offset of the new key (including length and record)
         ham_u32_t capacity = get_capacity();
         ham_u32_t offset = get_next_offset();
-        offset += (key->size > get_extended_threshold()
+        offset += (size > get_extended_threshold()
                         ? sizeof(ham_u64_t)
-                        : key->size)
+                        : size)
                 + get_total_inline_record_size();
         offset += m_layout.get_key_index_span() * (capacity + 1);
 
@@ -2735,7 +2746,7 @@ class DefaultNodeImpl
         set_capacity(capacity);
 
         // check if the new space is sufficient
-        return (!has_enough_space(key, true));
+        return (!has_enough_space(size, true));
       }
 
       // increase key data capacity by reducing capacity and shifting
@@ -2743,7 +2754,7 @@ class DefaultNodeImpl
       else {
         // number of slots that we would have to shift left to get enough
         // room for the new key
-        ham_u32_t gap = (key->size + get_total_inline_record_size())
+        ham_u32_t gap = (size + get_total_inline_record_size())
                             / m_layout.get_key_index_span();
         gap++;
 
@@ -2769,12 +2780,13 @@ class DefaultNodeImpl
         // store the new capacity
         set_capacity(capacity);
 
-        return (!has_enough_space(key, true));
+        return (!has_enough_space(size, true));
       }
     }
 
-    // Returns true if |key| can be inserted without splitting the page
-    bool has_enough_space(const ham_key_t *key, bool use_extended_keys) {
+    // Returns true if a key of |size| bytes can be inserted without
+    // splitting the page
+    bool has_enough_space(ham_u32_t size, bool use_extended_keys) {
       ham_u32_t count = m_node->get_count();
 
       if (count == 0) {
@@ -2790,11 +2802,11 @@ class DefaultNodeImpl
 
       ham_u32_t offset = get_next_offset();
       if (use_extended_keys)
-        offset += key->size > get_extended_threshold()
+        offset += size > get_extended_threshold()
                     ? sizeof(ham_u64_t)
-                    : key->size;
+                    : size;
       else
-        offset += key->size;
+        offset += size;
 
       // need at least 8 byte for the record, in case we need to store a
       // reference to a duplicate table
@@ -2809,7 +2821,7 @@ class DefaultNodeImpl
       // if there's a freelist entry which can store the new key then
       // a split won't be required
       return (-1 != freelist_find(count,
-                        key->size + get_total_inline_record_size()));
+                        size + get_total_inline_record_size()));
     }
 
     // Returns the index capacity
@@ -2930,6 +2942,9 @@ class DefaultNodeImpl
 
     // Cache for external duplicate tables
     DupTableCache *m_duptable_cache;
+
+    // Allow the capacity to be recalculated later on
+    bool m_recalc_capacity;
 };
 
 } // namespace hamsterdb

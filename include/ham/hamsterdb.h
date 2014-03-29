@@ -696,11 +696,8 @@ ham_env_open(ham_env_t **env, const char *filename,
  *        ham_u64_t variable)
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *        and the journal files. Ignored for remote Environments.
- *    <li>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Returns the
+ *    <li>@ref HAM_PARAM_JOURNAL_COMPRESSION</li> Returns the
  *        selected algorithm for journal compression, or 0 if compression
- *        is disabled
- *    <li>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Returns the
- *        compression level for journal compression, or 0 if compression
  *        is disabled
  *    </ul>
  *
@@ -1406,6 +1403,9 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * allocate memory for key->data, which will then point to an 8-byte
  * unsigned integer in host-endian.
  *
+ * For very fast sequential inserts please use @ref ham_cursor_insert in
+ * combination with the flag @ref HAM_HINT_APPEND.
+ *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param key The key of the new item
@@ -1593,11 +1593,8 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page. This number is precise if the key size is fixed
  *        and duplicates are disabled; otherwise it's an estimate.
- *    <li>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Returns the
+ *    <li>@ref HAM_PARAM_RECORD_COMPRESSION</li> Returns the
  *        selected algorithm for record compression, or 0 if compression
- *        is disabled
- *    <li>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Returns the
- *        compression level for record compression, or 0 if compression
  *        is disabled
  *    </ul>
  *
@@ -1687,30 +1684,26 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * hamsterdb pro: Parameter name for @ref ham_env_create, @ref ham_env_open;
- * enables compression for the journal. This parameter is not persisted.
+ * enables compression for the journal.
  */
-#define HAM_PARAM_ENABLE_JOURNAL_COMPRESSION 0x1000
-
-/**
- * hamsterdb pro: Parameter name for @ref ham_env_create,
- * @ref ham_env_open; sets the journal compression level for zlib. Values range
- * from [0 .. 9], default is 7. This parameter is not persisted.
- */
-#define HAM_PARAM_JOURNAL_COMPRESSION_LEVEL  0x1001
+#define HAM_PARAM_JOURNAL_COMPRESSION   0x1000
 
 /**
  * hamsterdb pro: Parameter name for @ref ham_env_create_db,
  * @ref ham_env_open_db; enables compression for the records of
- * a Database. This parameter is not persisted.
+ * a Database.
  */
-#define HAM_PARAM_ENABLE_RECORD_COMPRESSION  0x1002
+#define HAM_PARAM_RECORD_COMPRESSION    0x1001
 
 /**
  * hamsterdb pro: Parameter name for @ref ham_env_create_db,
- * @ref ham_env_open_db; sets the record compression level for zlib. Values
- * range from [0 .. 9], default is 7. This parameter is not persisted.
+ * @ref ham_env_open_db; enables compression for the records of
+ * a Database.
  */
-#define HAM_PARAM_RECORD_COMPRESSION_LEVEL   0x1003
+#define HAM_PARAM_KEY_COMPRESSION       0x1002
+
+/** hamsterdb pro: helper macro for disabling compression */
+#define HAM_COMPRESSOR_NONE         0
 
 /** hamsterdb pro: selects zlib compression */
 #define HAM_COMPRESSOR_ZLIB         1
@@ -2290,10 +2283,10 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
  * Specify the flag @ref HAM_HINT_APPEND if you insert sequential data
- * and the current @a key is higher than any other key in this Database.
+ * and the current @a key is greater than any other key in this Database.
  * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
- * verify that this key is the highest; if not, it will perform a normal
- * insert. This is the default for Record Number Databases.
+ * verify that this key is the greatest; if not, it will perform a normal
+ * insert. This flag is the default for Record Number Databases.
  *
  * Specify the flag @ref HAM_HINT_PREPEND if you insert sequential data
  * and the current @a key is lower than any other key in this Database.

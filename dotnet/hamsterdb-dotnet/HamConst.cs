@@ -167,16 +167,13 @@ namespace Hamster
 
     /// <summary>hamsterdb pro: Value for Environment.Create,
     /// Environment.Open</summary>
-    public const int HAM_PARAM_ENABLE_JOURNAL_COMPRESSION = 0x1000;
-    /// <summary>hamsterdb pro: Value for Environment.Create,
-    /// Environment.Open</summary>
-    public const int HAM_PARAM_JOURNAL_COMPRESSION_LEVEL  = 0x1001;
+    public const int HAM_PARAM_JOURNAL_COMPRESSION  = 0x1000;
     /// <summary>hamsterdb pro: Value for Database.Create,
     /// Database.Open</summary>
-    public const int HAM_PARAM_ENABLE_RECORD_COMPRESSION  = 0x1002;
+    public const int HAM_PARAM_RECORD_COMPRESSION   = 0x1001;
     /// <summary>hamsterdb pro: Value for Database.Create,
     /// Database.Open</summary>
-    public const int HAM_PARAM_RECORD_COMPRESSION_LEVEL   = 0x1003;
+    public const int HAM_PARAM_KEY_COMPRESSION      = 0x1002;
     /// <summary>hamsterdb pro: "null" compression</summary>
     public const int HAM_COMPRESSION_NONE                 =      0;
     /// <summary>hamsterdb pro: zlib compression</summary>

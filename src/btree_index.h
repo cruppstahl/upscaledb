@@ -324,6 +324,11 @@ class BtreeIndex
       metrics->extended_duptables = g_extended_duptables;
     }
 
+    // Returns the btree usage statistics
+    BtreeStatistics *get_statistics() {
+      return (&m_statistics);
+    }
+
     // Returns the class name (for testing)
     std::string test_get_classname() const {
       return (m_leaf_traits->test_get_classname());
@@ -361,11 +366,6 @@ class BtreeIndex
 
     // Flushes the PBtreeHeader to the Environment's header page
     void flush_descriptor();
-
-    // Returns the btree usage statistics
-    BtreeStatistics *get_statistics() {
-      return (&m_statistics);
-    }
 
     // Searches |parent| page for key |key| and returns the child
     // page in |child|.
