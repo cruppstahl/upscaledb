@@ -302,12 +302,33 @@ x Start with the PRO version
 x ./ham_bench --seed=1380279291 --stop-ops=1000000 --use-transactions=tmp
     -> segfaults
 
+x fix regressions:
+    x ./ham_bench --use-berkeleydb=true --use-cursors --duplicate=last --use-transactions=5 --reopen 41.tst
+
+x header file: document HAM_HINT_APPEND for fast sequential insert
+
+x segfault when running leveldb benchmark
+
+x sequential inserts with PAX are extremely fast; with default they're not.
+    why? too many calls to rearrange()?
+    x investigate
+    x use heuristics/statistics to decide whether rearranging makes
+        sense (or not); i.e. try to max out a few pages, and then look
+        at their average use. if the following page exceeds the average then
+        split immediately if HAM_HINT_APPEND is set
+    x also, requires_split() performs many calculations. can we cache some
+        values, and avoid some of the calculations? 
+    x wtf, why is --key_size=16 so much faster than --key_size=8?
+        -> because there was a bug in the test AND because a binary u64
+            has a different sort order than the sprintf's! and therefore
+            inserts became random instead of sequential
+
 o release everything under apache license
     x everything incl dotnet, java
     x also update the readme!
     x erlang
-    o wiki/tutorial
     o webpage (incl. features/about etc)
+    o wiki/tutorial
     o update license on wikipedia, uk.wikipedia.org, nosql-databases.org, ohloh
             etc
 
@@ -339,27 +360,6 @@ o web-page requires updates
     o merge all repositories (host on github, keep remote branch)
         hamsterdb-www is the main repository, master pushes to staging
         'stable' pushes to hamsterdb.com, www1, www2
-
-x fix regressions:
-    x ./ham_bench --use-berkeleydb=true --use-cursors --duplicate=last --use-transactions=5 --reopen 41.tst
-
-x header file: document HAM_HINT_APPEND for fast sequential insert
-
-x segfault when running leveldb benchmark
-
-x sequential inserts with PAX are extremely fast; with default they're not.
-    why? too many calls to rearrange()?
-    x investigate
-    x use heuristics/statistics to decide whether rearranging makes
-        sense (or not); i.e. try to max out a few pages, and then look
-        at their average use. if the following page exceeds the average then
-        split immediately if HAM_HINT_APPEND is set
-    x also, requires_split() performs many calculations. can we cache some
-        values, and avoid some of the calculations? 
-    x wtf, why is --key_size=16 so much faster than --key_size=8?
-        -> because there was a bug in the test AND because a binary u64
-            has a different sort order than the sprintf's! and therefore
-            inserts became random instead of sequential
 
 ---------------------------- 2.1.7 ----------------------
 

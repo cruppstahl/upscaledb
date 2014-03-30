@@ -38,7 +38,7 @@ Bugfixes
 * Fixed a journalling bug; partial records were not logged correctly
 
 Other Changes
-* License is now MIT
+* License is now APL 2.0
 * Committed Transactions are no longer flushed immediately, but can be
 	buffered and flushed together with other committed Transactions
 * Removed a parameter from ham_db_check_integrity
@@ -46,7 +46,6 @@ Other Changes
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
-
 - See https://github.com/cruppstahl/hamsterdb/wiki/Roadmap
 
 4. Features
@@ -69,7 +68,7 @@ To see a list of all changes, look in the file ChangeLog.
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
-- Open source and released under MIT license
+- Open source and released under APL 2.0 license
 - Wrappers for C++, Java, .NET, Erlang, Ada and others
 
 5. Known Issues/Bugs
@@ -164,7 +163,7 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb Embedded Storage is released under the MIT license, which allows
+hamsterdb Embedded Storage is released under the APL 2.0 license, which allows
 unrestricted use for commercial and non-commercial applications. See the
 file COPYING for more information.
 
