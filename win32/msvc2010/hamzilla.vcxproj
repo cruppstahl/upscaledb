@@ -168,11 +168,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\tools\common.c" />
     <ClCompile Include="..\..\tools\config.c" />
     <ClCompile Include="..\..\tools\getopts.c" />
     <ClCompile Include="..\..\tools\hamzilla.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\tools\common.h" />
     <ClInclude Include="..\..\tools\config.h" />
   </ItemGroup>
   <ItemGroup>

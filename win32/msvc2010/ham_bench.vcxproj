@@ -178,6 +178,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\tools\common.c" />
     <ClCompile Include="..\..\tools\getopts.c" />
     <ClCompile Include="..\..\tools\ham_bench\berkeleydb.cc" />
     <ClCompile Include="..\..\tools\ham_bench\database.cc" />
@@ -187,6 +188,7 @@
     <ClCompile Include="..\..\tools\ham_bench\main.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\tools\common.h" />
     <ClInclude Include="..\..\tools\getopts.h" />
     <ClInclude Include="..\..\tools\ham_bench\berkeleydb.h" />
     <ClInclude Include="..\..\tools\ham_bench\configuration.h" />

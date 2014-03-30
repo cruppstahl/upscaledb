@@ -154,7 +154,7 @@ class DiskBlobManager : public BlobManager
 
   private:
     friend class DuplicateManager;
-    friend class BlobManagerFixture;
+    friend struct BlobManagerFixture;
 
     // write a series of data chunks to storage at file offset 'addr'.
     //

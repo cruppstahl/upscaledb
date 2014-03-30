@@ -345,6 +345,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\tools\common.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\common.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\tools\ham_bench\configuration.h"
 			>
 		</File>

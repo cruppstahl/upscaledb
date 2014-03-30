@@ -335,6 +335,14 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\..\tools\common.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\tools\common.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\tools\config.c"
 			>
 		</File>
