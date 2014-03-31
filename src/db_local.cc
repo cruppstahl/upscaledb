@@ -646,6 +646,9 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
       case HAM_PARAM_RECORD_COMPRESSION:
         p->value = 0;
         break;
+      case HAM_PARAM_KEY_COMPRESSION:
+        p->value = 0;
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
         return (HAM_INV_PARAMETER);

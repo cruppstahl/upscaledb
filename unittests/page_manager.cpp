@@ -25,6 +25,7 @@
 #include "../src/env.h"
 #include "../src/txn.h"
 #include "../src/config.h"
+#include "../src/pickle.h"
 #include "../src/page_manager.h"
 
 namespace hamsterdb {
@@ -342,12 +343,10 @@ struct PageManagerFixture {
 
   void encodeDecodeTest() {
     ham_u8_t buffer[32] = {0};
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
 
     for (int i = 1; i < 10000; i++) {
-      int num_bytes = pm->encode(&buffer[0], i * 13);
-      REQUIRE(pm->decode(num_bytes, &buffer[0]) == (ham_u64_t)i * 13);
+      int num_bytes = Pickle::encode_u64(&buffer[0], i * 13);
+      REQUIRE(Pickle::decode_u64(num_bytes, &buffer[0]) == (ham_u64_t)i * 13);
     }
   }
 

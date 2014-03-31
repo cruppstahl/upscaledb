@@ -131,6 +131,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
     {HAM_PARAM_FLAGS, 0},
     {HAM_PARAM_RECORD_COMPRESSION, 0},
+    {HAM_PARAM_KEY_COMPRESSION, 0},
     {0, 0}
   };
 
@@ -178,7 +179,10 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    flags:                0x%04x\n", (unsigned)params[4].value);
     if (params[5].value)
       printf("    record compression:   %s\n",
-                      get_compressor_name((int)params[4].value));
+                      get_compressor_name((int)params[5].value));
+    if (params[6].value)
+      printf("    key compression:      %s\n",
+                      get_compressor_name((int)params[6].value));
     if (params[2].value == HAM_RECORD_SIZE_UNLIMITED)
       printf("    record size:          unlimited\n");
     else

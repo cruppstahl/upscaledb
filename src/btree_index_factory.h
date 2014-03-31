@@ -82,9 +82,9 @@ struct BtreeIndexFactory
     typedef DefaultLayoutImpl<ham_u32_t, true> DefaultDuplicateLayout32;
 
     typedef DefaultInlineRecordImpl<FixedDuplicateLayout16, true>
-                    DefaultInlineRecord16; 
+                    DefaultInlineRecord16;
     typedef DefaultInlineRecordImpl<FixedDuplicateLayout32, true>
-                    DefaultInlineRecord32; 
+                    DefaultInlineRecord32;
     // internal nodes do not support duplicates
     typedef InternalInlineRecordImpl<FixedLayout16> InternalInlineRecord16; 
     typedef InternalInlineRecordImpl<FixedLayout32> InternalInlineRecord32; 

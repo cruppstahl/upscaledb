@@ -85,9 +85,8 @@
 #define ARG_FLUSH_TXN_IMMEDIATELY               60
 #define ARG_DISABLE_RECOVERY                    61
 #define ARG_JOURNAL_COMPRESSION                 62
-#define ARG_JOURNAL_COMPRESSION_LEVEL           63
-#define ARG_RECORD_COMPRESSION                  64
-#define ARG_RECORD_COMPRESSION_LEVEL            65
+#define ARG_RECORD_COMPRESSION                  63
+#define ARG_KEY_COMPRESSION                     64
 
 /*
  * command line parameters
@@ -384,22 +383,16 @@ static option_t opts[] = {
     "PRO: Enables journal compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_JOURNAL_COMPRESSION_LEVEL,
-    0,
-    "journal-compression-level",
-    "PRO: Sets the journal compression (0 .. 9, default: 7); only for zlib",
-    GETOPTS_NEED_ARGUMENT },
-  {
     ARG_RECORD_COMPRESSION,
     0,
     "record-compression",
     "PRO: Enables record compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_RECORD_COMPRESSION_LEVEL,
+    ARG_KEY_COMPRESSION,
     0,
-    "record-compression-level",
-    "PRO: Sets the record compression (0 .. 9, default: 7); only for zlib",
+    "key-compression",
+    "PRO: Enables key compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
     GETOPTS_NEED_ARGUMENT },
   {0, 0}
 };
@@ -709,14 +702,11 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_JOURNAL_COMPRESSION) {
       c->journal_compression = strtoul(param, 0, 0);
     }
-    else if (opt == ARG_JOURNAL_COMPRESSION_LEVEL) {
-      c->journal_compression_level = strtoul(param, 0, 0);
-    }
     else if (opt == ARG_RECORD_COMPRESSION) {
       c->record_compression = strtoul(param, 0, 0);
     }
-    else if (opt == ARG_RECORD_COMPRESSION_LEVEL) {
-      c->record_compression_level = strtoul(param, 0, 0);
+    else if (opt == ARG_KEY_COMPRESSION) {
+      c->key_compression = strtoul(param, 0, 0);
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;

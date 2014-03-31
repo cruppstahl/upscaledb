@@ -113,17 +113,34 @@ o PRO: heavyweight compression for keys
     -> key->size in the node is the compressed size, and it might further
             be extended! the uncompressed size is part of the payload (16bit
             at the front)
-    o compress before inserting
-        x need 2 key flags; for 1byte length indicator and for 2bytes
-        o store the uncompressed size up-front (1 byte if uncompressed size
-            < 256, otherwise 2 bytes)
-        o try to move the logic to a Compressor template class
-    o uncompress in get_key(), get_key_direct(), compare() etc
-    o test in combination with extended keys (very low threshold)
-    o metrics: keep track of compression ratio, number of compressed and
-        uncompressed keys
+    x need new parameters; store persistently
+    x compress before inserting
+        x only compress if the compressed size < uncompressed size
+        x store the uncompressed size up-front
+    x uncompress in get_key(), get_key_direct(), compare() etc
+    x add unittests in combination with record encryption (w/ different
+        algorithms)
+    x what if a PAX layout is selected? -> return an error
+        x add unittest
+    x extend ham_info
+    x add new option to ham_bench
+    x add to dotnet wrapper
+    x add to java wrapper
+    x add to erlang wrapper
+    o metrics: track number of compressed and uncompressed keys
         o same for records and journals?
-    o cache the uncompressed keys?
+        o print in ham_bench
+    o add header file documentation
+    o add to monster and perftests
+        o also test in combination with extended keys (very low threshold)
+
+    o avoid virtual inheritance in Compressor classes; use template
+        implementations instead
+
+o remote code: reuse the procotol buffer objects! Constructing/destructing
+    them is expensive
+    o perform more benchmarks; currently, ham_bench remote is 10 times slower
+        than locally!
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
@@ -133,6 +150,7 @@ o PRO: use SIMD instructions for the linear search
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
+    o run profiling on a read-only workload
 
 o insert: if HAM_HINT_APPEND is set then page splits should only create a
     new page, and not shifting any keys to the new sibling. only the new

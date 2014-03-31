@@ -68,8 +68,8 @@ class StringRandomDatasource : public Datasource
       for (i = 0; i < std::min(m_size, m_data[pos].size()); i++)
         vec.push_back(m_data[pos][i]);
 
-      while (m_fixed_size && vec.size() < m_size) {
-        vec.push_back(' ');
+      while (vec.size() < m_size) {
+        vec.push_back('_');
         pos = m_rng() % m_data.size();
         for (i = 0; vec.size() < m_size && i < m_data[pos].size(); i++)
           vec.push_back(m_data[pos][i]);
@@ -115,7 +115,7 @@ class StringAscendingDatasource : public Datasource
         vec.push_back(m_data[m_next][i]);
       if (m_fixed_size) {
         for (; i < m_size; i++)
-          vec.push_back(' ');
+          vec.push_back('_');
       }
       if (++m_next == m_data.size())
         m_next = 0;
@@ -160,7 +160,7 @@ class StringDescendingDatasource : public Datasource
         vec.push_back(m_data[m_next][i]);
       if (m_fixed_size) {
         for (; i < m_size; i++)
-          vec.push_back(' ');
+          vec.push_back('_');
       }
       if (m_next == 0)
         m_next = m_data.size() - 1;
@@ -218,7 +218,7 @@ class StringZipfianDatasource : public Datasource
 
       if (m_fixed_size) {
         for (; i < m_size; i++)
-          vec.push_back(' ');
+          vec.push_back('_');
       }
     }
 

@@ -39,7 +39,10 @@ struct BtreeKey
 
     // this key has no records attached (this flag is used if the key does
     // not have a separate "record counter" field
-    kHasNoRecords         = 0x08
+    kHasNoRecords         = 0x08,
+
+    // PRO: key is compressed; the original size is stored in the payload
+    kCompressed           = 0x80
   };
 
   // flags used with the ham_key_t::_flags (note the underscore - this

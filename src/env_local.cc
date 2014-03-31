@@ -586,6 +586,9 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
         case HAM_PARAM_RECORD_COMPRESSION:
           ham_trace(("Record compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
+        case HAM_PARAM_KEY_COMPRESSION:
+          ham_trace(("Key compression is only available in hamsterdb pro"));
+          return (HAM_NOT_IMPLEMENTED);
         case HAM_PARAM_KEY_TYPE:
           key_type = (ham_u16_t)param->value;
           break;
@@ -720,6 +723,9 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
       switch (param->name) {
         case HAM_PARAM_RECORD_COMPRESSION:
           ham_trace(("Record compression is only available in hamsterdb pro"));
+          return (HAM_NOT_IMPLEMENTED);
+        case HAM_PARAM_KEY_COMPRESSION:
+          ham_trace(("Key compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));

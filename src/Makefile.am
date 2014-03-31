@@ -72,6 +72,7 @@ libhamsterdb_la_SOURCES = \
 	page.h \
 	page_manager.cc \
 	page_manager.h \
+	pickle.h \
 	rb.h \
 	serial.h \
 	txn_cursor.cc \

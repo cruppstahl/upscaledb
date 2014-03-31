@@ -113,13 +113,22 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
     // PRO: Returns the record compression
     ham_u8_t get_record_compression(int *level) const {
-      *level = m_record_compression & 0x0f;
-      return (m_record_compression >> 4);
+      return (m_compression >> 4);
     }
 
     // PRO: Sets the record compression
-    void set_record_compression(int algorithm, int level) {
-      m_record_compression = (algorithm << 4) | level;
+    void set_record_compression(int algorithm) {
+      m_compression = algorithm << 4;
+    }
+
+    // PRO: Returns the key compression
+    ham_u8_t get_key_compression(int *level) const {
+      return (m_compression & 0xf);
+    }
+
+    // PRO: Sets the key compression
+    void set_key_compression(int algorithm) {
+      m_compression |= algorithm & 0xf;
     }
 
   private:
@@ -138,8 +147,8 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // key type
     ham_u16_t m_key_type;
 
-    // PRO: for storing record compression algorithm and level */
-    ham_u8_t m_record_compression;
+    // PRO: for storing key and record compression algorithm */
+    ham_u8_t m_compression;
 
     // reserved for padding
     ham_u8_t m_padding1;

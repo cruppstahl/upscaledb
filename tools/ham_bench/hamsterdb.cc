@@ -175,11 +175,6 @@ HamsterDatabase::do_open_env()
       params[p].value = (ham_u64_t)"1234567890123456";
       p++;
     }
-    if (m_config->journal_compression) {
-      params[p].name = HAM_PARAM_JOURNAL_COMPRESSION;
-      params[p].value = m_config->journal_compression;
-      p++;
-    }
 
     flags |= m_config->no_mmap ? HAM_DISABLE_MMAP : 0; 
     flags |= m_config->cacheunlimited ? HAM_CACHE_UNLIMITED : 0;
@@ -265,7 +260,7 @@ ham_status_t
 HamsterDatabase::do_create_db(int id)
 {
   ham_status_t st;
-  ham_parameter_t params[6] = {{0, 0}};
+  ham_parameter_t params[8] = {{0, 0}};
 
   int n = 0;
   params[n].name = HAM_PARAM_KEY_SIZE;
@@ -281,6 +276,7 @@ HamsterDatabase::do_create_db(int id)
       n++;
       break;
     case Configuration::kKeyBinary:
+    case Configuration::kKeyString:
       params[0].value = m_config->key_is_fixed_size
                             ? m_config->key_size
                             : HAM_KEY_SIZE_UNLIMITED;
@@ -321,6 +317,16 @@ HamsterDatabase::do_create_db(int id)
   params[n].name = HAM_PARAM_RECORD_SIZE;
   params[n].value = m_config->rec_size_fixed;
   n++;
+  if (m_config->record_compression) {
+    params[n].name = HAM_PARAM_RECORD_COMPRESSION;
+    params[n].value = m_config->record_compression;
+    n++;
+  }
+  if (m_config->key_compression) {
+    params[n].name = HAM_PARAM_KEY_COMPRESSION;
+    params[n].value = m_config->key_compression;
+    n++;
+  }
 
   ham_u32_t flags = 0;
 

@@ -609,6 +609,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\pickle.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\rb.h"
 			>
 		</File>

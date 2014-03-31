@@ -344,6 +344,7 @@ ParserGenerator::generate_key(const char *keydata, char *buffer) const
 
   switch (m_config->key_type) {
     case Configuration::kKeyBinary:
+    case Configuration::kKeyString:
     case Configuration::kKeyCustom:
       key.data = (void *)keydata;
       key.size = (ham_u16_t)strlen(keydata);

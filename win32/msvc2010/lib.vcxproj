@@ -218,6 +218,7 @@
     <ClInclude Include="..\..\src\packstop.h" />
     <ClInclude Include="..\..\src\page.h" />
     <ClInclude Include="..\..\src\page_manager.h" />
+    <ClInclude Include="..\..\src\pickle.h" />
     <ClInclude Include="..\..\src\rb.h" />
     <ClInclude Include="..\..\src\serial.h" />
     <ClInclude Include="..\..\src\statistics.h" />

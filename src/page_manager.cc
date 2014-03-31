@@ -18,6 +18,7 @@
 
 #include "util.h"
 #include "page.h"
+#include "pickle.h"
 #include "device.h"
 #include "btree_index.h"
 #include "btree_node_proxy.h"
@@ -74,7 +75,7 @@ PageManager::load_state(ham_u64_t pageid)
       ham_assert(num_bytes <= 8);
       p += 1;
 
-      ham_u64_t id = decode(num_bytes, p);
+      ham_u64_t id = Pickle::decode_u64(num_bytes, p);
       p += num_bytes;
 
       m_free_pages[id * page_size] = page_counter;
@@ -176,7 +177,7 @@ PageManager::store_state()
       // - n byte page-id (div page_size)
       ham_assert(page_counter < 16);
       ham_assert(base % page_size == 0);
-      int num_bytes = encode(p + 1, base / page_size);
+      int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
       *p = (page_counter << 4) | num_bytes;
       p += 1 + num_bytes;
 
@@ -589,83 +590,6 @@ PageManager::close()
   delete m_state_page;
   m_state_page = 0;
   m_last_blob_page = 0;
-}
-
-int
-PageManager::encode(ham_u8_t *p, ham_u64_t n)
-{
-  if (n <= 0xf) {
-    *p = n;
-    return (1);
-  }
-  if (n <= 0xff) {
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (2);
-  }
-  if (n <= 0xfff) {
-    *(p + 2) = (n & 0xf00) >> 8;
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (3);
-  }
-  if (n <= 0xffff) {
-    *(p + 3) = (n & 0xf000) >> 12;
-    *(p + 2) = (n & 0xf00) >> 8;
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (4);
-  }
-  if (n <= 0xfffff) {
-    *(p + 4) = (n & 0xf0000) >> 16;
-    *(p + 3) = (n & 0xf000) >> 12;
-    *(p + 2) = (n & 0xf00) >> 8;
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (5);
-  }
-  if (n <= 0xffffff) {
-    *(p + 5) = (n & 0xf00000) >> 24;
-    *(p + 4) = (n & 0xf0000) >> 16;
-    *(p + 3) = (n & 0xf000) >> 12;
-    *(p + 2) = (n & 0xf00) >> 8;
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (6);
-  }
-  if (n <= 0xfffffff) {
-    *(p + 6) = (n & 0xf000000) >> 32;
-    *(p + 5) = (n & 0xf00000) >> 24;
-    *(p + 4) = (n & 0xf0000) >> 16;
-    *(p + 3) = (n & 0xf000) >> 12;
-    *(p + 2) = (n & 0xf00) >> 8;
-    *(p + 1) = (n & 0xf0) >> 4;
-    *(p + 0) = n & 0xf;
-    return (7);
-  }
-  *(p + 7) = (n & 0xf0000000) >> 36;
-  *(p + 6) = (n & 0xf000000) >> 32;
-  *(p + 5) = (n & 0xf00000) >> 24;
-  *(p + 4) = (n & 0xf0000) >> 16;
-  *(p + 3) = (n & 0xf000) >> 12;
-  *(p + 2) = (n & 0xf00) >> 8;
-  *(p + 1) = (n & 0xf0) >> 4;
-  *(p + 0) = n & 0xf;
-  return (8);
-}
-
-ham_u64_t
-PageManager::decode(int n, ham_u8_t *p)
-{
-  ham_u64_t ret = 0;
-
-  for (int i = 0; i < n - 1; i++) {
-    ret += *(p + (n - i - 1));
-    ret <<= 4;
-  }
-
-  // last assignment is without *= 10
-  return (ret + *p);
 }
 
 } // namespace hamsterdb

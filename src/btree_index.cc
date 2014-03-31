@@ -138,7 +138,9 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
   else {
 #ifdef HAM_DEBUG
     ham_u32_t flags = node->test_get_flags(slot);
-    flags &= ~(BtreeKey::kInitialized | BtreeKey::kExtendedKey);
+    flags &= ~(BtreeKey::kInitialized
+                    | BtreeKey::kExtendedKey
+                    | BtreeKey::kCompressed);
     ham_assert(flags == 0);
 #endif
     ham_u64_t rid = node->get_record_id(slot);
