@@ -41,20 +41,20 @@ class Compressor {
     // Returns the length of the compressed data.
     ham_u32_t compress(const ham_u8_t *inp1, ham_u32_t inlength1,
                     const ham_u8_t *inp2 = 0, ham_u32_t inlength2 = 0) {
-      if (inp2)
-        m_arena.resize(m_skip
-                        + get_compressed_length(inlength1)
-                        + get_compressed_length(inlength2));
-      else
-        m_arena.resize(m_skip + get_compressed_length(inlength1));
+      ham_u32_t clen = 0;
+      ham_u32_t arena_size = m_skip + get_compressed_length(inlength1);
+      if (inp2 != 0)
+        arena_size += get_compressed_length(inlength2);
+      m_arena.resize(arena_size);
 
       ham_u8_t *out = (ham_u8_t *)m_arena.get_ptr() + m_skip;
-      ham_u32_t len = do_compress(inp1, inlength1, out,
-                                    m_arena.get_size() - m_skip);
+
+      clen = do_compress(inp1, inlength1, out,
+                                  m_arena.get_size() - m_skip);
       if (inp2)
-        len += do_compress(inp2, inlength2, out + len,
-                            m_arena.get_size() - len - m_skip);
-      return (len);
+        clen += do_compress(inp2, inlength2, out + clen,
+                          m_arena.get_size() - clen - m_skip);
+      return (clen);
     }
 
     // Reserves |n| bytes in the output buffer; can be used by the caller
@@ -80,6 +80,14 @@ class Compressor {
       do_decompress(inp, inlength, (ham_u8_t *)arena->get_ptr(), outlength);
     }
 
+    // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
+    // expected size of the decompressed data. Uses the caller's |destination|
+    // for storage.
+    void decompress(const ham_u8_t *inp, ham_u32_t inlength,
+                    ham_u32_t outlength, ham_u8_t *destination) {
+      do_decompress(inp, inlength, destination, outlength);
+    }
+
     // Retrieves the compressed (or decompressed) data, including its size
     const ham_u8_t *get_output_data() const {
       return ((ham_u8_t *)m_arena.get_ptr());
@@ -88,6 +96,11 @@ class Compressor {
     // Same as above, but non-const
     ham_u8_t *get_output_data() {
       return ((ham_u8_t *)m_arena.get_ptr());
+    }
+
+    // Returns the internal memory arena
+    ByteArray *get_arena() {
+      return (&m_arena);
     }
 
   protected:
@@ -99,6 +112,7 @@ class Compressor {
     // has sufficient size (allocated with |get_compressed_length()|).
     //
     // Returns the length of the compressed data.
+    // In case of an error: returns length of the uncompressed data + 1
     virtual ham_u32_t do_compress(const ham_u8_t *inp, ham_u32_t inlength,
                             ham_u8_t *outp, ham_u32_t outlength) = 0;
 

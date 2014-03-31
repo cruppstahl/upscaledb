@@ -1233,6 +1233,7 @@ class DefaultNodeImpl
         tmp.data = it->get_key_data();
         tmp.size = it->get_key_size();
         uncompress(&tmp, &tmp);
+        return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
       }
 
       // key is not compressed and not extended
@@ -1343,7 +1344,7 @@ class DefaultNodeImpl
         memcpy(dest->data, tmp.data, tmp.size);
       }
       // key is compressed
-      else if (it->get_key_flags() & BtreeKey::kExtendedKey) {
+      else if (it->get_key_flags() & BtreeKey::kCompressed) {
         ham_key_t tmp = {0};
         tmp.data = (void *)it->get_key_data();
         tmp.size = it->get_key_size();
@@ -2428,6 +2429,7 @@ class DefaultNodeImpl
       if (!m_extkey_cache)
         m_extkey_cache = new ExtKeyCache();
 
+      // create a copy of the record BEFORE it's compressed
       ByteArray arena;
       arena.resize(key->size);
       memcpy(arena.get_ptr(), key->data, key->size);
@@ -2437,8 +2439,14 @@ class DefaultNodeImpl
       rec.size = key->size;
 
       LocalDatabase *db = m_page->get_db();
+      // if keys are compressed then disable the compression for the
+      // extended blob, because compressing already compressed data usually
+      // has not much of an effect
       ham_u64_t blobid = db->get_local_env()->get_blob_manager()->allocate(db,
-                            &rec, 0);
+                            &rec,
+                            m_compressor
+                                ? BlobManager::kDisableCompression
+                                : 0);
       ham_assert(blobid != 0);
       ham_assert(m_extkey_cache->find(blobid) == m_extkey_cache->end());
 
@@ -2983,6 +2991,7 @@ class DefaultNodeImpl
 
     bool compress(const ham_key_t *src, ham_key_t *dest) {
       ham_assert(m_compressor != 0);
+      g_bytes_before_compression += src->size;
 
       // reserve 2 bytes for the uncompressed key length
       m_compressor->reserve(sizeof(ham_u16_t));
@@ -2999,6 +3008,8 @@ class DefaultNodeImpl
 
       dest->data = ptr;
       dest->size = clen + sizeof(ham_u16_t);
+      g_bytes_after_compression += dest->size;
+
       return (true);
     }
 

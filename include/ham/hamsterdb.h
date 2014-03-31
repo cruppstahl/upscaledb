@@ -571,9 +571,6 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *      waiting for data from a remote server. By default, no timeout is set.
  *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
  *      the journal files to reduce I/O. See notes above.
- *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Sets the
- *      compression level for the journal compression. Only used in the
- *      zlib compressor; otherwise ignored.
  *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
  *      encryption key; enables AES encryption for the Environment file. Not
  *      allowed for In-Memory Environments. Ignored for remote Environments.
@@ -624,7 +621,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  * <b>Pro</b> If Transactions are enabled, a journal file is written in order
  * to provide recovery if the system crashes. These journal files can be
  * compressed by supplying the parameter
- * @ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
+ * @ref HAM_PARAM_JOURNAL_COMPRESSION. Values are one of
  * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
  * hamsterdb pro documentation for more details. This parameter is not
  * persisted.
@@ -677,11 +674,8 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
- *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
+ *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION</li> Compresses
  *      the journal files to reduce I/O. See notes above.
- *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION_LEVEL</li> Sets the
- *      compression level for the journal compression. Only used in the
- *      zlib compressor; otherwise ignored.
  *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
  *      encryption key; enables AES encryption for the Environment file. Not
  *      allowed for In-Memory Environments. Ignored for remote Environments.
@@ -818,10 +812,13 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *
  * <b>Pro</b> Records can be compressed transparently in order to reduce
  * I/O and disk space. Compression is enabled with
- * @ref HAM_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
+ * @ref HAM_PARAM_RECORD_COMPRESSION. Values are one of
  * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
- * hamsterdb pro documentation for more details. This parameter is not
- * persisted.
+ * hamsterdb pro documentation for more details.
+ *
+ * <b>Pro</b> Keys can also be compressed by setting the parameter
+ * @ref HAM_PARAM_KEY_COMPRESSION. See the hamsterdb pro documentation
+ * for more details.
  *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
@@ -857,11 +854,10 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <li>@ref HAM_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref HAM_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
- *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Compresses
+ *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION</li> Compresses
  *      the records.
- *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Sets the
- *      compression level for the record compression. Only used in the
- *      zlib compressor; otherwise ignored.
+ *    <li><b>Pro</b>@ref HAM_PARAM_KEY_COMPRESSION</li> Compresses
+ *      the keys.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -909,15 +905,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  *      Operations that need write access (i.e. @ref ham_db_insert) will
  *      return @ref HAM_WRITE_PROTECTED.
  *   </ul>
- * @param params An array of ham_parameter_t structures. The following
- *    parameters are available:
- *   <ul>
- *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_RECORD_COMPRESSION</li> Compresses
- *      the records.
- *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION_LEVEL</li> Sets the
- *      compression level for the record compression. Only used in the
- *      zlib compressor; otherwise ignored.
- *   </ul>
+ * @param params Reserved; set to NULL
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an
@@ -1769,9 +1757,6 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * a Database.
  */
 #define HAM_PARAM_KEY_COMPRESSION       0x1002
-
-/** hamsterdb pro: helper macro for disabling compression */
-#define HAM_COMPRESSOR_NONE         0
 
 /** hamsterdb pro: helper macro for disabling compression */
 #define HAM_COMPRESSOR_NONE         0

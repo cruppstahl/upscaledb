@@ -347,6 +347,8 @@ class BtreeIndex
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->extended_keys = g_extended_keys;
       metrics->extended_duptables = g_extended_duptables;
+      metrics->key_bytes_before_compression = g_bytes_before_compression;
+      metrics->key_bytes_after_compression = g_bytes_after_compression;
     }
 
     // Returns the btree usage statistics

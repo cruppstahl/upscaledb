@@ -49,16 +49,16 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
   // compression enabled? then try to compress the data
   Compressor *compressor = db->get_record_compressor();
-  if (compressor) {
+  if (compressor && !(flags & kDisableCompression)) {
+    m_metric_before_compression += record_size;
     ham_u32_t len = compressor->compress((ham_u8_t *)record->data,
                         record->size);
     if (len < record->size) {
       record_data = (void *)compressor->get_output_data();
       record_size = len;
     }
+    m_metric_after_compression += record_size;
   }
-
-  m_blob_total_allocated++;
 
   PBlobHeader blob_header;
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record_size;
@@ -251,24 +251,33 @@ DiskBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
   // read into the Compressor's arena, otherwise read directly into the
   // caller's arena
   if (blob_header.get_flags() & kIsCompressed) {
-    // still need temporary memory
-    arena->resize(record_size);
-
     Compressor *compressor = db->get_record_compressor();
-    if (!compressor)
-      throw Exception(HAM_NOT_READY);
+    ham_assert(compressor != 0);
+
+    // read into temporary buffer; we reuse the compressor's memory arena
+    // for this
+    ByteArray *dest = compressor->get_arena();
+    dest->resize(blob_header.get_alloc_size() - sizeof(PBlobHeader));
+
     read_chunk(page, 0, blobid + sizeof(PBlobHeader),
-                    db, (ham_u8_t *)arena->get_ptr(),
+                    db, (ham_u8_t *)dest->get_ptr(),
                     blob_header.get_alloc_size() - sizeof(PBlobHeader), true);
-    // now uncompress
-    compressor->decompress((ham_u8_t *)arena->get_ptr(),
+
+    // now uncompress into the caller's memory arena
+    if (record->flags & HAM_RECORD_USER_ALLOC)
+      compressor->decompress((ham_u8_t *)dest->get_ptr(),
                     blob_header.get_alloc_size() - sizeof(PBlobHeader),
-                    record_size);
-    // and return the uncompressed data
-    record->data = (void *)compressor->get_output_data();
+                    record_size, (ham_u8_t *)record->data);
+    else {
+      arena->resize(record_size);
+      compressor->decompress((ham_u8_t *)dest->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader),
+                    record_size, arena);
+      record->data = arena->get_ptr();
+    }
   }
   else {
-    // resize the blob buffer
+    // resize the caller's buffer
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
       arena->resize(record_size);
       record->data = arena->get_ptr();

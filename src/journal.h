@@ -255,6 +255,10 @@ class Journal
     // Fills the metrics
     void get_metrics(ham_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_count_bytes_flushed;
+      metrics->journal_bytes_before_compression
+              = m_count_bytes_before_compression;
+      metrics->journal_bytes_after_compression
+              = m_count_bytes_after_compression;
     }
 
     // Returns the previous lsn; only for testing!
@@ -372,6 +376,12 @@ class Journal
 
     // Counting the flushed bytes (for ham_env_get_metrics)
     ham_u64_t m_count_bytes_flushed;
+
+    // Counting the bytes before compression (for ham_env_get_metrics)
+    ham_u64_t m_count_bytes_before_compression;
+
+    // Counting the bytes after compression (for ham_env_get_metrics)
+    ham_u64_t m_count_bytes_after_compression;
 };
 
 #include "packstop.h"

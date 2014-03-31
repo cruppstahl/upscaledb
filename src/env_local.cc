@@ -657,7 +657,6 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
       return (HAM_INV_PARAMETER);
     }
   }
-
   if (flags & HAM_RECORD_NUMBER)
     key_type = HAM_TYPE_UINT64;
 

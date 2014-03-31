@@ -36,7 +36,8 @@ namespace hamsterdb {
 Journal::Journal(LocalEnvironment *env)
   : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
     m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
-    m_count_bytes_flushed(0)
+    m_count_bytes_flushed(0), m_count_bytes_before_compression(0),
+    m_count_bytes_after_compression(0)
 {
   m_fd[0] = HAM_INVALID_FD;
   m_fd[1] = HAM_INVALID_FD;
@@ -324,12 +325,14 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   const void *key_data = key->data;
   ham_u32_t key_size = key->size;
   if (m_compressor.get()) {
+    m_count_bytes_before_compression += key_size;
     ham_u32_t len = m_compressor->compress((ham_u8_t *)key->data, key->size);
     if (len < key->size) {
       key_size = len;
       key_data = m_compressor->get_output_data();
       insert.compressed_key_size = len;
     }
+    m_count_bytes_after_compression += key_size;
   }
   append_entry(idx, key_data, key_size);
   entry.followup_size += key_size;
@@ -340,6 +343,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                             ? record->partial_size
                             : record->size;
   if (m_compressor.get()) {
+    m_count_bytes_before_compression += record_size;
     ham_u32_t len = m_compressor->compress((ham_u8_t *)record->data,
                         record_size);
     if (len < record_size) {
@@ -347,6 +351,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
       record_data = m_compressor->get_output_data();
       insert.compressed_record_size = len;
     }
+    m_count_bytes_after_compression += record_size;
   }
   append_entry(idx, record_data, record_size);
   entry.followup_size += record_size;
@@ -382,12 +387,14 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   // try to compress the payload; if the compressed result is smaller than
   // the original (uncompressed) payload then use it
   if (m_compressor.get()) {
+    m_count_bytes_before_compression += payload_size;
     ham_u32_t len = m_compressor->compress((ham_u8_t *)key->data, key->size);
     if (len < key->size) {
       payload_data = m_compressor->get_output_data();
       payload_size = len;
       erase.compressed_key_size = len;
     }
+    m_count_bytes_after_compression += payload_size;
   }
 
   entry.lsn = lsn;
@@ -480,10 +487,12 @@ Journal::append_changeset_page(Page *page, ham_u32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
   if (m_compressor.get()) {
+    m_count_bytes_before_compression += page_size;
     header.compressed_size = m_compressor->compress(page->get_raw_payload(),
                     page_size);
     append_entry(m_current_fd, &header, sizeof(header),
                   m_compressor->get_output_data(), header.compressed_size);
+    m_count_bytes_after_compression += header.compressed_size;
     return (header.compressed_size + sizeof(header));
   }
 

@@ -59,6 +59,8 @@ BlobManager::read(LocalDatabase *db, ham_u64_t blobid,
     }
   }
 
+  m_metric_total_read++;
+
   return (do_read(db, blobid, record, flags, arena));
 }
 

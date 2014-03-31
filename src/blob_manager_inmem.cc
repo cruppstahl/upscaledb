@@ -41,12 +41,14 @@ InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   // compression enabled? then try to compress the data
   Compressor *compressor = db->get_record_compressor();
   if (compressor) {
+    m_metric_before_compression += record_size;
     ham_u32_t len = compressor->compress((ham_u8_t *)record->data,
                         record->size);
     if (len < record->size) {
       record_data = (void *)compressor->get_output_data();
       record_size = len;
     }
+    m_metric_after_compression += record_size;
   }
 
   // in-memory-database: the blobid is actually a pointer to the memory
@@ -188,7 +190,7 @@ InMemoryBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     return ((ham_u64_t)PTR_TO_U64(phdr));
   }
   else {
-    ham_u64_t new_blobid = do_allocate(db, record, flags);
+    ham_u64_t new_blobid = allocate(db, record, flags);
     Memory::release(phdr);
     return (new_blobid);
   }

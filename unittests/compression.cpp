@@ -446,4 +446,78 @@ TEST_CASE("Compression/negativeKeyTest", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
+TEST_CASE("Compression/userAllocTest", "")
+{
+  ham_parameter_t params[] = {
+    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_SNAPPY},
+    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZO},
+    {0, 0}
+  };
+  ham_db_t *db;
+  ham_env_t *env;
+  REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+                          HAM_IN_MEMORY, 0, 0));
+  REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &params[0]));
+
+  char key_buffer[64] = {0};
+  for (size_t i = 0; i < sizeof(key_buffer); i++)
+    key_buffer[i] = (char)i;
+  ham_key_t key = {0};
+  key.data = &key_buffer[0];
+  key.size = sizeof(key_buffer);
+
+  char rec_buffer[1024] = {0};
+  for (size_t i = 0; i < sizeof(rec_buffer); i++)
+    rec_buffer[i] = (char)i + 10;
+  ham_record_t rec = {0};
+  rec.data = &rec_buffer[0];
+  rec.size = sizeof(rec_buffer);
+
+  // insert
+  for (int i = 0; i < 5; i++) {
+    sprintf(key_buffer, "%02d", i);
+    sprintf(rec_buffer, "%02d", i);
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+  }
+
+  ham_cursor_t *cursor;
+  REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+  // lookup
+  for (int i = 0; i < 5; i++) {
+    key.flags = HAM_KEY_USER_ALLOC;
+    rec.flags = HAM_RECORD_USER_ALLOC;
+    sprintf(key_buffer, "%02d", i);
+    sprintf(rec_buffer, "%02d", i);
+    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(rec.size == sizeof(rec_buffer));
+    REQUIRE(0 == memcmp(rec.data, rec_buffer, sizeof(rec_buffer)));
+  }
+  REQUIRE(0 == ham_cursor_close(cursor));
+
+  // overwrite
+  for (int i = 0; i < 5; i++) {
+    sprintf(key_buffer, "%02d", i);
+    sprintf(rec_buffer, "%02d", i + 10);
+    // re-initialize record structure because ham_db_find overwrote it
+    rec.data = &rec_buffer[0];
+    rec.data = &rec_buffer[0];
+    rec.size = sizeof(rec_buffer);
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+  }
+
+  // lookup
+  REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+  for (int i = 0; i < 5; i++) {
+    sprintf(key_buffer, "%02d", i);
+    sprintf(rec_buffer, "%02d", i + 10);
+    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec,
+                            HAM_CURSOR_NEXT | HAM_DIRECT_ACCESS));
+    REQUIRE(rec.size == sizeof(rec_buffer));
+    REQUIRE(0 == memcmp(rec.data, rec_buffer, sizeof(rec_buffer)));
+  }
+  REQUIRE(0 == ham_cursor_close(cursor));
+
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}
+
 #endif // HAM_ENABLE_COMPRESSION
