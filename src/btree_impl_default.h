@@ -571,6 +571,12 @@ extern ham_u64_t g_extended_keys;
 // For counting extended duplicate tables; for metrics only
 extern ham_u64_t g_extended_duptables;
 
+// Tracking key bytes before compression
+extern ham_u64_t g_bytes_before_compression;
+
+// Tracking key bytes after compression
+extern ham_u64_t g_bytes_after_compression;
+
 //
 // A RecordList for the default inline records, storing 8 byte record IDs
 // or inline records with size <= 8 bytes. If duplicates are supported then
@@ -2358,6 +2364,10 @@ class DefaultNodeImpl
       if (!m_extkey_cache)
         m_extkey_cache = new ExtKeyCache();
 
+      ByteArray arena;
+      arena.resize(key->size);
+      memcpy(arena.get_ptr(), key->data, key->size);
+
       ham_record_t rec = {0};
       rec.data = key->data;
       rec.size = key->size;
@@ -2368,9 +2378,6 @@ class DefaultNodeImpl
       ham_assert(blobid != 0);
       ham_assert(m_extkey_cache->find(blobid) == m_extkey_cache->end());
 
-      ByteArray arena;
-      arena.resize(key->size);
-      memcpy(arena.get_ptr(), key->data, key->size);
       (*m_extkey_cache)[blobid] = arena;
       arena.disown();
 

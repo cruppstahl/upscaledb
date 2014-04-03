@@ -36,8 +36,6 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   ham_u32_t chunk_size[2];
   ham_u32_t page_size = m_env->get_page_size();
 
-  m_blob_total_allocated++;
-
   PBlobHeader blob_header;
   ham_u32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
@@ -187,8 +185,6 @@ void
 DiskBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
                 ham_record_t *record, ham_u32_t flags, ByteArray *arena)
 {
-  m_blob_total_read++;
-
   Page *page;
 
   // first step: read the blob header
@@ -281,6 +277,7 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     new_blob_header.set_self(old_blob_header.get_self());
     new_blob_header.set_size(record->size);
     new_blob_header.set_alloc_size(alloc_size);
+    new_blob_header.set_flags(0); // disable compression, just in case...
 
     // PARTIAL WRITE
     //

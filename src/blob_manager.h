@@ -118,7 +118,7 @@ class BlobManager
 {
   public:
     BlobManager(LocalEnvironment *env)
-      : m_env(env), m_blob_total_allocated(0), m_blob_total_read(0) {
+      : m_env(env), m_metric_total_allocated(0), m_metric_total_read(0) {
     }
 
     virtual ~BlobManager() { }
@@ -151,8 +151,10 @@ class BlobManager
 
     // Fills in the current metrics
     void get_metrics(ham_env_metrics_t *metrics) const {
-      metrics->blob_total_allocated = m_blob_total_allocated;
-      metrics->blob_total_read = m_blob_total_read;
+      metrics->blob_total_allocated = m_metric_total_allocated;
+      metrics->blob_total_read = m_metric_total_read;
+      metrics->record_bytes_before_compression = m_metric_before_compression;
+      metrics->record_bytes_after_compression = m_metric_after_compression;
     }
 
   protected:
@@ -186,12 +188,18 @@ class BlobManager
     // The Environment which created this BlobManager
     LocalEnvironment *m_env;
 
+    // Usage tracking - number of bytes before compression
+    ham_u64_t m_metric_before_compression;
+
+    // Usage tracking - number of bytes after compression
+    ham_u64_t m_metric_after_compression;
+
+  private:
     // Usage tracking - number of blobs allocated
-    ham_u64_t m_blob_total_allocated;
+    ham_u64_t m_metric_total_allocated;
 
     // Usage tracking - number of blobs read
-    ham_u64_t m_blob_total_read;
-
+    ham_u64_t m_metric_total_read;
 };
 
 } // namespace hamsterdb

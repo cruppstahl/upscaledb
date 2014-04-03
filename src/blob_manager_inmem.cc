@@ -27,8 +27,6 @@ ham_u64_t
 InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
             ham_u32_t flags)
 {
-  m_blob_total_allocated++;
-
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
   ham_u8_t *p = Memory::allocate<ham_u8_t>(record->size + sizeof(PBlobHeader));
@@ -62,8 +60,6 @@ InMemoryBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
 {
-  m_blob_total_read++;
-
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob is stored
   PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);

@@ -40,6 +40,12 @@ extern ham_u64_t g_extended_keys;
 // for counting extended duplicate tables
 extern ham_u64_t g_extended_duptables;
 
+// Tracking key bytes before compression
+extern ham_u64_t g_bytes_before_compression;
+
+// Tracking key bytes after compression
+extern ham_u64_t g_bytes_after_compression;
+
 //
 // The persistent btree index descriptor. This structure manages the
 // persistent btree metadata.
@@ -112,7 +118,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // PRO: Returns the record compression
-    ham_u8_t get_record_compression(int *level) const {
+    ham_u8_t get_record_compression() const {
       return (m_compression >> 4);
     }
 
@@ -122,7 +128,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // PRO: Returns the key compression
-    ham_u8_t get_key_compression(int *level) const {
+    ham_u8_t get_key_compression() const {
       return (m_compression & 0xf);
     }
 

@@ -127,34 +127,31 @@ o PRO: heavyweight compression for keys
     x add to dotnet wrapper
     x add to java wrapper
     x add to erlang wrapper
-    o metrics: track number of compressed and uncompressed keys
-        o same for records and journals?
-        o print in ham_bench
+    x ham_bench: accept string parameters when enabling compression
+    x metrics: track number of compressed and uncompressed keys
+        x for journal compression
+        x for record compression
+        x for key compression
+        x print in ham_bench
+    x bugs raus
+
+    o blob mgr: do not compress extended keys if the keys are already compressed
     o add header file documentation
     o add to monster and perftests
         o also test in combination with extended keys (very low threshold)
+        o also test in combination with encryption and record compression
+        o also test in-memory compression (keys + records)
+        o also test in combination with user_alloc
 
     o avoid virtual inheritance in Compressor classes; use template
         implementations instead
-
-o remote code: reuse the procotol buffer objects! Constructing/destructing
-    them is expensive
-    o perform more benchmarks; currently, ham_bench remote is 10 times slower
-        than locally!
+    o fix TODOs in btree_impl_default.h
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
 
 o PRO: use SIMD instructions for the linear search
     http://openproceedings.org/EDBT/2014/paper_107.pdf
-
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload
-
-o insert: if HAM_HINT_APPEND is set then page splits should only create a
-    new page, and not shifting any keys to the new sibling. only the new
-    key is inserted in the new sibling.
 
 o PRO: 30 day evaluation library
     o ham_time_t ham_is_evaluation(); -> returns end time, or 0
@@ -163,6 +160,7 @@ o PRO: 30 day evaluation library
     o needs different licensing output in the tools
     o print to stdout in ham_env_create, ham_env_open
     o evaluate source obfuscators
+        sourceformat - http://www.sourceformat.com
         Stunnix - http://www.stunnix.com/prod/cxxo/pricing.shtml
         Mangle-It - http://www.brothersoft.com/mangle-it-c%2B%2B-obfuscator-91793.html
         Semantic Design - http://www.semdesigns.com/Purchase/
@@ -188,6 +186,8 @@ o PRO: extend release-tool
     o for pro: add test for --disable-encryption
     o for pro: generate 30 day trials for the following 3 months,
         starting at every calendar week
+        o for linux (obfuscated tar-balls)
+        o for windows (precompiled 32bit and 64bit DLLs)
 
 o PRO: additional stuff for the first release
     o needs a ChangeLog
@@ -201,21 +201,12 @@ o PRO: additional stuff for the first release
         o ...
 
     o webpage
-        o overview, catch lines
-        o customers, deployments
-        o feature matrix APL vs. closed source
+        o new layout
+        x new marketing focus
+        x feature matrix APL vs. closed source
         o daily backups of the database
         o can download commercial files using the admin-API to verify the
             login
-
-    o what are the minimum features required for the first release?
-        x heavyweight compression for the journal
-        x AES encryption for the file
-        x heavyweight compression for records
-        o file format compatibility
-        o heavyweight compression for keys
-        o SIMD for searches (PAX)
-        o (evaluation licenses)
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
@@ -224,7 +215,20 @@ o QuickCheck: create a new property for testing duplicates; the key is always
         checked with the API. A cursor can be used to remove a specific
         duplicate, or to fetch a specific duplicate.
 
-o QuickCheck: automatically test the recovery feature by invoking "crashes"
+o try not to purge pages if a cursor is attached
+
+o remote code: reuse the procotol buffer objects! Constructing/destructing
+    them is expensive
+    o perform more benchmarks; currently, ham_bench remote is 10 times slower
+        than locally!
+
+o insert: if HAM_HINT_APPEND is set then page splits should only create a
+    new page, and not shifting any keys to the new sibling. only the new
+    key is inserted in the new sibling.
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -318,7 +322,7 @@ o delta updates managed in the BtreeNode
     o EnvHeader is completely full; add at least 8 bytes for flags + reserved
     o reserve CRC32 for each page
 
-o PRO: CRC32-checksums (as soon as the file format is updated)
+o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 o PRO: bulk updates
     - require delta updates
@@ -326,15 +330,6 @@ o PRO: bulk updates
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the btree node,
         transfer ownership of the memory
-
-o PRO: hot backups (vacuumizes to a different file)
-    - copies the database file
-    - if compaction is enabled: copies keys w/ iterator
-        (later: performs bulk updates)
-    - then applies all committed transactions to the other file
-    --> think this through; how to deal with delta updates?
-        what if only a few databases should be backed up?
-        what if i want to back up in a neutral format (i.e. csv)?
 
 o PRO: prefix compression for variable-length keys
     - if key is appended at the end: just write the delta
@@ -348,6 +343,17 @@ o PRO: prefix compression for variable-length keys
     - full keys can be further compressed with lzf or lzo
     - key search: jumps from full key to full key; in between, there's a
         linear search for the key
+
+o PRO: CRC32-checksums (as soon as the file format is updated)
+
+o PRO: hot backups (vacuumizes to a different file)
+    - copies the database file
+    - if compaction is enabled: copies keys w/ iterator
+        (later: performs bulk updates)
+    - then applies all committed transactions to the other file
+    --> think this through; how to deal with delta updates?
+        what if only a few databases should be backed up?
+        what if i want to back up in a neutral format (i.e. csv)?
 
 o "hola" - olap functions that operate directly on the btree data
     -> see wiki

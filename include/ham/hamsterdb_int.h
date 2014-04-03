@@ -127,7 +127,7 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * Metrics marked "global" are stored globally and shared between multiple
  * Environments.
  */
-#define HAM_METRICS_VERSION         7
+#define HAM_METRICS_VERSION         8
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
@@ -195,8 +195,26 @@ typedef struct ham_env_metrics_t {
   // (global) number of extended duplicate tables
   ham_u64_t extended_duptables;
 
-  // number of flushed bytes in the log/journal
+  // number of bytes that the log/journal flushes to disk
   ham_u64_t journal_bytes_flushed;
+
+  // PRO: log/journal bytes before compression
+  ham_u64_t journal_bytes_before_compression;
+
+  // PRO: log/journal bytes after compression
+  ham_u64_t journal_bytes_after_compression;
+
+  // PRO: record bytes before compression
+  ham_u64_t record_bytes_before_compression;
+
+  // PRO: record bytes after compression
+  ham_u64_t record_bytes_after_compression;
+
+  // PRO: key bytes before compression
+  ham_u64_t key_bytes_before_compression;
+
+  // PRO: key bytes after compression
+  ham_u64_t key_bytes_after_compression;
 
 } ham_env_metrics_t;
 

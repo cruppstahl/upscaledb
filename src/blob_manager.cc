@@ -34,6 +34,8 @@ BlobManager::allocate(LocalDatabase *db, ham_record_t *record,
       flags &= ~HAM_PARTIAL;
   }
 
+  m_metric_total_allocated++;
+
   return (do_allocate(db, record, flags));
 }
 
@@ -42,6 +44,8 @@ BlobManager::read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
 {
+  m_metric_total_read++;
+
   return (do_read(db, blobid, record, flags, arena));
 }
 

@@ -105,7 +105,7 @@ PageManager::store_state()
   // otherwise allocate a new page, if required
   if (!m_state_page) {
     m_state_page = new Page(m_env, 0);
-    m_state_page->allocate(Page::kTypePageManager);
+    m_state_page->allocate(Page::kTypePageManager, Page::kInitializeWithZeroes);
   }
 
   ham_u32_t page_size = m_env->get_page_size();
@@ -124,8 +124,10 @@ PageManager::store_state()
   // a chain. We only save the first. That's not critical but also not nice.
   ham_u8_t *p = m_state_page->get_payload();
   ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
-  if (next_pageid)
+  if (next_pageid) {
     m_free_pages[next_pageid] = 1;
+    ham_assert(next_pageid % page_size == 0);
+  }
 
   // No freelist entries? then we're done. Make sure that there's no
   // overflow pointer or other garbage in the page!
@@ -155,6 +157,7 @@ PageManager::store_state()
       // next to the current page
       ham_u32_t page_counter = 1;
       ham_u64_t base = it->first;
+      ham_assert(base % page_size == 0);
       ham_u64_t current = it->first;
 
       // move to the next entry
@@ -176,7 +179,6 @@ PageManager::store_state()
       //   - 4 bits for the number of bytes following ("n")
       // - n byte page-id (div page_size)
       ham_assert(page_counter < 16);
-      ham_assert(base % page_size == 0);
       int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
       *p = (page_counter << 4) | num_bytes;
       p += 1 + num_bytes;
@@ -381,9 +383,10 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, int num_pages)
             p->set_flags(p->get_flags() | Page::kNpersNoHeader);
           }
         }
-        if (it->second > num_pages)
+        if (it->second > num_pages) {
           m_free_pages[it->first + num_pages * page_size]
                 = it->second - num_pages;
+        }
         m_free_pages.erase(it);
         return (page);
       }
@@ -551,6 +554,7 @@ PageManager::add_to_freelist(Page *page, int page_count)
 
   m_needs_flush = true;
   m_free_pages[page->get_address()] = page_count;
+  ham_assert(page->get_address() % m_env->get_page_size() == 0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
