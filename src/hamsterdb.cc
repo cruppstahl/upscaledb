@@ -43,6 +43,8 @@
 #include "util.h"
 #include "version.h"
 
+//30DAYEVAL_PREPARE
+
 using namespace hamsterdb;
 
 
@@ -319,6 +321,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
+  //30DAYEVAL_CHECK
+  //30DAYEVAL_HELLO
+
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
     return (HAM_INV_PARAMETER);
@@ -590,6 +595,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
+
+  //30DAYEVAL_CHECK
+  //30DAYEVAL_HELLO
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -1939,5 +1947,6 @@ ham_is_pro()
 ham_u32_t HAM_CALLCONV
 ham_is_pro_evaluation()
 {
+  //30DAYEVAL_RETURN
   return (0);
 }

@@ -23,6 +23,8 @@
 
 #include "protocol/protocol.h"
 
+//30DAYEVAL_PREPARE
+
 namespace hamsterdb {
 
 RemoteEnvironment::RemoteEnvironment()
@@ -79,6 +81,8 @@ ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
         ham_u64_t cache_size)
 {
+  //30DAYEVAL_CHECK
+
   if (m_socket != HAM_INVALID_FD)
     os_socket_close(&m_socket);
 

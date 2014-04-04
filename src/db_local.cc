@@ -31,6 +31,8 @@
 #include "version.h"
 #include "compressor_factory.h"
 
+//30DAYEVAL_PREPARE
+
 namespace hamsterdb {
 
 ham_status_t
@@ -491,6 +493,8 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
 ham_status_t
 LocalDatabase::open(ham_u16_t descriptor)
 {
+  //30DAYEVAL_CHECK
+
   /*
    * set the database flags; strip off the persistent flags that may have been
    * set by the caller, before mixing in the persistent flags as obtained
@@ -558,6 +562,8 @@ ham_status_t
 LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
                         ham_u16_t key_size, ham_u32_t rec_size)
 {
+  //30DAYEVAL_CHECK
+
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
   persistent_flags &= ~(HAM_CACHE_UNLIMITED

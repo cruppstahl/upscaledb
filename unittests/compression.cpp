@@ -450,7 +450,7 @@ TEST_CASE("Compression/userAllocTest", "")
 {
   ham_parameter_t params[] = {
     {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_SNAPPY},
-    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZO},
+    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
     {0, 0}
   };
   ham_db_t *db;
