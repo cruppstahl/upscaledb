@@ -48,18 +48,6 @@ namespace Hamster
   }
 
   /// <summary>
-  /// Structure for the hamsterdb License Information
-  /// </summary>
-  /// <see cref="Database.GetLicense" />
-  public struct License
-  {
-    /// <summary>The name of the licensee, or &quot;&quot; for MIT version</summary>
-    public String licensee;
-    /// <summary>The name of the licensed product</summary>
-    public String product;
-  }
-
-  /// <summary>
   /// Delegate for comparing two keys
   /// </summary>
   /// <remarks>
@@ -134,16 +122,6 @@ namespace Hamster
       Version v = new Version();
       NativeMethods.GetVersion(out v.major, out v.minor, out v.revision);
       return v;
-    }
-
-    /// <summary>
-    /// Returns the license information
-    /// </summary>
-    /// <returns>The license information</returns>
-    static public License GetLicense() {
-      License l = new License();
-      NativeMethods.GetLicense(out l.licensee, out l.product);
-      return l;
     }
 
     /// <summary>

@@ -17,14 +17,6 @@ JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1version
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_get_license
- * Signature: (I)Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1license
-  (JNIEnv *, jclass, jint);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
  * Method:    ham_set_errhandler
  * Signature: (Lde/crupp/hamsterdb/ErrorHandler;)V
  */

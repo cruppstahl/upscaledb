@@ -2071,13 +2071,6 @@ class DefaultNodeImpl
         ham_u32_t offset = other->append_key(i, data, key_size + rec_size,
                                 false);
         other->m_layout.set_key_data_offset(i, offset);
-
-        if (m_layout.get_key_flags(start + i) & BtreeKey::kExtendedKey)
-          other->m_layout.set_key_flags(i,
-                    other->m_layout.get_key_flags(i) | BtreeKey::kExtendedKey);
-        else
-          other->m_layout.set_key_flags(i,
-                    other->m_layout.get_key_flags(i) & ~BtreeKey::kExtendedKey);
       }
 
       // now move all shifted keys to the freelist. those shifted keys are
@@ -2128,13 +2121,6 @@ class DefaultNodeImpl
                                 key_size + rec_size, false);
         m_layout.set_key_data_offset(count + i, offset);
         m_layout.set_key_size(count + i, other->get_key_size(i));
-
-        if (other->m_layout.get_key_flags(i) & BtreeKey::kExtendedKey)
-          m_layout.set_key_flags(count + i,
-                    m_layout.get_key_flags(count + i) | BtreeKey::kExtendedKey);
-        else
-          m_layout.set_key_flags(count + i,
-                    m_layout.get_key_flags(count + i) & ~BtreeKey::kExtendedKey);
       }
 
       other->set_next_offset(0);
@@ -2184,8 +2170,6 @@ class DefaultNodeImpl
                             / (m_layout.get_key_index_span()
                               + get_actual_key_size(key_size, has_duplicates)
                               + rec_size);
-          // TODO why does capacity have to be an even number?
-          capacity = (capacity & 1 ? capacity - 1 : capacity);
 
           // the default might not be precise and might be recalculated later
           m_recalc_capacity = true;

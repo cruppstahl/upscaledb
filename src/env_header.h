@@ -38,8 +38,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   /** version information - major, minor, rev, file */
   ham_u8_t  _version[4];
 
-  /** serial number */
-  ham_u32_t _serialno;
+  /** reserved */
+  ham_u32_t _reserved1;
 
   /** size of the page */
   ham_u32_t _page_size;
@@ -51,7 +51,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   ham_u8_t _journal_compression;
 
   /** reserved */
-  ham_u8_t _reserved1;
+  ham_u8_t _reserved2;
 
   /** blob id of the PageManager's state */
   ham_u64_t _pm_state;
@@ -113,16 +113,6 @@ class EnvironmentHeader
       get_header()->_version[1] = b;
       get_header()->_version[2] = c;
       get_header()->_version[3] = d;
-    }
-
-    // Returns the serial number
-    ham_u32_t get_serialno() {
-      return (ham_db2h32(get_header()->_serialno));
-    }
-
-    // Sets the serial number
-    void set_serialno(ham_u32_t n) {
-      get_header()->_serialno = ham_h2db32(n);
     }
 
     // Returns get the maximum number of databases for this file

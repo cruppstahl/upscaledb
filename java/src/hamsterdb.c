@@ -445,20 +445,6 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1version(JNIEnv *jenv, jclass jcls,
   return ((jint)v);
 }
 
-JNIEXPORT jstring JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1get_1license(JNIEnv *jenv, jclass jcls,
-    jint which)
-{
-  const char *p;
-
-  if (which == 0)
-    ham_get_license(&p, 0);
-  else /* if (which == 1) */
-    ham_get_license(0, &p);
-
-  return ((*jenv)->NewStringUTF(jenv, p));
-}
-
 JNIEXPORT void JNICALL
 Java_de_crupp_hamsterdb_Database_ham_1set_1errhandler(JNIEnv *jenv,
     jclass jcls, jobject jeh)

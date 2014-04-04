@@ -116,7 +116,21 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 // Environments.
 class BlobManager
 {
+  protected:
+    // Flags for the PBlobHeader structure
+    enum {
+      // Blob is compressed
+      kIsCompressed = 1
+    };
+
   public:
+    // Flags for allocate(); make sure that they do not conflict with
+    // the flags for ham_db_insert()
+    enum {
+      // Do not compress the blob, even if compression is enabled
+      kDisableCompression = 0x10000000
+    };
+
     BlobManager(LocalEnvironment *env)
       : m_env(env), m_metric_total_allocated(0), m_metric_total_read(0) {
     }
@@ -126,6 +140,8 @@ class BlobManager
     // Allocates/create a new blob.
     // This function returns the blob-id (the start address of the blob
     // header)
+    //
+    // |flags| can be HAM_PARTIAL, kDisableCompression
     ham_u64_t allocate(LocalDatabase *db, ham_record_t *record,
                     ham_u32_t flags);
 

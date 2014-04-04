@@ -23,8 +23,6 @@ public class Database {
 
   private native static int ham_get_version(int which);
 
-  private native static String ham_get_license(int which);
-
   private native static void ham_set_errhandler(ErrorHandler eh);
 
   private native int ham_db_get_error(long handle);
@@ -86,24 +84,6 @@ public class Database {
     v.minor = ham_get_version(1);
     v.revision = ham_get_version(2);
     return v;
-  }
-
-  /**
-   * Returns the name of the licensee and the name of the licensed product.
-   * <p>
-   * The licensee name will be empty for non-commercial versions.
-   * <p>
-   * This method wraps the native ham_get_license function.
-   * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gaf4067983dbb50dc2f8127bc90d1bc09f">C documentation</a>
-   *
-   * @return the hamsterdb licensee information
-   */
-  public static License getLicense() {
-    License l = new License();
-    l.licensee = ham_get_license(0);
-    l.product = ham_get_license(1);
-    return l;
   }
 
   /**

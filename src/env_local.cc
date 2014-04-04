@@ -16,7 +16,6 @@
 
 #include "config.h"
 
-#include "serial.h"
 #include "version.h"
 #include "db.h"
 #include "btree_index.h"
@@ -94,7 +93,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     m_header->set_magic('H', 'A', 'M', '\0');
     m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
             HAM_FILE_VERSION);
-    m_header->set_serialno(HAM_SERIALNO);
     m_header->set_page_size(m_page_size);
     m_header->set_max_databases(max_databases);
 

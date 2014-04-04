@@ -61,11 +61,6 @@ namespace Hamster
     static public extern void GetVersion(out int major, out int minor,
         out int revision);
 
-    [DllImport("hamsterdb-2.1.7.dll", EntryPoint = "ham_get_license",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern void GetLicense(out String licensee,
-        out String product);
-
     [DllImport("hamsterdb-2.1.7.dll", EntryPoint = "ham_env_create",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvCreate(out IntPtr handle, String fileName,

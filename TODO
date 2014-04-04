@@ -14,15 +14,21 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.1.8 ..................................................
+high-level plan for 2.1.7 pro ..............................................
 x hamsterdb pro: compression for journal
 x hamsterdb pro: compression for records
 x hamsterdb pro: aes encryption
-o hamsterdb pro: compression for keys
+x hamsterdb pro: compression for keys
 o hamsterdb pro: 30 day evaluation
 o hamsterdb: linear searches
 o hamsterdb pro: SIMD instructions
+
+high-level plan for 2.1.8 ..................................................
 o hamsterdb: more quickcheck tests
+o hamsterdb: upgrade libuv
+o hamsterdb: performance improvements for remote
+o hamsterdb: improve page splits
+o hamsterdb: delta updates
 
 
 
@@ -106,7 +112,9 @@ x do we really need the compression LEVEL parameters? if not then we can
     store the key compression flags very conveniently. otherwise we
     need extra storage! - no, remove it
 
-o PRO: heavyweight compression for keys
+x PRO: work over the license agreement; PRO will be similar to an NDA
+
+x PRO: heavyweight compression for keys
     -> support compression with lzf and the other libraries
     -> keys are stored compressed IF the compressed keys are smaller than the
         uncompressed keys
@@ -135,17 +143,19 @@ o PRO: heavyweight compression for keys
         x print in ham_bench
     x bugs raus
 
-    o blob mgr: do not compress extended keys if the keys are already compressed
-    o add header file documentation
-    o add to monster and perftests
-        o also test in combination with extended keys (very low threshold)
-        o also test in combination with encryption and record compression
-        o also test in-memory compression (keys + records)
-        o also test in combination with user_alloc
+    x blob mgr: do not compress extended keys if the keys are already compressed
+    x add header file documentation
+    x add to monster and perftests
+        x also test in combination with extended keys (very low threshold)
+        x also test in combination with encryption and record compression
+        x also test in-memory compression (keys + records)
+    x unittest: key/record compression with user_alloc
+    x fix TODOs in btree_impl_default.h
+    x run the full monster suite
 
-    o avoid virtual inheritance in Compressor classes; use template
-        implementations instead
-    o fix TODOs in btree_impl_default.h
+x PRO: if a compressor does not exist then ham_env_create_db should immediately
+    return an error (this is currently not the case)
+    x unittest
 
 o use linear search for PAX (see topic/linear), but improve the
     performance!
@@ -154,28 +164,40 @@ o PRO: use SIMD instructions for the linear search
     http://openproceedings.org/EDBT/2014/paper_107.pdf
 
 o PRO: 30 day evaluation library
-    o ham_time_t ham_is_evaluation(); -> returns end time, or 0
-    o insert 30 day trial check macros at various positions
-        o dynamically generate those macros
-    o needs different licensing output in the tools
-    o print to stdout in ham_env_create, ham_env_open
+    x remove the ham_get_license() API - it doesn't make sense and people
+        will not use it anyway
+        x also from erlang
+    x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
+    x insert 30 day trial check macros at various positions
+        x insert code in
+            x ham_env_create
+            x ham_env_open
+            x LocalDatabase::create
+            x LocalDatabase::open
+            x flushing transactions
+            x accepting remote connections
+        x implement with static functions and boost::posix_time::second_clock, 
+            boost::posix_time::microsec_clock, time(0)
+        x don't hardcode the timestamp but use a simple calculation, i.e.
+                (1396600000+2536), 0x533e76a8, 012317473250 etc
+            x return in ham_is_pro_evaluation()
+    x needs different licensing output in the tools (evaluation - XX days left)
+    x print message to stdout in ham_env_create, ham_env_open
+        x make sure that all strings are obfuscated!
     o evaluate source obfuscators
         sourceformat - http://www.sourceformat.com
         Stunnix - http://www.stunnix.com/prod/cxxo/pricing.shtml
         Mangle-It - http://www.brothersoft.com/mangle-it-c%2B%2B-obfuscator-91793.html
         Semantic Design - http://www.semdesigns.com/Purchase/
-        o also test the performance!
-    o create one source/win32 package starting at each week, running
-            4 weeks
+        o also test the performance of the generated code!
+    o need a license agreement similar to an NDA
+    o create one source/win32 package starting at each week, running 4 weeks
         o requires a build tool for unix and win32
         o on windows only build the DLLs, then run a quick test
                 (subset of the unittests)
-                and also check ham_is_evaluation(), ham_is_pro()
+                and also check ham_is_pro_evaluation(), ham_is_pro()
         o use source obfuscator
-        o ... but also rename the files (f01.cc, f02.cc, ...)
     o create automagically in release-build.pl
-
-o PRO: work over the license agreement; PRO will be similar to an NDA
 
 o PRO: extend release-tool
     o new switch --product=apl|pro (default: apl)
@@ -200,13 +222,75 @@ o PRO: additional stuff for the first release
         o file compatibility
         o ...
 
+    o need a database with commercial users
+        o upgrade the current users
+        o need a "download gate" api which verifies download links
+
     o webpage
-        o new layout
         x new marketing focus
         x feature matrix APL vs. closed source
-        o daily backups of the database
+        o new layout
+        o daily backups of the mysql database
         o can download commercial files using the admin-API to verify the
             login
+            o add to google analytics!
+            o use /download/commercial/<guid>/file for download; extract
+                <guid>, connect to the API and verify if it's valid
+
+o PRO: admin webpage
+    o database is hosted in openshift (mysql)
+    o install phpmyadmin
+    o create databases
+        company {
+            id
+            name
+            address
+            status: lead, trial, buyer, expired
+            contract start_date
+            contract end_date
+            notes
+        }
+        user {
+            company-id
+            user name
+            user email
+            phone
+            notes
+        }
+        release {
+            version
+            status: trial, pro
+            release_date
+            trial start_date
+            trial end_date
+            directory-location
+        }
+        download {
+            guid
+            company-id
+            release
+        }
+    o admin webpage is secured by htaccess (has a non-standard path)
+
+    o create php models for the different tables
+    o ... and methods to overwrite/add/remove them
+    o ... and views to list/display/edit them
+
+    o dashboard
+        o number of customers
+        o number of customers which will expire in less than 1 month
+        o number of trial customers
+        o number of trial customers ordered by expire date
+
+    o can list, add, edit, remove releases
+    o can list, add, edit, remove trial customers (w/ users)
+        o can upgrade to customer
+    o has an api to verify the GUIDs
+    o daily backup of the database to the other server
+
+    . expired 30day licenses will be removed automatically from the server
+        o and from the backup server
+        o and from the database
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
@@ -287,34 +371,6 @@ o delta updates managed in the BtreeNode
             the node
         o then merge the remaining inserts
         o this needs lots of tests
-
-. pro: admin webpage
-    o database is in openshift
-    o admin webpage is secured by htaccess (has a non-standard path)
-    o has a dashboard
-        o number of customers
-        o number of customers which will expire in less than 1 month
-        o number of trial customers
-        o number of trial customers which will expire in less than 1 week
-    o has a table with the releases
-    o has a table with the customers and their license status
-            (trial from-to, customer from-to)
-    o has a table with the links/guids for the customers
-    o can list, add, edit, remove releases
-    o can list, add, edit, remove customers
-    o can create a new trial customer
-    o can create a new (non-trial) customer
-    o can upgrade a customer
-    o can list trial customers which expire soon
-    o can list real customers which expire soon
-    o has an api to verify the GUIDs
-    o daily backup of the database to the other server
-
-    o need a second installation for testing!
-
-    . expired 30day licenses will be removed automatically from the server
-        o and from the backup server
-        o and from the database
 
 . collect file format updates
     o PageManager state: also store m_last_blob_page_id persistently

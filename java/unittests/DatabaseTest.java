@@ -47,13 +47,6 @@ public class DatabaseTest extends TestCase {
     assertEquals(1, v.minor);
   }
 
-  public void testGetLicense() {
-    License l = Database.getLicense();
-    assertEquals("", l.licensee); /* this fails if you have
-                    a licensed version */
-    assertEquals("hamsterdb embedded storage", l.product);
-  }
-
   public void testDatabase() {
     Database db = new Database(0);
     db.close();

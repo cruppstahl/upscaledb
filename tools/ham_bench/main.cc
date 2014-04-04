@@ -380,22 +380,41 @@ static option_t opts[] = {
     ARG_JOURNAL_COMPRESSION,
     0,
     "journal-compression",
-    "PRO: Enables journal compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    "PRO: Enables journal compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_RECORD_COMPRESSION,
     0,
     "record-compression",
-    "PRO: Enables record compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    "PRO: Enables record compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "PRO: Enables key compression (0: none, 1: zlib, 2: snappy, 3: lzf, 4: lzo)",
+    "PRO: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {0, 0}
 };
+
+static int
+parse_compression_type(const char *param)
+{
+  if (!strcmp(param, "none"))
+    return (HAM_COMPRESSOR_NONE);
+  if (!strcmp(param, "zlib"))
+    return (HAM_COMPRESSOR_ZLIB);
+  if (!strcmp(param, "snappy"))
+    return (HAM_COMPRESSOR_SNAPPY);
+  if (!strcmp(param, "lzf"))
+    return (HAM_COMPRESSOR_LZF);
+  if (!strcmp(param, "lzo"))
+    return (HAM_COMPRESSOR_LZO);
+  printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
+                  "'snappy', 'lzf', 'lzo'\n", param);
+  exit(-1);
+  return (HAM_COMPRESSOR_NONE);
+}
 
 static void
 parse_config(int argc, char **argv, Configuration *c)
@@ -700,13 +719,13 @@ parse_config(int argc, char **argv, Configuration *c)
       c->disable_recovery = true;
     }
     else if (opt == ARG_JOURNAL_COMPRESSION) {
-      c->journal_compression = strtoul(param, 0, 0);
+      c->journal_compression = parse_compression_type(param);
     }
     else if (opt == ARG_RECORD_COMPRESSION) {
-      c->record_compression = strtoul(param, 0, 0);
+      c->record_compression = parse_compression_type(param);
     }
     else if (opt == ARG_KEY_COMPRESSION) {
-      c->key_compression = strtoul(param, 0, 0);
+      c->key_compression = parse_compression_type(param);
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
@@ -787,6 +806,39 @@ print_metrics(Metrics *metrics, Configuration *conf)
     else
       printf("\t%s filesize                       %lu\n",
                   name, boost::filesystem::file_size("test-berk.db"));
+  }
+
+  // print journal compression ratio
+  if (conf->journal_compression && !strcmp(name, "hamsterdb")) {
+    float ratio;
+    if (metrics->hamster_metrics.journal_bytes_before_compression == 0)
+      ratio = 1.f;
+    else
+      ratio = (float)metrics->hamster_metrics.journal_bytes_after_compression
+                  / metrics->hamster_metrics.journal_bytes_before_compression;
+    printf("\t%s journal_compression            %.3f\n", name, ratio);
+  }
+
+  // print record compression ratio
+  if (conf->record_compression && !strcmp(name, "hamsterdb")) {
+    float ratio;
+    if (metrics->hamster_metrics.record_bytes_before_compression == 0)
+      ratio = 1.f;
+    else
+      ratio = (float)metrics->hamster_metrics.record_bytes_after_compression
+                  / metrics->hamster_metrics.record_bytes_before_compression;
+    printf("\t%s record_compression             %.3f\n", name, ratio);
+  }
+
+  // print key compression ratio
+  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
+    float ratio;
+    if (metrics->hamster_metrics.key_bytes_before_compression == 0)
+      ratio = 1.f;
+    else
+      ratio = (float)metrics->hamster_metrics.key_bytes_after_compression
+                  / metrics->hamster_metrics.key_bytes_before_compression;
+    printf("\t%s key_compression                %.3f\n", name, ratio);
   }
 
   if (conf->metrics != Configuration::kMetricsAll || strcmp(name, "hamsterdb"))

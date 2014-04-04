@@ -67,9 +67,6 @@ struct DbFixture {
     REQUIRE((ham_u8_t)2 == lenv->get_header()->get_version(1));
     REQUIRE((ham_u8_t)3 == lenv->get_header()->get_version(2));
     REQUIRE((ham_u8_t)4 == lenv->get_header()->get_version(3));
-
-    lenv->get_header()->set_serialno(0x1234);
-    REQUIRE(0x1234u == lenv->get_header()->get_serialno());
   }
 
   void structureTest() {

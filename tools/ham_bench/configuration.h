@@ -91,13 +91,20 @@ struct Configuration
   }
 
   void print() const {
+    static const char *compressors[] = {
+      "none",
+      "zlib",
+      "snappy",
+      "lzf",
+      "lzo"
+    };
     printf("Configuration: --seed=%lu ", seed);
     if (journal_compression)
-      printf("--journal-compression=%d ", journal_compression);
+      printf("--journal-compression=%s ", compressors[journal_compression]);
     if (record_compression)
-      printf("--record-compression=%d ", record_compression);
+      printf("--record-compression=%s ", compressors[record_compression]);
     if (key_compression)
-      printf("--key-compression=%d ", key_compression);
+      printf("--key-compression=%s ", compressors[key_compression]);
     if (use_encryption)
       printf("--use-encryption ");
     if (use_remote)

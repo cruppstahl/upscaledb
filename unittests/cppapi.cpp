@@ -111,8 +111,6 @@ TEST_CASE("CppApi/staticFunctionsTest", "")
 
   db.get_version(0, 0, 0);
   REQUIRE(".get_version() did not throw while receiving NULL arguments");
-  db.get_license(0, 0);
-  REQUIRE(".get_license() did not throw while receiving NULL arguments");
 }
 
 TEST_CASE("CppApi/compareTest", "")
@@ -363,20 +361,6 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
   REQUIRE((ham_u32_t)1 == (ham_u32_t)v.size());
   REQUIRE((ham_u16_t)1 == v[0]);
   env.close();
-}
-
-TEST_CASE("CppApi/getLicenseTest", "")
-{
-  const char *licensee = 0, *product = 0;
-
-  hamsterdb::db::get_license(0, 0);
-  hamsterdb::db::get_license(&licensee, 0);
-  REQUIRE(licensee != 0);
-  hamsterdb::db::get_license(0, &product);
-  REQUIRE(product != 0);
-  hamsterdb::db::get_license(&licensee, &product);
-  REQUIRE(licensee != 0);
-  REQUIRE(product != 0);
 }
 
 TEST_CASE("CppApi/beginAbortTest", "")

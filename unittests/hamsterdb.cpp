@@ -23,7 +23,6 @@
 
 #include "../src/db.h"
 #include "../src/version.h"
-#include "../src/serial.h"
 #include "../src/btree_index.h"
 #include "../src/env.h"
 #include "../src/page.h"
@@ -72,16 +71,6 @@ struct HamsterdbFixture {
     REQUIRE((ham_u32_t)HAM_VERSION_MAJ == major);
     REQUIRE((ham_u32_t)HAM_VERSION_MIN == minor);
     REQUIRE((ham_u32_t)HAM_VERSION_REV == revision);
-  };
-
-  void licenseTest() {
-    const char *licensee = 0, *product = 0;
-
-    ham_get_license(0, 0);
-    ham_get_license(&licensee, &product);
-
-    REQUIRE(0 == strcmp(HAM_LICENSEE, licensee));
-    REQUIRE(0 == strcmp(HAM_PRODUCT_NAME, product));
   };
 
   void openTest() {
@@ -1986,12 +1975,6 @@ TEST_CASE("Hamsterdb/versionTest", "")
 {
   HamsterdbFixture f;
   f.versionTest();
-}
-
-TEST_CASE("Hamsterdb/licenseTest", "")
-{
-  HamsterdbFixture f;
-  f.licenseTest();
 }
 
 TEST_CASE("Hamsterdb/openTest", "")

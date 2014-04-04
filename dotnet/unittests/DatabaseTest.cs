@@ -83,13 +83,6 @@ namespace Unittests
         }
 
         [TestMethod()]
-        public void GetLicense() {
-            Hamster.License l = Database.GetLicense();
-            Assert.AreEqual("", l.licensee); // this fails if you have a licensed version
-            Assert.AreEqual("hamsterdb embedded storage", l.product);
-        }
-
-        [TestMethod()]
         public void DatabaseClose() {
             Database db = new Database();
             try {

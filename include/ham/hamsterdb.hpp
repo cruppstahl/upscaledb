@@ -286,11 +286,6 @@ class db {
       ham_get_version(major, minor, revision);
     }
 
-    /** Retrieves hamsterdb library license information. */
-    static void get_license(const char **licensee, const char **product) {
-      ham_get_license(licensee, product);
-    }
-
     /** Constructor */
     db()
       : m_db(0) {

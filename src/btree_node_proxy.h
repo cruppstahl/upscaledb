@@ -565,7 +565,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       if (!count)
         count = get_count();
       for (ham_u32_t i = 0; i < count; i++, it->next()) {
-        if (it->get_key_flags() & BtreeKey::kExtendedKey) {
+        if (it->get_key_flags() & BtreeKey::kExtendedKey
+            || it->get_key_flags() & BtreeKey::kCompressed) {
           ham_key_t key = {0};
           get_key(i, &arena, &key);
           printf("%03u: EX %s (%d) -> %08llx\n", i, (const char *)key.data,

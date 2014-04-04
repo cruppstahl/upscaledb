@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <time.h>
 
 #include <ham/hamsterdb_int.h>
 
@@ -24,8 +25,6 @@ void
 print_banner(const char *program_name)
 {
   ham_u32_t maj, min, rev;
-  const char *licensee, *product;
-  ham_get_license(&licensee, &product);
   ham_get_version(&maj, &min, &rev);
 
   printf("hamsterdb %s%d.%d.%d - Copyright (C) 2005-2014 "
@@ -45,9 +44,12 @@ print_banner(const char *program_name)
 "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
 "See the License for the specific language governing permissions and\n"
 "limitations under the License.\n\n");
-  else
-    printf(
-       "Commercial version; licensed to %s (%s).\n\n",
-       licensee ? licensee : "", product);
+  else {
+    time_t end = ham_is_pro_evaluation();
+    if (end != 0)
+      printf("Commercial evaluation version; valid till %s.\n", ctime(&end));
+    else
+      printf("Commercial version.\n\n");
+  }
 }
 

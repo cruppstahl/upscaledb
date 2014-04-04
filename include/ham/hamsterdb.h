@@ -459,16 +459,6 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
             ham_u32_t *revision);
 
 /**
- * Returns the name of the licensee and the name of the licensed product
- *
- * @param licensee If not NULL, will point to the licensee name, or to
- *    an empty string "" for non-commercial versions
- * @param product Points to the product name
- */
-HAM_EXPORT void HAM_CALLCONV
-ham_get_license(const char **licensee, const char **product);
-
-/**
  * @}
  */
 
@@ -726,16 +716,22 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
  *
- * A Database can be configured and optimized for the data that is inserted.
- * The data is described through flags and parameters. hamsterdb
+ * A Database can (and should) be configured and optimized for the data that
+ * is inserted. The data is described through flags and parameters. hamsterdb
  * differentiates between several data characteristics, and offers predefined
- * "types" to describe the keys. Numeric key types are stored in host endian
- * format and are NOT endian converted! In general, the default key type
+ * "types" to describe the keys. In general, the default key type
  * (@ref HAM_TYPE_BINARY) is slower than the other types, and
  * fixed-length binary keys (@ref HAM_TYPE_BINARY in combination with
  * @ref HAM_PARAM_KEY_SIZE) is faster than variable-length binary
- * keys. It is therefore recommended to set the key size and record size,
+ * keys. It is therefore recommended to always set the key size and record size,
  * although it is not required.
+ *
+ * Internally, hamsterdb uses two different layouts ("default" and "pax)
+ * depending on the settings specified by the user. The "default" layout
+ * is enabled for variable-length keys or if duplicate keys are enabled.
+ * For fixed-length keys (without duplicates) the "pax" layout is chosen.
+ * The "pax" layout is more compact and usually faster.
+ *
  * See the Wiki documentation for <a href=
    "https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking">
  * Evaluating and Benchmarking</a> on how to test different configurations and
@@ -757,10 +753,13 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *   <li>HAM_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer
  *   <li>HAM_TYPE_UINT64</li> Key is a 64bit (8 byte) unsigned integer
  *   <li>HAM_TYPE_REAL32</li> Key is a 32bit (4 byte) float
- *   <li>HAM_TYPE_REAL64</li> Key is a 64bit (8 byte) doubles
+ *   <li>HAM_TYPE_REAL64</li> Key is a 64bit (8 byte) double
  * </ul>
  *
  * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.
+ *
+ * Numeric key types are stored in host endian format and are NOT endian
+ * converted!
  *
  * If binary/custom keys are so big that they cannot be stored in the Btree,
  * then the full key will be stored in an overflow area, which has
@@ -1595,6 +1594,9 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *        and duplicates are disabled; otherwise it's an estimate.
  *    <li>@ref HAM_PARAM_RECORD_COMPRESSION</li> Returns the
  *        selected algorithm for record compression, or 0 if compression
+ *        is disabled
+ *    <li>@ref HAM_PARAM_KEY_COMPRESSION</li> Returns the
+ *        selected algorithm for key compression, or 0 if compression
  *        is disabled
  *    </ul>
  *

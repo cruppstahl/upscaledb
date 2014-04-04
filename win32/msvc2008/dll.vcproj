@@ -617,10 +617,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\serial.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\statistics.h"
 			>
 		</File>

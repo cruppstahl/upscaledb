@@ -41,7 +41,6 @@
 #include "mem.h"
 #include "os.h"
 #include "page.h"
-#include "serial.h"
 #include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
@@ -309,15 +308,6 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
     *minor = HAM_VERSION_MIN;
   if (revision)
     *revision = HAM_VERSION_REV;
-}
-
-void HAM_CALLCONV
-ham_get_license(const char **licensee, const char **product)
-{
-  if (licensee)
-    *licensee = HAM_LICENSEE;
-  if (product)
-    *product = HAM_PRODUCT_NAME;
 }
 
 ham_status_t HAM_CALLCONV
@@ -1921,4 +1911,10 @@ ham_bool_t HAM_CALLCONV
 ham_is_pro()
 {
   return (HAM_FALSE);
+}
+
+ham_u32_t HAM_CALLCONV
+ham_is_pro_evaluation()
+{
+  return (0);
 }

@@ -225,8 +225,6 @@ main(int argc, char **argv) {
   char *param, *infilename = 0, *outfilename = 0;
 
   ham_u32_t maj, min, rev;
-  const char *licensee, *product;
-  ham_get_license(&licensee, &product);
   ham_get_version(&maj, &min, &rev);
 
   getopts_init(argc, argv, "ham_export");
