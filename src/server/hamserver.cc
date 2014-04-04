@@ -1225,14 +1225,18 @@ on_close_connection(uv_handle_t *handle)
   Memory::release(handle);
 }
 
-static uv_buf_t
-on_alloc_buffer(uv_handle_t *handle, size_t size)
+static void
+on_alloc_buffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
 {
-  return (uv_buf_init(Memory::allocate<char>(size), size));
+  buf->base = Memory::allocate<char>(size);
+  buf->len = size;
 }
 
+// TODO
+// this routine uses a ByteArray to allocate memory; should we directly use
+// |buf| instead, and then re-use |buf| instead of releasing the memory?
 static void
-on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
+on_read_data(uv_stream_t *tcp, ssize_t nread, const uv_buf_t *buf)
 {
   ham_assert(tcp != 0);
   ham_u32_t size = 0;
@@ -1246,7 +1250,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
   if (nread >= 0) {
     // if we already started buffering data: append the data to the buffer
     if (!buffer->is_empty()) {
-      buffer->append(buf.base, nread);
+      buffer->append(buf->base, nread);
 
       // for each full package in the buffer...
       while (buffer->get_size() > 8) {
@@ -1274,8 +1278,8 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
 
     // we have not buffered data from previous calls; try to dispatch the
     // current network packet
-    ham_u8_t *p = (ham_u8_t *)buf.base;
-    while (p < (ham_u8_t *)buf.base + nread) {
+    ham_u8_t *p = (ham_u8_t *)buf->base;
+    while (p < (ham_u8_t *)buf->base + nread) {
       size = 8 + *(ham_u32_t *)(p + 4);
       if (size <= nread) {
         close_client = !dispatch(context->srv, tcp, p, size);
@@ -1297,7 +1301,8 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
 bail:
   if (close_client || nread < 0)
     uv_close((uv_handle_t *)tcp, on_close_connection);
-  Memory::release(buf.base);
+  Memory::release(buf->base);
+  //buf->base = 0;
 }
 
 static void
@@ -1311,7 +1316,7 @@ on_new_connection(uv_stream_t *server, int status)
   uv_tcp_t *client = Memory::allocate<uv_tcp_t>(sizeof(uv_tcp_t));
   client->data = new ClientContext(srv);
 
-  uv_tcp_init(srv->loop, client);
+  uv_tcp_init(&srv->loop, client);
   if (uv_accept(server, (uv_stream_t *)client) == 0)
     uv_read_start((uv_stream_t *)client, on_alloc_buffer, on_read_data);
   else
@@ -1347,24 +1352,24 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
 {
   ServerContext *srv = new ServerContext();
 
-  srv->loop = uv_loop_new();
+  uv_loop_init(&srv->loop);
+  uv_tcp_init(&srv->loop, &srv->server);
 
-  uv_tcp_init(srv->loop, &srv->server);
-
-  struct sockaddr_in bind_addr = uv_ip4_addr("0.0.0.0", config->port);
-  uv_tcp_bind(&srv->server, bind_addr);
+  struct sockaddr_in bind_addr;
+  uv_ip4_addr("0.0.0.0", config->port, &bind_addr);
+  uv_tcp_bind(&srv->server, (sockaddr *)&bind_addr, 0);
   srv->server.data = srv;
   int r = uv_listen((uv_stream_t *)&srv->server, 128,
-          hamsterdb::on_new_connection);
+            hamsterdb::on_new_connection);
   if (r) {
     ham_log(("failed to listen to port %d", config->port)); 
     return (HAM_IO_ERROR);
   }
 
   srv->async.data = srv;
-  uv_async_init(srv->loop, &srv->async, on_async_cb);
+  uv_async_init(&srv->loop, &srv->async, on_async_cb);
 
-  uv_thread_create(&srv->thread_id, on_run_thread, srv->loop);
+  uv_thread_create(&srv->thread_id, on_run_thread, &srv->loop);
 
   *psrv = (ham_srv_t *)srv;
   return (HAM_SUCCESS);
@@ -1401,7 +1406,7 @@ ham_srv_close(ham_srv_t *hsrv)
   // TODO clean up all allocated objects and handles
 
   /* stop the event loop */
-  uv_stop(srv->loop);
+  uv_stop(&srv->loop);
   uv_async_send(&srv->async);
 
   /* join the libuv thread */
@@ -1412,7 +1417,7 @@ ham_srv_close(ham_srv_t *hsrv)
   uv_close((uv_handle_t *)&srv->server, 0);
 
   /* clean up libuv */
-  uv_loop_delete(srv->loop);
+  uv_loop_close(&srv->loop);
 
   delete srv;
 

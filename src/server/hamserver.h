@@ -59,7 +59,7 @@ typedef std::map<std::string, Environment *> EnvironmentMap;
 class ServerContext {
   public:
     ServerContext()
-      : thread_id(0), loop(0), m_inducer(0), m_handle_counter(1) {
+      : thread_id(0), m_inducer(0), m_handle_counter(1) {
       memset(&server, 0, sizeof(server));
       memset(&async, 0, sizeof(async));
     }
@@ -255,7 +255,7 @@ class ServerContext {
     uv_tcp_t server;
     uv_thread_t thread_id;
     uv_async_t async;
-	uv_loop_t *loop;
+	uv_loop_t loop;
     EnvironmentMap open_envs;
     ErrorInducer *m_inducer;
 

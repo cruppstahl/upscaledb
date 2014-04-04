@@ -126,28 +126,6 @@ fi
 AM_CONDITIONAL(ENABLE_JAVA, test "x$enable_java" != "xno")
 
 # -------------------------------------------------------------------------
-# Disable AES encryption?
-# -------------------------------------------------------------------------
-AC_ARG_ENABLE(encryption,
-  AS_HELP_STRING([--disable-encryption], [Disable AES encryption]))
-if test x$enable_encryption = xno; then
-  settings="$settings (no encryption)"
-else
-  settings="$settings (encryption)"
-  AC_CHECK_LIB(crypto, EVP_EncryptInit_ex)
-  AC_CHECK_HEADERS(openssl/evp.h)
-fi
-AM_CONDITIONAL(ENABLE_ENCRYPTION, test x$enable_encryption != xno)
-if test x$ac_cv_lib_crypto_EVP_EncryptInit_ex = xno; then
-  settings="$settings (libcrypto missing - encryption disabled)"
-  enable_encryption="no"
-fi
-if test "x$ac_cv_header_openssl_evp_h" = xno; then
-  settings="$settings (ssl-devel missing - encryption disabled)"
-  enable_encryption="no"
-fi
-
-# -------------------------------------------------------------------------
 # Check for little endian/big endian
 # -------------------------------------------------------------------------
 AC_C_BIGENDIAN(ac_big_endian=yes, ac_big_endian=no, ac_big_endian=no)
@@ -245,11 +223,6 @@ if test x$enable_java = xno; then
 printf "#\n"
 printf "# The Java API is not built because you specified\n"
 printf "# --disable-java or because \$JDK is not set\n"
-fi
-if test x$enable_encryption = xno; then
-printf "#\n"
-printf "# The AES encryption is disabled because you specified\n"
-printf "# --disable-encryption or because of missing dependencies!\n"
 fi
 
 # Recommend to use tcmalloc - but not on MacOS because it has some issues,
