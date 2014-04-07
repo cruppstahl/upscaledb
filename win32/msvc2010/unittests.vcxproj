@@ -208,6 +208,7 @@
     <ClCompile Include="..\..\unittests\partial.cpp" />
     <ClCompile Include="..\..\unittests\recno.cpp" />
     <ClCompile Include="..\..\unittests\remote.cpp" />
+    <ClCompile Include="..\..\unittests\simd.cpp" />
     <ClCompile Include="..\..\unittests\txn.cpp" />
     <ClCompile Include="..\..\unittests\txn_cursor.cpp" />
   </ItemGroup>

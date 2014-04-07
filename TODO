@@ -168,8 +168,7 @@ x PRO: if a compressor does not exist then ham_env_create_db should immediately
     return an error (this is currently not the case)
     x unittest
 
-o use linear search for PAX (see topic/linear), but improve the
-    performance!
+x use linear search for PAX (see topic/linear), but improve the
 
 x run benchmark with this:
     -mfpmath=sse -Ofast -flto -march=native -funroll-loops
@@ -366,33 +365,32 @@ o performance question: running ham_bench with 10mio keys (uint32, no records)
 >>>>>>> More SIMD related changes
 
 o PRO: 30 day evaluation library
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> Removed ham_get_license
+    o configure switch --enable-sse2: adds -msse2 to CFLAGS
+        o by default: `grep /proc/cpuinfo sse2`
+    o need to figure out whether the CPU supports SSE/SSE2 (also on Windows)
+        http://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
+    o metrics: add whether sse2 is supported
+
+    o replace linear search with the SSE2 variant outlined in
+        http://schani.wordpress.com/2010/04/30/linear-vs-binary-search/
+        o for uint32: 16 keys at once
+        o for real32: 16 keys at once
+        o for uint64: 8 keys at once
+        o for real64: 8 keys at once
+    o also perform binary searches with SSE2
+        http://openproceedings.org/EDBT/2014/paper_107.pdf
+
+o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
         will not use it anyway
         x also from erlang
     x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
     x insert 30 day trial check macros at various positions
-<<<<<<< HEAD
-=======
-=======
-    o remove the ham_get_license() API - it doesn't make sense and people
-=======
     x remove the ham_get_license() API - it doesn't make sense and people
->>>>>>> Removed ham_get_license
         will not use it anyway
         x also from erlang
     x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
-<<<<<<< HEAD
-    o insert 30 day trial check macros at various positions
->>>>>>> Removed ham_get_license
-=======
     x insert 30 day trial check macros at various positions
->>>>>>> Removed ham_get_license
->>>>>>> Removed ham_get_license
         x insert code in
             x ham_env_create
             x ham_env_open
@@ -818,6 +816,7 @@ o architecture for a new webpage
         o importing new releases
         o etc
 
+<<<<<<< HEAD
 o architecture for a new webpage
     o pick an awesome design
         i.e. similar to http://foundationdb.com, http://laravel.com
@@ -863,12 +862,37 @@ o PRO: add sse support for real64
 >>>>>>> Updated TODO
 o PRO: bulk updates (really only for pro?)
 =======
+<<<<<<< HEAD
+=======
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+        (try not to break backwards compatibility, though)
+    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
+    o reserve CRC32 for each page
+>>>>>>> Returning error if invalid compressor is selected
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 o PRO: bulk updates
+<<<<<<< HEAD
 >>>>>>> SIMD preparations, part 2
+=======
+>>>>>>> Returning error if invalid compressor is selected
+>>>>>>> Returning error if invalid compressor is selected
     - require delta updates
+
+----------------------------------
+
+- "hola" - olap functions that operate directly on the btree data
+- prefetch cache lines when searching
+- linear SIMD search -> PRO
+- encrypt the log and the environment file with AES -> PRO
+- compress the log with snappy -> PRO
+- compress the records with snappy -> PRO
+- hot backups (vacuumizes to a different file) -> PRO
+- bulk updates -> PRO
+>>>>>>> Improved transaction performance by reducing memory allocations
+>>>>>>> Adding SIMD support for PAX layout
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the btree node,

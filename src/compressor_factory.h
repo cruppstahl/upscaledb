@@ -25,6 +25,9 @@ namespace hamsterdb {
 
 class CompressorFactory {
   public:
+    // Returns true if the specified compressor is available, otherwise false
+    static bool is_available(int type);
+
     // Creates a new Compressor instance for the specified |type| (being
     // HAM_COMPRESSOR_ZLIB, HAM_COMPRESSOR_SNAPPY etc)
     static Compressor *create(int type);

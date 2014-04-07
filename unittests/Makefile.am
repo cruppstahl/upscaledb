@@ -74,6 +74,7 @@ test_SOURCES    = api110.cpp \
 				  partial-write-ps4.h \
 				  partial-write-ps64.h \
 				  recno.cpp \
+				  simd.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp
 
@@ -109,6 +110,10 @@ if WITH_LZOP
 test_LDADD     += -llzo2
 recovery_LDADD += -llzo2
 endif
+endif
+
+if ENABLE_SSE2
+AM_CPPFLAGS    += -DHAM_ENABLE_SSE2
 endif
 
 valgrind:

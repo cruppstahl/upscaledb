@@ -26,7 +26,7 @@
 #include "env_local.h"
 #include "cursor.h"
 #include "txn_cursor.h"
-#include "os.h"
+#include "compressor_factory.h"
 
 using namespace hamsterdb;
 
@@ -602,15 +602,15 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_RECORD_COMPRESSION:
-          if (param->value > 4) {
-            ham_trace(("invalid algorithm for record compression"));
+          if (!CompressorFactory::is_available(param->value)) {
+            ham_trace(("unknown algorithm for record compression"));
             return (HAM_INV_PARAMETER);
           }
           record_compressor = (int)param->value;
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          if (param->value > 4) {
-            ham_trace(("invalid algorithm for key compression"));
+          if (!CompressorFactory::is_available(param->value)) {
+            ham_trace(("unknown algorithm for key compression"));
             return (HAM_INV_PARAMETER);
           }
           key_compressor = (int)param->value;

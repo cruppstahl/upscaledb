@@ -124,3 +124,12 @@ AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
 libhamsterdb_la_LIBADD += $(top_builddir)/src/protocol/libprotocol.la
 endif
 
+if ENABLE_SIMD
+AM_CPPFLAGS += -DHAM_ENABLE_SIMD
+endif
+if ENABLE_SSE2
+AM_CXXFLAGS  = -msse2
+endif
+if ENABLE_AVX
+AM_CXXFLAGS  = -mavx
+endif

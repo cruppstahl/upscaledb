@@ -7,6 +7,28 @@ dnl information.
 dnl
 
 # -------------------------------------------------------------------------
+# Disable AES encryption?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(encryption,
+  AS_HELP_STRING([--disable-encryption], [Disable AES encryption]))
+if test x$enable_encryption = xno; then
+  settings="$settings (no encryption)"
+else
+  settings="$settings (encryption)"
+  AC_CHECK_LIB(crypto, EVP_EncryptInit_ex)
+  AC_CHECK_HEADERS(openssl/evp.h)
+fi
+AM_CONDITIONAL(ENABLE_ENCRYPTION, test x$enable_encryption != xno)
+if test x$ac_cv_lib_crypto_EVP_EncryptInit_ex = xno; then
+  settings="$settings (libcrypto missing - encryption disabled)"
+  enable_encryption="no"
+fi
+if test "x$ac_cv_header_openssl_evp_h" = xno; then
+  settings="$settings (ssl-devel missing - encryption disabled)"
+  enable_encryption="no"
+fi
+
+# -------------------------------------------------------------------------
 # Disable compression?
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(compression,
@@ -40,5 +62,37 @@ else
     AM_CONDITIONAL(WITH_LZOP, false)
   fi
 fi
+
+# -------------------------------------------------------------------------
+# Disable SIMD?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(simd,
+  AS_HELP_STRING([--disable-simd], [Disables use of SIMD instructions]))
+AM_CONDITIONAL(ENABLE_SIMD, test x$enable_simd != xno)
+if test x$enable_simd = xno; then
+  settings="$settings (no simd)"
+else
+  if grep -q sse2 /proc/cpuinfo; then
+    AM_CONDITIONAL(ENABLE_SSE2, true)
+    settings="$settings (SIMD/sse2)"
+  else
+    AM_CONDITIONAL(ENABLE_SSE2, false)
+    AM_CONDITIONAL(ENABLE_SIMD, false)
+    settings="$settings (no sse2)"
+  fi
+  if grep -q avx /proc/cpuinfo; then
+    AM_CONDITIONAL(ENABLE_AVX, true)
+    settings="$settings (SIMD/avx)"
+  else
+    AM_CONDITIONAL(ENABLE_AVX, false)
+    settings="$settings (no avx)"
+  fi
+fi
+
+# Messages
+printf '#================================================================\n'
+printf "# Configuring hamsterdb-pro version $PACKAGE_VERSION\n"
+printf "# Settings:$settings\n"
+printf '#================================================================\n'
 
 AC_CONFIG_FILES(3rdparty/liblzf/Makefile)

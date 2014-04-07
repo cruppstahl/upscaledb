@@ -604,6 +604,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\unittests\simd.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\txn.cpp"
 			>
 		</File>

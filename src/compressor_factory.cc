@@ -24,6 +24,39 @@
 
 namespace hamsterdb {
 
+bool
+CompressorFactory::is_available(int type)
+{
+#ifdef HAM_ENABLE_COMPRESSION
+  switch (type) {
+    case HAM_COMPRESSOR_ZLIB:
+#ifdef HAVE_ZLIB_H
+      return (true);
+#else
+      return (false);
+#endif
+    case HAM_COMPRESSOR_SNAPPY:
+#ifdef HAVE_SNAPPY_H
+      return (true);
+#else
+      return (false);
+#endif
+    case HAM_COMPRESSOR_LZO:
+#ifdef HAVE_LZO_LZO1X_H
+      return (true);
+#else
+      return (false);
+#endif
+    case HAM_COMPRESSOR_LZF:
+      // this is always available
+      return (true);
+    default:
+      return (false);
+  }
+#endif // HAM_ENABLE_COMPRESSION
+  return (false);
+}
+
 Compressor *
 CompressorFactory::create(int type)
 {

@@ -520,4 +520,20 @@ TEST_CASE("Compression/userAllocTest", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
+TEST_CASE("Compression/unknownCompressorTest", "")
+{
+  ham_parameter_t params[] = {
+    {HAM_PARAM_RECORD_COMPRESSION, 44},
+    {HAM_PARAM_KEY_COMPRESSION, 55},
+    {0, 0}
+  };
+  ham_db_t *db;
+  ham_env_t *env;
+  REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+                          HAM_IN_MEMORY, 0, 0));
+  REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &params[0]));
+
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}
+
 #endif // HAM_ENABLE_COMPRESSION

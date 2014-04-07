@@ -42,6 +42,7 @@
 #include "txn.h"
 #include "util.h"
 #include "version.h"
+#include "compressor_factory.h"
 
 //30DAYEVAL_PREPARE
 
@@ -361,8 +362,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        if (param->value > 4) {
-          ham_trace(("invalid algorithm for journal compression"));
+        if (!CompressorFactory::is_available(param->value)) {
+          ham_trace(("unknown algorithm for journal compression"));
           return (HAM_INV_PARAMETER);
         }
         journal_compression = (int)param->value;
