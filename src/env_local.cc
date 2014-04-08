@@ -29,6 +29,7 @@
 #include "env_local.h"
 #include "cursor.h"
 #include "txn_cursor.h"
+#include "os.h"
 
 using namespace hamsterdb;
 
@@ -841,6 +842,8 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
     m_journal->get_metrics(metrics);
   // and of the btrees
   BtreeIndex::get_metrics(metrics);
+  // SIMD support enabled?
+  metrics->simd_lane_width = os_get_simd_lane_width();
 }
 
 ham_u64_t

@@ -138,23 +138,6 @@ else
 fi
 
 # -------------------------------------------------------------------------
-# Check if we use gcc >= 4.3 - if not, disable some optimizations
-# This caused crashes with older versions of gcc
-# -------------------------------------------------------------------------
-AC_CACHE_CHECK(whether we can use -fno-tree-vectorize, ac_cv_gcctreevec,
-  [AC_RUN_IFELSE([AC_LANG_SOURCE([[
-int main(void) {
-#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3)
-  return 0;
-#else
-  return 1;
-#endif
-}]])], ac_cv_gcctreevec=yes, ac_cv_gcctreevec=no, ac_cv_gcctreevec=no)])
-if test x$ac_cv_gcctreevec = xno; then
-  CFLAGS="${CFLAGS} -fno-tree-vectorize"
-fi
-
-# -------------------------------------------------------------------------
 # Check if protocol buffers are installed
 # -------------------------------------------------------------------------
 AC_LANG(C++)

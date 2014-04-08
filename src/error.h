@@ -39,11 +39,6 @@ extern ham_errhandler_fun g_handler;
 // the default error handler
 void HAM_CALLCONV default_errhandler(int level, const char *message);
 
-// function prototypes, required for asserts etc
-extern void dbg_lock(void);
-
-extern void dbg_unlock(void);
-
 extern void dbg_prepare(int level, const char *file, int line,
     const char *function, const char *expr);
 
@@ -77,11 +72,9 @@ extern void (*ham_test_abort)();
  */
 #ifdef HAM_DEBUG
 #   define ham_assert(e) if (!(e)) {                                          \
-                hamsterdb::dbg_lock();                                        \
                 hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
                     __LINE__, __FUNCTION__, #e);                              \
                 hamsterdb::dbg_verify_failed(0);                              \
-                hamsterdb::dbg_unlock();                                      \
               }
 #else /* !HAM_DEBUG */
 #   define ham_assert(e)      (void)0
@@ -89,27 +82,21 @@ extern void (*ham_test_abort)();
 
 // ham_log() and ham_verify() are available in every build
 #define ham_trace(f)     do {                                                 \
-                hamsterdb::dbg_lock();                                        \
                 hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_DEBUG, __FILE__,       \
                     __LINE__, __FUNCTION__, 0);                               \
                 hamsterdb::dbg_log f;                                         \
-                hamsterdb::dbg_unlock();                                      \
               } while (0)
 
 #define ham_log(f)       do {                                                 \
-                hamsterdb::dbg_lock();                                        \
                 hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_NORMAL, __FILE__,      \
                     __LINE__, __FUNCTION__, 0);                               \
                 hamsterdb::dbg_log f;                                         \
-                hamsterdb::dbg_unlock();                                      \
               } while (0)
 
 #define ham_verify(e)      if (!(e)) {                                        \
-                hamsterdb::dbg_lock();                                        \
                 hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
                     __LINE__, __FUNCTION__, #e);                              \
                 hamsterdb::dbg_verify_failed(0);                              \
-                hamsterdb::dbg_unlock();                                      \
               }
 
 } // namespace hamsterdb

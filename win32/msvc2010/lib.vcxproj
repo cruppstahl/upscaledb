@@ -252,6 +252,7 @@
     <ClCompile Include="..\..\src\hamsterdb.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
     <ClCompile Include="..\..\src\mem.cc" />
+    <ClCompile Include="..\..\src\os.cc" />
     <ClCompile Include="..\..\src\os_win32.cc" />
     <ClCompile Include="..\..\src\page.cc" />
     <ClCompile Include="..\..\src\page_manager.cc" />

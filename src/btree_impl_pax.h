@@ -835,6 +835,17 @@ class PaxNodeImpl
       return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
     }
 
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      int cmp;
+      int r = find(key, comparator, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+
     // Returns a copy of a key and stores it in |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
       LocalDatabase *db = m_page->get_db();
@@ -1094,6 +1105,17 @@ class PaxNodeImpl
       return (it->get_record_count());
     }
 
+    // Returns the record id
+    ham_u64_t get_record_id(ham_u32_t slot) const {
+      ham_u64_t p = *(ham_u64_t *)m_records.get_record_data(slot);
+      return (ham_db2h_offset(p));
+    }
+
+    // Sets the record id
+    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+      m_records.set_record_id(slot, ptr);
+    }
+
     // Clears the page with zeroes and reinitializes it
     void test_clear_page() {
       // this is not yet in use
@@ -1164,16 +1186,6 @@ class PaxNodeImpl
     // Returns a pointer to the record id
     const ham_u64_t *get_record_data(ham_u32_t slot) const {
       return ((ham_u64_t *)m_records.get_record_data(slot));
-    }
-
-    // Returns the record id
-    ham_u64_t get_record_id(ham_u32_t slot) const {
-      return (ham_db2h_offset(*get_record_data(slot)));
-    }
-
-    // Sets the record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
-      m_records.set_record_id(slot, ptr);
     }
 
     // Sets the record data

@@ -216,6 +216,9 @@ typedef struct ham_env_metrics_t {
   // PRO: key bytes after compression
   ham_u64_t key_bytes_after_compression;
 
+  // PRO: set to the max. SIMD lane width (0 if SIMD is not available)
+  int simd_lane_width;
+
 } ham_env_metrics_t;
 
 /**

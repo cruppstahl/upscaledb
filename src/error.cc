@@ -23,7 +23,6 @@
 
 #include "error.h"
 #include "util.h"
-#include "mutex.h"
 
 namespace hamsterdb {
 
@@ -59,20 +58,6 @@ default_errhandler(int level, const char *message)
 }
 
 ham_errhandler_fun g_handler = default_errhandler;
-
-static Mutex dbg_mutex;
-
-void
-dbg_lock(void)
-{
-  dbg_mutex.lock();
-}
-
-void
-dbg_unlock(void)
-{
-  dbg_mutex.unlock();
-}
 
 void
 dbg_prepare(int level, const char *file, int line, const char *function,

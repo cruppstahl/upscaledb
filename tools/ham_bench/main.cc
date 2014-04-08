@@ -88,6 +88,7 @@
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
 #define ARG_PAX_LINEAR_THRESHOLD                65
+#define ARG_PAX_DISABLE_SIMD                    66
 
 /*
  * command line parameters
@@ -399,8 +400,14 @@ static option_t opts[] = {
     ARG_PAX_LINEAR_THRESHOLD,
     0,
     "pax-linear-threshold",
-    "Sets the threshold when switching from binary search to linear search (PAX only",
+    "Sets the threshold when switching from binary search to linear search (PAX only)",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_PAX_DISABLE_SIMD,
+    0,
+    "pax-disable-simd",
+    "Enables use of SIMD instructions (PAX only)",
+    0 },
   {0, 0}
 };
 
@@ -425,6 +432,7 @@ parse_compression_type(const char *param)
 
 namespace hamsterdb {
 extern int g_linear_threshold;
+extern bool g_is_simd_enabled;
 };
 
 static void
@@ -741,6 +749,9 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
       hamsterdb::g_linear_threshold = strtoul(param, 0, 0);
     }
+    else if (opt == ARG_PAX_DISABLE_SIMD) {
+      hamsterdb::g_is_simd_enabled = false;
+    }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;
     }
@@ -896,6 +907,8 @@ print_metrics(Metrics *metrics, Configuration *conf)
           metrics->hamster_metrics.extended_duptables);
   printf("\thamsterdb journal_bytes_flushed       %lu\n",
           metrics->hamster_metrics.journal_bytes_flushed);
+  printf("\thamsterdb simd_lane_width             %d\n",
+          metrics->hamster_metrics.simd_lane_width);
 }
 
 struct Callable

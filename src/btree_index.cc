@@ -42,6 +42,7 @@ ham_u64_t g_extended_duptables = 0;
 ham_u64_t g_bytes_before_compression = 0;
 ham_u64_t g_bytes_after_compression = 0;
 int g_linear_threshold = 0;
+bool g_is_simd_enabled = true;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
                 ham_u32_t key_type, ham_u32_t key_size)

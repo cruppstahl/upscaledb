@@ -118,6 +118,11 @@ os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size);
 extern void
 os_socket_close(ham_socket_t *socket);
 
+// Returns the number of 32bit integers that the CPU can process in
+// parallel (the SIMD lane width) 
+extern int
+os_get_simd_lane_width();
+
 } // namespace hamsterdb
 
 #endif /* HAM_OS_H__ */

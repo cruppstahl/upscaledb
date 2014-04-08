@@ -144,9 +144,8 @@ class BtreeEraseAction
       }
 
       // we have reached the leaf; search the leaf for the key
-      int cmp;
-      slot = node->find(m_key, &cmp);
-      if (slot < 0 || cmp != 0) {
+      slot = node->find_exact(m_key);
+      if (slot < 0) {
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }

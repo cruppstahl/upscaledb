@@ -19,13 +19,13 @@ x hamsterdb pro: compression for journal
 x hamsterdb pro: compression for records
 x hamsterdb pro: aes encryption
 x hamsterdb pro: compression for keys
+x hamsterdb: linear searches
 o hamsterdb pro: 30 day evaluation
-o hamsterdb: linear searches
 o hamsterdb pro: SIMD instructions
 
 high-level plan for 2.1.8 ..................................................
-o hamsterdb: more quickcheck tests
 o hamsterdb: upgrade libuv
+o hamsterdb: more quickcheck tests
 o hamsterdb: performance improvements for remote
 o hamsterdb: improve page splits
 o hamsterdb: delta updates
@@ -160,8 +160,82 @@ x PRO: if a compressor does not exist then ham_env_create_db should immediately
 x use linear search for PAX (see topic/linear), but improve the
     performance!
 
+x run benchmark with this:
+    -mfpmath=sse -Ofast -flto -march=native -funroll-loops
+    -> add recommendation to Performance documentation
+
 o PRO: use SIMD instructions for the linear search
-    http://openproceedings.org/EDBT/2014/paper_107.pdf
+    -> SSE2 only supports comparisons for signed integers!
+    x configure switch --enable-sse2: adds -msse2 to CFLAGS
+        x enable by default if `grep /proc/cpuinfo sse2` != 0
+    x need to figure out whether the CPU supports SSE/SSE2 (also on Windows)
+        http://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
+    x metrics: add flag whether sse2 is supported
+    x need unittest: if sse is enabled and supported then perform an
+        sse comparison
+    x rewrite configure settings
+        x a generic enable/disable SIMD option
+        x if enabled: use avx if available; otherwise fallback to sse2
+    x metrics should return the LANE width, not bools (default is 0)
+
+    o replace linear search with the SSE2 variant
+        x move SSE-related code to a template function in simd.h
+        x simd available? -> the find function calls the function in simd.h
+            x if HAM_ENABLE_SIMD is true
+            x if os_get_simd_lane_width() > 1
+        o if threshold is reached: continue with linear search
+            x the linear search implementation is not working identically to
+                the SIMD functions; add unittest (i.e. for signed int)
+                -> no, it's ok
+            x threshold depends on supported instruction set (AVX, SSE2)
+            x implement linear search with SIMD (SSE - 4x4)
+                -> only for exact searches!
+                x ham_u16_t
+                x ham_u32_t
+                x float
+                x ham_u64_t
+                x add unittests for sse
+=====================================
+currently, the SSE2 version of ham_uint32_t is a bit SLOWER than the
+regular version
+-> check with a profiler
+-> also check the linear search
+
+x w/o SIMD: improved binary search
+x w/o SIMD: find optimal linear search threshold
+x w/ SIMD: improve uint32 
+x w/ SIMD: improve uint16 
+o w/ SIMD: improve uint64 
+o w/ SIMD: improve float 
+o w/ SIMD: improve double 
+====>> Änderungen in APL-Version übertragen?
+x get_record ist tief verschachtelt, nicht inline
+=====================================
+            x how to dispatch the function for AVX?
+            o implement linear search with SIMD (AVX - 8x4?)
+                really required?
+                o ham_u16_t
+                o ham_u32_t
+                o float
+                o ham_u64_t
+                o double
+                x add unittests for avx
+            o all monster tests must be working
+    x ham_bench: add flag to disable simd
+    x review the changes - some can maybe be ported back to hamsterdb (APL)?
+        -> find_exact!
+    x test compilation with clang
+    o test compilation with msvc
+    o add monster tests
+    o add performance tests for all types (no records, many finds, with
+        and without SSE)
+
+o performance question: running ham_bench with 10mio keys (uint32, no records)
+    and then performing --open --find-pct=100 -> 6.5 sec;
+    with --cache=unlimited -> 6.5 sec
+    why is there no difference? this is random access, and pages should be
+    purged frequently. disabling mmap does not make a difference (SSD!).
+    -> try with a spinning disk
 
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
@@ -206,6 +280,7 @@ o PRO: extend release-tool
     o for pro: use different file list
     o for pro: add test for --disable-compression
     o for pro: add test for --disable-encryption
+    o for pro: add test for --disable-simd
     o for pro: generate 30 day trials for the following 3 months,
         starting at every calendar week
         o for linux (obfuscated tar-balls)
@@ -215,14 +290,14 @@ o PRO: additional stuff for the first release
     o needs a ChangeLog
 
     o create new documentation page (wiki) for pro (tutorial + ham_bench)
-        o journal compression
-        o record compression
-        o zlib compression
-        o aes encryption
-        o file compatibility
+        x journal compression
+        x record compression
+        x zlib compression
+        x aes encryption
+        x file compatibility
+        o simd
         o ...
 
-<<<<<<< HEAD
     o need a database with commercial users
         o upgrade the current users
         o need a "download gate" api which verifies download links
@@ -232,13 +307,28 @@ o PRO: additional stuff for the first release
         x feature matrix APL vs. closed source
         o new layout
         o daily backups of the mysql database
+        o publish benchmark against leveldb (with and without SSD)
+            - each with 10 mio keys
+            o uint32, small records, random write
+            o uint32, small records, linear write
+            o uint32, small records, random read
+            o uint32, small records, linear read
+            o bin16, default records, random write (w/o compression)
+            o bin16, default records, linear write (w/o compression)
+            o bin16, default records, random read (w/o compression)
+            o bin16, default records, linear read (w/o compression)
+            o bin16, default records, random write (w/ compression)
+            o bin16, default records, linear write (w/ compression)
+            o bin16, default records, random read (w/ compression)
+            o bin16, default records, linear read (w/ compression)
+
         o can download commercial files using the admin-API to verify the
             login
             o add to google analytics!
-            o use /download/commercial/<guid>/file for download; extract
+            . use /download/commercial/<guid>/file for download; extract
                 <guid>, connect to the API and verify if it's valid
 
-o PRO: admin webpage
+. PRO: admin webpage
     o database is hosted in openshift (mysql)
     o install phpmyadmin
     o create databases
@@ -295,17 +385,31 @@ o PRO: admin webpage
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
+o remote code: reuse the procotol buffer objects! Constructing/destructing
+    them is expensive
+    o perform more benchmarks; currently, ham_bench remote is 10 times slower
+        than locally!
+
+o look into hive-integration
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+
+o clean up globals; currently, many metrics and test gates are stored
+    in global variables. collect them and store them in a struct Globals
+    (globals.h).
+
+o clean up os; remove stuff from global namespace into class Os. Also
+    cache the results of the CPU feature checks in a static class member
+    (bitfield) and inline it.
+
 o QuickCheck: create a new property for testing duplicates; the key is always
         the same. The number of duplicate keys is tracked and periodically
         checked with the API. A cursor can be used to remove a specific
         duplicate, or to fetch a specific duplicate.
 
 o try not to purge pages if a cursor is attached
-
-o remote code: reuse the procotol buffer objects! Constructing/destructing
-    them is expensive
-    o perform more benchmarks; currently, ham_bench remote is 10 times slower
-        than locally!
 
 o insert: if HAM_HINT_APPEND is set then page splits should only create a
     new page, and not shifting any keys to the new sibling. only the new
@@ -314,100 +418,36 @@ o insert: if HAM_HINT_APPEND is set then page splits should only create a
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload
-=======
-        x clean up the code; make it less hackish
-            x have a central authority for dealing with transactions and
-                for flushing them ("TransactionManager"
-                    -> "LocalTransactionManager" etc)
-            x commits/aborts are also routed through the TransactionManager,
-                which will do the logging (if reqd)
-            x also manages the Transaction Id
-            x TransactionManager keeps the threshold
-            x also keep track of number of committed operations
-            x ... and the consumed memory
-            x check threshold for number of committed operations
-            x check threshold for consumed memory (should be same as
-                journal buffer size)
-            x check with valgrind
 
-        x expose the new flag
-            x dotnet
-            x java
-            x ham_bench
-            x erlang
-        x add documentation to header file
-
-        x add to monster test, valgrind test, performance test
-
-    x check monster tests
-
-    x combine operations of all flushed transactions in the same changeset
-        -> we need to remove many asserts... :-/
-        x when fetching a page: give a flag kReadOnly; then do not add
-            the page to the changeset
-        x make read-only operations fetch pages in read-only mode
-            (btree_find, btree_check, BlobManager::read, others?)
-        x then combine the operations
-        x run recovery tests
-        x add to monster tests and perftests (with and without immediate flush)
-
-    x BtreeErase: remove ifdef
-
-    x allow use of Transactions without journalling/recovery
-        x implement
-        x requires a test; just make sure that the journal is not created
-        x needs documentation in header file
-        x needs monster tests
-
-    x how would a bulk update API look like??
-        -> it would allocate memory for the user, and immediately add
-            it to the txn-tree or append as a delta update.
-        -> the user specifies whether transactions are bypassed or not
-        -> the user specifies whether the data is already sorted or not
-        -> the user specifies whether existing keys are overwritten
-            or not
-
-x Make cursor cleanup logic after erase less cheesy
-    if a key is erased (remove_entry) then all cursors are uncoupled.
-    Shortly afterwards, they're coupled again for the points_to() check.
-
-x why is --enable-recovery twice as fast as --use-transactions?
-    -> mostly related to malloc/free in the rb-tree
-    x what can we do to reduce the allocations? a typical insert requires
-        three allocations (we could get down to two):
-        - node
-        - key
-        - op + record (already combined)
-        -> rb.h requires a single key; how can we re-structure? 
-        --> allocate a single structure (same as DeltaUpdate), and let the
-            TransactionTree point to this update. The TransactionNode
-            can manage a list of DeltaUpdates for the same key. As soon as
-            one DeltaUpdate is removed, the key will be provided by the
-            next update.
-            Later, the DUs can then be attached to the Btree node.
-    x the TransactionOperation structure also stores the key (one single
-        allocation!)
-    x the TransactionNode no longer stores the key but uses the one from a
-        connected TransactionOperation
-
-o QuickCheck:
-    x extend existing test with overwrite and duplicates
-    o document the various tests
-    o new test: create a database with generated configuration; use
-        insert/erase/find/close/open; use very low pagesize with large
-        key size, if possible; also use multi-page blobs
-    o boost the existing tests and create much larger sequences; no issue
-        if each test runs for an hour or more
-
-o improve the release process
-    o improve/add integration of static code analysis to release process
-        o oclint: create helper file in bin/
-            oclint $FILE -- -I ../include/ -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -I/usr/include -I/usr/local/include -c
-            filter out P1 problems, report P2, ignore P3
-        o coverity
-    o move the critical stages up front, and the non critical ones towards
-        the end (critical: packaging, unittests, tools, samples, valgrind)
->>>>>>> Improved transaction performance by reducing memory allocations
+o find a way how to execute user's code in the btree; similar to the hola
+    core described below. we want to run analytical code in the lowest possible
+    level, running on linear key data (thus being able to apply SIMD in the
+    application)
+    -> use a cursor; if a page does not have any pending transactional updates
+        then iterate over the whole btree node (in the direction of the cursor),
+        otherwise go step by step.
+    -> also offer a c++ API w/ templates?
+    -> the user's callback/function object can then accumulate or collect
+        records, whereas the actual record data is only fetched when requested
+    -> the user's callback/function object can receive multiple keys at once
+        (really?)
+    => make this the hola core routine
+    => is this part of the "scan" API?
+    void ham_db_scan(ham_db_t *db,
+                     ham_txn_t *txn,
+                     ham_key_t *begin, // can be null
+                     ham_key_t *end, // can be null
+                     ham_processor_cb_t *processor,
+                     void *context,
+                     ham_u32_t flags);
+        -> have predefined functions: ham_hola_count()
+        -> have predefined functions: ham_hola_count_if()
+        -> have predefined functions: ham_hola_count_distinct()
+        -> have predefined functions: ham_hola_count_distinct_if()
+        -> have predefined functions: ham_hola_average()
+        -> have predefined functions: ham_hola_average_if()
+        -> have predefined functions: ham_hola_sum()
+        -> have predefined functions: ham_hola_sum_if()
 
 o delta updates managed in the BtreeNode
     the catch is that the actual insert operation is separated from
@@ -424,12 +464,6 @@ o delta updates managed in the BtreeNode
             -> absolutely worth the effort, about 60% are spent in memmove
         x Default
             -> also worth the effort, about 15% are spent in memmove
-
-    o perform a benchmark/profiling: random inserts vs. ascending inserts;
-        the difference should be caused by memcopy/memmove (is it?)
-        x PAX
-            -> absolutely worth the effort, about 60% are spent in memmove
-        o Default
 
     o if the deltas are merged then the page must be added to the
         changeset; invest more time in thinking about recovery and
@@ -455,6 +489,12 @@ o delta updates managed in the BtreeNode
             LSNs, but that's too much effort. We could also count the
             DUs that were flushed; if all DUs with a lsn in the range of a
             specific file were flushed then we know we're done.
+        => another idea: the DUs are not appended as pointer structures but
+            copied to the node, in a separate area at the end. this has the
+            advantage of requiring a write-lock, but it solves the 
+            whole recovery problem.
+        => another idea: do not allow DUs if logging is enabled. but this would
+            kind of defeat its purpose (mostly).
 
     o need a flag to disable DeltaUpdates
     o rename TransactionOperation to DeltaUpdate, decouple code from txn
@@ -473,54 +513,37 @@ o delta updates managed in the BtreeNode
         o then merge the remaining inserts
         o this needs lots of tests
 
-<<<<<<< HEAD
-=======
-o extend ham_bench documentation for --flush-txn-immediately
-o extend ham_bench documentation for --disable-recovery
-
->>>>>>> Improved transaction performance by reducing memory allocations
-. collect file format updates
-    o PageManager state: also store m_last_blob_page_id persistently
-        (try not to break backwards compatibility, though)
-    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
-    o reserve CRC32 for each page
-
-<<<<<<< HEAD
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 o PRO: bulk updates
     - require delta updates
-=======
-----------------------------------
-
-- "hola" - olap functions that operate directly on the btree data
-- prefetch cache lines when searching
-- linear SIMD search -> PRO
-- encrypt the log and the environment file with AES -> PRO
-- compress the log with snappy -> PRO
-- compress the records with snappy -> PRO
-- hot backups (vacuumizes to a different file) -> PRO
-- bulk updates -> PRO
->>>>>>> Improved transaction performance by reducing memory allocations
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the btree node,
         transfer ownership of the memory
 
 o PRO: prefix compression for variable-length keys
-    - if key is appended at the end: just write the delta
-    - otherwise things get tricky, because the keys to the "right" of the
+    o only for leaf keys!? internal keys have too much "distance", and
+        the decompression would require too much time
+    o if key is appended at the end: just write the delta
+    o otherwise things get tricky, because the keys to the "right" of the
         inserted key have to be re-compressed; and in this case it is
         possible that the space will overflow
-    - when re-compressing: key size might grow or shrink, which means that
+    o when re-compressing: key size might grow or shrink, which means that
         the keys "to the right" should be rearranged as well
     ===> it really makes sense to have delta updates and bulk inserts first!!
-    - try to store a full key every Nth bytes, to avoid extensive re-compressing
-    - full keys can be further compressed with lzf or lzo
-    - key search: jumps from full key to full key; in between, there's a
+    o try to store a full key every Nth bytes, to avoid extensive re-compressing
+    o full keys can be further compressed with lzf or lzo
+    o key search: jumps from full key to full key; in between, there's a
         linear search for the key
 
+. collect file format updates
+    o PageManager state: also store m_last_blob_page_id persistently
+    o EnvHeader is completely full; add at least 8 bytes for flags + reserved
+    o reserve CRC32 for each page
+
 o PRO: CRC32-checksums (as soon as the file format is updated)
+    o SSE2 has support for a CRC32 checksum calculation
 
 o PRO: hot backups (vacuumizes to a different file)
     - copies the database file
@@ -535,8 +558,13 @@ o "hola" - olap functions that operate directly on the btree data
     -> see wiki
     -> see java8 stream API:
         http://download.java.net/jdk8/docs/api/java/util/stream/Stream.html
+    -> see supersonic:
+        https://code.google.com/p/supersonic/
+    -> see fast bitmap indices
+        http://code.google.com/p/lemurbitmapindex/
     o create a design
     o operations on compressed data (COUNT(), MIN(), MAX(), ...)?
+    o use async operations or futures/promises
 
 - cache-oblivious page distribution? -> PRO
     http://supertech.csail.mit.edu/cacheObliviousBTree.html

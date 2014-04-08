@@ -65,6 +65,7 @@ libhamsterdb_la_SOURCES = \
 	mem.h \
 	mutex.h \
 	os.h \
+	os.cc \
 	os_posix.cc \
 	packstart.h \
 	packstop.h \

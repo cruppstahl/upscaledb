@@ -533,6 +533,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\os.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\os_win32.cc"
 			>
 		</File>

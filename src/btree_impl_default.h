@@ -1278,6 +1278,17 @@ class DefaultNodeImpl
       return (ret);
     }
 
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      int cmp;
+      int r = find(key, comparator, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+
     // Returns a deep copy of the key
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
       LocalDatabase *db = m_page->get_db();
@@ -2128,6 +2139,23 @@ class DefaultNodeImpl
 #endif
     }
 
+    // Returns a record id
+    ham_u64_t get_record_id(ham_u32_t slot,
+                    ham_u32_t duplicate_index = 0) const {
+      ham_u64_t ptr = *(ham_u64_t *)get_inline_record_data(slot,
+                      duplicate_index);
+      return (ham_db2h_offset(ptr));
+    }
+
+    // Sets a record id
+    void set_record_id(ham_u32_t slot, ham_u64_t ptr,
+                    ham_u32_t duplicate_index = 0) {
+      ham_u8_t *p = (ham_u8_t *)get_inline_record_data(slot, duplicate_index);
+      *(ham_u64_t *)p = ham_h2db_offset(ptr);
+      // initialize flags
+      m_records.set_record_flags(slot, 0, duplicate_index);
+    }
+
     // Clears the page with zeroes and reinitializes it; only
     // for testing
     void test_clear_page() {
@@ -2438,23 +2466,6 @@ class DefaultNodeImpl
       ham_u32_t offset = m_layout.get_key_data_offset(slot)
               + m_layout.get_key_index_span() * get_capacity();
       memcpy(m_node->get_data() + kPayloadOffset + offset, ptr, len);
-    }
-
-    // Returns a record id
-    ham_u64_t get_record_id(ham_u32_t slot,
-                    ham_u32_t duplicate_index = 0) const {
-      ham_u64_t ptr = *(ham_u64_t *)get_inline_record_data(slot,
-                      duplicate_index);
-      return (ham_db2h_offset(ptr));
-    }
-
-    // Sets a record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr,
-                    ham_u32_t duplicate_index = 0) {
-      ham_u8_t *p = (ham_u8_t *)get_inline_record_data(slot, duplicate_index);
-      *(ham_u64_t *)p = ham_h2db_offset(ptr);
-      // initialize flags
-      m_records.set_record_flags(slot, 0, duplicate_index);
     }
 
     // Returns the inline record data

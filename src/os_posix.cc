@@ -241,7 +241,6 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
     ham_log(("pwrite() failed with short read (%s)", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
   }
-  os_seek(fd, addr + total, HAM_OS_SEEK_SET);
 #else
   os_seek(fd, addr, HAM_OS_SEEK_SET);
   os_write(fd, buffer, bufferlen);
