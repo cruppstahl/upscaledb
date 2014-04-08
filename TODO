@@ -189,12 +189,20 @@ o PRO: use SIMD instructions for the linear search
         x if enabled: use avx if available; otherwise fallback to sse2
     x metrics should return the LANE width, not bools (default is 0)
 
+<<<<<<< HEAD
     x replace linear search with the SSE2 variant
+=======
+    o replace linear search with the SSE2 variant
+>>>>>>> a2464fe... SIMD preparations
         x move SSE-related code to a template function in simd.h
         x simd available? -> the find function calls the function in simd.h
             x if HAM_ENABLE_SIMD is true
             x if os_get_simd_lane_width() > 1
+<<<<<<< HEAD
         x if threshold is reached: continue with linear search
+=======
+        o if threshold is reached: continue with linear search
+>>>>>>> a2464fe... SIMD preparations
             x the linear search implementation is not working identically to
                 the SIMD functions; add unittest (i.e. for signed int)
                 -> no, it's ok
@@ -206,19 +214,62 @@ o PRO: use SIMD instructions for the linear search
                 x float
                 x ham_u64_t
                 x add unittests for sse
+<<<<<<< HEAD
             x revert support for AVX (move to branch)
             x currently crashing or failing in debug build
             x then perform another round of profiling (with different
                     thresholds!)
+=======
+=====================================
+currently, the SSE2 version of ham_uint32_t is a bit SLOWER than the
+regular version
+-> check with a profiler
+-> also check the linear search
+
+x w/o SIMD: improved binary search
+x w/o SIMD: find optimal linear search threshold
+x w/ SIMD: improve uint32 
+x w/ SIMD: improve uint16 
+o w/ SIMD: improve uint64 
+o w/ SIMD: improve float 
+o w/ SIMD: improve double 
+====>> Änderungen in APL-Version übertragen?
+x get_record ist tief verschachtelt, nicht inline
+=====================================
+            x how to dispatch the function for AVX?
+            o implement linear search with SIMD (AVX - 8x4?)
+                really required?
+                o ham_u16_t
+                o ham_u32_t
+                o float
+                o ham_u64_t
+                o double
+                x add unittests for avx
+            o all monster tests must be working
+>>>>>>> a2464fe... SIMD preparations
     x ham_bench: add flag to disable simd
     x review the changes - some can maybe be ported back to hamsterdb (APL)?
         -> find_exact!
     x test compilation with clang
+<<<<<<< HEAD
     x add monster tests
     x add performance tests for all types (no records, many finds, with
         and without SSE)
     o run monster tests
     o test compilation with msvc
+=======
+    o test compilation with msvc
+    o add monster tests
+    o add performance tests for all types (no records, many finds, with
+        and without SSE)
+
+o performance question: running ham_bench with 10mio keys (uint32, no records)
+    and then performing --open --find-pct=100 -> 6.5 sec;
+    with --cache=unlimited -> 6.5 sec
+    why is there no difference? this is random access, and pages should be
+    purged frequently. disabling mmap does not make a difference (SSD!).
+    -> try with a spinning disk
+>>>>>>> a2464fe... SIMD preparations
 
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
@@ -373,9 +424,12 @@ o remote code: reuse the procotol buffer objects! Constructing/destructing
     o perform more benchmarks; currently, ham_bench remote is 10 times slower
         than locally!
 
+<<<<<<< HEAD
 o PRO: add avx support
 o PRO: add sse support for real64
 
+=======
+>>>>>>> a2464fe... SIMD preparations
 o look into hive-integration
     -> would be an interesting market with requirements for column store
         storage
