@@ -573,6 +573,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\simd.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\statistics.h"
 			>
 		</File>

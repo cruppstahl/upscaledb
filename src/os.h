@@ -115,22 +115,12 @@ os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size);
 extern void
 os_socket_close(ham_socket_t *socket);
 
-#ifdef HAM_ENABLE_SIMD
-#  ifdef __AVX__
-extern bool os_has_avx();
-#  endif
-#endif // HAM_ENABLE_SIMD
-
 // Returns the number of 32bit integers that the CPU can process in
 // parallel (the SIMD lane width) 
 inline int
 os_get_simd_lane_width()
 {
 #ifdef HAM_ENABLE_SIMD
-#  ifdef __AVX__
-  if (os_has_avx())
-    return (8);
-#  endif
 #  ifdef __SSE2__
   return (4);
 #  endif

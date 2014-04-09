@@ -891,8 +891,6 @@ o PRO: bulk updates
 - compress the records with snappy -> PRO
 - hot backups (vacuumizes to a different file) -> PRO
 - bulk updates -> PRO
->>>>>>> Improved transaction performance by reducing memory allocations
->>>>>>> Adding SIMD support for PAX layout
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort
     - add those delta updates to the txn-trees or to the btree node,

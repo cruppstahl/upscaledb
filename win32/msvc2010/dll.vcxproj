@@ -232,6 +232,7 @@
     <ClInclude Include="..\..\src\page_manager.h" />
     <ClInclude Include="..\..\src\pickle.h" />
     <ClInclude Include="..\..\src\rb.h" />
+    <ClInclude Include="..\..\src\simd.h" />
     <ClInclude Include="..\..\src\statistics.h" />
     <ClInclude Include="..\..\src\txn.h" />
     <ClInclude Include="..\..\src\txn_cursor.h" />

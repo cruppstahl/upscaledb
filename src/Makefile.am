@@ -83,6 +83,7 @@ libhamsterdb_la_SOURCES = \
 	page_manager.h \
 	pickle.h \
 	rb.h \
+	simd.h \
 	txn_cursor.cc \
 	txn_cursor.h \
 	txn_factory.h \
@@ -124,12 +125,17 @@ AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
 libhamsterdb_la_LIBADD += $(top_builddir)/src/protocol/libprotocol.la
 endif
 
+AM_CFLAGS	 =
+AM_CXXFLAGS	 =
 if ENABLE_SIMD
 AM_CPPFLAGS += -DHAM_ENABLE_SIMD
 endif
 if ENABLE_SSE2
-AM_CXXFLAGS  = -msse2
+AM_CFLAGS	+= -msse2 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse2 -flax-vector-conversions
 endif
-if ENABLE_AVX
-AM_CXXFLAGS  = -mavx
+if ENABLE_SSE4
+AM_CFLAGS	+= -msse4 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse4 -flax-vector-conversions
 endif
+

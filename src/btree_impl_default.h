@@ -1283,7 +1283,7 @@ class DefaultNodeImpl
           ret = i;
           break;
         }
-        /* if the key is bigger than the current item: search "to the left" */
+        /* if the key is < the current item: search "to the left" */
         else if (cmp < 0) {
           if (r == 0) {
             ham_assert(i == 0);
@@ -1292,7 +1292,7 @@ class DefaultNodeImpl
           }
           r = i - 1;
         }
-        /* if the key is smaller than the current item: search "to the right" */
+        /* if the key is > the current item: search "to the right" */
         else {
           last = i;
           l = i + 1;

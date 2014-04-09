@@ -112,8 +112,18 @@ recovery_LDADD += -llzo2
 endif
 endif
 
+AM_CFLAGS	    =
+AM_CXXFLAGS	    =
+if ENABLE_SIMD
+AM_CPPFLAGS    += -DHAM_ENABLE_SIMD
+endif
 if ENABLE_SSE2
-AM_CPPFLAGS    += -DHAM_ENABLE_SSE2
+AM_CFLAGS	   += -msse2 -flax-vector-conversions
+AM_CXXFLAGS	   += -msse2 -flax-vector-conversions
+endif
+if ENABLE_SSE4
+AM_CFLAGS	   += -msse4 -flax-vector-conversions
+AM_CXXFLAGS    += -msse4 -flax-vector-conversions
 endif
 
 valgrind:

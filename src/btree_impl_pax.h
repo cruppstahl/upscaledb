@@ -55,16 +55,21 @@
 #ifndef HAM_BTREE_IMPL_PAX_H__
 #define HAM_BTREE_IMPL_PAX_H__
 
+#include "os.h"
 #include "util.h"
 #include "page.h"
 #include "btree_node.h"
 #include "blob_manager.h"
 #include "env_local.h"
+#ifdef HAM_ENABLE_SIMD
+#  include "simd.h"
+#endif
 
 namespace hamsterdb {
 
 // gates for ham_bench
 extern int g_linear_threshold;
+extern bool g_is_simd_enabled;
 
 template<typename KeyList, typename RecordList>
 class PaxNodeImpl;
@@ -806,59 +811,31 @@ class PaxNodeImpl
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
     int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
-      ham_u32_t count = m_node->get_count();
-      ham_assert(count > 0);
-
-      // Run a binary search, but fall back to linear search as soon as
-      // the remaining range is too small
-      int threshold = m_keys.get_linear_search_threshold();
-      int i, l = 0, r = count;
-      int last = count + 1;
-      int cmp = -1;
-
-      /* repeat till we found the key or the remaining range is so small that
-       * we rather perform a linear search (which is faster for small ranges) */
-      while (r - l > threshold) {
-        /* get the median item; if it's identical with the "last" item,
-         * we've found the slot */
-        i = (l + r) / 2;
-
-        if (i == last) {
-          ham_assert(i >= 0);
-          ham_assert(i < (int)count);
-          *pcmp = 1;
-          return (i);
-        }
-
-        /* compare it against the key */
-        cmp = compare(key, at(i), comparator);
-
-        /* found it? */
-        if (cmp == 0) {
-          *pcmp = cmp;
-          return (i);
-        }
-        /* if the key is bigger than the item: search "to the left" */
-        else if (cmp < 0) {
-          if (r == 0) {
-            ham_assert(i == 0);
-            *pcmp = cmp;
-            return (-1);
-          }
-          r = i;
-        }
-        /* otherwise search "to the right" */
-        else {
-          last = i;
-          l = i;
-        }
-      }
-
-      // still here? then perform a linear search for the remaining range
-      ham_assert(r - l <= threshold);
-      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
+      return (find_nosimd(key, comparator, pcmp));
     }
 
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      if (m_keys.has_simd_support()
+              && get_key_size() >= 2
+              && get_key_size() <= 8
+              && os_get_simd_lane_width() > 1
+              && g_is_simd_enabled) {
+        ham_u32_t count = m_node->get_count();
+        return (find_simd_sse<typename KeyList::type>(m_keys.get_key_array(),
+                                count, key));
+      }
+
+      int cmp;
+      int r = find_nosimd(key, comparator, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+#else // HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
@@ -869,6 +846,7 @@ class PaxNodeImpl
         return (-1);
       return (r);
     }
+#endif // HAM_ENABLE_SIMD
 
     // Returns a copy of a key and stores it in |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
@@ -1148,6 +1126,63 @@ class PaxNodeImpl
 
   private:
     friend struct PaxIterator<KeyList, RecordList>;
+
+    // Searches the node for the key and returns the slot of this key
+    // NO simd support!
+    template<typename Cmp>
+    int find_nosimd(ham_key_t *key, Cmp &comparator, int *pcmp) {
+      ham_u32_t count = m_node->get_count();
+      ham_assert(count > 0);
+
+      // Run a binary search, but fall back to linear search as soon as
+      // the remaining range is too small
+      int threshold = m_keys.get_linear_search_threshold();
+      int i, l = 0, r = count;
+      int last = count + 1;
+      int cmp = -1;
+
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > threshold) {
+        /* get the median item; if it's identical with the "last" item,
+         * we've found the slot */
+        i = (l + r) / 2;
+
+        if (i == last) {
+          ham_assert(i >= 0);
+          ham_assert(i < (int)count);
+          *pcmp = 1;
+          return (i);
+        }
+
+        /* compare it against the key */
+        cmp = compare(key, at(i), comparator);
+
+        /* found it? */
+        if (cmp == 0) {
+          *pcmp = cmp;
+          return (i);
+        }
+        /* if the key is < the current item: search "to the left" */
+        else if (cmp < 0) {
+          if (r == 0) {
+            ham_assert(i == 0);
+            *pcmp = cmp;
+            return (-1);
+          }
+          r = i;
+        }
+        /* otherwise search "to the right" */
+        else {
+          last = i;
+          l = i;
+        }
+      }
+
+      // still here? then perform a linear search for the remaining range
+      ham_assert(r - l <= threshold);
+      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
+    }
 
     // Returns the key size
     ham_u32_t get_key_size() const {

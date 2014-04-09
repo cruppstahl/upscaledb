@@ -9,7 +9,7 @@
  * See files COPYING.* for License information.
  */
 
-#ifdef HAM_ENABLE_SSE2
+#ifdef HAM_ENABLE_SIMD
 
 #include "../src/config.h"
 
@@ -17,15 +17,51 @@
 
 #include "globals.h"
 
-#include "../src/os.h"
+#include "../src/simd.h"
 
 using namespace hamsterdb;
 
-TEST_CASE("Sse2/isSse2Available", "")
+template<typename T>
+void
+test_linear_search_sse()
 {
-  REQUIRE(os_has_feature(kCpuFeatureMMX));
-  REQUIRE(os_has_feature(kCpuFeatureSSE));
-  REQUIRE(os_has_feature(kCpuFeatureSSE2));
+#undef MAX
+#define MAX 32
+  T arr[MAX];
+  for (ham_u32_t i = 0; i < MAX; i++)
+    arr[i] = i + 1;
+
+  REQUIRE(-1 == linear_search_sse<T>(&arr[0], 0, MAX, (T)0));
+
+  REQUIRE(-1 == linear_search_sse<T>(&arr[0], 0, MAX, (T)MAX + 1));
+
+  for (int i = 0; i < MAX; i++)
+    REQUIRE(i == linear_search_sse<T>(&arr[0], 0, MAX, (T)(i + 1)));
 }
 
-#endif // HAM_ENABLE_SSE2
+TEST_CASE("Simd/uint16SseTest", "")
+{
+  test_linear_search_sse<ham_u16_t>();
+}
+
+TEST_CASE("Simd/uint32SseTest", "")
+{
+  test_linear_search_sse<ham_u32_t>();
+}
+
+TEST_CASE("Simd/uint64SseTest", "")
+{
+  test_linear_search_sse<ham_u64_t>();
+}
+
+TEST_CASE("Simd/floatSseTest", "")
+{
+  test_linear_search_sse<float>();
+}
+
+TEST_CASE("Simd/doubleSseTest", "")
+{
+  test_linear_search_sse<float>();
+}
+
+#endif // HAM_ENABLE_SIMD

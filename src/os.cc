@@ -23,7 +23,7 @@ namespace hamsterdb {
 // it's not enabled at run-time because the CPU is an older model.
 //
 // Therefore check the cpuid if AVX is available.
-#ifdef HAM_ENABLE_AVX
+#ifdef __AVX__
 
 // from http://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
 
@@ -68,7 +68,7 @@ os_has_avx()
 
   return (available);
 }
-#endif // HAM_ENABLE_AVX
+#endif // __AVX__
 
 #endif // HAM_ENABLE_SIMD
 

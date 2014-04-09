@@ -34,11 +34,6 @@ using namespace hamsterdb;
 
 #define SERVER_URL "ham://localhost:8989/test.db"
 
-namespace {
-extern void
-test_hamserver_set_inducer(ham_srv_t *hsrv, ErrorInducer *ei);
-}
-
 struct RemoteFixture {
   ham_env_t *m_env;
   ham_db_t *m_db;
