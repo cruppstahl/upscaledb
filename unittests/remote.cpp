@@ -371,11 +371,11 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
-    REQUIRE(1ull == keycount);
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(1ull == keycount);
     REQUIRE(HAM_DUPLICATE_KEY == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));

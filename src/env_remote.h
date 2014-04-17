@@ -23,7 +23,8 @@
 
 #include "env.h"
 #include "util.h"
-#include "protocol/protocol.h"
+#include "protobuf/protocol.h"
+#include "protoserde/messages.h"
 
 namespace hamsterdb {
 
@@ -46,23 +47,23 @@ class RemoteEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
-            ham_u16_t maxdbs);
+                    ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
+                    ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            ham_u64_t cache_size);
+                    ham_u64_t cache_size);
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
-            ham_u32_t flags);
+                    ham_u32_t flags);
 
     // Erases (deletes) a database from the Environment (ham_env_erase_db)
     virtual ham_status_t erase_db(ham_u16_t name, ham_u32_t flags);
 
     // Returns all database names (ham_env_get_database_names)
     virtual ham_status_t get_database_names(ham_u16_t *names,
-            ham_u32_t *count);
+                    ham_u32_t *count);
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -85,8 +86,12 @@ class RemoteEnvironment : public Environment
     virtual ham_status_t close(ham_u32_t flags);
 
     // Sends |request| to the remote server and blocks till the reply
-    // was fully received
+    // was fully received; returns the reply structure
     Protocol *perform_request(Protocol *request);
+
+    // Sends |request| to the remote server and blocks till the reply
+    // was fully received
+    void perform_request(SerializedWrapper *request, SerializedWrapper *reply);
 
     // Returns the remote handle
     ham_u64_t get_remote_handle() const {

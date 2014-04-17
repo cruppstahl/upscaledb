@@ -261,6 +261,7 @@ class ServerContext {
 
     Mutex open_queue_mutex;
     EnvironmentMap open_queue;
+    ByteArray buffer;
 
   private:
     EnvironmentVector m_environments;

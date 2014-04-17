@@ -1,6 +1,7 @@
 
+SUBDIRS  = protoserde
 if ENABLE_REMOTE
-SUBDIRS = protocol server
+SUBDIRS += protobuf server
 endif # ENABLE_REMOTE
 
 lib_LTLIBRARIES = libhamsterdb.la
@@ -95,6 +96,6 @@ libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
-libhamsterdb_la_LIBADD += $(top_builddir)/src/protocol/libprotocol.la
+libhamsterdb_la_LIBADD += $(top_builddir)/src/protobuf/libprotocol.la
 endif
 

@@ -190,7 +190,7 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile src/protobuf/Makefile src/protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_OUTPUT
 
 # Messages
@@ -219,7 +219,7 @@ printf '#================================================================\n'
 
 # build protobuf files
 if test x$enable_remote != xno; then
-make --directory=src/protocol proto
+make --directory=src/protobuf proto
 make --directory=tools proto
 fi
 

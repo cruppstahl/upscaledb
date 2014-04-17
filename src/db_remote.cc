@@ -26,7 +26,7 @@
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include "protocol/protocol.h"
+#include "protobuf/protocol.h"
 
 namespace hamsterdb {
 
@@ -113,20 +113,21 @@ RemoteDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
-  Protocol request(Protocol::DB_GET_KEY_COUNT_REQUEST);
-  request.mutable_db_get_key_count_request()->set_db_handle(get_remote_handle());
-  request.mutable_db_get_key_count_request()->set_txn_handle(txn
+  SerializedWrapper request;
+  request.id = kDbGetKeyCountRequest;
+  request.db_get_key_count_request.db_handle = get_remote_handle();
+  request.db_get_key_count_request.txn_handle = txn
             ? txn->get_remote_handle()
-            : 0);
-  request.mutable_db_get_key_count_request()->set_flags(flags);
+            : 0;
+  request.db_get_key_count_request.flags = flags;
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
 
-  ham_assert(reply->has_db_get_key_count_reply());
+  ham_assert(reply.id == kDbGetKeyCountReply);
 
-  ham_status_t st = reply->db_get_key_count_reply().status();
-  if (!st)
-    *keycount = reply->db_get_key_count_reply().keycount();
+  ham_status_t st = reply.db_get_key_count_reply.status;
+  *keycount = reply.db_get_key_count_reply.keycount;
 
   return (st);
 }
@@ -152,32 +153,43 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
     }
   }
 
-  Protocol request(Protocol::DB_INSERT_REQUEST);
-  request.mutable_db_insert_request()->set_db_handle(get_remote_handle());
-  request.mutable_db_insert_request()->set_txn_handle(txn
-                ? txn->get_remote_handle()
-                : 0);
-  request.mutable_db_insert_request()->set_flags(flags);
-  if (key && !(get_rt_flags() & HAM_RECORD_NUMBER))
-    Protocol::assign_key(request.mutable_db_insert_request()->mutable_key(),
-                    key);
-  if (record)
-    Protocol::assign_record(request.mutable_db_insert_request()->mutable_record(),
-                    record);
+  SerializedWrapper request;
+  request.id = kDbInsertRequest;
+  request.db_insert_request.db_handle = get_remote_handle();
+  request.db_insert_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+  request.db_insert_request.flags = flags;
+  if (key && !(get_rt_flags() & HAM_RECORD_NUMBER)) {
+    request.db_insert_request.has_key = true;
+    request.db_insert_request.key.has_data = true;
+    request.db_insert_request.key.data.size = key->size;
+    request.db_insert_request.key.data.value = (ham_u8_t *)key->data;
+    request.db_insert_request.key.flags = key->flags;
+    request.db_insert_request.key.intflags = key->_flags;
+  }
+  if (record) {
+    request.db_insert_request.has_record = true;
+    request.db_insert_request.record.has_data = true;
+    request.db_insert_request.record.data.size = record->size;
+    request.db_insert_request.record.data.value = (ham_u8_t *)record->data;
+    request.db_insert_request.record.flags = record->flags;
+    request.db_insert_request.record.partial_size = record->partial_size;
+    request.db_insert_request.record.partial_offset = record->partial_offset;
+  }
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
 
-  ham_assert(reply->has_db_insert_reply() != 0);
+  ham_assert(reply.id == kDbInsertReply);
 
-  ham_status_t st = reply->db_insert_reply().status();
+  ham_status_t st = reply.db_insert_reply.status;
 
   /* recno: the key was modified! */
-  if (st == 0 && reply->db_insert_reply().has_key()) {
-    if (reply->db_insert_reply().key().data().size() == sizeof(ham_u64_t)) {
+  if (st == 0 && reply.db_insert_reply.has_key) {
+    if (reply.db_insert_reply.key.data.size == sizeof(ham_u64_t)) {
       ham_assert(key->data != 0);
       ham_assert(key->size == sizeof(ham_u64_t));
-      memcpy(key->data, &reply->db_insert_reply().key().data()[0],
-            sizeof(ham_u64_t));
+      memcpy(key->data, reply.db_insert_reply.key.data.value,
+                sizeof(ham_u64_t));
     }
   }
 
@@ -191,21 +203,24 @@ RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
-  Protocol request(Protocol::DB_ERASE_REQUEST);
-  request.mutable_db_erase_request()->set_db_handle(get_remote_handle());
-  request.mutable_db_erase_request()->set_txn_handle(txn
-                ? txn->get_remote_handle()
-                : 0);
-  request.mutable_db_erase_request()->set_flags(flags);
-  Protocol::assign_key(request.mutable_db_erase_request()->mutable_key(), key);
+  SerializedWrapper request;
+  request.id = kDbEraseRequest;
+  request.db_erase_request.db_handle = get_remote_handle();
+  request.db_erase_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+  request.db_erase_request.flags = flags;
+  request.db_erase_request.key.has_data = true;
+  request.db_erase_request.key.data.size = key->size;
+  request.db_erase_request.key.data.value = (ham_u8_t *)key->data;
+  request.db_erase_request.key.flags = key->flags;
+  request.db_erase_request.key.intflags = key->_flags;
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
 
-  ham_assert(reply->has_db_erase_reply() != 0);
+  ham_assert(reply.id == kDbEraseReply);
 
-  return (reply->db_erase_reply().status());
+  return (reply.db_erase_reply.status);
 }
-
 
 ham_status_t
 RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
@@ -214,19 +229,29 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
-  Protocol request(Protocol::DB_FIND_REQUEST);
-  request.mutable_db_find_request()->set_db_handle(get_remote_handle());
-  request.mutable_db_find_request()->set_txn_handle(txn
-                ? txn->get_remote_handle()
-                : 0);
-  request.mutable_db_find_request()->set_flags(flags);
+  SerializedWrapper request;
+  request.id = kDbFindRequest;
+  request.db_find_request.db_handle = get_remote_handle();
+  request.db_find_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+  request.db_find_request.flags = flags;
+  request.db_find_request.key.has_data = true;
+  request.db_find_request.key.data.size = key->size;
+  request.db_find_request.key.data.value = (ham_u8_t *)key->data;
+  request.db_find_request.key.flags = key->flags;
+  request.db_find_request.key.intflags = key->_flags;
+  if (record) {
+    request.db_find_request.has_record = true;
+    request.db_find_request.record.has_data = true;
+    request.db_find_request.record.data.size = record->size;
+    request.db_find_request.record.data.value = (ham_u8_t *)record->data;
+    request.db_find_request.record.flags = record->flags;
+    request.db_find_request.record.partial_size = record->partial_size;
+    request.db_find_request.record.partial_offset = record->partial_offset;
+  }
 
-  if (key)
-    Protocol::assign_key(request.mutable_db_find_request()->mutable_key(), key);
-  if (record)
-    Protocol::assign_record(request.mutable_db_find_request()->mutable_record(), record);
-
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kDbFindReply);
 
   ByteArray *key_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
                 ? &get_key_arena()
@@ -235,30 +260,27 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
                 ? &get_record_arena()
                 : &txn->get_record_arena();
 
-  ham_assert(reply->has_db_find_reply() != 0);
-
-  ham_status_t st = reply->db_find_reply().status();
+  ham_status_t st = reply.db_find_reply.status;
   if (st == 0) {
     /* approx. matching: need to copy the _flags and the key data! */
-    if (reply->db_find_reply().has_key()) {
+    if (reply.db_find_reply.has_key) {
       ham_assert(key);
-      key->_flags = reply->db_find_reply().key().intflags();
-      key->size = (ham_u16_t)reply->db_find_reply().key().data().size();
+      key->_flags = reply.db_find_reply.key.intflags;
+      key->size = (ham_u16_t)reply.db_find_reply.key.data.size;
       if (!(key->flags & HAM_KEY_USER_ALLOC)) {
         key_arena->resize(key->size);
         key->data = key_arena->get_ptr();
       }
-      memcpy(key->data, (void *)&reply->db_find_reply().key().data()[0],
-            key->size);
+      memcpy(key->data, (void *)reply.db_find_reply.key.data.value, key->size);
     }
-    if (reply->db_find_reply().has_record()) {
-      record->size = reply->db_find_reply().record().data().size();
+    if (reply.db_find_reply.has_record) {
+      record->size = reply.db_find_reply.record.data.size;
       if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
         rec_arena->resize(record->size);
         record->data = rec_arena->get_ptr();
       }
-      memcpy(record->data, (void *)&reply->db_find_reply().record().data()[0],
-            record->size);
+      memcpy(record->data, (void *)reply.db_find_reply.record.data.value,
+                record->size);
     }
   }
 
@@ -268,50 +290,44 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
 Cursor *
 RemoteDatabase::cursor_create_impl(Transaction *htxn, ham_u32_t flags)
 {
-  RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
-  Protocol request(Protocol::CURSOR_CREATE_REQUEST);
-  request.mutable_cursor_create_request()->set_db_handle(get_remote_handle());
-  request.mutable_cursor_create_request()->set_txn_handle(txn
-                    ? txn->get_remote_handle()
-                    : 0);
-  request.mutable_cursor_create_request()->set_flags(flags);
+  SerializedWrapper request;
+  request.id = kCursorCreateRequest;
+  request.cursor_create_request.db_handle = get_remote_handle();
+  request.cursor_create_request.txn_handle = txn
+                                                ? txn->get_remote_handle()
+                                                : 0;
+  request.cursor_create_request.flags = flags;
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
-
-  ham_assert(reply->has_cursor_create_reply() != 0);
-
-  ham_status_t st = reply->cursor_create_reply().status();
+  SerializedWrapper reply;
+  get_remote_env()->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorCreateReply);
+  ham_status_t st = reply.cursor_create_reply.status;
   if (st)
     return (0);
 
   Cursor *c = new Cursor((LocalDatabase *)this); // TODO this cast is evil!!
-  c->set_remote_handle(reply->cursor_create_reply().cursor_handle());
-
+  c->set_remote_handle(reply.cursor_create_reply.cursor_handle);
   return (c);
 }
 
 Cursor *
 RemoteDatabase::cursor_clone_impl(Cursor *src)
 {
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>
-                                (src->get_db()->get_env());
+  SerializedWrapper request;
+  request.id = kCursorCloneRequest;
+  request.cursor_clone_request.cursor_handle = src->get_remote_handle();
 
-  Protocol request(Protocol::CURSOR_CLONE_REQUEST);
-  request.mutable_cursor_clone_request()->set_cursor_handle(src->get_remote_handle());
-
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
-
-  ham_assert(reply->has_cursor_clone_reply() != 0);
-
-  ham_status_t st = reply->cursor_clone_reply().status();
+  SerializedWrapper reply;
+  get_remote_env()->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorCloneReply);
+  ham_status_t st = reply.cursor_clone_reply.status;
   if (st)
     return (0);
 
   Cursor *c = new Cursor(src->get_db());
-  c->set_remote_handle(reply->cursor_clone_reply().cursor_handle());
-
+  c->set_remote_handle(reply.cursor_clone_reply.cursor_handle);
   return (c);
 }
 
@@ -339,29 +355,42 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     }
   }
 
-  Protocol request(Protocol::CURSOR_INSERT_REQUEST);
-  request.mutable_cursor_insert_request()->set_cursor_handle(cursor->get_remote_handle());
-  request.mutable_cursor_insert_request()->set_flags(flags);
-  if (send_key)
-    Protocol::assign_key(request.mutable_cursor_insert_request()->mutable_key(),
-              key);
-  Protocol::assign_record(request.mutable_cursor_insert_request()->mutable_record(),
-              record);
+  SerializedWrapper request;
+  request.id = kCursorInsertRequest;
+  request.cursor_insert_request.cursor_handle = cursor->get_remote_handle();
+  request.cursor_insert_request.flags = flags;
+  if (send_key) {
+    request.cursor_insert_request.has_key = true;
+    request.cursor_insert_request.key.has_data = true;
+    request.cursor_insert_request.key.data.size = key->size;
+    request.cursor_insert_request.key.data.value = (ham_u8_t *)key->data;
+    request.cursor_insert_request.key.flags = key->flags;
+    request.cursor_insert_request.key.intflags = key->_flags;
+  }
+  if (record) {
+    request.cursor_insert_request.has_record = true;
+    request.cursor_insert_request.record.has_data = true;
+    request.cursor_insert_request.record.data.size = record->size;
+    request.cursor_insert_request.record.data.value = (ham_u8_t *)record->data;
+    request.cursor_insert_request.record.flags = record->flags;
+    request.cursor_insert_request.record.partial_size = record->partial_size;
+    request.cursor_insert_request.record.partial_offset = record->partial_offset;
+  }
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
 
-  ham_assert(reply->has_cursor_insert_reply() != 0);
+  ham_assert(reply.id == kCursorInsertReply);
 
-  ham_status_t st = reply->cursor_insert_reply().status();
+  ham_status_t st = reply.cursor_insert_reply.status;
 
   /* recno: the key was modified! */
-  if (st == 0 && reply->cursor_insert_reply().has_key()) {
-    if (reply->cursor_insert_reply().key().data().size()
-        == sizeof(ham_u64_t)) {
+  if (st == 0 && reply.cursor_insert_reply.has_key) {
+    if (reply.cursor_insert_reply.key.data.size == sizeof(ham_u64_t)) {
       ham_assert(key->data != 0);
       ham_assert(key->size == sizeof(ham_u64_t));
-      memcpy(key->data, (void *)&reply->cursor_insert_reply().key().data()[0],
-            sizeof(ham_u64_t));
+      memcpy(key->data, reply.cursor_insert_reply.key.data.value,
+                      sizeof(ham_u64_t));
     }
   }
 
@@ -371,17 +400,15 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 ham_status_t
 RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
-  RemoteEnvironment *env = get_remote_env();
+  SerializedWrapper request;
+  request.id = kCursorEraseRequest;
+  request.cursor_erase_request.cursor_handle = cursor->get_remote_handle();
+  request.cursor_erase_request.flags = flags;
 
-  Protocol request(Protocol::CURSOR_ERASE_REQUEST);
-  request.mutable_cursor_erase_request()->set_cursor_handle(cursor->get_remote_handle());
-  request.mutable_cursor_erase_request()->set_flags(flags);
-
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
-
-  ham_assert(reply->has_cursor_erase_reply() != 0);
-
-  return (reply->cursor_erase_reply().status());
+  SerializedWrapper reply;
+  get_remote_env()->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorEraseReply);
+  return (reply.cursor_erase_reply.status);
 }
 
 ham_status_t
@@ -390,17 +417,28 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 {
   RemoteEnvironment *env = get_remote_env();
 
-  Protocol request(Protocol::CURSOR_FIND_REQUEST);
-  request.mutable_cursor_find_request()->set_cursor_handle(cursor->get_remote_handle());
-  request.mutable_cursor_find_request()->set_flags(flags);
-  if (key)
-    Protocol::assign_key(request.mutable_cursor_find_request()->mutable_key(),
-                key);
-  if (record)
-    Protocol::assign_record(request.mutable_cursor_find_request()->mutable_record(),
-                record, false);
-
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper request;
+  request.id = kCursorFindRequest;
+  request.cursor_find_request.cursor_handle = cursor->get_remote_handle();
+  request.cursor_find_request.flags = flags;
+  if (key->size > 0) {
+    request.cursor_find_request.key.has_data = true;
+    request.cursor_find_request.key.data.size = key->size;
+    request.cursor_find_request.key.data.value = (ham_u8_t *)key->data;
+  }
+  request.cursor_find_request.key.flags = key->flags;
+  request.cursor_find_request.key.intflags = key->_flags;
+  if (record) {
+    request.cursor_find_request.has_record = true;
+    if (record->size > 0) {
+      request.cursor_find_request.record.has_data = true;
+      request.cursor_find_request.record.data.size = record->size;
+      request.cursor_find_request.record.data.value = (ham_u8_t *)record->data;
+    }
+    request.cursor_find_request.record.flags = record->flags;
+    request.cursor_find_request.record.partial_size = record->partial_size;
+    request.cursor_find_request.record.partial_offset = record->partial_offset;
+  }
 
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(cursor->get_txn());
 
@@ -408,21 +446,24 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
                 ? &get_record_arena()
                 : &txn->get_record_arena();
 
-  ham_assert(reply->has_cursor_find_reply() != 0);
 
-  ham_status_t st = reply->cursor_find_reply().status();
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorFindReply);
+
+  ham_status_t st = reply.cursor_find_reply.status;
   if (st == 0) {
     /* approx. matching: need to copy the _flags! */
-    if (reply->cursor_find_reply().has_key())
-      key->_flags = reply->cursor_find_reply().key().intflags();
-    if (reply->cursor_find_reply().has_record()) {
+    if (reply.cursor_find_reply.has_key)
+      key->_flags = reply.cursor_find_reply.key.intflags;
+    if (reply.cursor_find_reply.has_record) {
       ham_assert(record);
-      record->size = reply->cursor_find_reply().record().data().size();
+      record->size = reply.cursor_find_reply.record.data.size;
       if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
         arena->resize(record->size);
         record->data = arena->get_ptr();
       }
-      memcpy(record->data, (void *)&reply->cursor_find_reply().record().data()[0],
+      memcpy(record->data, reply.cursor_find_reply.record.data.value,
               record->size);
     }
   }
@@ -436,18 +477,19 @@ RemoteDatabase::cursor_get_record_count(Cursor *cursor,
 {
   RemoteEnvironment *env = get_remote_env();
 
-  Protocol request(Protocol::CURSOR_GET_RECORD_COUNT_REQUEST);
-  request.mutable_cursor_get_record_count_request()->set_cursor_handle(
-                  cursor->get_remote_handle());
-  request.mutable_cursor_get_record_count_request()->set_flags(flags);
+  SerializedWrapper request;
+  request.id = kCursorGetRecordCountRequest;
+  request.cursor_get_record_count_request.cursor_handle =
+                  cursor->get_remote_handle();
+  request.cursor_get_record_count_request.flags = flags;
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorGetRecordCountReply);
 
-  ham_assert(reply->has_cursor_get_record_count_reply() != 0);
-
-  ham_status_t st = reply->cursor_get_record_count_reply().status();
+  ham_status_t st = reply.cursor_get_record_count_reply.status;
   if (st == 0)
-    *count = reply->cursor_get_record_count_reply().count();
+    *count = reply.cursor_get_record_count_reply.count;
 
   return (st);
 }
@@ -467,17 +509,25 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
 {
   RemoteEnvironment *env = get_remote_env();
 
-  Protocol request(Protocol::CURSOR_OVERWRITE_REQUEST);
-  request.mutable_cursor_overwrite_request()->set_cursor_handle(cursor->get_remote_handle());
-  request.mutable_cursor_overwrite_request()->set_flags(flags);
-  Protocol::assign_record(request.mutable_cursor_overwrite_request()->mutable_record(),
-                    record);
+  SerializedWrapper request;
+  request.id = kCursorOverwriteRequest;
+  request.cursor_overwrite_request.cursor_handle = cursor->get_remote_handle();
+  request.cursor_overwrite_request.flags = flags;
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  if (record->size > 0) {
+    request.cursor_overwrite_request.record.has_data = true;
+    request.cursor_overwrite_request.record.data.size = record->size;
+    request.cursor_overwrite_request.record.data.value = (ham_u8_t *)record->data;
+  }
+  request.cursor_overwrite_request.record.flags = record->flags;
+  request.cursor_overwrite_request.record.partial_size = record->partial_size;
+  request.cursor_overwrite_request.record.partial_offset = record->partial_offset;
 
-  ham_assert(reply->has_cursor_overwrite_reply() != 0);
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorOverwriteReply);
 
-  return (reply->cursor_overwrite_reply().status());
+  return (reply.cursor_overwrite_reply.status);
 }
 
 ham_status_t
@@ -544,15 +594,13 @@ bail:
 void
 RemoteDatabase::cursor_close_impl(Cursor *cursor)
 {
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>
-                                (cursor->get_db()->get_env());
+  SerializedWrapper request;
+  request.id = kCursorCloseRequest;
+  request.cursor_close_request.cursor_handle = cursor->get_remote_handle();
 
-  Protocol request(Protocol::CURSOR_CLOSE_REQUEST);
-  request.mutable_cursor_close_request()->set_cursor_handle(cursor->get_remote_handle());
-
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
-
-  ham_assert(reply->has_cursor_close_reply() != 0);
+  SerializedWrapper reply;
+  get_remote_env()->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorCloseReply);
 }
 
 ham_status_t

@@ -22,7 +22,7 @@
     <ProjectGuid>{10DCD767-DFBE-4096-9258-111D4CF899B1}</ProjectGuid>
     <RootNamespace>lib</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>protocol</ProjectName>
+    <ProjectName>protobuf</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -61,14 +61,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protobuf_debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protobuf_debug\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protobuf_debug_x64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protobuf_debug_x64\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protobuf\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protobuf\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protobuf_x64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protobuf_x64\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
@@ -93,7 +93,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+      <OutputFile>$(OutDir)libprotobuf.lib</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
@@ -123,7 +123,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+      <OutputFile>$(OutDir)libprotobuf.lib</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
@@ -147,7 +147,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+      <OutputFile>$(OutDir)libprotobuf.lib</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
@@ -174,22 +174,22 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+      <OutputFile>$(OutDir)libprotobuf.lib</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\protocol\messages.pb.cc" />
+    <ClCompile Include="..\..\src\protobuf\messages.pb.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\protocol\messages.pb.h" />
-    <ClInclude Include="..\..\src\protocol\protocol.h" />
+    <ClInclude Include="..\..\src\protobuf\messages.pb.h" />
+    <ClInclude Include="..\..\src\protobuf\protocol.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\src\protocol\messages.proto">
+    <CustomBuild Include="..\..\src\protobuf\messages.proto">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">messages.pb.cc</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">messages.pb.cc</Outputs>
     </CustomBuild>

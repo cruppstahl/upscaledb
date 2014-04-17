@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="protocol"
+	Name="protobuf"
 	ProjectGUID="{10DCD767-DFBE-4096-9258-111D4CF899B1}"
 	RootNamespace="lib"
 	Keyword="Win32Proj"
@@ -21,8 +21,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="tmp\protocol_debug"
-			IntermediateDirectory="tmp\protocol_debug"
+			OutputDirectory="tmp\protobuf_debug"
+			IntermediateDirectory="tmp\protobuf_debug"
 			ConfigurationType="4"
 			CharacterSet="1"
 			>
@@ -69,7 +69,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\protobuf\msvc2008\libprotobuf-lite_x86_debug.lib"
-				OutputFile="$(OutDir)\libprotocol.lib"
+				OutputFile="$(OutDir)\libprotobuf.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -89,8 +89,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="tmp\protocol_debug_x64"
-			IntermediateDirectory="tmp\protocol_debug_x64"
+			OutputDirectory="tmp\protobuf_debug_x64"
+			IntermediateDirectory="tmp\protobuf_debug_x64"
 			ConfigurationType="4"
 			CharacterSet="1"
 			>
@@ -138,7 +138,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\protobuf\msvc2008\libprotobuf-lite_x64_debug.lib"
-				OutputFile="$(OutDir)\libprotocol.lib"
+				OutputFile="$(OutDir)\libprotobuf.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -158,8 +158,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="tmp\protocol"
-			IntermediateDirectory="tmp\protocol"
+			OutputDirectory="tmp\protobuf"
+			IntermediateDirectory="tmp\protobuf"
 			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -203,7 +203,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\protobuf\msvc2008\libprotobuf-lite_x86.lib"
-				OutputFile="$(OutDir)\libprotocol.lib"
+				OutputFile="$(OutDir)\libprotobuf.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -223,8 +223,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="tmp\protocol_x64"
-			IntermediateDirectory="tmp\protocol_x64"
+			OutputDirectory="tmp\protobuf_x64"
+			IntermediateDirectory="tmp\protobuf_x64"
 			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -269,7 +269,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\protobuf\msvc2008\libprotobuf-lite_x64.lib"
-				OutputFile="$(OutDir)\libprotocol.lib"
+				OutputFile="$(OutDir)\libprotobuf.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -292,22 +292,22 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\src\protocol\messages.pb.cc"
+			RelativePath="..\..\src\protobuf\messages.pb.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\protocol\messages.pb.h"
+			RelativePath="..\..\src\protobuf\messages.pb.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\protocol\messages.proto"
+			RelativePath="..\..\src\protobuf\messages.proto"
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
 				>
 				<Tool
 					Name="VCCustomBuildTool"
-					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
+					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf&#x0D;&#x0A;"
 					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
@@ -317,7 +317,7 @@
 				>
 				<Tool
 					Name="VCCustomBuildTool"
-					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
+					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf&#x0D;&#x0A;"
 					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
@@ -327,7 +327,7 @@
 				>
 				<Tool
 					Name="VCCustomBuildTool"
-					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
+					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf&#x0D;&#x0A;"
 					AdditionalDependencies=""
 					Outputs="messages.pb.cc"
 				/>
@@ -337,14 +337,14 @@
 				>
 				<Tool
 					Name="VCCustomBuildTool"
-					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
+					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf&#x0D;&#x0A;"
 					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\src\protocol\protocol.h"
+			RelativePath="..\..\src\protobuf\protocol.h"
 			>
 		</File>
 	</Files>

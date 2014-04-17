@@ -21,7 +21,7 @@
 
 #include "../src/error.h"
 #ifdef HAM_ENABLE_REMOTE
-#  include "../src/protocol/protocol.h"
+#  include "../src/protobuf/protocol.h"
 #endif
 
 int

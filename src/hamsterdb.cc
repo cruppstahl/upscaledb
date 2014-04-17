@@ -24,7 +24,7 @@
 #include <string.h>
 
 #ifdef HAM_ENABLE_REMOTE
-#  include "protocol/protocol.h"
+#  include "protobuf/protocol.h"
 #endif
 
 #include "blob_manager.h"

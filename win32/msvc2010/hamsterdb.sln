@@ -36,7 +36,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_server1", "sample_se
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_client1", "sample_client1.vcxproj", "{57E4D0EF-945D-46A7-B189-20940FFB7096}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protocol", "protocol.vcxproj", "{10DCD767-DFBE-4096-9258-111D4CF899B1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protobuf", "protobuf.vcxproj", "{10DCD767-DFBE-4096-9258-111D4CF899B1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lib", "server_lib.vcxproj", "{11DCD767-DFBE-4196-9258-111D4CAF09B0}"
 EndProject

@@ -187,7 +187,7 @@
       <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="protocol.vcxproj">
+    <ProjectReference Include="protobuf.vcxproj">
       <Project>{10dcd767-dfbe-4096-9258-111d4cf899b1}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

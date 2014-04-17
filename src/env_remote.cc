@@ -24,7 +24,7 @@
 #include "env_remote.h"
 #include "txn_remote.h"
 
-#include "protocol/protocol.h"
+#include "protobuf/protocol.h"
 
 namespace hamsterdb {
 
@@ -67,6 +67,39 @@ RemoteEnvironment::perform_request(Protocol *request)
   os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
 
   return (Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8));
+}
+
+void
+RemoteEnvironment::perform_request(SerializedWrapper *request,
+                SerializedWrapper *reply)
+{
+  int size_left = (int)request->get_size();
+  request->size = size_left;
+  request->magic = HAM_TRANSFER_MAGIC_V2;
+  m_buffer.resize(request->size);
+
+  ham_u8_t *ptr = (ham_u8_t *)m_buffer.get_ptr();
+  request->serialize(&ptr, &size_left);
+  ham_assert(size_left == 0);
+
+  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(), request->size);
+
+  // now block and wait for the reply; first read the header, then the
+  // remaining data
+  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
+
+  // now check the magic and receive the remaining data
+  ham_u32_t magic = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 0);
+  if (magic != HAM_TRANSFER_MAGIC_V2)
+    throw Exception(HAM_INTERNAL_ERROR);
+  // TODO check the magic
+  int size = (int)*(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
+  m_buffer.resize(size);
+  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size - 8);
+
+  ptr = (ham_u8_t *)m_buffer.get_ptr();
+  reply->deserialize(&ptr, &size);
+  ham_assert(size == 0);
 }
 
 ham_status_t

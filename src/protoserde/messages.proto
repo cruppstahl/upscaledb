@@ -1,0 +1,605 @@
+SET_OPTION(prefix, Serialized)
+
+PROLOGUE_BEGIN
+/*
+ * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ *
+ * Licensed under the Apache License
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef HAM_MESSAGES_H__
+#define HAM_MESSAGES_H__
+
+#include <ham/hamsterdb.h>
+#include <assert.h>
+
+/** a magic and version indicator for the remote protocol */
+#define HAM_TRANSFER_MAGIC_V2   (('h'<<24)|('a'<<16)|('m'<<8)|'2')
+
+namespace hamsterdb {
+
+enum {
+  kTxnBeginRequest,
+  kTxnBeginReply,
+  kTxnCommitRequest,
+  kTxnCommitReply,
+  kTxnAbortRequest,
+  kTxnAbortReply,
+  kDbGetKeyCountRequest,
+  kDbGetKeyCountReply,
+  kDbInsertRequest,
+  kDbInsertReply,
+  kDbEraseRequest,
+  kDbEraseReply,
+  kDbFindRequest,
+  kDbFindReply,
+  kCursorCreateRequest,
+  kCursorCreateReply,
+  kCursorCloneRequest,
+  kCursorCloneReply,
+  kCursorCloseRequest,
+  kCursorCloseReply,
+  kCursorInsertRequest,
+  kCursorInsertReply,
+  kCursorEraseRequest,
+  kCursorEraseReply,
+  kCursorFindRequest,
+  kCursorFindReply,
+  kCursorGetRecordCountRequest,
+  kCursorGetRecordCountReply,
+  kCursorOverwriteRequest,
+  kCursorOverwriteReply,
+  kCursorMoveRequest,
+  kCursorMoveReply
+};
+
+PROLOGUE_END
+
+MESSAGE_BEGIN(Key)
+  optional bytes data;
+  uint32 flags;
+  uint32 intflags;
+MESSAGE_END
+
+MESSAGE_BEGIN(Record)
+  optional bytes data;
+  uint32 flags;
+  uint32 partial_offset;
+  uint32 partial_size;
+MESSAGE_END
+
+MESSAGE_BEGIN(ConnectRequest)
+  bytes path;
+MESSAGE_END
+
+MESSAGE_BEGIN(ConnectReply)
+  sint32 status;
+  uint32 env_flags;
+  uint64 env_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnBeginRequest)
+  uint64 env_handle;
+  uint32 flags;
+  bytes name;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnBeginReply)
+  sint32 status;
+  uint64 txn_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnCommitRequest)
+  uint64 txn_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnCommitReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnAbortRequest)
+  uint64 txn_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(TxnAbortReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbGetKeyCountRequest)
+  uint64 db_handle;
+  uint64 txn_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbGetKeyCountReply)
+  sint32 status;
+  uint64 keycount;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbInsertRequest)
+  uint64 db_handle;
+  uint64 txn_handle;
+  uint32 flags;
+  optional Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbInsertReply)
+  sint32 status;
+  optional Key key;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbEraseRequest)
+  uint64 db_handle;
+  uint64 txn_handle;
+  Key key;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbEraseReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbFindRequest)
+  uint64 db_handle;
+  uint64 txn_handle;
+  uint32 flags;
+  Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(DbFindReply)
+  sint32 status;
+  optional Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCreateRequest)
+  uint64 db_handle;
+  uint64 txn_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCreateReply)
+  sint32 status;
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCloneRequest)
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCloneReply)
+  sint32 status;
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCloseRequest)
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorCloseReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorInsertRequest)
+  uint64 cursor_handle;
+  uint32 flags;
+  optional Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorInsertReply)
+  sint32 status;
+  optional Key key;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorEraseRequest)
+  uint64 cursor_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorEraseReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorFindRequest)
+  uint64 cursor_handle;
+  uint32 flags;
+  Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorFindReply)
+  sint32 status;
+  optional Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorGetRecordCountRequest)
+  uint64 cursor_handle;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorGetRecordCountReply)
+  sint32 status;
+  uint32 count;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorOverwriteRequest)
+  uint64 cursor_handle;
+  Record record;
+  uint32 flags;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorOverwriteReply)
+  sint32 status;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorMoveRequest)
+  uint64 cursor_handle;
+  uint32 flags;
+  optional Key key;
+  optional Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorMoveReply)
+  sint32 status;
+  Key key;
+  Record record;
+MESSAGE_END
+
+MESSAGE_BEGIN(Wrapper)
+  uint32 magic;
+  uint32 size;
+  uint32 id;
+  TxnBeginRequest txn_begin_request;
+  TxnBeginReply txn_begin_reply;
+  TxnCommitRequest txn_commit_request;
+  TxnCommitReply txn_commit_reply;
+  TxnAbortRequest txn_abort_request;
+  TxnAbortReply txn_abort_reply;
+  DbGetKeyCountRequest db_get_key_count_request;
+  DbGetKeyCountReply db_get_key_count_reply;
+  DbInsertRequest db_insert_request;
+  DbInsertReply db_insert_reply;
+  DbEraseRequest db_erase_request;
+  DbEraseReply db_erase_reply;
+  DbFindRequest db_find_request;
+  DbFindReply db_find_reply;
+  CursorCreateRequest cursor_create_request;
+  CursorCreateReply cursor_create_reply;
+  CursorCloneRequest cursor_clone_request;
+  CursorCloneReply cursor_clone_reply;
+  CursorCloseRequest cursor_close_request;
+  CursorCloseReply cursor_close_reply;
+  CursorInsertRequest cursor_insert_request;
+  CursorInsertReply cursor_insert_reply;
+  CursorEraseRequest cursor_erase_request;
+  CursorEraseReply cursor_erase_reply;
+  CursorFindRequest cursor_find_request;
+  CursorFindReply cursor_find_reply;
+  CursorGetRecordCountRequest cursor_get_record_count_request;
+  CursorGetRecordCountReply cursor_get_record_count_reply;
+  CursorOverwriteRequest cursor_overwrite_request;
+  CursorOverwriteReply cursor_overwrite_reply;
+  CursorMoveRequest cursor_move_request;
+  CursorMoveReply cursor_move_reply;
+
+  CUSTOM_IMPLEMENTATION_BEGIN
+  // the methods in here have a custom implementation, otherwise we would
+  // generate many bools for the "optional" fields, and they would
+  // unnecessarily increase the structure size
+  void clear() {
+    magic = 0;
+    size = 0;
+    id = 0;
+  }
+
+  size_t get_size() const {
+    size_t s = magic.get_size() + size.get_size() + id.get_size();
+    switch (id.value) {
+      case kTxnBeginRequest: 
+        return (s + txn_begin_request.get_size());
+      case kTxnBeginReply: 
+        return (s + txn_begin_reply.get_size());
+      case kTxnCommitRequest: 
+        return (s + txn_commit_request.get_size());
+      case kTxnCommitReply: 
+        return (s + txn_commit_reply.get_size());
+      case kTxnAbortRequest: 
+        return (s + txn_abort_request.get_size());
+      case kTxnAbortReply: 
+        return (s + txn_abort_reply.get_size());
+      case kDbGetKeyCountRequest: 
+        return (s + db_get_key_count_request.get_size());
+      case kDbGetKeyCountReply: 
+        return (s + db_get_key_count_reply.get_size());
+      case kDbInsertRequest: 
+        return (s + db_insert_request.get_size());
+      case kDbInsertReply: 
+        return (s + db_insert_reply.get_size());
+      case kDbEraseRequest: 
+        return (s + db_erase_request.get_size());
+      case kDbEraseReply: 
+        return (s + db_erase_reply.get_size());
+      case kDbFindRequest: 
+        return (s + db_find_request.get_size());
+      case kDbFindReply: 
+        return (s + db_find_reply.get_size());
+      case kCursorCreateRequest: 
+        return (s + cursor_create_request.get_size());
+      case kCursorCreateReply: 
+        return (s + cursor_create_reply.get_size());
+      case kCursorCloneRequest: 
+        return (s + cursor_clone_request.get_size());
+      case kCursorCloneReply: 
+        return (s + cursor_clone_reply.get_size());
+      case kCursorCloseRequest: 
+        return (s + cursor_close_request.get_size());
+      case kCursorCloseReply: 
+        return (s + cursor_close_reply.get_size());
+      case kCursorInsertRequest: 
+        return (s + cursor_insert_request.get_size());
+      case kCursorInsertReply: 
+        return (s + cursor_insert_reply.get_size());
+      case kCursorEraseRequest: 
+        return (s + cursor_erase_request.get_size());
+      case kCursorEraseReply: 
+        return (s + cursor_erase_reply.get_size());
+      case kCursorFindRequest: 
+        return (s + cursor_find_request.get_size());
+      case kCursorFindReply: 
+        return (s + cursor_find_reply.get_size());
+      case kCursorGetRecordCountRequest: 
+        return (s + cursor_get_record_count_request.get_size());
+      case kCursorGetRecordCountReply: 
+        return (s + cursor_get_record_count_reply.get_size());
+      case kCursorOverwriteRequest: 
+        return (s + cursor_overwrite_request.get_size());
+      case kCursorOverwriteReply: 
+        return (s + cursor_overwrite_reply.get_size());
+      case kCursorMoveRequest: 
+        return (s + cursor_move_request.get_size());
+      case kCursorMoveReply: 
+        return (s + cursor_move_reply.get_size());
+      default:
+        assert(!"shouldn't be here");
+        return (0);
+    }
+  }
+
+  void serialize(unsigned char **pptr, int *psize) const {
+    magic.serialize(pptr, psize);
+    size.serialize(pptr, psize);
+    id.serialize(pptr, psize);
+
+    switch (id.value) {
+      case kTxnBeginRequest: 
+        txn_begin_request.serialize(pptr, psize);
+        break;
+      case kTxnBeginReply: 
+        txn_begin_reply.serialize(pptr, psize);
+        break;
+      case kTxnCommitRequest: 
+        txn_commit_request.serialize(pptr, psize);
+        break;
+      case kTxnCommitReply: 
+        txn_commit_reply.serialize(pptr, psize);
+        break;
+      case kTxnAbortRequest: 
+        txn_abort_request.serialize(pptr, psize);
+        break;
+      case kTxnAbortReply: 
+        txn_abort_reply.serialize(pptr, psize);
+        break;
+      case kDbGetKeyCountRequest: 
+        db_get_key_count_request.serialize(pptr, psize);
+        break;
+      case kDbGetKeyCountReply: 
+        db_get_key_count_reply.serialize(pptr, psize);
+        break;
+      case kDbInsertRequest: 
+        db_insert_request.serialize(pptr, psize);
+        break;
+      case kDbInsertReply: 
+        db_insert_reply.serialize(pptr, psize);
+        break;
+      case kDbEraseRequest: 
+        db_erase_request.serialize(pptr, psize);
+        break;
+      case kDbEraseReply: 
+        db_erase_reply.serialize(pptr, psize);
+        break;
+      case kDbFindRequest: 
+        db_find_request.serialize(pptr, psize);
+        break;
+      case kDbFindReply: 
+        db_find_reply.serialize(pptr, psize);
+        break;
+      case kCursorCreateRequest: 
+        cursor_create_request.serialize(pptr, psize);
+        break;
+      case kCursorCreateReply: 
+        cursor_create_reply.serialize(pptr, psize);
+        break;
+      case kCursorCloneRequest: 
+        cursor_clone_request.serialize(pptr, psize);
+        break;
+      case kCursorCloneReply: 
+        cursor_clone_reply.serialize(pptr, psize);
+        break;
+      case kCursorCloseRequest: 
+        cursor_close_request.serialize(pptr, psize);
+        break;
+      case kCursorCloseReply: 
+        cursor_close_reply.serialize(pptr, psize);
+        break;
+      case kCursorInsertRequest: 
+        cursor_insert_request.serialize(pptr, psize);
+        break;
+      case kCursorInsertReply: 
+        cursor_insert_reply.serialize(pptr, psize);
+        break;
+      case kCursorEraseRequest: 
+        cursor_erase_request.serialize(pptr, psize);
+        break;
+      case kCursorEraseReply: 
+        cursor_erase_reply.serialize(pptr, psize);
+        break;
+      case kCursorFindRequest: 
+        cursor_find_request.serialize(pptr, psize);
+        break;
+      case kCursorFindReply: 
+        cursor_find_reply.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordCountRequest: 
+        cursor_get_record_count_request.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordCountReply: 
+        cursor_get_record_count_reply.serialize(pptr, psize);
+        break;
+      case kCursorOverwriteRequest: 
+        cursor_overwrite_request.serialize(pptr, psize);
+        break;
+      case kCursorOverwriteReply: 
+        cursor_overwrite_reply.serialize(pptr, psize);
+        break;
+      case kCursorMoveRequest: 
+        cursor_move_request.serialize(pptr, psize);
+        break;
+      case kCursorMoveReply: 
+        cursor_move_reply.serialize(pptr, psize);
+        break;
+      default:
+        assert(!"shouldn't be here");
+    }
+  }
+
+  void deserialize(unsigned char **pptr, int *psize) {
+    magic.deserialize(pptr, psize);
+    size.deserialize(pptr, psize);
+    id.deserialize(pptr, psize);
+
+    switch (id.value) {
+      case kTxnBeginRequest: 
+        txn_begin_request.deserialize(pptr, psize);
+        break;
+      case kTxnBeginReply: 
+        txn_begin_reply.deserialize(pptr, psize);
+        break;
+      case kTxnCommitRequest: 
+        txn_commit_request.deserialize(pptr, psize);
+        break;
+      case kTxnCommitReply: 
+        txn_commit_reply.deserialize(pptr, psize);
+        break;
+      case kTxnAbortRequest: 
+        txn_abort_request.deserialize(pptr, psize);
+        break;
+      case kTxnAbortReply: 
+        txn_abort_reply.deserialize(pptr, psize);
+        break;
+      case kDbGetKeyCountRequest: 
+        db_get_key_count_request.deserialize(pptr, psize);
+        break;
+      case kDbGetKeyCountReply: 
+        db_get_key_count_reply.deserialize(pptr, psize);
+        break;
+      case kDbInsertRequest: 
+        db_insert_request.deserialize(pptr, psize);
+        break;
+      case kDbInsertReply: 
+        db_insert_reply.deserialize(pptr, psize);
+        break;
+      case kDbEraseRequest: 
+        db_erase_request.deserialize(pptr, psize);
+        break;
+      case kDbEraseReply: 
+        db_erase_reply.deserialize(pptr, psize);
+        break;
+      case kDbFindRequest: 
+        db_find_request.deserialize(pptr, psize);
+        break;
+      case kDbFindReply: 
+        db_find_reply.deserialize(pptr, psize);
+        break;
+      case kCursorCreateRequest: 
+        cursor_create_request.deserialize(pptr, psize);
+        break;
+      case kCursorCreateReply: 
+        cursor_create_reply.deserialize(pptr, psize);
+        break;
+      case kCursorCloneRequest: 
+        cursor_clone_request.deserialize(pptr, psize);
+        break;
+      case kCursorCloneReply: 
+        cursor_clone_reply.deserialize(pptr, psize);
+        break;
+      case kCursorCloseRequest: 
+        cursor_close_request.deserialize(pptr, psize);
+        break;
+      case kCursorCloseReply: 
+        cursor_close_reply.deserialize(pptr, psize);
+        break;
+      case kCursorInsertRequest: 
+        cursor_insert_request.deserialize(pptr, psize);
+        break;
+      case kCursorInsertReply: 
+        cursor_insert_reply.deserialize(pptr, psize);
+        break;
+      case kCursorEraseRequest: 
+        cursor_erase_request.deserialize(pptr, psize);
+        break;
+      case kCursorEraseReply: 
+        cursor_erase_reply.deserialize(pptr, psize);
+        break;
+      case kCursorFindRequest: 
+        cursor_find_request.deserialize(pptr, psize);
+        break;
+      case kCursorFindReply: 
+        cursor_find_reply.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordCountRequest: 
+        cursor_get_record_count_request.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordCountReply: 
+        cursor_get_record_count_reply.deserialize(pptr, psize);
+        break;
+      case kCursorOverwriteRequest: 
+        cursor_overwrite_request.deserialize(pptr, psize);
+        break;
+      case kCursorOverwriteReply: 
+        cursor_overwrite_reply.serialize(pptr, psize);
+        break;
+      case kCursorMoveRequest: 
+        cursor_move_request.deserialize(pptr, psize);
+        break;
+      case kCursorMoveReply: 
+        cursor_move_reply.deserialize(pptr, psize);
+        break;
+      default:
+        assert(!"shouldn't be here");
+    }
+  }
+  CUSTOM_IMPLEMENTATION_END
+MESSAGE_END
+
+
+EPILOGUE_BEGIN
+
+} // namespace hamsterdb
+#endif // HAM_MESSAGES_H__
+
+EPILOGUE_END

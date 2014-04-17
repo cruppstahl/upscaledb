@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include "protocol/protocol.h"
+#include "protobuf/protocol.h"
 #include "txn_remote.h"
 #include "env_remote.h"
 
@@ -31,39 +31,45 @@ RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
   : Transaction(env, name, flags), m_remote_handle(0)
 {
   RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
-  Protocol request(Protocol::TXN_BEGIN_REQUEST);
-  request.mutable_txn_begin_request()->set_env_handle(renv->get_remote_handle());
-  request.mutable_txn_begin_request()->set_flags(flags);
-  if (name)
-    request.mutable_txn_begin_request()->set_name(name);
 
-  std::auto_ptr<Protocol> reply(renv->perform_request(&request));
+  SerializedWrapper request;
+  request.id = kTxnBeginRequest;
+  request.txn_begin_request.env_handle = renv->get_remote_handle();
+  request.txn_begin_request.flags = flags;
+  if (name) {
+    request.txn_begin_request.name.value = (ham_u8_t *)name;
+    request.txn_begin_request.name.size = strlen(name) + 1;
+  }
 
-  ham_assert(reply->has_txn_begin_reply());
+  SerializedWrapper reply;
+  renv->perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnBeginReply);
 
-  ham_status_t st = reply->txn_begin_reply().status();
+  ham_status_t st = reply.txn_begin_reply.status;
   if (st)
     throw Exception(st);
 
   /* this transaction is now committed! */
   m_flags |= kStateCommitted;
 
-  set_remote_handle(reply->txn_begin_reply().txn_handle());
+  set_remote_handle(reply.txn_begin_reply.txn_handle);
 }
 
 void
 RemoteTransaction::commit(ham_u32_t flags)
 {
-  Protocol request(Protocol::TXN_COMMIT_REQUEST);
-  request.mutable_txn_commit_request()->set_txn_handle(get_remote_handle());
-  request.mutable_txn_commit_request()->set_flags(flags);
-
   RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
-  std::auto_ptr<Protocol> reply(renv->perform_request(&request));
 
-  ham_assert(reply->has_txn_commit_reply());
+  SerializedWrapper request;
+  request.id = kTxnCommitRequest;
+  request.txn_commit_request.txn_handle = get_remote_handle();
+  request.txn_commit_request.flags = flags;
 
-  ham_status_t st = reply->txn_commit_reply().status();
+  SerializedWrapper reply;
+  renv->perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnCommitReply);
+
+  ham_status_t st = reply.txn_commit_reply.status;
   if (st)
     throw Exception(st);
 
@@ -74,16 +80,17 @@ RemoteTransaction::commit(ham_u32_t flags)
 void
 RemoteTransaction::abort(ham_u32_t flags)
 {
-  Protocol request(Protocol::TXN_ABORT_REQUEST);
-  request.mutable_txn_abort_request()->set_txn_handle(get_remote_handle());
-  request.mutable_txn_abort_request()->set_flags(flags);
+  RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
 
-  RemoteEnvironment *renv = (RemoteEnvironment *)m_env;
-  std::auto_ptr<Protocol> reply(renv->perform_request(&request));
+  SerializedWrapper request;
+  request.id = kTxnAbortRequest;
+  request.txn_abort_request.txn_handle = get_remote_handle();
+  request.txn_abort_request.flags = flags;
 
-  ham_assert(reply->has_txn_abort_reply());
-
-  ham_status_t st = reply->txn_abort_reply().status();
+  SerializedWrapper reply;
+  renv->perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnAbortReply);
+  ham_status_t st = reply.txn_abort_reply.status;
   if (st)
     throw Exception(st);
 }
