@@ -164,6 +164,17 @@ x run benchmark with this:
     -mfpmath=sse -Ofast -flto -march=native -funroll-loops
     -> add recommendation to Performance documentation
 
+x performance question: running ham_bench with 10mio keys (uint32, no records)
+    and then performing --open --find-pct=100 -> 6.5 sec;
+    with --cache=unlimited -> 6.5 sec
+    why is there no difference? this is random access, and pages should be
+    purged frequently. disabling mmap does not make a difference (SSD!).
+    -> try with a spinning disk (same result)
+    -> since this is a pure read-only workload, the pages are not modified
+        and purging them does not have any I/O costs associated. Fetching them
+        simply returns a pointer to the mmapped storage.
+        disabling mmap becomes very costly, though.
+
 o PRO: use SIMD instructions for the linear search
     -> SSE2 only supports comparisons for signed integers!
     x configure switch --enable-sse2: adds -msse2 to CFLAGS
@@ -178,12 +189,12 @@ o PRO: use SIMD instructions for the linear search
         x if enabled: use avx if available; otherwise fallback to sse2
     x metrics should return the LANE width, not bools (default is 0)
 
-    o replace linear search with the SSE2 variant
+    x replace linear search with the SSE2 variant
         x move SSE-related code to a template function in simd.h
         x simd available? -> the find function calls the function in simd.h
             x if HAM_ENABLE_SIMD is true
             x if os_get_simd_lane_width() > 1
-        o if threshold is reached: continue with linear search
+        x if threshold is reached: continue with linear search
             x the linear search implementation is not working identically to
                 the SIMD functions; add unittest (i.e. for signed int)
                 -> no, it's ok
@@ -195,47 +206,19 @@ o PRO: use SIMD instructions for the linear search
                 x float
                 x ham_u64_t
                 x add unittests for sse
-=====================================
-currently, the SSE2 version of ham_uint32_t is a bit SLOWER than the
-regular version
--> check with a profiler
--> also check the linear search
-
-x w/o SIMD: improved binary search
-x w/o SIMD: find optimal linear search threshold
-x w/ SIMD: improve uint32 
-x w/ SIMD: improve uint16 
-o w/ SIMD: improve uint64 
-o w/ SIMD: improve float 
-o w/ SIMD: improve double 
-====>> Änderungen in APL-Version übertragen?
-x get_record ist tief verschachtelt, nicht inline
-=====================================
-            x how to dispatch the function for AVX?
-            o implement linear search with SIMD (AVX - 8x4?)
-                really required?
-                o ham_u16_t
-                o ham_u32_t
-                o float
-                o ham_u64_t
-                o double
-                x add unittests for avx
-            o all monster tests must be working
+            x revert support for AVX (move to branch)
+            x currently crashing or failing in debug build
+            x then perform another round of profiling (with different
+                    thresholds!)
     x ham_bench: add flag to disable simd
     x review the changes - some can maybe be ported back to hamsterdb (APL)?
         -> find_exact!
     x test compilation with clang
-    o test compilation with msvc
-    o add monster tests
-    o add performance tests for all types (no records, many finds, with
+    x add monster tests
+    x add performance tests for all types (no records, many finds, with
         and without SSE)
-
-o performance question: running ham_bench with 10mio keys (uint32, no records)
-    and then performing --open --find-pct=100 -> 6.5 sec;
-    with --cache=unlimited -> 6.5 sec
-    why is there no difference? this is random access, and pages should be
-    purged frequently. disabling mmap does not make a difference (SSD!).
-    -> try with a spinning disk
+    o run monster tests
+    o test compilation with msvc
 
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
@@ -389,6 +372,9 @@ o remote code: reuse the procotol buffer objects! Constructing/destructing
     them is expensive
     o perform more benchmarks; currently, ham_bench remote is 10 times slower
         than locally!
+
+o PRO: add avx support
+o PRO: add sse support for real64
 
 o look into hive-integration
     -> would be an interesting market with requirements for column store
