@@ -262,6 +262,9 @@ o performance question: running ham_bench with 10mio keys (uint32, no records)
 o port everything to MacOS
 o port everything to Win32/Visual Studio
 
+o port everything to MacOS
+o port everything to Win32/Visual Studio
+
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
         will not use it anyway
@@ -284,8 +287,17 @@ o PRO: 30 day evaluation library
     x print message to stdout in ham_env_create, ham_env_open
         x make sure that all strings are obfuscated!
     x need a license agreement similar to an NDA
+<<<<<<< HEAD
     x evaluate source obfuscators
     o prepare code for obfuscator, improve obfuscation with perl-scripts
+=======
+    o evaluate source obfuscators
+        sourceformat - http://www.sourceformat.com
+        Stunnix - http://www.stunnix.com/prod/cxxo/pricing.shtml
+        Mangle-It - http://www.brothersoft.com/mangle-it-c%2B%2B-obfuscator-91793.html
+        Semantic Design - http://www.semdesigns.com/Purchase/
+        o also test the performance of the generated code!
+>>>>>>> Updated TODO
     o create one source/win32 package starting at each week, running 30 days,
         for at least 3 months
         o requires a build tool for unix and win32
@@ -311,8 +323,18 @@ o PRO: extend release-tool
         o for windows (precompiled 32bit and 64bit DLLs)
 
 o PRO: additional stuff for the first release
+<<<<<<< HEAD
+<<<<<<< HEAD
     o update the ChangeLog (don't use a new one!)
     o update the README
+=======
+    o needs a ChangeLog
+    o needs a README
+>>>>>>> Updated TODO
+=======
+    o update the ChangeLog (don't use a new one!)
+    o update the README
+>>>>>>> Updated TODO
 
     x create new documentation page (wiki) for pro (tutorial + ham_bench)
         x journal compression
@@ -336,12 +358,35 @@ o PRO: additional stuff for the first release
         x feature matrix APL vs. closed source
         x new layout
         o daily backups of the mysql database
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Updated TODO
         o request evaluation version: similar to contact form with additional
             details about the product; also has to sign off (= checkbutton)
             the evaluation license agreement
 
     o send email to all customers (add this to the release process)
         -> needs a link generator!
+<<<<<<< HEAD
+=======
+        o publish benchmark against leveldb (with and without SSD)
+            - each with 10 mio keys
+            o uint32, small records, random write
+            o uint32, small records, linear write
+            o uint32, small records, random read
+            o uint32, small records, linear read
+            o bin16, default records, random write (w/o compression)
+            o bin16, default records, linear write (w/o compression)
+            o bin16, default records, random read (w/o compression)
+            o bin16, default records, linear read (w/o compression)
+            o bin16, default records, random write (w/ compression)
+            o bin16, default records, linear write (w/ compression)
+            o bin16, default records, random read (w/ compression)
+            o bin16, default records, linear read (w/ compression)
+>>>>>>> Updated TODO
+=======
+>>>>>>> Updated TODO
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
@@ -370,9 +415,6 @@ o make better use of mmapped memory
             o this needs new tests! open an existing file with compressed
                 records
     o check performance tests
-
-o PRO: add avx support
-o PRO: add sse support for real64
 
 o look into hive-integration
     -> would be an interesting market with requirements for column store
@@ -473,7 +515,16 @@ o delta updates managed in the BtreeNode
         x Default
             -> also worth the effort, about 15% are spent in memmove
 
+<<<<<<< HEAD
+<<<<<<< HEAD
     o need a flag to disable DeltaUpdates
+=======
+    o need a flag to disable DeltaUpdates; run tests if they should be
+        disabled by default
+>>>>>>> Updated TODO
+=======
+    o need a flag to disable DeltaUpdates
+>>>>>>> Updated TODO
         o add flag to ham_bench
     o rename TransactionOperation to DeltaUpdate, decouple code from txn
     o totally transparent to the caller, handled in the proxy
@@ -481,8 +532,18 @@ o delta updates managed in the BtreeNode
     o requires_split() takes delta updates into account
     o only add deltas to leaf nodes; internal nodes have too many read
         operations and would anyway require immediate flushes
+<<<<<<< HEAD
+<<<<<<< HEAD
     o DeltaUpdate objects from a txn-flush should directly go down to
         the node (detach from txn, attach to node)
+=======
+    o DeltaUpdate objects from a txn-flush should immediately go down to
+        the node
+>>>>>>> Updated TODO
+=======
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+>>>>>>> Updated TODO
     o make the merge algorithm as efficient as possible
         o sort deltas by key
         o first execute all 'erase' either against other deltas or against
@@ -524,8 +585,19 @@ o architecture for a new webpage
 ------------- hamsterdb 2.1.8 ---------------------------------------
 
 . PRO: add avx support
+<<<<<<< HEAD
 o PRO: add sse support for real64
 
+<<<<<<< HEAD
+=======
+------------- hamsterdb 2.1.8 ---------------------------------------
+
+o PRO: add avx support
+=======
+>>>>>>> Updated TODO
+o PRO: add sse support for real64
+
+>>>>>>> Updated TODO
 o PRO: bulk updates (really only for pro?)
     - require delta updates
     - give users API to allocate memory for keys/records
@@ -539,7 +611,15 @@ o PRO: bulk updates (really only for pro?)
         relatively cheap way to perform multiple operations in one
         single transaction. and they would not require delta updates, but
         still provide real value.
+<<<<<<< HEAD
+<<<<<<< HEAD
     o also for remote, transfer in a single message
+=======
+    o also for remote
+>>>>>>> Updated TODO
+=======
+    o also for remote, transfer in a single message
+>>>>>>> Updated TODO
     o also for .NET
     o also for java
     o also for erlang
@@ -570,7 +650,41 @@ o PRO: use grouped varints for compressing int32/int64, record IDs and
     duplicate tables
     -> the concept will be similar to prefix compression
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 ------------- hamsterdb 2.1.9 ---------------------------------------
+
+o use cache-oblivious b-tree layout
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PRO? PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
+
+. binary search in the nodes: keep track of the last result, use this as
+    a starting point? or use a weighted search with "hot spots" for the first
+    few lookups? this would require tests with different lookup characteristics,
+    i.e. zipfian instead of purely random. bad for benchmarking.
+=======
+o PRO: CRC32-checksums (as soon as the file format is updated)
+    o SSE2 has support for a CRC32 checksum calculation
+
+=======
+>>>>>>> Updated TODO
+------------- hamsterdb 2.1.9 ---------------------------------------
+>>>>>>> Updated TODO
 
 o use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
