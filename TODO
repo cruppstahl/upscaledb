@@ -266,6 +266,7 @@ x get_record ist tief verschachtelt, nicht inline
         and without SSE)
     o run monster tests
     o test compilation with msvc
+<<<<<<< HEAD
     o add monster tests
     o add performance tests for all types (no records, many finds, with
         and without SSE)
@@ -280,6 +281,9 @@ o performance question: running ham_bench with 10mio keys (uint32, no records)
 
 o port everything to MacOS
 o port everything to Win32/Visual Studio
+=======
+<<<<<<< HEAD
+>>>>>>> Fixing a performance regression in 2.1.7
 
 o port everything to MacOS
 o port everything to Win32/Visual Studio
@@ -379,6 +383,8 @@ o PRO: 30 day evaluation library
         o for real64: 8 keys at once
     o also perform binary searches with SSE2
         http://openproceedings.org/EDBT/2014/paper_107.pdf
+=======
+>>>>>>> b9e83e9... Fixed a regression
 
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
@@ -615,6 +621,9 @@ o remote code: get rid of protocol buffers (but leave them in the server
         for the messages 
     x perform a benchmark - looks good, nearly 50% faster
     o port all functions
+
+o PRO: add avx support
+o PRO: add sse support for real64
 
 o look into hive-integration
     -> would be an interesting market with requirements for column store
