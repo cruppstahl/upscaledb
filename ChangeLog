@@ -1,3 +1,8 @@
+Apr 25, 2014 - chris ---------------------------------------------------
+o Fixing a performance regression in 2.1.7 - large fixed-length keys
+	created too many page splits, even if they were stored as extended
+	keys
+
 Apr 08, 2014 - chris ---------------------------------------------------
 o PAX layout now uses linear search for small ranges; this improves search
 	performance by 5-10%

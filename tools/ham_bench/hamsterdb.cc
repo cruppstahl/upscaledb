@@ -175,11 +175,6 @@ HamsterDatabase::do_open_env()
       params[p].value = (ham_u64_t)"1234567890123456";
       p++;
     }
-    if (m_config->journal_compression) {
-      params[p].name = HAM_PARAM_JOURNAL_COMPRESSION;
-      params[p].value = m_config->journal_compression;
-      p++;
-    }
 
     flags |= m_config->no_mmap ? HAM_DISABLE_MMAP : 0; 
     flags |= m_config->cacheunlimited ? HAM_CACHE_UNLIMITED : 0;

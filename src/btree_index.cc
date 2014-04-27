@@ -156,16 +156,15 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
 ham_s32_t
 BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 {
-  int cmp;
-  BtreeNodeProxy *node = get_node_from_page(page);
-
   /* ensure the approx flag is NOT set by anyone yet */
   ham_key_set_intflags(key, ham_key_get_intflags(key)
             & ~BtreeKey::kApproximate);
 
+  BtreeNodeProxy *node = get_node_from_page(page);
   if (node->get_count() == 0)
     return (-1);
 
+  int cmp;
   int slot = node->find(key, &cmp);
 
   /*
@@ -396,11 +395,12 @@ BtreeIndex::get_max_keys_per_page() const
                             ? sizeof(ham_u64_t)
                             : get_record_size();
 
+  ham_u32_t actual_key_size = m_leaf_traits->get_actual_key_size(page_size,
+                                key_size);
+
   /* adjust page size and key size by adding the overhead */
   page_size -= PBtreeNode::get_entry_offset();
   page_size -= Page::kSizeofPersistentHeader;
-
-  ham_u32_t actual_key_size = m_leaf_traits->get_actual_key_size(key_size);
 
   /* and return an even number */
   ham_u32_t max;

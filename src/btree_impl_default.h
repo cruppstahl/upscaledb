@@ -1102,13 +1102,15 @@ class DefaultNodeImpl
     // Returns the actual key size (including overhead, without record).
     // This is a rough guess and only for calculating the initial node
     // capacity.
-    static ham_u16_t get_actual_key_size(ham_u32_t key_size,
-                        bool enable_duplicates = false) {
+    static ham_u16_t get_actual_key_size(ham_u32_t page_size,
+                        ham_u32_t key_size, bool enable_duplicates = false) {
       // unlimited/variable keys require 5 bytes for flags + key size + offset;
       // assume an average key size of 32 bytes (this is a random guess, but
       // will be good enough)
       if (key_size == HAM_KEY_SIZE_UNLIMITED)
         return ((ham_u16_t)32 - 8);// + 5 - 8
+      if (key_size > calculate_extended_threshold(page_size))
+        key_size = 8;
 
       // otherwise 1 byte for flags and 1 byte for record counter
       return ((ham_u16_t)(key_size + (enable_duplicates ? 2 : 0)));
@@ -1927,9 +1929,8 @@ class DefaultNodeImpl
       check_index_integrity(count);
 #endif
 
-      bool extended_key = key->size > get_extended_threshold();
-
       ham_u32_t offset = (ham_u32_t)-1;
+      bool extended_key = key->size > get_extended_threshold();
 
       // search the freelist for free key space
       int idx = freelist_find(count,
@@ -2891,11 +2892,16 @@ class DefaultNodeImpl
       if (g_extended_threshold)
         return (g_extended_threshold);
       ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
+      return (g_extended_threshold = calculate_extended_threshold(page_size));
+    }
+
+    // Calculates the extended threshold based on the page size
+    static ham_u32_t calculate_extended_threshold(ham_u32_t page_size) {
       if (page_size == 1024)
-        return (g_extended_threshold = 64);
+        return (64);
       if (page_size <= 1024 * 8)
-        return (g_extended_threshold = 128);
-      return (g_extended_threshold = 256);
+        return (128);
+      return (256);
     }
 
     // Returns the threshold for duplicate tables

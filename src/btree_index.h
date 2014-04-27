@@ -186,7 +186,8 @@ class BtreeIndexTraits
     virtual ~BtreeIndexTraits() { }
 
     // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_actual_key_size(ham_u32_t key_size) const = 0;
+    virtual ham_u16_t get_actual_key_size(ham_u32_t page_size,
+                        ham_u32_t key_size) const = 0;
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a

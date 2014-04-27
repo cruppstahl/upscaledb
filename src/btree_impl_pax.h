@@ -245,6 +245,8 @@ template<typename T>
 class PodKeyList
 {
   public:
+    typedef T type;
+
     // Constructor
     PodKeyList(LocalDatabase *db, ham_u8_t *data)
       : m_data((T *)data) {
@@ -265,6 +267,16 @@ class PodKeyList
       return ((ham_u8_t *)&m_data[slot]);
     }
 
+    // Returns a pointer to the key's data array
+    T *get_key_array() {
+      return (m_data);
+    }
+
+    // Has support for SIMD style search?
+    bool has_simd_support() const {
+      return (true);
+    }
+
     // Overwrites an existing key; the |size| of the new data HAS to be
     // identical with the key size specified when the database was created!
     void set_key_data(ham_u32_t slot, const void *ptr, ham_u32_t size) {
@@ -275,8 +287,10 @@ class PodKeyList
     // Returns the threshold when switching from binary search to
     // linear search
     int get_linear_search_threshold() const {
-      if (g_linear_threshold)
-        return (g_linear_threshold);
+      // disabled the check for g_linear_threshold because it avoids
+      // inlining of this function
+      //if (g_linear_threshold)
+        //return (g_linear_threshold);
       return (128 / sizeof(T));
     }
 
@@ -290,6 +304,7 @@ class PodKeyList
       ham_u32_t c = start;
       ham_u32_t end = start + count;
 
+#undef COMPARE
 #define COMPARE(c)      if (key <= m_data[c]) {                         \
                           if (key < m_data[c]) {                        \
                             if (c == 0)                                 \
@@ -319,8 +334,6 @@ class PodKeyList
         c++;
       }
 
-#undef COMPARE
-
       /* the new key is > the last key in the page */
       *pcmp = 1;
       return (start + count - 1);
@@ -337,6 +350,8 @@ class PodKeyList
 class BinaryKeyList
 {
   public:
+    typedef ham_u8_t type;
+
     // Constructor
     BinaryKeyList(LocalDatabase *db, ham_u8_t *data)
         : m_data(data) {
@@ -357,6 +372,16 @@ class BinaryKeyList
     // Returns the pointer to a key's data (const flavour)
     ham_u8_t *get_key_data(ham_u32_t slot) const {
       return (&m_data[slot * m_key_size]);
+    }
+
+    // Returns a pointer to the key's data array
+    ham_u8_t *get_key_array() {
+      return (m_data);
+    }
+
+    // Has support for SIMD style search?
+    bool has_simd_support() const {
+      return (false);
     }
 
     // Overwrites a key's data (again, the |size| of the new data HAS
@@ -725,10 +750,11 @@ class PaxNodeImpl
       : m_page(page), m_node(PBtreeNode::from_page(page)),
         m_keys(page->get_db(), m_node->get_data()),
         m_records(page->get_db()) {
+      ham_u32_t page_size = page->get_db()->get_local_env()->get_page_size();
       ham_u32_t usable_nodesize
               = page->get_db()->get_local_env()->get_usable_page_size()
                     - PBtreeNode::get_entry_offset();
-      ham_u32_t key_size = get_actual_key_size(m_keys.get_key_size());
+      ham_u32_t key_size = get_actual_key_size(page_size,m_keys.get_key_size());
       m_capacity = usable_nodesize / (key_size
                       + m_records.get_max_inline_record_size());
 
@@ -746,7 +772,8 @@ class PaxNodeImpl
     }
 
     // Returns the actual key size (including overhead, without record)
-    static ham_u16_t get_actual_key_size(ham_u32_t key_size) {
+    static ham_u16_t get_actual_key_size(ham_u32_t page_size,
+                        ham_u32_t key_size) {
       ham_assert(key_size != HAM_KEY_SIZE_UNLIMITED);
       return ((ham_u16_t)(key_size
                       + (RecordList::is_always_fixed_size() ? 0 : 1)));
