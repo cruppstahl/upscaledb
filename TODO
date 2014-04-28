@@ -177,7 +177,7 @@ x performance question: running ham_bench with 10mio keys (uint32, no records)
         simply returns a pointer to the mmapped storage.
         disabling mmap becomes very costly, though.
 
-o PRO: use SIMD instructions for the linear search
+x PRO: use SIMD instructions for the linear search
     -> SSE2 only supports comparisons for signed integers!
     x configure switch --enable-sse2: adds -msse2 to CFLAGS
         x enable by default if `grep /proc/cpuinfo sse2` != 0
@@ -259,6 +259,9 @@ o performance question: running ham_bench with 10mio keys (uint32, no records)
     -> try with a spinning disk
 >>>>>>> a2464fe... SIMD preparations
 
+o port everything to MacOS
+o port everything to Win32/Visual Studio
+
 o PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
         will not use it anyway
@@ -280,77 +283,97 @@ o PRO: 30 day evaluation library
     x needs different licensing output in the tools (evaluation - XX days left)
     x print message to stdout in ham_env_create, ham_env_open
         x make sure that all strings are obfuscated!
+    x need a license agreement similar to an NDA
     o evaluate source obfuscators
         sourceformat - http://www.sourceformat.com
         Stunnix - http://www.stunnix.com/prod/cxxo/pricing.shtml
         Mangle-It - http://www.brothersoft.com/mangle-it-c%2B%2B-obfuscator-91793.html
         Semantic Design - http://www.semdesigns.com/Purchase/
         o also test the performance of the generated code!
-    o need a license agreement similar to an NDA
-    o create one source/win32 package starting at each week, running 4 weeks
+    o create one source/win32 package starting at each week, running 30 days,
+        for at least 3 months
         o requires a build tool for unix and win32
-        o on windows only build the DLLs, then run a quick test
-                (subset of the unittests)
-                and also check ham_is_pro_evaluation(), ham_is_pro()
+        o on windows only build the DLLs (32bit, 64bit with msvc2010,
+                ham_bench for 32bit, ham_bench for 64bit),
+              o then run a quick test (subset of the unittests)
+              o and also check ham_is_pro_evaluation(), ham_is_pro()
         o use source obfuscator
     o create automagically in release-build.pl
 
 o PRO: extend release-tool
-    o new switch --product=apl|pro (default: apl)
-    o for pro: use different version tag
-    o for pro: use different packaging directory
-    o for pro: use different file list
-    o for pro: add test for --disable-compression
-    o for pro: add test for --disable-encryption
-    o for pro: add test for --disable-simd
+    x new switch --product=apl|pro (default: apl)
+    x for pro: use different version tag
+    x for pro: use different packaging directory
+    x for pro: use different file list
+    x for pro: check dependencies (zlib, snappy, lzo, crypto)
+    x for pro: add test for --disable-compression
+    x for pro: add test for --disable-encryption
+    x for pro: add test for --disable-simd
     o for pro: generate 30 day trials for the following 3 months,
         starting at every calendar week
         o for linux (obfuscated tar-balls)
         o for windows (precompiled 32bit and 64bit DLLs)
 
 o PRO: additional stuff for the first release
-    o needs a ChangeLog
-    o needs a README
+    o update the ChangeLog (don't use a new one!)
+    o update the README
 
-    o create new documentation page (wiki) for pro (tutorial + ham_bench)
+    x create new documentation page (wiki) for pro (tutorial + ham_bench)
         x journal compression
         x record compression
         x zlib compression
         x aes encryption
         x file compatibility
-        o simd
-        o ...
+        x simd
 
     o need a database with commercial users
         o upgrade the current users
-        o need a "download gate" api which verifies download links
+        o need a "download gate" api which verifies download links? or at
+            least a script which generates those links
+            -> the url is /download/pro/<hash>/<customer-id>/filename
+            the hash is verified: md5sum(<customer-id> + filename + <salt>)
+            if valid then download the file (and try to log via
+            google analytics)
 
     o webpage
         x new marketing focus
         x feature matrix APL vs. closed source
-        o new layout
+        x new layout
         o daily backups of the mysql database
-        o publish benchmark against leveldb (with and without SSD)
-            - each with 10 mio keys
-            o uint32, small records, random write
-            o uint32, small records, linear write
-            o uint32, small records, random read
-            o uint32, small records, linear read
-            o bin16, default records, random write (w/o compression)
-            o bin16, default records, linear write (w/o compression)
-            o bin16, default records, random read (w/o compression)
-            o bin16, default records, linear read (w/o compression)
-            o bin16, default records, random write (w/ compression)
-            o bin16, default records, linear write (w/ compression)
-            o bin16, default records, random read (w/ compression)
-            o bin16, default records, linear read (w/ compression)
+        o request evaluation version: similar to contact form with additional
+            details about the product; also has to sign off (= checkbutton)
+            the evaluation license agreement
+
+    o send email to all customers (add this to the release process)
+        -> needs a link generator!
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
-o remote code: reuse the procotol buffer objects! Constructing/destructing
-    them is expensive
-    o perform more benchmarks; currently, ham_bench remote is 10 times slower
-        than locally!
+o remote code: get rid of protocol buffers (but leave them in the server
+    for other languages). they are too expensive.
+    x write a code generator which creates serialize/deserialize routines
+        for the messages 
+    x perform a benchmark - looks good, nearly 50% faster
+    o port all functions
+    o investigate libuv memory leaks reported by valgrind
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload, w/o records
+
+o make better use of mmapped memory
+    x if file is created: can mmap be used? - no, only if an initial size
+        is specified!
+    x if file grows: can mmap be used? - yes, but the old mapping has to
+        be unmapped, which means that all pointers become invalid. OR
+        the page grows by a large amount, and creates a second mapping
+    o in DiskBlobManager::fetch: check if address is in mapped area;
+        if yes, then directly return a pointer (no memcpy)
+        o but not if file is encrypted
+        o also be careful with compression
+            o this needs new tests! open an existing file with compressed
+                records
+    o check performance tests
 
 o PRO: add avx support
 o PRO: add sse support for real64
@@ -360,29 +383,31 @@ o look into hive-integration
         storage
     -> how does the integration look like?
     -> has TPC-benchmarks and other benchmarks ready
+    o write down everything i find, collect information and estimate
+        efforts/gains (will do the same for mysql, R and mongodb later); this
+        task is not about writing code!
 
 o clean up globals; currently, many metrics and test gates are stored
     in global variables. collect them and store them in a struct Globals
     (globals.h).
 
-o clean up os; remove stuff from global namespace into class Os. Also
-    cache the results of the CPU feature checks in a static class member
-    (bitfield) and inline it.
+o remove os.h, split to file.h and socket.h; file handle/socket handle
+    will become a class member (including the win32 mmap handle). No longer
+    directly access the file handles.
+    All remaining functions are moved to the static class Os.
 
 o QuickCheck: create a new property for testing duplicates; the key is always
-        the same. The number of duplicate keys is tracked and periodically
-        checked with the API. A cursor can be used to remove a specific
-        duplicate, or to fetch a specific duplicate.
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
 
-o try not to purge pages if a cursor is attached
+o do not purge pages if a cursor is attached
+    o run performance tests
 
 o insert: if HAM_HINT_APPEND is set then page splits should only create a
     new page, and not shifting any keys to the new sibling. only the new
     key is inserted in the new sibling.
-
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload
+    o run performance tests
 
 o find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
@@ -391,28 +416,49 @@ o find a way how to execute user's code in the btree; similar to the hola
     -> use a cursor; if a page does not have any pending transactional updates
         then iterate over the whole btree node (in the direction of the cursor),
         otherwise go step by step.
-    -> also offer a c++ API w/ templates?
+    => implement the following functions:
+        ham_hola_count()
+        ham_hola_count_if()
+        ham_hola_count_distinct()
+        ham_hola_count_distinct_if()
+        ham_hola_average()
+        ham_hola_average_if()
+        ham_hola_sum()
+        ham_hola_sum_if()
+    -> based on this design: come up with an experimental API which will
+        become the hola core routine, similar to the "scan" API that was
+        planned
     -> the user's callback/function object can then accumulate or collect
         records, whereas the actual record data is only fetched when requested
-    -> the user's callback/function object can receive multiple keys at once
-        (really?)
-    => make this the hola core routine
-    => is this part of the "scan" API?
-    void ham_db_scan(ham_db_t *db,
-                     ham_txn_t *txn,
+    -> users need to be aware that it's not allowed to call into hamsterdb
+        during such a scan (would create a deadlock)
+    -> scans "pick up" other processors and run them at once, on the same
+        data
+    -> like this? where is the "return" value of the processor? how to specify
+            multiple processors?
+        void ham_db_scan(ham_cursor_t *cursor,
                      ham_key_t *begin, // can be null
                      ham_key_t *end, // can be null
                      ham_processor_cb_t *processor,
                      void *context,
                      ham_u32_t flags);
-        -> have predefined functions: ham_hola_count()
-        -> have predefined functions: ham_hola_count_if()
-        -> have predefined functions: ham_hola_count_distinct()
-        -> have predefined functions: ham_hola_count_distinct_if()
-        -> have predefined functions: ham_hola_average()
-        -> have predefined functions: ham_hola_average_if()
-        -> have predefined functions: ham_hola_sum()
-        -> have predefined functions: ham_hola_sum_if()
+
+o collect/publish benchmark against leveldb (with and without SSD)
+    - each with 100k and 100m keys
+    o uint64, small records, random write
+    o uint64, small records, linear write
+    o uint64, small records, random read
+    o uint64, small records, linear read
+    o bin16, default records, random write (w/o compression)
+    o bin16, default records, linear write (w/o compression)
+    o bin16, default records, random read (w/o compression)
+    o bin16, default records, linear read (w/o compression)
+    o bin16, default records, random write (w/ compression)
+    o bin16, default records, linear write (w/ compression)
+    o bin16, default records, random read (w/ compression)
+    o bin16, default records, linear read (w/ compression)
+    o uint64, calculate sum()
+    o bin16, use count_if() of all keys with lsb == 1
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -431,8 +477,7 @@ o delta updates managed in the BtreeNode
         x Default
             -> also worth the effort, about 15% are spent in memmove
 
-    o need a flag to disable DeltaUpdates; run tests if they should be
-        disabled by default
+    o need a flag to disable DeltaUpdates
         o add flag to ham_bench
     o rename TransactionOperation to DeltaUpdate, decouple code from txn
     o totally transparent to the caller, handled in the proxy
@@ -440,18 +485,49 @@ o delta updates managed in the BtreeNode
     o requires_split() takes delta updates into account
     o only add deltas to leaf nodes; internal nodes have too many read
         operations and would anyway require immediate flushes
-    o DeltaUpdate objects from a txn-flush should immediately go down to
-        the node
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
     o make the merge algorithm as efficient as possible
         o sort deltas by key
         o first execute all 'erase' either against other deltas or against
             the node
         o then merge the remaining inserts
         o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
+o architecture for a new webpage
+    o pick an awesome design
+        i.e. similar to http://foundationdb.com, http://laravel.com,
+        http://rethinkdb.com
+    o come up with the full site structure/contents
+    o pick a framework for routing and infrastructure (phalcon? laravel?)
+    o page contents are written in markdown or
+        reStructuredText (http://sphinx-doc.org/rest.html)
+    o documentation comments are hosted on disqus
+        o try to seamlessly integrate the doxygen documentation,
+            the javagen documentation, the erlang docs and the .NET docs 
+            (and whatever comes in the future)
+        o keep the documentation in the source tree, not in -www?
+    o blog comments are hosted on disqus, articles also use rest
+    o Makefile converts markdown to html
+    o Makefile can "scp -r" everything to the servers (staging or production)
+    o client area with
+        o authentication
+        o collection of files
+        o analytics (who downloads what and when?)
+    o admin area with
+        o authentication
+        o customer database
+        o implementing business processes
+        o sending out release emails
+        o importing new releases
+        o etc
 
 ------------- hamsterdb 2.1.8 ---------------------------------------
 
-o PRO: add avx support
+. PRO: add avx support
 o PRO: add sse support for real64
 
 o PRO: bulk updates (really only for pro?)
@@ -467,7 +543,7 @@ o PRO: bulk updates (really only for pro?)
         relatively cheap way to perform multiple operations in one
         single transaction. and they would not require delta updates, but
         still provide real value.
-    o also for remote
+    o also for remote, transfer in a single message
     o also for .NET
     o also for java
     o also for erlang
@@ -498,10 +574,31 @@ o PRO: use grouped varints for compressing int32/int64, record IDs and
     duplicate tables
     -> the concept will be similar to prefix compression
 
-o PRO: CRC32-checksums (as soon as the file format is updated)
-    o SSE2 has support for a CRC32 checksum calculation
-
 ------------- hamsterdb 2.1.9 ---------------------------------------
+
+o use cache-oblivious b-tree layout
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PRO? PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
+
+. binary search in the nodes: keep track of the last result, use this as
+    a starting point? or use a weighted search with "hot spots" for the first
+    few lookups? this would require tests with different lookup characteristics,
+    i.e. zipfian instead of purely random. bad for benchmarking.
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
@@ -510,14 +607,17 @@ o QuickCheck: automatically test the recovery feature by invoking "crashes"
     o EnvHeader is completely full; add at least 8 bytes for flags + reserved
     o reserve CRC32 for each page
 
+o PRO: CRC32-checksums (as soon as the file format is updated)
+    o SSE2 has support for a CRC32 checksum calculation
+
 o PRO: hot backups (vacuumizes to a different file)
     - copies the database file
     - if compaction is enabled: copies keys w/ iterator
         (later: performs bulk updates)
     - then applies all committed transactions to the other file
-    --> think this through; how to deal with delta updates?
+    --> think this through; how to deal with delta updates? -> merge them
         what if only a few databases should be backed up?
-        what if i want to back up in a neutral format (i.e. csv)?
+        what if i want to back up in a logical format (i.e. csv)?
 
 o "hola" - olap functions that operate directly on the btree data
     -> see wiki
@@ -531,9 +631,6 @@ o "hola" - olap functions that operate directly on the btree data
     o operations on compressed data (COUNT(), MIN(), MAX(), ...)?
     o use async operations or futures/promises
 
-- cache-oblivious page distribution? -> PRO
-    http://supertech.csail.mit.edu/cacheObliviousBTree.html
-    see below
 - bloom filter -> PRO
 - concurrency -> PRO
 
@@ -544,34 +641,28 @@ o the bucket for concurrency TODOs
         o transaction and dependent objects
         o ...
 
-    . come up with a list of all functions, define which locking operation
+    o come up with a list of all functions, define which locking operation
         is required; then review the code and make sure this will work
-    . come up with a list of functions for which concurrency makes most sense
+        o the environment configuration
+        o the database configuration
+        o the transaction tree handling
+        o the page manager, the device and the cache
+        o the btree
+        o the btree nodes (i.e. extkeycache, compressor)
+
+    o come up with a list of functions for which concurrency makes most sense
         - parallel lookups (using the same memory arena)
         - flushing transactions asynchronously
         - purging caches asynchronously
         - async. merging of delta updates
-        - have concurrent lookups/find
-
+        - have concurrent lookups/find/inserts (with delta updates)
     o separate SMOs from the actual operation (#2)
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
         o move SMO operations to "the janitor" (btree_janitor.h)
-
-o use cache-oblivious b-tree layout
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-        o allocate a fixed number of pages (20) for the index
-        o PageManager: when allocating a new page then use the distribution
-            function to fetch a page from the reserved storage
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o the new pages are not managed by the freelist! therefore the freelist
-        will not need any modifications
-    . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages (if the database is big enough)
+    o the global environment-lock should go because it's expensive; rather
+        increment an atomic latch, and refuse to close/erase the database as
+        long as the latch is > 0 
 
 . clean up approx. matching
     o ONLY for cursors
