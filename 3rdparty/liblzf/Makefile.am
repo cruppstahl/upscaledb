@@ -10,7 +10,6 @@ EXTRA_DIST = \
 	Changes \
 	crc32.h \
 	LICENSE \
-	lzf.c \
 	lzf.h \
 	lzfP.h \
 	README

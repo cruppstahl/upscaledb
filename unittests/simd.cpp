@@ -26,7 +26,7 @@ void
 test_linear_search_sse()
 {
 #undef MAX
-#define MAX 32
+#define MAX 16
   T arr[MAX];
   for (ham_u32_t i = 0; i < MAX; i++)
     arr[i] = i + 1;
@@ -51,7 +51,18 @@ TEST_CASE("Simd/uint32SseTest", "")
 
 TEST_CASE("Simd/uint64SseTest", "")
 {
-  test_linear_search_sse<ham_u64_t>();
+#undef MAX
+#define MAX 4
+  ham_u64_t arr[MAX];
+  for (ham_u32_t i = 0; i < MAX; i++)
+    arr[i] = i + 1;
+
+  REQUIRE(-1 == linear_search_sse<ham_u64_t>(&arr[0], 0, MAX, 0));
+
+  REQUIRE(-1 == linear_search_sse<ham_u64_t>(&arr[0], 0, MAX, MAX + 1));
+
+  for (int i = 0; i < MAX; i++)
+    REQUIRE(i == linear_search_sse<ham_u64_t>(&arr[0], 0, MAX, (i + 1)));
 }
 
 TEST_CASE("Simd/floatSseTest", "")

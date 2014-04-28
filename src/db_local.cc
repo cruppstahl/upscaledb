@@ -31,7 +31,7 @@
 #include "version.h"
 #include "compressor_factory.h"
 
-//30DAYEVAL_PREPARE
+EVAL_PREPARE
 
 namespace hamsterdb {
 
@@ -493,7 +493,7 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
 ham_status_t
 LocalDatabase::open(ham_u16_t descriptor)
 {
-  //30DAYEVAL_CHECK
+  EVAL_CHECK
 
   /*
    * set the database flags; strip off the persistent flags that may have been
@@ -526,6 +526,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   /* initialize the btree */
   m_btree_index->open();
 
+  EVAL_CHECK
+
   /* create the TransactionIndex - TODO only if txn's are enabled? */
   m_txn_index = new TransactionIndex(this);
 
@@ -555,6 +557,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   m_recno = *(ham_u64_t *)key.data;
   m_recno = ham_h2db64(m_recno);
 
+  EVAL_CHECK
+
   return (0);
 }
 
@@ -562,7 +566,7 @@ ham_status_t
 LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
                         ham_u16_t key_size, ham_u32_t rec_size)
 {
-  //30DAYEVAL_CHECK
+  EVAL_CHECK
 
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
@@ -590,6 +594,8 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
       key_size = 8;
       break;
   }
+
+  EVAL_CHECK
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (key_size != HAM_KEY_SIZE_UNLIMITED) {
@@ -624,6 +630,8 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
 
+  EVAL_CHECK
+
   return (0);
 }
 
@@ -633,6 +641,8 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
   ham_parameter_t *p = param;
 
   ham_assert(get_btree_index() != 0);
+
+  EVAL_CHECK
 
   if (p) {
     for (; p->name; p++) {
@@ -1792,6 +1802,8 @@ LocalDatabase::erase_me()
 void
 LocalDatabase::enable_record_compression(int algo)
 {
+  EVAL_CHECK
+
   m_record_compressor.reset(CompressorFactory::create(algo));
   m_btree_index->set_record_compression(algo);
 }
@@ -1799,6 +1811,8 @@ LocalDatabase::enable_record_compression(int algo)
 void
 LocalDatabase::enable_key_compression(int algo)
 {
+  EVAL_CHECK
+
   m_key_compressor = algo;
   m_btree_index->set_key_compression(algo);
 }

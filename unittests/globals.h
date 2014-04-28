@@ -20,7 +20,7 @@
 
 #define REQUIRE_CATCH(x, y) \
         try { x; } catch (Exception &ex) { REQUIRE(ex.code == y); }
-
+//br
 struct Globals {
   static const char *opath(const char *filename) {
     return (filename);

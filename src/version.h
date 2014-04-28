@@ -43,4 +43,10 @@
 #define HAM_FILE_VERSION    3
 #define HAM_VERSION_STR     "2.1.7"
 
+/* macros for the evaluation version; will be filled in by a script */
+#define EVAL_PREPARE
+#define EVAL_CHECK
+#define EVAL_HELLO
+#define EVAL_RETURN
+
 #endif /* HAM_VERSION_H__ */

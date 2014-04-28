@@ -15,6 +15,7 @@
 
 #include <string.h>
 
+#include "version.h"
 #include "cursor.h"
 #include "journal.h"
 #include "txn_local.h"
@@ -23,7 +24,7 @@
 #include "env_local.h"
 #include "btree_index.h"
 
-//30DAYEVAL_PREPARE
+EVAL_PREPARE
 
 namespace hamsterdb {
 
@@ -545,7 +546,7 @@ LocalTransactionManager::maybe_flush_committed_txns()
 void 
 LocalTransactionManager::flush_committed_txns()
 {
-  //30DAYEVAL_CHECK
+  EVAL_CHECK
 
   LocalTransaction *oldest;
   Journal *journal = get_local_env()->get_journal();

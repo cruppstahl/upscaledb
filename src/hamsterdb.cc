@@ -44,7 +44,7 @@
 #include "version.h"
 #include "compressor_factory.h"
 
-//30DAYEVAL_PREPARE
+EVAL_PREPARE
 
 using namespace hamsterdb;
 
@@ -322,8 +322,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
-  //30DAYEVAL_CHECK
-  //30DAYEVAL_HELLO
+  EVAL_CHECK
+  EVAL_HELLO
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -345,6 +345,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
     return (HAM_INV_PARAMETER);
   }
 
+  EVAL_CHECK
+
   /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
    * disabled */
   if ((flags & HAM_ENABLE_TRANSACTIONS) && !(flags & HAM_DISABLE_RECOVERY))
@@ -357,6 +359,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
   /* in-memory with Transactions? disable recovery */
   if (flags & HAM_IN_MEMORY)
     flags &= ~HAM_ENABLE_RECOVERY;
+
+  EVAL_CHECK
 
   if (param) {
     for (; param->name; param++) {
@@ -435,6 +439,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
    */
   max_databases = page_size - sizeof(PEnvironmentHeader) - 128;
   max_databases /= sizeof(PBtreeHeader);
+
+  EVAL_CHECK
 
   ham_status_t st = 0;
   Environment *env = 0;
@@ -597,8 +603,8 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
-  //30DAYEVAL_CHECK
-  //30DAYEVAL_HELLO
+  EVAL_CHECK
+  EVAL_HELLO
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -1948,6 +1954,6 @@ ham_is_pro()
 ham_u32_t HAM_CALLCONV
 ham_is_pro_evaluation()
 {
-  //30DAYEVAL_RETURN
+  EVAL_RETURN
   return (0);
 }
