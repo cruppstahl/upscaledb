@@ -414,9 +414,13 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, true> >, hamsterdb::VariableSizeCompare>");
+  // do not run the next test if this is an evaluation version, because
+  // eval-versions have obfuscated symbol names
+  if (ham_is_pro_evaluation() == 0) {
+    std::string abi;
+    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, true> >, hamsterdb::VariableSizeCompare>");
+  }
 #endif
 }
 
@@ -555,9 +559,13 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false> > >, hamsterdb::VariableSizeCompare>");
+  // do not run the next test if this is an evaluation version, because
+  // eval-versions have obfuscated symbol names
+  if (ham_is_pro_evaluation() == 0) {
+    std::string abi;
+    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false> > >, hamsterdb::VariableSizeCompare>");
+  }
 #endif
 }
 
@@ -573,9 +581,13 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, 4, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::FixedLayoutImpl<unsigned short, true> > >, hamsterdb::NumericCompare<unsigned int> >");
+  // do not run the next test if this is an evaluation version, because
+  // eval-versions have obfuscated symbol names
+  if (ham_is_pro_evaluation() == 0) {
+    std::string abi;
+    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::FixedLayoutImpl<unsigned short, true> > >, hamsterdb::NumericCompare<unsigned int> >");
+  }
 #endif
 
   f.insertCursorTest(ivec);
@@ -594,9 +606,13 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, HAM_KEY_SIZE_UNLIMITED, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true> > >, hamsterdb::VariableSizeCompare>");
+  // do not run the next test if this is an evaluation version, because
+  // eval-versions have obfuscated symbol names
+  if (ham_is_pro_evaluation() == 0) {
+    std::string abi;
+    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true> > >, hamsterdb::VariableSizeCompare>");
+  }
 #endif
 
   f.insertCursorTest(ivec);

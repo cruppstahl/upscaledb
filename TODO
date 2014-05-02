@@ -284,12 +284,8 @@ o PRO: 30 day evaluation library
     x print message to stdout in ham_env_create, ham_env_open
         x make sure that all strings are obfuscated!
     x need a license agreement similar to an NDA
-    o evaluate source obfuscators
-        sourceformat - http://www.sourceformat.com
-        Stunnix - http://www.stunnix.com/prod/cxxo/pricing.shtml
-        Mangle-It - http://www.brothersoft.com/mangle-it-c%2B%2B-obfuscator-91793.html
-        Semantic Design - http://www.semdesigns.com/Purchase/
-        o also test the performance of the generated code!
+    x evaluate source obfuscators
+    o prepare code for obfuscator, improve obfuscation with perl-scripts
     o create one source/win32 package starting at each week, running 30 days,
         for at least 3 months
         o requires a build tool for unix and win32

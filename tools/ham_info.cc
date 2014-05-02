@@ -18,8 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <ham/hamsterdb.h>
-#include "../src/env_local.h"
+#include <ham/hamsterdb_int.h>
 
 #include "getopts.h"
 #include "common.h"
@@ -98,18 +97,13 @@ print_environment(ham_env_t *env) {
     error("ham_env_get_parameters", st);
 
   if (!quiet) {
-    hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
+    ham_u32_t v1, v2, v3;
+    ham_get_version(&v1, &v2, &v3);
 
     printf("environment\n");
     printf("  page_size:            %u\n", (unsigned)params[0].value);
-    printf("  version:              %u.%u.%u.%u %s\n",
-            lenv->get_header()->get_version(0),
-            lenv->get_header()->get_version(1),
-            lenv->get_header()->get_version(2),
-            lenv->get_header()->get_version(3) & ~0x80,
-            lenv->get_header()->get_version(3) & 0x80
-                ? "pro!"
-                : "");
+    printf("  version:              %u.%u.%u %s\n",
+            v1, v2, v3, ham_is_pro() ? "pro!" : "");
     printf("  max databases:        %u\n", (unsigned)params[1].value);
     if (params[2].value)
       printf("  journal compression:  %s\n",

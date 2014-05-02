@@ -19,6 +19,8 @@
 #ifdef HAM_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #  include <google/malloc_extension.h>
+#elif __GNUC__
+#  include <malloc.h>
 #endif
 
 #include <ham/hamsterdb_int.h>
@@ -56,11 +58,11 @@ Memory::release_to_system()
 {
 #ifdef HAM_USE_TCMALLOC
   MallocExtension::instance()->ReleaseFreeMemory();
-#  elif WIN32
+#elif WIN32
   // TODO
-#  elif __APPLE__
+#elif __APPLE__
   // TODO
-#  elif __GNUC__
+#elif __GNUC__
   ::malloc_trim(os_get_granularity());
 #endif
 }
