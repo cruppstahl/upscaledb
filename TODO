@@ -212,32 +212,6 @@ x PRO: use SIMD instructions for the linear search
             x currently crashing or failing in debug build
             x then perform another round of profiling (with different
                     thresholds!)
-=====================================
-currently, the SSE2 version of ham_uint32_t is a bit SLOWER than the
-regular version
--> check with a profiler
--> also check the linear search
-
-x w/o SIMD: improved binary search
-x w/o SIMD: find optimal linear search threshold
-x w/ SIMD: improve uint32 
-x w/ SIMD: improve uint16 
-o w/ SIMD: improve uint64 
-o w/ SIMD: improve float 
-o w/ SIMD: improve double 
-====>> Änderungen in APL-Version übertragen?
-x get_record ist tief verschachtelt, nicht inline
-=====================================
-            x how to dispatch the function for AVX?
-            o implement linear search with SIMD (AVX - 8x4?)
-                really required?
-                o ham_u16_t
-                o ham_u32_t
-                o float
-                o ham_u64_t
-                o double
-                x add unittests for avx
-            o all monster tests must be working
     x ham_bench: add flag to disable simd
     x review the changes - some can maybe be ported back to hamsterdb (APL)?
         -> find_exact!
@@ -245,24 +219,12 @@ x get_record ist tief verschachtelt, nicht inline
     x add monster tests
     x add performance tests for all types (no records, many finds, with
         and without SSE)
-    o run monster tests
-    o test compilation with msvc
-    o add monster tests
-    o add performance tests for all types (no records, many finds, with
-        and without SSE)
+    x run monster tests
+    x test compilation with msvc
 
-o performance question: running ham_bench with 10mio keys (uint32, no records)
-    and then performing --open --find-pct=100 -> 6.5 sec;
-    with --cache=unlimited -> 6.5 sec
-    why is there no difference? this is random access, and pages should be
-    purged frequently. disabling mmap does not make a difference (SSD!).
-    -> try with a spinning disk
->>>>>>> a2464fe... SIMD preparations
+x port everything to MacOS
 
-o port everything to MacOS
-o port everything to Win32/Visual Studio
-
-o PRO: 30 day evaluation library
+x PRO: 30 day evaluation library
     x remove the ham_get_license() API - it doesn't make sense and people
         will not use it anyway
         x also from erlang
@@ -285,18 +247,10 @@ o PRO: 30 day evaluation library
         x make sure that all strings are obfuscated!
     x need a license agreement similar to an NDA
     x evaluate source obfuscators
-    o prepare code for obfuscator, improve obfuscation with perl-scripts
-    o create one source/win32 package starting at each week, running 30 days,
-        for at least 3 months
-        o requires a build tool for unix and win32
-        o on windows only build the DLLs (32bit, 64bit with msvc2010,
-                ham_bench for 32bit, ham_bench for 64bit),
-              o then run a quick test (subset of the unittests)
-              o and also check ham_is_pro_evaluation(), ham_is_pro()
-        o use source obfuscator
-    o create automagically in release-build.pl
+    x prepare code for obfuscator, improve obfuscation with perl-scripts
+    x create automagically in release-build.pl
 
-o PRO: extend release-tool
+x PRO: extend release-tool
     x new switch --product=apl|pro (default: apl)
     x for pro: use different version tag
     x for pro: use different packaging directory
@@ -305,10 +259,8 @@ o PRO: extend release-tool
     x for pro: add test for --disable-compression
     x for pro: add test for --disable-encryption
     x for pro: add test for --disable-simd
-    o for pro: generate 30 day trials for the following 3 months,
-        starting at every calendar week
-        o for linux (obfuscated tar-balls)
-        o for windows (precompiled 32bit and 64bit DLLs)
+
+o port everything to Win32/Visual Studio
 
 o PRO: additional stuff for the first release
     o update the ChangeLog (don't use a new one!)
@@ -350,8 +302,8 @@ o remote code: get rid of protocol buffers (but leave them in the server
     x write a code generator which creates serialize/deserialize routines
         for the messages 
     x perform a benchmark - looks good, nearly 50% faster
-    o port all functions
-    o investigate libuv memory leaks reported by valgrind
+    x port all functions
+    x investigate libuv memory leaks reported by valgrind
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?

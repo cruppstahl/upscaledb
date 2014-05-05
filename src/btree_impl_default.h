@@ -2195,7 +2195,8 @@ class DefaultNodeImpl
                                 & HAM_ENABLE_DUPLICATES;
           capacity = page_size
                             / (m_layout.get_key_index_span()
-                              + get_actual_key_size(key_size, has_duplicates)
+                              + get_actual_key_size(page_size, key_size,
+                                      has_duplicates)
                               + rec_size);
 
           // the default might not be precise and might be recalculated later
