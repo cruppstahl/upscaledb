@@ -85,59 +85,10 @@ enable_largefile(int fd)
 #endif
 }
 
-ham_u32_t
-os_get_granularity()
-{
-  return ((ham_u32_t)sysconf(_SC_PAGE_SIZE));
-}
-
-void
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
-            ham_u64_t size, bool readonly, ham_u8_t **buffer)
-{
-  os_log(("os_mmap: fd=%d, position=%lld, size=%lld", fd, position, size));
-
-  int prot = PROT_READ;
-  if (!readonly)
-    prot |= PROT_WRITE;
-
-  (void)mmaph;  /* only used on win32-platforms */
-
-#if HAVE_MMAP
-  *buffer = (ham_u8_t *)mmap(0, size, prot, MAP_PRIVATE, fd, position);
-  if (*buffer == (void *)-1) {
-    *buffer = 0;
-    ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
-    throw Exception(HAM_IO_ERROR);
-  }
-#else
-  throw Exception(HAM_NOT_IMPLEMENTED);
-#endif
-}
-
-void
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
-{
-  os_log(("os_munmap: size=%lld", size));
-
-  int r;
-  (void)mmaph; /* only used on win32-platforms */
-
-#if HAVE_MUNMAP
-  r = munmap(buffer, size);
-  if (r) {
-    ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
-    throw Exception(HAM_IO_ERROR);
-  }
-#else
-  throw Exception(HAM_NOT_IMPLEMENTED);
-#endif
-}
-
 static void
 os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
 {
-  os_log(("_os_read: fd=%d, size=%lld", fd, bufferlen));
+  os_log(("os_read: fd=%d, size=%lld", fd, bufferlen));
 
   int r;
   ham_u32_t total = 0;
@@ -159,50 +110,18 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
   }
 }
 
-void
-os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
-            ham_u64_t bufferlen)
-{
-#if HAVE_PREAD
-  os_log(("os_pread: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
-
-  int r;
-  ham_u64_t total = 0;
-
-  while (total < bufferlen) {
-    r = pread(fd, (ham_u8_t *)buffer + total, bufferlen - total, addr + total);
-    if (r < 0) {
-      ham_log(("os_pread failed with status %u (%s)", errno, strerror(errno)));
-      throw Exception(HAM_IO_ERROR);
-    }
-    if (r == 0)
-      break;
-    total += r;
-  }
-
-  if (total != bufferlen) {
-    ham_log(("os_pread() failed with short read (%s)", strerror(errno)));
-    throw Exception(HAM_IO_ERROR);
-  }
-#else
-  os_seek(fd, addr, HAM_OS_SEEK_SET);
-  os_read(fd, (ham_u8_t *)buffer, bufferlen);
-#endif
-}
-
-void
+static void
 os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 {
-  os_log(("os_write: fd=%d, size=%lld", fd, bufferlen));
-
   int w;
   ham_u64_t total = 0;
   const char *p = (const char *)buffer;
 
   while (total < bufferlen) {
-    w = write(fd, p + total, bufferlen - total);
+    w = ::write(fd, p + total, bufferlen - total);
     if (w < 0) {
-      ham_log(("os_write failed with status %u (%s)", errno, strerror(errno)));
+      ham_log(("os_write failed with status %u (%s)", errno,
+                              strerror(errno)));
       throw Exception(HAM_IO_ERROR);
     }
     if (w == 0)
@@ -216,18 +135,96 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
   }
 }
 
-void
-os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
-            ham_u64_t bufferlen)
+ham_u32_t
+File::get_granularity()
 {
-  os_log(("os_pwrite: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
+  return ((ham_u32_t)sysconf(_SC_PAGE_SIZE));
+}
+
+void
+File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
+{
+  os_log(("File::mmap: fd=%d, position=%lld, size=%lld", m_fd, position, size));
+
+  int prot = PROT_READ;
+  if (!readonly)
+    prot |= PROT_WRITE;
+
+#if HAVE_MMAP
+  *buffer = (ham_u8_t *)::mmap(0, size, prot, MAP_PRIVATE, m_fd, position);
+  if (*buffer == (void *)-1) {
+    *buffer = 0;
+    ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
+    throw Exception(HAM_IO_ERROR);
+  }
+#else
+  throw Exception(HAM_NOT_IMPLEMENTED);
+#endif
+}
+
+void
+File::munmap(void *buffer, ham_u64_t size)
+{
+  os_log(("File::munmap: size=%lld", size));
+
+  int r;
+
+#if HAVE_MUNMAP
+  r = ::munmap(buffer, size);
+  if (r) {
+    ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
+    throw Exception(HAM_IO_ERROR);
+  }
+#else
+  throw Exception(HAM_NOT_IMPLEMENTED);
+#endif
+}
+
+void
+File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
+{
+#if HAVE_PREAD
+  os_log(("File::pread: fd=%d, address=%lld, size=%lld", m_fd, addr,
+                          bufferlen));
+
+  int r;
+  ham_u64_t total = 0;
+
+  while (total < bufferlen) {
+    r = ::pread(m_fd, (ham_u8_t *)buffer + total, bufferlen - total,
+                    addr + total);
+    if (r < 0) {
+      ham_log(("File::pread failed with status %u (%s)", errno,
+                              strerror(errno)));
+      throw Exception(HAM_IO_ERROR);
+    }
+    if (r == 0)
+      break;
+    total += r;
+  }
+
+  if (total != bufferlen) {
+    ham_log(("File::pread() failed with short read (%s)", strerror(errno)));
+    throw Exception(HAM_IO_ERROR);
+  }
+#else
+  File::seek(addr, kSeekSet);
+  os_read(m_fd, (ham_u8_t *)buffer, bufferlen);
+#endif
+}
+
+void
+File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
+{
+  os_log(("File::pwrite: fd=%d, address=%lld, size=%lld", m_fd, addr,
+                          bufferlen));
 
 #if HAVE_PWRITE
   ssize_t s;
   ham_u64_t total = 0;
 
   while (total < bufferlen) {
-    s = pwrite(fd, buffer, bufferlen, addr + total);
+    s = ::pwrite(m_fd, buffer, bufferlen, addr + total);
     if (s < 0) {
       ham_log(("pwrite() failed with status %u (%s)", errno, strerror(errno)));
       throw Exception(HAM_IO_ERROR);
@@ -242,48 +239,55 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
     throw Exception(HAM_IO_ERROR);
   }
 #else
-  os_seek(fd, addr, HAM_OS_SEEK_SET);
-  os_write(fd, buffer, bufferlen);
+  seek(addr, kSeekSet);
+  write(buffer, bufferlen);
 #endif
 }
 
 void
-os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
+File::write(const void *buffer, ham_u64_t bufferlen)
 {
-  os_log(("os_seek: fd=%d, offset=%lld, whence=%d", fd, offset, whence));
-  if (lseek(fd, offset, whence) < 0)
+  os_log(("File::write: fd=%d, size=%lld", m_fd, bufferlen));
+  os_write(m_fd, buffer, bufferlen);
+}
+
+void
+File::seek(ham_u64_t offset, int whence)
+{
+  os_log(("File::seek: fd=%d, offset=%lld, whence=%d", m_fd, offset, whence));
+  if (lseek(m_fd, offset, whence) < 0)
     throw Exception(HAM_IO_ERROR);
 }
 
 ham_u64_t
-os_tell(ham_fd_t fd)
+File::tell()
 {
-  ham_u64_t offset = lseek(fd, 0, SEEK_CUR);
-  os_log(("os_tell: fd=%d, offset=%lld", fd, offset));
+  ham_u64_t offset = lseek(m_fd, 0, SEEK_CUR);
+  os_log(("File::tell: fd=%d, offset=%lld", m_fd, offset));
   if (offset == (ham_u64_t) - 1)
     throw Exception(HAM_IO_ERROR);
   return (offset);
 }
 
 ham_u64_t
-os_get_file_size(ham_fd_t fd)
+File::get_file_size()
 {
-  os_seek(fd, 0, HAM_OS_SEEK_END);
-  ham_u64_t size = os_tell(fd);
-  os_log(("os_get_file_size: fd=%d, size=%lld", fd, size));
+  seek(0, kSeekEnd);
+  ham_u64_t size = tell();
+  os_log(("File::get_file_size: fd=%d, size=%lld", m_fd, size));
   return (size);
 }
 
 void
-os_truncate(ham_fd_t fd, ham_u64_t newsize)
+File::truncate(ham_u64_t newsize)
 {
-  os_log(("os_truncate: fd=%d, size=%lld", fd, newsize));
-  if (ftruncate(fd, newsize))
+  os_log(("File::truncate: fd=%d, size=%lld", m_fd, newsize));
+  if (ftruncate(m_fd, newsize))
     throw Exception(HAM_IO_ERROR);
 }
 
-ham_fd_t
-os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
+void
+File::create(const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
   int osflags = O_CREAT | O_RDWR | O_TRUNC;
 #if HAVE_O_NOATIME
@@ -291,7 +295,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
 #endif
   (void)flags;
 
-  ham_fd_t fd = open(filename, osflags, mode ? mode : 0644);
+  ham_fd_t fd = ::open(filename, osflags, mode ? mode : 0644);
   if (fd < 0) {
     ham_log(("creating file %s failed with status %u (%s)", filename,
         errno, strerror(errno)));
@@ -304,19 +308,19 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
   /* enable O_LARGEFILE support */
   enable_largefile(fd);
 
-  return (fd);
+  m_fd = fd;
 }
 
 void
-os_flush(ham_fd_t fd)
+File::flush()
 {
-  os_log(("os_flush: fd=%d", fd));
+  os_log(("File::flush: fd=%d", m_fd));
   /* unlike fsync(), fdatasync() does not flush the metadata unless
    * it's really required. it's therefore a lot faster. */
 #if HAVE_FDATASYNC && !__APPLE__
-  if (fdatasync(fd) == -1) {
+  if (fdatasync(m_fd) == -1) {
 #else
-  if (fsync(fd) == -1) {
+  if (fsync(m_fd) == -1) {
 #endif
     ham_log(("fdatasync failed with status %u (%s)",
         errno, strerror(errno)));
@@ -324,8 +328,8 @@ os_flush(ham_fd_t fd)
   }
 }
 
-ham_fd_t
-os_open(const char *filename, ham_u32_t flags)
+void
+File::open(const char *filename, ham_u32_t flags)
 {
   int osflags = 0;
 
@@ -337,7 +341,7 @@ os_open(const char *filename, ham_u32_t flags)
   osflags |= O_NOATIME;
 #endif
 
-  ham_fd_t fd = open(filename, osflags);
+  ham_fd_t fd = ::open(filename, osflags);
   if (fd < 0) {
     ham_log(("opening file %s failed with status %u (%s)", filename,
         errno, strerror(errno)));
@@ -350,27 +354,31 @@ os_open(const char *filename, ham_u32_t flags)
   /* enable O_LARGEFILE support */
   enable_largefile(fd);
 
-  return (fd);
+  m_fd = fd;
 }
 
 void
-os_close(ham_fd_t fd)
+File::close()
 {
-  // on posix, we most likely don't want to close descriptors 0 and 1
-  ham_assert(fd != 0 && fd != 1);
+  if (m_fd != HAM_INVALID_FD) {
+    // on posix, we most likely don't want to close descriptors 0 and 1
+    ham_assert(m_fd != 0 && m_fd != 1);
 
-  // unlock the file - this is default behaviour since 1.1.0
-  lock_exclusive(fd, false);
+    // unlock the file - this is default behaviour since 1.1.0
+    lock_exclusive(m_fd, false);
 
-  // now close the descriptor
-  if (::close(fd) == -1)
-    throw Exception(HAM_IO_ERROR);
+    // now close the descriptor
+    if (::close(m_fd) == -1)
+      throw Exception(HAM_IO_ERROR);
+
+    m_fd = HAM_INVALID_FD;
+  }
 }
 
-ham_socket_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
+void
+Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 {
-  ham_fd_t s = ::socket(AF_INET, SOCK_STREAM, 0);
+  ham_socket_t s = ::socket(AF_INET, SOCK_STREAM, 0);
   if (s < 0) {
     ham_log(("failed creating socket: %s", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
@@ -407,28 +415,28 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
     }
   }
 
-  return (s);
+  m_socket = s;
 }
 
 void
-os_socket_send(ham_fd_t socket, const ham_u8_t *data, ham_u32_t data_size)
+Socket::send(const ham_u8_t *data, ham_u32_t data_size)
 {
-  os_write(socket, data, data_size);
+  os_write(m_socket, data, data_size);
 }
 
 void
-os_socket_recv(ham_fd_t socket, ham_u8_t *data, ham_u32_t data_size)
+Socket::recv(ham_u8_t *data, ham_u32_t data_size)
 {
-  os_read(socket, data, data_size);
+  os_read(m_socket, data, data_size);
 }
 
 void
-os_socket_close(ham_fd_t *socket)
+Socket::close()
 {
-  if (*socket != HAM_INVALID_FD) {
-    if (::close(*socket) == -1)
+  if (m_socket != HAM_INVALID_FD) {
+    if (::close(m_socket) == -1)
       throw Exception(HAM_IO_ERROR);
-    *socket = HAM_INVALID_FD;
+    m_socket = HAM_INVALID_FD;
   }
 }
 

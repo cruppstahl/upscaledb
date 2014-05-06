@@ -40,8 +40,6 @@ Journal::Journal(LocalEnvironment *env)
     m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
     m_count_bytes_flushed(0)
 {
-  m_fd[0] = HAM_INVALID_FD;
-  m_fd[1] = HAM_INVALID_FD;
   m_open_txn[0] = 0;
   m_open_txn[1] = 0;
   m_closed_txn[0] = 0;
@@ -57,10 +55,10 @@ Journal::create()
   // create the two files
   for (i = 0; i < 2; i++) {
     std::string path = get_path(i);
-    m_fd[i] = os_create(path.c_str(), 0, 0644);
+    m_files[i].create(path.c_str(), 0, 0644);
 
     // and write the magic
-    os_write(m_fd[i], &header, sizeof(header));
+    m_files[i].write(&header, sizeof(header));
   }
 }
 
@@ -79,14 +77,14 @@ Journal::open()
   // open the two files; if the files do not exist then create them
   std::string path = get_path(0);
   try {
-    m_fd[0] = os_open(path.c_str(), 0);
+    m_files[0].open(path.c_str(), 0);
   }
   catch (Exception &ex) {
     st1 = ex.code;
   }
   path = get_path(1);
   try {
-    m_fd[1] = os_open(path.c_str(), 0);
+    m_files[1].open(path.c_str(), 0);
   }
   catch (Exception &ex) {
     st2 = ex.code;
@@ -104,7 +102,7 @@ Journal::open()
   // lsn is "newer"
   for (i = 0; i < 2; i++) {
     // check the magic
-    os_pread(m_fd[i], 0, &header, sizeof(header));
+    m_files[i].pread(0, &header, sizeof(header));
 
     if (header.magic != kHeaderMagic) {
       ham_trace(("journal has unknown magic or is corrupt"));
@@ -125,11 +123,11 @@ Journal::open()
   // now extract the highest lsn - this is where we will continue
   for (int i = 0; i < 2; i++) {
     // but make sure that the file is large enough!
-    ham_u64_t size = os_get_file_size(m_fd[i]);
+    ham_u64_t size = m_files[i].get_file_size();
 
     if (size >= sizeof(entry)) {
-      os_pread(m_fd[i], size - sizeof(PJournalTrailer),
-                      &trailer, sizeof(trailer));
+      m_files[i].pread(size - sizeof(PJournalTrailer), &trailer,
+                      sizeof(trailer));
 
       // Verify the trailer magic; if it's invalid then skip this file
       // TODO fallback and fetch lsn from the beginning of the file??
@@ -138,7 +136,7 @@ Journal::open()
         continue;
       }
 
-      os_pread(m_fd[i], size - trailer.full_size - sizeof(trailer),
+      m_files[i].pread(size - trailer.full_size - sizeof(trailer),
                       &entry, sizeof(entry));
       ham_assert(entry.lsn != 0);
 
@@ -468,14 +466,14 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   }
 
   // get the size of the journal file
-  filesize = os_get_file_size(m_fd[iter->fdidx]);
+  filesize = m_files[iter->fdidx].get_file_size();
 
   // reached EOF? then either skip to the next file or we're done
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
       iter->offset = sizeof(PJournalHeader);
-      filesize = os_get_file_size(m_fd[iter->fdidx]);
+      filesize = m_files[iter->fdidx].get_file_size();
     }
     else {
       entry->lsn = 0;
@@ -490,7 +488,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   }
 
   // now try to read the next entry
-  os_pread(m_fd[iter->fdidx], iter->offset, entry, sizeof(*entry));
+  m_files[iter->fdidx].pread(iter->offset, entry, sizeof(*entry));
 
   iter->offset += sizeof(*entry);
 
@@ -498,7 +496,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   if (entry->followup_size) {
     auxbuffer->resize((ham_u32_t)entry->followup_size);
 
-    os_pread(m_fd[iter->fdidx], iter->offset, auxbuffer->get_ptr(),
+    m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
                     entry->followup_size);
     iter->offset += entry->followup_size;
   }
@@ -528,15 +526,12 @@ Journal::close(bool noclear)
     // update the header page of file 0 to store the lsn
     header.lsn = m_lsn;
 
-    if (m_fd[0] != HAM_INVALID_FD)
-      os_pwrite(m_fd[0], 0, &header, sizeof(header));
+    if (m_files[0].is_open())
+      m_files[0].pwrite(0, &header, sizeof(header));
   }
 
   for (i = 0; i < 2; i++) {
-    if (m_fd[i] != HAM_INVALID_FD) {
-      os_close(m_fd[i]);
-      m_fd[i] = HAM_INVALID_FD;
-    }
+    m_files[i].close();
     m_buffer[i].clear();
   }
 }
@@ -629,7 +624,7 @@ ham_u64_t
 Journal::recover_changeset()
 {
   ham_u64_t start_lsn = 0;
-  ham_u64_t log_size = os_get_file_size(m_fd[m_current_fd]);
+  ham_u64_t log_size = m_files[m_current_fd].get_file_size();
   ham_u64_t file_size = m_env->get_device()->get_file_size();
   PJournalEntry entry;
 
@@ -638,7 +633,7 @@ Journal::recover_changeset()
     return (0);
   
   PJournalTrailer trailer;
-  os_pread(m_fd[m_current_fd], log_size - sizeof(PJournalTrailer),
+  m_files[m_current_fd].pread(log_size - sizeof(PJournalTrailer),
                   &trailer, sizeof(trailer));
 
   // Verify the trailer magic; if it's invalid then skip the Changeset
@@ -648,7 +643,7 @@ Journal::recover_changeset()
   }
 
   ham_u64_t position = log_size - trailer.full_size - sizeof(trailer);
-  os_pread(m_fd[m_current_fd], position, &entry, sizeof(entry));
+  m_files[m_current_fd].pread(position, &entry, sizeof(entry));
   position += sizeof(entry);
 
   // only continue if it was a changeset; otherwise return, and the journal
@@ -658,7 +653,7 @@ Journal::recover_changeset()
 
   // Read the Changeset header
   PJournalEntryChangeset changeset;
-  os_pread(m_fd[m_current_fd], position, &changeset, sizeof(changeset));
+  m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
   position += sizeof(changeset);
 
   ham_u32_t page_size = m_env->get_page_size();
@@ -667,9 +662,9 @@ Journal::recover_changeset()
   // for each page in this changeset...
   for (ham_u32_t i = 0; i < changeset.num_pages; i++) {
     PJournalEntryPageHeader page_header;
-    os_pread(m_fd[m_current_fd], position, &page_header, sizeof(page_header));
+    m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
     position += sizeof(page_header);
-    os_pread(m_fd[m_current_fd], position, arena.get_ptr(), page_size);
+    m_files[m_current_fd].pread(position, arena.get_ptr(), page_size);
     position += page_size;
 
     Page *page;
@@ -885,18 +880,18 @@ bail:
 void
 Journal::clear_file(int idx)
 {
-  if (m_fd[idx] != HAM_INVALID_FD) {
-    os_truncate(m_fd[idx], 0);
+  if (m_files[idx].is_open()) {
+    m_files[idx].truncate(0);
 
     // after truncate, the file pointer is far beyond the new end of file;
     // reset the file pointer, or the next write will resize the file to
     // the original size
-    os_seek(m_fd[idx], 0, HAM_OS_SEEK_SET);
+    m_files[idx].seek(0, File::kSeekSet);
 
     // now write the header with the up-to-date lsn
     PJournalHeader header;
     header.lsn = m_lsn;
-    os_write(m_fd[idx], &header, sizeof(header));
+    m_files[idx].write(&header, sizeof(header));
   }
 
   // clear the transaction counters

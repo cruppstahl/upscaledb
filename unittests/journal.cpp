@@ -151,7 +151,6 @@ struct JournalFixture {
   }
 
   void negativeOpenTest() {
-    ham_fd_t fd;
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->get_filename();
     m_lenv->test_set_filename("xxx$$test");
@@ -160,9 +159,10 @@ struct JournalFixture {
     /* if journal::open() fails, it will call journal::close()
      * internally and journal::close() overwrites the header structure.
      * therefore we have to patch the file before we start the test. */
-    fd = os_open("data/log-broken-magic.jrn0", 0);
-    os_pwrite(fd, 0, (void *)"x", 1);
-    os_close(fd);
+    File f;
+    f.open("data/log-broken-magic.jrn0", 0);
+    f.pwrite(0, (void *)"x", 1);
+    f.close();
 
     m_lenv->test_set_filename("data/log-broken-magic");
     REQUIRE_CATCH(j->open(), HAM_LOG_INV_FILE_HEADER);
@@ -582,9 +582,9 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->get_journal();
     REQUIRE(j);
-    size = os_get_file_size(j->m_fd[0]);
+    size = j->m_files[0].get_file_size();
     REQUIRE(sizeof(Journal::PJournalHeader) == size);
-    size = os_get_file_size(j->m_fd[1]);
+    size = j->m_files[1].get_file_size();
     REQUIRE(sizeof(Journal::PJournalHeader) == size);
   }
 

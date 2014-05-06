@@ -36,8 +36,9 @@ using namespace hamsterdb;
 TEST_CASE("OsTest/openClose",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_open("Makefile.am", 0);
-  os_close(fd);
+  File f;
+  f.open("Makefile.am", 0);
+  f.close();
 }
 
 TEST_CASE("OsTest/openReadOnlyClose",
@@ -45,49 +46,40 @@ TEST_CASE("OsTest/openReadOnlyClose",
 {
   const char *p = "# XXXXXXXXX ERROR\n";
 
-  ham_fd_t fd = os_open("Makefile.am", HAM_READ_ONLY);
-  REQUIRE_CATCH(os_pwrite(fd, 0, p, (ham_u32_t)strlen(p)), HAM_IO_ERROR);
-  os_close(fd);
+  File f;
+  f.open("Makefile.am", HAM_READ_ONLY);
+  REQUIRE_CATCH(f.pwrite(0, p, (ham_u32_t)strlen(p)), HAM_IO_ERROR);
 }
 
 TEST_CASE("OsTest/negativeOpenTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd;
+  File f;
 
-  REQUIRE_CATCH(fd = os_open("__98324kasdlf.blöd", 0), HAM_FILE_NOT_FOUND);
-  (void)fd; // avoid gcc warnign
+  REQUIRE_CATCH(f.open("__98324kasdlf.blöd", 0), HAM_FILE_NOT_FOUND);
 }
 
 TEST_CASE("OsTest/createCloseTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
-  os_close(fd);
+  File f;
+  f.create(Utils::opath(".test"), 0, 0664);
 }
 
 TEST_CASE("OsTest/createCloseOverwrite",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd;
+  File f;
 
   for (int i = 0; i < 3; i++) {
-    fd = os_create(Utils::opath(".test"), 0, 0664);
-    os_seek(fd, 0, HAM_OS_SEEK_END);
-    REQUIRE(0ull == os_tell(fd));
-    os_truncate(fd, 1024);
-    os_seek(fd, 0, HAM_OS_SEEK_END);
-    REQUIRE(1024ull == os_tell(fd));
-    os_close(fd);
+    f.create(Utils::opath(".test"), 0, 0664);
+    f.seek(0, File::kSeekEnd);
+    REQUIRE(0ull == f.tell());
+    f.truncate(1024);
+    f.seek(0, File::kSeekEnd);
+    REQUIRE(1024ull == f.tell());
+    f.close();
   }
-}
-
-TEST_CASE("OsTest/closeTest",
-           "Tests the operating system functions in os*")
-{
-#ifndef WIN32  // crashs in ntdll.dll
-  REQUIRE_CATCH(os_close((ham_fd_t)0x12345), HAM_IO_ERROR);
-#endif
 }
 
 TEST_CASE("OsTest/openExclusiveTest",
@@ -95,88 +87,85 @@ TEST_CASE("OsTest/openExclusiveTest",
 {
   /* fails on cygwin - cygwin bug? */
 #ifndef __CYGWIN__
-  ham_fd_t fd, fd2;
+  File f1, f2;
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
-  os_close(fd);
+  f1.create(Utils::opath(".test"), 0, 0664);
+  f1.close();
 
-  fd = os_open(Utils::opath(".test"), 0);
-  REQUIRE_CATCH(fd2 = os_open(Utils::opath(".test"), 0), HAM_WOULD_BLOCK);
-  os_close(fd);
-  fd2 = os_open(Utils::opath(".test"), 0);
-  os_close(fd2);
-  fd2 = os_open(Utils::opath(".test"), 0);
-  os_close(fd2);
+  f1.open(Utils::opath(".test"), 0);
+  REQUIRE_CATCH(f2.open(Utils::opath(".test"), 0), HAM_WOULD_BLOCK);
+  f1.close();
+  f2.open(Utils::opath(".test"), 0);
+  f2.close();
+  f2.open(Utils::opath(".test"), 0);
+  f2.close();
 #endif
 }
 
 TEST_CASE("OsTest/readWriteTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd;
+  File f;
   char buffer[128], orig[128];
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     memset(buffer, i, sizeof(buffer));
-    os_pwrite(fd, i * sizeof(buffer), buffer, sizeof(buffer));
+    f.pwrite(i * sizeof(buffer), buffer, sizeof(buffer));
   }
   for (int i = 0; i < 10; i++) {
     memset(orig, i, sizeof(orig));
     memset(buffer, 0, sizeof(buffer));
-    os_pread(fd, i * sizeof(buffer), buffer, sizeof(buffer));
+    f.pread(i * sizeof(buffer), buffer, sizeof(buffer));
     REQUIRE(0 == memcmp(buffer, orig, sizeof(buffer)));
   }
-  os_close(fd);
 }
 
 TEST_CASE("OsTest/mmapTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd, mmaph;
-  ham_u32_t ps = os_get_granularity();
+  File f;
+  ham_u32_t ps = File::get_granularity();
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     memset(p1, i, ps);
-    os_pwrite(fd, i * ps, p1, ps);
+    f.pwrite(i * ps, p1, ps);
   }
   for (int i = 0; i < 10; i++) {
     memset(p1, i, ps);
-    os_mmap(fd, &mmaph, i * ps, ps, 0, &p2);
+    f.mmap(i * ps, ps, 0, &p2);
     REQUIRE(0 == memcmp(p1, p2, ps));
-    os_munmap(&mmaph, p2, ps);
+    f.munmap(p2, ps);
   }
-  os_close(fd);
   free(p1);
 }
 
 TEST_CASE("OsTest/mmapAbortTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd, mmaph;
-  ham_u32_t ps = os_get_granularity();
+  File f;
+  ham_u32_t ps = File::get_granularity();
   ham_u8_t *page, *mapped;
   page = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   memset(page, 0x13, ps);
-  os_pwrite(fd, 0, page, ps);
+  f.pwrite(0, page, ps);
 
-  os_mmap(fd, &mmaph, 0, ps, 0, &mapped);
+  f.mmap(0, ps, 0, &mapped);
   /* modify the page */
   memset(mapped, 0x42, ps);
   /* unmap */
-  os_munmap(&mmaph, mapped, ps);
+  f.munmap(mapped, ps);
   /* read again */
   memset(page, 0, ps);
-  os_pread(fd, 0, page, ps);
+  f.pread(0, page, ps);
   /* compare */
   REQUIRE(0x13 == page[0]);
 
-  os_close(fd);
   free(page);
 }
 
@@ -184,44 +173,43 @@ TEST_CASE("OsTest/mmapReadOnlyTest",
            "Tests the operating system functions in os*")
 {
   int i;
-  ham_fd_t fd, mmaph;
-  ham_u32_t ps = os_get_granularity();
+  File f;
+  ham_u32_t ps = File::get_granularity();
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   for (i = 0; i < 10; i++) {
     memset(p1, i, ps);
-    os_pwrite(fd, i * ps, p1, ps);
+    f.pwrite(i * ps, p1, ps);
   }
-  os_close(fd);
+  f.close();
 
-  fd = os_open(Utils::opath(".test"), HAM_READ_ONLY);
+  f.open(Utils::opath(".test"), HAM_READ_ONLY);
   for (i = 0; i < 10; i++) {
     memset(p1, i, ps);
-    os_mmap(fd, &mmaph, i * ps, ps, true, &p2);
+    f.mmap(i * ps, ps, true, &p2);
     REQUIRE(0 == memcmp(p1, p2, ps));
-    os_munmap(&mmaph, p2, ps);
+    f.munmap(p2, ps);
   }
-  os_close(fd);
   free(p1);
 }
 
 TEST_CASE("OsTest/multipleMmapTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd, mmaph;
-  ham_u32_t ps = os_get_granularity();
+  File f;
+  ham_u32_t ps = File::get_granularity();
   ham_u8_t *p1, *p2;
   ham_u64_t addr = 0, size;
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 5; i++) {
     size = ps * (i + 1);
 
     p1 = (ham_u8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    os_pwrite(fd, addr, p1, (ham_u32_t)size);
+    f.pwrite(addr, p1, (ham_u32_t)size);
     free(p1);
     addr += size;
   }
@@ -232,56 +220,48 @@ TEST_CASE("OsTest/multipleMmapTest",
 
     p1 = (ham_u8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    os_mmap(fd, &mmaph, addr, (ham_u32_t)size, 0, &p2);
+    f.mmap(addr, (ham_u32_t)size, 0, &p2);
     REQUIRE(0 == memcmp(p1, p2, (size_t)size));
-    os_munmap(&mmaph, p2, (ham_u32_t)size);
+    f.munmap(p2, (ham_u32_t)size);
     free(p1);
     addr += size;
   }
-  os_close(fd);
 }
 
 TEST_CASE("OsTest/negativeMmapTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd, mmaph;
+  File f;
   ham_u8_t *page;
 
-  fd = os_create(Utils::opath(".test"), 0, 0664);
+  f.create(Utils::opath(".test"), 0, 0664);
   // bad address && page size! - i don't know why this succeeds
   // on MacOS...
 #ifndef __MACH__
-  REQUIRE_CATCH(os_mmap(fd, &mmaph, 33, 66, 0, &page), HAM_IO_ERROR);
+  REQUIRE_CATCH(f.mmap(33, 66, 0, &page), HAM_IO_ERROR);
 #endif
-  os_close(fd);
 }
 
 TEST_CASE("OsTest/seekTellTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
+  File f;
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
-    os_seek(fd, i, HAM_OS_SEEK_SET);
-    REQUIRE((ham_u64_t)i == os_tell(fd));
+    f.seek(i, File::kSeekSet);
+    REQUIRE((ham_u64_t)i == f.tell());
   }
-  os_close(fd);
-}
-
-TEST_CASE("OsTest/negativeSeekTest",
-           "Tests the operating system functions in os*")
-{
-  REQUIRE_CATCH(os_seek((ham_fd_t)0x12345, 0, HAM_OS_SEEK_SET), HAM_IO_ERROR);
 }
 
 TEST_CASE("OsTest/truncateTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
+  File f;
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
-    os_truncate(fd, i * 128);
-    REQUIRE((ham_u64_t)(i * 128) == os_get_file_size(fd));
+    f.truncate(i * 128);
+    REQUIRE((ham_u64_t)(i * 128) == f.get_file_size());
   }
-  os_close(fd);
 }
 
 TEST_CASE("OsTest/largefileTest",
@@ -289,14 +269,15 @@ TEST_CASE("OsTest/largefileTest",
 {
   ham_u8_t kb[1024] = {0};
 
-  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
+  File f;
+  f.create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 4 * 1024; i++)
-    os_pwrite(fd, i * sizeof(kb), kb, sizeof(kb));
-  os_close(fd);
+    f.pwrite(i * sizeof(kb), kb, sizeof(kb));
+  f.close();
 
-  fd = os_open(Utils::opath(".test"), 0);
-  os_seek(fd, 0, HAM_OS_SEEK_END);
-  REQUIRE(os_tell(fd) == (ham_u64_t)1024 * 1024 * 4);
-  os_close(fd);
+  f.open(Utils::opath(".test"), 0);
+  f.seek(0, File::kSeekEnd);
+  REQUIRE(f.tell() == (ham_u64_t)1024 * 1024 * 4);
+  f.close();
 }
 

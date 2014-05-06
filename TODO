@@ -191,7 +191,7 @@ x PRO: use SIMD instructions for the linear search
         x if enabled: use avx if available; otherwise fallback to sse2
     x metrics should return the LANE width, not bools (default is 0)
 
-    o replace linear search with the SSE2 variant
+    x replace linear search with the SSE2 variant
         x move SSE-related code to a template function in simd.h
         x simd available? -> the find function calls the function in simd.h
             x if HAM_ENABLE_SIMD is true
@@ -310,14 +310,21 @@ x clean up globals; currently, many metrics and test gates are stored
     (globals.h).
     x try to get rid of those that are not necessary
 
-o remove os.h, split to file.h and socket.h; file handle/socket handle
+x split functions in os.h in two classes: File and Socket. the actual handles
     will become a class member (including the win32 mmap handle). No longer
     directly access the file handles.
-    All remaining functions are moved to the static class Os.
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload, w/o records
+
+o do not purge pages if a cursor is attached
+    o run performance tests
+
+o insert: if HAM_HINT_APPEND is set then page splits should only create a
+    new page, and not shifting any keys to the new sibling. only the new
+    key is inserted in the new sibling.
+    o run performance tests
 
 o make better use of mmapped memory
     x if file is created: can mmap be used? - no, only if an initial size
@@ -332,31 +339,12 @@ o make better use of mmapped memory
             o this needs new tests! open an existing file with compressed
                 records
     o check performance tests
-
-o PRO: add avx support
-o PRO: add sse support for real64
-
-o look into hive-integration
-    -> would be an interesting market with requirements for column store
-        storage
-    -> how does the integration look like?
-    -> has TPC-benchmarks and other benchmarks ready
-    o write down everything i find, collect information and estimate
-        efforts/gains (will do the same for mysql, R and mongodb later); this
-        task is not about writing code!
-
-o QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
-
-o do not purge pages if a cursor is attached
-    o run performance tests
-
-o insert: if HAM_HINT_APPEND is set then page splits should only create a
-    new page, and not shifting any keys to the new sibling. only the new
-    key is inserted in the new sibling.
-    o run performance tests
+    o can we do the same for btree pages and avoid the cache lookup?
+        but how to get the pointer if the page was already modified, and a
+        copy was created via cow?
+        -> this should at least work for read-only databases! But the code
+            would have to be re-organized a lot. Not sure if it's worth the
+            effort. how do others solve this?
 
 o find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
@@ -409,6 +397,20 @@ o collect/publish benchmark against leveldb (with and without SSD)
     o uint64, calculate sum()
     o bin16, use count_if() of all keys with lsb == 1
 
+o look into hive-integration
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+    o write down everything i find, collect information and estimate
+        efforts/gains (will do the same for mysql, R and mongodb later); this
+        task is not about writing code!
+
+o QuickCheck: create a new property for testing duplicates; the key is always
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
+
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
     is accessed for a lookup or a scan, or immediately before the node
@@ -430,12 +432,17 @@ o delta updates managed in the BtreeNode
         o add flag to ham_bench
     o rename TransactionOperation to DeltaUpdate, decouple code from txn
     o totally transparent to the caller, handled in the proxy
-    o merge them when reading and flushing
-    o requires_split() takes delta updates into account
     o only add deltas to leaf nodes; internal nodes have too many read
         operations and would anyway require immediate flushes
     o DeltaUpdate objects from a txn-flush should directly go down to
         the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
     o make the merge algorithm as efficient as possible
         o sort deltas by key
         o first execute all 'erase' either against other deltas or against
@@ -447,19 +454,14 @@ o delta updates managed in the BtreeNode
         bulk updates are used)
 
 o architecture for a new webpage
+    -> will first start with the admin page, and the client's page for
+        downloading, creating support requests etc
     o pick an awesome design
         i.e. similar to http://foundationdb.com, http://laravel.com,
         http://rethinkdb.com
-    o come up with the full site structure/contents
     o pick a framework for routing and infrastructure (phalcon? laravel?)
-    o page contents are written in markdown or
+    o page contents are written in markdown, textile or
         reStructuredText (http://sphinx-doc.org/rest.html)
-    o documentation comments are hosted on disqus
-        o try to seamlessly integrate the doxygen documentation,
-            the javagen documentation, the erlang docs and the .NET docs 
-            (and whatever comes in the future)
-        o keep the documentation in the source tree, not in -www?
-    o blog comments are hosted on disqus, articles also use rest
     o Makefile converts markdown to html
     o Makefile can "scp -r" everything to the servers (staging or production)
     o client area with
@@ -473,6 +475,13 @@ o architecture for a new webpage
         o sending out release emails
         o importing new releases
         o etc
+    . come up with the full site structure/contents
+    . documentation comments are hosted on disqus
+        o try to seamlessly integrate the doxygen documentation,
+            the javagen documentation, the erlang docs and the .NET docs 
+            (and whatever comes in the future)
+        o keep the documentation in the source tree, not in -www?
+    . blog comments are hosted on disqus, articles are also written in rst
 
 ------------- hamsterdb 2.1.8 ---------------------------------------
 
@@ -482,9 +491,10 @@ o PRO: add sse support for real64
 o PRO: bulk updates (really only for pro?)
     - require delta updates
     - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort
+    - if user says that data is already sorted then do not re-sort, but
+        fail hard if the sort order is violated
     - add those delta updates to the txn-trees or to the btree node,
-        transfer ownership of the memory
+        simply transfer ownership of the memory
     -> or are these "batched" updates, in combination with cache-oblivious
         btrees? the batched updates contain lists of structures with
         information about the update (i.e. insert, erase etc). internally,

@@ -21,6 +21,7 @@
 
 #include <ham/hamsterdb.h>
 
+#include "os.h"
 #include "env.h"
 #include "util.h"
 #include "protobuf/protocol.h"
@@ -103,7 +104,7 @@ class RemoteEnvironment : public Environment
     ham_u64_t m_remote_handle;
 
     // the socket
-    ham_socket_t m_socket;
+    Socket m_socket;
 
     // a buffer to avoid frequent memory allocations
     ByteArray m_buffer;

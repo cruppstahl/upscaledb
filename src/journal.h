@@ -193,11 +193,11 @@ class Journal
     bool is_empty() {
       ham_u64_t size;
 
-      if (m_fd[0] == m_fd[1] && m_fd[1] == HAM_INVALID_FD)
+      if (!m_files[0].is_open() && !m_files[1].is_open())
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        size = os_get_file_size(m_fd[i]);
+        size = m_files[i].get_file_size();
         if (size && size != sizeof(PJournalHeader))
           return (false);
       }
@@ -325,12 +325,12 @@ class Journal
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
       if (m_buffer[idx].get_size() > 0) {
-        os_write(m_fd[idx], m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
+        m_files[idx].write(m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
         m_count_bytes_flushed += m_buffer[idx].get_size();
 
         m_buffer[idx].clear();
         if (fsync)
-          os_flush(m_fd[idx]);
+          m_files[idx].flush();
       }
     }
 
@@ -344,7 +344,7 @@ class Journal
     ham_u32_t m_current_fd;
 
     // The two file descriptors
-    ham_fd_t m_fd[2];
+    File m_files[2];
 
     // Buffers for writing data to the files
     ByteArray m_buffer[2];

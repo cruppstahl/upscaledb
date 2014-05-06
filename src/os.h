@@ -24,99 +24,132 @@
 
 namespace hamsterdb {
 
-// maps a file in memory
 //
-// mmap is called with MAP_PRIVATE - the allocated buffer
-// is just a copy of the file; writing to the buffer will not alter
-// the file itself.
+// A simple wrapper around a file handle. Throws exceptions in
+// case of errors
 //
-// win32 needs a second handle for CreateFileMapping
-extern void
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
-            ham_u64_t size, bool readonly, ham_u8_t **buffer);
-
-// unmaps a buffer
-extern void
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size);
-
-// positional read from a file
-extern void
-os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
-            ham_u64_t bufferlen);
-
-// positional write to a file
-extern void
-os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
-           ham_u64_t bufferlen);
-
-// write data to a file; uses the current file position
-extern void
-os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen);
-
+class File
+{
+  public:
+    enum {
 #ifdef HAM_OS_POSIX
-#  define HAM_OS_SEEK_SET   SEEK_SET
-#  define HAM_OS_SEEK_END   SEEK_END
-#  define HAM_OS_SEEK_CUR   SEEK_CUR
-#  define HAM_OS_MAX_PATH   PATH_MAX
+      kSeekSet = SEEK_SET,
+      kSeekEnd = SEEK_END,
+      kSeekCur = SEEK_CUR,
 #else
-#  define HAM_OS_SEEK_SET   FILE_BEGIN
-#  define HAM_OS_SEEK_END   FILE_END
-#  define HAM_OS_SEEK_CUR   FILE_CURRENT
-#  define HAM_OS_MAX_PATH   MAX_PATH
+      kSeekSet = FILE_BEGIN,
+      kSeekEnd = FILE_END,
+      kSeekCur = FILE_CURRENT,
 #endif
+      kMaxPath = PATH_MAX
+    };
 
-// get the page allocation granularity of the operating system
-extern ham_u32_t
-os_get_granularity();
+    // Constructor: creates an empty File handle
+    File()
+      : m_fd(HAM_INVALID_FD) {
+    }
 
-// seek position in a file
-extern void
-os_seek(ham_fd_t fd, ham_u64_t offset, int whence);
+    // Destructor: closes the file
+    ~File() {
+      close();
+    }
 
-// tell the position in a file
-extern ham_u64_t
-os_tell(ham_fd_t fd);
+    // Creates a new file
+    void create(const char *filename, ham_u32_t flags, ham_u32_t mode);
 
-// returns the size of a database file
-extern ham_u64_t
-os_get_file_size(ham_fd_t fd);
+    // Opens an existing file
+    void open(const char *filename, ham_u32_t flags);
 
-// truncate/resize the file
-extern void
-os_truncate(ham_fd_t fd, ham_u64_t newsize);
+    // Returns true if the file is open
+    bool is_open() const {
+      return (m_fd != HAM_INVALID_FD);
+    }
 
-// create a new file
-extern ham_fd_t
-os_create(const char *filename, ham_u32_t flags, ham_u32_t mode);
+    // Flushes a file
+    void flush();
 
-// open an existing file
-extern ham_fd_t
-os_open(const char *filename, ham_u32_t flags);
+    // Maps a file in memory
+    //
+    // mmap is called with MAP_PRIVATE - the allocated buffer
+    // is just a copy of the file; writing to the buffer will not alter
+    // the file itself.
+    void mmap(ham_u64_t position, ham_u64_t size, bool readonly,
+                    ham_u8_t **buffer);
 
-// flush a file
-extern void
-os_flush(ham_fd_t fd);
+    // Unmaps a buffer
+    void munmap(void *buffer, ham_u64_t size);
 
-// close a file descriptor
-extern void
-os_close(ham_fd_t fd);
+    // Positional read from a file
+    void pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen);
 
-// creates a socket, connects to a remote server
-extern ham_socket_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec);
+    // Positional write to a file
+    void pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen);
 
-// (blocking) writes |data_size| bytes in |data| to the socket
-extern void
-os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size);
+    // Write data to a file; uses the current file position
+    void write(const void *buffer, ham_u64_t bufferlen);
 
-// (blocking) reads |data_size| bytes from |socket|, stores the data
-// in |data|
-extern void
-os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size);
+    // Get the page allocation granularity of the operating system
+    static ham_u32_t get_granularity();
 
-// closes the socket, then sets |*socket| to HAM_INVALID_FD
-extern void
-os_socket_close(ham_socket_t *socket);
+    // Seek position in a file
+    void seek(ham_u64_t offset, int whence);
+
+    // Tell the position in a file
+    ham_u64_t tell();
+
+    // Returns the size of the file
+    ham_u64_t get_file_size();
+
+    // Truncate/resize the file
+    void truncate(ham_u64_t newsize);
+
+    // Closes the file descriptor
+    void close();
+
+  private:
+    // The file handle
+    ham_fd_t m_fd;
+
+#ifdef HAM_OS_WIN32
+    // The mmap handle - required for Win32
+    ham_fd_t m_mmaph;
+#endif
+};
+
+
+//
+// A simple wrapper around a tcp socket handle. Throws exceptions in
+// case of errors
+//
+class Socket
+{
+  public:
+    // Constructor creates an empty socket
+    Socket()
+      : m_socket(HAM_INVALID_FD) {
+    }
+
+    // Destructor closes the socket
+    ~Socket() {
+      close();
+    }
+
+    // Connects to a remote host
+    void connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec);
+
+    // Sends data to the connected server
+    void send(const ham_u8_t *data, ham_u32_t data_size);
+
+    // Receives data from the connected server; blocking!
+    void recv(ham_u8_t *data, ham_u32_t data_size);
+
+    // Closes the connection; no problem if socket was already closed
+    void close();
+
+  private:
+    ham_socket_t m_socket;
+};
+
 
 // Returns the number of 32bit integers that the CPU can process in
 // parallel (the SIMD lane width) 

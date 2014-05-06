@@ -29,15 +29,12 @@
 namespace hamsterdb {
 
 RemoteEnvironment::RemoteEnvironment()
-: Environment(), m_remote_handle(0), m_socket(HAM_INVALID_FD),
-  m_buffer(1024 * 4), m_timeout(0)
+: Environment(), m_remote_handle(0), m_buffer(1024 * 4), m_timeout(0)
 {
 }
 
 RemoteEnvironment::~RemoteEnvironment()
 {
-  os_socket_close(&m_socket);
-
   if (m_txn_manager) {
     delete m_txn_manager;
     m_txn_manager = 0;
@@ -55,16 +52,16 @@ RemoteEnvironment::perform_request(Protocol *request)
     throw Exception(HAM_INTERNAL_ERROR);
   }
 
-  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(), m_buffer.get_size());
+  m_socket.send((ham_u8_t *)m_buffer.get_ptr(), m_buffer.get_size());
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv((ham_u8_t *)m_buffer.get_ptr(), 8);
 
   // no need to check the magic; it's verified in Protocol::unpack
   ham_u32_t size = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(ham_db2h32(size) + 8);
-  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
+  m_socket.recv((ham_u8_t *)m_buffer.get_ptr() + 8, size);
 
   return (Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8));
 }
@@ -82,11 +79,11 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   request->serialize(&ptr, &size_left);
   ham_assert(size_left == 0);
 
-  os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(), request->size);
+  m_socket.send((ham_u8_t *)m_buffer.get_ptr(), request->size);
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv((ham_u8_t *)m_buffer.get_ptr(), 8);
 
   // now check the magic and receive the remaining data
   ham_u32_t magic = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 0);
@@ -95,7 +92,7 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   // TODO check the magic
   int size = (int)*(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(size);
-  os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size - 8);
+  m_socket.recv((ham_u8_t *)m_buffer.get_ptr() + 8, size - 8);
 
   ptr = (ham_u8_t *)m_buffer.get_ptr();
   reply->deserialize(&ptr, &size);
@@ -115,8 +112,7 @@ ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
         ham_u64_t cache_size)
 {
-  if (m_socket != HAM_INVALID_FD)
-    os_socket_close(&m_socket);
+  m_socket.close();
 
   ham_assert(url != 0);
   ham_assert(::strstr(url, "ham://") == url);
@@ -137,7 +133,7 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  m_socket = os_socket_connect(hostname.c_str(), port, m_timeout);
+  m_socket.connect(hostname.c_str(), port, m_timeout);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -412,7 +408,7 @@ RemoteEnvironment::close(ham_u32_t flags)
 
   st = reply->disconnect_reply().status();
   if (st == 0) {
-    os_socket_close(&m_socket);
+    m_socket.close();
     m_remote_handle = 0;
   }
 

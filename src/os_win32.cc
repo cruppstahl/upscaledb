@@ -85,7 +85,7 @@ calc_wlen4str(const char *str)
 }
 
 ham_u32_t
-os_get_granularity()
+File::get_granularity()
 {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
@@ -93,8 +93,7 @@ os_get_granularity()
 }
 
 void
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
-            ham_u64_t size, bool readonly, ham_u8_t **buffer)
+File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
 {
   ham_status_t st;
   DWORD protect = (readonly ? PAGE_READONLY : PAGE_WRITECOPY);
@@ -102,8 +101,8 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
   LARGE_INTEGER i;
   i.QuadPart = position;
 
-  *mmaph = CreateFileMapping(fd, 0, protect, 0, 0, 0);
-  if (!*mmaph) {
+  m_mmaph = CreateFileMapping(m_fd, 0, protect, 0, 0, 0);
+  if (!m_mmaph) {
     char buf[256];
     *buffer = 0;
     st = (ham_status_t)GetLastError();
@@ -112,14 +111,14 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
     throw Exception(HAM_IO_ERROR);
   }
 
-  *buffer = (ham_u8_t *)MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart,
+  *buffer = (ham_u8_t *)MapViewOfFile(m_mmaph, access, i.HighPart, i.LowPart,
                                 (SIZE_T)size);
   if (!*buffer) {
     char buf[256];
     st = (ham_status_t)GetLastError();
     /* make sure to release the mapping */
-    (void)CloseHandle(*mmaph);
-    *mmaph = 0;
+    (void)CloseHandle(m_mmaph);
+    m_mmaph = HAM_INVALID_FD;
     ham_log(("MapViewOfFile failed with OS status %u (%s)",
         st, DisplayError(buf, sizeof(buf), st)));
     if (st == ERROR_NOT_ENOUGH_QUOTA) // not enough resources - fallback to r/w
@@ -129,7 +128,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
 }
 
 void
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
+File::munmap(void *buffer, ham_u64_t size)
 {
   ham_status_t st;
 
@@ -141,7 +140,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
     throw Exception(HAM_IO_ERROR);
   }
 
-  if (!CloseHandle(*mmaph)) {
+  if (!CloseHandle(m_mmaph)) {
     char buf[256];
     st = (ham_status_t)GetLastError();
     ham_log(("CloseHandle failed with OS status %u (%s)", st,
@@ -149,18 +148,18 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
     throw Exception(HAM_IO_ERROR);
   }
 
-  *mmaph = 0;
+  m_mmaph = HAM_INVALID_FD;
 }
 
 void
-os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
+File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
   ov.OffsetHigh = addr >> 32;
   DWORD read;
-  if (!::ReadFile(fd, buffer, (DWORD)bufferlen, &read, &ov)) {
+  if (!::ReadFile(m_fd, buffer, (DWORD)bufferlen, &read, &ov)) {
     if (GetLastError() != ERROR_IO_PENDING) {
       char buf[256];
       st = (ham_status_t)GetLastError();
@@ -168,7 +167,7 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
             st, DisplayError(buf, sizeof(buf), st)));
       throw Exception(HAM_IO_ERROR);
     }
-    if (!::GetOverlappedResult(fd, &ov, &read, TRUE)) {
+    if (!::GetOverlappedResult(m_fd, &ov, &read, TRUE)) {
       char buf[256];
       st = (ham_status_t)GetLastError();
       ham_log(("GetOverlappedResult failed with OS status %u (%s)",
@@ -182,15 +181,14 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
 }
 
 void
-os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
-    ham_u64_t bufferlen)
+File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
   ov.OffsetHigh = addr >> 32;
   DWORD written;
-  if (!::WriteFile(fd, buffer, (DWORD)bufferlen, &written, &ov)) {
+  if (!::WriteFile(m_fd, buffer, (DWORD)bufferlen, &written, &ov)) {
     if (GetLastError() != ERROR_IO_PENDING) {
       char buf[256];
       st = (ham_status_t)GetLastError();
@@ -198,7 +196,7 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
             st, DisplayError(buf, sizeof(buf), st)));
       throw Exception(HAM_IO_ERROR);
     }
-    if (!::GetOverlappedResult(fd, &ov, &written, TRUE)) {
+    if (!::GetOverlappedResult(m_fd, &ov, &written, TRUE)) {
       char buf[256];
       st = (ham_status_t)GetLastError();
       ham_log(("GetOverlappedResult failed with OS status %u (%s)",
@@ -212,12 +210,12 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
 }
 
 void
-os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
+File::write(const void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
   DWORD written = 0;
 
-  if (!WriteFile((HANDLE)fd, buffer, (DWORD)bufferlen, &written, 0)) {
+  if (!WriteFile(m_fd, buffer, (DWORD)bufferlen, &written, 0)) {
     char buf[256];
     st = (ham_status_t)GetLastError();
     ham_log(("WriteFile failed with OS status %u (%s)", st,
@@ -234,13 +232,13 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 #endif
 
 void
-os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
+File::seek(ham_u64_t offset, int whence)
 {
   DWORD st;
   LARGE_INTEGER i;
   i.QuadPart = offset;
 
-  i.LowPart = SetFilePointer((HANDLE)fd, i.LowPart, &i.HighPart, whence);
+  i.LowPart = ::SetFilePointer(m_fd, i.LowPart, &i.HighPart, whence);
   if (i.LowPart == INVALID_SET_FILE_POINTER &&
     (st = GetLastError())!=NO_ERROR) {
     char buf[256];
@@ -251,14 +249,13 @@ os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
 }
 
 ham_u64_t
-os_tell(ham_fd_t fd)
+File::tell()
 {
   DWORD st;
   LARGE_INTEGER i;
   i.QuadPart = 0;
 
-  i.LowPart = SetFilePointer((HANDLE)fd, i.LowPart,
-      &i.HighPart, HAM_OS_SEEK_CUR);
+  i.LowPart = SetFilePointer(m_fd, i.LowPart, &i.HighPart, kSeekCur);
   if (i.LowPart == INVALID_SET_FILE_POINTER &&
     (st = GetLastError()) != NO_ERROR) {
     char buf[256];
@@ -275,15 +272,14 @@ os_tell(ham_fd_t fd)
 #endif
 
 ham_u64_t
-os_get_file_size(ham_fd_t fd)
+File::get_file_size()
 {
   ham_status_t st;
   LARGE_INTEGER i;
   i.QuadPart = 0;
-  i.LowPart = GetFileSize(fd, (LPDWORD)&i.HighPart);
+  i.LowPart = GetFileSize(m_fd, (LPDWORD)&i.HighPart);
 
-  if (i.LowPart == INVALID_FILE_SIZE &&
-    (st = GetLastError()) != NO_ERROR) {
+  if (i.LowPart == INVALID_FILE_SIZE && (st = GetLastError()) != NO_ERROR) {
     char buf[256];
     ham_log(("GetFileSize failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
@@ -294,11 +290,11 @@ os_get_file_size(ham_fd_t fd)
 }
 
 void
-os_truncate(ham_fd_t fd, ham_u64_t newsize)
+File::truncate(ham_u64_t newsize)
 {
-  os_seek(fd, newsize, HAM_OS_SEEK_SET);
+  File::seek(newsize, kSeekSet);
 
-  if (!SetEndOfFile((HANDLE)fd)) {
+  if (!SetEndOfFile(m_fd)) {
     char buf[256];
     ham_status_t st = (ham_status_t)GetLastError();
     ham_log(("SetEndOfFile failed with OS status %u (%s)", st,
@@ -307,8 +303,8 @@ os_truncate(ham_fd_t fd, ham_u64_t newsize)
   }
 }
 
-ham_fd_t
-os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
+void
+File::create(const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
@@ -346,15 +342,15 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode)
     throw Exception(HAM_IO_ERROR);
   }
 
-  return (fd);
+  m_fd = fd;
 }
 
 void
-os_flush(ham_fd_t fd)
+File::flush()
 {
   ham_status_t st;
 
-  if (!FlushFileBuffers((HANDLE)fd)) {
+  if (!FlushFileBuffers(m_fd)) {
     char buf[256];
     st = (ham_status_t)GetLastError();
     ham_log(("FlushFileBuffers failed with OS status %u (%s)",
@@ -363,8 +359,8 @@ os_flush(ham_fd_t fd)
   }
 }
 
-ham_fd_t
-os_open(const char *filename, ham_u32_t flags)
+void
+File::open(const char *filename, ham_u32_t flags)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
@@ -407,25 +403,26 @@ os_open(const char *filename, ham_u32_t flags)
                         : HAM_IO_ERROR);
   }
 
-  return (fd);
+  m_fd = fd;
 }
 
 void
-os_close(ham_fd_t fd)
+File::close()
 {
-  ham_status_t st;
-
-  if (!CloseHandle((HANDLE)fd)) {
-    char buf[256];
-    st = (ham_status_t)GetLastError();
-    ham_log(("CloseHandle failed with OS status %u (%s)", st,
-            DisplayError(buf, sizeof(buf), st)));
-    throw Exception(HAM_IO_ERROR);
+  if (m_fd != HAM_INVALID_FD) {
+    if (!CloseHandle((HANDLE)fd)) {
+      char buf[256];
+      ham_status_t st = (ham_status_t)GetLastError();
+      ham_log(("CloseHandle failed with OS status %u (%s)", st,
+              DisplayError(buf, sizeof(buf), st)));
+      throw Exception(HAM_IO_ERROR);
+    }
+    m_fd = HAM_INVALID_FD;
   }
 }
 
-ham_socket_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
+void
+Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 {
   WORD sockVersion = MAKEWORD(1, 1);
   WSADATA wsaData;
@@ -469,18 +466,18 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
     }
   }
 
-  return (s);
+  m_socket = s;
 }
 
 void
-os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size)
+Socket::send(const ham_u8_t *data, ham_u32_t data_size)
 {
   int sent = 0;
   char buf[256];
   ham_status_t st;
   
   while (sent != data_size) {
-    int s = ::send(socket, (const char *)(data + sent), data_size - sent, 0);
+    int s = ::send(m_socket, (const char *)(data + sent), data_size - sent, 0);
 	if (s <= 0) {
       st = (ham_status_t)GetLastError();
       ham_log(("send failed with OS status %u (%s)", st,
@@ -492,14 +489,14 @@ os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_u32_t data_size)
 }
 
 void
-os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size)
+Socket::recv(ham_u8_t *data, ham_u32_t data_size)
 {
   int read = 0;
   char buf[256];
   ham_status_t st;
   
   while (read != data_size) {
-    int r = ::recv(socket, (char *)(data + read), data_size - read, 0);
+    int r = ::recv(m_socket, (char *)(data + read), data_size - read, 0);
 	if (r <= 0) {
       st = (ham_status_t)GetLastError();
       ham_log(("recv failed with OS status %u (%s)", st,
@@ -511,12 +508,12 @@ os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_u32_t data_size)
 }
 
 void
-os_socket_close(ham_socket_t *socket)
+Socket::close()
 {
-  if (*socket != HAM_INVALID_FD) {
-    if (::closesocket(*socket) == -1)
+  if (m_socket != HAM_INVALID_FD) {
+    if (::closesocket(m_socket) == -1)
       throw Exception(HAM_IO_ERROR);
-    *socket = HAM_INVALID_FD;
+    m_socket = HAM_INVALID_FD;
   }
 }
 
