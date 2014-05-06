@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include "../src/page.h"
 #include "../src/device.h"
@@ -50,7 +50,7 @@ struct PageManagerFixture {
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), flags,
+        ham_env_create(&m_env, Utils::opath(".test"), flags,
                 0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -99,7 +99,7 @@ struct PageManagerFixture {
     };
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),  
+        ham_env_create(&m_env, Utils::opath(".test"),  
             0, 0644, &param[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &db, 13, 0, 0));
@@ -118,7 +118,7 @@ struct PageManagerFixture {
     };
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),  
+        ham_env_open(&m_env, Utils::opath(".test"),  
             0, &param[0]));
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
@@ -258,7 +258,7 @@ struct PageManagerFixture {
 
     // reopen the database
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),  0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->get_page_manager();
@@ -305,7 +305,7 @@ struct PageManagerFixture {
     // reopen the file
     lenv->get_changeset().clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),  0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->get_page_manager();

@@ -90,6 +90,7 @@
 #include <vector>
 #include <map>
 
+#include "globals.h"
 #include "util.h"
 #include "page.h"
 #include "btree_node.h"
@@ -557,25 +558,6 @@ static bool
 sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
   return (lhs.offset < rhs.offset);
 }
-
-// Move every key > threshold to a blob. For testing purposes.
-extern ham_u32_t g_extended_threshold;
-
-// Create duplicate table if amount of duplicates > threshold. For testing
-// purposes.
-extern ham_u32_t g_duplicate_threshold;
-
-// For counting extended keys; for metrics only
-extern ham_u64_t g_extended_keys;
-
-// For counting extended duplicate tables; for metrics only
-extern ham_u64_t g_extended_duptables;
-
-// Tracking key bytes before compression
-extern ham_u64_t g_bytes_before_compression;
-
-// Tracking key bytes after compression
-extern ham_u64_t g_bytes_after_compression;
 
 //
 // A RecordList for the default inline records, storing 8 byte record IDs
@@ -2287,7 +2269,7 @@ class DefaultNodeImpl
       table->disown();
 
       // increment counter (for statistics)
-      g_extended_duptables++;
+      Globals::ms_extended_duptables++;
 
       return (tableid);
     }
@@ -2394,7 +2376,7 @@ class DefaultNodeImpl
       arena.disown();
 
       // increment counter (for statistics)
-      g_extended_keys++;
+      Globals::ms_extended_keys++;
 
       return (blobid);
     }
@@ -2890,10 +2872,11 @@ class DefaultNodeImpl
 
     // Returns the threshold for extended keys
     ham_u32_t get_extended_threshold() const {
-      if (g_extended_threshold)
-        return (g_extended_threshold);
+      if (Globals::ms_extended_threshold)
+        return (Globals::ms_extended_threshold);
       ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
-      return (g_extended_threshold = calculate_extended_threshold(page_size));
+      return (Globals::ms_extended_threshold
+                      = calculate_extended_threshold(page_size));
     }
 
     // Calculates the extended threshold based on the page size
@@ -2907,18 +2890,18 @@ class DefaultNodeImpl
 
     // Returns the threshold for duplicate tables
     ham_u32_t get_duplicate_threshold() const {
-      if (g_duplicate_threshold)
-        return (g_duplicate_threshold);
+      if (Globals::ms_duplicate_threshold)
+        return (Globals::ms_duplicate_threshold);
       ham_u32_t page_size = m_page->get_db()->get_local_env()->get_page_size();
       if (page_size == 1024)
-        return (g_duplicate_threshold = 32);
+        return (Globals::ms_duplicate_threshold = 32);
       if (page_size <= 1024 * 8)
-        return (g_duplicate_threshold = 64);
+        return (Globals::ms_duplicate_threshold = 64);
       if (page_size <= 1024 * 16)
-        return (g_duplicate_threshold = 128);
+        return (Globals::ms_duplicate_threshold = 128);
       // 0xff/255 is the maximum that we can store in the record
       // counter (1 byte!)
-      return (g_duplicate_threshold = 255);
+      return (Globals::ms_duplicate_threshold = 255);
     }
 
     // Returns the usable page size that can be used for actually

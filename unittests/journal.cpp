@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include "../src/endianswap.h"
 
@@ -85,10 +85,10 @@ struct JournalFixture {
   }
 
   void setup() {
-    (void)os::unlink(Globals::opath(".test"));
+    (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED
                 | HAM_ENABLE_TRANSACTIONS
                 | HAM_ENABLE_RECOVERY, 0644, 0));
@@ -509,7 +509,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
@@ -537,7 +537,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
@@ -568,7 +568,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
@@ -608,12 +608,12 @@ struct JournalFixture {
 
     /* reopen the database */
     REQUIRE(HAM_NEED_RECOVERY ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED
                 | HAM_ENABLE_TRANSACTIONS
                 | HAM_ENABLE_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED
                 | HAM_ENABLE_TRANSACTIONS
                 | HAM_AUTO_RECOVERY, 0));
@@ -664,7 +664,7 @@ struct JournalFixture {
      * journal */
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j->close();
     delete j;
@@ -675,7 +675,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -720,19 +720,19 @@ struct JournalFixture {
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn0"),
-          Globals::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn1"),
-          Globals::opath(".test.bak1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
     for (int i = 0; i < 5; i++)
       REQUIRE(0 == ham_txn_commit(txn[i], 0));
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     
     Journal *j = new Journal(m_lenv);
@@ -745,18 +745,18 @@ struct JournalFixture {
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ham_env_create(&m_env, Globals::opath(".test"),
+          ham_env_create(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     /* now open and recover */
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -792,17 +792,17 @@ struct JournalFixture {
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn0"),
-          Globals::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn1"),
-          Globals::opath(".test.bak1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     
     Journal *j = new Journal(m_lenv);
@@ -815,18 +815,18 @@ struct JournalFixture {
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ham_env_create(&m_env, Globals::opath(".test"),
+          ham_env_create(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     /* now open and recover */
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -878,18 +878,18 @@ struct JournalFixture {
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn0"),
-          Globals::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.jrn1"),
-          Globals::opath(".test.bak1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
     REQUIRE(0 == ham_txn_commit(txn[1], 0));
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
@@ -899,12 +899,12 @@ struct JournalFixture {
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     /* now open and recover */
-    REQUIRE(true == os::copy(Globals::opath(".test.bak0"),
-          Globals::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Globals::opath(".test.bak1"),
-          Globals::opath(".test.jrn1")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -955,7 +955,7 @@ struct JournalFixture {
      * journal */
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     Journal *j = new Journal(m_lenv);
@@ -966,7 +966,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -1024,7 +1024,7 @@ struct JournalFixture {
      * journal */
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
 
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
@@ -1035,7 +1035,7 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));

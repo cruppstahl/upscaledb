@@ -493,6 +493,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\globals.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\globals.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\hamsterdb.cc"
 			>
 		</File>

@@ -416,7 +416,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\globals.h"
+			RelativePath="..\..\unittests\utils.h"
 			>
 		</File>
 		<File

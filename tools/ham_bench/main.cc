@@ -37,6 +37,7 @@
 #endif
 #include "metrics.h"
 #include "misc.h"
+#include "../../src/globals.h"
 
 #define ARG_HELP                                1
 #define ARG_VERBOSE                             2
@@ -747,10 +748,10 @@ parse_config(int argc, char **argv, Configuration *c)
       c->key_compression = parse_compression_type(param);
     }
     else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
-      hamsterdb::g_linear_threshold = strtoul(param, 0, 0);
+      hamsterdb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
     }
     else if (opt == ARG_PAX_DISABLE_SIMD) {
-      hamsterdb::g_is_simd_enabled = false;
+      hamsterdb::Globals::ms_is_simd_enabled = false;
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;

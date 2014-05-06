@@ -20,7 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include <ham/hamsterdb_srv.h>

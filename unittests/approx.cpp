@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include <vector>
@@ -40,10 +40,10 @@ struct ApproxFixture {
   ham_txn_t *m_txn;
 
   ApproxFixture() {
-    (void)os::unlink(Globals::opath(".test"));
+    (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-          ham_env_create(&m_env, Globals::opath(".test"),
+          ham_env_create(&m_env, Utils::opath(".test"),
               HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));

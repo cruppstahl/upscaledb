@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db.h"
@@ -46,7 +46,7 @@ struct HamsterdbFixture {
   ham_env_t *m_env;
 
   HamsterdbFixture() {
-    os::unlink(Globals::opath(".test"));
+    os::unlink(Utils::opath(".test"));
     REQUIRE(0 == ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
   }
@@ -113,14 +113,14 @@ struct HamsterdbFixture {
     ham_env_t *env;
 
     REQUIRE(HAM_INV_FILE_HEADER ==
-        ham_env_open(&env, Globals::ipath("data/inv-file-header.hdb"), 0, 0));
+        ham_env_open(&env, Utils::ipath("data/inv-file-header.hdb"), 0, 0));
   }
 
   void invVersionTest() {
     ham_env_t *env;
 
     REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Globals::ipath("data/inv-file-version.hdb"), 0, 0));
+        ham_env_open(&env, Utils::ipath("data/inv-file-version.hdb"), 0, 0));
   }
 
   void createTest() {
@@ -139,7 +139,7 @@ struct HamsterdbFixture {
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_create(&env, 0, HAM_READ_ONLY, 0, 0));
     REQUIRE(HAM_INV_PAGESIZE ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0, &ps[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0, &ps[0]));
 #ifdef WIN32
     REQUIRE(HAM_IO_ERROR ==
         ham_env_create(&env, "c:\\windows", 0, 0664, 0));
@@ -155,20 +155,20 @@ struct HamsterdbFixture {
     ham_parameter_t ps[] = { { HAM_PARAM_PAGESIZE, 512 }, { 0, 0 } };
 
     REQUIRE(HAM_INV_PAGESIZE ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0644, &ps[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
 
     ps[0].value = 1024;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0644, &ps[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
   void createCloseCreateTest() {
     ham_env_t *env;
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 == ham_env_close(env, 0));
-    REQUIRE(0 == ham_env_open(&env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
@@ -176,9 +176,9 @@ struct HamsterdbFixture {
     ham_env_t *env;
     ham_parameter_t ps[] = { { HAM_PARAM_PAGESIZE, 1024 * 128 }, { 0, 0 } };
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"), 0, 0664, &ps[0]));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0664, &ps[0]));
     REQUIRE(0 == ham_env_close(env, 0));
-    REQUIRE(0 == ham_env_open(&env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
@@ -191,10 +191,10 @@ struct HamsterdbFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, HAM_READ_ONLY, 0));
     REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
 
@@ -230,10 +230,10 @@ struct HamsterdbFixture {
     };
 
     REQUIRE(HAM_INV_PAGESIZE ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, p1));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, p1));
 
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, p2));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, p2));
 
     REQUIRE(HAM_INV_KEY_SIZE ==
         ham_env_create_db(env, &db, 1, 0, p3));
@@ -244,19 +244,19 @@ struct HamsterdbFixture {
     p1[0].value = 1024;
     REQUIRE(0 == ham_env_close(env, 0));
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, &p1[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ham_env_close(env, 0));
     p1[0].value = 2048;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, &p1[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ham_env_close(env, 0));
     p1[0].value = 4096;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, &p1[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ham_env_close(env, 0));
     p1[0].value = 1024 * 3;
     REQUIRE(HAM_INV_PAGESIZE ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, &p1[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
   }
 
   void invalidKeysizeTest() {
@@ -272,7 +272,7 @@ struct HamsterdbFixture {
     };
 
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0664, p1));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0664, p1));
 
     REQUIRE(HAM_INV_KEY_SIZE ==
         ham_env_create_db(env, &db, 1, 0, p2));
@@ -391,7 +391,7 @@ struct HamsterdbFixture {
     my_key_t my_key;
     my_rec_t my_rec;
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
                             HAM_DISABLE_MMAP, 0644, ps));
 
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, ps2));
@@ -663,7 +663,7 @@ struct HamsterdbFixture {
 
     ham_u32_t keycount = 0;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), 0, 0644, &ps[0]));
+        ham_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 1, 0, &params[0]));
     keycount = 8;
@@ -1107,19 +1107,19 @@ struct HamsterdbFixture {
     key.size = sizeof(value);
 
     REQUIRE(0 ==
-        ham_env_create(&env1, Globals::opath(".test"), 0, 0664, 0));
+        ham_env_create(&env1, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env1, &db1, 111, 0, 0));
     REQUIRE(0 == ham_db_insert(db1, 0, &key, &rec, 0));
     REQUIRE(0 == ham_env_flush(env1, 0));
 
     /* Exclusive locking is now the default */
     REQUIRE(HAM_WOULD_BLOCK ==
-        ham_env_open(&env2, Globals::opath(".test"), 0, 0));
+        ham_env_open(&env2, Utils::opath(".test"), 0, 0));
     REQUIRE(HAM_WOULD_BLOCK ==
-        ham_env_open(&env2, Globals::opath(".test"), 0, 0));
+        ham_env_open(&env2, Utils::opath(".test"), 0, 0));
     REQUIRE(0 == ham_env_close(env1, HAM_AUTO_CLEANUP));
     REQUIRE(0 ==
-        ham_env_open(&env2, Globals::opath(".test"), HAM_READ_ONLY, 0));
+        ham_env_open(&env2, Utils::opath(".test"), HAM_READ_ONLY, 0));
     REQUIRE(0 == ham_env_open_db(env2, &db2, 111, 0, 0));
     REQUIRE(0 == ham_db_find(db2, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_close(db2, 0));
@@ -1163,7 +1163,7 @@ struct HamsterdbFixture {
 
     REQUIRE(HAM_INV_PARAMETER == ham_db_set_compare_func(m_db, f));
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 111, 0, &params[0]));
 
     REQUIRE(0 == ham_db_set_compare_func(db, f));
@@ -1400,7 +1400,7 @@ struct HamsterdbFixture {
   void recoveryTest() {
     ham_env_t *old = m_env;
     REQUIRE(0 ==
-            ham_env_create(&m_env, Globals::opath(".test"),
+            ham_env_create(&m_env, Utils::opath(".test"),
                     HAM_ENABLE_RECOVERY, 0664, 0));
     REQUIRE(0 == ham_env_close(m_env, 0));
     m_env = old;
@@ -1409,7 +1409,7 @@ struct HamsterdbFixture {
   void recoveryNegativeTest() {
     ham_env_t *old = m_env;
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_IN_MEMORY, 0664, 0));
     m_env = old;
   }
@@ -1417,14 +1417,14 @@ struct HamsterdbFixture {
   void recoveryEnvTest() {
     ham_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test"), HAM_ENABLE_RECOVERY, 0664, 0));
+        ham_env_create(&env, Utils::opath(".test"), HAM_ENABLE_RECOVERY, 0664, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
   void recoveryEnvNegativeTest() {
     ham_env_t *env;
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create(&env, Globals::opath(".test"),
+        ham_env_create(&env, Utils::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_IN_MEMORY, 0664, 0));
   }
 
@@ -1529,7 +1529,7 @@ struct HamsterdbFixture {
 
     teardown();
     REQUIRE(0 ==
-            ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, ps));
+            ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, ps));
     REQUIRE(0 ==
             ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
@@ -1566,26 +1566,26 @@ struct HamsterdbFixture {
   void createDbOpenEnvTest() {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 22, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 22, 0, 0));
   }
 
   void checkDatabaseNameTest() {
     teardown();
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
     teardown();
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_db_close(m_db, 0));
@@ -1746,7 +1746,7 @@ struct HamsterdbFixture {
 
     teardown();
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
@@ -1763,7 +1763,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -1807,9 +1807,9 @@ struct HamsterdbFixture {
     ham_env_t *env;
 
     REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Globals::opath("data/sample-db1-1.x.hdb"), 0, 0));
+        ham_env_open(&env, Utils::opath("data/sample-db1-1.x.hdb"), 0, 0));
     REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Globals::opath("data/sample-db1-2.0.hdb"), 0, 0));
+        ham_env_open(&env, Utils::opath("data/sample-db1-2.0.hdb"), 0, 0));
   }
 
   void overwriteLogDirectoryTest() {
@@ -1826,14 +1826,14 @@ struct HamsterdbFixture {
     REQUIRE(false == os::file_exists("data/test.db.jrn1"));
 
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath("test.db"),
+        ham_env_create(&env, Utils::opath("test.db"),
             HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
     REQUIRE(0 == ham_env_close(env, 0));
     REQUIRE(true == os::file_exists("data/test.db.jrn0"));
     REQUIRE(true == os::file_exists("data/test.db.jrn1"));
 
     REQUIRE(0 ==
-        ham_env_open(&env, Globals::opath("test.db"),
+        ham_env_open(&env, Utils::opath("test.db"),
             HAM_ENABLE_TRANSACTIONS, &ps[0]));
 
     REQUIRE(0 == ham_env_get_parameters(env, &ps[0]));
@@ -1855,12 +1855,12 @@ struct HamsterdbFixture {
     ham_u32_t flags = HAM_ENABLE_DUPLICATE_KEYS;
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, flags, &ps[0]));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // reopen the database
-    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_db_set_compare_func(db, &my_compare_func));
 
@@ -1912,7 +1912,7 @@ struct HamsterdbFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(HAM_INV_KEY_SIZE == ham_env_create_db(env, &db, 1, 0, &ps[0]));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -1922,7 +1922,7 @@ struct HamsterdbFixture {
     ham_env_t *env;
 
     // create in-memory environment
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
                             HAM_IN_MEMORY, 0, 0));
     // create a database (id = 1)
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
@@ -1941,7 +1941,7 @@ struct HamsterdbFixture {
     os::unlink("test.db.jrn0");
     os::unlink("test.db.jrn1");
 
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"),
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
                         HAM_ENABLE_TRANSACTIONS | HAM_DISABLE_RECOVERY, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
 

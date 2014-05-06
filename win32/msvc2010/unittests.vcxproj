@@ -212,7 +212,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rdparty\catch\catch.hpp" />
-    <ClInclude Include="..\..\unittests\globals.h" />
+    <ClInclude Include="..\..\unittests\utils.h" />
     <ClInclude Include="..\..\unittests\os.hpp" />
     <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps1.h" />
     <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps16.h" />

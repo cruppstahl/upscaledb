@@ -297,13 +297,23 @@ o PRO: additional stuff for the first release
 
 ------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
-o remote code: get rid of protocol buffers (but leave them in the server
+x remote code: get rid of protocol buffers (but leave them in the server
     for other languages). they are too expensive.
     x write a code generator which creates serialize/deserialize routines
         for the messages 
     x perform a benchmark - looks good, nearly 50% faster
     x port all functions
     x investigate libuv memory leaks reported by valgrind
+
+x clean up globals; currently, many metrics and test gates are stored
+    in global variables. collect them and store them in a struct Globals
+    (globals.h).
+    x try to get rid of those that are not necessary
+
+o remove os.h, split to file.h and socket.h; file handle/socket handle
+    will become a class member (including the win32 mmap handle). No longer
+    directly access the file handles.
+    All remaining functions are moved to the static class Os.
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
@@ -334,15 +344,6 @@ o look into hive-integration
     o write down everything i find, collect information and estimate
         efforts/gains (will do the same for mysql, R and mongodb later); this
         task is not about writing code!
-
-o clean up globals; currently, many metrics and test gates are stored
-    in global variables. collect them and store them in a struct Globals
-    (globals.h).
-
-o remove os.h, split to file.h and socket.h; file handle/socket handle
-    will become a class member (including the win32 mmap handle). No longer
-    directly access the file handles.
-    All remaining functions are moved to the static class Os.
 
 o QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically

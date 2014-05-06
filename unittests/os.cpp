@@ -20,7 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include "../src/os.h"
 #include "os.hpp"
@@ -62,7 +62,7 @@ TEST_CASE("OsTest/negativeOpenTest",
 TEST_CASE("OsTest/createCloseTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Globals::opath(".test"), 0, 0664);
+  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
   os_close(fd);
 }
 
@@ -72,7 +72,7 @@ TEST_CASE("OsTest/createCloseOverwrite",
   ham_fd_t fd;
 
   for (int i = 0; i < 3; i++) {
-    fd = os_create(Globals::opath(".test"), 0, 0664);
+    fd = os_create(Utils::opath(".test"), 0, 0664);
     os_seek(fd, 0, HAM_OS_SEEK_END);
     REQUIRE(0ull == os_tell(fd));
     os_truncate(fd, 1024);
@@ -97,15 +97,15 @@ TEST_CASE("OsTest/openExclusiveTest",
 #ifndef __CYGWIN__
   ham_fd_t fd, fd2;
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   os_close(fd);
 
-  fd = os_open(Globals::opath(".test"), 0);
-  REQUIRE_CATCH(fd2 = os_open(Globals::opath(".test"), 0), HAM_WOULD_BLOCK);
+  fd = os_open(Utils::opath(".test"), 0);
+  REQUIRE_CATCH(fd2 = os_open(Utils::opath(".test"), 0), HAM_WOULD_BLOCK);
   os_close(fd);
-  fd2 = os_open(Globals::opath(".test"), 0);
+  fd2 = os_open(Utils::opath(".test"), 0);
   os_close(fd2);
-  fd2 = os_open(Globals::opath(".test"), 0);
+  fd2 = os_open(Utils::opath(".test"), 0);
   os_close(fd2);
 #endif
 }
@@ -116,7 +116,7 @@ TEST_CASE("OsTest/readWriteTest",
   ham_fd_t fd;
   char buffer[128], orig[128];
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     memset(buffer, i, sizeof(buffer));
     os_pwrite(fd, i * sizeof(buffer), buffer, sizeof(buffer));
@@ -138,7 +138,7 @@ TEST_CASE("OsTest/mmapTest",
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     memset(p1, i, ps);
     os_pwrite(fd, i * ps, p1, ps);
@@ -161,7 +161,7 @@ TEST_CASE("OsTest/mmapAbortTest",
   ham_u8_t *page, *mapped;
   page = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   memset(page, 0x13, ps);
   os_pwrite(fd, 0, page, ps);
 
@@ -189,14 +189,14 @@ TEST_CASE("OsTest/mmapReadOnlyTest",
   ham_u8_t *p1, *p2;
   p1 = (ham_u8_t *)malloc(ps);
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   for (i = 0; i < 10; i++) {
     memset(p1, i, ps);
     os_pwrite(fd, i * ps, p1, ps);
   }
   os_close(fd);
 
-  fd = os_open(Globals::opath(".test"), HAM_READ_ONLY);
+  fd = os_open(Utils::opath(".test"), HAM_READ_ONLY);
   for (i = 0; i < 10; i++) {
     memset(p1, i, ps);
     os_mmap(fd, &mmaph, i * ps, ps, true, &p2);
@@ -215,7 +215,7 @@ TEST_CASE("OsTest/multipleMmapTest",
   ham_u8_t *p1, *p2;
   ham_u64_t addr = 0, size;
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 5; i++) {
     size = ps * (i + 1);
 
@@ -247,7 +247,7 @@ TEST_CASE("OsTest/negativeMmapTest",
   ham_fd_t fd, mmaph;
   ham_u8_t *page;
 
-  fd = os_create(Globals::opath(".test"), 0, 0664);
+  fd = os_create(Utils::opath(".test"), 0, 0664);
   // bad address && page size! - i don't know why this succeeds
   // on MacOS...
 #ifndef __MACH__
@@ -259,7 +259,7 @@ TEST_CASE("OsTest/negativeMmapTest",
 TEST_CASE("OsTest/seekTellTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Globals::opath(".test"), 0, 0664);
+  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     os_seek(fd, i, HAM_OS_SEEK_SET);
     REQUIRE((ham_u64_t)i == os_tell(fd));
@@ -276,7 +276,7 @@ TEST_CASE("OsTest/negativeSeekTest",
 TEST_CASE("OsTest/truncateTest",
            "Tests the operating system functions in os*")
 {
-  ham_fd_t fd = os_create(Globals::opath(".test"), 0, 0664);
+  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 10; i++) {
     os_truncate(fd, i * 128);
     REQUIRE((ham_u64_t)(i * 128) == os_get_file_size(fd));
@@ -289,12 +289,12 @@ TEST_CASE("OsTest/largefileTest",
 {
   ham_u8_t kb[1024] = {0};
 
-  ham_fd_t fd = os_create(Globals::opath(".test"), 0, 0664);
+  ham_fd_t fd = os_create(Utils::opath(".test"), 0, 0664);
   for (int i = 0; i < 4 * 1024; i++)
     os_pwrite(fd, i * sizeof(kb), kb, sizeof(kb));
   os_close(fd);
 
-  fd = os_open(Globals::opath(".test"), 0);
+  fd = os_open(Utils::opath(".test"), 0);
   os_seek(fd, 0, HAM_OS_SEEK_END);
   REQUIRE(os_tell(fd) == (ham_u64_t)1024 * 1024 * 4);
   os_close(fd);

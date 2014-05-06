@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include "../include/ham/hamsterdb.hpp"
 
@@ -121,7 +121,7 @@ TEST_CASE("CppApi/compareTest", "")
   };
 
   hamsterdb::env env;
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   hamsterdb::db db = env.create_db(1, 0, &p[0]);
   db.set_compare_func(my_compare_func);
   env.close(HAM_AUTO_CLEANUP);
@@ -137,7 +137,7 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
   catch (hamsterdb::error &) {
   }
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   env.close();
 
   try {
@@ -146,7 +146,7 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
   catch (hamsterdb::error &) {
   }
 
-  env.open(Globals::opath(".test"));
+  env.open(Utils::opath(".test"));
   env = env;
   env.close();
 }
@@ -163,7 +163,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   db = env.create_db(1);
 
   try {
@@ -221,7 +221,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   db.close();
   env.close();
   env.close();
-  env.open(Globals::opath(".test"));
+  env.open(Utils::opath(".test"));
 }
 
 TEST_CASE("CppApi/cursorTest", "")
@@ -238,7 +238,7 @@ TEST_CASE("CppApi/cursorTest", "")
   hamsterdb::key k((void *)"12345", 5), k2;
   hamsterdb::record r((void *)"12345", 5), r2;
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   db = env.create_db(1);
   hamsterdb::cursor c(&db);
   c.create(&db); // overwrite
@@ -313,12 +313,12 @@ TEST_CASE("CppApi/envTest", "")
 {
   hamsterdb::env env;
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   env.flush();
   env.close();
   env.close();
   env.close();
-  env.open(Globals::opath(".test"));
+  env.open(Utils::opath(".test"));
 
   hamsterdb::db db1 = env.create_db(1);
   db1.close();
@@ -340,7 +340,7 @@ TEST_CASE("CppApi/envDestructorTest", "")
   hamsterdb::db db1;
   hamsterdb::env env;
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
   db1 = env.create_db(1);
 
   /* let the objects go out of scope */
@@ -351,7 +351,7 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
   hamsterdb::env env;
   std::vector<ham_u16_t> v;
 
-  env.create(Globals::opath(".test"));
+  env.create(Utils::opath(".test"));
 
   v = env.get_database_names();
   REQUIRE((ham_u32_t)0 == (ham_u32_t)v.size());
@@ -376,7 +376,7 @@ TEST_CASE("CppApi/beginAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Globals::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   db.insert(&txn, &k, &r);
@@ -402,7 +402,7 @@ TEST_CASE("CppApi/beginCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Globals::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin("name");
   db.insert(&txn, &k, &r);
@@ -425,7 +425,7 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Globals::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   hamsterdb::cursor c(&db, &txn);
@@ -454,7 +454,7 @@ TEST_CASE("CppApi/beginCursorCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Globals::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   hamsterdb::cursor c(&db, &txn);

@@ -21,7 +21,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db.h"
@@ -43,9 +43,9 @@ struct DuplicateFixture {
 
   DuplicateFixture(ham_u32_t flags = 0)
     : m_flags(flags) {
-    (void)os::unlink(Globals::opath(".test"));
+    (void)os::unlink(Utils::opath(".test"));
 
-    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
           m_flags, 0664, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
           HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -723,7 +723,7 @@ struct DuplicateFixture {
       /* reopen the database */
       teardown();
       REQUIRE(0 ==
-          ham_env_open(&m_env, Globals::opath(".test"), m_flags, 0));
+          ham_env_open(&m_env, Utils::opath(".test"), m_flags, 0));
       REQUIRE(0 ==
           ham_env_open_db(m_env, &m_db, 1, 0, 0));
     }
@@ -1503,7 +1503,7 @@ struct DuplicateFixture {
     if (!(m_flags & HAM_IN_MEMORY)) {
       /* reopen the database */
       teardown();
-      REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
+      REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
               m_flags, 0));
       REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
       REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS));
@@ -1529,7 +1529,7 @@ struct DuplicateFixture {
     };
 
     teardown();
-    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
           m_flags, 0664, &params[0]));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 
           HAM_ENABLE_DUPLICATE_KEYS, 0));

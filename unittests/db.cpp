@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include <ham/hamsterdb.h>
 
@@ -44,7 +44,7 @@ struct DbFixture {
   DbFixture(bool inmemory = false)
     : m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory) {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13,

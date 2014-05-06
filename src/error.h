@@ -33,9 +33,6 @@ struct Exception
   ham_status_t code;
 };
 
-// the global error handler function
-extern ham_errhandler_fun g_handler;
-
 // the default error handler
 void HAM_CALLCONV default_errhandler(int level, const char *message);
 
@@ -53,7 +50,8 @@ extern void dbg_log(const char *format, ...);
 #endif
 
 // causes the actual abort()
-extern void dbg_verify_failed(const char *format, ...) CLANG_ANALYZER_NORETURN;
+extern void dbg_verify_failed(int level, const char *file, int line,
+                const char *function, const char *expr) CLANG_ANALYZER_NORETURN;
 
 // a hook for unittests; will be triggered when an assert fails
 extern void (*ham_test_abort)();
@@ -72,9 +70,8 @@ extern void (*ham_test_abort)();
  */
 #ifdef HAM_DEBUG
 #   define ham_assert(e) if (!(e)) {                                          \
-                hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
-                    __LINE__, __FUNCTION__, #e);                              \
-                hamsterdb::dbg_verify_failed(0);                              \
+                hamsterdb::dbg_verify_failed(HAM_DEBUG_LEVEL_FATAL, __FILE__, \
+                        __LINE__, __FUNCTION__, #e);                          \
               }
 #else /* !HAM_DEBUG */
 #   define ham_assert(e)      (void)0
@@ -94,9 +91,8 @@ extern void (*ham_test_abort)();
               } while (0)
 
 #define ham_verify(e)      if (!(e)) {                                        \
-                hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
-                    __LINE__, __FUNCTION__, #e);                              \
-                hamsterdb::dbg_verify_failed(0);                              \
+                hamsterdb::dbg_verify_failed(HAM_DEBUG_LEVEL_FATAL, __FILE__, \
+                        __LINE__, __FUNCTION__, #e);                          \
               }
 
 } // namespace hamsterdb

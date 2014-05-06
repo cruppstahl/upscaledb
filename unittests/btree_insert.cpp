@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db.h"
@@ -47,9 +47,9 @@ struct BtreeInsertFixture {
       { 0, 0 }
     };
 
-    os::unlink(Globals::opath(".test"));
+    os::unlink(Utils::opath(".test"));
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, &p1[0]));
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
     m_environ = (LocalEnvironment *)m_env;

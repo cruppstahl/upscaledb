@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/device.h"
@@ -33,10 +33,10 @@ struct DeviceFixture
   Device *m_dev;
 
   DeviceFixture(bool inmemory) {
-    (void)os::unlink(Globals::opath(".test"));
+    (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -54,7 +54,7 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
     m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Globals::opath(".test"), 0);
+    m_dev->open(Utils::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
   }
 
@@ -62,11 +62,11 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
      m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Globals::opath(".test"), 0);
+    m_dev->open(Utils::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
     m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Globals::opath(".test"), 0);
+    m_dev->open(Utils::opath(".test"), 0);
     REQUIRE(true == m_dev->is_open());
   }
 

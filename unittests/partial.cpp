@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db.h"
@@ -55,7 +55,7 @@ struct PartialWriteFixture {
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -835,7 +835,7 @@ struct PartialReadFixture {
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -992,7 +992,7 @@ struct MiscPartialFixture {
   MiscPartialFixture(bool inmemory = false, ham_u32_t find_flags = 0)
     : m_inmemory(inmemory), m_find_flags(find_flags) {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             m_inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -1009,7 +1009,7 @@ struct MiscPartialFixture {
     ham_db_t *db;
     ham_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test.db"),
+        ham_env_create(&env, Utils::opath(".test.db"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -1028,7 +1028,7 @@ struct MiscPartialFixture {
     ham_db_t *db;
     ham_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test.db"),
+        ham_env_create(&env, Utils::opath(".test.db"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -1203,7 +1203,7 @@ struct MiscPartialFixture {
     ham_db_t *db;
     ham_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath(".test2"),
+        ham_env_create(&env, Utils::opath(".test2"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 1, 0, 0));

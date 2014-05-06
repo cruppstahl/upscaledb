@@ -16,7 +16,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 struct CheckIntegrityFixture {
@@ -31,9 +31,9 @@ struct CheckIntegrityFixture {
   }
 
   void setup(ham_parameter_t *env_params, ham_parameter_t *db_params) {
-    os::unlink(Globals::opath(".test"));
+    os::unlink(Utils::opath(".test"));
     REQUIRE(0 ==
-      ham_env_create(&m_env, Globals::opath(".test"),
+      ham_env_create(&m_env, Utils::opath(".test"),
           m_inmemory ? HAM_IN_MEMORY : 0, 0644, env_params));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33, 0, db_params));
   } 

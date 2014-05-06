@@ -23,6 +23,7 @@
 #include "configuration.h"
 #include "misc.h"
 #include "hamsterdb.h"
+#include "../../src/globals.h"
 
 ham_env_t *HamsterDatabase::ms_env = 0;
 #ifdef HAM_ENABLE_REMOTE
@@ -31,11 +32,6 @@ ham_srv_t *HamsterDatabase::ms_srv = 0;
 #endif
 Mutex      HamsterDatabase::ms_mutex;
 int        HamsterDatabase::ms_refcount;
-
-namespace hamsterdb {
-  extern ham_u32_t g_extended_threshold;
-  extern ham_u32_t g_duplicate_threshold;
-};
 
 static int 
 compare_keys(ham_db_t *db,
@@ -81,8 +77,8 @@ HamsterDatabase::do_create_env()
 
   ms_refcount++;
 
-  hamsterdb::g_extended_threshold = m_config->extkey_threshold;
-  hamsterdb::g_duplicate_threshold = m_config->duptable_threshold;
+  hamsterdb::Globals::ms_extended_threshold = m_config->extkey_threshold;
+  hamsterdb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
 
   int p = 0;
   if (ms_env == 0) {
@@ -161,8 +157,8 @@ HamsterDatabase::do_open_env()
 
   ms_refcount++;
 
-  hamsterdb::g_extended_threshold = m_config->extkey_threshold;
-  hamsterdb::g_duplicate_threshold = m_config->duptable_threshold;
+  hamsterdb::Globals::ms_extended_threshold = m_config->extkey_threshold;
+  hamsterdb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
 
   // check if another thread was faster
   if (ms_env == 0) {

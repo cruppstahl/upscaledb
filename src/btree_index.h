@@ -21,6 +21,7 @@
 
 #include "endianswap.h"
 
+#include "globals.h"
 #include "db.h"
 #include "abi.h"
 #include "util.h"
@@ -33,18 +34,6 @@ namespace hamsterdb {
 #include "packstart.h"
 
 #undef max // avoid MSVC conflicts with std::max
-
-// for counting extended keys
-extern ham_u64_t g_extended_keys;
-
-// for counting extended duplicate tables
-extern ham_u64_t g_extended_duptables;
-
-// Tracking key bytes before compression
-extern ham_u64_t g_bytes_before_compression;
-
-// Tracking key bytes after compression
-extern ham_u64_t g_bytes_after_compression;
 
 //
 // The persistent btree index descriptor. This structure manages the
@@ -336,8 +325,8 @@ class BtreeIndex
     static void get_metrics(ham_env_metrics_t *metrics) {
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
-      metrics->extended_keys = g_extended_keys;
-      metrics->extended_duptables = g_extended_duptables;
+      metrics->extended_keys = Globals::ms_extended_keys;
+      metrics->extended_duptables = Globals::ms_extended_duptables;
     }
 
     // Returns the btree usage statistics

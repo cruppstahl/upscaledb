@@ -1867,9 +1867,9 @@ void HAM_CALLCONV
 ham_set_errhandler(ham_errhandler_fun f)
 {
   if (f)
-    hamsterdb::g_handler = f;
+    hamsterdb::Globals::ms_error_handler = f;
   else
-    hamsterdb::g_handler = hamsterdb::default_errhandler;
+    hamsterdb::Globals::ms_error_handler = hamsterdb::default_errhandler;
 }
 
 ham_status_t HAM_CALLCONV

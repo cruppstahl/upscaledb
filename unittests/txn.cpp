@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include <ham/hamsterdb.h>
@@ -40,7 +40,7 @@ struct TxnFixture {
 
   TxnFixture() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -748,7 +748,7 @@ struct HighLevelTxnFixture {
 
   void noPersistentDatabaseFlagTest() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -758,7 +758,7 @@ struct HighLevelTxnFixture {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
@@ -766,13 +766,13 @@ struct HighLevelTxnFixture {
 
   void noPersistentEnvironmentFlagTest() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()) != 0);
     REQUIRE((HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()) != 0);
     REQUIRE(0 == ham_env_close(m_env, 0));
 
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
     REQUIRE(!(HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
   }
@@ -782,7 +782,7 @@ struct HighLevelTxnFixture {
     ham_cursor_t *cursor;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -797,7 +797,7 @@ struct HighLevelTxnFixture {
   void txnStillOpenTest() {
     teardown();
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -819,7 +819,7 @@ struct HighLevelTxnFixture {
     ham_cursor_t *cursor, *clone;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -843,7 +843,7 @@ struct HighLevelTxnFixture {
     ::memset(&rec, 0, sizeof(rec));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -853,7 +853,7 @@ struct HighLevelTxnFixture {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -870,7 +870,7 @@ struct HighLevelTxnFixture {
     ::memset(&rec, 0, sizeof(rec));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -882,7 +882,7 @@ struct HighLevelTxnFixture {
         ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_TXN_AUTO_COMMIT));
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -900,7 +900,7 @@ struct HighLevelTxnFixture {
 
     teardown();
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -911,7 +911,7 @@ struct HighLevelTxnFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -927,7 +927,7 @@ struct HighLevelTxnFixture {
     ::memset(&rec, 0, sizeof(rec));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -939,7 +939,7 @@ struct HighLevelTxnFixture {
         ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_TXN_AUTO_COMMIT));
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"),
+        ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
@@ -959,7 +959,7 @@ struct HighLevelTxnFixture {
     rec.size = sizeof(buffer);
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -984,7 +984,7 @@ struct HighLevelTxnFixture {
     rec.size = sizeof(buffer);
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -1034,7 +1034,7 @@ struct HighLevelTxnFixture {
     ham_u64_t count;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
@@ -1081,7 +1081,7 @@ struct HighLevelTxnFixture {
     ham_u64_t count;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -1118,7 +1118,7 @@ struct HighLevelTxnFixture {
     ham_u64_t count;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
@@ -1156,7 +1156,7 @@ struct HighLevelTxnFixture {
   void insertTransactionsWithDelay(int loop) {
     ham_txn_t *txn;
 
-    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
                         HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
@@ -1174,7 +1174,7 @@ struct HighLevelTxnFixture {
 
     // reopen the environment
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
                     HAM_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
@@ -1292,7 +1292,7 @@ struct InMemoryTxnFixture {
 
   InMemoryTxnFixture() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"),
+        ham_env_create(&m_env, Utils::opath(".test"),
             HAM_IN_MEMORY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));

@@ -59,6 +59,8 @@ libhamsterdb_la_SOURCES = \
 	error.h \
 	errorinducer.h \
 	hamsterdb.cc \
+	globals.h \
+	globals.cc \
 	journal.cc \
 	journal_entries.h \
 	journal.h \

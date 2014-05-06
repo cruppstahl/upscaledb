@@ -58,6 +58,7 @@
 #ifndef HAM_BTREE_IMPL_PAX_H__
 #define HAM_BTREE_IMPL_PAX_H__
 
+#include "globals.h"
 #include "util.h"
 #include "page.h"
 #include "btree_node.h"
@@ -65,9 +66,6 @@
 #include "env_local.h"
 
 namespace hamsterdb {
-
-// gates for ham_bench
-extern int g_linear_threshold;
 
 template<typename KeyList, typename RecordList>
 class PaxNodeImpl;
@@ -287,10 +285,10 @@ class PodKeyList
     // Returns the threshold when switching from binary search to
     // linear search
     int get_linear_search_threshold() const {
-      // disabled the check for g_linear_threshold because it avoids
+      // disabled the check for linear_threshold because it avoids
       // inlining of this function
-      //if (g_linear_threshold)
-        //return (g_linear_threshold);
+      //if (Globals::ms_linear_threshold)
+        //return (Globals::ms_linear_threshold);
       return (128 / sizeof(T));
     }
 
@@ -394,8 +392,8 @@ class BinaryKeyList
     // Returns the threshold when switching from binary search to
     // linear search
     int get_linear_search_threshold() const {
-      if (g_linear_threshold)
-        return (g_linear_threshold);
+      if (Globals::ms_linear_threshold)
+        return (Globals::ms_linear_threshold);
       if (m_key_size > 32)
         return (0xffffffff); // disable linear search for large keys
       return (128 / m_key_size);

@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/btree_index.h"
@@ -34,7 +34,7 @@ struct RecordNumberFixture {
   RecordNumberFixture(ham_u32_t flags = 0)
     : m_flags(flags) {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), m_flags, 0664, 0));
+        ham_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_RECORD_NUMBER, 0));
   }
@@ -51,7 +51,7 @@ struct RecordNumberFixture {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), m_flags, 0));
+        ham_env_open(&m_env, Utils::opath(".test"), m_flags, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
   }
@@ -373,7 +373,7 @@ struct RecordNumberFixture {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), m_flags, 0664, 0));
+        ham_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_RECORD_NUMBER, 0));
     REQUIRE(0 ==

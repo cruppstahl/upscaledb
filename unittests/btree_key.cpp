@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db.h"
@@ -40,12 +40,12 @@ struct BtreeKeyFixture {
   Page *m_page;
 
   BtreeKeyFixture(bool duplicate = false) {
-    os::unlink(Globals::opath(".test"));
+    os::unlink(Utils::opath(".test"));
 
     ham_u32_t flags = 0;
     if (duplicate)
       flags |= HAM_ENABLE_DUPLICATE_KEYS;
-    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, flags, 0));
 
     m_dbp = (LocalDatabase *)m_db;

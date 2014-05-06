@@ -18,7 +18,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/env_local.h"
@@ -41,7 +41,7 @@ split_hook()
 struct BtreeFixture {
 
   BtreeFixture() {
-    os::unlink(Globals::opath("test.db"));
+    os::unlink(Utils::opath("test.db"));
   }
 
   ~BtreeFixture() {
@@ -56,7 +56,7 @@ struct BtreeFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
 
     ham_parameter_t query[] = {
@@ -101,7 +101,7 @@ struct BtreeFixture {
     }
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &ps[0]));
 
     ham_parameter_t query[] = {
@@ -145,7 +145,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // reopen and check the demangled API string once more
-    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
 
     REQUIRE(0 == ham_db_get_parameters(db, query));
@@ -180,7 +180,7 @@ struct BtreeFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, &p1[0]));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, &p1[0]));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &p2[0]));
 
     ham_parameter_t query[] = {
@@ -201,7 +201,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // reopen and make sure the flag was persisted
-    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
@@ -223,7 +223,7 @@ struct BtreeFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &p[0]));
 
     ham_parameter_t query[] = {
@@ -255,7 +255,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // reopen and fetch the root page of the database
-    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
     LocalEnvironment *lenv = (LocalEnvironment *)env;
 
@@ -281,7 +281,7 @@ struct BtreeFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, &p[0]));
 
     LocalEnvironment *lenv = (LocalEnvironment *)env;
@@ -377,7 +377,7 @@ struct BtreeFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 1,
                             HAM_FORCE_RECORDS_INLINE, &p[0]));
 
@@ -399,7 +399,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // reopen and make sure the flag was persisted
-    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);

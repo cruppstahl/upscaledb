@@ -20,7 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 
 #include "../src/db_local.h"
 #include "../src/page.h"

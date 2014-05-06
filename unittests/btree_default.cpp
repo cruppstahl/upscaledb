@@ -20,7 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "globals.h"
+#include "utils.h"
 #include "os.hpp"
 
 #include "../src/db_local.h"
@@ -57,7 +57,7 @@ struct BtreeDefaultFixture {
                   ham_u32_t page_size = 1024 * 16)
     : m_db(0), m_env(0), m_key_size(key_size), m_rec_size(rec_size),
       m_duplicates(duplicates) {
-    os::unlink(Globals::opath(".test"));
+    os::unlink(Utils::opath(".test"));
     ham_parameter_t p1[] = {
       { HAM_PARAM_PAGESIZE, page_size },
       { 0, 0 }
@@ -71,7 +71,7 @@ struct BtreeDefaultFixture {
       { 0, 0 }
     };
     REQUIRE(0 ==
-        ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, &p1[0]));
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
 
     ham_u32_t flags = 0;
     if (duplicates)
