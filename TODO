@@ -314,16 +314,15 @@ x split functions in os.h in two classes: File and Socket. the actual handles
     will become a class member (including the win32 mmap handle). No longer
     directly access the file handles.
 
+x insert: if HAM_HINT_APPEND is set then page splits should only create a
+    new page, and not shifting any keys to the new sibling. only the new
+    key is inserted in the new sibling.
+
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload, w/o records
 
 o do not purge pages if a cursor is attached
-    o run performance tests
-
-o insert: if HAM_HINT_APPEND is set then page splits should only create a
-    new page, and not shifting any keys to the new sibling. only the new
-    key is inserted in the new sibling.
     o run performance tests
 
 o make better use of mmapped memory

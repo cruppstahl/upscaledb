@@ -230,17 +230,41 @@ class BtreeInsertAction
       if (!parent)
         parent = allocate_new_root(old_page);
 
-      /* get the slot of the pivot key */
-      int pivot = get_pivot(old_node);
-
-      /* and store the pivot key for later */
+      Page *to_return = 0;
       ByteArray pivot_key_arena;
       ham_key_t pivot_key = {0};
-      old_node->get_key(pivot, &pivot_key_arena, &pivot_key);
 
-      /* uncouple all cursors */
-      if (old_node->is_leaf())
-        BtreeCursor::uncouple_all_cursors(old_page, pivot);
+      /* if the key is appended then don't split the page; simply allocate
+       * a new page and insert the new key. */
+      if (m_hints.flags & HAM_HINT_APPEND && old_node->is_leaf()) {
+        to_return = new_page;
+
+        pivot_key = *key;
+      }
+      else {
+        /* get the slot of the pivot key */
+        int pivot = get_pivot(old_node);
+
+        /* and store the pivot key for later */
+        old_node->get_key(pivot, &pivot_key_arena, &pivot_key);
+
+        /* leaf page: uncouple all cursors */
+        if (old_node->is_leaf())
+          BtreeCursor::uncouple_all_cursors(old_page, pivot);
+        /* internal page: fix the ptr_down of the new page
+         * (it must point to the ptr of the pivot key) */
+        else
+          new_node->set_ptr_down(old_node->get_record_id(pivot));
+
+        /* now move some of the key/rid-tuples to the new page */
+        old_node->split(new_node, pivot);
+
+        // if the new key is >= the pivot key then continue with the right page,
+        // otherwise continue with the left page
+        to_return = m_btree->compare_keys(key, &pivot_key) >= 0
+                          ? new_page
+                          : old_page;
+      }
 
       /* update the parent page */
       BtreeNodeProxy *parent_node = m_btree->get_node_from_page(parent);
@@ -251,14 +275,6 @@ class BtreeInsertAction
       /* new root page? then also set ptr_down! */
       if (parent_node->get_count() == 0)
         parent_node->set_ptr_down(old_page->get_address());
-
-      /* if we're in an internal page: fix the ptr_down of the new page
-       * (it must point to the ptr of the pivot key) */
-      if (!old_node->is_leaf())
-        new_node->set_ptr_down(old_node->get_record_id(pivot));
-
-      /* now move some of the key/rid-tuples to the new page */
-      old_node->split(new_node, pivot);
 
       /* fix the double-linked list of pages, and mark the pages as dirty */
       if (old_node->get_right()) {
@@ -279,11 +295,7 @@ class BtreeInsertAction
       if (g_BTREE_INSERT_SPLIT_HOOK)
         g_BTREE_INSERT_SPLIT_HOOK();
 
-      // if the new key is >= the pivot key then continue with the right page,
-      // otherwise continue with the left page
-      return (m_btree->compare_keys(key, &pivot_key) >= 0
-                      ? new_page
-                      : old_page);
+      return (to_return);
     }
 
     /*

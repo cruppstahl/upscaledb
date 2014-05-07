@@ -1,3 +1,10 @@
+May 06, 2014 - chris ---------------------------------------------------
+o Avoiding Btree splits if keys are appended (HAM_HINT_APPEND)
+
+May 02, 2014 - chris ---------------------------------------------------
+o The internal communication with the remote server now uses a different
+	protocol which is faster than google's protobuffer
+
 Apr 25, 2014 - chris ---------------------------------------------------
 o Fixing a performance regression in 2.1.7 - large fixed-length keys
 	created too many page splits, even if they were stored as extended
