@@ -178,6 +178,7 @@ HamsterDatabase::do_open_env()
     flags |= m_config->use_fsync ? HAM_ENABLE_FSYNC : 0;
     flags |= m_config->flush_txn_immediately ? HAM_FLUSH_WHEN_COMMITTED : 0;
     flags |= m_config->disable_recovery ? HAM_DISABLE_RECOVERY : 0;
+    flags |= m_config->read_only ? HAM_READ_ONLY : 0;
 
     st = ham_env_open(&ms_env, "test-ham.db", flags, &params[0]);
     if (st) {

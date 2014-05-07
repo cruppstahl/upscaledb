@@ -87,7 +87,8 @@ struct Configuration
       fullcheck_frequency(1000), metrics(kMetricsDefault),
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
       flush_txn_immediately(false), disable_recovery(false),
-      journal_compression(0), record_compression(0), key_compression(0) {
+      journal_compression(0), record_compression(0), key_compression(0),
+      read_only(false) {
   }
 
   void print() const {
@@ -214,6 +215,8 @@ struct Configuration
         printf("--find-pct=%d ", find_pct);
       if (table_scan_pct)
         printf("--table-scan-pct=%d ", table_scan_pct);
+      if (read_only)
+        printf("--read-only ");
       printf("\n");
     }
   }
@@ -270,6 +273,7 @@ struct Configuration
   int journal_compression;
   int record_compression;
   int key_compression;
+  bool read_only;
 };
 
 #endif /* CONFIGURATION_H__ */

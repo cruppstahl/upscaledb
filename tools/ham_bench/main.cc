@@ -90,6 +90,7 @@
 #define ARG_KEY_COMPRESSION                     64
 #define ARG_PAX_LINEAR_THRESHOLD                65
 #define ARG_PAX_DISABLE_SIMD                    66
+#define ARG_READ_ONLY                           67
 
 /*
  * command line parameters
@@ -408,6 +409,12 @@ static option_t opts[] = {
     0,
     "pax-disable-simd",
     "Enables use of SIMD instructions (PAX only)",
+    0 },
+  {
+    ARG_READ_ONLY,
+    0,
+    "read-only",
+    "Uses the HAM_READ_ONLY flag",
     0 },
   {0, 0}
 };
@@ -752,6 +759,9 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_PAX_DISABLE_SIMD) {
       hamsterdb::Globals::ms_is_simd_enabled = false;
+    }
+    else if (opt == ARG_READ_ONLY) {
+      c->read_only = true;
     }
     else if (opt == GETOPTS_PARAMETER) {
       c->filename = param;

@@ -22,19 +22,19 @@ x hamsterdb pro: compression for keys
 x hamsterdb: linear searches
 x hamsterdb: upgrade libuv
 x hamsterdb pro: SIMD instructions
-o hamsterdb pro: 30 day evaluation
+x hamsterdb pro: 30 day evaluation
 
 high-level plan for 2.1.8 ..................................................
-o hamsterdb-pro: improve SIMD
+x hamsterdb: code cleanups
+x hamsterdb: performance improvements for remote
+x hamsterdb: improve page splits
+o hamsterdb: start with the hola API
 o hamsterdb: more quickcheck tests
-o hamsterdb: code cleanups
-o hamsterdb: performance improvements for remote
-o hamsterdb: improve page splits
 o hamsterdb: delta updates
 
 
 
-o web-page requires updates
+x web-page requires updates
     x deployed html differs from git-repository
     x download/sources: add erlang, remove 1.x
     x www1-repository and hamsterdb-www should be identical
@@ -47,18 +47,6 @@ o web-page requires updates
         x where to host static files? - hetzner server
         x clean up 'dl' directory
     x webpage copyright is still 2013
-    o hamsterdb.com has read-only access to git repository, can do "git pull"
-        for deployment
-        "deploy" -> openshift, dann auch hamsterdb.com
-================
-        "staging" -> staging.hamsterdb.com
-        auf dem server noch fertig einrichten
-================
-
-    o same for staging.hamsterdb.com, but uses the staging-branch
-    o merge all repositories (host on github, keep remote branch)
-        hamsterdb-www is the main repository, master pushes to staging
-        'stable' pushes to hamsterdb.com, www1, www2
 
 x PRO: enable zlib/snappy/others compression for the records
     x add documentation to header file
@@ -274,23 +262,15 @@ o PRO: additional stuff for the first release
         x file compatibility
         x simd
 
-    o need a database with commercial users
-        o upgrade the current users
-        o need a "download gate" api which verifies download links? or at
-            least a script which generates those links
-            -> the url is /download/pro/<hash>/<customer-id>/filename
-            the hash is verified: md5sum(<customer-id> + filename + <salt>)
-            if valid then download the file (and try to log via
-            google analytics)
-
     o webpage
         x new marketing focus
         x feature matrix APL vs. closed source
         x new layout
+        x request evaluation version
+        o commit everything to git
         o daily backups of the mysql database
-        o request evaluation version: similar to contact form with additional
-            details about the product; also has to sign off (= checkbutton)
-            the evaluation license agreement
+        o "go live", but once more check all the links!
+        o add google analytics token!
 
     o send email to all customers (add this to the release process)
         -> needs a link generator!
@@ -324,26 +304,6 @@ o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload, w/o records
 
-o make better use of mmapped memory
-    x if file is created: can mmap be used? - no, only if an initial size
-        is specified!
-    x if file grows: can mmap be used? - yes, but the old mapping has to
-        be unmapped, which means that all pointers become invalid. OR
-        the page grows by a large amount, and creates a second mapping
-    o in DiskBlobManager::fetch: check if address is in mapped area;
-        if yes, then directly return a pointer (no memcpy)
-        o but not if file is encrypted
-        o also be careful with compression
-            o this needs new tests! open an existing file with compressed
-                records
-    o check performance tests
-    o can we do the same for btree pages and avoid the cache lookup?
-        but how to get the pointer if the page was already modified, and a
-        copy was created via cow?
-        -> this should at least work for read-only databases! But the code
-            would have to be re-organized a lot. Not sure if it's worth the
-            effort. how do others solve this?
-
 o find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
     level, running on linear key data (thus being able to apply SIMD in the
@@ -352,14 +312,19 @@ o find a way how to execute user's code in the btree; similar to the hola
         then iterate over the whole btree node (in the direction of the cursor),
         otherwise go step by step.
     => implement the following functions:
-        ham_hola_count()
-        ham_hola_count_if()
-        ham_hola_count_distinct()
-        ham_hola_count_distinct_if()
-        ham_hola_average()
-        ham_hola_average_if()
-        ham_hola_sum()
-        ham_hola_sum_if()
+        typedef struct ham_hola_predicate_t {
+            bool (*ham_hola_predicate_t)(void *key_data, ham_u16_t key_size,
+                        void *context);
+            void *context;
+        } ham_hola_predicate_t;
+        ham_hola_count(ham_db_t *db)
+        ham_hola_count_if(ham_db_t *db, ham_hola_predicate_t *predicate)
+        ham_hola_count_distinct(ham_db_t *db)
+        ham_hola_count_distinct_if(ham_db_t *db, ham_hola_predicate_t *predicate)
+        ham_hola_average(ham_db_t *db)
+        ham_hola_average_if(ham_db_t *db, ham_hola_predicate_t *predicate)
+        ham_hola_sum(ham_db_t *db)
+        ham_hola_sum_if(ham_db_t *db, ham_hola_predicate_t *predicate)
     -> based on this design: come up with an experimental API which will
         become the hola core routine, similar to the "scan" API that was
         planned
@@ -369,14 +334,26 @@ o find a way how to execute user's code in the btree; similar to the hola
         during such a scan (would create a deadlock)
     -> scans "pick up" other processors and run them at once, on the same
         data
-    -> like this? where is the "return" value of the processor? how to specify
-            multiple processors?
-        void ham_db_scan(ham_cursor_t *cursor,
-                     ham_key_t *begin, // can be null
-                     ham_key_t *end, // can be null
-                     ham_processor_cb_t *processor,
-                     void *context,
-                     ham_u32_t flags);
+    o create new header file ham/hamster_hola.h
+    o rewrite ham_db_get_key_count, deprecate the old function
+        void LocalDatabase::count(Cursor *cursor,
+                     FunctionObject functor, ham_u32_t flags);
+    o implement a low-level scan function
+        void LocalDatabase::scan(Cursor *cursor,
+                     FunctionObject functor, ham_u32_t flags);
+        o traverses with the cursor
+        o if a page does not have any keys which are modified in a transaction:
+            directly run functor in the btree node
+            o push sum, count, average etc down to the btree
+                layout/KeyLayout class
+        o otherwise use the cursor itself and traverse the node
+        o needs unittests
+        o needs monster tests - run with each fullcheck; implement for bdb
+            as well, compare the results!
+    o add samples and documentation
+        o add sample to webpage
+        o tutorial
+    o deprecate ham_db_get_key_count() (tutorial, documentation)
 
 o collect/publish benchmark against leveldb (with and without SSD)
     - each with 100k and 100m keys
@@ -393,7 +370,13 @@ o collect/publish benchmark against leveldb (with and without SSD)
     o bin16, default records, random read (w/ compression)
     o bin16, default records, linear read (w/ compression)
     o uint64, calculate sum()
-    o bin16, use count_if() of all keys with lsb == 1
+    o bin16, use count_if() of all keys with checksum % 10 == 0
+
+o hola - next steps
+    o add remote support where it makes sense
+    o support java api
+    o support .net api
+    o support erlang api
 
 o look into hive-integration
     -> would be an interesting market with requirements for column store
