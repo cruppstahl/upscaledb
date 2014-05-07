@@ -318,12 +318,11 @@ x insert: if HAM_HINT_APPEND is set then page splits should only create a
     new page, and not shifting any keys to the new sibling. only the new
     key is inserted in the new sibling.
 
+x do not purge pages if a cursor is attached
+
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload, w/o records
-
-o do not purge pages if a cursor is attached
-    o run performance tests
 
 o make better use of mmapped memory
     x if file is created: can mmap be used? - no, only if an initial size
@@ -547,7 +546,7 @@ o use cache-oblivious b-tree layout
         mmap is much faster than r/w; but when the database is created, the
         original mapping already exists. therefore we might have to handle
         more than one mapping in the file
-    o PRO? PageManager: when allocating a new page then use the distribution
+    o PageManager: when allocating a new page then use the distribution
         function to fetch a page from the reserved storage
     . try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages (if the database is big enough)

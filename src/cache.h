@@ -182,9 +182,8 @@ class Cache
        * pages) */
       Page *page = oldest;
       do {
-        /* pick the first unused page (not in a changeset) that is NOT mapped */
-        if (page->get_flags() & Page::kNpersMalloc
-            && !m_env->get_changeset().contains(page)) {
+        /* pick the first page that can be purged */
+        if (can_purge_page(page)) {
           Page *prev = page->get_previous(Page::kListCache);
           remove_page(page);
           cb(page, pm);
@@ -242,6 +241,19 @@ class Cache
     }
 
   private:
+    // Returns true if the page can be purged: page must use allocated
+    // memory instead of an mmapped pointer; page must not be in use (= in
+    // a changeset) and not have cursors attached
+    bool can_purge_page(Page *page) {
+      if ((page->get_flags() & Page::kNpersMalloc) == 0)
+        return (false);
+      if (m_env->get_changeset().contains(page))
+        return (false);
+      if (page->get_cursor_list() != 0)
+        return (false);
+      return (true);
+    }
+
     // Calculates the hash of a page address
     ham_u64_t calc_hash(ham_u64_t o) const {
       return (o % kBucketSize);
