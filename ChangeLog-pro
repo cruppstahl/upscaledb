@@ -1,0 +1,17 @@
+May 09, 2014 - chris ---------------------------------------------------
+						release of hamsterdb-pro 2.1.7
+
+Apr 09, 2014 - chris ---------------------------------------------------
+o Adding SIMD support for the PAX layout
+
+Mar 31, 2014 - chris ---------------------------------------------------
+o Adding key compression with zlib, snappy, lzf and lzo
+
+Mar 24, 2014 - chris ---------------------------------------------------
+o Adding record compression with zlib, snappy, lzf and lzo
+
+Mar 17, 2014 - chris ---------------------------------------------------
+o Adding journal compression with zlib, snappy, lzf and lzo
+
+Mar 17, 2014 - chris ---------------------------------------------------
+o Adding AES encryption

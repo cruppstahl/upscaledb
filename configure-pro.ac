@@ -80,14 +80,6 @@ else
     settings="$settings (no simd-sse4)"
   fi
 
-  if grep -q sse4 /proc/cpuinfo; then
-    AM_CONDITIONAL(ENABLE_SSE4, true)
-    settings="$settings (simd-sse4)"
-  else
-    AM_CONDITIONAL(ENABLE_SSE4, false)
-    settings="$settings (no simd-sse4)"
-  fi
-
   if grep -q sse2 /proc/cpuinfo; then
     AM_CONDITIONAL(ENABLE_SSE2, true)
     settings="$settings (simd-sse2)"

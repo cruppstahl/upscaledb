@@ -1,47 +1,44 @@
-hamsterdb Embedded Storage 2.1.7               Di 25. Mär 23:01:12 CET 2014
+hamsterdb pro 2.1.7                                 Do 8. Mai 07:34:50 CEST 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb Embedded Storage.
+This is the README file of hamsterdb pro.
 
 Contents:
 
 1. About
 
-hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
+hamsterdb pro is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release fixes a few bugs and improves Transactional performance.
-Committed Transactions are no longer flushed immediately to the btree but
-are buffered and flushed together with other committed Transactions. If
-you prefer the old behavior then use the flag HAM_FLUSH_WHEN_COMMITTED when
-creating or opening your Environment.
+This is the first release of hamsterdb pro. It contains all features of
+hamsterdb 2.1.7, and additionally:
 
-The Btree code was cleaned up and most of the complexity was removed by
-reorganizing the SMOs.
+- compression for journal, records and keys with zlib, snappy, lzf, lzo
+        (use of lzo requires a commercial license!)
+- aes encryption
+- simd instructions for lookups in the PAX layout (fixed length numeric keys
+        without duplicates)
 
-Also, the license was changed to APL (Apache Public License 2.0).
-hamsterdb is now free to use for closed-source applications.
-
-The AES encryption was removed. This will be part of a commercial "pro" version
-which will be available soon, together with more new functionality (i.e.
-compression, hot backups etc). No other features were removed. Visit the blog
-(http://crupp.de) for more background information regarding the license change.
+Please visit the webpage for additional documentation.
 
 2. Changes
 
 New Features
-* Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
-	combination with HAM_ENABLE_TRANSACTIONS
+* Compression is enabled in ham_env_create (HAM_PARAM_JOURNAL_COMPRESSION)
+    or ham_env_create_db (HAM_PARAM_RECORD_COMPRESSION,
+    HAM_PARAM_KEY_COMPRESSION)
+* AES encryption is enabled in ham_env_create and ham_env_open
+    (HAM_PARAM_ENCRYPTION_KEY)
+* SIMD instructions are used for lookups in the PAX layout (numeric keys)
 
 Bugfixes
-* issue #32: fixed segfault during recovery
-* Fixed a journalling bug; partial records were not logged correctly
+* issue #33: upgraded to libuv 0.11.22
+* Fixed a performance regression from 2.1.7: when using very large
+    variable-length keys, the btree pages were split too early and lots of
+    space was unused
 
 Other Changes
-* License is now APL 2.0
-* Committed Transactions are no longer flushed immediately, but can be
-	buffered and flushed together with other committed Transactions
-* Removed a parameter from ham_db_check_integrity
+* Minor performance improvements by reducing memory allocations
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -50,6 +47,10 @@ To see a list of all changes, look in the file ChangeLog.
 
 4. Features
 
+- PRO: SIMD instructions for lookups (numeric keys w/o duplicates)
+- PRO: transparent AES encryption
+- PRO: transparent compression for journal, keys and records using
+    zlib, snappy, lzf or lzo
 - Very fast sorted B+Tree with variable length keys
 - Can run as an in-memory database
 - Supports multiple databases in one file
@@ -79,7 +80,7 @@ None.
 
 6.1 Linux, MacOS and other Unix systems
 
-To compile hamsterdb Embedded Storage, run ./configure, make, make install.
+To compile hamsterdb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library,
 build with debugging symbols etc).
@@ -113,7 +114,7 @@ https://github.com/cruppstahl/hamsterdb-alien
 7. Testing and Example Code
 
 Make automatically compiles several example programs in the directory
-'samples'. To see hamsterdb Embedded Storage in action, just run 'samples/db1'
+'samples'. To see hamsterdb in action, just run 'samples/db1'
 or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
@@ -122,7 +123,7 @@ The header files in 'include/ham' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the hamsterdb web page.
 
-9. Other Ways to Compile hamsterdb Embedded Storage
+9. Other Ways to Compile hamsterdb
 
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
@@ -137,9 +138,9 @@ Also, if you compile for windows, you have to compile the file
 'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on
 non-Windows platforms.
 
-10. Porting hamsterdb Embedded Storage
+10. Porting hamsterdb
 
-Porting hamsterdb Embedded Storage shouldn't be too difficult. All operating
+Porting hamsterdb shouldn't be too difficult. All operating
 system dependend functions are declared in 'src/os.h' and defined
 in 'src/os_win32.cc' or 'src/os_posix.cc'.
 Other compiler- and OS-specific macros are in 'include/ham/types.h'.
@@ -163,7 +164,7 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb Embedded Storage is released under the APL 2.0 license, which allows
+hamsterdb is released under the APL 2.0 license, which allows
 unrestricted use for commercial and non-commercial applications. See the
 file COPYING for more information.
 
@@ -172,7 +173,7 @@ is available on request. See http://hamsterdb.com for more information.
 
 13. Contact
 
-Author of hamsterdb Embedded Storage is
+Author of hamsterdb is
     Christoph Rupp
     Paul-Preuss-Str. 63
     80995 Muenchen/Germany
