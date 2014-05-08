@@ -122,6 +122,9 @@ class BtreeNodeProxy
     // |visitor| returns false.
     virtual void enumerate(BtreeVisitor &visitor) = 0;
 
+    // Iterates all keys, calls the |visitor| on each
+    virtual void scan(ScanVisitor *visitor, bool distinct) = 0;
+
     // Compares the two keys. Returns 0 if both are equal, otherwise -1 (if
     // |lhs| is greater) or +1 (if |rhs| is greater).
     virtual int compare(const ham_key_t *lhs, const ham_key_t *rhs) const = 0;
@@ -384,6 +387,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
                                 it->get_key_size(), it->get_record_id()))
           break;
       }
+    }
+
+    // Iterates all keys, calls the |visitor| on each
+    virtual void scan(ScanVisitor *visitor, bool distinct) {
+      m_impl.scan(visitor, distinct);
     }
 
     // Compares two internal keys using the supplied comparator

@@ -553,11 +553,23 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\hola.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\include\ham\hamsterdb.h"
 			>
 		</File>
 		<File
 			RelativePath="..\..\include\ham\hamsterdb_int.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\include\ham\hamsterdb_srv.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\include\ham\hamsterdb_ola.h"
 			>
 		</File>
 		<File

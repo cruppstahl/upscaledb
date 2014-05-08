@@ -51,6 +51,10 @@ class RemoteDatabase : public Database
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
                     ham_u64_t *keycount);
 
+    // Scans the whole database, applies a processor function
+    virtual void scan(Transaction *txn, ScanVisitor *visitor,
+                    bool distinct) { }
+
     // Inserts a key/value pair (ham_db_insert)
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);

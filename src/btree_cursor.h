@@ -141,6 +141,9 @@ class BtreeCursor
     // Returns true if a cursor points to this external key
     bool points_to(ham_key_t *key);
 
+    // Moves the btree cursor to the next page
+    ham_status_t move_to_next_page();
+
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
     ham_status_t find(ham_key_t *key, ham_record_t *record, ham_u32_t flags);

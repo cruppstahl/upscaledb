@@ -177,6 +177,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\ham\hamsterdb.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_ola.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_srv.h" />
     <ClInclude Include="..\..\include\ham\types.h" />
     <ClInclude Include="..\..\src\abi.h" />
     <ClInclude Include="..\..\src\blob_manager.h" />
@@ -252,6 +254,7 @@
     <ClCompile Include="..\..\src\error.cc" />
     <ClCompile Include="..\..\src\globals.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />
+    <ClCompile Include="..\..\src\hola.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
     <ClCompile Include="..\..\src\mem.cc" />
     <ClCompile Include="..\..\src\os.cc" />

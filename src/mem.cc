@@ -63,7 +63,7 @@ Memory::release_to_system()
 #elif __APPLE__
   // TODO
 #elif __GNUC__
-  ::malloc_trim(os_get_granularity());
+  ::malloc_trim(File::get_granularity());
 #endif
 }
 

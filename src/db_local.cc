@@ -705,6 +705,70 @@ LocalDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
   return (st);
 }
 
+void
+LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
+                bool distinct)
+{
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  /* create a cursor, move it to the first key */
+  Cursor cursor(this, txn, 0);
+
+  ham_status_t st = cursor_move(&cursor, 0, 0, HAM_CURSOR_FIRST);
+  if (st) {
+    cursor.close();
+    throw Exception(st);
+  }
+
+  /* start traversing the tree */
+  while (true) {
+    Page *page;
+    cursor.get_btree_cursor()->get_coupled_key(&page);
+    BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
+
+    /* are transactions present? then check if the next txn key is >= btree[0]
+     * and <= btree[n] */
+    if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
+      ham_key_t *txnkey = cursor.get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+      /* if yes: use the cursor to traverse the page */
+      if (node->compare(txnkey, 0) >= 0
+          && node->compare(txnkey, node->get_count() - 1) <= 0) {
+        ham_key_t key = {0};
+        while ((st = cursor_move(&cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
+          Page *new_page;
+          cursor.get_btree_cursor()->get_coupled_key(&new_page);
+          /* break the loop if we've reached the next page */
+          if (new_page != page)
+            break;
+          /* process the key */
+          (*visitor)(key.data, key.size, distinct
+                                            ? cursor.get_record_count(txn, 0)
+                                            : 1);
+        }
+        if (st == HAM_KEY_NOT_FOUND)
+          goto bail;
+        if (st == HAM_SUCCESS) {
+          cursor.close();
+          throw Exception(st);
+        }
+
+        // continue with the next page
+        continue;
+      }
+    }
+
+    /* otherwise traverse directly in the btree page */
+    node->scan(visitor, distinct);
+    /* and then move to the next page */
+    cursor.get_btree_cursor()->move_to_next_page();
+  }
+
+bail:
+  // TODO not exception safe! call close() in Cursor::~Cursor()?
+  cursor.close();
+}
+
 ham_status_t
 LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
@@ -1338,9 +1402,6 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor,
           ham_u32_t *count, ham_u32_t flags)
 {
   TransactionCursor *txnc = cursor->get_txn_cursor();
-
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
 
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);

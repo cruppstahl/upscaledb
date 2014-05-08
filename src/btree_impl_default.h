@@ -1273,6 +1273,28 @@ class DefaultNodeImpl
       return (r);
     }
 
+    // Iterates all keys, calls the |visitor| on each
+    void scan(ScanVisitor *visitor, bool distinct) {
+      ham_u32_t count = m_node->get_count();
+      ham_key_t key = {0};
+
+      for (ham_u32_t i = 0; i < count; i++) {
+        void *key_data;
+        ham_u16_t key_size;
+        if (get_key_flags(i) & BtreeKey::kExtendedKey) {
+          get_key(i, &m_arena, &key);
+          key_data = key.data;
+          key_size = key.size;
+        }
+        else {
+          key_data = get_key_data(i);
+          key_size = get_key_size(i);
+        }
+        (*visitor)(key_data, key_size,
+                        distinct ? 1 : get_total_record_count(i));
+      }
+    }
+
     // Returns a deep copy of the key
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
       LocalDatabase *db = m_page->get_db();

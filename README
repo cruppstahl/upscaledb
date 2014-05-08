@@ -1,14 +1,14 @@
-hamsterdb Embedded Storage 2.1.7               Di 25. Mär 23:01:12 CET 2014
+hamsterdb 2.1.7                                     Di 25. Mär 23:01:12 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb Embedded Storage.
+This is the README file of hamsterdb.
 
 Contents:
 
 1. About
 
-hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
-production-proven and easy to use.
+hamsterdb is a database engine written in C/C++. It is fast, production-proven
+and easy to use.
 
 This release fixes a few bugs and improves Transactional performance.
 Committed Transactions are no longer flushed immediately to the btree but
@@ -50,6 +50,10 @@ To see a list of all changes, look in the file ChangeLog.
 
 4. Features
 
+- PRO: SIMD instructions for lookups (numeric keys w/o duplicates)
+- PRO: transparent AES encryption
+- PRO: transparent compression for journal, keys and records using 
+    zlib, snappy, lzf or lzo 
 - Very fast sorted B+Tree with variable length keys
 - Can run as an in-memory database
 - Supports multiple databases in one file
@@ -79,7 +83,7 @@ None.
 
 6.1 Linux, MacOS and other Unix systems
 
-To compile hamsterdb Embedded Storage, run ./configure, make, make install.
+To compile hamsterdb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library,
 build with debugging symbols etc).
@@ -113,7 +117,7 @@ https://github.com/cruppstahl/hamsterdb-alien
 7. Testing and Example Code
 
 Make automatically compiles several example programs in the directory
-'samples'. To see hamsterdb Embedded Storage in action, just run 'samples/db1'
+'samples'. To see hamsterdb in action, just run 'samples/db1'
 or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
@@ -122,7 +126,7 @@ The header files in 'include/ham' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the hamsterdb web page.
 
-9. Other Ways to Compile hamsterdb Embedded Storage
+9. Other Ways to Compile hamsterdb
 
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
@@ -137,9 +141,9 @@ Also, if you compile for windows, you have to compile the file
 'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on
 non-Windows platforms.
 
-10. Porting hamsterdb Embedded Storage
+10. Porting hamsterdb
 
-Porting hamsterdb Embedded Storage shouldn't be too difficult. All operating
+Porting hamsterdb shouldn't be too difficult. All operating
 system dependend functions are declared in 'src/os.h' and defined
 in 'src/os_win32.cc' or 'src/os_posix.cc'.
 Other compiler- and OS-specific macros are in 'include/ham/types.h'.
@@ -163,7 +167,7 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb Embedded Storage is released under the APL 2.0 license, which allows
+hamsterdb is released under the APL 2.0 license, which allows
 unrestricted use for commercial and non-commercial applications. See the
 file COPYING for more information.
 
@@ -172,7 +176,7 @@ is available on request. See http://hamsterdb.com for more information.
 
 13. Contact
 
-Author of hamsterdb Embedded Storage is
+Author of hamsterdb is
     Christoph Rupp
     Paul-Preuss-Str. 63
     80995 Muenchen/Germany

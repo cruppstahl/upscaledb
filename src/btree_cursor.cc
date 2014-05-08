@@ -232,6 +232,27 @@ BtreeCursor::points_to(ham_key_t *key)
   return (false);
 }
 
+ham_status_t
+BtreeCursor::move_to_next_page()
+{
+  LocalDatabase *db = m_parent->get_db();
+  LocalEnvironment *env = db->get_local_env();
+
+  // uncoupled cursor: couple it
+  if (m_state == kStateUncoupled)
+    couple();
+  else if (m_state != kStateCoupled)
+    return (HAM_CURSOR_IS_NIL);
+
+  BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
+  if (!node->get_right())
+    return (HAM_KEY_NOT_FOUND);
+
+  Page *page = env->get_page_manager()->fetch_page(db, node->get_right());
+  couple_to_page(page, 0, 0);
+  return (0);
+}
+
 ham_u32_t
 BtreeCursor::get_record_count(ham_u32_t flags)
 {

@@ -287,8 +287,10 @@ class PodKeyList
     int get_linear_search_threshold() const {
       // disabled the check for linear_threshold because it avoids
       // inlining of this function
-      //if (Globals::ms_linear_threshold)
-        //return (Globals::ms_linear_threshold);
+#if 0
+      if (Globals::ms_linear_threshold)
+        return (Globals::ms_linear_threshold);
+#endif
       return (128 / sizeof(T));
     }
 
@@ -392,8 +394,12 @@ class BinaryKeyList
     // Returns the threshold when switching from binary search to
     // linear search
     int get_linear_search_threshold() const {
+      // disabled the check for linear_threshold because it avoids
+      // inlining of this function
+#if 0
       if (Globals::ms_linear_threshold)
         return (Globals::ms_linear_threshold);
+#endif
       if (m_key_size > 32)
         return (0xffffffff); // disable linear search for large keys
       return (128 / m_key_size);
@@ -871,6 +877,11 @@ class PaxNodeImpl
       return (r);
     }
 
+    // Iterates all keys, calls the |visitor| on each
+    void scan(ScanVisitor *visitor, bool distinct) {
+      (*visitor)(m_keys.get_key_data(0), m_node->get_count());
+    }
+
     // Returns a copy of a key and stores it in |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
       LocalDatabase *db = m_page->get_db();
@@ -1002,7 +1013,7 @@ class PaxNodeImpl
       // nop
     }
 
-    // Erases the record; not supported by the PAX layout
+    // Erases the record
     void erase_record(ham_u32_t slot, int duplicate_id, bool all_duplicates) {
       Iterator it = at(slot);
 

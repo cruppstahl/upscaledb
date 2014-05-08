@@ -17,6 +17,8 @@
 #ifndef HAM_DB_H__
 #define HAM_DB_H__
 
+#include <ham/hamsterdb_ola.h>
+
 #include "config.h"
 #include "util.h"
 #include "env.h"
@@ -31,6 +33,19 @@ struct ham_db_t {
 namespace hamsterdb {
 
 class Cursor;
+
+//
+// The ScanVisitor is the callback implementation for the scan call.
+// It will either receive single keys or multiple keys in an array.
+//
+struct ScanVisitor {
+  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+                  ham_u32_t duplicate_count) = 0;
+
+  virtual void operator()(const void *key_data, ham_u32_t key_count) = 0;
+
+  virtual void assign_result(hola_result_t *result);
+};
 
 // a macro to cast pointers to u64 and vice versa to avoid compiler
 // warnings if the sizes of ptr and u64 are not equal
@@ -94,6 +109,10 @@ class Database
     // Returns the number of keys (ham_db_get_key_count)
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
                     ham_u64_t *keycount) = 0;
+
+    // Scans the whole database, applies a processor function
+    virtual void scan(Transaction *txn, ScanVisitor *visitor,
+                    bool distinct) = 0;
 
     // Inserts a key/value pair (ham_db_insert)
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
