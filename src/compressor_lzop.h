@@ -19,7 +19,9 @@
 
 #ifdef HAM_ENABLE_COMPRESSION
 
-#include "../config.h"
+#ifndef _MSC_VER
+#  include "../config.h"
+#endif
 
 #ifdef HAVE_LZO_LZO1X_H
 

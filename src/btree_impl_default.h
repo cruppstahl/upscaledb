@@ -2245,8 +2245,8 @@ class DefaultNodeImpl
           if (rec_size == HAM_RECORD_SIZE_UNLIMITED || rec_size > 32)
             rec_size = 9;
 
-          bool has_duplicates = db->get_local_env()->get_flags()
-                                & HAM_ENABLE_DUPLICATES;
+          bool has_duplicates = (db->get_local_env()->get_flags()
+                                    & HAM_ENABLE_DUPLICATES) != 0;
           capacity = page_size
                             / (m_layout.get_key_index_span()
                               + get_actual_key_size(page_size, key_size,

@@ -19,7 +19,9 @@
 
 #ifdef HAM_ENABLE_COMPRESSION
 
-#include "../config.h"
+#ifndef WIN32
+#  include "../config.h"
+#endif
 
 #ifdef HAVE_ZLIB_H
 

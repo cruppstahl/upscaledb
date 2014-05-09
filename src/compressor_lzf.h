@@ -19,8 +19,6 @@
 
 #ifdef HAM_ENABLE_COMPRESSION
 
-#include "../config.h"
-
 #include "3rdparty/liblzf/lzf.h"
 
 #include "compressor.h"
