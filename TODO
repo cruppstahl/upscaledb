@@ -349,7 +349,7 @@ o find a way how to execute user's code in the btree; similar to the hola
         data
     x create new header file ham/hamster_hola.h
     x create function stubs in hola.cc
-    o implement a low-level scan function
+    x implement a low-level scan function
         void LocalDatabase::scan(Cursor *cursor,
                      FunctionObject functor, ham_u32_t flags);
         x traverses with the cursor
@@ -364,28 +364,15 @@ o find a way how to execute user's code in the btree; similar to the hola
             - "slow" traversal with cursor (if transactions are present)
             - fast traversal with BtreeNodeProxy iterator (variable-length keys)
             - ultrafast traversal with sequential PAX storage
-
-        o implement the functions
-            x sum
-                x unittests
-            o sum_if
-                o unittests
-            o average
-                o unittests
-            o average_if
-                o unittests
-            o count_if
-                o unittests
-            o count_distinct_if
-                o unittests
-
-        o BtreeNodeProxy: merge enumerate() and scan()
+        x implement the functions
+    x improve the internal documentation
 
     o internally rewrite ham_db_get_key_count
         void LocalDatabase::count(Cursor *cursor,
                      FunctionObject functor, ham_u32_t flags);
         o ham_db_get_key_count: call hola function
-        o also for remote
+        o should continue working remotely
+
     o needs monster tests - run with each fullcheck; implement for bdb
         as well, compare the results!
 
@@ -396,19 +383,20 @@ o default layout: the lookup operations are relatively slow compared to PAX;
 o split cursor.cc in two files because gcc can run out of memory when compiling
 
 o Refactoring in the Btree
+    o BtreeNodeProxy: merge enumerate() and scan()
     o currently the layout class has 3 different erase functions:
         - erase
         - erase_key
         - erase_record
         unify and clean them up!
-    o do we really need iterators? the iterators usually just wrap the slot
-        number. if the layout's interface is sufficiently clean then they
-        should not be required and can be removed
     o rename "find" to "find_internal", "find_exact" to "find_leaf"
     o when traversing internal nodes: can we avoid calling
         BtreeNodeProxy::get_record_id(), and return the record-id when calling
         BtreeNodeProxy::find_internal()? This would save one virtual function
         call and clean up lots of code
+    o do we really need iterators? the iterators usually just wrap the slot
+        number. if the layout's interface is sufficiently clean then they
+        should not be required and can be removed
 
 o Refactorings for the PAX layout with the following goals:
     - responsible for ALL keys that are non-duplicate!

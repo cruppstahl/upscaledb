@@ -40,7 +40,8 @@ extern "C" {
  */
 typedef struct {
   /** A function pointer; receives a key, returns a bool */
-  bool (*predicate_func)(const ham_key_t *key, void *context);
+  ham_bool_t (*predicate_func)(const void *key_data, ham_u16_t key_size,
+                  void *context);
 
   /** User-supplied context data */
   void *context;

@@ -25,12 +25,35 @@
 
 namespace hamsterdb {
 
+// only select even numbers
+static ham_bool_t
+sum_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+{
+  ham_u32_t *p = (ham_u32_t *)key_data;
+  return ((*p & 1) == 0);
+}
+
+// only select numbers < 10
+static ham_bool_t
+average_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+{
+  float *p = (float *)key_data;
+  return (*p < 10.f);
+}
+
+static ham_bool_t
+count_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+{
+  ham_u8_t *p = (ham_u8_t *)key_data;
+  return (*p & 1);
+}
+
 struct HolaFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   bool m_use_transactions;
 
-  HolaFixture(bool use_transactions, int type)
+  HolaFixture(bool use_transactions, int type, bool use_duplicates = false)
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
     ham_parameter_t params[] = {
@@ -42,7 +65,10 @@ struct HolaFixture {
                                 ? HAM_ENABLE_TRANSACTIONS
                                 : 0,
                             0, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &params[0]));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
+                            use_duplicates
+                                ? HAM_ENABLE_DUPLICATES
+                                : 0, &params[0]));
   }
 
   ~HolaFixture() {
@@ -216,6 +242,140 @@ struct HolaFixture {
 
     ham_txn_abort(txn, 0);
   }
+
+  void sumIfTest(int count) {
+    ham_key_t key = {0};
+    ham_record_t record = {0};
+    ham_u32_t sum = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      if ((i & 1) == 0)
+        sum += i;
+    }
+
+    hola_bool_predicate_t predicate;
+    predicate.context = 0;
+    predicate.predicate_func = sum_if_predicate;
+
+    hola_result_t result;
+    REQUIRE(0 == hola_sum_if(m_db, 0, &predicate, &result));
+    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == sum);
+  }
+
+  void averageTest(int count) {
+    ham_key_t key = {0};
+    ham_record_t record = {0};
+    float sum = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      float f = i;
+      key.data = &f;
+      key.size = sizeof(f);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      sum += f;
+    }
+
+    hola_result_t result;
+    REQUIRE(0 == hola_average(m_db, 0, &result));
+    REQUIRE(result.type == HAM_TYPE_REAL64);
+    REQUIRE(result.u.result_double == sum / count);
+  }
+
+  void averageIfTest(int count) {
+    ham_key_t key = {0};
+    ham_record_t record = {0};
+    float sum = 0;
+    int c = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      float f = i;
+      key.data = &f;
+      key.size = sizeof(f);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      if (f < 10.f) {
+        sum += f;
+        c++;
+      }
+    }
+
+    hola_bool_predicate_t predicate;
+    predicate.context = 0;
+    predicate.predicate_func = average_if_predicate;
+
+    hola_result_t result;
+    REQUIRE(0 == hola_average_if(m_db, 0, &predicate, &result));
+    REQUIRE(result.type == HAM_TYPE_REAL64);
+    REQUIRE(result.u.result_double == sum / c);
+  }
+
+  void countIfTest(int count) {
+    ham_key_t key = {0};
+    ham_record_t record = {0};
+    char buffer[200] = {0};
+    ham_u64_t c = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      buffer[0] = (char)i;
+      key.size = i + 1;
+      key.data = &buffer[0];
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      if ((i & 1) == 0)
+        c++;
+    }
+
+    hola_bool_predicate_t predicate;
+    predicate.context = 0;
+    predicate.predicate_func = count_if_predicate;
+
+    hola_result_t result;
+    REQUIRE(0 == hola_count_if(m_db, 0, &predicate, &result));
+    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == c);
+  }
+
+  void countDistinctIfTest(int count) {
+    ham_key_t key = {0};
+    ham_record_t record = {0};
+    char buffer[200] = {0};
+    ham_u64_t c = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      buffer[0] = (char)i;
+      key.size = i + 1;
+      key.data = &buffer[0];
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      if ((i & 1) == 0)
+        c++;
+    }
+
+    // and once more as duplicates
+    for (int i = 0; i < count; i++) {
+      buffer[0] = (char)i;
+      key.size = i + 1;
+      key.data = &buffer[0];
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, HAM_DUPLICATE));
+      if ((i & 1) == 0)
+        c++;
+    }
+
+    hola_bool_predicate_t predicate;
+    predicate.context = 0;
+    predicate.predicate_func = count_if_predicate;
+
+    hola_result_t result;
+    REQUIRE(0 == hola_count_distinct_if(m_db, 0, &predicate, &result));
+    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == c);
+  }
 };
 
 TEST_CASE("Hola/sumTest", "")
@@ -252,6 +412,36 @@ TEST_CASE("Hola/sumMixedReverseTest", "")
 {
   HolaFixture f(true, HAM_TYPE_UINT32);
   f.sumMixedReverseTest();
+}
+
+TEST_CASE("Hola/sumIfTest", "")
+{
+  HolaFixture f(false, HAM_TYPE_UINT32);
+  f.sumIfTest(10);
+}
+
+TEST_CASE("Hola/averageTest", "")
+{
+  HolaFixture f(false, HAM_TYPE_REAL32);
+  f.averageTest(20);
+}
+
+TEST_CASE("Hola/averageIfTest", "")
+{
+  HolaFixture f(false, HAM_TYPE_REAL32);
+  f.averageIfTest(20);
+}
+
+TEST_CASE("Hola/countIfTest", "")
+{
+  HolaFixture f(false, HAM_TYPE_BINARY);
+  f.countIfTest(20);
+}
+
+TEST_CASE("Hola/countDistinctIfTest", "")
+{
+  HolaFixture f(false, HAM_TYPE_BINARY, true);
+  f.countIfTest(20);
 }
 
 } // namespace hamsterdb
