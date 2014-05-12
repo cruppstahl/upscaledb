@@ -245,8 +245,12 @@ BtreeCursor::move_to_next_page()
     return (HAM_CURSOR_IS_NIL);
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  if (!node->get_right())
+  // if there is no right sibling then couple the cursor to the right-most
+  // key in the last page and return KEY_NOT_FOUND
+  if (!node->get_right()) {
+    couple_to_page(m_coupled_page, node->get_count() - 1, 0);
     return (HAM_KEY_NOT_FOUND);
+  }
 
   Page *page = env->get_page_manager()->fetch_page(db, node->get_right());
   couple_to_page(page, 0, 0);

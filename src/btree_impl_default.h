@@ -1274,11 +1274,11 @@ class DefaultNodeImpl
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, bool distinct) {
-      ham_u32_t count = m_node->get_count();
+    void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
+      ham_u32_t count = m_node->get_count() - start;
       ham_key_t key = {0};
 
-      for (ham_u32_t i = 0; i < count; i++) {
+      for (ham_u32_t i = start; i < count; i++) {
         void *key_data;
         ham_u16_t key_size;
         if (get_key_flags(i) & BtreeKey::kExtendedKey) {

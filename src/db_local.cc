@@ -709,64 +709,119 @@ void
 LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
                 bool distinct)
 {
+  Page *page;
+  ham_key_t key = {0};
+
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
   /* create a cursor, move it to the first key */
-  Cursor cursor(this, txn, 0);
+  Cursor *cursor = cursor_create(txn, 0);
 
-  ham_status_t st = cursor_move(&cursor, 0, 0, HAM_CURSOR_FIRST);
+  ham_status_t st = cursor_move(cursor, &key, 0, HAM_CURSOR_FIRST);
   if (st) {
-    cursor.close();
+    cursor_close(cursor);
     throw Exception(st);
   }
 
-  /* start traversing the tree */
+  /* only transaction keys? then use a regular cursor */
+  if (!cursor->is_coupled_to_btree()) {
+    do {
+      /* process the key */
+      (*visitor)(key.data, key.size, distinct
+                                        ? cursor->get_record_count(txn, 0)
+                                        : 1);
+    } while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
+    goto bail;
+  }
+
+  /* only btree keys? then traverse page by page */
+  if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    ham_assert(cursor->is_coupled_to_btree());
+
+    do {
+      // get the coupled page
+      cursor->get_btree_cursor()->get_coupled_key(&page);
+      BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
+      // and let the btree node perform the remaining work
+      node->scan(visitor, 0, distinct);
+
+    } while (cursor->get_btree_cursor()->move_to_next_page() == 0);
+
+    goto bail;
+  }
+
+  /* mixed txn/btree load? if there are btree nodes which are NOT modified
+   * in transactions then move the scan to the btree node. Otherwise use
+   * a regular cursor */
   while (true) {
-    Page *page;
-    cursor.get_btree_cursor()->get_coupled_key(&page);
+    if (!cursor->is_coupled_to_btree())
+      break;
+
+    ham_u32_t slot;
+    cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
     BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
 
     /* are transactions present? then check if the next txn key is >= btree[0]
      * and <= btree[n] */
-    if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
-      ham_key_t *txnkey = cursor.get_txn_cursor()->get_coupled_op()->get_node()->get_key();
-      /* if yes: use the cursor to traverse the page */
-      if (node->compare(txnkey, 0) >= 0
-          && node->compare(txnkey, node->get_count() - 1) <= 0) {
-        ham_key_t key = {0};
-        while ((st = cursor_move(&cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
-          Page *new_page;
-          cursor.get_btree_cursor()->get_coupled_key(&new_page);
-          /* break the loop if we've reached the next page */
-          if (new_page != page)
-            break;
-          /* process the key */
-          (*visitor)(key.data, key.size, distinct
-                                            ? cursor.get_record_count(txn, 0)
-                                            : 1);
-        }
-        if (st == HAM_KEY_NOT_FOUND)
-          goto bail;
-        if (st == HAM_SUCCESS) {
-          cursor.close();
-          throw Exception(st);
-        }
-
-        // continue with the next page
-        continue;
-      }
+    ham_key_t *txnkey = 0;
+    if (cursor->get_txn_cursor()->get_coupled_op())
+      txnkey = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+    // no (more) transactional keys left - process the current key, then
+    // scan the remaining keys directly in the btree
+    if (!txnkey) {
+      /* process the key */
+      (*visitor)(key.data, key.size, distinct
+                                          ? cursor->get_record_count(txn, 0)
+                                          : 1);
+      break;
     }
 
-    /* otherwise traverse directly in the btree page */
-    node->scan(visitor, distinct);
-    /* and then move to the next page */
-    cursor.get_btree_cursor()->move_to_next_page();
+    /* if yes: use the cursor to traverse the page */
+    if (node->compare(txnkey, 0) >= 0
+        && node->compare(txnkey, node->get_count() - 1) <= 0) {
+      do {
+        Page *new_page = 0;
+        if (cursor->is_coupled_to_btree())
+          cursor->get_btree_cursor()->get_coupled_key(&new_page);
+        /* break the loop if we've reached the next page */
+        if (new_page && new_page != page) {
+          page = new_page;
+          break;
+        }
+        /* process the key */
+        (*visitor)(key.data, key.size, distinct
+                                          ? cursor->get_record_count(txn, 0)
+                                          : 1);
+      } while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
+
+      if (st == HAM_KEY_NOT_FOUND)
+        goto bail;
+      if (st != HAM_SUCCESS) {
+        cursor->close();
+        throw Exception(st);
+      }
+    }
+    else {
+      /* otherwise traverse directly in the btree page */
+      node->scan(visitor, slot, distinct);
+      /* and then move to the next page */
+      if (cursor->get_btree_cursor()->move_to_next_page() != 0)
+        break;
+    }
+  }
+
+  /* pick up the remaining transactional keys */
+  while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
+    (*visitor)(key.data, key.size, distinct
+                                      ? cursor->get_record_count(txn, 0)
+                                      : 1);
   }
 
 bail:
   // TODO not exception safe! call close() in Cursor::~Cursor()?
-  cursor.close();
+  cursor_close(cursor);
+  get_local_env()->get_changeset().clear();
 }
 
 ham_status_t

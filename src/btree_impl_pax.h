@@ -878,8 +878,8 @@ class PaxNodeImpl
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, bool distinct) {
-      (*visitor)(m_keys.get_key_data(0), m_node->get_count());
+    void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
+      (*visitor)(m_keys.get_key_data(start), m_node->get_count() - start);
     }
 
     // Returns a copy of a key and stores it in |dest|

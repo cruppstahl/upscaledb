@@ -28,6 +28,7 @@ test_SOURCES    = api110.cpp \
 				  error.cpp \
 				  globals.h \
 				  hamsterdb.cpp \
+				  hola.cpp \
 				  journal.cpp \
 				  misc.cpp \
 				  os.cpp \

@@ -44,7 +44,7 @@ struct ScanVisitor {
 
   virtual void operator()(const void *key_data, ham_u32_t key_count) = 0;
 
-  virtual void assign_result(hola_result_t *result);
+  virtual void assign_result(hola_result_t *result) = 0;
 };
 
 // a macro to cast pointers to u64 and vice versa to avoid compiler

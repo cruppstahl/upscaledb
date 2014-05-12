@@ -24,6 +24,7 @@
 #include "txn_local.h"
 #include "btree_cursor.h"
 #include "btree_index.h"
+#include "btree_node_proxy.h"
 
 using namespace hamsterdb;
 
@@ -338,7 +339,6 @@ __txn_cursor_is_erase(TransactionCursor *txnc)
 int
 Cursor::compare()
 {
-  int cmp;
   BtreeCursor *btrc = get_btree_cursor();
   TransactionCursor *txnc = get_txn_cursor();
   BtreeIndex *btree = get_db()->get_btree_index();
@@ -350,30 +350,23 @@ Cursor::compare()
   ham_assert(!txnc->is_nil());
 
   if (btrc->get_state() == BtreeCursor::kStateCoupled) {
-    /* clone the cursor, then uncouple the clone; get the uncoupled key
-     * and discard the clone again */
+    Page *page;
+    ham_u32_t slot;
+    btrc->get_coupled_key(&page, &slot, 0);
+    m_last_cmp = btree->get_node_from_page(page)->compare(txnk, slot);
 
-    /*
-     * TODO TODO TODO
-     * this is all correct, but of course quite inefficient, because
-     *  a) new structures have to be allocated/released
-     *  b) uncoupling fetches the whole extended key, which is often
-     *    not necessary
-     *  -> fix it!
-     */
-    Cursor *clone = get_db()->cursor_clone(this);
-    clone->get_btree_cursor()->uncouple_from_page();
-    cmp = btree->compare_keys(clone->get_btree_cursor()->get_uncoupled_key(),
-                            txnk);
-    get_db()->cursor_close(clone);
+    // need to fix the sort order - we compare txnk vs page[slot], but the
+    // caller expects m_last_cmp to be the comparison of page[slot] vs txnk
+    if (m_last_cmp == -1)
+      m_last_cmp = +1;
+    else if (m_last_cmp == +1)
+      m_last_cmp = -1;
 
-    m_last_cmp = cmp;
-    return (cmp);
+    return (m_last_cmp);
   }
   else if (btrc->get_state() == BtreeCursor::kStateUncoupled) {
-    cmp = btree->compare_keys(btrc->get_uncoupled_key(), txnk);
-    m_last_cmp = cmp;
-    return (cmp);
+    m_last_cmp = btree->compare_keys(btrc->get_uncoupled_key(), txnk);
+    return (m_last_cmp);
   }
 
   ham_assert(!"shouldn't be here");

@@ -193,8 +193,12 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
   ScanVisitor *visitor = 0;
   result->u.result_u64 = 0;
 
-  // TODO where is the switch to remote?
-  LocalDatabase *db = (LocalDatabase *)hdb;
+  // Remote databases are not yet supported
+  LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
+  if (!db) {
+    ham_trace(("hola_* functions are not yet supported for remote databases"));
+    return (HAM_INV_PARAMETER);
+  }
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:

@@ -315,9 +315,7 @@ x insert: if HAM_HINT_APPEND is set then page splits should only create a
 
 x do not purge pages if a cursor is attached
 
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload, w/o records
+x Fix Cursor::compare, remove the TODO
 
 o find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
@@ -363,13 +361,13 @@ o find a way how to execute user's code in the btree; similar to the hola
             the abstracted BtreeNodeProxy data; can we push those
             calculations down to the KeyList? The Visitor would then need
             several interfaces, and the engine decides which one is used:
-            - slow traversal with cursor (if transactions are present)
+            - "slow" traversal with cursor (if transactions are present)
             - fast traversal with BtreeNodeProxy iterator (variable-length keys)
             - ultrafast traversal with sequential PAX storage
 
         o implement the functions
             x sum
-                o unittests
+                x unittests
             o sum_if
                 o unittests
             o average
@@ -383,55 +381,19 @@ o find a way how to execute user's code in the btree; similar to the hola
 
         o BtreeNodeProxy: merge enumerate() and scan()
 
-        o needs unittests for the scan function in combination with
-            transactions (pax AND default!)
-        o needs monster tests - run with each fullcheck; implement for bdb
-            as well, compare the results!
     o internally rewrite ham_db_get_key_count
         void LocalDatabase::count(Cursor *cursor,
                      FunctionObject functor, ham_u32_t flags);
         o ham_db_get_key_count: call hola function
         o also for remote
-    o add samples and documentation
-        o add sample to webpage
-        o tutorial
+    o needs monster tests - run with each fullcheck; implement for bdb
+        as well, compare the results!
 
-o collect/publish benchmark against leveldb (with and without SSD)
-    - each with 100k and 100m keys
-    o uint64, small records, random write
-    o uint64, small records, linear write
-    o uint64, small records, random read
-    o uint64, small records, linear read
-    o bin16, default records, random write (w/o compression)
-    o bin16, default records, linear write (w/o compression)
-    o bin16, default records, random read (w/o compression)
-    o bin16, default records, linear read (w/o compression)
-    o bin16, default records, random write (w/ compression)
-    o bin16, default records, linear write (w/ compression)
-    o bin16, default records, random read (w/ compression)
-    o bin16, default records, linear read (w/ compression)
-    o uint64, calculate sum()
-    o bin16, use count_if() of all keys with checksum % 10 == 0
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload, w/o records
 
-o hola - next steps
-    o add remote support where it makes sense
-    o support java api
-    o support .net api
-    o support erlang api
-
-o look into hive-integration
-    -> would be an interesting market with requirements for column store
-        storage
-    -> how does the integration look like?
-    -> has TPC-benchmarks and other benchmarks ready
-    o write down everything i find, collect information and estimate
-        efforts/gains (will do the same for mysql, R and mongodb later); this
-        task is not about writing code!
-
-o QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
+o split cursor.cc in two files because gcc can run out of memory when compiling
 
 o Refactoring in the Btree
     o currently the layout class has 3 different erase functions:
@@ -445,9 +407,51 @@ o Refactoring in the Btree
     o rename "find" to "find_internal", "find_exact" to "find_leaf"
     o when traversing internal nodes: can we avoid calling
         BtreeNodeProxy::get_record_id(), and return the record-id when calling
-        BtreeNodeProxy::find()? This would save one virtual function call
-        and clean up lots of code
-    o BtreeVisitor: has a virtual function. can we get rid of it?
+        BtreeNodeProxy::find_internal()? This would save one virtual function
+        call and clean up lots of code
+
+o Refactorings for the PAX layout with the following goals:
+    - responsible for ALL keys that are non-duplicate!
+    - the key flags are no longer required (they store flags whether the record
+        is inline or not)
+    - the layout class no longer deals with inline/non-inline records; this
+        is all handled by the RecordList
+    - the RecordList is responsible for inserting, removing, accessing records 
+    - the RecordList can then perform compression, i.e. grouped varints for
+        record IDs
+    - can we reduce the library size, i.e. by reducing template parameters?
+    o rename from _pax to _distinct
+    o introduce more abstraction:
+        PodRecord <-> VariableRecord
+            transparently handles the encoding/decoding (is_record_inline etc)
+        PodRecordList
+        VariableRecordList
+    o the VariableRecordList is responsible for managing the flags
+    o split the requires_split() function for KeyList and RecordList
+    o default layout: move varkey logic to the KeyList, then use this KeyList
+        in pax to allow variable length records
+
+o Refactorings for the Default layout with the following goals:
+    -> responsible for duplicate keys ONLY!!
+    o rename from _default to _duplicate
+    o move extkey-handling down to the KeyList
+    o make KeyList interface identical to the one used in PAX
+    o how to implement a DuplicateRecordList with fast random access?
+        - store records adjacent to keys (like now), but have one
+            varint-group per key (8 bytes => 32 records); if more than
+            32 records are required then move to a duplicate table
+    o if the keys have fixed length then try to store them sequentially!
+        the sequential storage has SO many advantages, we should try to use
+        it whenever possible
+
+o the steps above will create an incompatible file format (really??)
+    o increment file version
+    o collect other file format updates
+        o PageManager state: also store m_last_blob_page_id persistently
+        o EnvHeader is completely full; add at least 8 bytes for
+                flags + reserved
+        o reserve CRC32 for each page
+        o PAX Layout: can compress the flags for the VariableRecordList
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -491,50 +495,51 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-o Refactorings for the PAX layout with the following goals:
-    - responsible for ALL keys that are non-duplicate!
-    - the key flags are no longer required (they store flags whether the record
-        is inline or not)
-    - the layout class no longer deals with inline/non-inline records; this
-        is all handled by the RecordList
-    - the RecordList is responsible for inserting, removing, accessing records 
-    - the RecordList can then perform compression, i.e. grouped varints for
-        record IDs
-    o rename from _pax to _distinct
-    o introduce more abstraction:
-        PodRecord <-> VariableRecord
-            transparently handles the encoding/decoding (is_record_inline etc)
-        PodRecordList
-        VariableRecordList
-    o the VariableRecordList is responsible for managing the flags
-    o split the requires_split() function for KeyList and RecordList
-    o default layout: move varkey logic to the KeyList, then use this KeyList
-        in pax to allow variable length records
+o collect/publish benchmark against leveldb (with and without SSD)
+    - each with 100k and 100m keys
+    o uint64, small records, random write
+    o uint64, small records, linear write
+    o uint64, small records, random read
+    o uint64, small records, linear read
+    o bin16, default records, random write (w/o compression)
+    o bin16, default records, linear write (w/o compression)
+    o bin16, default records, random read (w/o compression)
+    o bin16, default records, linear read (w/o compression)
+    o bin16, default records, random write (w/ compression)
+    o bin16, default records, linear write (w/ compression)
+    o bin16, default records, random read (w/ compression)
+    o bin16, default records, linear read (w/ compression)
+    o uint64, calculate sum()
+    o bin16, use count_if() of all keys with checksum % 10 == 0
 
-o Refactorings for the Default layout with the following goals:
-    -> responsible for duplicate keys ONLY!!
-    o rename from _default to _duplicate
-    o move extkey-handling down to the KeyList
-    o make KeyList interface identical to the one used in PAX
-    o how to implement a DuplicateRecordList with fast random access?
-        - store records adjacent to keys (like now), but have one
-            varint-group per key (8 bytes => 32 records); if more than
-            32 records are required then move to a duplicate table
-    o if the keys have fixed length then try to store them sequentially!
-        (and maybe move them to the _pax layout, even if they have duplicates).
-        the sequential storage has SO many advantages, we should try to use
-        it whenever possible
+o documentation TODOs for 2.1.8
+    o hola: add samples and documentation
+        o add samples to webpage
+        o tutorial
+    o FAQ: Why is the library size so big?
 
-o the steps above will create an incompatible file format (really??)
-    o increment file version
-    o collect other file format updates
-        o PageManager state: also store m_last_blob_page_id persistently
-        o EnvHeader is completely full; add at least 8 bytes for
-                flags + reserved
-        o reserve CRC32 for each page
-        o PAX Layout: can compress the flags for the VariableRecordList
+. hola - next steps
+    o add remote support where it makes sense
+    o support java api
+    o support .net api
+    o support erlang api
+    o PRO: lua-functions as callbacks - then remote marshalling will work
 
-o architecture for a new webpage
+. QuickCheck: create a new property for testing duplicates; the key is always
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
+
+. look into hive-integration
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+    o write down everything i find, collect information and estimate
+        efforts/gains (will do the same for mysql, R and mongodb later); this
+        task is not about writing code!
+
+. architecture for a new webpage
     -> will first start with the admin page, and the client's page for
         downloading, creating support requests etc
     o pick an awesome design
@@ -568,6 +573,10 @@ o architecture for a new webpage
 
 . PRO: add avx support
 o PRO: add sse support for real64
+
+o PRO: CRC32-checksums (as soon as the file format is updated)
+    o SSE2 has support for a CRC32 checksum calculation, or find a good
+        library
 
 o PRO: bulk updates (really only for pro?)
     - require delta updates
@@ -603,7 +612,8 @@ o PRO: can we push compression down to the KeyList (and RecordList)?
 
 o PRO: prefix compression for variable-length keys
     ==> not efficient for random read/writes, but that's ok. linear scans
-        and appends will nevertheless be fast. 
+        and appends will nevertheless be fast, and the delta updates
+        will make it efficient too 
     ==> when performing bulk updates/batched updates, make sure that the
         page is compressed only once
     ==> only for leaf keys!? internal keys have too much "distance", and
@@ -665,9 +675,6 @@ o use cache-oblivious b-tree layout
     i.e. zipfian instead of purely random. bad for benchmarking.
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
-
-o PRO: CRC32-checksums (as soon as the file format is updated)
-    o SSE2 has support for a CRC32 checksum calculation
 
 o PRO: hot backups (vacuumizes to a different file)
     - copies the database file
