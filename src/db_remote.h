@@ -47,13 +47,13 @@ class RemoteDatabase : public Database
     // Checks Database integrity (ham_db_check_integrity)
     virtual ham_status_t check_integrity(ham_u32_t flags);
 
-    // Returns the number of keys (ham_db_get_key_count)
-    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
+    // Returns the number of keys
+    virtual void count(Transaction *txn, bool distinct,
                     ham_u64_t *keycount);
 
     // Scans the whole database, applies a processor function
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
-                    bool distinct) { }
+                    bool distinct) { /* TODO */ }
 
     // Inserts a key/value pair (ham_db_insert)
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,

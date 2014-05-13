@@ -490,7 +490,7 @@ struct SerializedTxnAbortReply {
 struct SerializedDbGetKeyCountRequest {
   SerializedUint64 db_handle;
   SerializedUint64 txn_handle;
-  SerializedUint32 flags;
+  SerializedBool distinct;
 
   SerializedDbGetKeyCountRequest() {
     clear();
@@ -500,26 +500,26 @@ struct SerializedDbGetKeyCountRequest {
     return (
           db_handle.get_size() + 
           txn_handle.get_size() + 
-          flags.get_size() + 
+          distinct.get_size() + 
           0);
   }
 
   void clear() {
     db_handle.clear();
     txn_handle.clear();
-    flags.clear();
+    distinct.clear();
   }
 
   void serialize(unsigned char **pptr, int *psize) const {
     db_handle.serialize(pptr, psize);
     txn_handle.serialize(pptr, psize);
-    flags.serialize(pptr, psize);
+    distinct.serialize(pptr, psize);
   }
 
   void deserialize(unsigned char **pptr, int *psize) {
     db_handle.deserialize(pptr, psize);
     txn_handle.deserialize(pptr, psize);
-    flags.deserialize(pptr, psize);
+    distinct.deserialize(pptr, psize);
   }
 };
 
@@ -1443,8 +1443,8 @@ struct SerializedWrapper {
   SerializedTxnCommitReply txn_commit_reply;
   SerializedTxnAbortRequest txn_abort_request;
   SerializedTxnAbortReply txn_abort_reply;
-  SerializedDbGetKeyCountRequest db_get_key_count_request;
-  SerializedDbGetKeyCountReply db_get_key_count_reply;
+  SerializedDbGetKeyCountRequest db_count_request;
+  SerializedDbGetKeyCountReply db_count_reply;
   SerializedDbInsertRequest db_insert_request;
   SerializedDbInsertReply db_insert_reply;
   SerializedDbEraseRequest db_erase_request;
@@ -1499,9 +1499,9 @@ struct SerializedWrapper {
       case kTxnAbortReply: 
         return (s + txn_abort_reply.get_size());
       case kDbGetKeyCountRequest: 
-        return (s + db_get_key_count_request.get_size());
+        return (s + db_count_request.get_size());
       case kDbGetKeyCountReply: 
-        return (s + db_get_key_count_reply.get_size());
+        return (s + db_count_reply.get_size());
       case kDbInsertRequest: 
         return (s + db_insert_request.get_size());
       case kDbInsertReply: 
@@ -1581,10 +1581,10 @@ struct SerializedWrapper {
         txn_abort_reply.serialize(pptr, psize);
         break;
       case kDbGetKeyCountRequest: 
-        db_get_key_count_request.serialize(pptr, psize);
+        db_count_request.serialize(pptr, psize);
         break;
       case kDbGetKeyCountReply: 
-        db_get_key_count_reply.serialize(pptr, psize);
+        db_count_reply.serialize(pptr, psize);
         break;
       case kDbInsertRequest: 
         db_insert_request.serialize(pptr, psize);
@@ -1688,10 +1688,10 @@ struct SerializedWrapper {
         txn_abort_reply.deserialize(pptr, psize);
         break;
       case kDbGetKeyCountRequest: 
-        db_get_key_count_request.deserialize(pptr, psize);
+        db_count_request.deserialize(pptr, psize);
         break;
       case kDbGetKeyCountReply: 
-        db_get_key_count_reply.deserialize(pptr, psize);
+        db_count_reply.deserialize(pptr, psize);
         break;
       case kDbInsertRequest: 
         db_insert_request.deserialize(pptr, psize);

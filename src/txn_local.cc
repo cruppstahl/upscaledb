@@ -388,8 +388,8 @@ TransactionIndex::enumerate(TransactionIndex::Visitor *visitor)
 
 struct KeyCounter : public TransactionIndex::Visitor
 {
-  KeyCounter(LocalDatabase *_db, LocalTransaction *_txn, ham_u32_t _flags)
-    : counter(0), flags(_flags), txn(_txn), db(_db) {
+  KeyCounter(LocalDatabase *_db, LocalTransaction *_txn, bool _distinct)
+    : counter(0), distinct(_distinct), txn(_txn), db(_db) {
   }
 
   void visit(TransactionNode *node) {
@@ -437,15 +437,14 @@ struct KeyCounter : public TransactionIndex::Visitor
           // check if btree has other duplicates
           if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
             // yes, there's another one
-            if (flags & HAM_SKIP_DUPLICATES)
+            if (distinct)
               return;
-            else
-              counter++;
+            counter++;
           }
           else {
             // check if other key is in this node
             counter++;
-            if (flags & HAM_SKIP_DUPLICATES)
+            if (distinct)
               return;
           }
         }
@@ -463,15 +462,15 @@ struct KeyCounter : public TransactionIndex::Visitor
   }
 
   ham_u64_t counter;
-  ham_u32_t flags;
+  bool distinct;
   LocalTransaction *txn;
   LocalDatabase *db;
 };
 
 ham_u64_t
-TransactionIndex::get_key_count(LocalTransaction *txn, ham_u32_t flags)
+TransactionIndex::count(LocalTransaction *txn, bool distinct)
 {
-  KeyCounter k(m_db, txn, flags);
+  KeyCounter k(m_db, txn, distinct);
   enumerate(&k);
   return (k.counter);
 }

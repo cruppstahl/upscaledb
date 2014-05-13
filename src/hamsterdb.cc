@@ -1845,7 +1845,11 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
     ham_trace(("parameter 'db' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
-
+  if (flags & ~(HAM_SKIP_DUPLICATES)) {
+    ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
+          flags & (~HAM_SKIP_DUPLICATES)));
+    throw Exception(HAM_INV_PARAMETER);
+  }
   if (!keycount) {
     ham_trace(("parameter 'keycount' must not be NULL"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -1856,10 +1860,11 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error(db->get_key_count(txn, flags, keycount)));
+    db->count(txn, (flags & HAM_SKIP_DUPLICATES) != 0, keycount);
+    return (db->set_error(0));
   }
   catch (Exception &ex) {
-    return (ex.code);
+    return (db->set_error(ex.code));
   }
 }
 

@@ -1,3 +1,7 @@
+May 13, 2014 - chris ---------------------------------------------------
+o Adding the new "hola" API - hamsterdb analytical functions for COUNT,
+	SUM, AVERAGE etc. See ham/hamsterdb_ola.h for the declarations
+
 May 06, 2014 - chris ---------------------------------------------------
 o Avoiding Btree splits if keys are appended (HAM_HINT_APPEND)
 

@@ -48,6 +48,7 @@ typedef struct {
 
 } hola_bool_predicate_t;
 
+
 /**
  * A structure which returns the result of an operation.
  *
@@ -69,27 +70,6 @@ typedef struct {
 
 } hola_result_t;
 
-typedef struct {
-  void (*processor_func)(const void *key_data, ham_u16_t key_size,
-                  void *context);
-
-  void (*assign_result)(void *context, hola_result_t *result);
-
-  /** User-supplied context data */
-  void *context;
-
-} hola_distinct_processor_t;
-
-typedef struct {
-  void (*processor_func)(const void *key_data, ham_u16_t key_size,
-                  ham_u32_t duplicate_count, void *context);
-
-  void (*assign_result)(void *context, hola_result_t *result);
-
-  /** User-supplied context data */
-  void *context;
-
-} hola_processor_t;
 
 /**
  * Counts the keys in a Database

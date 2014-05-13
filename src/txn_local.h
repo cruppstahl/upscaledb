@@ -353,7 +353,7 @@ class TransactionIndex
     TransactionNode *get_last();
 
     // Returns the key count of this index
-    ham_u64_t get_key_count(LocalTransaction *txn, ham_u32_t flags);
+    ham_u64_t count(LocalTransaction *txn, bool distinct);
 
  // private: //TODO re-enable this; currently disabled because rb.h needs it
     // the Database for all operations in this tree

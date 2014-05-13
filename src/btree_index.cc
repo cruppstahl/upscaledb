@@ -408,8 +408,8 @@ BtreeIndex::get_max_keys_per_page() const
 ///
 class CalcKeysVisitor : public BtreeVisitor {
   public:
-    CalcKeysVisitor(LocalDatabase *db, ham_u32_t flags)
-      : m_db(db), m_flags(flags), m_count(0) {
+    CalcKeysVisitor(LocalDatabase *db, bool distinct)
+      : m_db(db), m_distinct(distinct), m_count(0) {
     }
 
     virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
@@ -417,7 +417,7 @@ class CalcKeysVisitor : public BtreeVisitor {
                   ham_u64_t record_id) {
       ham_u32_t count = node->get_count();
 
-      if (m_flags & HAM_SKIP_DUPLICATES
+      if (m_distinct
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
         m_count += count;
         return (false);
@@ -428,22 +428,22 @@ class CalcKeysVisitor : public BtreeVisitor {
       return (false);
     }
 
-    ham_u64_t get_key_count() const {
+    ham_u64_t get_result() const {
       return (m_count);
     }
 
   private:
     LocalDatabase *m_db;
-    ham_u32_t m_flags;
+    bool m_distinct;
     ham_u64_t m_count;
 };
 
 ham_u64_t
-BtreeIndex::get_key_count(ham_u32_t flags)
+BtreeIndex::count(bool distinct)
 {
-  CalcKeysVisitor visitor(m_db, flags);
+  CalcKeysVisitor visitor(m_db, distinct);
   enumerate(visitor);
-  return (visitor.get_key_count());
+  return (visitor.get_result());
 }
 
 //

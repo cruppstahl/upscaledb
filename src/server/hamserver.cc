@@ -512,43 +512,43 @@ handle_db_check_integrity(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
-handle_db_get_key_count(ServerContext *srv, uv_stream_t *tcp,
+handle_db_count(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
   ham_status_t st = 0;
   ham_u64_t keycount;
 
   ham_assert(request != 0);
-  ham_assert(request->has_db_get_key_count_request());
+  ham_assert(request->has_db_count_request());
 
   Transaction *txn = 0;
   Database *db = 0;
   
-  if (request->db_get_key_count_request().txn_handle()) {
-    txn = srv->get_txn(request->db_get_key_count_request().txn_handle());
+  if (request->db_count_request().txn_handle()) {
+    txn = srv->get_txn(request->db_count_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-   db = srv->get_db(request->db_get_key_count_request().db_handle());
+   db = srv->get_db(request->db_count_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else
       st = ham_db_get_key_count((ham_db_t *)db, (ham_txn_t *)txn,
-                request->db_get_key_count_request().flags(), &keycount);
+                request->db_count_request().distinct(), &keycount);
   }
 
   Protocol reply(Protocol::DB_GET_KEY_COUNT_REPLY);
-  reply.mutable_db_get_key_count_reply()->set_status(st);
+  reply.mutable_db_count_reply()->set_status(st);
   if (st == 0)
-    reply.mutable_db_get_key_count_reply()->set_keycount(keycount);
+    reply.mutable_db_count_reply()->set_keycount(keycount);
 
   send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_get_key_count(ServerContext *srv, uv_stream_t *tcp,
+handle_db_count(ServerContext *srv, uv_stream_t *tcp,
                 SerializedWrapper *request)
 {
   ham_status_t st = 0;
@@ -557,25 +557,25 @@ handle_db_get_key_count(ServerContext *srv, uv_stream_t *tcp,
   Transaction *txn = 0;
   Database *db = 0;
   
-  if (request->db_get_key_count_request.txn_handle) {
-    txn = srv->get_txn(request->db_get_key_count_request.txn_handle);
+  if (request->db_count_request.txn_handle) {
+    txn = srv->get_txn(request->db_count_request.txn_handle);
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-   db = srv->get_db(request->db_get_key_count_request.db_handle);
+   db = srv->get_db(request->db_count_request.db_handle);
     if (!db)
       st = HAM_INV_PARAMETER;
     else
       st = ham_db_get_key_count((ham_db_t *)db, (ham_txn_t *)txn,
-                request->db_get_key_count_request.flags, &keycount);
+                request->db_count_request.distinct, &keycount);
   }
 
   SerializedWrapper reply;
   reply.id = kDbGetKeyCountReply;
-  reply.db_get_key_count_reply.status = st;
-  reply.db_get_key_count_reply.keycount = keycount;
+  reply.db_count_reply.status = st;
+  reply.db_count_reply.keycount = keycount;
 
   send_wrapper(srv, tcp, &reply);
 }
@@ -1723,7 +1723,7 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u32_t magic,
         handle_db_find(srv, tcp, &request);
         break;
       case kDbGetKeyCountRequest:
-        handle_db_get_key_count(srv, tcp, &request);
+        handle_db_count(srv, tcp, &request);
         break;
       case kCursorCreateRequest:
         handle_cursor_create(srv, tcp, &request);
@@ -1810,7 +1810,7 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u32_t magic,
       handle_db_check_integrity(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_DB_GET_KEY_COUNT_REQUEST:
-      handle_db_get_key_count(srv, tcp, wrapper);
+      handle_db_count(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_DB_INSERT_REQUEST:
       handle_db_insert(srv, tcp, wrapper);

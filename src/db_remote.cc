@@ -106,8 +106,8 @@ RemoteDatabase::check_integrity(ham_u32_t flags)
 }
 
 
-ham_status_t
-RemoteDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
+void
+RemoteDatabase::count(Transaction *htxn, bool distinct,
               ham_u64_t *keycount)
 {
   RemoteEnvironment *env = get_remote_env();
@@ -115,21 +115,22 @@ RemoteDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
 
   SerializedWrapper request;
   request.id = kDbGetKeyCountRequest;
-  request.db_get_key_count_request.db_handle = get_remote_handle();
-  request.db_get_key_count_request.txn_handle = txn
+  request.db_count_request.db_handle = get_remote_handle();
+  request.db_count_request.txn_handle = txn
             ? txn->get_remote_handle()
             : 0;
-  request.db_get_key_count_request.flags = flags;
+  request.db_count_request.distinct = distinct;
 
   SerializedWrapper reply;
   env->perform_request(&request, &reply);
 
   ham_assert(reply.id == kDbGetKeyCountReply);
 
-  ham_status_t st = reply.db_get_key_count_reply.status;
-  *keycount = reply.db_get_key_count_reply.keycount;
+  ham_status_t st = reply.db_count_reply.status;
+  if (st)
+    throw Exception(st);
 
-  return (st);
+  *keycount = reply.db_count_reply.keycount;
 }
 
 ham_status_t

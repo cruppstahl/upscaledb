@@ -317,7 +317,7 @@ x do not purge pages if a cursor is attached
 
 x Fix Cursor::compare, remove the TODO
 
-o find a way how to execute user's code in the btree; similar to the hola
+x find a way how to execute user's code in the btree; similar to the hola
     core described below. we want to run analytical code in the lowest possible
     level, running on linear key data (thus being able to apply SIMD in the
     application)
@@ -367,14 +367,14 @@ o find a way how to execute user's code in the btree; similar to the hola
         x implement the functions
     x improve the internal documentation
 
-    o internally rewrite ham_db_get_key_count
+    x rewrite ham_db_get_key_count internals, unify with hola_count[_distinct]
         void LocalDatabase::count(Cursor *cursor,
                      FunctionObject functor, ham_u32_t flags);
-        o ham_db_get_key_count: call hola function
-        o should continue working remotely
+        x ham_db_get_key_count: call hola function
+        x should continue working remotely
 
-    o needs monster tests - run with each fullcheck; implement for bdb
-        as well, compare the results!
+    x hola_* must lock the Environment, perform a try/catch and allocate
+        Visitor with auto_ptr
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
@@ -432,7 +432,7 @@ o Refactorings for the Default layout with the following goals:
         the sequential storage has SO many advantages, we should try to use
         it whenever possible
 
-o the steps above will create an incompatible file format (really??)
+o the steps above will create an incompatible file format
     o increment file version
     o collect other file format updates
         o PageManager state: also store m_last_blob_page_id persistently
@@ -507,11 +507,11 @@ o documentation TODOs for 2.1.8
     o FAQ: Why is the library size so big?
 
 . hola - next steps
-    o add remote support where it makes sense
     o support java api
     o support .net api
     o support erlang api
     o PRO: lua-functions as callbacks - then remote marshalling will work
+    o add remote support where it makes sense (only for PRO?)
 
 . QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically

@@ -289,8 +289,8 @@ class BtreeIndex
     // Checks the integrity of the btree (ham_db_check_integrity)
     void check_integrity(ham_u32_t flags);
 
-    // Counts the keys in the btree (ham_db_get_key_count)
-    ham_u64_t get_key_count(ham_u32_t flags);
+    // Counts the keys in the btree
+    ham_u64_t count(bool distinct);
 
     // Erases all records, overflow areas, extended keys etc from the index;
     // used to avoid memory leaks when closing in-memory Databases and to

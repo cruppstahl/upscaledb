@@ -98,8 +98,8 @@ message ProtoWrapper {
   optional TxnAbortReply txn_abort_reply = 141;
   optional DbCheckIntegrityRequest db_check_integrity_request = 150;
   optional DbCheckIntegrityReply db_check_integrity_reply = 151;
-  optional DbGetKeyCountRequest db_get_key_count_request = 160;
-  optional DbGetKeyCountReply db_get_key_count_reply = 161;
+  optional DbCountRequest db_count_request = 160;
+  optional DbCountReply db_count_reply = 161;
   optional DbInsertRequest db_insert_request = 170;
   optional DbInsertReply db_insert_reply = 171;
   optional DbEraseRequest db_erase_request = 180;
@@ -289,13 +289,13 @@ message DbCheckIntegrityReply {
   required sint32 status = 1;
 };
 
-message DbGetKeyCountRequest {
+message DbCountRequest {
   required uint64 db_handle = 1;
   required uint64 txn_handle = 2;
-  required uint32 flags = 3;
+  required bool distinct = 3;
 };
 
-message DbGetKeyCountReply {
+message DbCountReply {
   required sint32 status = 1;
   required uint64 keycount = 2;
 };

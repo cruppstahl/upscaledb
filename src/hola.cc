@@ -25,9 +25,9 @@
 using namespace hamsterdb;
 
 ham_status_t HAM_CALLCONV
-hola_count(ham_db_t *db, ham_txn_t *txn, hola_result_t *result)
+hola_count(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
 {
-  if (!db) {
+  if (!hdb) {
     ham_trace(("parameter 'db' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
@@ -36,10 +36,21 @@ hola_count(ham_db_t *db, ham_txn_t *txn, hola_result_t *result)
     return (HAM_INV_PARAMETER);
   }
 
+  Database *db = (Database *)hdb;
+  Transaction *txn = (Transaction *)htxn;
+
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  return (ham_db_get_key_count(db, txn, 0, &result->u.result_u64));
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+
+    db->count(txn, false, &result->u.result_u64);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 //
@@ -138,17 +149,22 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, false);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
 
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+    db->scan((Transaction *)txn, visitor, false);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 ham_status_t HAM_CALLCONV
-hola_count_distinct(ham_db_t *db, ham_txn_t *txn, hola_result_t *result)
+hola_count_distinct(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
 {
-  if (!db) {
+  if (!hdb) {
     ham_trace(("parameter 'db' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
@@ -157,11 +173,21 @@ hola_count_distinct(ham_db_t *db, ham_txn_t *txn, hola_result_t *result)
     return (HAM_INV_PARAMETER);
   }
 
+  Database *db = (Database *)hdb;
+  Transaction *txn = (Transaction *)htxn;
+
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  return (ham_db_get_key_count(db, txn, HAM_SKIP_DUPLICATES,
-                          &result->u.result_u64));
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+
+    db->count(txn, true, &result->u.result_u64);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 ham_status_t HAM_CALLCONV
@@ -188,45 +214,49 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
   result->type = HAM_TYPE_UINT64;
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
-      visitor = new CountIfScanVisitor<ham_u8_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
     case HAM_TYPE_UINT16:
-      visitor = new CountIfScanVisitor<ham_u16_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u16_t>(pred));
       break;
     case HAM_TYPE_UINT32:
-      visitor = new CountIfScanVisitor<ham_u32_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u32_t>(pred));
       break;
     case HAM_TYPE_UINT64:
-      visitor = new CountIfScanVisitor<ham_u64_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
-      visitor = new CountIfScanVisitor<float>(pred);
+      visitor.reset(new CountIfScanVisitor<float>(pred));
       break;
     case HAM_TYPE_REAL64:
-      visitor = new CountIfScanVisitor<double>(pred);
+      visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
       // template parameter is irrelevant - BINARY keys do not call any
       // template-specific function in CountIfScanVisitor
       // TODO this is nevertheless UGLY!
-      visitor = new CountIfScanVisitor<ham_u8_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
     default:
       ham_assert(!"shouldn't be here");
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, true);
-
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->scan((Transaction *)txn, visitor.get(), true);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 //
@@ -288,44 +318,48 @@ hola_average(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageScanVisitor<ham_u8_t, ham_u64_t>();
+      visitor.reset(new AverageScanVisitor<ham_u8_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageScanVisitor<ham_u16_t, ham_u64_t>();
+      visitor.reset(new AverageScanVisitor<ham_u16_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageScanVisitor<ham_u32_t, ham_u64_t>();
+      visitor.reset(new AverageScanVisitor<ham_u32_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageScanVisitor<ham_u64_t, ham_u64_t>();
+      visitor.reset(new AverageScanVisitor<ham_u64_t, ham_u64_t>());
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
-      visitor = new AverageScanVisitor<float, double>();
+      visitor.reset(new AverageScanVisitor<float, double>());
       break;
     case HAM_TYPE_REAL64:
       result->type = HAM_TYPE_REAL64;
-      visitor = new AverageScanVisitor<double, double>();
+      visitor.reset(new AverageScanVisitor<double, double>());
       break;
     default:
       ham_trace(("hola_avg* can only be applied to numerical data"));
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, false);
-
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->scan((Transaction *)txn, visitor.get(), false);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 //
@@ -400,44 +434,48 @@ hola_average_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageIfScanVisitor<ham_u8_t, ham_u64_t>(pred);
+      visitor.reset(new AverageIfScanVisitor<ham_u8_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageIfScanVisitor<ham_u16_t, ham_u64_t>(pred);
+      visitor.reset(new AverageIfScanVisitor<ham_u16_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageIfScanVisitor<ham_u32_t, ham_u64_t>(pred);
+      visitor.reset(new AverageIfScanVisitor<ham_u32_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor = new AverageIfScanVisitor<ham_u64_t, ham_u64_t>(pred);
+      visitor.reset(new AverageIfScanVisitor<ham_u64_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
-      visitor = new AverageIfScanVisitor<float, double>(pred);
+      visitor.reset(new AverageIfScanVisitor<float, double>(pred));
       break;
     case HAM_TYPE_REAL64:
       result->type = HAM_TYPE_REAL64;
-      visitor = new AverageIfScanVisitor<double, double>(pred);
+      visitor.reset(new AverageIfScanVisitor<double, double>(pred));
       break;
     default:
       ham_trace(("hola_avg* can only be applied to numerical data"));
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, false);
-
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->scan((Transaction *)txn, visitor.get(), false);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 //
@@ -485,7 +523,7 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
   // Remote databases are not yet supported
@@ -498,38 +536,42 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumScanVisitor<ham_u8_t, ham_u64_t>();
+      visitor.reset(new SumScanVisitor<ham_u8_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumScanVisitor<ham_u16_t, ham_u64_t>();
+      visitor.reset(new SumScanVisitor<ham_u16_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumScanVisitor<ham_u32_t, ham_u64_t>();
+      visitor.reset(new SumScanVisitor<ham_u32_t, ham_u64_t>());
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumScanVisitor<ham_u64_t, ham_u64_t>();
+      visitor.reset(new SumScanVisitor<ham_u64_t, ham_u64_t>());
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
-      visitor = new SumScanVisitor<float, double>();
+      visitor.reset(new SumScanVisitor<float, double>());
       break;
     case HAM_TYPE_REAL64:
       result->type = HAM_TYPE_REAL64;
-      visitor = new SumScanVisitor<double, double>();
+      visitor.reset(new SumScanVisitor<double, double>());
       break;
     default:
       ham_trace(("hola_sum* can only be applied to numerical data"));
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, false);
-
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->scan((Transaction *)txn, visitor.get(), false);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }
 
 //
@@ -596,42 +638,46 @@ hola_sum_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumIfScanVisitor<ham_u8_t, ham_u64_t>(pred);
+      visitor.reset(new SumIfScanVisitor<ham_u8_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumIfScanVisitor<ham_u16_t, ham_u64_t>(pred);
+      visitor.reset(new SumIfScanVisitor<ham_u16_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumIfScanVisitor<ham_u32_t, ham_u64_t>(pred);
+      visitor.reset(new SumIfScanVisitor<ham_u32_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor = new SumIfScanVisitor<ham_u64_t, ham_u64_t>(pred);
+      visitor.reset(new SumIfScanVisitor<ham_u64_t, ham_u64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
-      visitor = new SumIfScanVisitor<float, double>(pred);
+      visitor.reset(new SumIfScanVisitor<float, double>(pred));
       break;
     case HAM_TYPE_REAL64:
       result->type = HAM_TYPE_REAL64;
-      visitor = new SumIfScanVisitor<double, double>(pred);
+      visitor.reset(new SumIfScanVisitor<double, double>(pred));
       break;
     default:
       ham_trace(("hola_sum* can only be applied to numerical data"));
       return (HAM_INV_PARAMETER);
   }
 
-  db->scan((Transaction *)txn, visitor, false);
-
-  visitor->assign_result(result);
-  delete visitor;
-  return (0);
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->scan((Transaction *)txn, visitor.get(), false);
+    visitor->assign_result(result);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    return (db->set_error(ex.code));
+  }
 }

@@ -672,18 +672,11 @@ LocalDatabase::check_integrity(ham_u32_t flags)
   return (0);
 }
 
-ham_status_t
-LocalDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
+void
+LocalDatabase::count(Transaction *htxn, bool distinct,
                 ham_u64_t *pkeycount)
 {
-  ham_status_t st = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (flags & ~(HAM_SKIP_DUPLICATES)) {
-    ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
-          flags & ~(HAM_SKIP_DUPLICATES)));
-    return (HAM_INV_PARAMETER);
-  }
 
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -692,17 +685,16 @@ LocalDatabase::get_key_count(Transaction *htxn, ham_u32_t flags,
    * call the btree function - this will retrieve the number of keys
    * in the btree
    */
-  *pkeycount = m_btree_index->get_key_count(flags);
+  *pkeycount = m_btree_index->count(distinct);
 
   /*
    * if transactions are enabled, then also sum up the number of keys
    * from the transaction tree
    */
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
-    *pkeycount += m_txn_index->get_key_count(txn, flags);
+    *pkeycount += m_txn_index->count(txn, distinct);
 
   get_local_env()->get_changeset().clear();
-  return (st);
 }
 
 void

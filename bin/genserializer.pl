@@ -72,11 +72,12 @@ sub print_stdlib
   print "    value = 0; size = 0;\n";
   print "  }\n\n";
   print "  size_t get_size() const {\n";
-  print "    return (sizeof(ham_u64_t) + align(size)); // align to 32bits\n";
+  print "    return (sizeof(ham_u32_t) + align(size)); // align to 32bits\n";
   print "  }\n\n";
   print "  void serialize(unsigned char **pptr, int *psize) const {\n";
   print "    *(ham_u32_t *)*pptr = size;\n";
   print "    *pptr += sizeof(ham_u32_t);\n";
+  print "    *psize -= sizeof(ham_u32_t);\n";
   print "    if (size) {\n";
   print "      memcpy(*pptr, value, size);\n";
   print "      *pptr += align(size); // align to 32bits\n";
@@ -87,6 +88,7 @@ sub print_stdlib
   print "  void deserialize(unsigned char **pptr, int *psize) {\n";
   print "    size = *(ham_u32_t *)*pptr;\n";
   print "    *pptr += sizeof(ham_u32_t);\n";
+  print "    *psize -= sizeof(ham_u32_t);\n";
   print "    if (size) {\n";
   print "      value = *pptr;\n";
   print "      *pptr += align(size); // align to 32bits\n";

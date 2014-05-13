@@ -119,7 +119,7 @@ MESSAGE_END
 MESSAGE_BEGIN(DbGetKeyCountRequest)
   uint64 db_handle;
   uint64 txn_handle;
-  uint32 flags;
+  bool distinct;
 MESSAGE_END
 
 MESSAGE_BEGIN(DbGetKeyCountReply)
@@ -270,8 +270,8 @@ MESSAGE_BEGIN(Wrapper)
   TxnCommitReply txn_commit_reply;
   TxnAbortRequest txn_abort_request;
   TxnAbortReply txn_abort_reply;
-  DbGetKeyCountRequest db_get_key_count_request;
-  DbGetKeyCountReply db_get_key_count_reply;
+  DbGetKeyCountRequest db_count_request;
+  DbGetKeyCountReply db_count_reply;
   DbInsertRequest db_insert_request;
   DbInsertReply db_insert_reply;
   DbEraseRequest db_erase_request;
@@ -323,9 +323,9 @@ MESSAGE_BEGIN(Wrapper)
       case kTxnAbortReply: 
         return (s + txn_abort_reply.get_size());
       case kDbGetKeyCountRequest: 
-        return (s + db_get_key_count_request.get_size());
+        return (s + db_count_request.get_size());
       case kDbGetKeyCountReply: 
-        return (s + db_get_key_count_reply.get_size());
+        return (s + db_count_reply.get_size());
       case kDbInsertRequest: 
         return (s + db_insert_request.get_size());
       case kDbInsertReply: 
@@ -405,10 +405,10 @@ MESSAGE_BEGIN(Wrapper)
         txn_abort_reply.serialize(pptr, psize);
         break;
       case kDbGetKeyCountRequest: 
-        db_get_key_count_request.serialize(pptr, psize);
+        db_count_request.serialize(pptr, psize);
         break;
       case kDbGetKeyCountReply: 
-        db_get_key_count_reply.serialize(pptr, psize);
+        db_count_reply.serialize(pptr, psize);
         break;
       case kDbInsertRequest: 
         db_insert_request.serialize(pptr, psize);
@@ -512,10 +512,10 @@ MESSAGE_BEGIN(Wrapper)
         txn_abort_reply.deserialize(pptr, psize);
         break;
       case kDbGetKeyCountRequest: 
-        db_get_key_count_request.deserialize(pptr, psize);
+        db_count_request.deserialize(pptr, psize);
         break;
       case kDbGetKeyCountReply: 
-        db_get_key_count_reply.deserialize(pptr, psize);
+        db_count_reply.deserialize(pptr, psize);
         break;
       case kDbInsertRequest: 
         db_insert_request.deserialize(pptr, psize);
