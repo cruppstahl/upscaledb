@@ -376,27 +376,28 @@ x find a way how to execute user's code in the btree; similar to the hola
     x hola_* must lock the Environment, perform a try/catch and allocate
         Visitor with auto_ptr
 
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload, w/o records
-
-o split cursor.cc in two files because gcc can run out of memory when compiling
-
 o Refactoring in the Btree
-    o BtreeNodeProxy: merge enumerate() and scan()
+    x rename "find" to "find_child", "find_exact" to "find_leaf"
+    x when traversing internal nodes: can we avoid calling
+        BtreeNodeProxy::get_record_id(), and return the record-id when calling
+        BtreeNodeProxy::find_child()? This would save one virtual function
+        call and clean up lots of code
+        x do we still need get_record_id() then? -> yes
+    o do we really need iterators? the iterators usually just wrap the slot
+        number. if the layout's interface is sufficiently clean then they
+        should not be required and can be removed
     o currently the layout class has 3 different erase functions:
         - erase
         - erase_key
         - erase_record
         unify and clean them up!
-    o rename "find" to "find_internal", "find_exact" to "find_leaf"
-    o when traversing internal nodes: can we avoid calling
-        BtreeNodeProxy::get_record_id(), and return the record-id when calling
-        BtreeNodeProxy::find_internal()? This would save one virtual function
-        call and clean up lots of code
-    o do we really need iterators? the iterators usually just wrap the slot
-        number. if the layout's interface is sufficiently clean then they
-        should not be required and can be removed
+    o BtreeNodeProxy: merge enumerate() and scan()
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload, w/o records
+
+o split cursor.cc in two files because gcc can run out of memory when compiling
 
 o Refactorings for the PAX layout with the following goals:
     - responsible for ALL keys that are non-duplicate!

@@ -812,7 +812,8 @@ class PaxNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
+                    int *pcmp) {
       ham_u32_t count = m_node->get_count();
       ham_assert(count > 0);
 
@@ -834,6 +835,8 @@ class PaxNodeImpl
           ham_assert(i >= 0);
           ham_assert(i < (int)count);
           *pcmp = 1;
+          if (precord_id)
+            *precord_id = get_record_id(i);
           return (i);
         }
 
@@ -843,6 +846,8 @@ class PaxNodeImpl
         /* found it? */
         if (cmp == 0) {
           *pcmp = cmp;
+          if (precord_id)
+            *precord_id = get_record_id(i);
           return (i);
         }
         /* if the key is bigger than the item: search "to the left" */
@@ -850,6 +855,8 @@ class PaxNodeImpl
           if (r == 0) {
             ham_assert(i == 0);
             *pcmp = cmp;
+            if (precord_id)
+              *precord_id = m_node->get_ptr_down();
             return (-1);
           }
           r = i;
@@ -863,7 +870,14 @@ class PaxNodeImpl
 
       // still here? then perform a linear search for the remaining range
       ham_assert(r - l <= threshold);
-      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
+      int slot = m_keys.linear_search(l, r - l, key, comparator, pcmp);
+      if (precord_id) {
+        if (slot == -1)
+          *precord_id = m_node->get_ptr_down();
+        else
+          *precord_id = get_record_id(slot);
+      }
+      return (slot);
     }
 
     // Searches the node for the key and returns the slot of this key
@@ -871,7 +885,7 @@ class PaxNodeImpl
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
       int cmp;
-      int r = find(key, comparator, &cmp);
+      int r = find_child(key, comparator, 0, &cmp);
       if (cmp)
         return (-1);
       return (r);

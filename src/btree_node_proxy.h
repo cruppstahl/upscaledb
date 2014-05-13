@@ -137,9 +137,12 @@ class BtreeNodeProxy
     virtual bool equals(const ham_key_t *lhs, int rhs) = 0;
 
     // Searches the node for the |key|, and returns the slot of this key.
+    // If |record_id| is not null then it will store the result of the last
+    // compare operation.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find(ham_key_t *key, int *pcmp = 0) = 0;
+    virtual int find_child(ham_key_t *key, ham_u64_t *record_id = 0,
+                    int *pcmp = 0) = 0;
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
@@ -418,15 +421,20 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Searches the node for the key and returns the slot of this key.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find(ham_key_t *key, int *pcmp = 0) {
+    virtual int find_child(ham_key_t *key, ham_u64_t *precord_id = 0,
+                    int *pcmp = 0) {
       int dummy;
       if (get_count() == 0) {
         if (pcmp)
           *pcmp = 1;
+        if (precord_id)
+          *precord_id = get_ptr_down();
         return (-1);
       }
       Comparator cmp(m_page->get_db());
-      return (m_impl.find(key, cmp, pcmp ? pcmp : &dummy));
+      return (m_impl.find_child(key, cmp,
+                              precord_id ? precord_id : 0,
+                              pcmp ? pcmp : &dummy));
     }
 
     // Searches the node for the |key|, but will always return -1 if

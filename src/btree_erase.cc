@@ -87,7 +87,7 @@ class BtreeEraseAction
       while (!node->is_leaf()) {
         // get the child page
         Page *sib_page = 0;
-        Page *child_page = m_btree->find_internal(page, m_key, &slot);
+        Page *child_page = m_btree->find_child(page, m_key, &slot);
         BtreeNodeProxy *child_node = m_btree->get_node_from_page(child_page);
 
         // We can merge this child with the RIGHT sibling iff...

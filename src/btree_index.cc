@@ -115,7 +115,7 @@ BtreeIndex::flush_descriptor()
 }
 
 Page *
-BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
+BtreeIndex::find_child(Page *page, ham_key_t *key, ham_s32_t *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
 
@@ -123,26 +123,24 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, ham_s32_t *idxptr)
   // page is not empty
   ham_assert(node->get_ptr_down() != 0);
 
-  int slot = node->find(key);
+  ham_u64_t record_id;
+  int slot = node->find_child(key, &record_id);
 
   if (idxptr)
     *idxptr = slot;
 
-  if (slot == -1)
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
-                    node->get_ptr_down()));
-  else {
 #ifdef HAM_DEBUG
+  if (slot >= 0) {
     ham_u32_t flags = node->test_get_flags(slot);
     flags &= ~(BtreeKey::kInitialized
                     | BtreeKey::kExtendedKey
                     | BtreeKey::kCompressed);
     ham_assert(flags == 0);
-#endif
-    ham_u64_t rid = node->get_record_id(slot);
-    ham_assert(rid != 0);
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db, rid));
   }
+#endif
+
+  return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
+                    record_id));
 }
 
 ham_s32_t
@@ -157,7 +155,7 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
     return (-1);
 
   int cmp;
-  int slot = node->find(key, &cmp);
+  int slot = node->find_child(key, 0, &cmp);
 
   /*
    * 'approximate matching'

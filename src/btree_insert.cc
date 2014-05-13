@@ -197,7 +197,7 @@ class BtreeInsertAction
           break;
 
         parent = page;
-        page = m_btree->find_internal(page, m_key);
+        page = m_btree->find_child(page, m_key);
         node = m_btree->get_node_from_page(page);
       }
 
@@ -374,7 +374,7 @@ class BtreeInsertAction
         slot = count;
       else {
         int cmp;
-        slot = node->find(key, &cmp);
+        slot = node->find_child(key, 0, &cmp);
 
         /* insert the new key at the beginning? */
         if (slot == -1)

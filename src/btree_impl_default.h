@@ -1202,7 +1202,8 @@ class DefaultNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
+                    int *pcmp) {
       ham_u32_t count = m_node->get_count();
       int i, l = 1, r = count - 1;
       int ret = 0, last = count + 1;
@@ -1213,13 +1214,6 @@ class DefaultNodeImpl
 #endif
 
       ham_assert(count > 0);
-
-      /* only one element in this node? */
-      if (r == 0) {
-        cmp = compare(key, at(0), comparator);
-        *pcmp = cmp;
-        return (cmp < 0 ? -1 : 0);
-      }
 
       for (;;) {
         /* get the median item; if it's identical with the "last" item,
@@ -1259,6 +1253,12 @@ class DefaultNodeImpl
       }
 
       *pcmp = cmp;
+      if (precord_id) {
+        if (ret == -1)
+          *precord_id = m_node->get_ptr_down();
+        else
+          *precord_id = get_record_id(ret);
+      }
       return (ret);
     }
 
@@ -1267,7 +1267,7 @@ class DefaultNodeImpl
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
       int cmp;
-      int r = find(key, comparator, &cmp);
+      int r = find_child(key, comparator, 0, &cmp);
       if (cmp)
         return (-1);
       return (r);

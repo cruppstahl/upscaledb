@@ -109,7 +109,7 @@ class BtreeFindAction
             hints.flags |= (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH);
 
           for (;;) {
-            page = m_btree->find_internal(page, m_key);
+            page = m_btree->find_child(page, m_key);
             if (!page) {
               stats->find_failed();
               return (HAM_KEY_NOT_FOUND);
