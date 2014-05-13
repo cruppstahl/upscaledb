@@ -392,7 +392,7 @@ BtreeIndex::get_max_keys_per_page() const
   page_size -= PBtreeNode::get_entry_offset();
   page_size -= Page::kSizeofPersistentHeader;
 
-  /* and return an even number */
+  /* and return an even number - TODO why? */
   ham_u32_t max;
   if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
     max = page_size / (actual_key_size + 8);

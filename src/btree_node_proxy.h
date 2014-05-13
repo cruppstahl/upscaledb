@@ -367,9 +367,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
   typedef BtreeNodeProxyImpl<NodeImpl, Comparator> ClassType;
 
   public:
-    // A forward-only iterator
-    typedef typename NodeImpl::Iterator Iterator;
-
     // Constructor
     BtreeNodeProxyImpl(Page *page)
       : BtreeNodeProxy(page), m_impl(page) {
@@ -383,11 +380,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Iterates all keys, calls the |visitor| on each. Aborts if the
     // |visitor| returns false
     virtual void enumerate(BtreeVisitor &visitor) {
-      typename NodeImpl::Iterator it = m_impl.begin();
       ham_u32_t count = get_count();
-      for (ham_u32_t i = 0; i < count; i++, it->next()) {
-        if (!visitor(this, it->get_key_data(), it->get_key_flags(),
-                                it->get_key_size(), it->get_record_id()))
+      for (ham_u32_t i = 0; i < count; i++) {
+        if (!visitor(this, m_impl.get_key_data(i), m_impl.get_key_flags(i),
+                        m_impl.get_key_size(i), m_impl.get_record_id(i)))
           break;
       }
     }
@@ -406,14 +402,12 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Compares a public key and an internal key
     virtual int compare(const ham_key_t *lhs, int rhs) {
       Comparator cmp(m_page->get_db());
-      typename NodeImpl::Iterator it = m_impl.at(rhs);
-      return (m_impl.compare(lhs, it, cmp));
+      return (m_impl.compare(lhs, rhs, cmp));
     }
 
     // Returns true if the public key and an internal key are equal
     virtual bool equals(const ham_key_t *lhs, int rhs) {
-      typename NodeImpl::Iterator it = m_impl.at(rhs);
-      if (it->get_key_size() != lhs->size)
+      if (m_impl.get_key_size(rhs) != lhs->size)
         return (false);
       return (0 == compare(lhs, rhs));
     }
@@ -496,8 +490,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Sets the record id of the key at the given |slot|
     // Only for internal nodes!
     virtual void set_record_id(ham_u32_t slot, ham_u64_t id) {
-      typename NodeImpl::Iterator it = m_impl.at(slot);
-      return (it->set_record_id(id));
+      return (m_impl.set_record_id(slot, id));
     }
 
     // High level function to remove an existing entry. Will call |erase_key|
@@ -589,44 +582,52 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
               is_leaf() ? 1 : 0,
               (unsigned long long)get_left(), (unsigned long long)get_right(),
               (unsigned long long)get_ptr_down());
-      typename NodeImpl::Iterator it = m_impl.begin();
       ByteArray arena;
       if (!count)
         count = get_count();
-      for (ham_u32_t i = 0; i < count; i++, it->next()) {
-        if (it->get_key_flags() & BtreeKey::kExtendedKey
-            || it->get_key_flags() & BtreeKey::kCompressed) {
+      for (ham_u32_t i = 0; i < count; i++) {
+        if (m_impl.get_key_flags(i) & BtreeKey::kExtendedKey
+            || m_impl.get_key_flags(i) & BtreeKey::kCompressed) {
           ham_key_t key = {0};
           get_key(i, &arena, &key);
-          printf("%03u: EX %s (%d) -> %08llx\n", i, (const char *)key.data,
-                          key.size, (unsigned long long)it->get_record_id());
+          printf("%03u: EX ", i);
+          for (ham_u32_t j = 0; j < 5; j++) {
+            char ch = ((const char *)key.data)[j];
+            if (ch >= 10)
+              ch += 'a' - 10;
+            else
+              ch += '0';
+            printf("%c", ch);
+          }
+          printf(" (%d) -> %08llx\n",
+                      key.size, (unsigned long long)m_impl.get_record_id(i));
+          //printf("%03u: EX %s (%d) -> %08llx\n", i, (const char *)key.data,
+                      //key.size, (unsigned long long)m_impl.get_record_id(i));
         }
         else {
          printf("%03u:    ", i);
-         printf("    %08u -> %08llx\n", *(ham_u32_t *)it->get_key_data(),
-                  (unsigned long long)it->get_record_id());
-         //for (ham_u32_t j = 0; j < it->get_key_size(); j++)
-           //printf("%c", ((const char *)it->get_key_data())[j]);
-         //printf(" (%d) -> %08llx\n", it->get_key_size(),
-                          //(unsigned long long)it->get_record_id());
+         printf("    %08u -> %08llx\n", *(ham_u32_t *)m_impl.get_key_data(i),
+                  (unsigned long long)m_impl.get_record_id(i));
+         //for (ham_u32_t j = 0; j < m_impl.get_key_size(i); j++)
+           //printf("%c", ((const char *)m_impl.get_key_data(i))[j]);
+         //printf(" (%d) -> %08llx\n", m_impl.get_key_size(i),
+                          //(unsigned long long)m_impl.get_record_id(i));
         }
       }
     }
 
     // Returns the flags of the key at the given |slot|; only for testing!
     virtual ham_u32_t test_get_flags(ham_u32_t slot) const {
-      typename NodeImpl::Iterator it = m_impl.at(slot);
-      return (it->get_key_flags() | it->get_record_flags());
+      return (m_impl.get_key_flags(slot) | m_impl.get_record_flags(slot));
     }
 
     // Sets a key; only for testing
     virtual void test_set_key(ham_u32_t slot, const char *data,
                     size_t data_size, ham_u32_t flags, ham_u64_t record_id) {
-      typename NodeImpl::Iterator it = m_impl.at(slot);
-      it->set_record_id(record_id);
-      it->set_key_flags(flags);
-      it->set_key_size((ham_u16_t)data_size);
-      it->set_key_data(data, (ham_u32_t)data_size);
+      m_impl.set_record_id(slot, record_id);
+      m_impl.set_key_flags(slot, flags);
+      m_impl.set_key_size(slot, (ham_u16_t)data_size);
+      m_impl.set_key_data(slot, data, (ham_u32_t)data_size);
     }
 
     // Clears the page with zeroes and reinitializes it; only for testing

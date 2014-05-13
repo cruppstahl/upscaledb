@@ -67,174 +67,6 @@
 
 namespace hamsterdb {
 
-template<typename KeyList, typename RecordList>
-class PaxNodeImpl;
-
-//
-// An iterator for the PaxNodeImpl class. It offers simple access to a single
-// key ("slot") in the node, and can move forward to the next key.
-//
-template<typename KeyList, typename RecordList>
-struct PaxIterator
-{
-  public:
-    // Constructor
-    PaxIterator(PaxNodeImpl<KeyList, RecordList> *node, ham_u32_t slot)
-      : m_node(node), m_slot(slot) {
-    }
-
-    // Constructor
-    PaxIterator(const PaxNodeImpl<KeyList, RecordList> *node, ham_u32_t slot)
-      : m_node((PaxNodeImpl<KeyList, RecordList> *)node), m_slot(slot) {
-    }
-
-    // Returns the (persisted) flags of a key; see the |BtreeKey| namespace
-    // in btree_flags.h
-    ham_u8_t get_key_flags() const {
-      return (m_node->get_key_flags(m_slot));
-    }
-
-    // Sets the flags of a key (BtreeRecord::kBlobSizeTiny etc); see
-    // the |BtreeKey| namespace in btree_flags.h
-    void set_key_flags(ham_u8_t flags) {
-      m_node->set_key_flags(m_slot, flags);
-    }
-
-    // Returns the (persisted) flags of a record; not used, but supplied
-    // because the BtreeNodeProxy relies on the existence of this function
-    ham_u8_t get_record_flags() const {
-      return (0);
-    }
-
-    // Returns the size of a btree key
-    ham_u16_t get_key_size() const {
-      return (m_node->get_key_size());
-    }
-
-    // Sets the size of a btree key
-    void set_key_size(ham_u16_t size) {
-      ham_assert(size == get_key_size());
-    }
-
-    // Returns a pointer to the key data
-    ham_u8_t *get_key_data() {
-      return (m_node->get_key_data(m_slot));
-    }
-
-    // Returns a pointer to the key data; const flavour
-    ham_u8_t *get_key_data() const {
-      return (m_node->get_key_data(m_slot));
-    }
-
-    // Overwrites the key data with a new key. The |size| of the new data
-    // MUST be identical to the fixed key size that was specified when the
-    // database was created!
-    void set_key_data(const void *ptr, ham_u32_t size) {
-      ham_assert(size == get_key_size());
-      m_node->set_key_data(m_slot, ptr, size);
-    }
-
-    // Returns the number of records stored with this key; usually 1,
-    // because duplicate keys are not supported by the PAX layout. If this
-    // key's record was erased then 0 is returned
-    ham_u32_t get_record_count() const {
-      if (get_record_id() == 0 && !is_record_inline())
-        return (0);
-      return (1);
-    }
-
-    // Same as above, required for btree_node_proxy.h
-    ham_u32_t get_total_record_count() const {
-      return (get_record_count());
-    }
-
-    // Returns the record address of an extended key overflow area.
-    // The PaxNodeImpl does not support extended keys.
-    ham_u64_t get_extended_rid(LocalDatabase *db) const {
-      // nop, but required to compile
-      ham_verify(!"shouldn't be here");
-      return (0);
-    }
-
-    // Sets the record address of an extended key overflow area
-    // The PaxNodeImpl does not support extended keys.
-    void set_extended_rid(LocalDatabase *db, ham_u64_t rid) {
-      // nop, but required to compile
-      ham_verify(!"shouldn't be here");
-    }
-
-    // Returns true if the record is inline
-    bool is_record_inline() const {
-      return (m_node->is_record_inline(m_slot));
-    }
-
-    // Returns the record id
-    ham_u64_t get_record_id() const {
-      return (m_node->get_record_id(m_slot));
-    }
-
-    // Sets the record id
-    void set_record_id(ham_u64_t ptr) {
-      m_node->set_record_id(m_slot, ham_h2db_offset(ptr));
-    }
-
-    // Returns a pointer to the record's inline data
-    void *get_inline_record_data() {
-      ham_assert(is_record_inline() == true);
-      return (m_node->get_record_data(m_slot));
-    }
-
-    // Returns a pointer to the record's inline data
-    const void *get_inline_record_data() const {
-      ham_assert(is_record_inline() == true);
-      return (m_node->get_record_data(m_slot));
-    }
-
-    // Sets the record data
-    void set_inline_record_data(const void *ptr, ham_u32_t size) {
-      m_node->set_record_data(m_slot, ptr, size);
-    }
-
-    // Returns the size of the record, if inline
-    ham_u32_t get_inline_record_size() const {
-      return (m_node->get_inline_record_size(m_slot));
-    }
-
-    // Returns the maximum size of inline records
-    ham_u32_t get_max_inline_record_size() const {
-      return (m_node->get_max_inline_record_size());
-    }
-
-    // Removes an inline record; this simply overwrites the inline
-    // record data with zeroes and resets the record flags.
-    void remove_inline_record() {
-      ham_assert(is_record_inline() == true);
-      m_node->remove_inline_record(m_slot);
-    }
-
-    // Moves this Iterator to the next key
-    void next() {
-      m_slot++;
-    }
-
-    // Allows use of operator-> in the caller
-    PaxIterator<KeyList, RecordList> *operator->() {
-      return (this);
-    }
-
-    // Allows use of operator-> in the caller
-    const PaxIterator<KeyList, RecordList> *operator->() const {
-      return (this);
-    }
-
-  private:
-    // The node of this iterator
-    PaxNodeImpl<KeyList, RecordList> *m_node;
-
-    // The current slot in the node
-    ham_u32_t m_slot;
-};
-
 //
 // The PodKeyList provides simplified access to a list of keys, where each
 // key is of type T (i.e. ham_u32_t).
@@ -746,9 +578,6 @@ template<typename KeyList, typename RecordList>
 class PaxNodeImpl
 {
   public:
-    typedef PaxIterator<KeyList, RecordList> Iterator;
-    typedef const PaxIterator<KeyList, RecordList> ConstIterator;
-
     // Constructor
     PaxNodeImpl(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(page)),
@@ -783,21 +612,6 @@ class PaxNodeImpl
                       + (RecordList::is_always_fixed_size() ? 0 : 1)));
     }
 
-    // Returns an iterator pointing to the first slot
-    Iterator begin() {
-      return (at(0));
-    }
-
-    // Returns an iterator pointing to the specified |slot|
-    Iterator at(ham_u32_t slot) {
-      return (Iterator(this, slot));
-    }
-
-    // Returns an iterator pointing to the specified |slot| (const flavour)
-    ConstIterator at(ham_u32_t slot) const {
-      return (ConstIterator(this, slot));
-    }
-
     // Checks this node's integrity; due to the limited complexity, there's
     // not many possibilities how things can go wrong, therefore this function
     // never fails.
@@ -806,8 +620,8 @@ class PaxNodeImpl
 
     // Compares two keys using the supplied comparator
     template<typename Cmp>
-    int compare(const ham_key_t *lhs, Iterator it, Cmp &cmp) {
-      return (cmp(lhs->data, lhs->size, it->get_key_data(), get_key_size()));
+    int compare(const ham_key_t *lhs, ham_u32_t rhs, Cmp &cmp) {
+      return (cmp(lhs->data, lhs->size, get_key_data(rhs), get_key_size(rhs)));
     }
 
     // Searches the node for the key and returns the slot of this key
@@ -841,7 +655,7 @@ class PaxNodeImpl
         }
 
         /* compare it against the key */
-        cmp = compare(key, at(i), comparator);
+        cmp = compare(key, i, comparator);
 
         /* found it? */
         if (cmp == 0) {
@@ -913,11 +727,9 @@ class PaxNodeImpl
     // Returns the full record and stores it in |dest|
     void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) const {
-      Iterator it = at(slot);
-
       // regular inline record, no duplicates
-      if (it->is_record_inline()) {
-        ham_u32_t size = it->get_inline_record_size();
+      if (is_record_inline(slot)) {
+        ham_u32_t size = get_inline_record_size(slot);
         if (size == 0) {
           record->data = 0;
           record->size = 0;
@@ -930,14 +742,14 @@ class PaxNodeImpl
         }
         if (!(record->flags & HAM_RECORD_USER_ALLOC)
             && (flags & HAM_DIRECT_ACCESS)) {
-          record->data = it->get_inline_record_data();
+          record->data = (void *)get_inline_record_data(slot);
         }
         else {
           if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             arena->resize(size);
             record->data = arena->get_ptr();
           }
-          memcpy(record->data, it->get_inline_record_data(), size);
+          memcpy(record->data, get_inline_record_data(slot), size);
         }
         record->size = size;
         return;
@@ -946,19 +758,18 @@ class PaxNodeImpl
       // non-inline record, no duplicates
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      env->get_blob_manager()->read(db, it->get_record_id(), record,
+      env->get_blob_manager()->read(db, get_record_id(slot), record,
                                 flags, arena);
     }
 
     // Returns the record size of a key or one of its duplicates
     ham_u64_t get_record_size(ham_u32_t slot, int duplicate_index) const {
-      Iterator it = at(slot);
-      if (it->is_record_inline())
-        return (it->get_inline_record_size());
+      if (is_record_inline(slot))
+        return (get_inline_record_size(slot));
 
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      return (env->get_blob_manager()->get_blob_size(db, it->get_record_id()));
+      return (env->get_blob_manager()->get_blob_size(db, get_record_id(slot)));
     }
 
     // Updates the record of a key
@@ -967,39 +778,38 @@ class PaxNodeImpl
                     ham_u32_t *new_duplicate_index) {
       LocalDatabase *db = m_page->get_db();
       LocalEnvironment *env = db->get_local_env();
-      Iterator it = at(slot);
-      ham_u64_t ptr = it->get_record_id();
+      ham_u64_t ptr = get_record_id(slot);
 
       ham_assert(duplicate_index == 0);
 
       // key does not yet exist
-      if (!ptr && !it->is_record_inline()) {
+      if (!ptr && !is_record_inline(slot)) {
         // a new inline key is inserted
-        if (record->size <= it->get_max_inline_record_size()) {
-          it->set_inline_record_data(record->data, record->size);
+        if (record->size <= get_max_inline_record_size()) {
+          set_record_data(slot, record->data, record->size);
         }
         // a new (non-inline) key is inserted
         else {
           ptr = env->get_blob_manager()->allocate(db, record, flags);
-          it->set_record_id(ptr);
+          set_record_id(slot, ptr);
         }
         return;
       }
 
       // an inline key exists
-      if (it->is_record_inline()) {
+      if (is_record_inline(slot)) {
         // disable small/tiny/empty flags
-        it->set_key_flags(it->get_key_flags() & ~(BtreeRecord::kBlobSizeSmall
+        set_key_flags(slot, get_key_flags(slot) & ~(BtreeRecord::kBlobSizeSmall
                             | BtreeRecord::kBlobSizeTiny
                             | BtreeRecord::kBlobSizeEmpty));
         // ... and is overwritten with another inline key
-        if (record->size <= it->get_max_inline_record_size()) {
-          it->set_inline_record_data(record->data, record->size);
+        if (record->size <= get_max_inline_record_size()) {
+          set_record_data(slot, record->data, record->size);
         }
         // ... or with a (non-inline) key
         else {
           ptr = env->get_blob_manager()->allocate(db, record, flags);
-          it->set_record_id(ptr);
+          set_record_id(slot, ptr);
         }
         return;
       }
@@ -1007,14 +817,14 @@ class PaxNodeImpl
       // a (non-inline) key exists
       if (ptr) {
         // ... and is overwritten by a inline key
-        if (record->size <= it->get_max_inline_record_size()) {
+        if (record->size <= get_max_inline_record_size()) {
           env->get_blob_manager()->erase(db, ptr);
-          it->set_inline_record_data(record->data, record->size);
+          set_record_data(slot, record->data, record->size);
         }
         // ... and is overwritten by a (non-inline) key
         else {
           ptr = env->get_blob_manager()->overwrite(db, ptr, record, flags);
-          it->set_record_id(ptr);
+          set_record_id(slot, ptr);
         }
         return;
       }
@@ -1029,17 +839,16 @@ class PaxNodeImpl
 
     // Erases the record
     void erase_record(ham_u32_t slot, int duplicate_id, bool all_duplicates) {
-      Iterator it = at(slot);
-
-      if (it->is_record_inline()) {
-        it->remove_inline_record();
+      if (is_record_inline(slot)) {
+        remove_inline_record(slot);
         return;
       }
 
       // now erase the blob
       LocalDatabase *db = m_page->get_db();
-      db->get_local_env()->get_blob_manager()->erase(db, it->get_record_id(), 0);
-      it->set_record_id(0);
+      db->get_local_env()->get_blob_manager()->erase(db,
+                      get_record_id(slot), 0);
+      set_record_id(slot, 0);
     }
 
     // Erases a key
@@ -1151,8 +960,9 @@ class PaxNodeImpl
 
     // Returns the record counter of a key
     ham_u32_t get_total_record_count(ham_u32_t slot) const {
-      Iterator it = at(slot);
-      return (it->get_record_count());
+      if (get_record_id(slot) == 0 && !is_record_inline(slot))
+        return (0);
+      return (1);
     }
 
     // Returns the record id
@@ -1172,12 +982,16 @@ class PaxNodeImpl
       ham_assert(!"shouldn't be here");
     }
 
-  private:
-    friend struct PaxIterator<KeyList, RecordList>;
-
     // Returns the key size
-    ham_u32_t get_key_size() const {
+    ham_u32_t get_key_size(ham_u32_t slot = 0) const {
+      (void)slot;
       return (m_keys.get_key_size());
+    }
+
+    // Sets the key size
+    void set_key_size(ham_u32_t slot = 0, ham_u32_t size = 0) {
+      (void)slot;
+      (void)size;
     }
 
     // Returns the flags of a key
@@ -1202,6 +1016,25 @@ class PaxNodeImpl
     // Sets the key data
     void set_key_data(ham_u32_t slot, const void *ptr, ham_u32_t size) {
       m_keys.set_key_data(slot, ptr, size);
+    }
+
+    // Returns the (persisted) flags of a record; not used, but supplied
+    // because the BtreeNodeProxy relies on the existence of this function
+    ham_u8_t get_record_flags(ham_u32_t slot = 0) const {
+      return (0);
+    }
+
+  private:
+    // Returns a pointer to the record's inline data
+    void *get_inline_record_data(ham_u32_t slot) {
+      ham_assert(is_record_inline() == true);
+      return (get_record_data(slot));
+    }
+
+    // Returns a pointer to the record's inline data
+    const void *get_inline_record_data(ham_u32_t slot) const {
+      ham_assert(is_record_inline(slot) == true);
+      return (get_record_data(slot));
     }
 
     // Returns true if the record is inline

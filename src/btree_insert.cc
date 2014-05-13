@@ -236,7 +236,14 @@ class BtreeInsertAction
 
       /* if the key is appended then don't split the page; simply allocate
        * a new page and insert the new key. */
+      bool append = false;
       if (m_hints.flags & HAM_HINT_APPEND && old_node->is_leaf()) {
+        int cmp = old_node->compare(key, old_node->get_count() - 1);
+        if (cmp == +1)
+          append = true;
+      }
+
+      if (append) {
         to_return = new_page;
 
         pivot_key = *key;

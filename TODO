@@ -376,22 +376,16 @@ x find a way how to execute user's code in the btree; similar to the hola
     x hola_* must lock the Environment, perform a try/catch and allocate
         Visitor with auto_ptr
 
-o Refactoring in the Btree
+x Refactoring in the Btree
     x rename "find" to "find_child", "find_exact" to "find_leaf"
     x when traversing internal nodes: can we avoid calling
         BtreeNodeProxy::get_record_id(), and return the record-id when calling
         BtreeNodeProxy::find_child()? This would save one virtual function
         call and clean up lots of code
         x do we still need get_record_id() then? -> yes
-    o do we really need iterators? the iterators usually just wrap the slot
+    x do we really need iterators? the iterators usually just wrap the slot
         number. if the layout's interface is sufficiently clean then they
         should not be required and can be removed
-    o currently the layout class has 3 different erase functions:
-        - erase
-        - erase_key
-        - erase_record
-        unify and clean them up!
-    o BtreeNodeProxy: merge enumerate() and scan()
 
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
@@ -410,15 +404,36 @@ o Refactorings for the PAX layout with the following goals:
         record IDs
     - can we reduce the library size, i.e. by reducing template parameters?
     o rename from _pax to _distinct
-    o introduce more abstraction:
-        PodRecord <-> VariableRecord
-            transparently handles the encoding/decoding (is_record_inline etc)
-        PodRecordList
-        VariableRecordList
-    o the VariableRecordList is responsible for managing the flags
-    o split the requires_split() function for KeyList and RecordList
-    o default layout: move varkey logic to the KeyList, then use this KeyList
-        in pax to allow variable length records
+    o move everything that's relevant for keys to the KeyList, and for records
+        to the RecordList; the Layout will no longer directly access key
+        data, record data, key/record flags etc
+        o scan: move to KeyList
+        o get_key: move to KeyList
+        o get_record: move to RecordList
+        o set_record: move to RecordList
+        o get_record_size: move to RecordList
+        o erase_key: move to KeyList
+        o erase_record: move to RecordList
+        o insert: split to both
+        o split: split to both
+        o merge: split to both
+        o get_total_record_count: move to RecordList
+        o get_record_id: move to RecordList
+        o set_record_id: move to RecordList
+        o get_key_size: move to KeyList
+        o set_key_size: move to KeyList
+        o get_key_flags: move to KeyList
+        o set_key_flags: move to KeyList
+        o get_key_data: move to KeyList
+        o set_key_data: move to KeyList
+        o get_record_flags: move to RecordList
+        o remove all private functions
+        o once more review the code and delete everything that's not necessary
+
+    o the DefaultRecordList is responsible for managing the flags and blobs
+    o once and forall try to fix get_actual_key_size(); split to RecordList
+        and KeyList, rename to get_initial_page_capacity() and fix the code
+        flow in the caller
 
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
@@ -429,9 +444,17 @@ o Refactorings for the Default layout with the following goals:
         - store records adjacent to keys (like now), but have one
             varint-group per key (8 bytes => 32 records); if more than
             32 records are required then move to a duplicate table
+        - but then the interface won't be identical to PAX anymore
     o if the keys have fixed length then try to store them sequentially!
         the sequential storage has SO many advantages, we should try to use
         it whenever possible
+
+o Refactorings for the PAX layout with the following goals:
+    o allow variable length keys in the PAX layout; if the Default layout
+        has an identical KeyList interface and stores records separately
+        then this should work fine
+    o otherwise we need to move the in-node index to a separate class
+        and reuse it in PAX
 
 o the steps above will create an incompatible file format
     o increment file version
@@ -440,7 +463,7 @@ o the steps above will create an incompatible file format
         o EnvHeader is completely full; add at least 8 bytes for
                 flags + reserved
         o reserve CRC32 for each page
-        o PAX Layout: can compress the flags for the VariableRecordList
+        o PAX Layout: can compress the flags for the DefaultRecordList
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
