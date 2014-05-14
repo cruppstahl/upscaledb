@@ -69,7 +69,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE(HAM_TYPE_BINARY == query[0].value);
     REQUIRE(HAM_KEY_SIZE_UNLIMITED == query[1].value);
-    REQUIRE(510 == query[2].value);
+    REQUIRE(429 == query[2].value);
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -238,7 +238,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(1166 == (int)query[3].value);
+    REQUIRE(1167 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     // now insert a key
@@ -393,7 +393,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(512 == (int)query[2].value);
-    REQUIRE(30 == (int)query[3].value);
+    REQUIRE(31 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -405,7 +405,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(512 == (int)query[2].value);
-    REQUIRE(30 == (int)query[3].value);
+    REQUIRE(31 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -428,7 +428,7 @@ TEST_CASE("Btree/uint8Type", "")
 TEST_CASE("Btree/uint16Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1484,
+  f.fixedTypeTest(HAM_TYPE_UINT16, 2, 1485,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned short>, hamsterdb::DefaultRecordList>, hamsterdb::NumericCompare<unsigned short> >");
 }
 
@@ -442,7 +442,7 @@ TEST_CASE("Btree/uint32Type", "")
 TEST_CASE("Btree/uint64Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960,
+  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 961,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<unsigned long>, hamsterdb::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long> >");
 }
 
@@ -456,14 +456,14 @@ TEST_CASE("Btree/real32Type", "")
 TEST_CASE("Btree/real64Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960,
+  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 961,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PodKeyList<double>, hamsterdb::DefaultRecordList>, hamsterdb::NumericCompare<double> >");
 }
 
 TEST_CASE("Btree/fixedBinaryType", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_BINARY, 8, 960,
+  f.fixedTypeTest(HAM_TYPE_BINARY, 8, 961,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::BinaryKeyList, hamsterdb::DefaultRecordList>, hamsterdb::FixedSizeCompare>");
 }
 

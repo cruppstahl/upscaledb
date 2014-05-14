@@ -618,6 +618,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
 ham_status_t
 LocalDatabase::get_parameters(ham_parameter_t *param)
 {
+  Page *page = 0;
   ham_parameter_t *p = param;
 
   ham_assert(get_btree_index() != 0);
@@ -641,7 +642,14 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_u64_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        p->value = get_btree_index()->get_max_keys_per_page();
+        p->value = 0;
+        page = get_local_env()->get_page_manager()->fetch_page(this,
+                        m_btree_index->get_root_address(),
+                        PageManager::kReadOnly);
+        if (page) {
+          BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+          p->value = node->get_capacity();
+        }
         break;
       case HAM_PARAM_RECORD_COMPRESSION:
         p->value = 0;

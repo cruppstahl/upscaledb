@@ -114,6 +114,9 @@ class BtreeNodeProxy
       return (m_page);
     }
 
+    // Returns the estimated capacity of this node
+    virtual ham_u32_t get_capacity() const = 0;
+
     // Checks the integrity of the node. Throws an exception if it is
     // not. Called by ham_db_check_integrity().
     virtual void check_integrity() const = 0;
@@ -372,6 +375,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       : BtreeNodeProxy(page), m_impl(page) {
     }
 
+    // Returns the estimated capacity of this node
+    virtual ham_u32_t get_capacity() const {
+      return (m_impl.get_capacity());
+    }
+
     // Checks the integrity of the node
     virtual void check_integrity() const {
       m_impl.check_integrity();
@@ -382,8 +390,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void enumerate(BtreeVisitor &visitor) {
       ham_u32_t count = get_count();
       for (ham_u32_t i = 0; i < count; i++) {
-        if (!visitor(this, m_impl.get_key_data(i), m_impl.get_key_flags(i),
-                        m_impl.get_key_size(i), m_impl.get_record_id(i)))
+        if (!visitor(this, m_impl.get_key_data(i), 0,
+                        m_impl.get_key_size(i), 0))
           break;
       }
     }
@@ -454,7 +462,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the number of records of a key at the given |slot|
     virtual ham_u32_t get_record_count(ham_u32_t slot) {
       ham_assert(slot < get_count());
-      return (m_impl.get_total_record_count(slot));
+      return (m_impl.get_record_count(slot));
     }
 
     // Returns the full record and stores it in |dest|. The record is identified
@@ -624,10 +632,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Sets a key; only for testing
     virtual void test_set_key(ham_u32_t slot, const char *data,
                     size_t data_size, ham_u32_t flags, ham_u64_t record_id) {
-      m_impl.set_record_id(slot, record_id);
-      m_impl.set_key_flags(slot, flags);
-      m_impl.set_key_size(slot, (ham_u16_t)data_size);
-      m_impl.set_key_data(slot, data, (ham_u32_t)data_size);
+      m_impl.test_set_key(slot, data, data_size, flags, record_id);
     }
 
     // Clears the page with zeroes and reinitializes it; only for testing

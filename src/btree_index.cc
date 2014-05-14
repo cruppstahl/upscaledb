@@ -376,31 +376,6 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
   return (slot);
 }
 
-ham_u32_t
-BtreeIndex::get_max_keys_per_page() const
-{
-  ham_u32_t page_size = m_db->get_local_env()->get_page_size();
-  ham_u16_t key_size = get_key_size();
-  ham_u32_t rec_size = get_record_size() == HAM_RECORD_SIZE_UNLIMITED
-                            ? sizeof(ham_u64_t)
-                            : get_record_size();
-
-  ham_u32_t actual_key_size = m_leaf_traits->get_actual_key_size(page_size,
-                                key_size);
-
-  /* adjust page size and key size by adding the overhead */
-  page_size -= PBtreeNode::get_entry_offset();
-  page_size -= Page::kSizeofPersistentHeader;
-
-  /* and return an even number - TODO why? */
-  ham_u32_t max;
-  if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
-    max = page_size / (actual_key_size + 8);
-  else
-    max = page_size / (actual_key_size + rec_size);
-  return (max & 1 ? max - 1 : max);
-}
-
 //
 // visitor object for estimating / counting the number of keys
 ///

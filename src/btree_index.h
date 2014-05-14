@@ -174,10 +174,6 @@ class BtreeIndexTraits
     // virtual destructor
     virtual ~BtreeIndexTraits() { }
 
-    // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_actual_key_size(ham_u32_t page_size,
-                        ham_u32_t key_size) const = 0;
-
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
@@ -252,9 +248,6 @@ class BtreeIndex
     ham_u32_t get_flags() const {
       return (m_flags);
     }
-
-    // Calculates the answer for "HAM_PARAM_MAX_KEYS_PER_PAGE"
-    ham_u32_t get_max_keys_per_page() const;
 
     // Creates and initializes the btree
     //

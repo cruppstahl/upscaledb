@@ -33,12 +33,6 @@ template<class NodeLayout, class Comparator>
 class BtreeIndexTraitsImpl : public BtreeIndexTraits
 {
   public:
-    // Returns the actual key size (including overhead)
-    virtual ham_u16_t get_actual_key_size(ham_u32_t page_size,
-                        ham_u32_t key_size) const {
-      return (NodeLayout::get_actual_key_size(page_size, key_size));
-    }
-
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when

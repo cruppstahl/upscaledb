@@ -387,13 +387,7 @@ x Refactoring in the Btree
         number. if the layout's interface is sufficiently clean then they
         should not be required and can be removed
 
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload, w/o records
-
-o split cursor.cc in two files because gcc can run out of memory when compiling
-
-o Refactorings for the PAX layout with the following goals:
+x Refactorings for the PAX layout with the following goals:
     - responsible for ALL keys that are non-duplicate!
     - the key flags are no longer required (they store flags whether the record
         is inline or not)
@@ -403,58 +397,77 @@ o Refactorings for the PAX layout with the following goals:
     - the RecordList can then perform compression, i.e. grouped varints for
         record IDs
     - can we reduce the library size, i.e. by reducing template parameters?
-    o rename from _pax to _distinct
-    o move everything that's relevant for keys to the KeyList, and for records
+    x move everything that's relevant for keys to the KeyList, and for records
         to the RecordList; the Layout will no longer directly access key
         data, record data, key/record flags etc
-        o scan: move to KeyList
-        o get_key: move to KeyList
-        o get_record: move to RecordList
-        o set_record: move to RecordList
-        o get_record_size: move to RecordList
-        o erase_key: move to KeyList
-        o erase_record: move to RecordList
-        o insert: split to both
-        o split: split to both
-        o merge: split to both
-        o get_total_record_count: move to RecordList
-        o get_record_id: move to RecordList
-        o set_record_id: move to RecordList
-        o get_key_size: move to KeyList
-        o set_key_size: move to KeyList
-        o get_key_flags: move to KeyList
-        o set_key_flags: move to KeyList
-        o get_key_data: move to KeyList
-        o set_key_data: move to KeyList
-        o get_record_flags: move to RecordList
-        o remove all private functions
-        o once more review the code and delete everything that's not necessary
-
-    o the DefaultRecordList is responsible for managing the flags and blobs
-    o once and forall try to fix get_actual_key_size(); split to RecordList
+        x scan: move to KeyList
+        x get_key: move to KeyList
+        x get_record: move to RecordList
+        x set_record: move to RecordList
+        x get_record_size: move to RecordList
+        x erase_key: move to KeyList
+        x erase_record: move to RecordList
+        x insert: split to both
+        x split: split to both
+        x merge: split to both
+        x remove m_flags from the layout
+        x clean up/remove/move everything else
+        x remove set_key_flags, set_key_data, set_key_size
+    x the DefaultRecordList is responsible for managing the flags and blobs
+    x once and forall try to fix get_actual_key_size(); split to RecordList
         and KeyList, rename to get_initial_page_capacity() and fix the code
         flow in the caller
+        x remove RecordList::is_always_fixed_size
+        x remove RecordList::get_max_inline_record_size
+
+o PRO: how can we track down the snappy-issue on win32?
+    o compile & test on MSVC2010; if it works then it's a compiler bug
+        -> install service pack for MSVC2008
+        -> helps? then document it! or (better) take precautions in
+            compressor_snappy.h
+    o write the uncompressed data AND the compressed data to a file; then
+        write a small test program which uncompresses the compressed data
+        and compares it to the original
+
+o default layout: the lookup operations are relatively slow compared to PAX;
+    can we somehow improve this?
+    o run profiling on a read-only workload, w/o records
+
+o split cursor.cc in two files because gcc can run out of memory when compiling
 
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
-    o rename from _default to _duplicate
-    o move extkey-handling down to the KeyList
-    o make KeyList interface identical to the one used in PAX
-    o how to implement a DuplicateRecordList with fast random access?
-        - store records adjacent to keys (like now), but have one
-            varint-group per key (8 bytes => 32 records); if more than
-            32 records are required then move to a duplicate table
-        - but then the interface won't be identical to PAX anymore
-    o if the keys have fixed length then try to store them sequentially!
-        the sequential storage has SO many advantages, we should try to use
-        it whenever possible
+    -> UpfrontIndex manages freelist, upfront index
+    -> KeyList manages the keys, incl. extended keys
+    -> RecordList manages the records, incl. duplicate tables
+    o rename FixedLayoutImpl -> FixedKeyList
+    o rename DefaultLayoutImpl -> DefaultKeyList
+    o create UpfrontIndex member
+        o capacity handling
+        o freelist handling
+        o manage offsets
+            o get_key_data_offset()
+            o get_record_data_offset()
+        o get_next_free_offset/set_next_free_offset
+        o requires_split
+        o resize
+        o split
+        o merge_from
+        o ...
+    o create DuplicateTable class, derive from ByteArray, move logic to this
+        class
+    o improve RecordList separation
+        o including duplicate handling (and the DuplicateTable cache)
+        o try to create interface similar to PAX RecordList
+    o introduce KeyList, move relevant functions
+        o including extkeys (and their cache)
+        o try to create interface similar to PAX KeyList
 
-o Refactorings for the PAX layout with the following goals:
-    o allow variable length keys in the PAX layout; if the Default layout
-        has an identical KeyList interface and stores records separately
-        then this should work fine
-    o otherwise we need to move the in-node index to a separate class
-        and reuse it in PAX
+    o create UpfrontIndex for fixed length keys w/ duplicates: store keys
+        sequentially, move RecordList to the "end" of the node
+    o create UpfrontIndex for variable length keys w/o duplicates: store records
+        sequentially, move RecordList to the "end" of the node
+        -> maybe reuse PAX RecordList??
 
 o the steps above will create an incompatible file format
     o increment file version
@@ -609,19 +622,6 @@ o PRO: bulk updates (really only for pro?)
     o also for java
     o also for erlang
 
-o PRO: can we push compression down to the KeyList (and RecordList)?
-    -> this would make it much easier to add new compression algorithms,
-        and to mix various algorithms for records and keys
-    o includes requires_split, split
-    o PAX and Default need to use the same RecordList
-        -> this would allow use of duplicates in the PAX layout
-        -> Problem: PAX has records in sequential memory; for default they're
-            split all over the place! bad design decision... but was necessary
-            b/c inline duplicate keys are making random access difficult
-        -> if duplicates are disabled: PAX and Default use the same RecordList
-        -> if duplicates are enabled: Default uses a different RecordList,
-            handles the duplicate list (and the duplicate table) internally
-
 o PRO: prefix compression for variable-length keys
     ==> not efficient for random read/writes, but that's ok. linear scans
         and appends will nevertheless be fast, and the delta updates
@@ -634,12 +634,14 @@ o PRO: prefix compression for variable-length keys
         variable-sized keys
 
     o if key is appended at the end: just write the delta
+    o every "n'th" (50th?) key is written uncompressed
     o otherwise append a delta-update to the page, and "merge" all deltas
         before the page is flushed. This will improve performance for batched
         updates, since they will cause only one page compression for
         multiple updates.
     o however, it's tricky to figure out whether a node requires a split or
         not, since it requires a good estimate of the size for the new key 
+        -> if in doubt then just perform the merge
     
     o full keys can be further compressed with lzf or lzo
     o key search: jumps from full key to full key; in between, there's a

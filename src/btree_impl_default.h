@@ -898,23 +898,6 @@ class DefaultNodeImpl
       clear_caches();
     }
 
-    // Returns the actual key size (including overhead, without record).
-    // This is a rough guess and only for calculating the initial node
-    // capacity.
-    static ham_u16_t get_actual_key_size(ham_u32_t page_size,
-                        ham_u32_t key_size, bool enable_duplicates = false) {
-      // unlimited/variable keys require 5 bytes for flags + key size + offset;
-      // assume an average key size of 32 bytes (this is a random guess, but
-      // will be good enough)
-      if (key_size == HAM_KEY_SIZE_UNLIMITED)
-        return ((ham_u16_t)32 - 8);// + 5 - 8
-      if (key_size > calculate_extended_threshold(page_size))
-        key_size = 8;
-
-      // otherwise 1 byte for flags and 1 byte for record counter
-      return ((ham_u16_t)(key_size + (enable_duplicates ? 2 : 0)));
-    }
-
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
     void check_integrity() const {
@@ -1081,8 +1064,7 @@ class DefaultNodeImpl
           key_data = get_key_data(i);
           key_size = get_key_size(i);
         }
-        (*visitor)(key_data, key_size,
-                        distinct ? 1 : get_total_record_count(i));
+        (*visitor)(key_data, key_size, distinct ? 1 : get_record_count(i));
       }
     }
 
@@ -1119,7 +1101,7 @@ class DefaultNodeImpl
     }
 
     // Returns the number of records of a key
-    ham_u32_t get_total_record_count(ham_u32_t slot) {
+    ham_u32_t get_record_count(ham_u32_t slot) {
       if (get_key_flags(slot) & BtreeKey::kExtendedDuplicates) {
         ByteArray table = get_duplicate_table(get_record_id(slot));
         return (DuplicateTable::get_count(&table));
@@ -1998,12 +1980,26 @@ class DefaultNodeImpl
       memset(get_inline_record_data(slot, duplicate_index),
                       0, get_total_inline_record_size());
     }
-    // Clears the page with zeroes and reinitializes it; only
-    // for testing
+    
+    // Returns the index capacity
+    ham_u32_t get_capacity() const {
+      return (ham_db2h32(*(ham_u32_t *)m_node->get_data()));
+    }
+
+    // Clears the page with zeroes and reinitializes it; only for testing
     void test_clear_page() {
       memset(m_page->get_payload(), 0,
                     m_page->get_db()->get_local_env()->get_usable_page_size());
       initialize();
+    }
+
+    // Sets a key; only for testing
+    void test_set_key(ham_u32_t slot, const char *data,
+                    size_t data_size, ham_u32_t flags, ham_u64_t record_id) {
+      set_record_id(slot, record_id);
+      set_key_flags(slot, flags);
+      set_key_size(slot, (ham_u16_t)data_size);
+      set_key_data(slot, data, (ham_u32_t)data_size);
     }
 
   private:
@@ -2047,6 +2043,23 @@ class DefaultNodeImpl
         set_freelist_count(0);
         set_next_offset(0);
       }
+    }
+
+    // Returns the actual key size (including overhead, without record).
+    // This is a rough guess and only for calculating the initial node
+    // capacity.
+    ham_u16_t get_actual_key_size(ham_u32_t page_size, ham_u32_t key_size,
+                    bool enable_duplicates = false) {
+      // unlimited/variable keys require 5 bytes for flags + key size + offset;
+      // assume an average key size of 32 bytes (this is a random guess, but
+      // will be good enough)
+      if (key_size == HAM_KEY_SIZE_UNLIMITED)
+        return ((ham_u16_t)32 - 8);// + 5 - 8
+      if (key_size > calculate_extended_threshold(page_size))
+        key_size = 8;
+
+      // otherwise 1 byte for flags and 1 byte for record counter
+      return ((ham_u16_t)(key_size + (enable_duplicates ? 2 : 0)));
     }
 
     // Clears the caches for extended keys and duplicate keys
@@ -2623,11 +2636,6 @@ class DefaultNodeImpl
       // a split won't be required
       return (-1 != freelist_find(count,
                         size + get_total_inline_record_size()));
-    }
-
-    // Returns the index capacity
-    ham_u32_t get_capacity() const {
-      return (ham_db2h32(*(ham_u32_t *)m_node->get_data()));
     }
 
     // Sets the index capacity
