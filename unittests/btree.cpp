@@ -78,7 +78,7 @@ struct BtreeFixture {
     if (ham_is_pro_evaluation() == 0) {
       std::string s;
       s = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
-      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, false> >, hamsterdb::VariableSizeCompare>");
+      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultKeyList<unsigned short, false>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultKeyList<unsigned short, false>, false> >, hamsterdb::VariableSizeCompare>");
     }
 #endif
 

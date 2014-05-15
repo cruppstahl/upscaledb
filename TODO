@@ -431,25 +431,29 @@ o Refactorings for the Default layout with the following goals:
     -> UpfrontIndex manages freelist, upfront index
     -> KeyList manages the keys, incl. extended keys
     -> RecordList manages the records, incl. duplicate tables
-    o rename FixedLayoutImpl -> FixedKeyList
-    o rename DefaultLayoutImpl -> DefaultKeyList
-    o create UpfrontIndex member
-        o capacity handling
-        o freelist handling
-        o manage offsets
-            o get_key_data_offset()
-            o get_record_data_offset()
-        o get_next_free_offset/set_next_free_offset
-        o requires_split
-        o resize
-        o split
-        o merge_from
-        o ...
+    x rename FixedLayoutImpl -> FixedKeyList
+    x rename DefaultLayoutImpl -> DefaultKeyList
+    x create UpfrontIndex member
+        x capacity handling
+        x freelist handling
+            x get_freelist_count/set_freelist_count
+            x freelist_add -> copy_to_freelist
+            x freelist_find -> find_in_freelist
+            x freelist_remove -> remove_from_freelist
+        x offset handling
+            x get_key_data_offset()
+            x get_record_data_offset()
+            x calc_next_offset()
     o create DuplicateTable class, derive from ByteArray, move logic to this
         class
+        o insert
+        o erase
+        o ...
     o improve RecordList separation
         o including duplicate handling (and the DuplicateTable cache)
         o try to create interface similar to PAX RecordList
+        o template-parameter von KeyList übertragen (Offset, HasDuplicates)
+    o rewrite one high-level function after the other
     o introduce KeyList, move relevant functions
         o including extkeys (and their cache)
         o try to create interface similar to PAX KeyList

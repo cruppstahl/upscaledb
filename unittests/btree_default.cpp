@@ -419,7 +419,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
     abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, true> >, hamsterdb::VariableSizeCompare>");
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultKeyList<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultKeyList<unsigned short, true>, true> >, hamsterdb::VariableSizeCompare>");
   }
 #endif
 }
@@ -564,7 +564,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
     abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, false> > >, hamsterdb::VariableSizeCompare>");
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultKeyList<unsigned short, false>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultKeyList<unsigned short, false> > >, hamsterdb::VariableSizeCompare>");
   }
 #endif
 }
@@ -586,7 +586,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
     abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::FixedLayoutImpl<unsigned short, true> > >, hamsterdb::NumericCompare<unsigned int> >");
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedKeyList<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::FixedKeyList<unsigned short, true> > >, hamsterdb::NumericCompare<unsigned int> >");
   }
 #endif
 
@@ -611,7 +611,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
     abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultLayoutImpl<unsigned short, true> > >, hamsterdb::VariableSizeCompare>");
+    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultKeyList<unsigned short, true>, hamsterdb::FixedInlineRecordImpl<hamsterdb::DefaultKeyList<unsigned short, true> > >, hamsterdb::VariableSizeCompare>");
   }
 #endif
 

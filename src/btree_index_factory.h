@@ -67,14 +67,14 @@ struct BtreeIndexFactory
     bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
     ham_u32_t page_size = db->get_local_env()->get_page_size();
 
-    typedef FixedLayoutImpl<ham_u16_t, false> FixedLayout16;
-    typedef FixedLayoutImpl<ham_u16_t, true> FixedDuplicateLayout16;
-    typedef FixedLayoutImpl<ham_u32_t, false> FixedLayout32;
-    typedef FixedLayoutImpl<ham_u32_t, true> FixedDuplicateLayout32;
-    typedef DefaultLayoutImpl<ham_u16_t, false> DefaultLayout16;
-    typedef DefaultLayoutImpl<ham_u16_t, true> DefaultDuplicateLayout16;
-    typedef DefaultLayoutImpl<ham_u32_t, false> DefaultLayout32;
-    typedef DefaultLayoutImpl<ham_u32_t, true> DefaultDuplicateLayout32;
+    typedef FixedKeyList<ham_u16_t, false> FixedLayout16;
+    typedef FixedKeyList<ham_u16_t, true> FixedDuplicateLayout16;
+    typedef FixedKeyList<ham_u32_t, false> FixedLayout32;
+    typedef FixedKeyList<ham_u32_t, true> FixedDuplicateLayout32;
+    typedef DefaultKeyList<ham_u16_t, false> DefaultLayout16;
+    typedef DefaultKeyList<ham_u16_t, true> DefaultDuplicateLayout16;
+    typedef DefaultKeyList<ham_u32_t, false> DefaultLayout32;
+    typedef DefaultKeyList<ham_u32_t, true> DefaultDuplicateLayout32;
 
     typedef DefaultInlineRecordImpl<FixedDuplicateLayout16, true>
                     DefaultInlineRecord16;
