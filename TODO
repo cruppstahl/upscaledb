@@ -420,15 +420,6 @@ x Refactorings for the PAX layout with the following goals:
         x remove RecordList::is_always_fixed_size
         x remove RecordList::get_max_inline_record_size
 
-o PRO: how can we track down the snappy-issue on win32?
-    o compile & test on MSVC2010; if it works then it's a compiler bug
-        -> install service pack for MSVC2008
-        -> helps? then document it! or (better) take precautions in
-            compressor_snappy.h
-    o write the uncompressed data AND the compressed data to a file; then
-        write a small test program which uncompresses the compressed data
-        and compares it to the original
-
 o default layout: the lookup operations are relatively slow compared to PAX;
     can we somehow improve this?
     o run profiling on a read-only workload, w/o records
@@ -602,6 +593,9 @@ o PRO: add sse support for real64
 o PRO: CRC32-checksums (as soon as the file format is updated)
     o SSE2 has support for a CRC32 checksum calculation, or find a good
         library
+
+o PRO: enable SIMD in the default layout if it uses the same KeyList as
+    in PAX *and* if record IDs are stored separately from the keys
 
 o PRO: bulk updates (really only for pro?)
     - require delta updates

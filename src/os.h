@@ -73,23 +73,23 @@ class File
     // mmap is called with MAP_PRIVATE - the allocated buffer
     // is just a copy of the file; writing to the buffer will not alter
     // the file itself.
-    void mmap(ham_u64_t position, ham_u64_t size, bool readonly,
+    void mmap(ham_u64_t position, size_t size, bool readonly,
                     ham_u8_t **buffer);
 
     // Unmaps a buffer
-    void munmap(void *buffer, ham_u64_t size);
+    void munmap(void *buffer, size_t size);
 
     // Positional read from a file
-    void pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen);
+    void pread(ham_u64_t addr, void *buffer, size_t len);
 
     // Positional write to a file
-    void pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen);
+    void pwrite(ham_u64_t addr, const void *buffer, size_t len);
 
     // Write data to a file; uses the current file position
-    void write(const void *buffer, ham_u64_t bufferlen);
+    void write(const void *buffer, size_t len);
 
     // Get the page allocation granularity of the operating system
-    static ham_u32_t get_granularity();
+    static size_t get_granularity();
 
     // Seek position in a file
     void seek(ham_u64_t offset, int whence);
@@ -138,10 +138,10 @@ class Socket
     void connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec);
 
     // Sends data to the connected server
-    void send(const ham_u8_t *data, ham_u32_t data_size);
+    void send(const ham_u8_t *data, size_t len);
 
     // Receives data from the connected server; blocking!
-    void recv(ham_u8_t *data, ham_u32_t data_size);
+    void recv(ham_u8_t *data, size_t len);
 
     // Closes the connection; no problem if socket was already closed
     void close();

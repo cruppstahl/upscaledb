@@ -84,19 +84,19 @@ class InMemoryDevice : public Device {
     }
 
     // reads from the device; this function does not use mmap 
-    virtual void read(ham_u64_t offset, void *buffer, ham_u64_t size) {
+    virtual void read(ham_u64_t offset, void *buffer, size_t len) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // writes to the device 
-    virtual void write(ham_u64_t offset, void *buffer, ham_u64_t size) {
+    virtual void write(ham_u64_t offset, void *buffer, size_t len) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // reads a page from the device 
-    virtual void read_page(Page *page, ham_u32_t page_size) {
+    virtual void read_page(Page *page, size_t page_size) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -107,13 +107,13 @@ class InMemoryDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
-    virtual ham_u64_t alloc(ham_u32_t size) {
+    virtual ham_u64_t alloc(size_t size) {
       ham_assert(!"can't alloc from an in-memory-device");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // allocate storage for a page from this device 
-    virtual void alloc_page(Page *page, ham_u32_t page_size) {
+    virtual void alloc_page(Page *page, size_t page_size) {
       ham_assert(page->get_data() == 0);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);

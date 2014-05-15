@@ -135,7 +135,7 @@ class LocalEnvironment : public Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-                    ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
+                    ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
                     ham_u16_t maxdbs);
 
     // Opens a new Environment (ham_env_open)
@@ -209,7 +209,7 @@ class LocalEnvironment : public Environment
     ham_u8_t m_encryption_key[16];
 
     // The page_size which was specified when the env was created
-    ham_u32_t m_page_size;
+    size_t m_page_size;
 };
 
 } // namespace hamsterdb

@@ -357,7 +357,7 @@ done:
 }
 
 Page *
-PageManager::alloc_multiple_blob_pages(LocalDatabase *db, int num_pages)
+PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
 {
   // allocate only one page? then use the normal ::alloc_page() method
   if (num_pages == 1)
@@ -371,7 +371,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, int num_pages)
     for (FreeMap::iterator it = m_free_pages.begin(); it != m_free_pages.end();
             it++) {
       if (it->second >= num_pages) {
-        for (int i = 0; i < num_pages; i++) {
+        for (size_t i = 0; i < num_pages; i++) {
           if (i == 0) {
             page = fetch_page(db, it->first);
             page->set_type(Page::kTypeBlob);
@@ -399,7 +399,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, int num_pages)
   // disable "store state": the PageManager otherwise could alloc overflow
   // pages in the middle of our blob sequence.
   ham_u32_t flags = kIgnoreFreelist | kDisableStoreState;
-  for (int i = 0; i < num_pages; i++) {
+  for (size_t i = 0; i < num_pages; i++) {
     if (page == 0)
       page = alloc_page(db, Page::kTypeBlob, flags);
     else {
@@ -548,9 +548,12 @@ PageManager::reclaim_space()
 }
 
 void
-PageManager::add_to_freelist(Page *page, int page_count)
+PageManager::add_to_freelist(Page *page, size_t page_count)
 {
   ham_assert(page_count > 0);
+
+  if (m_env->get_flags() & HAM_IN_MEMORY)
+    return;
 
   m_needs_flush = true;
   m_free_pages[page->get_address()] = page_count;

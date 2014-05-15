@@ -105,7 +105,7 @@ class Environment
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-                    ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
+                    ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
                     ham_u16_t maxdbs) = 0;
 
     // Opens a new Environment (ham_env_open)
@@ -121,7 +121,7 @@ class Environment
 
     // Returns all database names (ham_env_get_database_names)
     virtual ham_status_t get_database_names(ham_u16_t *names,
-            ham_u32_t *count) = 0;
+                    ham_u32_t *count) = 0;
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;

@@ -35,7 +35,7 @@ namespace hamsterdb {
 //
 class PageManager {
     // The freelist maps page-id to number of free pages (usually 1)
-    typedef std::map<ham_u64_t, int> FreeMap;
+    typedef std::map<ham_u64_t, size_t> FreeMap;
 
   public:
     // Flags for PageManager::alloc_page()
@@ -102,7 +102,7 @@ class PageManager {
     //
     // Used by the BlobManager to store blobs that span multiple pages
     // Returns the first page in the list of pages
-    Page *alloc_multiple_blob_pages(LocalDatabase *, int num_pages);
+    Page *alloc_multiple_blob_pages(LocalDatabase *, size_t num_pages);
 
     // Flushes a Page to disk
     void flush_page(Page *page) {
@@ -131,8 +131,9 @@ class PageManager {
       return (m_cache.get_capacity());
     }
 
-    // Adds a page (or many pages) to the freelist
-    void add_to_freelist(Page *page, int page_count = 1);
+    // Adds a page (or many pages) to the freelist; will not do anything
+    // if the Environment is in-memory.
+    void add_to_freelist(Page *page, size_t page_count = 1);
 
     // Returns the Page pointer where we can add more blobs
     Page *get_last_blob_page(LocalDatabase *db) {
@@ -207,7 +208,7 @@ class PageManager {
 
     // Decodes a number of |n| bytes stored in |p| and returns
     // the decoded number
-    ham_u64_t decode(int n, ham_u8_t *p);
+    ham_u64_t decode(size_t n, ham_u8_t *p);
 
     // callback for purging pages
     static void purge_callback(Page *page, PageManager *pm);

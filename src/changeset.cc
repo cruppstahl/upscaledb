@@ -148,10 +148,6 @@ Changeset::flush(ham_u64_t lsn)
   // If there are unknown pages (in m_others) or PageManager state pages
   // then we also log the modifications.
   //
-  // Blob pages do not need to be logged because they are idempotent. The
-  // Journal will re-apply the logical operation of this lsn, and this
-  // will update the blob space as required.
-  //
   // Make sure that blob pages are logged at the end. Multi-page blob pages
   // do not have a header and therefore don't store a lsn. But the lsn is
   // required for recovery. Therefore make sure that pages WITH a page header

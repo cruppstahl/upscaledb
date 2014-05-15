@@ -417,7 +417,7 @@ struct JournalFixture {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(1ull == j->test_get_lsn());
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((LocalTransaction *)txn, m_lenv, 0, j->test_get_lsn());
+    j->append_txn_begin((LocalTransaction *)txn, 0, j->test_get_lsn());
     j->close(true);
 
     j->open();

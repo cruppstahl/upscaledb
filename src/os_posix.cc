@@ -86,15 +86,15 @@ enable_largefile(int fd)
 }
 
 static void
-os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
+os_read(ham_fd_t fd, ham_u8_t *buffer, size_t len)
 {
-  os_log(("os_read: fd=%d, size=%lld", fd, bufferlen));
+  os_log(("os_read: fd=%d, size=%lld", fd, len));
 
   int r;
-  ham_u32_t total = 0;
+  size_t total = 0;
 
-  while (total < bufferlen) {
-    r = read(fd, &buffer[total], bufferlen - total);
+  while (total < len) {
+    r = read(fd, &buffer[total], len - total);
     if (r < 0) {
       ham_log(("os_read failed with status %u (%s)", errno, strerror(errno)));
       throw Exception(HAM_IO_ERROR);
@@ -104,21 +104,21 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
     total += r;
   }
 
-  if (total != bufferlen) {
+  if (total != len) {
     ham_log(("os_read() failed with short read (%s)", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
   }
 }
 
 static void
-os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
+os_write(ham_fd_t fd, const void *buffer, size_t len)
 {
   int w;
-  ham_u64_t total = 0;
+  size_t total = 0;
   const char *p = (const char *)buffer;
 
-  while (total < bufferlen) {
-    w = ::write(fd, p + total, bufferlen - total);
+  while (total < len) {
+    w = ::write(fd, p + total, len - total);
     if (w < 0) {
       ham_log(("os_write failed with status %u (%s)", errno,
                               strerror(errno)));
@@ -129,20 +129,20 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
     total += w;
   }
 
-  if (total != bufferlen) {
+  if (total != len) {
     ham_log(("os_write() failed with short read (%s)", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
   }
 }
 
-ham_u32_t
+size_t
 File::get_granularity()
 {
-  return ((ham_u32_t)sysconf(_SC_PAGE_SIZE));
+  return ((size_t)sysconf(_SC_PAGE_SIZE));
 }
 
 void
-File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
+File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
 {
   os_log(("File::mmap: fd=%d, position=%lld, size=%lld", m_fd, position, size));
 
@@ -163,7 +163,7 @@ File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
 }
 
 void
-File::munmap(void *buffer, ham_u64_t size)
+File::munmap(void *buffer, size_t size)
 {
   os_log(("File::munmap: size=%lld", size));
 
@@ -181,17 +181,17 @@ File::munmap(void *buffer, ham_u64_t size)
 }
 
 void
-File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
+File::pread(ham_u64_t addr, void *buffer, size_t len)
 {
 #if HAVE_PREAD
   os_log(("File::pread: fd=%d, address=%lld, size=%lld", m_fd, addr,
-                          bufferlen));
+                          len));
 
   int r;
-  ham_u64_t total = 0;
+  size_t total = 0;
 
-  while (total < bufferlen) {
-    r = ::pread(m_fd, (ham_u8_t *)buffer + total, bufferlen - total,
+  while (total < len) {
+    r = ::pread(m_fd, (ham_u8_t *)buffer + total, len - total,
                     addr + total);
     if (r < 0) {
       ham_log(("File::pread failed with status %u (%s)", errno,
@@ -203,28 +203,27 @@ File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
     total += r;
   }
 
-  if (total != bufferlen) {
+  if (total != len) {
     ham_log(("File::pread() failed with short read (%s)", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
   }
 #else
   File::seek(addr, kSeekSet);
-  os_read(m_fd, (ham_u8_t *)buffer, bufferlen);
+  os_read(m_fd, (ham_u8_t *)buffer, len);
 #endif
 }
 
 void
-File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
+File::pwrite(ham_u64_t addr, const void *buffer, size_t len)
 {
-  os_log(("File::pwrite: fd=%d, address=%lld, size=%lld", m_fd, addr,
-                          bufferlen));
+  os_log(("File::pwrite: fd=%d, address=%lld, size=%lld", m_fd, addr, len));
 
 #if HAVE_PWRITE
   ssize_t s;
-  ham_u64_t total = 0;
+  size_t total = 0;
 
-  while (total < bufferlen) {
-    s = ::pwrite(m_fd, buffer, bufferlen, addr + total);
+  while (total < len) {
+    s = ::pwrite(m_fd, buffer, len, addr + total);
     if (s < 0) {
       ham_log(("pwrite() failed with status %u (%s)", errno, strerror(errno)));
       throw Exception(HAM_IO_ERROR);
@@ -234,21 +233,21 @@ File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
     total += s;
   }
 
-  if (total != bufferlen) {
+  if (total != len) {
     ham_log(("pwrite() failed with short read (%s)", strerror(errno)));
     throw Exception(HAM_IO_ERROR);
   }
 #else
   seek(addr, kSeekSet);
-  write(buffer, bufferlen);
+  write(buffer, len);
 #endif
 }
 
 void
-File::write(const void *buffer, ham_u64_t bufferlen)
+File::write(const void *buffer, size_t len)
 {
-  os_log(("File::write: fd=%d, size=%lld", m_fd, bufferlen));
-  os_write(m_fd, buffer, bufferlen);
+  os_log(("File::write: fd=%d, size=%lld", m_fd, len));
+  os_write(m_fd, buffer, len);
 }
 
 void
@@ -419,15 +418,15 @@ Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 }
 
 void
-Socket::send(const ham_u8_t *data, ham_u32_t data_size)
+Socket::send(const ham_u8_t *data, size_t len)
 {
-  os_write(m_socket, data, data_size);
+  os_write(m_socket, data, len);
 }
 
 void
-Socket::recv(ham_u8_t *data, ham_u32_t data_size)
+Socket::recv(ham_u8_t *data, size_t len)
 {
-  os_read(m_socket, data, data_size);
+  os_read(m_socket, data, len);
 }
 
 void

@@ -55,7 +55,7 @@ class DiskDevice : public Device {
 
       // make sure we do not exceed the "real" size of the file, otherwise
       // we run into issues when accessing that memory (at least on windows)
-      ham_u32_t granularity = File::get_granularity();
+      size_t granularity = File::get_granularity();
       if (open_filesize == 0 || open_filesize % granularity)
         return;
 
@@ -103,20 +103,20 @@ class DiskDevice : public Device {
     }
 
     // reads from the device; this function does NOT use mmap
-    virtual void read(ham_u64_t offset, void *buffer, ham_u64_t size) {
-      m_file.pread(offset, buffer, size);
+    virtual void read(ham_u64_t offset, void *buffer, size_t len) {
+      m_file.pread(offset, buffer, len);
     }
 
     // writes to the device; this function does not use mmap,
     // and is responsible for writing the data is run through the file
     // filters
-    virtual void write(ham_u64_t offset, void *buffer, ham_u64_t size) {
-      m_file.pwrite(offset, buffer, size);
+    virtual void write(ham_u64_t offset, void *buffer, size_t len) {
+      m_file.pwrite(offset, buffer, len);
     }
 
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
-    virtual void read_page(Page *page, ham_u32_t page_size) {
+    virtual void read_page(Page *page, size_t page_size) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (page->get_address() < m_mapped_size && m_mmapptr != 0) {
@@ -146,15 +146,15 @@ class DiskDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
-    virtual ham_u64_t alloc(ham_u32_t size) {
+    virtual ham_u64_t alloc(size_t len) {
       ham_u64_t address = m_file.get_file_size();
-      m_file.truncate(address + size);
+      m_file.truncate(address + len);
       return (address);
     }
 
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
-    virtual void alloc_page(Page *page, ham_u32_t page_size) {
+    virtual void alloc_page(Page *page, size_t page_size) {
       ham_u64_t pos = m_file.get_file_size();
 
       m_file.truncate(pos + page_size);

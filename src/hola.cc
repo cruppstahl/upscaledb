@@ -64,13 +64,13 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) {
+                  size_t duplicate_count) {
     if (m_pred->predicate_func(key_data, key_size, m_pred->context))
       m_count++;
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) {
+  virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     for (; p < end; p++) {
@@ -270,7 +270,7 @@ struct AverageScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) {
+                  size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
     m_sum += *(const PodType *)key_data * duplicate_count;
@@ -278,7 +278,7 @@ struct AverageScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) {
+  virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     for (; p < end; p++)
@@ -373,7 +373,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) {
+                  size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
     if (m_pred->predicate_func(key_data, key_size, m_pred->context)) {
@@ -383,7 +383,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) {
+  virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     for (; p < end; p++) {
@@ -489,13 +489,13 @@ struct SumScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) {
+                  size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
     m_sum += *(const PodType *)key_data * duplicate_count;
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) {
+  virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     for (; p < end; p++)
@@ -585,7 +585,7 @@ struct SumIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) {
+                  size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
     if (m_pred->predicate_func(key_data, key_size, m_pred->context))
@@ -593,7 +593,7 @@ struct SumIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) {
+  virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     for (; p < end; p++) {

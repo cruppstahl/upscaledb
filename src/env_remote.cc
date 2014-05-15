@@ -101,7 +101,7 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 
 ham_status_t
 RemoteEnvironment::create(const char *url, ham_u32_t flags,
-        ham_u32_t mode, ham_u32_t page_size, ham_u64_t cache_size,
+        ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
         ham_u16_t maxdbs)
 {
   // the 'create' operation is identical to 'open'

@@ -72,26 +72,24 @@ class Device {
     virtual ham_u64_t tell() = 0;
 
     // reads from the device; this function does not use mmap
-    virtual void read(ham_u64_t offset, void *buffer,
-                ham_u64_t size) = 0;
+    virtual void read(ham_u64_t offset, void *buffer, size_t len) = 0;
 
     // writes to the device; this function does not use mmap
-    virtual void write(ham_u64_t offset, void *buffer,
-                ham_u64_t size) = 0;
+    virtual void write(ham_u64_t offset, void *buffer, size_t len) = 0;
 
     // reads a page from the device; this function CAN use mmap
-    virtual void read_page(Page *page, ham_u32_t page_size) = 0;
+    virtual void read_page(Page *page, size_t page_size) = 0;
 
     // writes a page to the device
     virtual void write_page(Page *page) = 0;
 
     // allocate storage from this device; this function
-    // will *NOT* use mmap.
-    virtual ham_u64_t alloc(ham_u32_t size) = 0;
+    // will *NOT* use mmap. returns the offset of the allocated storage.
+    virtual ham_u64_t alloc(size_t len) = 0;
 
     // allocate storage for a page from this device; this function
     // can use mmap if available
-    virtual void alloc_page(Page *page, ham_u32_t page_size) = 0;
+    virtual void alloc_page(Page *page, size_t page_size) = 0;
 
     // frees a page on the device
     //

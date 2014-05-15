@@ -161,7 +161,7 @@ struct PDupeEntry;
 
 struct BtreeVisitor {
   virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, ham_u32_t key_size, 
+                  ham_u8_t key_flags, size_t key_size, 
                   ham_u64_t record_id) = 0;
 };
 
@@ -179,7 +179,7 @@ class BtreeIndexTraits
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
     virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
-            ham_key_t *rhs) const = 0;
+                    ham_key_t *rhs) const = 0;
 
     // Returns the class name (for testing)
     virtual std::string test_get_classname() const = 0;
@@ -205,7 +205,7 @@ class BtreeIndex
 
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-            ham_u32_t key_type, ham_u32_t key_size);
+                    ham_u32_t key_type, ham_u32_t key_size);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -263,17 +263,17 @@ class BtreeIndex
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,
-            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
     ham_status_t insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+                    ham_record_t *record, ham_u32_t flags);
 
     // Erases a key/record from the index (ham_db_erase).
-    // If |duplicate| is 0 then all duplicates are erased, otherwise only
+    // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
     ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-            ham_u32_t duplicate, ham_u32_t flags);
+                    ham_u32_t duplicate_index, ham_u32_t flags);
 
     // Iterates over the whole index and enumerate every item
     void enumerate(BtreeVisitor &visitor,
@@ -370,7 +370,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_child(Page *parent, ham_key_t *key, ham_s32_t *idxptr = 0);
+    Page *find_child(Page *parent, ham_key_t *key, int *idxptr = 0);
 
     // Searches a leaf node for a key.
     //
@@ -379,7 +379,7 @@ class BtreeIndex
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    ham_s32_t find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
+    int find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
 
     // pointer to the database object
     LocalDatabase *m_db;

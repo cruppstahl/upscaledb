@@ -67,7 +67,7 @@ class Cache
     // Retrieves a page from the cache, also removes the page from the cache
     // and re-inserts it at the front. Returns null if the page was not cached.
     Page *get_page(ham_u64_t address, ham_u32_t flags = 0) {
-      ham_u64_t hash = calc_hash(address);
+      size_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
         if (page->get_address() == address)
@@ -94,7 +94,7 @@ class Cache
 
     // Stores a page in the cache
     void put_page(Page *page) {
-      ham_u64_t hash = calc_hash(page->get_address());
+      size_t hash = calc_hash(page->get_address());
 
       ham_assert(page->get_data());
 
@@ -143,7 +143,7 @@ class Cache
 
       /* remove the page from the cache buckets */
       if (page->get_address()) {
-        ham_u64_t hash = calc_hash(page->get_address());
+        size_t hash = calc_hash(page->get_address());
         if (page->is_in_list(m_buckets[hash], Page::kListBucket)) {
           m_buckets[hash] = page->list_remove(m_buckets[hash],
                         Page::kListBucket);
@@ -226,7 +226,7 @@ class Cache
     }
 
     // Returns the number of currently cached elements
-    ham_u64_t get_current_elements() const {
+    size_t get_current_elements() const {
       return (m_cur_elements);
     }
 
@@ -255,8 +255,8 @@ class Cache
     }
 
     // Calculates the hash of a page address
-    ham_u64_t calc_hash(ham_u64_t o) const {
-      return (o % kBucketSize);
+    size_t calc_hash(ham_u64_t o) const {
+      return ((size_t)(o % kBucketSize));
     }
 
     // Sets the HEAD of the global page list
@@ -271,11 +271,11 @@ class Cache
     ham_u64_t m_capacity;
 
     // the current number of cached elements
-    ham_u64_t m_cur_elements;
+    size_t m_cur_elements;
 
     // the current number of cached elements that were allocated (and not
     // mapped)
-    ham_u64_t m_alloc_elements;
+    size_t m_alloc_elements;
 
     // linked list of ALL cached pages
     Page *m_totallist;

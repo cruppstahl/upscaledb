@@ -84,16 +84,16 @@ calc_wlen4str(const char *str)
   return (int)len;
 }
 
-ham_u32_t
+size_t
 File::get_granularity()
 {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
-  return ((ham_u32_t)info.dwAllocationGranularity);
+  return ((size_t)info.dwAllocationGranularity);
 }
 
 void
-File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
+File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
 {
   ham_status_t st;
   DWORD protect = (readonly ? PAGE_READONLY : PAGE_WRITECOPY);
@@ -128,7 +128,7 @@ File::mmap(ham_u64_t position, ham_u64_t size, bool readonly, ham_u8_t **buffer)
 }
 
 void
-File::munmap(void *buffer, ham_u64_t size)
+File::munmap(void *buffer, size_t size)
 {
   ham_status_t st;
 
@@ -152,14 +152,14 @@ File::munmap(void *buffer, ham_u64_t size)
 }
 
 void
-File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
+File::pread(ham_u64_t addr, void *buffer, size_t len)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
   ov.OffsetHigh = addr >> 32;
   DWORD read;
-  if (!::ReadFile(m_fd, buffer, (DWORD)bufferlen, &read, &ov)) {
+  if (!::ReadFile(m_fd, buffer, (DWORD)len, &read, &ov)) {
     if (GetLastError() != ERROR_IO_PENDING) {
       char buf[256];
       st = (ham_status_t)GetLastError();
@@ -176,19 +176,19 @@ File::pread(ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
     }
   }
 
-  if (read != bufferlen)
+  if (read != len)
     throw Exception(HAM_IO_ERROR);
 }
 
 void
-File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
+File::pwrite(ham_u64_t addr, const void *buffer, size_t len)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
   ov.OffsetHigh = addr >> 32;
   DWORD written;
-  if (!::WriteFile(m_fd, buffer, (DWORD)bufferlen, &written, &ov)) {
+  if (!::WriteFile(m_fd, buffer, (DWORD)len, &written, &ov)) {
     if (GetLastError() != ERROR_IO_PENDING) {
       char buf[256];
       st = (ham_status_t)GetLastError();
@@ -205,17 +205,17 @@ File::pwrite(ham_u64_t addr, const void *buffer, ham_u64_t bufferlen)
     }
   }
 
-  if (written != bufferlen)
+  if (written != len)
     throw Exception(HAM_IO_ERROR);
 }
 
 void
-File::write(const void *buffer, ham_u64_t bufferlen)
+File::write(const void *buffer, size_t len)
 {
   ham_status_t st;
   DWORD written = 0;
 
-  if (!WriteFile(m_fd, buffer, (DWORD)bufferlen, &written, 0)) {
+  if (!WriteFile(m_fd, buffer, (DWORD)len, &written, 0)) {
     char buf[256];
     st = (ham_status_t)GetLastError();
     ham_log(("WriteFile failed with OS status %u (%s)", st,
@@ -223,7 +223,7 @@ File::write(const void *buffer, ham_u64_t bufferlen)
     throw Exception(HAM_IO_ERROR);
   }
 
-  if (written != bufferlen)
+  if (written != len)
     throw Exception(HAM_IO_ERROR);
 }
 
@@ -470,14 +470,14 @@ Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 }
 
 void
-Socket::send(const ham_u8_t *data, ham_u32_t data_size)
+Socket::send(const ham_u8_t *data, size_t len)
 {
-  int sent = 0;
+  size_t sent = 0;
   char buf[256];
   ham_status_t st;
   
-  while (sent != data_size) {
-    int s = ::send(m_socket, (const char *)(data + sent), data_size - sent, 0);
+  while (sent != len) {
+    int s = ::send(m_socket, (const char *)(data + sent), len - sent, 0);
 	if (s <= 0) {
       st = (ham_status_t)GetLastError();
       ham_log(("send failed with OS status %u (%s)", st,
@@ -489,14 +489,14 @@ Socket::send(const ham_u8_t *data, ham_u32_t data_size)
 }
 
 void
-Socket::recv(ham_u8_t *data, ham_u32_t data_size)
+Socket::recv(ham_u8_t *data, size_t len)
 {
-  int read = 0;
+  size_t read = 0;
   char buf[256];
   ham_status_t st;
   
-  while (read != data_size) {
-    int r = ::recv(m_socket, (char *)(data + read), data_size - read, 0);
+  while (read != len) {
+    int r = ::recv(m_socket, (char *)(data + read), len - read, 0);
 	if (r <= 0) {
       st = (ham_status_t)GetLastError();
       ham_log(("recv failed with OS status %u (%s)", st,

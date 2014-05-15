@@ -229,7 +229,7 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
   if (env->get_flags() & HAM_ENABLE_RECOVERY
       && env->get_flags() & HAM_ENABLE_TRANSACTIONS
       && !(flags & HAM_TXN_TEMPORARY)) {
-    env->get_journal()->append_txn_begin(this, env, name,
+    env->get_journal()->append_txn_begin(this, name,
             env->get_incremented_lsn());
   }
 }

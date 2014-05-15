@@ -49,11 +49,10 @@ Journal::Journal(LocalEnvironment *env)
 void
 Journal::create()
 {
-  int i;
   PJournalHeader header;
 
   // create the two files
-  for (i = 0; i < 2; i++) {
+  for (int i = 0; i < 2; i++) {
     std::string path = get_path(i);
     m_files[i].create(path.c_str(), 0, 0644);
 
@@ -65,7 +64,6 @@ Journal::create()
 void
 Journal::open()
 {
-  int i;
   PJournalHeader header;
   PJournalEntry entry;
   PJournalTrailer trailer;
@@ -100,7 +98,7 @@ Journal::open()
 
   // now read the header structures of both files; the file with the larger
   // lsn is "newer"
-  for (i = 0; i < 2; i++) {
+  for (int i = 0; i < 2; i++) {
     // check the magic
     m_files[i].pread(0, &header, sizeof(header));
 
@@ -175,8 +173,8 @@ Journal::switch_files_maybe(LocalTransaction *txn)
 }
 
 void
-Journal::append_txn_begin(LocalTransaction *txn, LocalEnvironment *env, 
-                const char *name, ham_u64_t lsn)
+Journal::append_txn_begin(LocalTransaction *txn, const char *name,
+                ham_u64_t lsn)
 {
   if (m_disable_logging)
     return;

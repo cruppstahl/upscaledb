@@ -41,10 +41,10 @@ class Cursor;
 struct ScanVisitor {
   // Operates on a single key
   virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  ham_u32_t duplicate_count) = 0;
+                  size_t duplicate_count) = 0;
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, ham_u32_t key_count) = 0;
+  virtual void operator()(const void *key_array, size_t key_count) = 0;
 
   // Assigns the internal result to |result|
   virtual void assign_result(hola_result_t *result) = 0;

@@ -27,7 +27,7 @@ namespace hamsterdb {
 struct Pickle {
   /* encodes a uint64 number and stores it in |p|; returns the number of
    * bytes used */
-  static int encode_u64(ham_u8_t *p, ham_u64_t n) {
+  static size_t encode_u64(ham_u8_t *p, ham_u64_t n) {
     if (n <= 0xf) {
       *p = n;
       return (1);
@@ -88,12 +88,12 @@ struct Pickle {
     return (8);
   }
 
-  /* decodes and returns a pickled number */
-  static ham_u64_t decode_u64(int n, ham_u8_t *p) {
+  /* decodes and returns a pickled number of |len| bytes */
+  static ham_u64_t decode_u64(size_t len, ham_u8_t *p) {
     ham_u64_t ret = 0;
 
-    for (int i = 0; i < n - 1; i++) {
-      ret += *(p + (n - i - 1));
+    for (size_t i = 0; i < len - 1; i++) {
+      ret += *(p + (len - i - 1));
       ret <<= 4;
     }
 

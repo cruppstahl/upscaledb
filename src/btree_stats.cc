@@ -157,7 +157,7 @@ BtreeStatistics::get_insert_hints(ham_u32_t flags)
 }
 
 void
-BtreeStatistics::set_page_capacity(ham_u32_t capacity)
+BtreeStatistics::set_page_capacity(size_t capacity)
 {
   // store the capacity in the first free slot; if all slots are full then
   // remove the oldest one
@@ -173,11 +173,11 @@ BtreeStatistics::set_page_capacity(ham_u32_t capacity)
   m_page_capacities[kMaxCapacities - 1] = capacity;
 }
 
-ham_u32_t
+size_t
 BtreeStatistics::get_default_page_capacity() const
 {
-  ham_u32_t total = 0;
-  ham_u32_t count = 0;
+  size_t total = 0;
+  size_t count = 0;
   for (int i = 0; i < kMaxCapacities; i++) {
     if (m_page_capacities[i] != 0) {
       total += m_page_capacities[i];

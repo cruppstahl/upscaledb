@@ -185,12 +185,6 @@ typedef int                ham_bool_t;
  */
 typedef int                ham_status_t;
 
-/**
- * maximum values which can be stored in the related ham_[type]_t type:
- */
-#define HAM_MAX_U32         (~(ham_u32_t)0)
-#define HAM_MAX_SIZE_T      (~(ham_u32_t)0)
-
 
 #ifdef __cplusplus
 } // extern "C"

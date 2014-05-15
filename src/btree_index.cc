@@ -115,7 +115,7 @@ BtreeIndex::flush_descriptor()
 }
 
 Page *
-BtreeIndex::find_child(Page *page, ham_key_t *key, ham_s32_t *idxptr)
+BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
 
@@ -143,7 +143,7 @@ BtreeIndex::find_child(Page *page, ham_key_t *key, ham_s32_t *idxptr)
                     record_id));
 }
 
-ham_s32_t
+int
 BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 {
   /* ensure the approx flag is NOT set by anyone yet */
@@ -386,7 +386,7 @@ class CalcKeysVisitor : public BtreeVisitor {
     }
 
     virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, ham_u32_t key_size, 
+                  ham_u8_t key_flags, size_t key_size, 
                   ham_u64_t record_id) {
       ham_u32_t count = node->get_count();
 
@@ -425,7 +425,7 @@ BtreeIndex::count(bool distinct)
 class FreeBlobsVisitor : public BtreeVisitor {
   public:
     virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, ham_u32_t key_size, 
+                  ham_u8_t key_flags, size_t key_size, 
                   ham_u64_t record_id) {
       node->remove_all_entries();
       // no need to continue enumerating the current page

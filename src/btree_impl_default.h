@@ -109,7 +109,6 @@ namespace hamsterdb {
 template<typename LayoutImpl, typename RecordList>
 class DefaultNodeImpl;
 
-
 //
 // A (static) helper class for dealing with extended duplicate tables
 //
@@ -162,7 +161,7 @@ class FixedLayoutImpl
 
   public:
     // Performs initialization
-    void initialize(ham_u8_t *data, ham_u32_t key_size) {
+    void initialize(ham_u8_t *data, size_t key_size) {
       m_data = data;
       m_key_size = key_size;
       // this layout only works with fixed sizes!
@@ -253,7 +252,7 @@ class FixedLayoutImpl
     ham_u8_t *m_data;
 
     // The constant key size
-    ham_u16_t m_key_size;
+    size_t m_key_size;
 };
 
 //
@@ -271,7 +270,7 @@ class DefaultLayoutImpl
 
   public:
     // Initialization
-    void initialize(ham_u8_t *data, ham_u32_t key_size) {
+    void initialize(ham_u8_t *data, size_t key_size) {
       m_data = data;
       // this layout only works with unlimited/variable sizes!
       ham_assert(key_size == HAM_KEY_SIZE_UNLIMITED);
@@ -360,24 +359,6 @@ class DefaultLayoutImpl
     // the serialized data
     ham_u8_t *m_data;
 };
-
-//
-// A helper class to sort ranges; used during validation of the up-front
-// index in check_index_integrity()
-//
-struct SortHelper {
-  ham_u32_t offset;
-  ham_u32_t slot;
-
-  bool operator<(const SortHelper &rhs) const {
-    return (offset < rhs.offset);
-  }
-};
-
-static bool
-sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
-  return (lhs.offset < rhs.offset);
-}
 
 //
 // A RecordList for the default inline records, storing 8 byte record IDs
@@ -858,6 +839,24 @@ class InternalInlineRecordImpl
   private:
     NodeType *m_layout;
 };
+
+//
+// A helper class to sort ranges; used during validation of the up-front
+// index in check_index_integrity()
+//
+struct SortHelper {
+  ham_u32_t offset;
+  ham_u32_t slot;
+
+  bool operator<(const SortHelper &rhs) const {
+    return (offset < rhs.offset);
+  }
+};
+
+static bool
+sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
+  return (lhs.offset < rhs.offset);
+}
 
 //
 // A BtreeNodeProxy layout which stores key flags, key size, key data

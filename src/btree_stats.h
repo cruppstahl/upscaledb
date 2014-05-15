@@ -69,10 +69,10 @@ class BtreeStatistics {
       ham_u16_t processed_slot;
 
       // count the number of appends
-      ham_u32_t append_count;
+      size_t append_count;
 
       // count the number of prepends
-      ham_u32_t prepend_count;
+      size_t prepend_count;
     };
 
     // Constructor
@@ -106,27 +106,27 @@ class BtreeStatistics {
     void reset_page(Page *page);
 
     // Sets the capacity of a page
-    void set_page_capacity(ham_u32_t capacity);
+    void set_page_capacity(size_t capacity);
 
     // Returns the default capacity for a page (default layout), or 0
     // if there was not enough data
-    ham_u32_t get_default_page_capacity() const;
+    size_t get_default_page_capacity() const;
 
   private:
     // last leaf page for find/insert/erase
     ham_u64_t m_last_leaf_pages[kOperationMax];
 
     // count of how often this leaf page was used
-    ham_u32_t m_last_leaf_count[kOperationMax];
+    size_t m_last_leaf_count[kOperationMax];
 
     // count the number of appends
-    ham_u32_t m_append_count;
+    size_t m_append_count;
 
     // count the number of prepends
-    ham_u32_t m_prepend_count;
+    size_t m_prepend_count;
 
     // the page capacities of the last couple of pages
-    ham_u32_t m_page_capacities[kMaxCapacities];
+    size_t m_page_capacities[kMaxCapacities];
 };
 
 } // namespace hamsterdb

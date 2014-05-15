@@ -275,13 +275,11 @@ class Page {
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int which) {
-      if (get_next(which))
+      if (get_next(which) != 0)
         return (true);
-      if (get_previous(which))
+      if (get_previous(which) != 0)
         return (true);
-      if (list_head == this)
-        return (true);
-      return (false);
+      return (list_head == this);
     }
 
     // Inserts this page at the beginning of a list and returns the

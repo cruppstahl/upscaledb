@@ -191,13 +191,11 @@ class Journal
 
     // Returns true if the journal is empty
     bool is_empty() {
-      ham_u64_t size;
-
       if (!m_files[0].is_open() && !m_files[1].is_open())
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        size = m_files[i].get_file_size();
+        ham_u64_t size = m_files[i].get_file_size();
         if (size && size != sizeof(PJournalHeader))
           return (false);
       }
@@ -207,8 +205,8 @@ class Journal
 
     // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
     // TODO |env| parameter is not necessary
-    void append_txn_begin(LocalTransaction *txn, LocalEnvironment *env,
-                const char *name, ham_u64_t lsn);
+    void append_txn_begin(LocalTransaction *txn, const char *name,
+                    ham_u64_t lsn);
 
     // Appends a journal entry for ham_txn_abort/kEntryTypeTxnAbort
     void append_txn_abort(LocalTransaction *txn, ham_u64_t lsn);
@@ -218,12 +216,13 @@ class Journal
 
     // Appends a journal entry for ham_insert/kEntryTypeInsert
     void append_insert(Database *db, LocalTransaction *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags,
-                ham_u64_t lsn);
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags,
+                    ham_u64_t lsn);
 
     // Appends a journal entry for ham_erase/kEntryTypeErase
     void append_erase(Database *db, LocalTransaction *txn,
-                ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
+                    ham_key_t *key, ham_u32_t duplicate_index, ham_u32_t flags,
+                    ham_u64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
     void append_changeset(Page **bucket1, ham_u32_t bucket1_size,
@@ -299,11 +298,11 @@ class Journal
 
     // Appends an entry to the journal
     void append_entry(int idx,
-                const void *ptr1 = 0, ham_u32_t ptr1_size = 0,
-                const void *ptr2 = 0, ham_u32_t ptr2_size = 0,
-                const void *ptr3 = 0, ham_u32_t ptr3_size = 0,
-                const void *ptr4 = 0, ham_u32_t ptr4_size = 0,
-                const void *ptr5 = 0, ham_u32_t ptr5_size = 0) {
+                const void *ptr1 = 0, size_t ptr1_size = 0,
+                const void *ptr2 = 0, size_t ptr2_size = 0,
+                const void *ptr3 = 0, size_t ptr3_size = 0,
+                const void *ptr4 = 0, size_t ptr4_size = 0,
+                const void *ptr5 = 0, size_t ptr5_size = 0) {
       if (ptr1_size)
         m_buffer[idx].append(ptr1, ptr1_size);
       if (ptr2_size)
@@ -350,10 +349,10 @@ class Journal
     ByteArray m_buffer[2];
 
     // For counting all open transactions in the files
-    ham_u32_t m_open_txn[2];
+    size_t m_open_txn[2];
 
     // For counting all closed transactions in the files
-    ham_u32_t m_closed_txn[2];
+    size_t m_closed_txn[2];
 
     // The last used lsn
     ham_u64_t m_lsn;
@@ -363,7 +362,7 @@ class Journal
 
     // When having more than these Transactions in one file, we
     // swap the files
-    ham_u32_t m_threshold;
+    size_t m_threshold;
 
     // Set to false to disable logging; used during recovery
     bool m_disable_logging;

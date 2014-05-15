@@ -88,15 +88,18 @@ struct BtreeIndexFactory
     if (flags & HAM_RECORD_NUMBER) {
       if (!is_leaf)
         return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PodKeyList<ham_u64_t>, InternalRecordList>,
+                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                        PaxLayout::InternalRecordList>,
                     RecordNumberCompare>());
       if (inline_records)
         return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PodKeyList<ham_u64_t>, InlineRecordList>,
+                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                        PaxLayout::InlineRecordList>,
                     RecordNumberCompare>());
       else
         return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PodKeyList<ham_u64_t>, DefaultRecordList>,
+                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                        PaxLayout::DefaultRecordList>,
                     RecordNumberCompare>());
     }
 
@@ -144,15 +147,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u8_t>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<ham_u8_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u8_t>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<ham_u8_t> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u8_t>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<ham_u8_t> >());
         }
       // 16bit unsigned integer
@@ -198,15 +204,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u16_t>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<ham_u16_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u16_t>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<ham_u16_t> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u16_t>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<ham_u16_t> >());
         }
       // 32bit unsigned integer
@@ -252,15 +261,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u32_t>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<ham_u32_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u32_t>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<ham_u32_t> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u32_t>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<ham_u32_t> >());
         }
       // 64bit unsigned integer
@@ -299,15 +311,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u64_t>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<ham_u64_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u64_t>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<ham_u64_t> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<ham_u64_t>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<ham_u64_t> >());
         }
       // 32bit float
@@ -353,15 +368,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<float>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<float>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<float> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<float>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<float>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<float> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<float>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<float>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<float> >());
         }
       // 64bit double
@@ -407,15 +425,18 @@ struct BtreeIndexFactory
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<double>, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<double>,
+                            PaxLayout::InternalRecordList>,
                       NumericCompare<double> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<double>, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<double>,
+                            PaxLayout::InlineRecordList>,
                       NumericCompare<double> >());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PodKeyList<double>, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::PodKeyList<double>,
+                            PaxLayout::DefaultRecordList>,
                       NumericCompare<double> >());
         }
       // Callback function provided by user?
@@ -424,15 +445,18 @@ struct BtreeIndexFactory
         if (fixed_keys && !use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::InternalRecordList>,
                       CallbackCompare>());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::InlineRecordList>,
                       CallbackCompare>());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::DefaultRecordList>,
                       CallbackCompare>());
         }
         // Fixed keys WITH duplicates
@@ -523,15 +547,18 @@ struct BtreeIndexFactory
         if (fixed_keys && !use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, InternalRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::InternalRecordList>,
                       FixedSizeCompare>());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, InlineRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::InlineRecordList>,
                       FixedSizeCompare>());
           else
             return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<BinaryKeyList, DefaultRecordList>,
+                      <PaxNodeImpl<PaxLayout::BinaryKeyList,
+                            PaxLayout::DefaultRecordList>,
                       FixedSizeCompare>());
         }
         // fixed keys with duplicates

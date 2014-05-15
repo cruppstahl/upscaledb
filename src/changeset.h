@@ -109,20 +109,20 @@ class Changeset
      *   http://social.msdn.microsoft.com/Forums/en-us/vcgeneral/thread/1bf2b062-150f-4f86-8081-d4d5dd0d1956
      */
     Page **m_blobs;
-    ham_u32_t m_blobs_size;
-    ham_u32_t m_blobs_capacity;
+    size_t m_blobs_size;
+    size_t m_blobs_capacity;
 
     Page **m_page_manager;
-    ham_u32_t m_page_manager_size;
-    ham_u32_t m_page_manager_capacity;
+    size_t m_page_manager_size;
+    size_t m_page_manager_capacity;
 
     Page **m_indices;
-    ham_u32_t m_indices_size;
-    ham_u32_t m_indices_capacity;
+    size_t m_indices_size;
+    size_t m_indices_capacity;
 
     Page **m_others;
-    ham_u32_t m_others_size;
-    ham_u32_t m_others_capacity;
+    size_t m_others_size;
+    size_t m_others_capacity;
 
   public:
     /** an error inducer - required for testing */
