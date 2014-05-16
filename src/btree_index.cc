@@ -129,16 +129,6 @@ BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
   if (idxptr)
     *idxptr = slot;
 
-#ifdef HAM_DEBUG
-  if (slot >= 0) {
-    ham_u32_t flags = node->test_get_flags(slot);
-    flags &= ~(BtreeKey::kInitialized
-                    | BtreeKey::kExtendedKey
-                    | BtreeKey::kCompressed);
-    ham_assert(flags == 0);
-  }
-#endif
-
   return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
                     record_id));
 }
@@ -385,20 +375,17 @@ class CalcKeysVisitor : public BtreeVisitor {
       : m_db(db), m_distinct(distinct), m_count(0) {
     }
 
-    virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, size_t key_size, 
-                  ham_u64_t record_id) {
+    virtual void operator()(BtreeNodeProxy *node) {
       ham_u32_t count = node->get_count();
 
       if (m_distinct
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
         m_count += count;
-        return (false);
+        return;
       }
 
       for (ham_u32_t i = 0; i < count; i++)
         m_count += node->get_record_count(i);
-      return (false);
     }
 
     ham_u64_t get_result() const {
@@ -415,7 +402,7 @@ ham_u64_t
 BtreeIndex::count(bool distinct)
 {
   CalcKeysVisitor visitor(m_db, distinct);
-  enumerate(visitor);
+  visit_nodes(visitor, false);
   return (visitor.get_result());
 }
 
@@ -424,12 +411,8 @@ BtreeIndex::count(bool distinct)
 ///
 class FreeBlobsVisitor : public BtreeVisitor {
   public:
-    virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, size_t key_size, 
-                  ham_u64_t record_id) {
+    virtual void operator()(BtreeNodeProxy *node) {
       node->remove_all_entries();
-      // no need to continue enumerating the current page
-      return (false);
     }
 };
 
@@ -437,7 +420,7 @@ void
 BtreeIndex::release()
 {
   FreeBlobsVisitor visitor;
-  enumerate(visitor, true);
+  visit_nodes(visitor, true);
 }
 
 } // namespace hamsterdb

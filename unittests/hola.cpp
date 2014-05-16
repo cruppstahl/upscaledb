@@ -57,7 +57,7 @@ struct HolaFixture {
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
     ham_parameter_t params[] = {
-        {HAM_PARAM_KEY_TYPE, type},
+        {HAM_PARAM_KEY_TYPE, (ham_u64_t)type},
         {0, 0}
     };
     REQUIRE(0 == ham_env_create(&m_env, ".test",

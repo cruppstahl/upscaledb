@@ -160,9 +160,7 @@ class BtreeNodeProxy;
 struct PDupeEntry;
 
 struct BtreeVisitor {
-  virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
-                  ham_u8_t key_flags, size_t key_size, 
-                  ham_u64_t record_id) = 0;
+  virtual void operator()(BtreeNodeProxy *node) = 0;
 };
 
 //
@@ -275,9 +273,8 @@ class BtreeIndex
     ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
                     ham_u32_t duplicate_index, ham_u32_t flags);
 
-    // Iterates over the whole index and enumerate every item
-    void enumerate(BtreeVisitor &visitor,
-                    bool visit_internal_nodes = false);
+    // Iterates over the whole index and calls |visitor| on every node
+    void visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
     void check_integrity(ham_u32_t flags);

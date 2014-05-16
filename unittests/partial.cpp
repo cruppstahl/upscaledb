@@ -1152,8 +1152,8 @@ struct MiscPartialFixture {
   }
 
   void disabledSmallRecordsTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
     ham_u8_t buffer[8];
 
     rec.data = (void *)&buffer[0];

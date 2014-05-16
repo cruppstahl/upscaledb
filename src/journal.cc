@@ -865,13 +865,17 @@ bail:
   // recover_get_db()
   (void)__close_all_databases(m_env);
 
+  // flush all committed transactions
+  if (st == 0)
+    m_env->get_txn_manager()->flush_committed_txns();
+
   // re-enable the logging
   m_disable_logging = false;
 
   if (st)
     throw Exception(st);
 
-  /* clear the journal files */
+  // clear the journal files
   clear();
 }
 

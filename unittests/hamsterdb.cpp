@@ -1553,10 +1553,14 @@ struct HamsterdbFixture {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+
     count = 0;
     REQUIRE(0 ==
         ham_db_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
     REQUIRE((unsigned)4000 == count);
+
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
 
     REQUIRE(0 ==
         ham_db_get_key_count(m_db, 0, 0, &count));
@@ -1870,7 +1874,7 @@ struct HamsterdbFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = ldb->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::FixedKeyList<unsigned short, true>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::FixedKeyList<unsigned short, true>, true> >, hamsterdb::CallbackCompare>");
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::CallbackCompare>");
 #endif
 
     ham_parameter_t query[] = {

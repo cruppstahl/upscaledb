@@ -385,7 +385,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_enum.cc"
+			RelativePath="..\..\src\btree_visit.cc"
 			>
 		</File>
 		<File

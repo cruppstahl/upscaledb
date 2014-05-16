@@ -58,6 +58,8 @@
 #ifndef HAM_BTREE_IMPL_PAX_H__
 #define HAM_BTREE_IMPL_PAX_H__
 
+#include <sstream>
+
 #include "globals.h"
 #include "util.h"
 #include "page.h"
@@ -74,83 +76,66 @@ namespace hamsterdb {
 namespace PaxLayout {
 
 //
-// The PodKeyList provides simplified access to a list of keys, where each
+// The PodKeyList provides simplified access to a list of keys where each
 // key is of type T (i.e. ham_u32_t).
 //
 template<typename T>
 class PodKeyList
 {
   public:
+    enum {
+      // A flag whether this KeyList has sequential data
+      kHasSequentialData = 1,
+
+      // A flag whether SIMD style linear access is supported
+      kHasSimdSupport = 1
+    };
+
     // Constructor
     PodKeyList(LocalDatabase *db)
-      : m_data(0) {
+      : m_data(0), m_capacity(0) {
     }
 
-    // Sets the data pointer; required for initialization
-    void initialize(ham_u8_t *ptr, size_t capacity) {
-      m_data = (T *)ptr;
+    // Creates a new PodKeyList starting at |ptr|, total size is
+    // |full_range_size_bytes| (in bytes)
+    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+      m_data = (T *)data;
+      m_capacity = capacity;
+    }
+
+    // Opens an existing PodKeyList starting at |ptr|
+    void open(ham_u8_t *data, size_t capacity) {
+      m_capacity = capacity;
+      m_data = (T *)data;
+    }
+
+    // Returns the full size of the range
+    size_t get_range_size() const {
+      return (m_capacity * get_full_key_size());
+    }
+
+    // Calculates the required size for a range with the specified |capacity|
+    size_t calculate_required_range_size(size_t node_count,
+            size_t new_capacity) const {
+      return (new_capacity * get_full_key_size());
     }
 
     // Returns the actual key size including overhead
-    ham_u16_t get_full_key_size() const {
+    ham_u16_t get_full_key_size(const ham_key_t *key = 0) const {
       return (sizeof(T));
     }
 
-    // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
-      (*visitor)(&m_data[start], count);
-    }
+    // Copies a key into |dest|
+    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
+      dest->size = sizeof(T);
 
-    // Copies a key into |dest|; memory must be allocated by the caller
-    void get_key(ham_u32_t slot, ham_key_t *dest) const {
-      memcpy(dest->data, &m_data[slot], get_key_size());
-    }
+      // allocate memory (if required)
+      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+        arena->resize(dest->size);
+        dest->data = arena->get_ptr();
+      }
 
-    // Erases the extended part of a key; nothing to do here
-    void erase_key(ham_u32_t slot) {
-    }
-
-    // Erases a whole slot by shifting all larger keys to the "left"
-    void shrink_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot], &m_data[slot + 1], sizeof(T) * (count - slot - 1));
-    }
-
-    // Creates space for one additional key
-    void make_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot + 1], &m_data[slot], sizeof(T) * (count - slot));
-    }
-
-    // Copies |count| key from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t count, PodKeyList<T> &dest,
-                    ham_u32_t dstart) {
-      memcpy(&dest.m_data[dstart], &m_data[sstart], sizeof(T) * count);
-    }
-
-    // Returns the size of a single key
-    ham_u32_t get_key_size() const {
-      return (sizeof(T));
-    }
-
-    // Returns a pointer to the key's data
-    ham_u8_t *get_key_data(ham_u32_t slot) {
-      return ((ham_u8_t *)&m_data[slot]);
-    }
-
-    // Returns a pointer to the key's data (const flavour)
-    ham_u8_t *get_key_data(ham_u32_t slot) const {
-      return ((ham_u8_t *)&m_data[slot]);
-    }
-
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (true);
-    }
-
-    // Overwrites an existing key; the |size| of the new data HAS to be
-    // identical with the key size specified when the database was created!
-    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
-      ham_assert(size == get_key_size());
-      m_data[slot] = *(T *)ptr;
+      memcpy(dest->data, &m_data[slot], sizeof(T));
     }
 
     // Returns the threshold when switching from binary search to
@@ -210,9 +195,94 @@ class PodKeyList
       return (start + count - 1);
     }
 
+    // Iterates all keys, calls the |visitor| on each
+    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
+      (*visitor)(&m_data[start], count);
+    }
+
+    // Erases the extended part of a key; nothing to do here
+    void erase_data(ham_u32_t slot) {
+    }
+
+    // Erases a whole slot by shifting all larger keys to the "left"
+    void erase_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count - 1)
+        memmove(&m_data[slot], &m_data[slot + 1],
+                        sizeof(T) * (node_count - slot - 1));
+    }
+
+    // Inserts a key
+    void insert(size_t node_count, ham_u32_t slot, const ham_key_t *key) {
+      if (node_count > slot)
+        memmove(&m_data[slot + 1], &m_data[slot],
+                        sizeof(T) * (node_count - slot));
+      set_key_data(slot, key->data, key->size);
+    }
+
+    // Copies |count| key from this[sstart] to dest[dstart]
+    void copy_to(ham_u32_t sstart, size_t node_count, PodKeyList<T> &dest,
+                    size_t other_count, ham_u32_t dstart) {
+      memcpy(&dest.m_data[dstart], &m_data[sstart],
+                      sizeof(T) * (node_count - sstart));
+    }
+
+    // Returns true if the |key| no longer fits into the node
+    bool requires_split(size_t node_count, const ham_key_t *key) {
+      return (node_count >= m_capacity);
+    }
+
+    // Checks the integrity of this node. Throws an exception if there is a
+    // violation.
+    void check_integrity(ham_u32_t count, bool quick = false) const {
+    }
+
+    // Rearranges the list; not supported
+    void vacuumize(ham_u32_t node_count, bool force) const {
+    }
+
+    // Change the capacity; for PAX layouts this just means copying the
+    // data from one place to the other
+    void change_capacity(size_t node_count, size_t old_capacity,
+            size_t new_capacity, ham_u8_t *new_data_ptr,
+            size_t new_range_size) {
+      memmove(new_data_ptr, m_data, node_count * sizeof(T));
+      m_data = (T *)new_data_ptr;
+      m_capacity = new_capacity;
+    }
+
+    // Prints a slot to |out| (for debugging)
+    void print(ham_u32_t slot, std::stringstream &out) const {
+      out << m_data[slot];
+    }
+
+    // Returns the size of a key
+    ham_u32_t get_key_size(ham_u32_t slot) const {
+      return (sizeof(T));
+    }
+
+    // Returns a pointer to the key's data
+    ham_u8_t *get_key_data(ham_u32_t slot) {
+      return ((ham_u8_t *)&m_data[slot]);
+    }
+
   private:
+    // Returns a pointer to the key's data (const flavour)
+    ham_u8_t *get_key_data(ham_u32_t slot) const {
+      return ((ham_u8_t *)&m_data[slot]);
+    }
+
+    // Overwrites an existing key; the |size| of the new data HAS to be
+    // identical with the key size specified when the database was created!
+    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
+      ham_assert(size == sizeof(T));
+      m_data[slot] = *(T *)ptr;
+    }
+
     // The actual array of T's
     T *m_data;
+
+    // The capacity of m_data
+    size_t m_capacity;
 };
 
 //
@@ -221,81 +291,61 @@ class PodKeyList
 class BinaryKeyList
 {
   public:
+    enum {
+      // A flag whether this KeyList has sequential data
+      kHasSequentialData = 1,
+
+      // A flag whether SIMD style linear access is supported
+      kHasSimdSupport = 0
+    };
+
     // Constructor
     BinaryKeyList(LocalDatabase *db)
-        : m_data(0) {
+        : m_data(0), m_capacity(0) {
       m_key_size = db->get_key_size();
       ham_assert(m_key_size != 0);
     }
 
-    // Sets the data pointer; required for initialization
-    void initialize(ham_u8_t *ptr, size_t capacity) {
-      m_data = ptr;
+    // Creates a new KeyList starting at |data|, total size is
+    // |full_range_size_bytes| (in bytes)
+    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+      m_data = data;
+      m_capacity = capacity;
+    }
+
+    // Opens an existing KeyList starting at |data|
+    void open(ham_u8_t *data, size_t capacity) {
+      m_capacity = capacity;
+      m_data = data;
+    }
+
+    // Returns the full size of the range
+    size_t get_range_size() const {
+      return (m_capacity * m_key_size);
+    }
+
+    // Calculates the required size for a range with the specified |capacity|
+    size_t calculate_required_range_size(size_t node_count,
+            size_t new_capacity) const {
+      return (new_capacity * get_full_key_size());
     }
 
     // Returns the actual key size including overhead
-    ham_u16_t get_full_key_size() const {
+    ham_u16_t get_full_key_size(const ham_key_t *key = 0) const {
       return (m_key_size);
     }
 
-    // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
-      (*visitor)(&m_data[start * m_key_size], count);
-    }
+    // Copies a key into |dest|
+    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
+      dest->size = m_key_size;
 
-    // Copies a key into |dest|; memory must be allocated by the caller
-    void get_key(ham_u32_t slot, ham_key_t *dest) const {
+      // allocate memory (if required)
+      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+        arena->resize(dest->size);
+        dest->data = arena->get_ptr();
+      }
+
       memcpy(dest->data, &m_data[slot * m_key_size], m_key_size);
-    }
-
-    // Erases the extended part of a key; nothing to do here
-    void erase_key(ham_u32_t slot) {
-    }
-
-    // Erases a whole slot by shifting all larger keys to the "left"
-    void shrink_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot * m_key_size], &m_data[(slot + 1) * m_key_size],
-                      m_key_size * (count - slot - 1));
-    }
-
-    // Creates space for one additional key
-    void make_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[(slot + 1) * m_key_size], &m_data[slot * m_key_size],
-                      m_key_size * (count - slot));
-    }
-
-    // Copies |count| key from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t count, BinaryKeyList &dest,
-                    ham_u32_t dstart) {
-      memcpy(&dest.m_data[dstart * m_key_size], &m_data[sstart * m_key_size],
-                      m_key_size * count);
-    }
-
-    // Returns the key size
-    ham_u32_t get_key_size() const {
-      return ((ham_u32_t)m_key_size);
-    }
-
-    // Returns the pointer to a key's data
-    ham_u8_t *get_key_data(ham_u32_t slot) {
-      return (&m_data[slot * m_key_size]);
-    }
-
-    // Returns the pointer to a key's data (const flavour)
-    ham_u8_t *get_key_data(ham_u32_t slot) const {
-      return (&m_data[slot * m_key_size]);
-    }
-
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (false);
-    }
-
-    // Overwrites a key's data. The |size| of the new data HAS
-    // to be identical to the "official" key size
-    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
-      ham_assert(size == get_key_size());
-      memcpy(&m_data[slot * m_key_size], ptr, size);
     }
 
     // Returns the threshold when switching from binary search to
@@ -350,12 +400,98 @@ class BinaryKeyList
       return (start + count - 1);
     }
 
+    // Iterates all keys, calls the |visitor| on each
+    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
+      (*visitor)(&m_data[start * m_key_size], count);
+    }
+
+    // Erases the extended part of a key; nothing to do here
+    void erase_data(ham_u32_t slot) {
+    }
+
+    // Erases a whole slot by shifting all larger keys to the "left"
+    void erase_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count - 1)
+        memmove(&m_data[slot * m_key_size], &m_data[(slot + 1) * m_key_size],
+                      m_key_size * (node_count - slot - 1));
+    }
+
+    // Inserts a key
+    void insert(size_t node_count, ham_u32_t slot, const ham_key_t *key) {
+      if (node_count > slot)
+        memmove(&m_data[(slot + 1) * m_key_size], &m_data[slot * m_key_size],
+                      m_key_size * (node_count - slot));
+      set_key_data(slot, key->data, key->size);
+    }
+
+    // Returns true if the |key| no longer fits into the node
+    bool requires_split(size_t node_count, const ham_key_t *key) {
+      return (node_count >= m_capacity);
+    }
+
+    // Copies |count| key from this[sstart] to dest[dstart]
+    void copy_to(ham_u32_t sstart, size_t node_count, BinaryKeyList &dest,
+                    size_t other_count, ham_u32_t dstart) {
+      memcpy(&dest.m_data[dstart * m_key_size], &m_data[sstart * m_key_size],
+                      m_key_size * (node_count - sstart));
+    }
+
+    // Checks the integrity of this node. Throws an exception if there is a
+    // violation.
+    void check_integrity(ham_u32_t count, bool quick = false) const {
+    }
+
+    // Rearranges the list; not supported
+    void vacuumize(ham_u32_t node_count, bool force) const {
+    }
+
+    // Change the capacity; for PAX layouts this just means copying the
+    // data from one place to the other
+    void change_capacity(size_t node_count, size_t old_capacity,
+            size_t new_capacity, ham_u8_t *new_data_ptr,
+            size_t new_range_size) {
+      memmove(new_data_ptr, m_data, node_count * m_key_size);
+      m_data = new_data_ptr;
+      m_capacity = new_capacity;
+    }
+
+    // Prints a slot to |out| (for debugging)
+    void print(ham_u32_t slot, std::stringstream &out) const {
+      for (size_t i = 0; i < m_key_size; i++)
+        out << m_data[slot * m_key_size + i];
+    }
+
+    // Returns the key size
+    ham_u32_t get_key_size(ham_u32_t slot) const {
+      return ((ham_u32_t)m_key_size);
+    }
+
+    // Returns the pointer to a key's data
+    ham_u8_t *get_key_data(ham_u32_t slot) {
+      return (&m_data[slot * m_key_size]);
+    }
+
   private:
+    // Returns the pointer to a key's data (const flavour)
+    ham_u8_t *get_key_data(ham_u32_t slot) const {
+      return (&m_data[slot * m_key_size]);
+    }
+
+    // Overwrites a key's data. The |size| of the new data HAS
+    // to be identical to the "official" key size
+    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
+      ham_assert(size == get_key_size(slot));
+      memcpy(&m_data[slot * m_key_size], ptr, size);
+    }
+
     // The size of a single key
     size_t m_key_size;
 
     // Pointer to the actual key data
     ham_u8_t *m_data;
+
+    // The capacity of m_data
+    size_t m_capacity;
 };
 
 //
@@ -366,15 +502,39 @@ class BinaryKeyList
 class DefaultRecordList
 {
   public:
+    enum {
+      // A flag whether this RecordList has sequential data
+      kHasSequentialData = 1
+    };
+
     // Constructor
-    DefaultRecordList(LocalDatabase *db)
-      : m_db(db), m_flags(0), m_data(0) {
+    DefaultRecordList(LocalDatabase *db, PBtreeNode *node)
+      : m_db(db), m_flags(0), m_data(0), m_capacity(0) {
     }
 
     // Sets the data pointer; required for initialization
-    void initialize(ham_u8_t *ptr, size_t capacity) {
-      m_flags = ptr;
-      m_data = (ham_u64_t *)&ptr[capacity];
+    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+      m_flags = data;
+      m_data = (ham_u64_t *)&data[capacity];
+      m_capacity = capacity;
+    }
+
+    // Opens an existing RecordList
+    void open(ham_u8_t *data, size_t capacity) {
+      m_flags = data;
+      m_data = (ham_u64_t *)&data[capacity];
+      m_capacity = capacity;
+    }
+
+    // Returns the full size of the range
+    size_t get_range_size() const {
+      return (m_capacity * get_full_record_size());
+    }
+
+    // Calculates the required size for a range with the specified |capacity|
+    size_t calculate_required_range_size(size_t node_count,
+            size_t new_capacity) const {
+      return (new_capacity * get_full_record_size());
     }
 
     // Returns the actual record size including overhead
@@ -382,8 +542,17 @@ class DefaultRecordList
       return (sizeof(ham_u64_t) + 1);
     }
 
+    // Returns the record counter of a key
+    // TODO can this method always return 1?
+    ham_u32_t get_record_count(ham_u32_t slot) const {
+      if (!is_record_inline(slot) && get_record_id(slot) == 0)
+        return (0);
+      return (1);
+    }
+
     // Returns the record size
-    ham_u64_t get_record_size(ham_u32_t slot) const {
+    ham_u64_t get_record_size(ham_u32_t slot,
+                    ham_u32_t duplicate_index = 0) const {
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));
 
@@ -394,23 +563,32 @@ class DefaultRecordList
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                    ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
       if (is_record_inline(slot)) {
-        ham_u32_t size = get_inline_record_size(slot);
-        if (size == 0) {
+        record->size = get_inline_record_size(slot);
+        if (record->size == 0) {
           record->data = 0;
-          record->size = 0;
           return;
         }
+        if (flags & HAM_PARTIAL) {
+          ham_trace(("flag HAM_PARTIAL is not allowed if record is "
+                     "stored inline"));
+          throw Exception(HAM_INV_PARAMETER);
+        }
         if (direct_access)
-          record->data = (void *)get_record_data(slot);
-        else
-          memcpy(record->data, get_record_data(slot), size);
-        record->size = size;
+          record->data = (void *)&m_data[slot];
+        else {
+          if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+            arena->resize(record->size);
+            record->data = arena->get_ptr();
+          }
+          memcpy(record->data, &m_data[slot], record->size);
+        }
         return;
       }
 
@@ -421,7 +599,9 @@ class DefaultRecordList
     }
 
     // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_record_t *record, ham_u32_t flags) {
+    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                ham_record_t *record, ham_u32_t flags,
+                ham_u32_t *new_duplicate_index = 0) {
       ham_u64_t ptr = get_record_id(slot);
       LocalEnvironment *env = m_db->get_local_env();
 
@@ -477,7 +657,8 @@ class DefaultRecordList
     }
 
     // Erases the record
-    void erase_record(ham_u32_t slot) {
+    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+                    bool all_duplicates = true) {
       if (is_record_inline(slot)) {
         remove_inline_record(slot);
         return;
@@ -490,41 +671,31 @@ class DefaultRecordList
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void shrink_space(ham_u32_t slot, ham_u32_t count) {
-      memmove(&m_flags[slot], &m_flags[slot + 1], count - slot - 1);
-      memmove(&m_data[slot], &m_data[slot + 1],
-                      sizeof(ham_u64_t) * (count - slot - 1));
+    void erase_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count - 1) {
+        memmove(&m_flags[slot], &m_flags[slot + 1], node_count - slot - 1);
+        memmove(&m_data[slot], &m_data[slot + 1],
+                        sizeof(ham_u64_t) * (node_count - slot - 1));
+      }
     }
 
     // Creates space for one additional record
-    void make_space(ham_u32_t slot, size_t count) {
-      memmove(&m_flags[slot + 1], &m_flags[slot], count - slot);
-      memmove(&m_data[slot + 1], &m_data[slot],
-                     sizeof(ham_u64_t) * (count - slot));
+    void insert_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count) {
+        memmove(&m_flags[slot + 1], &m_flags[slot], node_count - slot);
+        memmove(&m_data[slot + 1], &m_data[slot],
+                       sizeof(ham_u64_t) * (node_count - slot));
+      }
+      m_flags[slot] = 0;
+      memset(&m_data[slot], 0, sizeof(ham_u64_t));
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t count, DefaultRecordList &dest,
-                    ham_u32_t dstart) {
-      memcpy(&dest.m_flags[dstart], &m_flags[sstart], count);
-      memcpy(&dest.m_data[dstart], &m_data[sstart], sizeof(ham_u64_t) * count);
-    }
-
-    // Returns the record counter of a key
-    ham_u32_t get_record_count(ham_u32_t slot) const {
-      if (!is_record_inline(slot) && get_record_id(slot) == 0)
-        return (0);
-      return (1);
-    }
-
-    // Returns a pointer to the data of a specific record
-    void *get_record_data(ham_u32_t slot) {
-      return (&m_data[slot]);
-    }
-
-    // Returns a pointer to the data to a specific record (const flavour)
-    const void *get_record_data(ham_u32_t slot) const {
-      return (&m_data[slot]);
+    void copy_to(ham_u32_t sstart, size_t node_count, DefaultRecordList &dest,
+                    size_t other_count, ham_u32_t dstart) {
+      memcpy(&dest.m_flags[dstart], &m_flags[sstart], (node_count - sstart));
+      memcpy(&dest.m_data[dstart], &m_data[sstart],
+                      sizeof(ham_u64_t) * (node_count - sstart));
     }
 
     // Sets the record id
@@ -532,6 +703,54 @@ class DefaultRecordList
       m_data[slot] = ptr;
     }
 
+    // Returns the record id
+    ham_u64_t get_record_id(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+                    const {
+      return (m_data[slot]);
+    }
+
+    // Returns true if there's not enough space for another record
+    bool requires_split(size_t node_count) {
+      return (node_count >= m_capacity);
+    }
+
+    // Checks the integrity of this node. Throws an exception if there is a
+    // violation.
+    void check_integrity(size_t node_count, bool quick = false) const {
+    }
+
+    // Rearranges the list; not supported
+    void vacuumize(size_t node_count, bool force) const {
+    }
+
+    // Change the capacity; for PAX layouts this just means copying the
+    // data from one place to the other
+    void change_capacity(size_t node_count, size_t old_capacity,
+            size_t new_capacity, ham_u8_t *new_data_ptr,
+            size_t new_range_size) {
+      // shift "to the right"? then first shift key data, otherwise
+      // the flags might overwrite the data
+      if (new_data_ptr > m_flags) {
+        memmove(&new_data_ptr[new_capacity], m_data,
+                node_count * sizeof(ham_u64_t));
+        memmove(new_data_ptr, m_flags, node_count);
+      }
+      else {
+        memmove(new_data_ptr, m_flags, node_count);
+        memmove(&new_data_ptr[new_capacity], m_data,
+                node_count * sizeof(ham_u64_t));
+      }
+      m_flags = new_data_ptr;
+      m_data = (ham_u64_t *)&new_data_ptr[new_capacity];
+      m_capacity = new_capacity;
+    }
+
+    // Prints a slot to |out| (for debugging)
+    void print(ham_u32_t slot, std::stringstream &out) const {
+      out << "(" << get_record_size(slot) << " bytes)";
+    }
+
+  private:
     // Sets record data
     void set_record_data(ham_u32_t slot, const void *ptr, size_t size) {
       ham_u8_t flags = get_record_flags(slot);
@@ -560,14 +779,9 @@ class DefaultRecordList
       }
     }
 
-    // Clears a record
-    void clear(ham_u32_t slot) {
-      m_data[slot] = 0;
-      m_flags[slot] = 0;
-    }
-
     // Returns the record flags of a given |slot|
-    ham_u8_t get_record_flags(ham_u32_t slot) const {
+    ham_u8_t get_record_flags(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+                    const {
       return (m_flags[slot]);
     }
 
@@ -576,20 +790,13 @@ class DefaultRecordList
       m_flags[slot] = flags;
     }
 
-    // Returns the record id
-    ham_u64_t get_record_id(ham_u32_t slot) const {
-      ham_u64_t p = *(ham_u64_t *)get_record_data(slot);
-      return (ham_db2h_offset(p));
-    }
-
-  private:
     // Returns the size of an inline record
     ham_u32_t get_inline_record_size(ham_u32_t slot) const {
       ham_u8_t flags = get_record_flags(slot);
       ham_assert(is_record_inline(slot));
       if (flags & BtreeRecord::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
-        char *p = (char *)get_record_data(slot);
+        char *p = (char *)&m_data[slot];
         return (p[sizeof(ham_u64_t) - 1]);
       }
       if (flags & BtreeRecord::kBlobSizeSmall)
@@ -615,8 +822,7 @@ class DefaultRecordList
       set_record_flags(slot,
                       flags & ~(BtreeRecord::kBlobSizeSmall
                         | BtreeRecord::kBlobSizeTiny
-                        | BtreeRecord::kBlobSizeEmpty
-                        | BtreeKey::kExtendedDuplicates));
+                        | BtreeRecord::kBlobSizeEmpty));
     }
 
     // The parent database of this btree
@@ -627,6 +833,9 @@ class DefaultRecordList
 
     // The actual record data - an array of 64bit record IDs
     ham_u64_t *m_data;
+
+    // The capacity of m_data
+    size_t m_capacity;
 };
 
 //
@@ -637,69 +846,42 @@ class DefaultRecordList
 class InternalRecordList
 {
   public:
+    enum {
+      // A flag whether this RecordList has sequential data
+      kHasSequentialData = 1
+    };
+
     // Constructor
-    InternalRecordList(LocalDatabase *db)
-      : m_db(db), m_data(0) {
+    InternalRecordList(LocalDatabase *db, PBtreeNode *node)
+      : m_db(db), m_data(0), m_capacity(0) {
     }
 
     // Sets the data pointer
-    void initialize(ham_u8_t *ptr, size_t capacity) {
+    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+      m_data = (ham_u64_t *)data;
+      m_capacity = capacity;
+    }
+
+    // Opens an existing RecordList
+    void open(ham_u8_t *ptr, size_t capacity) {
       m_data = (ham_u64_t *)ptr;
+      m_capacity = capacity;
     }
 
     // Returns the actual size including overhead
-    ham_u32_t get_full_record_size() const {
+    size_t get_full_record_size() const {
       return (sizeof(ham_u64_t));
     }
 
-    // Returns the record size
-    ham_u64_t get_record_size(ham_u32_t slot) const {
-      return (sizeof(ham_u64_t));
+    // Returns the full size of the range
+    size_t get_range_size() const {
+      return (m_capacity * get_full_record_size());
     }
 
-    // Returns the full record and stores it in |dest|; memory must be
-    // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
-
-      // the record is stored inline
-      ham_u32_t size = sizeof(ham_u64_t);
-
-      if (direct_access)
-        record->data = (void *)get_record_data(slot);
-      else
-        memcpy(record->data, get_record_data(slot), size);
-      record->size = size;
-    }
-
-    // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_record_t *record, ham_u32_t flags) {
-      ham_assert(record->size == sizeof(ham_u64_t));
-      set_record_data(slot, record->data, record->size);
-    }
-
-    // Erases the record
-    void erase_record(ham_u32_t slot) {
-      m_data[slot] = 0;
-    }
-
-    // Erases a whole slot by shifting all larger records to the "left"
-    void shrink_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot], &m_data[slot + 1],
-                      sizeof(ham_u64_t) * (count - slot - 1));
-    }
-
-    // Creates space for one additional record
-    void make_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot + 1], &m_data[slot],
-                     sizeof(ham_u64_t) * (count - slot));
-    }
-
-    // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t count, InternalRecordList &dest,
-                    ham_u32_t dstart) {
-      memcpy(&dest.m_data[dstart], &m_data[sstart], sizeof(ham_u64_t) * count);
+    // Calculates the required size for a range with the specified |capacity|
+    size_t calculate_required_range_size(size_t node_count,
+            size_t new_capacity) const {
+      return (new_capacity * get_full_record_size());
     }
 
     // Returns the record counter of a key
@@ -707,14 +889,68 @@ class InternalRecordList
       return (1);
     }
 
-    // Returns data to a specific record
-    void *get_record_data(ham_u32_t slot) {
-      return (&m_data[slot]);
+    // Returns the record size
+    ham_u64_t get_record_size(ham_u32_t slot,
+                    ham_u32_t duplicate_index = 0) const {
+      return (sizeof(ham_u64_t));
     }
 
-    // Returns data to a specific record
-    const void *get_record_data(ham_u32_t slot) const {
-      return (&m_data[slot]);
+    // Returns the full record and stores it in |dest|; memory must be
+    // allocated by the caller
+    void get_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                    ByteArray *arena, ham_record_t *record,
+                    ham_u32_t flags) const {
+      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
+
+      // the record is stored inline
+      record->size = sizeof(ham_u64_t);
+
+      if (direct_access)
+        record->data = (void *)&m_data[slot];
+      else {
+        if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+          arena->resize(record->size);
+          record->data = arena->get_ptr();
+        }
+        memcpy(record->data, &m_data[slot], record->size);
+      }
+    }
+
+    // Updates the record of a key
+    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                ham_record_t *record, ham_u32_t flags,
+                ham_u32_t *new_duplicate_index = 0) {
+      ham_assert(record->size == sizeof(ham_u64_t));
+      m_data[slot] = *(ham_u64_t *)record->data;
+    }
+
+    // Erases the record
+    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+                    bool all_duplicates = true) {
+      m_data[slot] = 0;
+    }
+
+    // Erases a whole slot by shifting all larger records to the "left"
+    void erase_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count - 1)
+        memmove(&m_data[slot], &m_data[slot + 1],
+                      sizeof(ham_u64_t) * (node_count - slot - 1));
+    }
+
+    // Creates space for one additional record
+    void insert_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count) {
+        memmove(&m_data[slot + 1], &m_data[slot],
+                       sizeof(ham_u64_t) * (node_count - slot));
+      }
+      memset(&m_data[slot], 0, sizeof(ham_u64_t));
+    }
+
+    // Copies |count| records from this[sstart] to dest[dstart]
+    void copy_to(ham_u32_t sstart, size_t node_count, InternalRecordList &dest,
+                    size_t other_count, ham_u32_t dstart) {
+      memcpy(&dest.m_data[dstart], &m_data[sstart],
+                      sizeof(ham_u64_t) * (node_count - sstart));
     }
 
     // Sets the record id
@@ -722,20 +958,39 @@ class InternalRecordList
       m_data[slot] = ptr;
     }
 
-    // Sets record data
-    void set_record_data(ham_u32_t slot, const void *ptr, ham_u32_t size) {
-      ham_assert(size == sizeof(ham_u64_t));
-      m_data[slot] = *(ham_u64_t *)ptr;
+    // Returns the record id
+    ham_u64_t get_record_id(ham_u32_t slot,
+                    ham_u32_t duplicate_index = 0) const {
+      return (m_data[slot]);
     }
 
-    // Clears a record
-    void clear(ham_u32_t slot) {
-      m_data[slot] = 0;
+    // Returns true if there's not enough space for another record
+    bool requires_split(size_t node_count) {
+      return (node_count >= m_capacity);
     }
 
-    // Returns the record flags of a given |slot|
-    ham_u8_t get_record_flags(ham_u32_t slot) const {
-      return (0);
+    // Checks the integrity of this node. Throws an exception if there is a
+    // violation.
+    void check_integrity(ham_u32_t count, bool quick = false) const {
+    }
+
+    // Rearranges the list; not supported
+    void vacuumize(ham_u32_t node_count, bool force) const {
+    }
+
+    // Change the capacity; for PAX layouts this just means copying the
+    // data from one place to the other
+    void change_capacity(size_t node_count, size_t old_capacity,
+            size_t new_capacity, ham_u8_t *new_data_ptr,
+            size_t new_range_size) {
+      memmove(new_data_ptr, m_data, node_count * get_full_record_size());
+      m_data = (ham_u64_t *)new_data_ptr;
+      m_capacity = new_capacity;
+    }
+
+    // Prints a slot to |out| (for debugging)
+    void print(ham_u32_t slot, std::stringstream &out) const {
+      out << "(" << get_record_id(slot) << " bytes)";
     }
 
   private:
@@ -744,6 +999,9 @@ class InternalRecordList
 
     // The record data is an array of page IDs
     ham_u64_t *m_data;
+
+    // The capacity of m_data
+    size_t m_capacity;
 };
 
 //
@@ -754,71 +1012,44 @@ class InternalRecordList
 class InlineRecordList
 {
   public:
+    enum {
+      // A flag whether this RecordList has sequential data
+      kHasSequentialData = 1
+    };
+
     // Constructor
-    InlineRecordList(LocalDatabase *db)
-      : m_db(db), m_record_size(db->get_record_size()), m_data(0), m_dummy(0) {
+    InlineRecordList(LocalDatabase *db, PBtreeNode *node)
+      : m_db(db), m_record_size(db->get_record_size()), m_data(0),
+        m_capacity(0) {
       ham_assert(m_record_size != HAM_RECORD_SIZE_UNLIMITED);
     }
 
     // Sets the data pointer
-    void initialize(ham_u8_t *ptr, size_t capacity) {
-      m_data = (ham_u8_t *)ptr;
+    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+      m_data = (ham_u8_t *)data;
+      m_capacity = capacity;
+    }
+
+    // Opens an existing RecordList
+    void open(ham_u8_t *ptr, size_t capacity) {
+      m_data = ptr;
+      m_capacity = capacity;
     }
 
     // Returns the actual record size including overhead
-    ham_u32_t get_full_record_size() const {
+    size_t get_full_record_size() const {
       return ((ham_u32_t)m_record_size);
     }
 
-    // Returns the record size
-    ham_u64_t get_record_size(ham_u32_t slot) const {
-      return (m_record_size);
+    // Returns the full size of the range
+    size_t get_range_size() const {
+      return (m_capacity * get_full_record_size());
     }
 
-    // Returns the full record and stores it in |dest|; memory must be
-    // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
-
-      // the record is stored inline
-      ham_u32_t size = m_record_size;
-
-      if (direct_access)
-        record->data = (void *)get_record_data(slot);
-      else
-        memcpy(record->data, get_record_data(slot), size);
-      record->size = size;
-    }
-
-    // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_record_t *record, ham_u32_t flags) {
-      ham_assert(record->size == m_record_size);
-      set_record_data(slot, record->data, record->size);
-    }
-
-    // Erases the record
-    void erase_record(ham_u32_t slot) {
-      if (m_record_size)
-        memset(&m_data[m_record_size * slot], 0, m_record_size);
-    }
-
-    // Erases a whole slot by shifting all larger records to the "left"
-    void shrink_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot], &m_data[slot + 1],
-                      m_record_size * (count - slot - 1));
-    }
-
-    // Creates space for one additional record
-    void make_space(ham_u32_t slot, size_t count) {
-      memmove(&m_data[slot + 1], &m_data[slot],
-                     m_record_size * (count - slot));
-    }
-
-    // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t count, InlineRecordList &dest,
-                    ham_u32_t dstart) {
-      memcpy(&dest.m_data[dstart], &m_data[sstart], m_record_size * count);
+    // Calculates the required size for a range with the specified |capacity|
+    size_t calculate_required_range_size(size_t node_count,
+            size_t new_capacity) const {
+      return (new_capacity * get_full_record_size());
     }
 
     // Returns the record counter of a key
@@ -826,42 +1057,123 @@ class InlineRecordList
       return (1);
     }
 
-    // Returns data to a specific record
-    void *get_record_data(ham_u32_t slot) {
+    // Returns the record size
+    ham_u64_t get_record_size(ham_u32_t slot,
+                    ham_u32_t duplicate_index = 0) const {
+      return (m_record_size);
+    }
+
+    // Returns the full record and stores it in |dest|; memory must be
+    // allocated by the caller
+    void get_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                    ByteArray *arena, ham_record_t *record,
+                    ham_u32_t flags) const {
+      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
+
+      if (flags & HAM_PARTIAL) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record is "
+                   "stored inline"));
+        throw Exception(HAM_INV_PARAMETER);
+      }
+
+      // the record is stored inline
+      record->size = m_record_size;
+
       if (m_record_size == 0)
-        return (&m_dummy);
-      return (&m_data[slot * m_record_size]);
+        record->data = 0;
+      else if (direct_access)
+        record->data = &m_data[slot * m_record_size];
+      else {
+        if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+          arena->resize(record->size);
+          record->data = arena->get_ptr();
+        }
+        memcpy(record->data, &m_data[slot * m_record_size], record->size);
+      }
     }
 
-    // Returns data to a specific record
-    const void *get_record_data(ham_u32_t slot) const {
-      if (m_record_size == 0)
-        return (&m_dummy);
-      return (&m_data[slot * m_record_size]);
-    }
-
-    // Sets the record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
-      ham_assert(!"shouldn't be here");
-    }
-
-    // Sets record data
-    void set_record_data(ham_u32_t slot, const void *ptr, size_t size) {
-      ham_assert(size == m_record_size);
+    // Updates the record of a key
+    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+                ham_record_t *record, ham_u32_t flags,
+                ham_u32_t *new_duplicate_index = 0) {
+      ham_assert(record->size == m_record_size);
       // it's possible that the records have size 0 - then don't copy anything
-      if (size)
-        memcpy(&m_data[m_record_size * slot], ptr, size);
+      if (m_record_size)
+        memcpy(&m_data[m_record_size * slot], record->data, m_record_size);
     }
 
-    // Clears a record
-    void clear(ham_u32_t slot) {
+    // Erases the record
+    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+                    bool all_duplicates = true) {
       if (m_record_size)
         memset(&m_data[m_record_size * slot], 0, m_record_size);
     }
 
-    // Returns the record flags of a given |slot|
-    ham_u8_t get_record_flags(ham_u32_t slot) const {
+    // Erases a whole slot by shifting all larger records to the "left"
+    void erase_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count - 1)
+        memmove(&m_data[m_record_size * slot],
+                        &m_data[m_record_size * (slot + 1)],
+                        m_record_size * (node_count - slot - 1));
+    }
+
+    // Creates space for one additional record
+    void insert_slot(size_t node_count, ham_u32_t slot) {
+      if (slot < node_count) {
+        memmove(&m_data[m_record_size * (slot + 1)],
+                        &m_data[m_record_size * slot],
+                        m_record_size * (node_count - slot));
+      }
+      memset(&m_data[m_record_size * slot], 0, m_record_size);
+    }
+
+    // Copies |count| records from this[sstart] to dest[dstart]
+    void copy_to(ham_u32_t sstart, size_t node_count, InlineRecordList &dest,
+                    size_t other_count, ham_u32_t dstart) {
+      memcpy(&dest.m_data[m_record_size * dstart],
+                      &m_data[m_record_size * sstart],
+                      m_record_size * (node_count - sstart));
+    }
+
+    // Returns the record id. Not required for fixed length leaf nodes
+    ham_u64_t get_record_id(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+                    const {
+      ham_assert(!"shouldn't be here");
       return (0);
+    }
+
+    // Sets the record id. Not required for fixed length leaf nodes
+    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+      ham_assert(!"shouldn't be here");
+    }
+
+    // Returns true if there's not enough space for another record
+    bool requires_split(size_t node_count) {
+      return (node_count >= m_capacity);
+    }
+
+    // Checks the integrity of this node. Throws an exception if there is a
+    // violation.
+    void check_integrity(size_t node_count, bool quick = false) const {
+    }
+
+    // Rearranges the list; not supported
+    void vacuumize(size_t node_count, bool force) const {
+    }
+
+    // Change the capacity; for PAX layouts this just means copying the
+    // data from one place to the other
+    void change_capacity(size_t node_count, size_t old_capacity,
+            size_t new_capacity, ham_u8_t *new_data_ptr,
+            size_t new_range_size) {
+      memmove(new_data_ptr, m_data, node_count * get_full_record_size());
+      m_data = new_data_ptr;
+      m_capacity = new_capacity;
+    }
+
+    // Prints a slot to |out| (for debugging)
+    void print(ham_u32_t slot, std::stringstream &out) const {
+      out << "(" << get_record_size(slot) << " bytes)";
     }
 
   private:
@@ -874,8 +1186,8 @@ class InlineRecordList
     // The actual record data
     ham_u8_t *m_data;
 
-    // dummy data for record pointers (if record size == 0)
-    ham_u64_t m_dummy;
+    // The capacity of m_data
+    size_t m_capacity;
 };
 
 } // namespace PaxLayout
@@ -891,7 +1203,7 @@ class PaxNodeImpl
     // Constructor
     PaxNodeImpl(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(page)),
-        m_keys(page->get_db()), m_records(page->get_db()) {
+        m_keys(page->get_db()), m_records(page->get_db(), m_node) {
       ham_u32_t usable_nodesize
               = page->get_db()->get_local_env()->get_usable_page_size()
                     - PBtreeNode::get_entry_offset();
@@ -899,8 +1211,17 @@ class PaxNodeImpl
                       + m_records.get_full_record_size());
 
       ham_u8_t *p = m_node->get_data();
-      m_keys.initialize(&p[0], m_capacity);
-      m_records.initialize(&p[m_capacity * get_key_size()], m_capacity);
+      if (m_node->get_count() == 0) {
+        m_keys.create(&p[0], m_capacity * m_keys.get_full_key_size(),
+                        m_capacity);
+        m_records.create(&p[m_capacity * m_keys.get_full_key_size()],
+                        m_capacity * m_records.get_full_record_size(),
+                        m_capacity);
+      }
+      else {
+        m_keys.open(&p[0], m_capacity);
+        m_records.open(&p[m_capacity * m_keys.get_full_key_size()], m_capacity);
+      }
     }
 
     // Returns the page's capacity
@@ -917,7 +1238,8 @@ class PaxNodeImpl
     // Compares two keys using the supplied comparator
     template<typename Cmp>
     int compare(const ham_key_t *lhs, ham_u32_t rhs, Cmp &cmp) {
-      return (cmp(lhs->data, lhs->size, get_key_data(rhs), get_key_size(rhs)));
+      return (cmp(lhs->data, lhs->size, m_keys.get_key_data(rhs),
+                              m_keys.get_key_size(rhs)));
     }
 
     // Searches the node for the key and returns the slot of this key
@@ -1008,61 +1330,8 @@ class PaxNodeImpl
 
     // Returns a copy of a key and stores it in |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
-      // allocate memory (if required)
-      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-        ham_u32_t key_size = get_key_size(slot);
-        arena->resize(key_size);
-        dest->data = arena->get_ptr();
-        dest->size = key_size;
-      }
-
-      // and copy the key data
-      m_keys.get_key(slot, dest);
-    }
-
-    // Returns the full record and stores it in |dest|
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
-
-      // allocate memory, if required
-      if ((record->flags & HAM_RECORD_USER_ALLOC) == 0 && !direct_access) {
-        ham_u32_t record_size = get_record_size(slot);
-        arena->resize(record_size);
-        record->data = arena->get_ptr();
-        record->size = record_size;
-      }
-
-      // copy the record data
-      m_records.get_record(slot, arena, record, flags);
-    }
-
-    // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_record_t *record,
-                    ham_u32_t duplicate_index, ham_u32_t flags,
-                    ham_u32_t *new_duplicate_index) {
-      m_records.set_record(slot, record, flags);
-    }
-
-    // Returns the record counter of a key
-    ham_u32_t get_record_count(ham_u32_t slot) const {
-      return (m_records.get_record_count(slot));
-    }
-
-    // Returns the record id
-    ham_u64_t get_record_id(ham_u32_t slot) const {
-      ham_u64_t p = *(ham_u64_t *)m_records.get_record_data(slot);
-      return (ham_db2h_offset(p));
-    }
-
-    // Sets the record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
-      m_records.set_record_id(slot, ptr);
-    }
-
-    // Returns the (persisted) flags of a record
-    ham_u8_t get_record_flags(ham_u32_t slot) const {
-      return (m_records.get_record_flags(slot));
+      // copy (or assign) the key data
+      m_keys.get_key(slot, arena, dest);
     }
 
     // Returns the record size of a key or one of its duplicates
@@ -1070,24 +1339,28 @@ class PaxNodeImpl
       return (m_records.get_record_size(slot));
     }
 
-    // Returns the key size
-    ham_u32_t get_key_size(ham_u32_t slot = 0) const {
-      return (m_keys.get_key_size());
+    // Returns the record counter of a key
+    ham_u32_t get_record_count(ham_u32_t slot) const {
+      return (m_records.get_record_count(slot));
     }
 
-    // Returns the flags of a key; always 0
-    ham_u8_t get_key_flags(ham_u32_t slot) const {
-      return (0);
+    // Returns the full record and stores it in |dest|
+    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+                    ham_u32_t flags, ham_u32_t duplicate_index) const {
+      // copy the record data
+      m_records.get_record(slot, duplicate_index, arena, record, flags);
     }
 
-    // Returns a pointer to the key data
-    ham_u8_t *get_key_data(ham_u32_t slot) const {
-      return (m_keys.get_key_data(slot));
+    // Updates the record of a key
+    void set_record(ham_u32_t slot, ham_record_t *record,
+                    ham_u32_t duplicate_index, ham_u32_t flags,
+                    ham_u32_t *new_duplicate_index) {
+      m_records.set_record(slot, duplicate_index, record, flags);
     }
 
     // Erases the extended part of a key
     void erase_key(ham_u32_t slot) {
-      m_keys.erase_key(slot);
+      m_keys.erase_data(slot);
     }
 
     // Erases the record
@@ -1098,40 +1371,34 @@ class PaxNodeImpl
 
     // Erases a key
     void erase(ham_u32_t slot) {
-      ham_u32_t count = m_node->get_count();
+      size_t node_count = m_node->get_count();
 
-      if (slot != count - 1) {
-        m_keys.shrink_space(slot, count);
-        m_records.shrink_space(slot, count);
-      }
+      m_keys.erase_slot(node_count, slot);
+      m_records.erase_slot(node_count, slot);
     }
 
     // Inserts a new key
     void insert(ham_u32_t slot, const ham_key_t *key) {
-      ham_assert(key->size == get_key_size());
+      ham_assert(key->size == m_keys.get_key_size(slot));
 
-      ham_u32_t count = m_node->get_count();
+      size_t node_count = m_node->get_count();
 
       // make space for 1 additional element.
       // only store the key data; flags and record IDs are set by the caller
-      if (count > slot) {
-        m_keys.make_space(slot, count);
-        m_records.make_space(slot, count);
-      }
-
-      m_keys.set_key_data(slot, key->data, key->size);
-      m_records.clear(slot);
+      m_keys.insert(node_count, slot, key);
+      m_records.insert_slot(node_count, slot);
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split() const {
-      return (m_node->get_count() >= m_capacity - 1);
+    bool requires_split(const ham_key_t *key) const {
+      return (m_node->get_count() >= m_capacity);
     }
 
     // Splits a node and moves parts of the current node into |other|, starting
     // at the |pivot| slot
     void split(PaxNodeImpl *other, int pivot) {
-      ham_u32_t count = m_node->get_count();
+      size_t node_count = m_node->get_count();
+      size_t other_node_count = other->m_node->get_count();
 
       //
       // if a leaf page is split then the pivot element must be inserted in
@@ -1142,12 +1409,16 @@ class PaxNodeImpl
       // parent node. the pivot element is skipped.
       //
       if (m_node->is_leaf()) {
-        m_keys.copy_to(pivot, count - pivot, other->m_keys, 0);
-        m_records.copy_to(pivot, count - pivot, other->m_records, 0);
+        m_keys.copy_to(pivot, node_count, other->m_keys,
+                        other_node_count, 0);
+        m_records.copy_to(pivot, node_count, other->m_records,
+                        other_node_count, 0);
       }
       else {
-        m_keys.copy_to(pivot + 1, count - pivot - 1, other->m_keys, 0);
-        m_records.copy_to(pivot + 1, count - pivot - 1, other->m_records, 0);
+        m_keys.copy_to(pivot + 1, node_count, other->m_keys,
+                        other_node_count, 0);
+        m_records.copy_to(pivot + 1, node_count, other->m_records,
+                        other_node_count, 0);
       }
     }
 
@@ -1158,24 +1429,34 @@ class PaxNodeImpl
 
     // Merges this node with the |other| node
     void merge_from(PaxNodeImpl *other) {
-      ham_u32_t count = m_node->get_count();
+      size_t node_count = m_node->get_count();
+      size_t other_node_count = other->m_node->get_count();
 
       // shift items from the sibling to this page
-      other->m_keys.copy_to(0, other->m_node->get_count(), m_keys, count);
-      other->m_records.copy_to(0, other->m_node->get_count(), m_records, count);
+      other->m_keys.copy_to(0, other_node_count, m_keys,
+                      node_count, node_count);
+      other->m_records.copy_to(0, other_node_count, m_records,
+                      node_count, node_count);
     }
 
-    // Clears the page with zeroes and reinitializes it
-    void test_clear_page() {
-      // this is not yet in use
-      ham_assert(!"shouldn't be here");
+    // Prints a slot to stdout (for debugging)
+    void print(ham_u32_t slot) const {
+      std::stringstream ss;
+      ss << "   ";
+      m_keys.print(slot, ss);
+      ss << " -> ";
+      m_records.print(slot, ss);
+      printf("%s\n", ss.str().c_str());
     }
 
-    // Sets a key; only for testing
-    void test_set_key(ham_u32_t slot, const char *data,
-                    size_t data_size, ham_u32_t flags, ham_u64_t record_id) {
-      set_record_id(slot, record_id);
-      m_keys.set_key_data(slot, data, (ham_u32_t)data_size);
+    // Returns the record id
+    ham_u64_t get_record_id(ham_u32_t slot) const {
+      return (m_records.get_record_id(slot));
+    }
+
+    // Sets the record id
+    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+      m_records.set_record_id(slot, ptr);
     }
 
   private:

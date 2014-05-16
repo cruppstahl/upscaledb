@@ -90,12 +90,12 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
-    REQUIRE(7 == node->get_count());
+    REQUIRE(4 == node->get_count());
 
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
-    REQUIRE(5 == node->get_count());
+    REQUIRE(8 == node->get_count());
 
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 3)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
@@ -108,7 +108,7 @@ struct BtreeInsertFixture {
     ham_record_t rec = {};
 
     char buffer[80] = {0};
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
       *(int *)&buffer[0] = i;
       key.data = &buffer[0];
       key.size = sizeof(buffer);
@@ -127,7 +127,7 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(10 == node->get_count());
+    REQUIRE(11 == node->get_count());
 
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
@@ -145,7 +145,7 @@ struct BtreeInsertFixture {
     ham_record_t rec = {};
 
     char buffer[80] = {0};
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
       *(int *)&buffer[0] = i;
       key.data = &buffer[0];
       key.size = sizeof(buffer);
@@ -164,7 +164,7 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(10 == node->get_count());
+    REQUIRE(11 == node->get_count());
 
     REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());

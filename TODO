@@ -248,9 +248,9 @@ x PRO: extend release-tool
     x for pro: add test for --disable-encryption
     x for pro: add test for --disable-simd
 
-o port everything to Win32/Visual Studio
+x port everything to Win32/Visual Studio
 
-o PRO: additional stuff for the first release
+x PRO: additional stuff for the first release
     x update the ChangeLog
     x update the README
 
@@ -262,29 +262,29 @@ o PRO: additional stuff for the first release
         x file compatibility
         x simd
 
-    o user-area: customers.hamsterdb.com
-        o create "download" directory with all files
-        o create one directory per customer
-            o enable directory listing
-            o enable symlinks
-        o create one directory for trials
-            o disable directory listing
-            o enable symlinks
-        o use htpasswd to regulate the access
-        o store passwords in customer database
-        o the "download" directory keeps all the files; the customer
+    x user-area: customers.hamsterdb.com
+        x create "download" directory with all files
+        x create one directory per customer
+            x enable directory listing
+            x enable symlinks
+        x create one directory for trials
+            x disable directory listing
+            x enable symlinks
+        x use htpasswd to regulate the access
+        x store passwords in customer database
+        x the "download" directory keeps all the files; the customer
             directories just have symlinks into this directory
 
-    o webpage
+    x webpage
         x new marketing focus
         x feature matrix APL vs. closed source
         x new layout
         x request evaluation version
-        o commit everything to git
-        o daily backups of the mysql database
-        o once more check all the links, make sure they are relative!
-        o add google analytics token!
-        o go live
+        x commit everything to git
+        x daily backups of the mysql database
+        x once more check all the links, make sure they are relative!
+        x add google analytics token!
+        x go live
 
     o send email to all customers (add this to the release process)
         o include license agreement
@@ -420,12 +420,6 @@ x Refactorings for the PAX layout with the following goals:
         x remove RecordList::is_always_fixed_size
         x remove RecordList::get_max_inline_record_size
 
-o default layout: the lookup operations are relatively slow compared to PAX;
-    can we somehow improve this?
-    o run profiling on a read-only workload, w/o records
-
-o split cursor.cc in two files because gcc can run out of memory when compiling
-
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
@@ -444,34 +438,460 @@ o Refactorings for the Default layout with the following goals:
             x get_key_data_offset()
             x get_record_data_offset()
             x calc_next_offset()
-    o create DuplicateTable class, derive from ByteArray, move logic to this
-        class
-        o insert
-        o erase
-        o ...
-    o improve RecordList separation
-        o including duplicate handling (and the DuplicateTable cache)
-        o try to create interface similar to PAX RecordList
-        o template-parameter von KeyList übertragen (Offset, HasDuplicates)
-    o rewrite one high-level function after the other
-    o introduce KeyList, move relevant functions
-        o including extkeys (and their cache)
-        o try to create interface similar to PAX KeyList
 
-    o create UpfrontIndex for fixed length keys w/ duplicates: store keys
-        sequentially, move RecordList to the "end" of the node
-    o create UpfrontIndex for variable length keys w/o duplicates: store records
-        sequentially, move RecordList to the "end" of the node
-        -> maybe reuse PAX RecordList??
+    How to separate the different modules (UpfrontIndex, KeyList, RecordList)
+    in order to have interfaces similar to PAX?
+    - UpfrontIndex: knows how to address keys if Keys, Records or Both have
+        variable length
+        - manages the offset pointers and the index capacity/freelist
+    - KeyList: access to key size, key data, key flags
+        (Extkeys/Compression is handled internally)
+        - can use UpfrontIndex to retrieve its own offset, if required
+    - RecordList: access to record size, record data, record flags
+        (duplicates are handled internally)
+        - can use UpfrontIndex to retrieve its own offset, if required
+
+    x start from clean scratch; the factory creates 3 template parameters:
+        UpfrontIndex<Offset, HasVariableKeys, HasDuplicates>,
+        KeyList (either from PAX or a variable length list from Default) 
+        RecordList from PAX
+            *or* DuplicateRecordList from Default
+    x perform initialization of the modules
+    x the UpfrontIndex *only* manages the offsets (and capacity/freelist),
+        nothing else!
+    x get_key_flags
+    x get_key_size
+    x get_key_data
+    x set_key_flags
+    x get_key
+    x scan: if possible then forward to KeyList (same as Pax)
+    x compare
+    x erase_key
+
+    x get_record_flags
+        x remove BtreeKey::kExtendedDuplicates
+        x handle inline records
+        x handle duplicate table
+    x get_record_count
+        x handle inline records
+        x handle duplicate table
+    x get_record_size
+        x handle inline records
+        x handle duplicate table
+    x create DuplicateTable objects, cache them (in common base class)
+    x get_record_data (private, reqd for get_record_id)
+    x get_record_id
+        x use this when calling get_duplicate_table()
+    x set_record_id
+    x get_record
+    x set_record
+        x the duplicate table assumes that a record is always stored inline
+            iff the size != UNLIMITED. is that really the case?
+            - no, use db->flag HAM_FORCE_RECORDS_INLINE
+        x when duplicate table is updated: caller must overwrite table id
+        x implement *DuplicateRecordList::set_record
+    x erase_record
+        x when duplicate table is updated: caller must overwrite table id
+        x flush_duplicate_table: also update the cache!
+        x also delete from cache, release memory!
+    x fix terminology problems: span vs. stride
+    x check_integrity: split and forward to all modules
+    x erase_key
+    x unittests for DuplicateTable
+
+    x UpfrontIndex has the following methods:
+        -> requires: assigned space (char *data, size_t size)
+        -> persist: freelist count, capacity (slots), next_offset,
+                    total area size
+        -> index stores [{offset, size}], where offset is 1 or 2 bytes
+            depending on the page size, size is 1 or 2 bytes depending whether
+            it's for extkeys or duplicate records (adjust thresholds!)
+
+        x unittest for create/close/open/close
+        x can_insert_slot()
+            checks if there's a free space available
+        x insert_slot(offset, size)
+            allocates and returns a slot
+            x unittest for insert_slot(), can_insert_slot()
+
+        x check_integrity(): makes sure that there are no overlapping slots
+
+        x erase_slot(slot)
+            x move index to freelist
+            x clear gap
+            x increase rearrange-counter
+            x unittest
+            x get_next_offset: if -1 then calc_next_offset()
+
+        x can_allocate_space()
+            x check if there's enough space at the end of the list
+            x otherwise search through freelist
+            x rearrange if counter > 0, then repeat
+        x allocate_space(slot, key)
+            x check if existing slot is large enough
+            x try to allocate at the end
+                x adjust get_next_offset
+            x otherwise search through freelist
+            x unittest in combination with can_allocate_space()
+            o unittest: make use of freelist
+        x requires_split()
+            calls can_allocate_slot() && can_allocate_space()
+        x split()
+        x merge()
+            x unittest: split, then merge. result should be equal to the
+                original.
+
+        x remove from the layout, move into KeyList and RecordList
+            (as additional base class "IndexedList", or as a member)
+        x terminology: chunk == region?
+        x perform a full review, add documentation
+        x implement rearrange()
+
+    x DefLayout::BinaryKeyList no longer needs to store the size; the size
+        is now managed in the UpfrontIndex
+    x Duplicate*: no need to store a size; the size is now managed in the
+        UpfrontIndex
+        x do not access data[offset] directly because it is not an absolute
+            address!
+
+    x erase: forward to the modules (shrink_space)
+    x insert: forward to the modules (make_space)
+    x requires_merge
+    x requires_split
+    x split
+    x merge_from
+    x resize -- try to avoid, too complex
+
+    x pax and default: get_record() calls get_record_size(), which is expensive
+        -> move arena allocation to the RecordList
+        x same for get_key()
+    x btree_index_factory has many TODOs
+
+    x call check_index_integrity() before/after every modification
+    x must set data pointers!! right now they're all initialized to the same
+        address
+    -> from here on the tests should run again
+        -> maybe start with PAX because they used to work...
+        --> PAX works great, 10% faster than before
+
+    x fix the unittests
+    x run recovery tests
+    x run with valgrind (already done, has many issues)
+    x node needs to store its capacity (in the node layout, not in
+        the KeyList or RecordList)
+
+    x RecordList::clear really required? - no
+    x btree_flags: kHasNoRecords still required? - no
+    x btree_flags: kInitialized still required? - no
+    x get rid of test_set_key() - it requires many unnecessary functions
+    x do we need KeyList::get_capacity()? - yes
+    x get rid of test_clear_page()
+    x is RecordList::clear really required? - yes!
+    x fix TODOs in btree_node_proxy
+
+    x run some tests related to file sizes - is it a problem that the
+        nodes are no longer resized? -> yes, a big one
+        x stats->get_default_page_capacity should not wait till it has 5
+            values; just take the mean of what is there
+        x perform whenever rearrange() is not sufficient
+        x implement resize algorithm: instead of splitting, perform a
+            recalculation (if possible)
+            x if key and record are both fixed (no duplicates) then
+                abort (should never happen b/c this is handled
+                by the pax layout)
+            x if key is indexed and record is fixed: we can only decrease
+                capacity of the record, and increase capacity (and data
+                size) of the keys
+            x ... or vice versa
+            x if keys are variable and duplicates are enabled then we can
+                resize freely (if there is enough space)
+            x RecordList::vacuumize(), KeyList::vacuumize()
+                x nop for PAX, otherwise call m_index.rearrange()
+                x rename rearrange() to vacuumize()
+            x KeyList::change_capacity()
+                x nop for PAX, otherwise change capacity
+            x RecordList::change_capacity()
+                x nop for PAX, otherwise change capacity
+            x fix the unittests
+
+    x also increase the node capacity (btree_impl_default.h)
+        x records are fixed length (keys are not)
+        x keys are fixed length (records are not)
+        x keys AND records are variable length
+        x check unittests
+        x check monster tests
+
+    x collect test cases and systematically test for all possible layouts
+        - keys: uint32, uint64, binary (fixed), binary (var)
+        - records: empty, default 8, inline 8, 1024
+        x also check the file sizes vs 2.1.7
+        x ./ham_bench --duplicate=last --seed=1402995765
+        x ./ham_bench --duplicate=last --seed=1402994555
+        x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary \
+            --erase-pct=15 --find-pct=15 --recsize=8 --cache=104857600 \
+            --stop-ops=300000 --seed=1402991367
+        x ./ham_bench --use-berkeleydb=true --reopen=true  --key=uint32 --erase-pct=15 --find-pct=15 --recsize-fixed=8 --recsize=8 --cache=104857600 --stop-ops=300000
+        x ./ham_bench --use-berkeleydb=true --reopen=true  --key=uint64 --erase-pct=15 --find-pct=15 --recsize-fixed=8 --recsize=8 --cache=104857600 --stop-ops=300000
+        x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize-fixed --keysize=16 --recsize-fixed=8 --recsize=8 --erase-pct=15 --find-pct=15 --cache=104857600 --stop-ops=300000
+        x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --erase-pct=15 --find-pct=15 --recsize-fixed=8 --recsize=8 --cache=104857600 --stop-ops=300000
+
+    x verify that the capacity will not be too low; i.e. when
+        using duplicates, the duptable-threshold is sometimes set to 2
+    x stop placing limits on capacity changes (remove m_resize_limit)
+    x the m_vacuumize_counter could store the number of free bytes; then it's
+        easier to figure out whether a rearrange would make sense or not
+        (really? sounds a bit like overkill. - postpone)
+    x test fixed binary keys with large size (1024) - will the
+        file size explode because the capacity is wrong? 
+        -> the capacity is correct, and it's very low (14). is this intended?
+        => behavior is consistent with 2.1.6
+    x when appending a duplicate then currently the whole list is copied
+        to new space, even if the current slot has enough space assigned,
+        or if the size could be increased without problems
+    x when allocating a DuplicateTable it's possible that the RecordList
+        has not enough room for the 64bit table id (i.e. if records are
+        fixed length size 0) -> make sure there's always some headroom!
+
+    x unify increase_capacity() and decrease_capacity()
+        adjust the capacity (this automatically results
+            in adjusting the data area as well)
+            -> first adjust the capacity
+            -> THEN adjust the data area
+          calculate new capacity
+              (either node_count + 1 (or more, if possible)
+                  or substract (m_capacity - node_count) / 4
+          calculate new key_range_size
+          change capacity of the two lists
+        -> make sure that the key range size is deterministic, i.e. aligned
+            to the (fixed length) key size; otherwise it cannot be
+            figured out properly when loading the page from disk
+
+    x make sure that a split ONLY happens if node_count == capacity,
+        and not if node_count == capacity - 1 etc
+        (or if the data range is full)
+
+    x unittests are failing
+        x BtreeDefault/randomEraseMergeDuplicateTest
+        x BtreeInsert/defaultPivotTest
+        x BtreeInsert/defaultLatePivotTest
+        x BtreeInsert/sequentialInsertPivotTest
+        x BtreeKey/eraseDuplicateRecord
+
+    x capacity: should track different stats for leaf and internal nodes!
+        then use those stats when initializing the nodes
+    x get rid of enumerate() - it uses get_key_data() without even checking
+        for extended keys!
+    x move print() down to the layout/keylist, this will obsolete
+        even more public functions (get_record_data, get_key_data...)
+    x do we really need test_get_flags()? - no, removed
+    x then once more check if we can remove functions in the layout
+
+    x could reduce library size a lot if the layout could deal with
+        different page sizes (i.e. the offset type is chosen dynamically)
+
+    x rename "count" to "node_count", once more review and make sure that
+        the order of the methods is identical in all classes,
+        and that the order of the parameters is consistent
+        x DuplicateTable
+        x UpfrontIndex
+        x KeyLists
+        x RecordLists
+        x NodeLayouts
+        x also review pax layout
+    x fix the remaining TODOs in btree_impl_default.h
+
+    x run monster tests
+        x ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 \
+                --stop-ops=300000 --seed=1403692783 --metrics=all
+            2.1.6: 23900160
+            2.1.7: 24852480 !!
+            head:  23993344
+            bdb:   20731904
+        x also check --recsize-fixed=0
+        x ./ham_bench ../testfiles/2/ext_061.tst
+            hamsterdb 4 x larger than bdb
+
+        x Is it possible that the page splits create larger files?
+            compared to 2.1.6, the splits are now happening *before* the key
+            is inserted. It's still possible for the insertion to fail, i.e.
+            because the key already exists.
+            -> tried this but it only reduced splits by 1 page (21219 -> 21218)
+                --key=binary --keysize=64 --pagesize=1024 \
+                --recsize=0 --recsize-fixed=0 --stop-ops=300000 \
+                --seed=1403692783
+        x check tests above with fixed-length (PAX) keys - equally bad?
+            No, PAX is fine
+        x fix it!!
+
+    x check file sizes against 2.1.6 and 2.1.7
+        x ./ham_bench --key=uint32 --recsize-fixed=0 --seed=1403079914
+            PAX: PAX/PAX
+            2.1.6: 5373952
+            2.1.7: 5373952
+            head:  5423104
+        x ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 \
+                --stop-ops=300000 --seed=1403692783 --recsize-fixed=0
+            2.1.6: 19684352
+            head:  18388992
+            bdb:   20731904
+        x ./ham_bench ~/prj/hamsterdb-tests/testfiles/2/ext_061.tst
+            2.1.6: 294912
+            head:  245760
+            bdb:   61440
+        x ./ham_bench --recsize-fixed=0 --seed=1403079888
+            DEFAULT: VAR/PAX
+            2.1.6: 21168128
+            head:  16859136
+            bdb:   28135424
+        x ./ham_bench --key=binary --keysize=64 --pagesize=1024 --recsize=0 \
+                --stop-ops=300000 --seed=1403692783
+            2.1.6: 23900160
+            head:  22888448
+            bdb:   20731904
+        x ./ham_bench --key=uint32 --recsize-fixed=0 --duplicate=last \
+                    --seed=1403080032
+            DEFAULT: PAX/VAR
+            2.1.6: 10502144
+            head:  10485760
+            bdb:   23060480
+        x ./ham_bench --key=uint32 --recsize-fixed=1 --duplicate=last \
+                    --seed=1403080037
+            DEFAULT: PAX/VAR
+            2.1.6: 15515648
+            head:  15515648
+            bdb:   23646208
+        x ./ham_bench --recsize-fixed=1 --duplicate=last --seed=1403080037
+            DEFAULT: VAR/VAR
+            2.1.6: 18087936
+            head:  19185664
+            bdb:   29532160
+
+    x fails: ./ham_bench --keysize=1024 --recsize=1024 --pagesize=1024 \
+            --distribution=ascending
+
+    x run recovery tests (currently failing)
+    x run unittests
+    x run valgrind tests - there are memory leaks
+    o run monster tests
+    o run performance tests
+    o profile and micro-optimize
+        o delete performance slightly worse than in 2.1.7
+        o slightly improve read-random (10%) - bin16, no duplicates
+        o vastly improve write-random/overwrite (50%) - bin16, no duplicates
+    o remove conditional check for split? (btree_insert)
+    o update the documentation (internal + external)
+        o also update documentation in btree_impl_pax.h
 
 o the steps above will create an incompatible file format
     o increment file version
-    o collect other file format updates
-        o PageManager state: also store m_last_blob_page_id persistently
+    o reserve space for other file format updates
+        o PageManager state needs to persist m_last_blob_page_id
         o EnvHeader is completely full; add at least 8 bytes for
                 flags + reserved
         o reserve CRC32 for each page
-        o PAX Layout: can compress the flags for the DefaultRecordList
+        o make sure that we can store additional flags in the database
+            descriptor, i.e. for compression
+        . PAX Layout: can compress the flags for the DefaultRecordList
+        . Default Layout: can compress the flags for the Duplicate*RecordList
+
+o ham/types.h: do not include winsock2.h because it can conflict with
+    winsock.h in the user's application
+
+x hamserver: check for memory leaks if there are multiple clients
+    sending multiple requests - no, it's ok
+
+o fix memory leaks in remote unittests
+
+o need new API to retrieve the duplicate position of a cursor:
+    ham_status_t ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
+                    ham_u32_t *position)
+    o also add to java
+    o also add to .NET
+    o also add to erlang
+
+o split cursor.cc in two files because gcc can run out of memory when compiling
+
+o collect/publish benchmark against leveldb (with and without SSD)
+    - each with 100k and 100m keys
+    o uint64, small records, random write
+    o uint64, small records, linear write
+    o uint64, small records, random read
+    o uint64, small records, linear read
+    o bin16, default records, random write (w/o compression)
+    o bin16, default records, linear write (w/o compression)
+    o bin16, default records, random read (w/o compression)
+    o bin16, default records, linear read (w/o compression)
+    o bin16, default records, random write (w/ compression)
+    o bin16, default records, linear write (w/ compression)
+    o bin16, default records, random read (w/ compression)
+    o bin16, default records, linear read (w/ compression)
+    o uint64, calculate sum()
+    o bin16, use count_if() of all keys with checksum % 10 == 0
+
+o documentation TODOs for 2.1.8
+    o remove endian agnosticitiy (sp??)
+    o fixed length keys: add big warning that this increases the
+        node fanout! (also for performance faq!)
+    o hola: add samples and documentation
+        o add samples to webpage
+        o tutorial
+    o FAQ: Why is the library size so big?
+
+------------- hamsterdb pro 2.1.8 ------------------------------------
+
+o adapt to the newest changes from 2.1.8
+
+. PRO: add avx support
+o PRO: add sse support for real64
+
+o PRO: CRC32-checksums (as soon as the file format is updated)
+    o SSE2 has support for a CRC32 checksum calculation, or find a good
+        library
+    o how to store crc32 for multi-page blobs which do not have a header?
+
+o PRO: enable SIMD in the default layout if it uses the same KeyList as
+    in PAX *and* if record IDs are stored separately from the keys
+
+o PRO: think about a bitmap index for recnos; one bit per key, and (later)
+    grouped varints for the records
+    -> can a bitmap be used for other indices as well? theoretically yes;
+        but a split can be a bit tricky at a later stage. everything else
+        should be very fast and compact!
+
+o PRO: should we have a separate "recsize == 0" RecordList for duplicates?
+    they could only store the duplicate count (but should be able to deal
+    with duplicates that are > 256!)
+
+------------- hamsterdb 2.1.9 ----------------------------------------
+
+o start using likely/unlikely
+    #if defined __GNUC__
+    #   define likely(x) __builtin_expect ((x), 1)
+    #   define unlikely(x) __builtin_expect ((x), 0)
+    #else
+    #   define likely(x) (x)
+    #   define unlikely(x) (x)
+    #endif
+
+o duplicate table: check for overflow of the capacity/duplicate counter
+
+o remove support for big endian. better now than later, and this will get
+    rid of a lot of complexities
+    o also from documentation, webpage
+    o add documentation that database is host-endian
+
+o release-v2.pl: valgrind takes sooo long. should we use clang's
+    AddressSanitizer instead? or both?
+
+o can we add a generic macro like this:
+    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
+    which can be used as an initializer:
+    ham_key_t key = ham_make_key("hello", 5);
+    o same for records
+    o use in samples
+    o use in source
+    o use in unittests
+    o document
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -515,28 +935,23 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-o collect/publish benchmark against leveldb (with and without SSD)
-    - each with 100k and 100m keys
-    o uint64, small records, random write
-    o uint64, small records, linear write
-    o uint64, small records, random read
-    o uint64, small records, linear read
-    o bin16, default records, random write (w/o compression)
-    o bin16, default records, linear write (w/o compression)
-    o bin16, default records, random read (w/o compression)
-    o bin16, default records, linear read (w/o compression)
-    o bin16, default records, random write (w/ compression)
-    o bin16, default records, linear write (w/ compression)
-    o bin16, default records, random read (w/ compression)
-    o bin16, default records, linear read (w/ compression)
-    o uint64, calculate sum()
-    o bin16, use count_if() of all keys with checksum % 10 == 0
+o QuickCheck: create a new property for testing duplicates; the key is always
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
 
-o documentation TODOs for 2.1.8
-    o hola: add samples and documentation
-        o add samples to webpage
-        o tutorial
-    o FAQ: Why is the library size so big?
+o python wrapper: should be part of the sources; build for linux
+    and for windows
+    o extend configure scripts
+    o stage 1: 
+        Environment: create, open, close, rename_db, erase_db, flush
+        Database: create, open, close, insert, find, erase
+    o Stage 2:
+        Transaction: begin, abort, commit
+    o Stage 3:
+        Cursor: begin, insert, find, erase, move, close
+    o cover with unittests
+    o need win32 build environment
 
 . hola - next steps
     o support java api
@@ -545,10 +960,42 @@ o documentation TODOs for 2.1.8
     o PRO: lua-functions as callbacks - then remote marshalling will work
     o add remote support where it makes sense (only for PRO?)
 
-. QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
+. architecture for a new webpage
+    o pick an awesome design
+        i.e. similar to http://foundationdb.com, http://laravel.com,
+        http://rethinkdb.com, http://www.orientechnologies.com
+    o use make/m4/markdown to generate static pages:
+        https://github.com/datagrok/m4-bakery
+    o come up with the full site structure/contents
+        o include full documentation, one page per API
+        o ... and for all languages
+        o keep the documentation in the source tree, not in -www?
+    o documentation comments are hosted on disqus
+    o blog comments are hosted on disqus, articles are also written in markup
+
+    o static pages will be served with nginx, using url rewrites
+    o dynamic pages are created with a micro-framework (silex?)
+    o Makefile can "scp -r" everything to the servers (staging or production)
+
+    . client area with (low priority)
+        o authentication
+        o collection of files
+        o analytics (who downloads what and when?)
+    . admin area with (even lower priority)
+        o authentication
+        o customer database
+        o implementing business processes
+        o sending out release emails
+        o importing new releases
+        o etc
+
+o documentation rewrite
+    o documentation/api: have one file per API, formatted in markup (see above)
+        this file is maintained in parallel to the doxygen API
+    o documentation/tutorial: same as the API documentation, but contains
+        the tutorial
+    o format into html, with an index page
+    o upload to webpage, make this the main documentation entrance
 
 . look into hive-integration
     -> would be an interesting market with requirements for column store
@@ -559,49 +1006,9 @@ o documentation TODOs for 2.1.8
         efforts/gains (will do the same for mysql, R and mongodb later); this
         task is not about writing code!
 
-. architecture for a new webpage
-    -> will first start with the admin page, and the client's page for
-        downloading, creating support requests etc
-    o pick an awesome design
-        i.e. similar to http://foundationdb.com, http://laravel.com,
-        http://rethinkdb.com
-    o pick a framework for routing and infrastructure (phalcon? laravel?)
-    o page contents are written in markdown, textile or
-        reStructuredText (http://sphinx-doc.org/rest.html)
-    o Makefile converts markdown to html
-    o Makefile can "scp -r" everything to the servers (staging or production)
-    o client area with
-        o authentication
-        o collection of files
-        o analytics (who downloads what and when?)
-    o admin area with
-        o authentication
-        o customer database
-        o implementing business processes
-        o sending out release emails
-        o importing new releases
-        o etc
-    . come up with the full site structure/contents
-    . documentation comments are hosted on disqus
-        o try to seamlessly integrate the doxygen documentation,
-            the javagen documentation, the erlang docs and the .NET docs 
-            (and whatever comes in the future)
-        o keep the documentation in the source tree, not in -www?
-    . blog comments are hosted on disqus, articles are also written in rst
+------------- hamsterdb pro 2.1.9 ------------------------------------
 
-------------- hamsterdb 2.1.8 ---------------------------------------
-
-. PRO: add avx support
-o PRO: add sse support for real64
-
-o PRO: CRC32-checksums (as soon as the file format is updated)
-    o SSE2 has support for a CRC32 checksum calculation, or find a good
-        library
-
-o PRO: enable SIMD in the default layout if it uses the same KeyList as
-    in PAX *and* if record IDs are stored separately from the keys
-
-o PRO: bulk updates (really only for pro?)
+o PRO: bulk updates
     - require delta updates
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort, but
@@ -645,12 +1052,6 @@ o PRO: prefix compression for variable-length keys
     o key search: jumps from full key to full key; in between, there's a
         linear search for the key
 
-o PRO: think about a bitmap index for recnos; one bit per key, and grouped
-    varints for the records
-    -> can a bitmap be used for other indices as well? theoretically yes;
-        but a split can be a bit tricky at a later stage. everything else
-        should be very fast and compact!
-
 o PRO: use grouped varints for compressing int32/int64, record IDs and
     duplicate tables
     https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
@@ -661,6 +1062,11 @@ o PRO: use grouped varints for compressing int32/int64, record IDs and
         fast random access?
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
+
+o hola: use sum-prefix-trees to precalculate partial sums/results?
+    they could be stored in a btree, and used to dynamically recalculate
+    requested values 
+    https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf
 
 o use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
@@ -714,11 +1120,20 @@ o "hola" - olap functions that operate directly on the btree data
 - concurrency -> PRO
 
 o the bucket for concurrency TODOs
-    o reduce the linked lists - they're hard to be updated with atomic
-        operations
-        o page
-        o transaction and dependent objects
-        o ...
+    o create coding rules
+        o synchronization either in lowest or highest level of the callstack
+        o when to use what kind of synchronization
+        o which modules are single-threaded/synchronized, which are atomic,
+            which are concurrent?
+
+    o how can we verify the correctness of the implementation?
+        - i.e. by using static analysis or dynamic analysis, together
+            with annotated code/custom tools? even if these tools do not
+            exist then a system of annotations/naming conventions can help
+            writing/maintaining the code
+
+    o mutex implementations should have built-in monitoring, i.e.
+        number of locks/unlocks, wait times, contention etc
 
     o come up with a list of all functions, define which locking operation
         is required; then review the code and make sure this will work
@@ -735,10 +1150,18 @@ o the bucket for concurrency TODOs
         - purging caches asynchronously
         - async. merging of delta updates
         - have concurrent lookups/find/inserts (with delta updates)
+
+    o reduce the linked lists - they're hard to be updated with atomic
+        operations
+        o page
+        o transaction and dependent objects
+        o ...
+
     o separate SMOs from the actual operation (#2)
         -> check the literature
         http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
         o move SMO operations to "the janitor" (btree_janitor.h)
+
     o the global environment-lock should go because it's expensive; rather
         increment an atomic latch, and refuse to close/erase the database as
         long as the latch is > 0 

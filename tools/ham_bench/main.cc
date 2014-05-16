@@ -991,10 +991,15 @@ run_single_test(Configuration *conf)
     threads.push_back(new boost::thread(thread_callback, c));
   }
 
+  //int op = 0;
   while (generator.execute()) {
 #if 0
-    // verify hamsterdb integrity
-    if (db->is_open()) {
+    op++;
+    if (op > 0
+          && conf->fullcheck_frequency != 0
+          && (op % conf->fullcheck_frequency) == 0
+          && db->is_open()) {
+      generator.tee("FULLCHECK");
       ham_status_t st = db->check_integrity();
       if (st != 0) {
         LOG_ERROR(("fullcheck failed: hamster integrity status %d\n", st));

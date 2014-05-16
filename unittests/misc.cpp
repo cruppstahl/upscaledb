@@ -61,10 +61,11 @@ struct MiscFixture {
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
+
+    node->insert(0, &key);
+
     ByteArray arena;
-
-    node->test_set_key(0, "", 0, 0, 0x12345);
-
+    memset(&key, 0, sizeof(key));
     node->get_key(0, &arena, &key);
     REQUIRE(key.size == 0);
     REQUIRE(key.data == 0);
@@ -80,10 +81,13 @@ struct MiscFixture {
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
+    key.data = (void *)"a";
+    key.size = 1;
+
+    node->insert(0, &key);
+
     ByteArray arena;
-
-    node->test_set_key(0, "a", 1, 0, 0x12345);
-
+    memset(&key, 0, sizeof(key));
     node->get_key(0, &arena, &key);
     REQUIRE(1 == key.size);
     REQUIRE('a' == ((char *)key.data)[0]);
@@ -99,10 +103,13 @@ struct MiscFixture {
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
+    key.data = (void *)"1234567\0";
+    key.size = 8;
+
+    node->insert(0, &key);
+
     ByteArray arena;
-
-    node->test_set_key(0, "1234567\0", 8, 0, 0x12345);
-
+    memset(&key, 0, sizeof(key));
     node->get_key(0, &arena, &key);
     REQUIRE(key.size == 8);
     REQUIRE(0 == ::strcmp((char *)key.data, "1234567\0"));
@@ -118,10 +125,13 @@ struct MiscFixture {
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
     ham_key_t key = {0};
+    key.data = (void *)"123456781234567\0";
+    key.size = 16;
+
+    node->insert(0, &key);
+
     ByteArray arena;
-
-    node->test_set_key(0, "123456781234567\0", 16, 0, 0x12345);
-
+    memset(&key, 0, sizeof(key));
     node->get_key(0, &arena, &key);
     REQUIRE(key.size == 16);
     REQUIRE(0 == ::strcmp((char *)key.data, "123456781234567\0"));

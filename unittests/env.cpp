@@ -555,7 +555,7 @@ struct EnvFixture {
           memset(buffer, (char)value, sizeof(buffer));
           key.data = buffer;
           key.size = sizeof(buffer);
-          sprintf(buffer, "%08x%08x", j, i+1);
+          sprintf(buffer, "%08x%08x", j, i + 1);
 
           REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
           REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);

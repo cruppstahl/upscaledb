@@ -18,7 +18,6 @@ libhamsterdb_la_SOURCES = \
 	btree_check.cc \
 	btree_cursor.cc \
 	btree_cursor.h \
-	btree_enum.cc \
 	btree_erase.cc \
 	btree_find.cc \
 	btree_flags.h \
@@ -32,6 +31,7 @@ libhamsterdb_la_SOURCES = \
 	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \
+	btree_visit.cc \
 	cache.h \
 	changeset.cc \
 	changeset.h \

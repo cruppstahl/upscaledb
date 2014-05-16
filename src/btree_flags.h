@@ -25,24 +25,13 @@ namespace hamsterdb {
 //
 struct BtreeKey
 {
-  // persisted btree key flags; also used in combination
-  // with ham_key_t._flags and with the BtreeRecord flags below.
+  // persisted btree key flags; also used in combination with ham_key_t._flags
   enum {
     // key is extended with overflow area
     kExtendedKey          = 0x01,
 
-    // key has duplicates in an overflow area
-    kExtendedDuplicates   = 0x02,
-
-    // key is initialized and empty (with one record)
-    kInitialized          = 0x04,
-
-    // this key has no records attached (this flag is used if the key does
-    // not have a separate "record counter" field
-    kHasNoRecords         = 0x08,
-
     // PRO: key is compressed; the original size is stored in the payload
-    kCompressed           = 0x80
+    kCompressed           = 0x08
   };
 
   // flags used with the ham_key_t::_flags (note the underscore - this
@@ -72,13 +61,17 @@ struct BtreeRecord
 {
   enum {
     // record size < 8; length is encoded at byte[7] of key->ptr
-    kBlobSizeTiny         = 0x10,
+    kBlobSizeTiny         = 0x01,
 
     // record size == 8; record is stored in key->ptr
-    kBlobSizeSmall        = 0x20,
+    kBlobSizeSmall        = 0x02,
 
     // record size == 0; key->ptr == 0
-    kBlobSizeEmpty        = 0x40
+    kBlobSizeEmpty        = 0x04,
+
+    // key has duplicates in an overflow area; this is the msb of 1 byte;
+    // the lower bits are the counter for the inline duplicate list
+    kExtendedDuplicates   = 0x80
   };
 };
 

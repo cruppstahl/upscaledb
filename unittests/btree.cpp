@@ -69,7 +69,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE(HAM_TYPE_BINARY == query[0].value);
     REQUIRE(HAM_KEY_SIZE_UNLIMITED == query[1].value);
-    REQUIRE(429 == query[2].value);
+    REQUIRE(441 == query[2].value);
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -78,7 +78,7 @@ struct BtreeFixture {
     if (ham_is_pro_evaluation() == 0) {
       std::string s;
       s = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
-      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefaultKeyList<unsigned short, false>, hamsterdb::DefaultInlineRecordImpl<hamsterdb::DefaultKeyList<unsigned short, false>, false> >, hamsterdb::VariableSizeCompare>");
+      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::VariableSizeCompare>");
     }
 #endif
 
@@ -317,8 +317,6 @@ struct BtreeFixture {
     while (!g_split) {
       key.data = &k;
       key.size = sizeof(k);
-      if (k == 1168)
-        printf("hit\n");
       REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
       k++;
     }

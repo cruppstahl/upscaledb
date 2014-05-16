@@ -69,9 +69,10 @@ extern void (*ham_test_abort)();
  * otherwise we are not thread-safe. this is super-ugly.
  */
 #ifdef HAM_DEBUG
-#   define ham_assert(e) if (!(e)) {                                          \
+#   define ham_assert(e) while (!(e)) {                                       \
                 hamsterdb::dbg_verify_failed(HAM_DEBUG_LEVEL_FATAL, __FILE__, \
                         __LINE__, __FUNCTION__, #e);                          \
+                break;                                                        \
               }
 #else /* !HAM_DEBUG */
 #   define ham_assert(e)      (void)0

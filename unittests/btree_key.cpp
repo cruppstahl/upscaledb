@@ -28,6 +28,7 @@
 #include "../src/btree_impl_default.h"
 #include "../src/util.h"
 #include "../src/page.h"
+#include "../src/page_manager.h"
 #include "../src/env_local.h"
 #include "../src/btree_node.h"
 
@@ -50,22 +51,16 @@ struct BtreeKeyFixture {
 
     m_dbp = (LocalDatabase *)m_db;
 
-    m_page = new Page((LocalEnvironment *)m_env);
-    m_page->set_db(m_dbp);
-    m_page->allocate(Page::kTypeBindex, m_dbp->get_local_env()->get_page_size());
+    m_page = m_dbp->get_local_env()->get_page_manager()->alloc_page(m_dbp,
+                    Page::kTypeBindex,
+                    PageManager::kClearWithZero);
 
     // this is a leaf page! internal pages cause different behavior... 
     PBtreeNode *node = PBtreeNode::from_page(m_page);
     node->set_flags(PBtreeNode::kLeafNode);
-
-    // make sure that the node is properly initialized
-    BtreeNodeProxy *proxy = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    proxy->test_clear_page();
   }
 
   ~BtreeKeyFixture() {
-    if (m_page)
-      delete m_page;
     if (m_env)
 	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
@@ -76,15 +71,10 @@ struct BtreeKeyFixture {
     ham_key_t key = {0};
     ham_record_t rec = {0};
 
-    if (!flags) {
-      node->test_clear_page();
+    if (!flags)
       node->insert(slot, &key);
-    }
 
     node->set_record(slot, &rec, 0, flags, 0);
-    if (!(flags & HAM_DUPLICATE))
-      REQUIRE((ham_u8_t)BtreeRecord::kBlobSizeEmpty
-                    == node->test_get_flags(slot));
   }
 
   void prepareEmpty() {
@@ -106,10 +96,8 @@ struct BtreeKeyFixture {
     int slot = 0;
 
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    if (!flags) {
-      node->test_clear_page();
+    if (!flags)
       node->insert(slot, &key);
-    }
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
@@ -119,8 +107,6 @@ struct BtreeKeyFixture {
     node->set_record(slot, &rec, 0, flags, 0);
 
     if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE((ham_u8_t)BtreeRecord::kBlobSizeTiny
-                    == node->test_get_flags(slot));
       node->get_record(slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -148,10 +134,8 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
-    if (!flags) {
-      node->test_clear_page();
+    if (!flags)
       node->insert(slot, &key);
-    }
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
@@ -159,11 +143,7 @@ struct BtreeKeyFixture {
     rec.size = sizeof(ham_u64_t);
 
     node->set_record(slot, &rec, 0, flags, 0);
-    if (!(flags & HAM_DUPLICATE)) {
-      REQUIRE((ham_u8_t)BtreeRecord::kBlobSizeSmall
-                    == node->test_get_flags(slot));
-    }
-    else {
+    if (flags & HAM_DUPLICATE) {
       REQUIRE(node->get_record_count(slot) > 1);
     }
 
@@ -193,10 +173,8 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
-    if (!flags) {
-      node->test_clear_page();
+    if (!flags)
       node->insert(slot, &key);
-    }
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
@@ -407,29 +385,25 @@ struct BtreeKeyFixture {
     /* insert empty key, then delete it */
     prepareEmpty();
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(BtreeKey::kHasNoRecords));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert tiny key, then delete it */
     prepareTiny("1234", 4);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(BtreeKey::kHasNoRecords));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert small key, then delete it */
     prepareSmall("12345678");
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(BtreeKey::kHasNoRecords));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
 
     /* insert normal key, then delete it */
     prepareNormal("1234123456785678", 16);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(BtreeKey::kHasNoRecords));
     REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
 
-  void eraseDuplicateRecordTest() {
+  void eraseDuplicateRecordTest1() {
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert empty key, then a duplicate; delete both */
@@ -438,8 +412,10 @@ struct BtreeKeyFixture {
     checkDupe(0, 0, 0);
     checkDupe(1, "abc4567812345678", 16);
     node->erase_record(0, 0, true, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseDuplicateRecordTest2() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny("1234", 4);
@@ -447,8 +423,10 @@ struct BtreeKeyFixture {
     checkDupe(0, "1234", 4);
     checkDupe(1, "abc4567812345678", 16);
     node->erase_record(0, 0, true, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseDuplicateRecordTest3() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert small key, then a duplicate; delete both */
     prepareSmall("12345678");
@@ -456,8 +434,10 @@ struct BtreeKeyFixture {
     checkDupe(0, "12345678", 8);
     checkDupe(1, "abc4567812345678", 16);
     node->erase_record(0, 0, true, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseDuplicateRecordTest4() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert normal key, then a duplicate; delete both */
     prepareNormal("1234123456785678", 16);
@@ -465,11 +445,9 @@ struct BtreeKeyFixture {
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, "abc4567812345678", 16);
     node->erase_record(0, 0, true, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
 
-  void eraseAllDuplicateRecordTest() {
+  void eraseAllDuplicateRecordTest1() {
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert empty key, then a duplicate; delete both at once */
@@ -482,8 +460,10 @@ struct BtreeKeyFixture {
     REQUIRE(node->get_record_count(0) == 1);
     checkDupe(0, "abc4567812345678", 16);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseAllDuplicateRecordTest2() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny("1234", 4);
@@ -494,8 +474,10 @@ struct BtreeKeyFixture {
     REQUIRE(node->get_record_count(0) == 1);
     checkDupe(0, "1234", 4);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseAllDuplicateRecordTest3() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert small key, then a duplicate; delete both at once */
     prepareSmall("12345678");
@@ -507,8 +489,10 @@ struct BtreeKeyFixture {
     REQUIRE(node->get_record_count(0) == 1);
     checkDupe(0, "abc4567812345678", 16);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
+  }
+
+  void eraseAllDuplicateRecordTest4() {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
 
     /* insert normal key, then a duplicate; delete both at once */
     prepareNormal("1234123456785678", 16);
@@ -520,8 +504,6 @@ struct BtreeKeyFixture {
     REQUIRE(node->get_record_count(0) == 1);
     checkDupe(0, "1234123456785678", 16);
     node->erase_record(0, 0, false, 0);
-    REQUIRE((ham_u8_t)0 == node->test_get_flags(0));
-    REQUIRE((ham_u64_t)0 == node->get_record_id(0));
   }
 };
 
@@ -549,16 +531,52 @@ TEST_CASE("BtreeKey/eraseRecord", "")
   f.eraseRecordTest();
 }
 
-TEST_CASE("BtreeKey/eraseDuplicateRecord", "")
+TEST_CASE("BtreeKey/eraseDuplicateRecord1", "")
 {
   BtreeKeyFixture f(true);
-  f.eraseDuplicateRecordTest();
+  f.eraseDuplicateRecordTest1();
 }
 
-TEST_CASE("BtreeKey/eraseAllDuplicateRecord", "")
+TEST_CASE("BtreeKey/eraseDuplicateRecord2", "")
 {
   BtreeKeyFixture f(true);
-  f.eraseAllDuplicateRecordTest();
+  f.eraseDuplicateRecordTest2();
+}
+
+TEST_CASE("BtreeKey/eraseDuplicateRecord3", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseDuplicateRecordTest3();
+}
+
+TEST_CASE("BtreeKey/eraseDuplicateRecord4", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseDuplicateRecordTest4();
+}
+
+TEST_CASE("BtreeKey/eraseAllDuplicateRecord1", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseAllDuplicateRecordTest1();
+}
+
+TEST_CASE("BtreeKey/eraseAllDuplicateRecord2", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseAllDuplicateRecordTest2();
+}
+
+TEST_CASE("BtreeKey/eraseAllDuplicateRecord3", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseAllDuplicateRecordTest3();
+}
+
+TEST_CASE("BtreeKey/eraseAllDuplicateRecord4", "")
+{
+  BtreeKeyFixture f(true);
+  f.eraseAllDuplicateRecordTest4();
 }
 
 } // namespace hamsterdb

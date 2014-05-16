@@ -27,10 +27,10 @@
 
 namespace hamsterdb {
 
-class BtreeEnumAction
+class BtreeVisitAction
 {
   public:
-    BtreeEnumAction(BtreeIndex *btree, BtreeVisitor &visitor,
+    BtreeVisitAction(BtreeIndex *btree, BtreeVisitor &visitor,
                     bool visit_internal_nodes)
       : m_btree(btree), m_visitor(visitor),
         m_visit_internal_nodes(visit_internal_nodes) {
@@ -54,7 +54,7 @@ class BtreeEnumAction
         if (ptr_down != 0 && m_visit_internal_nodes) {
           while (page) {
             node = m_btree->get_node_from_page(page);
-            node->enumerate(m_visitor);
+            m_visitor(node);
 
             // load the right sibling
             ham_u64_t right = node->get_right();
@@ -74,12 +74,12 @@ class BtreeEnumAction
 
       ham_assert(page != 0);
 
-      // now enumerate all leaf nodes
+      // now visit all leaf nodes
       while (page) {
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         ham_u64_t right = node->get_right();
 
-        node->enumerate(m_visitor);
+        m_visitor(node);
 
         /* follow the pointer to the right sibling */
         if (right)
@@ -96,10 +96,10 @@ class BtreeEnumAction
 };
 
 void
-BtreeIndex::enumerate(BtreeVisitor &visitor, bool visit_internal_nodes)
+BtreeIndex::visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes)
 {
-  BtreeEnumAction bea(this, visitor, visit_internal_nodes);
-  bea.run();
+  BtreeVisitAction bva(this, visitor, visit_internal_nodes);
+  bva.run();
 }
 
 } // namespace hamsterdb

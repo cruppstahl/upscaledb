@@ -239,7 +239,7 @@
     <ClCompile Include="..\..\src\btree_index.cc" />
     <ClCompile Include="..\..\src\btree_check.cc" />
     <ClCompile Include="..\..\src\btree_cursor.cc" />
-    <ClCompile Include="..\..\src\btree_enum.cc" />
+    <ClCompile Include="..\..\src\btree_visit.cc" />
     <ClCompile Include="..\..\src\btree_erase.cc" />
     <ClCompile Include="..\..\src\btree_find.cc" />
     <ClCompile Include="..\..\src\btree_insert.cc" />

@@ -405,7 +405,7 @@ HamsterDatabase::do_insert(Transaction *txn, ham_key_t *key,
 
   ham_status_t st = ham_db_insert(m_db, (ham_txn_t *)txn, key, record, flags);
   if (st)
-     LOG_VERBOSE(("insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
+    LOG_VERBOSE(("insert: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 
@@ -414,7 +414,7 @@ HamsterDatabase::do_erase(Transaction *txn, ham_key_t *key)
 {
   ham_status_t st = ham_db_erase(m_db, (ham_txn_t *)txn, key, 0);
   if (st)
-     LOG_VERBOSE(("erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
+    LOG_VERBOSE(("erase: failed w/ %d (%s)\n", st, ham_strerror(st)));
   return (st);
 }
 

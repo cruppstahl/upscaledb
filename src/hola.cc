@@ -115,34 +115,34 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
     return (HAM_INV_PARAMETER);
   }
 
-  ScanVisitor *visitor = 0;
+  std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
   result->type = HAM_TYPE_UINT64;
 
   switch (db->get_key_type()) {
     case HAM_TYPE_UINT8:
-      visitor = new CountIfScanVisitor<ham_u8_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
     case HAM_TYPE_UINT16:
-      visitor = new CountIfScanVisitor<ham_u16_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u16_t>(pred));
       break;
     case HAM_TYPE_UINT32:
-      visitor = new CountIfScanVisitor<ham_u32_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u32_t>(pred));
       break;
     case HAM_TYPE_UINT64:
-      visitor = new CountIfScanVisitor<ham_u64_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
-      visitor = new CountIfScanVisitor<float>(pred);
+      visitor.reset(new CountIfScanVisitor<float>(pred));
       break;
     case HAM_TYPE_REAL64:
-      visitor = new CountIfScanVisitor<double>(pred);
+      visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
       // template parameter is irrelevant - BINARY keys do not call any
       // template-specific function in CountIfScanVisitor
       // TODO this is nevertheless UGLY!
-      visitor = new CountIfScanVisitor<ham_u8_t>(pred);
+      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
     default:
       ham_assert(!"shouldn't be here");
@@ -152,7 +152,7 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->scan((Transaction *)txn, visitor, false);
+    db->scan((Transaction *)txn, visitor.get(), false);
     visitor->assign_result(result);
     return (db->set_error(0));
   }

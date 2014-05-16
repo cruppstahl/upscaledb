@@ -121,10 +121,6 @@ class BtreeNodeProxy
     // not. Called by ham_db_check_integrity().
     virtual void check_integrity() const = 0;
 
-    // Iterates all keys, calls the |visitor| on each. Aborts if the
-    // |visitor| returns false.
-    virtual void enumerate(BtreeVisitor &visitor) = 0;
-
     // Iterates all keys, calls the |visitor| on each
     virtual void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) = 0;
 
@@ -209,7 +205,7 @@ class BtreeNodeProxy
     virtual void insert(ham_u32_t slot, const ham_key_t *key) = 0;
 
     // Returns true if a node requires a split to insert a new |key|
-    virtual bool requires_split() = 0;
+    virtual bool requires_split(const ham_key_t *key) = 0;
 
     // Returns true if a node requires a merge or a shift
     virtual bool requires_merge() const = 0;
@@ -225,16 +221,6 @@ class BtreeNodeProxy
 
     // Prints the node to stdout. Only for testing and debugging!
     virtual void print(ham_u32_t count = 0) = 0;
-
-    // Returns the flags of the key at the given |slot|. Only for testing!
-    virtual ham_u32_t test_get_flags(ham_u32_t slot) const = 0;
-
-    // Sets a key. Only for testing
-    virtual void test_set_key(ham_u32_t slot, const char *data,
-                    size_t data_size, ham_u32_t flags, ham_u64_t record_id) = 0;
-
-    // Clears the page with zeroes and reinitializes it. Only for testing!
-    virtual void test_clear_page() = 0;
 
     // Returns the class name. Only for testing! Uses the functions exported
     // by abi.h, which are only available on assorted platforms. Other
@@ -385,17 +371,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       m_impl.check_integrity();
     }
 
-    // Iterates all keys, calls the |visitor| on each. Aborts if the
-    // |visitor| returns false
-    virtual void enumerate(BtreeVisitor &visitor) {
-      ham_u32_t count = get_count();
-      for (ham_u32_t i = 0; i < count; i++) {
-        if (!visitor(this, m_impl.get_key_data(i), 0,
-                        m_impl.get_key_size(i), 0))
-          break;
-      }
-    }
-
     // Iterates all keys, calls the |visitor| on each
     virtual void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
       m_impl.scan(visitor, start, distinct);
@@ -415,8 +390,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns true if the public key and an internal key are equal
     virtual bool equals(const ham_key_t *lhs, int rhs) {
-      if (m_impl.get_key_size(rhs) != lhs->size)
-        return (false);
       return (0 == compare(lhs, rhs));
     }
 
@@ -452,10 +425,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
     // are endian-translated.
     virtual void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
+#if 0
       if (dest->flags & HAM_KEY_USER_ALLOC) {
         arena->assign(dest->data, dest->size);
         arena->disown();
+        // TODO raus? durch das disown wird eine persistente struktur
+        // dauerhaft verändert
       }
+#endif
       m_impl.get_key(slot, arena, dest);
     }
 
@@ -546,8 +523,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns true if a node requires a split to insert |key|
-    virtual bool requires_split() {
-      return (m_impl.requires_split());
+    virtual bool requires_split(const ham_key_t *key) {
+      return (m_impl.requires_split(key));
     }
 
     // Returns true if a node requires a merge or a shift
@@ -590,54 +567,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
               is_leaf() ? 1 : 0,
               (unsigned long long)get_left(), (unsigned long long)get_right(),
               (unsigned long long)get_ptr_down());
-      ByteArray arena;
       if (!count)
         count = get_count();
-      for (ham_u32_t i = 0; i < count; i++) {
-        if (m_impl.get_key_flags(i) & BtreeKey::kExtendedKey
-            || m_impl.get_key_flags(i) & BtreeKey::kCompressed) {
-          ham_key_t key = {0};
-          get_key(i, &arena, &key);
-          printf("%03u: EX ", i);
-          for (ham_u32_t j = 0; j < 5; j++) {
-            char ch = ((const char *)key.data)[j];
-            if (ch >= 10)
-              ch += 'a' - 10;
-            else
-              ch += '0';
-            printf("%c", ch);
-          }
-          printf(" (%d) -> %08llx\n",
-                      key.size, (unsigned long long)m_impl.get_record_id(i));
-          //printf("%03u: EX %s (%d) -> %08llx\n", i, (const char *)key.data,
-                      //key.size, (unsigned long long)m_impl.get_record_id(i));
-        }
-        else {
-         printf("%03u:    ", i);
-         printf("    %08u -> %08llx\n", *(ham_u32_t *)m_impl.get_key_data(i),
-                  (unsigned long long)m_impl.get_record_id(i));
-         //for (ham_u32_t j = 0; j < m_impl.get_key_size(i); j++)
-           //printf("%c", ((const char *)m_impl.get_key_data(i))[j]);
-         //printf(" (%d) -> %08llx\n", m_impl.get_key_size(i),
-                          //(unsigned long long)m_impl.get_record_id(i));
-        }
-      }
-    }
-
-    // Returns the flags of the key at the given |slot|; only for testing!
-    virtual ham_u32_t test_get_flags(ham_u32_t slot) const {
-      return (m_impl.get_key_flags(slot) | m_impl.get_record_flags(slot));
-    }
-
-    // Sets a key; only for testing
-    virtual void test_set_key(ham_u32_t slot, const char *data,
-                    size_t data_size, ham_u32_t flags, ham_u64_t record_id) {
-      m_impl.test_set_key(slot, data, data_size, flags, record_id);
-    }
-
-    // Clears the page with zeroes and reinitializes it; only for testing
-    virtual void test_clear_page() {
-      m_impl.test_clear_page();
+      for (ham_u32_t i = 0; i < count; i++)
+        m_impl.print(i);
     }
 
     // Returns the class name. Only for testing! Uses the functions exported
