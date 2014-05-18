@@ -1327,7 +1327,7 @@ on_run_thread(void *loop)
 }
 
 static void
-on_async_cb(uv_async_t *handle)
+on_async_cb(uv_async_t *handle, int status)
 {
   ServerContext *srv = (ServerContext *)handle->data;
 

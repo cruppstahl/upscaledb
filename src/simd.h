@@ -31,7 +31,7 @@ ham_u32_t __inline ctz(ham_u32_t value)
 }
 #else
 #  include <x86intrin.h>
-#  define czt(x) __builtin_ctz(x)
+#  define ctz(x) __builtin_ctz(x)
 #endif
 
 namespace hamsterdb {
@@ -86,21 +86,21 @@ get_sse_threshold()
 }
 
 template<>
-static int
+int
 get_sse_threshold<ham_u32_t>()
 {
   return (16);
 }
 
 template<>
-static int
+int
 get_sse_threshold<float>()
 {
   return (16);
 }
 
 template<>
-static int
+int
 get_sse_threshold<ham_u64_t>()
 {
   return (4);
