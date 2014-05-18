@@ -62,6 +62,7 @@ class SnappyCompressor : public Compressor {
     // |m_arena| which has sufficient size for the decompressed data.
     virtual void do_decompress(const ham_u8_t *inp, ham_u32_t inlength,
                             ham_u8_t *outp, ham_u32_t outlength) {
+      size_t result = 0;
       ham_assert(snappy::IsValidCompressedBuffer((const char *)inp, inlength));
       if (!snappy::RawUncompress((const char *)inp, inlength,
                   (char *)outp))

@@ -19,11 +19,19 @@
 #ifdef HAM_ENABLE_SIMD
 
 #ifdef WIN32
-#  include <xmmintrin.h>
-#  include <smmintrin.h>
-#  include <immintrin.h>
+//#  include <xmmintrin.h>
+//#  include <smmintrin.h>
+#  include <intrin.h>
+ham_u32_t __inline ctz(ham_u32_t value)
+{
+  DWORD trailing_zero = 0;
+  if (_BitScanForward(&trailing_zero, value))
+    return (trailing_zero);
+  return (0);
+}
 #else
 #  include <x86intrin.h>
+#  define czt(x) __builtin_ctz(x)
 #endif
 
 namespace hamsterdb {
@@ -78,21 +86,21 @@ get_sse_threshold()
 }
 
 template<>
-int
+static int
 get_sse_threshold<ham_u32_t>()
 {
   return (16);
 }
 
 template<>
-int
+static int
 get_sse_threshold<float>()
 {
   return (16);
 }
 
 template<>
-int
+static int
 get_sse_threshold<ham_u64_t>()
 {
   return (4);
@@ -169,7 +177,7 @@ linear_search_sse<ham_u16_t>(ham_u16_t *data, int start, int count,
 
   int res = _mm_movemask_epi8(pack01);
   if (res > 0)
-    return (start + __builtin_ctz(~res + 1));
+    return (start + ctz(~res + 1));
 
   ham_assert(16 == count);
   /* the new key is > the last key in the page */
@@ -202,7 +210,7 @@ linear_search_sse<ham_u32_t>(ham_u32_t *data, int start, int count,
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + __builtin_ctz(~res + 1));
+    return (start + ctz(~res + 1));
 
   ham_assert(16 == count);
   /* the new key is > the last key in the page */
@@ -237,7 +245,7 @@ linear_search_sse<float>(float *data, int start, int count,
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + __builtin_ctz(~res + 1));
+    return (start + ctz(~res + 1));
 
   ham_assert(16 == count);
   /* the new key is > the last key in the page */
@@ -270,7 +278,7 @@ linear_search_sse<ham_u64_t>(ham_u64_t *data, int start, int count,
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + __builtin_ctz(~res + 1));
+    return (start + ctz(~res + 1));
 
   ham_assert(4 == count);
   /* the new key is > the last key in the page */

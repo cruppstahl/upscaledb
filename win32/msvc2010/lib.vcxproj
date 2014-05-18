@@ -76,8 +76,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -91,7 +91,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_debug.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.7.lib</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
@@ -101,8 +101,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -116,7 +116,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64_debug.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)\libhamsterdb-2.1.7.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -124,8 +124,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -137,7 +137,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.7.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -149,8 +149,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -162,7 +162,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.7.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -175,6 +175,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\liblzf\lzf.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
     <ClInclude Include="..\..\include\ham\types.h" />
@@ -194,6 +195,12 @@
     <ClInclude Include="..\..\src\btree_node_proxy.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />
     <ClInclude Include="..\..\src\changeset.h" />
+    <ClInclude Include="..\..\src\compressor.h" />
+    <ClInclude Include="..\..\src\compressor_factory.h" />
+    <ClInclude Include="..\..\src\compressor_lzf.h" />
+    <ClInclude Include="..\..\src\compressor_lzop.h" />
+    <ClInclude Include="..\..\src\compressor_snappy.h" />
+    <ClInclude Include="..\..\src\compressor_zlib.h" />
     <ClInclude Include="..\..\src\config.h" />
     <ClInclude Include="..\..\src\cursor.h" />
     <ClInclude Include="..\..\src\db.h" />
@@ -232,6 +239,8 @@
     <ClInclude Include="..\..\src\version.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
+    <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\src\blob_manager.cc" />
     <ClCompile Include="..\..\src\blob_manager_disk.cc" />
     <ClCompile Include="..\..\src\blob_manager_inmem.cc" />
@@ -244,6 +253,7 @@
     <ClCompile Include="..\..\src\btree_insert.cc" />
     <ClCompile Include="..\..\src\btree_stats.cc" />
     <ClCompile Include="..\..\src\changeset.cc" />
+    <ClCompile Include="..\..\src\compressor_factory.cc" />
     <ClCompile Include="..\..\src\cursor.cc" />
     <ClCompile Include="..\..\src\db.cc" />
     <ClCompile Include="..\..\src\db_local.cc" />

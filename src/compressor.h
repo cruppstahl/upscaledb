@@ -45,7 +45,7 @@ class Compressor {
       ham_u32_t arena_size = m_skip + get_compressed_length(inlength1);
       if (inp2 != 0)
         arena_size += get_compressed_length(inlength2);
-      m_arena.resize(arena_size);
+      m_arena.resize(arena_size + m_skip);
 
       ham_u8_t *out = (ham_u8_t *)m_arena.get_ptr() + m_skip;
 

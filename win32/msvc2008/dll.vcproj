@@ -49,6 +49,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
@@ -66,7 +67,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib/msvc2008/zlib.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_debug.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
@@ -129,6 +130,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
@@ -146,7 +148,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib_x64.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_x64.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib_x64.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_x64_debug.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.7.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
@@ -203,9 +205,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
 				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DLL_EXPORTS;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_REMOTE;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				RuntimeLibrary="2"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
 				WarningLevel="3"
@@ -283,9 +287,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
 				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				RuntimeLibrary="2"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"

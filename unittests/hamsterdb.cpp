@@ -112,7 +112,7 @@ struct HamsterdbFixture {
   void invHeaderTest() {
     ham_env_t *env;
 
-    REQUIRE(HAM_INV_FILE_HEADER ==
+	REQUIRE(HAM_INV_FILE_HEADER ==
         ham_env_open(&env, Globals::ipath("data/inv-file-header.hdb"), 0, 0));
   }
 
