@@ -1,0 +1,57 @@
+x add build framework
+x build empty .so with ham_get_version function, run test
+x add constant values
+x add static functions
+    x ham_strerror
+    x set_errhandler
+    x ham_is_pro
+    x ham_is_debug
+    x ham_is_evaluation
+    x add unittest
+
+o add environment functions
+    x env_create
+    x env_close
+    x env_open
+        (all 3 are implemented but without tests)
+    o env_create_db
+    o env_open_db
+    o parameter handling - implement similar to erlang
+    o env_rename_db
+    o env_erase_db
+    o add unittest
+
+o add database functions
+    o db_insert
+    o db_find
+    o db_erase
+    o db_close
+    o add unittest
+
+o add cursor functions
+    o cursor_create
+    o cursor_move
+    o cursor_clone
+    o cursor_overwrite
+    o cursor_insert
+    o cursor_erase
+    o cursor_get_duplicate_count
+    o cursor_get_record_size
+    o cursor_close
+    o add unittest
+
+o add txn functions
+    o txn_begin
+    o txn_abort
+    o txn_commit
+    o add unittest
+
+o split .cc file into separate headers or multiple files? it's quite long
+    now, and the structure is a bit chaotic
+
+o add db1 sample
+o add env1 sample
+o update README
+o update Changelog
+o update documentation
+

@@ -1,0 +1,54 @@
+
+hamsterdb-python 0.0.1                            Sat May 10 16:44:46 CEST 2008
+(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
+
+This is the README file of hamsterdb-python.
+
+Contents:
+
+1. About
+
+hamsterdb-python is the Python wrapper for hamsterdb.
+
+hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
+structure, uses memory mapped I/O (if available), supports cursors and
+variable length keys and can create in-memory databases.
+
+2. Changes
+
+This release adds support for logging/recovery, which was introduced in
+hamsterdb 1.0.3.
+
+To see a list of all changes, look in the file CHANGELOG.
+
+3. Known Issues/Bugs
+
+* see file TODO
+
+4. Compiling 
+
+To compile hamsterdb-python, run `python setup.py build'.
+
+To install hamsterdb-python, run `python setup.py install'.
+
+Run `python setup.py --help' for more options.
+
+5. Testing and Example Code
+
+See the Makefile for running unittests and the samples.
+
+6. Commercial Licensing
+
+hamsterdb can be licensed on a per-developer basis for closed sourced 
+applications. For more details, see 
+http://hamsterdb.com/licensing and http://hamsterdb.com/store.
+
+7. Contact
+
+Author of hamsterdb-python and hamsterdb is
+    Christoph Rupp
+    Ridlerstr. 29c
+    80339 Muenchen/Germany
+    email: chris@crupp.de
+    web: http://www.hamsterdb.com
+
