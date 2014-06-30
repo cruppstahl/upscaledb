@@ -437,6 +437,16 @@ x need new API to retrieve the duplicate position of a cursor:
     x also for remote
     x add unittests for remote
 
+x the steps below will create an incompatible file format
+    x increment file version
+    x reserve space for other file format updates
+        x EnvHeader is completely full; add at least 8 bytes for
+                flags + reserved
+        x reserve CRC32 for each page
+        x make sure that we can store additional flags in the database
+            descriptor, i.e. for compression (still have 1 byte left)
+    x PageManager state needs to persist m_last_blob_page_id
+
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
@@ -795,23 +805,27 @@ o Refactorings for the Default layout with the following goals:
         o delete performance slightly worse than in 2.1.7
         o slightly improve read-random (10%) - bin16, no duplicates
         o vastly improve write-random/overwrite (50%) - bin16, no duplicates
+        o also profile duplicate keys
     o remove conditional check for split? (btree_insert)
     o update the documentation (internal + external)
         x also update documentation in btree_impl_pax.h
 
-x the steps above will create an incompatible file format
-    x increment file version
-    x reserve space for other file format updates
-        x EnvHeader is completely full; add at least 8 bytes for
-                flags + reserved
-        x reserve CRC32 for each page
-        x make sure that we can store additional flags in the database
-            descriptor, i.e. for compression (still have 1 byte left)
-    x PageManager state needs to persist m_last_blob_page_id
-
 o check with boost 1.55 and clang - seems that ham_bench does not compile
+    - not reproducible on linux (gcc 4.6, clang 3.0)
+    o try on MacOS
 
-o fix memory leaks in remote unittests
+o documentation rewrite
+    o documentation/api: have one file per API, formatted in markup (see above)
+        this file is maintained in parallel to the doxygen API
+        https://developer.github.com/v3/markdown/
+        - one file per API
+        - includes documentation notes for *all* wrappers
+        - includes API history (initial revision, changes)
+        - includes integration for disqus comments
+    o documentation/tutorial: same as the API documentation, but contains
+        the tutorial
+    o format into html, with an index in a left column
+    o look for a technical writer to review the files
 
 o collect/publish benchmark against leveldb (with and without SSD)
     - each with 100k and 100m keys
@@ -961,19 +975,6 @@ o python wrapper: should be part of the sources; build for linux
 
 o release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
-
-o documentation rewrite
-    o documentation/api: have one file per API, formatted in markup (see above)
-        this file is maintained in parallel to the doxygen API
-        https://developer.github.com/v3/markdown/
-        - one file per API
-        - includes documentation notes for *all* wrappers
-        - includes API history (initial revision, changes)
-        - includes integration for disqus comments
-    o documentation/tutorial: same as the API documentation, but contains
-        the tutorial
-    o format into html, with an index in a left column
-    o look for a technical writer to review the files
 
 . hola - next steps
     o support java api

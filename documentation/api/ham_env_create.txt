@@ -1,0 +1,190 @@
+# ham_env_create
+
+Creates a new Environment.
+
+A Database Environment is a collection of Databases, which are all stored
+in one physical file (or in-memory). The maximum number of Databases
+depends on the page size; the default is above 600.
+
+Each Database in an Environment is identified by a positive 16bit
+value (except 0 and values at or above 0xf000).
+Databases in an Environment can be created with `ham_env_create_db`
+or opened with `ham_env_open_db`.
+
+Specify a URL instead of a filename (i.e. "ham://localhost:8080/customers.db")
+to access a remote hamsterdb Server.
+
+To enable ACID Transactions, supply the flag `HAM_ENABLE_TRANSACTIONS`.
+Transactions are disabled by default since they have a slight performance cost. 
+If enabled, then hamsterdb will use a Journal for recovering the Environment
+and its data in case of a crash, and also to re-apply committed Transactions
+which were not yet flushed to disk. This Journalling can be disabled
+with the flag `HAM_DISABLE_RECOVERY`. (It is disabled if the Environment
+is in-memory.)
+
+If Transactions are not required, but hamsterdb should still be able to
+recover in case of a crash or power outage, then the flag
+`HAM_ENABLE_RECOVERY` will enable the Journal (without allowing Transactions.)
+
+For performance reasons the Journal does not use fsync(2) (or
+FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
+`HAM_ENABLE_FSYNC` to force the use of fsync(2).
+
+## C/C++ Synopsis
+
+```c++
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_create(ham_env_t **env, const char *filename,
+            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
+```
+
+Explanation for the parameters:
+
+  * **env** A pointer to an Environment handle. This handle will be initialized
+    for the new Environment.
+  * **filename** The filename of the Environment file. If the file already
+    exists then it will be overwritten. Can be `NULL` for an In-Memory
+    Environment. Can be a URL ("ham://<hostname>:<port>/<environment>")
+    for remote access.
+  * **flags** Optional flags for opening the Environment, combined with
+    bitwise OR. See below for possible flags. Set to 0 if not required.
+  * **mode** File access rights for the new file. This is the `mode`
+    parameter for creat(2). Ignored on Microsoft Windows. Default
+    is 0644.
+  * **param** An array of `ham_parameter_t` structures. See below for
+    available parameters. Set to `NULL` if not required.
+
+## Java Synopsis
+
+```java
+class Environment {
+  public synchronized void create(String filename, int flags, int mode,
+      Parameter[] params)
+      throws DatabaseException;
+}
+```
+
+## .NET Synopsis
+
+```c#
+class Environment {
+  public void Create(string fileName, int flags, int mode,
+        Parameter[] parameters);
+}
+```
+
+## Erlang Synopsis
+
+```erlang
+-module(ham).
+
+-type env() :: term().
+
+-type env_create_flag() ::
+   undefined
+   | in_memory
+   | enable_fsync
+   | disable_mmap
+   | cache_unlimited
+   | enable_recovery
+   | flush_when_committed
+   | enable_transactions.
+
+-spec env_create(string()) ->
+  {ok, env()} | {error, atom()}.
+-spec env_create(string(), [env_create_flag()]) ->
+  {ok, env()} | {error, atom()}.
+-spec env_create(string(), [env_create_flag()], integer()) ->
+  {ok, env()} | {error, atom()}.
+-spec env_create(string(), [env_create_flag()], integer(),
+       [{atom(), integer() | atom()}]) ->
+  {ok, env()} | {error, atom()}.
+```
+
+## Python Synopsis
+
+```python
+print "@@@ TBD @@@"
+```
+
+## Additional Information
+
+This section covers API parameters and provides additional information. Not
+all parameters are supported by all languages.
+
+### Flags
+  * `HAM_ENABLE_FSYNC` Flushes all file handles after
+    committing or aborting a Transaction using fsync(), fdatasync()
+    or FlushFileBuffers(). This file has no effect
+    if Transactions are disabled. Slows down performance but makes
+    sure that all file handles and operating system caches are
+    transferred to disk, thus providing a stronger durability.
+  * `HAM_IN_MEMORY` Creates an In-Memory Environment. No
+    file will be created, and the Database contents are lost after
+    the Environment is closed. The _filename_ parameter can
+    be NULL. Do **NOT** specify a cache size other than 0.
+  * `HAM_DISABLE_MMAP` Do not use memory mapped files for I/O.
+    By default, hamsterdb tries to use mmap, since mmap is faster
+    when opening existing Environment files. For performance
+    reasons this flag should not be used.
+  * `HAM_CACHE_UNLIMITED` Do not limit the cache. Nearly as
+    fast as an In-Memory Database. Not allowed in combination
+    with a limited cache size.
+  * `HAM_ENABLE_TRANSACTIONS` Enables Transactions for this
+    Environment. This flag implies `HAM_ENABLE_RECOVERY`.
+  * `HAM_ENABLE_RECOVERY` Enables logging/recovery for this
+    Environment. Not allowed in combination with `HAM_IN_MEMORY`.
+  * `HAM_DISABLE_RECOVERY` Disables logging/recovery for this
+    Environment.
+  * `HAM_FLUSH_WHEN_COMMITTED` Immediately flushes committed
+    Transactions and writes them to the Btree. Disabled by default. If
+    disabled then hamsterdb buffers committed Transactions and only starts
+    flushing when too many Transactions were committed.  
+
+### Parameters
+  * `HAM_PARAM_CACHE_SIZE` The size of the Database cache,
+    in bytes. The default size is defined in _src/config.h_
+    as `HAM_DEFAULT_CACHE_SIZE` - usually 2MB
+  * `HAM_PARAM_PAGE_SIZE` The size of a file page, in
+    bytes. It is recommended not to change the default size. The
+    default size depends on hardware and operating system.
+    Page sizes must be 1024 or a multiple of 2048.
+  * `HAM_PARAM_LOG_DIRECTORY` The path of the log file
+    and the journal files; default is the same path as the database
+    file. Ignored for remote Environments.
+  * `HAM_PARAM_NETWORK_TIMEOUT_SEC` Timeout (in seconds) when
+    waiting for data from a remote server. By default, no timeout is set.
+
+## Return Values
+  * `HAM_SUCCESS` upon success
+  * `HAM_INV_PARAMETER` if the _env_ pointer is `NULL` or an
+      invalid combination of flags or parameters was specified
+  * `HAM_IO_ERROR` if the file could not be opened or
+      reading/writing failed
+  * `HAM_INV_FILE_VERSION` if the Environment version is not
+      compatible with the library version
+  * `HAM_OUT_OF_MEMORY` if memory could not be allocated
+  * `HAM_INV_PAGE_SIZE` if _page_size_ is not 1024 or
+      a multiple of 2048
+  * `HAM_INV_KEY_SIZE` if _key_size_ is too large (at least 4
+      keys must fit in a page)
+  * `HAM_WOULD_BLOCK` if another process has locked the file
+  * `HAM_ENVIRONMENT_ALREADY_OPEN` if _env_ is already in use
+
+## API History
+  |Version|Language|Details|
+  |-------|--------|-------|
+  |0.4.7|C/C++|This API was initially added.|
+  |2.1.0|C/C++|Renamed to ham_env_create.|
+
+## See also...
+
+  1. [ham_env_create](http://www.hamsterdb.com/documentation/api/ham_env_create)
+  1. [ham_env_open](http://www.hamsterdb.com/documentation/api/ham_env_open)
+  1. [ham_env_close](http://www.hamsterdb.com/documentation/api/ham_env_close)
+  1. [ham_env_create_db](http://www.hamsterdb.com/documentation/api/ham_env_create_db)
+  1. [Sample db1](http://www.hamsterdb.com/documentation/sample/db1.c)
+  1. [Sample env1](http://www.hamsterdb.com/documentation/sample/env1.c)
+  1. [Sample env2](http://www.hamsterdb.com/documentation/sample/env2.c)
+  1. [Sample env3](http://www.hamsterdb.com/documentation/sample/env3.cc)
+
