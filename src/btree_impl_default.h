@@ -15,25 +15,29 @@
  */
 
 /**
- * Btree node layout for variable length keys/records and duplicates
- * =================================================================
+ * Btree node layout for variable length keys/records and/or duplicates
+ * ====================================================================
  *
  * This is the default hamsterdb layout. It is chosen for
  * 1. variable length keys (with or without duplicates)
  * 2. fixed length keys with duplicates
  *
- * Unlike the PAX layout implemented in btree_impl_pax.h, the layout implemented
- * here stores key data and records next to each other. However, since keys
- * (and duplicate records) have variable length, each node has a small
- * index area upfront. This index area stores metadata about the key like
- * the key's size, the number of records (=duplicates), flags and the
- * offset of the actual data.
+ * Like the PAX layout implemented in btree_impl_pax.h, the layout implemented
+ * here stores key data and records separated from each other. This layout is
+ * more complex, because it is capable of resizing the KeyList and RecordList
+ * if the node becomes full.
  *
- * The actual data starting at this offset contains the key's data (which
- * can be a 64bit blob ID if the key is too big), and the record's data.
- * If duplicate keys exist, then all records are stored next to each other.
- * If there are too many duplicates, then all of them are offloaded to
- * a blob - a "duplicate table".
+ * Duplicate records are stored inline till a certain threshold limit
+ * (m_duptable_threshold) is reached. In this case the duplicates are stored
+ * in a separate blob (the DuplicateTable), and the previously occupied storage
+ * in the node is reused for other records.
+ *
+ * Each key and record group (= all duplicate records of a key) is stored in
+ * a "chunk", and the chunks are managed by an upfront index which contains
+ * offset and size of each chunk. The index also keeps track of deleted chunks.
+ *
+ * The actual chunk data contains the key's data (which can be a 64bit blob
+ * ID if the key is too big), and the record's data.
  *
  * To avoid expensive memcpy-operations, erasing a key only affects this
  * upfront index: the relevant slot is moved to a "freelist". This freelist
@@ -63,17 +67,9 @@
  * on the actual btree configuration, i.e. whether key size is fixed,
  * duplicates are used etc).
  *
- * If keys exceed a certain Threshold (get_extended_threshold()), they're moved
+ * If keys exceed a certain threshold (get_extended_threshold()), they're moved
  * to a blob and the flag |kExtendedKey| is set for this key. These extended
  * keys are cached in a std::map to improve performance.
- *
- * This layout supports duplicate keys. If the number of duplicate keys
- * exceeds a certain threshold (m_duptable_threshold), they are all moved
- * to a table which is stored as a blob, and the |kExtendedDuplicates| flag
- * is set.
- * The record counter is 1 byte. It counts the total number of inline records
- * assigned to the current key (a.k.a the number of duplicate keys). It is
- * not used if the records were moved to a duplicate table.
  *
  * If records have fixed length then all records of a key (with duplicates)
  * are stored next to each other. If they have variable length then each of
@@ -1313,10 +1309,11 @@ class VariableLengthKeyList
     }
 
     // Returns true if the |key| no longer fits into the node and a split
-    // is required
+    // is required. Makes sure that there is ALWAYS enough headroom
+    // for an extended key!
     bool requires_split(size_t node_count, const ham_key_t *key) {
       // add 1 byte for flags
-      if (key->size > m_extkey_threshold)
+      if (key->size > m_extkey_threshold || key->size < 8 + 1)
         return (m_index.requires_split(node_count, 8 + 1));
       return (m_index.requires_split(node_count, key->size + 1));
     }
@@ -1597,14 +1594,15 @@ class DuplicateRecordList
           // counter (7 bits), but we won't exploit this fully
           m_duptable_threshold = 64;
         }
-        // UpfrontIndex's chunk_size is just 1 byte (max 255); make sure that
-        // the duplicate list fits into a single chunk!
-        size_t rec_size = m_record_size;
-        if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
-          rec_size = 9;
-        if (m_duptable_threshold * rec_size > 250)
-          m_duptable_threshold = 250 / rec_size;
       }
+
+      // UpfrontIndex's chunk_size is just 1 byte (max 255); make sure that
+      // the duplicate list fits into a single chunk!
+      size_t rec_size = m_record_size;
+      if (rec_size == HAM_RECORD_SIZE_UNLIMITED)
+        rec_size = 9;
+      if (m_duptable_threshold * rec_size > 250)
+        m_duptable_threshold = 250 / rec_size;
     }
 
     // Destructor - clears the cache
@@ -2940,7 +2938,7 @@ class DefaultNodeImpl
       m_keys.print(slot, ss);
       ss << " -> ";
       m_records.print(slot, ss);
-      printf("%s\n", ss.str().c_str());
+      std::cout << ss << std::endl;
     }
 
   private:

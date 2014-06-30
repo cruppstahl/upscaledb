@@ -481,10 +481,10 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
   if (m_tokens[0] == "TABLESCAN") {
     return (kCommandTablescan);
   }
-  if (m_tokens[0] == "TXN_BEGIN") {
+  if (m_tokens[0] == "BEGIN_TXN" || m_tokens[0] == "TXN_BEGIN") {
     return (kCommandBeginTransaction);
   }
-  if (m_tokens[0] == "TXN_COMMIT") {
+  if (m_tokens[0] == "TXN_COMMIT" || m_tokens[0] == "COMMIT_TXN") {
     return (kCommandCommitTransaction);
   }
   if (m_tokens[0] == "CLOSE") {

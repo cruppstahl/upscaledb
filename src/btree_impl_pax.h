@@ -15,15 +15,15 @@
  */
 
 /**
- * Btree node layout for fixed length keys (w/o duplicates)
- * ========================================================
+ * Btree node layout for fixed length keys WITHOUT duplicates
+ * ==========================================================
  *
  * This layout supports fixed length keys and fixed length records. It does
  * not support duplicates and extended keys. Keys and records are always
  * inlined, but records can refer to blobs (in this case the "fixed length"
  * record is the 8 byte record ID).
  *
- * Unlike the original PAX, which stored multiple columns in one page,
+ * Unlike the academic PAX paper, which stored multiple columns in one page,
  * hamsterdb stores only one column (= database) in a page, but keys and
  * records are separated from each other. The keys (flags + key data) are
  * stored in the beginning of the page, the records start somewhere in the
@@ -31,7 +31,7 @@
  * parameters).
  *
  * This layout's implementation is relatively simple because the offset
- * of the key data and record data is easy to calculate, since all keys
+ * of the key data and record data is easy to calculate since all keys
  * and records have the same size.
  *
  * This separation of keys and records allows a more compact layout and a
@@ -39,9 +39,9 @@
  * very tight loops when searching through the keys.
  *
  * This layout has two incarnations:
- * 1. Fixed length keys, fixed length records
+ * 1. Fixed length keys, fixed length inline records
  *  -> does not require additional flags
- * 2. Fixed length keys, variable length records
+ * 2. Fixed length keys, variable length records (8 byte record id)
  *  -> requires a 1 byte flag per key
  *
  * The flat memory layout looks like this:
@@ -49,10 +49,6 @@
  * |Flag1|Flag2|...|Flagn|...|Key1|Key2|...|Keyn|...|Rec1|Rec2|...|Recn|
  *
  * Flags are optional, as described above.
- *
- * If records have a fixed length and are small enough then they're
- * stored inline. Otherwise a 64bit record ID is stored, which is the
- * absolute file offset of the blob with the record's data.
  */
 
 #ifndef HAM_BTREE_IMPL_PAX_H__
@@ -543,7 +539,6 @@ class DefaultRecordList
     }
 
     // Returns the record counter of a key
-    // TODO can this method always return 1?
     ham_u32_t get_record_count(ham_u32_t slot) const {
       if (!is_record_inline(slot) && get_record_id(slot) == 0)
         return (0);
@@ -654,6 +649,7 @@ class DefaultRecordList
       }
 
       ham_assert(!"shouldn't be here");
+      throw Exception(HAM_INTERNAL_ERROR);
     }
 
     // Erases the record
@@ -884,7 +880,8 @@ class InternalRecordList
       return (new_capacity * get_full_record_size());
     }
 
-    // Returns the record counter of a key
+    // Returns the record counter of a key; this implementation does not
+    // support duplicates, therefore the record count is always 1
     ham_u32_t get_record_count(ham_u32_t slot) const {
       return (1);
     }
@@ -1446,7 +1443,7 @@ class PaxNodeImpl
       m_keys.print(slot, ss);
       ss << " -> ";
       m_records.print(slot, ss);
-      printf("%s\n", ss.str().c_str());
+      std::cout << ss << std::endl;
     }
 
     // Returns the record id

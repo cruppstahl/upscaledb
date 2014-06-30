@@ -64,7 +64,6 @@ extern "C" {
  */
 #if defined(HAM_OS_WIN32)
 #  define WIN32_MEAN_AND_LEAN
-#  include <winsock2.h>
 #  include <windows.h>
 #endif
 
@@ -149,29 +148,6 @@ typedef unsigned char      ham_u8_t;
 #undef HAM_INVALID_FD
 #undef HAM_FALSE
 #undef HAM_TRUE
-
-/*
- * typedefs for posix
- */
-#ifdef HAM_OS_POSIX
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
-#  define HAM_INVALID_FD  (-1)
-#endif
-
-/*
- * typedefs for Windows 32- and 64-bit
- */
-#ifdef HAM_OS_WIN32
-#  ifdef CYGWIN
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
-#  else
-typedef HANDLE             ham_fd_t;
-typedef SOCKET             ham_socket_t;
-#  endif
-#  define HAM_INVALID_FD   (0)
-#endif
 
 /**
  * a boolean type

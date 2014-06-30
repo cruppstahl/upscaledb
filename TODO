@@ -780,7 +780,7 @@ o Refactorings for the Default layout with the following goals:
         o vastly improve write-random/overwrite (50%) - bin16, no duplicates
     o remove conditional check for split? (btree_insert)
     o update the documentation (internal + external)
-        o also update documentation in btree_impl_pax.h
+        x also update documentation in btree_impl_pax.h
 
 o the steps above will create an incompatible file format
     o increment file version
@@ -794,11 +794,13 @@ o the steps above will create an incompatible file format
         . PAX Layout: can compress the flags for the DefaultRecordList
         . Default Layout: can compress the flags for the Duplicate*RecordList
 
-o ham/types.h: do not include winsock2.h because it can conflict with
-    winsock.h in the user's application
-
 x hamserver: check for memory leaks if there are multiple clients
     sending multiple requests - no, it's ok
+
+x ham/types.h: do not include winsock2.h because it can conflict with
+    winsock.h in the user's application
+
+o check with boost 1.55 and clang - seems that ham_bench does not compile
 
 o fix memory leaks in remote unittests
 
