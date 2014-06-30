@@ -118,8 +118,9 @@ extern "C" {
  *  undefined: hamsterdb 1.x
  *      1: hamsterdb 2.0 - ham_txn_begin() was changed
  *      2: various interface updates for 2.0.6
+ *      3: various interface updates for 2.1.8, adding hola_*
  */
-#define HAM_API_REVISION        2
+#define HAM_API_REVISION        3
 
 /**
  * The hamsterdb Database structure
@@ -1192,6 +1193,9 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /**
  * Returns the last error code
+ *
+ * @note This API is deprecated! It will be removed in one of the
+ * next versions.
  *
  * @param db A valid Database handle
  *
@@ -2397,7 +2401,7 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * Gets the number of duplicate keys
+ * Returns the number of duplicate keys
  *
  * Returns the number of duplicate keys of the item to which the
  * Cursor currently refers.
@@ -2416,6 +2420,23 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
             ham_u32_t *count, ham_u32_t flags);
+
+/**
+ * Returns the current cursor position in the duplicate list
+ *
+ * Returns the position in the duplicate list of the current key. The position
+ * is 0-based.
+ *
+ * @param cursor A valid Cursor handle
+ * @param position Returns the duplicate position
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_INV_PARAMETER if @a cursor or @a position is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
+            ham_u32_t *position);
 
 /**
  * Returns the record size of the current key

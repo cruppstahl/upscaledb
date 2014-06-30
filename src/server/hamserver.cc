@@ -1533,6 +1533,50 @@ handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
+handle_cursor_get_duplicate_position(ServerContext *srv, uv_stream_t *tcp,
+            Protocol *request)
+{
+  ham_status_t st = 0;
+  ham_u32_t position = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_cursor_get_duplicate_position_request());
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_duplicate_position_request().cursor_handle());
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_duplicate_position((ham_cursor_t *)cursor, &position);
+
+  Protocol reply(Protocol::CURSOR_GET_DUPLICATE_POSITION_REPLY);
+  reply.mutable_cursor_get_duplicate_position_reply()->set_status(st);
+  reply.mutable_cursor_get_duplicate_position_reply()->set_position(position);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_cursor_get_duplicate_position(ServerContext *srv, uv_stream_t *tcp,
+            SerializedWrapper *request)
+{
+  ham_status_t st = 0;
+  ham_u32_t position = 0;
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_duplicate_position_request.cursor_handle);
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_duplicate_position((ham_cursor_t *)cursor, &position);
+
+  SerializedWrapper reply;
+  reply.id = kCursorGetDuplicatePositionReply;
+  reply.cursor_get_duplicate_position_reply.status = st;
+  reply.cursor_get_duplicate_position_reply.position = position;
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
 handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
@@ -1746,6 +1790,9 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u32_t magic,
       case kCursorGetRecordCountRequest:
         handle_cursor_get_record_count(srv, tcp, &request);
         break;
+      case kCursorGetDuplicatePositionRequest:
+        handle_cursor_get_duplicate_position(srv, tcp, &request);
+        break;
       case kCursorOverwriteRequest:
         handle_cursor_overwrite(srv, tcp, &request);
         break;
@@ -1847,6 +1894,9 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u32_t magic,
       break;
     case ProtoWrapper_Type_CURSOR_GET_RECORD_COUNT_REQUEST:
       handle_cursor_get_record_count(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_GET_DUPLICATE_POSITION_REQUEST:
+      handle_cursor_get_duplicate_position(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_CURSOR_OVERWRITE_REQUEST:
       handle_cursor_overwrite(srv, tcp, wrapper);

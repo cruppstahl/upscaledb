@@ -6640,6 +6640,55 @@ struct DupeCursorFixture {
     REQUIRE(0 == move("k1", "3", HAM_CURSOR_NEXT));
     REQUIRE(HAM_KEY_NOT_FOUND == move(0, 0, HAM_CURSOR_NEXT));
   }
+
+  void duplicatePositionBtreeTest() {
+    ham_u32_t position = 0;
+    REQUIRE(0 == insertBtree("33333", "aaaaa"));
+    REQUIRE(0 == insertBtree("33333", "aaaab", HAM_DUPLICATE));
+    REQUIRE(0 == insertBtree("33333", "aaaac", HAM_DUPLICATE));
+    REQUIRE(0 == insertBtree("33333", "aaaad", HAM_DUPLICATE));
+
+    REQUIRE(0 == move     ("33333", "aaaaa", HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == position);
+    REQUIRE(0 == move     ("33333", "aaaab", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(1 == position);
+    REQUIRE(0 == move     ("33333", "aaaac", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(2 == position);
+    REQUIRE(0 == move     ("33333", "aaaad", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(3 == position);
+  }
+
+  void duplicatePositionTxnTest() {
+    ham_u32_t position = 0;
+    REQUIRE(0 == insertBtree("k1", "1"));
+    REQUIRE(0 == insertTxn  ("k1", "2", HAM_DUPLICATE));
+    REQUIRE(0 == insertBtree("k1", "3", HAM_DUPLICATE));
+    REQUIRE(0 == insertTxn  ("k1", "4", HAM_DUPLICATE));
+
+    REQUIRE(0 == move("k1", "1", HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == position);
+
+    REQUIRE(0 == move("k1", "2", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(1 == position);
+
+    REQUIRE(0 == move("k1", "3", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(2 == position);
+
+    REQUIRE(0 == move("k1", "4", HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(3 == position);
+
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL == ham_cursor_get_duplicate_position(m_cursor,
+                            &position));
+  }
 };
 
 TEST_CASE("Cursor-dupes/simpleBtreeTest", "")
@@ -7150,5 +7199,17 @@ TEST_CASE("Cursor-dupes/flushErasedDupeTest", "")
 {
   DupeCursorFixture f;
   f.flushErasedDupeTest();
+}
+
+TEST_CASE("Cursor-dupes/duplicatePositionBtreeTest", "")
+{
+  DupeCursorFixture f;
+  f.duplicatePositionBtreeTest();
+}
+
+TEST_CASE("Cursor-dupes/duplicatePositionTxnTest", "")
+{
+  DupeCursorFixture f;
+  f.duplicatePositionBtreeTest();
 }
 

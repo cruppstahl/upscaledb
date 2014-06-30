@@ -56,6 +56,8 @@ enum {
   kCursorFindReply,
   kCursorGetRecordCountRequest,
   kCursorGetRecordCountReply,
+  kCursorGetDuplicatePositionRequest,
+  kCursorGetDuplicatePositionReply,
   kCursorOverwriteRequest,
   kCursorOverwriteReply,
   kCursorMoveRequest,
@@ -237,6 +239,15 @@ MESSAGE_BEGIN(CursorGetRecordCountReply)
   uint32 count;
 MESSAGE_END
 
+MESSAGE_BEGIN(CursorGetDuplicatePositionRequest)
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorGetDuplicatePositionReply)
+  sint32 status;
+  uint32 position;
+MESSAGE_END
+
 MESSAGE_BEGIN(CursorOverwriteRequest)
   uint64 cursor_handle;
   Record record;
@@ -292,6 +303,8 @@ MESSAGE_BEGIN(Wrapper)
   CursorFindReply cursor_find_reply;
   CursorGetRecordCountRequest cursor_get_record_count_request;
   CursorGetRecordCountReply cursor_get_record_count_reply;
+  CursorGetDuplicatePositionRequest cursor_get_duplicate_position_request;
+  CursorGetDuplicatePositionReply cursor_get_duplicate_position_reply;
   CursorOverwriteRequest cursor_overwrite_request;
   CursorOverwriteReply cursor_overwrite_reply;
   CursorMoveRequest cursor_move_request;
@@ -366,6 +379,10 @@ MESSAGE_BEGIN(Wrapper)
         return (s + cursor_get_record_count_request.get_size());
       case kCursorGetRecordCountReply: 
         return (s + cursor_get_record_count_reply.get_size());
+      case kCursorGetDuplicatePositionRequest: 
+        return (s + cursor_get_duplicate_position_request.get_size());
+      case kCursorGetDuplicatePositionReply: 
+        return (s + cursor_get_duplicate_position_reply.get_size());
       case kCursorOverwriteRequest: 
         return (s + cursor_overwrite_request.get_size());
       case kCursorOverwriteReply: 
@@ -469,6 +486,12 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.serialize(pptr, psize);
+        break;
+      case kCursorGetDuplicatePositionRequest: 
+        cursor_get_duplicate_position_request.serialize(pptr, psize);
+        break;
+      case kCursorGetDuplicatePositionReply: 
+        cursor_get_duplicate_position_reply.serialize(pptr, psize);
         break;
       case kCursorOverwriteRequest: 
         cursor_overwrite_request.serialize(pptr, psize);
@@ -576,6 +599,12 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.deserialize(pptr, psize);
+        break;
+      case kCursorGetDuplicatePositionRequest: 
+        cursor_get_duplicate_position_request.deserialize(pptr, psize);
+        break;
+      case kCursorGetDuplicatePositionReply: 
+        cursor_get_duplicate_position_reply.deserialize(pptr, psize);
         break;
       case kCursorOverwriteRequest: 
         cursor_overwrite_request.deserialize(pptr, psize);

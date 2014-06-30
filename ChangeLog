@@ -1,4 +1,6 @@
 Jun 30, 2014 - chris ---------------------------------------------------
+o Added new API ham_cursor_get_duplicate_position
+o ham_db_get_error is now deprecated
 o header files no longer include winsock.h to avoid conflicts with winsock2.h
 	on Windows platforms
 

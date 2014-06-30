@@ -1475,6 +1475,18 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor,
   return (0);
 }
 
+ham_u32_t
+LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
+{
+  TransactionCursor *txnc = cursor->get_txn_cursor();
+
+  if (cursor->is_nil(0) && txnc->is_nil())
+    throw Exception(HAM_CURSOR_IS_NIL);
+
+  /* this function will do all the work */
+  return (cursor->get_dupecache_index() - 1);
+}
+
 ham_status_t
 LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {

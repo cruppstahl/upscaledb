@@ -1710,6 +1710,38 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, ham_u32_t *count,
 }
 
 ham_status_t HAM_CALLCONV
+ham_cursor_get_duplicate_position(ham_cursor_t *hcursor,
+            ham_u32_t *position)
+{
+  Database *db;
+
+  if (!hcursor) {
+    ham_trace(("parameter 'cursor' must not be NULL"));
+    return (HAM_INV_PARAMETER);
+  }
+
+  Cursor *cursor = (Cursor *)hcursor;
+
+  db = cursor->get_db();
+
+  try {
+    ScopedLock lock(db->get_env()->get_mutex());
+
+    if (!position) {
+      ham_trace(("parameter 'position' must not be NULL"));
+      return (db->set_error(HAM_INV_PARAMETER));
+    }
+
+    *position = db->cursor_get_duplicate_position(cursor);
+    return (db->set_error(0));
+  }
+  catch (Exception &ex) {
+    *position = 0;
+    return (db->set_error(ex.code));
+  }
+}
+
+ham_status_t HAM_CALLCONV
 ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_u64_t *size)
 {
   Database *db;

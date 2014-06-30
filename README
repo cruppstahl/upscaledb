@@ -67,7 +67,6 @@ To see a list of all changes, look in the file ChangeLog.
 - Very fast database cursors
 - Configurable page size, cache size, key size etc
 - Runs on Linux, Unices, Microsoft Windows and other architectures
-- Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)

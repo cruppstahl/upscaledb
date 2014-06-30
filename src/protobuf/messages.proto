@@ -60,6 +60,8 @@ message ProtoWrapper {
     CURSOR_FIND_REPLY = 251;
     CURSOR_GET_RECORD_COUNT_REQUEST = 260;
     CURSOR_GET_RECORD_COUNT_REPLY = 261;
+    CURSOR_GET_DUPLICATE_POSITION_REQUEST = 262;
+    CURSOR_GET_DUPLICATE_POSITION_REPLY = 263;
     CURSOR_OVERWRITE_REQUEST = 270;
     CURSOR_OVERWRITE_REPLY = 271;
     CURSOR_MOVE_REQUEST = 280;
@@ -120,6 +122,8 @@ message ProtoWrapper {
   optional CursorFindReply cursor_find_reply = 251;
   optional CursorGetRecordCountRequest cursor_get_record_count_request = 260;
   optional CursorGetRecordCountReply cursor_get_record_count_reply = 261;
+  optional CursorGetDuplicatePositionRequest cursor_get_duplicate_position_request = 262;
+  optional CursorGetDuplicatePositionReply cursor_get_duplicate_position_reply = 263;
   optional CursorOverwriteRequest cursor_overwrite_request = 270;
   optional CursorOverwriteReply cursor_overwrite_reply = 271;
   optional CursorMoveRequest cursor_move_request = 280;
@@ -421,6 +425,15 @@ message CursorGetRecordCountRequest {
 message CursorGetRecordCountReply {
   required sint32 status = 1;
   required uint32 count = 2;
+};
+
+message CursorGetDuplicatePositionRequest {
+  required uint64 cursor_handle = 1;
+};
+
+message CursorGetDuplicatePositionReply {
+  required sint32 status = 1;
+  required uint32 position = 2;
 };
 
 message CursorOverwriteRequest {

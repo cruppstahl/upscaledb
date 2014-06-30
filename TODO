@@ -420,6 +420,14 @@ x Refactorings for the PAX layout with the following goals:
         x remove RecordList::is_always_fixed_size
         x remove RecordList::get_max_inline_record_size
 
+x hamserver: check for memory leaks if there are multiple clients
+    sending multiple requests - no, it's ok
+
+x ham/types.h: do not include winsock2.h because it can conflict with
+    winsock.h in the user's application
+
+x deprecate ham_db_get_error - it won't be threadsafe
+
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
@@ -794,24 +802,18 @@ o the steps above will create an incompatible file format
         . PAX Layout: can compress the flags for the DefaultRecordList
         . Default Layout: can compress the flags for the Duplicate*RecordList
 
-x hamserver: check for memory leaks if there are multiple clients
-    sending multiple requests - no, it's ok
-
-x ham/types.h: do not include winsock2.h because it can conflict with
-    winsock.h in the user's application
+x need new API to retrieve the duplicate position of a cursor:
+    ham_status_t ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
+                    ham_u32_t *position)
+    x add implementation
+    x add unittests for local, w/o transactions
+    x add unittests for local, w/ transactions
+    x also for remote
+    x add unittests for remote
 
 o check with boost 1.55 and clang - seems that ham_bench does not compile
 
 o fix memory leaks in remote unittests
-
-o need new API to retrieve the duplicate position of a cursor:
-    ham_status_t ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
-                    ham_u32_t *position)
-    o also add to java
-    o also add to .NET
-    o also add to erlang
-
-o split cursor.cc in two files because gcc can run out of memory when compiling
 
 o collect/publish benchmark against leveldb (with and without SSD)
     - each with 100k and 100m keys
@@ -831,12 +833,14 @@ o collect/publish benchmark against leveldb (with and without SSD)
     o bin16, use count_if() of all keys with checksum % 10 == 0
 
 o documentation TODOs for 2.1.8
-    o remove endian agnosticitiy (sp??)
+    o remove endian agnosticitiy from web page
     o fixed length keys: add big warning that this increases the
-        node fanout! (also for performance faq!)
+        node fanout!
+        o header file
+        o performance faq
     o hola: add samples and documentation
         o add samples to webpage
-        o tutorial
+        o extend the tutorial
     o FAQ: Why is the library size so big?
 
 ------------- hamsterdb pro 2.1.8 ------------------------------------
@@ -846,23 +850,24 @@ o adapt to the newest changes from 2.1.8
 . PRO: add avx support
 o PRO: add sse support for real64
 
+o PRO: enable SIMD in the default layout if it uses the same KeyList as
+    in PAX *and* if record IDs are stored separately from the keys
+
 o PRO: CRC32-checksums (as soon as the file format is updated)
     o SSE2 has support for a CRC32 checksum calculation, or find a good
         library
     o how to store crc32 for multi-page blobs which do not have a header?
 
-o PRO: enable SIMD in the default layout if it uses the same KeyList as
-    in PAX *and* if record IDs are stored separately from the keys
-
 o PRO: think about a bitmap index for recnos; one bit per key, and (later)
     grouped varints for the records
     -> can a bitmap be used for other indices as well? theoretically yes;
-        but a split can be a bit tricky at a later stage. everything else
-        should be very fast and compact!
+        but the splits might look different. also we need to support sparse
+        bitmaps!
 
 o PRO: should we have a separate "recsize == 0" RecordList for duplicates?
     they could only store the duplicate count (but should be able to deal
     with duplicates that are > 256!)
+    -> requires grouped varints
 
 ------------- hamsterdb 2.1.9 ----------------------------------------
 
@@ -877,14 +882,6 @@ o start using likely/unlikely
 
 o duplicate table: check for overflow of the capacity/duplicate counter
 
-o remove support for big endian. better now than later, and this will get
-    rid of a lot of complexities
-    o also from documentation, webpage
-    o add documentation that database is host-endian
-
-o release-v2.pl: valgrind takes sooo long. should we use clang's
-    AddressSanitizer instead? or both?
-
 o can we add a generic macro like this:
     #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
     which can be used as an initializer:
@@ -894,6 +891,16 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
+
+o remove support for big endian. better now than later, and this will get
+    rid of a lot of complexities
+    o also from documentation, webpage
+    o add documentation that database is host-endian
+
+o QuickCheck: create a new property for testing duplicates; the key is always
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -937,11 +944,6 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-o QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
-
 o python wrapper: should be part of the sources; build for linux
     and for windows
     o extend configure scripts
@@ -954,6 +956,22 @@ o python wrapper: should be part of the sources; build for linux
         Cursor: begin, insert, find, erase, move, close
     o cover with unittests
     o need win32 build environment
+
+o release-v2.pl: valgrind takes sooo long. should we use clang's
+    AddressSanitizer instead? or both?
+
+o documentation rewrite
+    o documentation/api: have one file per API, formatted in markup (see above)
+        this file is maintained in parallel to the doxygen API
+        https://developer.github.com/v3/markdown/
+        - one file per API
+        - includes documentation notes for *all* wrappers
+        - includes API history (initial revision, changes)
+        - includes integration for disqus comments
+    o documentation/tutorial: same as the API documentation, but contains
+        the tutorial
+    o format into html, with an index in a left column
+    o look for a technical writer to review the files
 
 . hola - next steps
     o support java api
@@ -968,6 +986,7 @@ o python wrapper: should be part of the sources; build for linux
         http://rethinkdb.com, http://www.orientechnologies.com
     o use make/m4/markdown to generate static pages:
         https://github.com/datagrok/m4-bakery
+        https://developer.github.com/v3/markdown/
     o come up with the full site structure/contents
         o include full documentation, one page per API
         o ... and for all languages
@@ -990,14 +1009,6 @@ o python wrapper: should be part of the sources; build for linux
         o sending out release emails
         o importing new releases
         o etc
-
-o documentation rewrite
-    o documentation/api: have one file per API, formatted in markup (see above)
-        this file is maintained in parallel to the doxygen API
-    o documentation/tutorial: same as the API documentation, but contains
-        the tutorial
-    o format into html, with an index page
-    o upload to webpage, make this the main documentation entrance
 
 . look into hive-integration
     -> would be an interesting market with requirements for column store

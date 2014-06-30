@@ -147,10 +147,15 @@ class Database
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     // Returns number of duplicates (ham_cursor_get_record_count)
+    // TODO return count instead of status?
     virtual ham_status_t cursor_get_record_count(Cursor *cursor,
                     ham_u32_t *count, ham_u32_t flags) = 0;
 
+    // Returns position in duplicate list (ham_cursor_get_duplicate_position)
+    virtual ham_u32_t cursor_get_duplicate_position(Cursor *cursor) = 0;
+
     // Get current record size (ham_cursor_get_record_size)
+    // TODO return size instead of status?
     virtual ham_status_t cursor_get_record_size(Cursor *cursor,
                     ham_u64_t *size) = 0;
 

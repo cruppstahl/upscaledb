@@ -937,6 +937,48 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
+  void cursorGetDuplicatePositionTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_cursor_t *c;
+    ham_txn_t *txn;
+    ham_u32_t position = 0;
+
+    REQUIRE(0 ==
+        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 ==
+        ham_env_open_db(env, &db, 14, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, db, txn, 0));
+
+    REQUIRE(HAM_CURSOR_IS_NIL ==
+        ham_cursor_get_duplicate_position(c, &position));
+    REQUIRE((ham_u32_t)0 == position);
+
+    insertData(c, 0, "1111111111");
+    REQUIRE(0 ==
+        ham_cursor_get_duplicate_position(c, &position));
+    REQUIRE((ham_u32_t)0 == position);
+
+    insertData(c, 0, "2222222222");
+    REQUIRE(0 ==
+        ham_cursor_get_duplicate_position(c, &position));
+    REQUIRE((ham_u32_t)1 == position);
+
+    insertData(c, 0, "3333333333");
+    REQUIRE(0 ==
+        ham_cursor_get_duplicate_position(c, &position));
+    REQUIRE((ham_u32_t)2 == position);
+
+    REQUIRE(0 == ham_cursor_erase(c, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL ==
+        ham_cursor_get_duplicate_position(c, &position));
+
+    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
   void cursorOverwriteTest() {
     ham_db_t *db;
     ham_env_t *env;
@@ -1300,6 +1342,12 @@ TEST_CASE("Remote/cursorGetDuplicateCountTest", "")
 {
   RemoteFixture f;
   f.cursorGetDuplicateCountTest();
+}
+
+TEST_CASE("Remote/cursorGetDuplicatePositionTest", "")
+{
+  RemoteFixture f;
+  f.cursorGetDuplicatePositionTest();
 }
 
 TEST_CASE("Remote/cursorOverwriteTest", "")

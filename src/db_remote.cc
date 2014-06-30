@@ -495,6 +495,27 @@ RemoteDatabase::cursor_get_record_count(Cursor *cursor,
   return (st);
 }
 
+ham_u32_t
+RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor)
+{
+  RemoteEnvironment *env = get_remote_env();
+
+  SerializedWrapper request;
+  request.id = kCursorGetDuplicatePositionRequest;
+  request.cursor_get_duplicate_position_request.cursor_handle =
+                  cursor->get_remote_handle();
+
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorGetDuplicatePositionReply);
+
+  ham_status_t st = reply.cursor_get_duplicate_position_reply.status;
+  if (st == 0)
+    return (reply.cursor_get_duplicate_position_reply.position);
+
+  throw Exception(st);
+}
+
 ham_status_t
 RemoteDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {
