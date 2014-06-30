@@ -195,7 +195,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(4678 == (int)query[3].value);
+    REQUIRE(4677 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -207,7 +207,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(4678 == (int)query[3].value);
+    REQUIRE(4677 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -238,7 +238,7 @@ struct BtreeFixture {
     REQUIRE(HAM_TYPE_UINT32 == (int)query[0].value);
     REQUIRE(4 == (int)query[1].value);
     REQUIRE(10 == (int)query[2].value);
-    REQUIRE(1167 == (int)query[3].value);
+    REQUIRE(1166 == (int)query[3].value);
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     // now insert a key
@@ -419,7 +419,7 @@ TEST_CASE("Btree/binaryTypeTest", "")
 TEST_CASE("Btree/uint8Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1634,
+  f.fixedTypeTest(HAM_TYPE_UINT8, 1, 1633,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned char>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned char> >");
 }
 
@@ -440,7 +440,7 @@ TEST_CASE("Btree/uint32Type", "")
 TEST_CASE("Btree/uint64Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 961,
+  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long> >");
 }
 
@@ -454,14 +454,14 @@ TEST_CASE("Btree/real32Type", "")
 TEST_CASE("Btree/real64Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 961,
+  f.fixedTypeTest(HAM_TYPE_REAL64, 8, 960,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<double>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<double> >");
 }
 
 TEST_CASE("Btree/fixedBinaryType", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_BINARY, 8, 961,
+  f.fixedTypeTest(HAM_TYPE_BINARY, 8, 960,
       "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::FixedSizeCompare>");
 }
 

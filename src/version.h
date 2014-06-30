@@ -39,11 +39,12 @@
  *   2.1.3: new btree format, file format cleanups; version is 1
  *   2.1.4: new btree format for duplicate keys/var. length keys; version is 2
  *   2.1.5: new freelist; version is 3
+ *   2.1.8: changes in btree node format; version is 4
  */
 #define HAM_VERSION_MAJ     2
 #define HAM_VERSION_MIN     1
 #define HAM_VERSION_REV     7
-#define HAM_FILE_VERSION    3
+#define HAM_FILE_VERSION    4
 #define HAM_VERSION_STR     "2.1.7"
 
 #endif /* HAM_VERSION_H__ */

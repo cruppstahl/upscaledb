@@ -116,13 +116,6 @@ struct HamsterdbFixture {
         ham_env_open(&env, Utils::ipath("data/inv-file-header.hdb"), 0, 0));
   }
 
-  void invVersionTest() {
-    ham_env_t *env;
-
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Utils::ipath("data/inv-file-version.hdb"), 0, 0));
-  }
-
   void createTest() {
     ham_env_t *env;
     ham_parameter_t cs[] = { { HAM_PARAM_CACHESIZE, 1024 }, { 0, 0 } };
@@ -1807,15 +1800,6 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void openVersion1x() {
-    ham_env_t *env;
-
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Utils::opath("data/sample-db1-1.x.hdb"), 0, 0));
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&env, Utils::opath("data/sample-db1-2.0.hdb"), 0, 0));
-  }
-
   void overwriteLogDirectoryTest() {
     ham_env_t *env;
     ham_parameter_t ps[] = {
@@ -1993,12 +1977,6 @@ TEST_CASE("Hamsterdb/invHeaderTest", "")
 {
   HamsterdbFixture f;
   f.invHeaderTest();
-}
-
-TEST_CASE("Hamsterdb/invVersionTest", "")
-{
-  HamsterdbFixture f;
-  f.invVersionTest();
 }
 
 TEST_CASE("Hamsterdb/createTest", "")
@@ -2305,12 +2283,6 @@ TEST_CASE("Hamsterdb/unlimitedCacheTest", "")
 {
   HamsterdbFixture f;
   f.unlimitedCacheTest();
-}
-
-TEST_CASE("Hamsterdb/openVersion1x", "")
-{
-  HamsterdbFixture f;
-  f.openVersion1x();
 }
 
 TEST_CASE("Hamsterdb/overwriteLogDirectoryTest", "")

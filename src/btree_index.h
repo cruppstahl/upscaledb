@@ -145,8 +145,8 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // PRO: for storing key and record compression algorithm */
     ham_u8_t m_compression;
 
-    // reserved for padding
-    ham_u8_t m_padding1;
+    // reserved
+    ham_u8_t m_reserved1;
 
     // the record size
     ham_u32_t m_rec_size;

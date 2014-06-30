@@ -54,9 +54,15 @@ PageManager::load_state(ham_u64_t pageid)
   Page *page = m_state_page;
   ham_u32_t page_size = m_env->get_page_size();
 
+  // the first page stores the page ID of the last blob
+  m_last_blob_page_id = *(ham_u64_t *)page->get_payload();
+
   while (1) {
     ham_assert(page->get_type() == Page::kTypePageManager);
     ham_u8_t *p = page->get_payload();
+    // skip m_last_blob_page_id?
+    if (page == m_state_page)
+      p += sizeof(ham_u64_t);
 
     // get the overflow address
     ham_u64_t overflow = ham_db2h64(*(ham_u64_t *)p);
@@ -119,10 +125,15 @@ PageManager::store_state()
   // make sure that the page is logged
   page->set_dirty(true);
 
+  ham_u8_t *p = m_state_page->get_payload();
+
+  // store page-ID of the last allocated blob
+  *(ham_u64_t *)p = m_last_blob_page_id;
+  p += sizeof(ham_u64_t);
+
   // reset the overflow pointer and the counter
   // TODO here we lose a whole chain of overflow pointers if there was such
   // a chain. We only save the first. That's not critical but also not nice.
-  ham_u8_t *p = m_state_page->get_payload();
   ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
   if (next_pageid) {
     m_free_pages[next_pageid] = 1;
@@ -142,6 +153,9 @@ PageManager::store_state()
   while (it != m_free_pages.end()) {
     // this is where we will store the data
     p = page->get_payload();
+    // skip m_last_blob_page_id?
+    if (page == m_state_page)
+      p += sizeof(ham_u64_t);
     p += 8;   // leave room for the pointer to the next page
     p += 4;   // leave room for the counter
 
@@ -187,6 +201,8 @@ PageManager::store_state()
     }
 
     p = page->get_payload();
+    if (page == m_state_page) // skip m_last_blob_page_id?
+      p += sizeof(ham_u64_t);
     ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
     *(ham_u64_t *)p = ham_h2db64(0);
     p += 8;  // overflow page
@@ -201,9 +217,12 @@ PageManager::store_state()
         Page *new_page = alloc_page(0, Page::kTypePageManager, kIgnoreFreelist);
         // patch the overflow pointer in the old (current) page
         p = page->get_payload();
+        if (page == m_state_page) // skip m_last_blob_page_id?
+          p += sizeof(ham_u64_t);
         *(ham_u64_t *)p = ham_h2db64(new_page->get_address());
-        page = new_page;
+
         // reset the overflow pointer in the new page
+        page = new_page;
         p = page->get_payload();
         *(ham_u64_t *)p = 0;
       }

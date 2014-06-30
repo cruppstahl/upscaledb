@@ -1,4 +1,6 @@
 Jun 30, 2014 - chris ---------------------------------------------------
+o PageManager state now also persists the page id with (likely) gaps
+	for new blobs
 o Added new API ham_cursor_get_duplicate_position
 o ham_db_get_error is now deprecated
 o header files no longer include winsock.h to avoid conflicts with winsock2.h

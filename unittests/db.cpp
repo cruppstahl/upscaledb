@@ -148,12 +148,12 @@ struct DbFixture {
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
     REQUIRE(sizeof(PBlobHeader) == 28);
     REQUIRE(sizeof(PBtreeNode) == 33);
-    REQUIRE(sizeof(PEnvironmentHeader) == 28);
+    REQUIRE(sizeof(PEnvironmentHeader) == 32);
     REQUIRE(sizeof(PBtreeHeader) == 24);
-    REQUIRE(sizeof(PPageData) == 13);
+    REQUIRE(sizeof(PPageData) == 17);
     PPageData p;
-    REQUIRE(sizeof(p._s) == 13);
-    REQUIRE(Page::kSizeofPersistentHeader == 12);
+    REQUIRE(sizeof(p._s) == 17);
+    REQUIRE(Page::kSizeofPersistentHeader == 16);
 
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
@@ -164,7 +164,7 @@ struct DbFixture {
     page.set_db(&db);
     db.m_btree_index = &be;
     be.m_key_size = 666;
-    REQUIRE(Page::kSizeofPersistentHeader == 12);
+    REQUIRE(Page::kSizeofPersistentHeader == 16);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
     struct {
@@ -176,9 +176,9 @@ struct DbFixture {
     Page *hp = &hdrpage;
     ham_u8_t *pl1 = hp->get_payload();
     REQUIRE(pl1);
-    REQUIRE((pl1 - (ham_u8_t *)hdrpage.get_data()) == 12);
+    REQUIRE((pl1 - (ham_u8_t *)hdrpage.get_data()) == 16);
     PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
-    REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 12);
+    REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 16);
     hdrpage.set_data(0);
   }
 

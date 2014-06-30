@@ -69,48 +69,6 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_txn_abort(txn, 0));
   };
 
-  void v10xDBformatDetectTest() {
-#ifndef HAM_OS_WIN32
-	teardown();
-    os::unlink(Utils::opath(".test"));
-
-    REQUIRE(true ==
-      os::copy(Utils::ipath("data/dupe-endian-test-open-database-be.hdb"),
-        Utils::opath(".test")));
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-
-    teardown();
-    os::unlink(Utils::opath(".test"));
-
-    REQUIRE(true ==
-      os::copy(Utils::ipath("data/dupe-endian-test-open-database-le.hdb"),
-        Utils::opath(".test")));
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-
-    teardown();
-    os::unlink(Utils::opath(".test"));
-
-    /* now the same, environment-based */
-    REQUIRE(true ==
-      os::copy(Utils::ipath("data/dupe-endian-test-open-database-be.hdb"),
-        Utils::opath(".test")));
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-
-    teardown();
-    os::unlink(Utils::opath(".test"));
-
-    REQUIRE(true ==
-      os::copy(Utils::ipath("data/dupe-endian-test-open-database-le.hdb"),
-        Utils::opath(".test")));
-
-    REQUIRE(HAM_INV_FILE_VERSION ==
-        ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-#endif
-  }
-
   ham_u64_t get_param_value(ham_parameter_t *param, ham_u16_t name) {
     for (; param->name; param++) {
       if (param->name == name)
@@ -315,12 +273,6 @@ TEST_CASE("APIv110/transactionTest", "")
 {
   APIv110Fixture f;
   f.transactionTest();
-}
-
-TEST_CASE("APIv110/v10xDBformatDetectTest", "")
-{
-  APIv110Fixture f;
-  f.v10xDBformatDetectTest();
 }
 
 TEST_CASE("APIv110/getInitializedEnvParamsTest", "")

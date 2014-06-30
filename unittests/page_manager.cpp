@@ -355,6 +355,8 @@ struct PageManagerFixture {
     PageManager *pm = lenv->get_page_manager();
     ham_u32_t page_size = lenv->get_page_size();
 
+    pm->m_last_blob_page_id = page_size * 100;
+
     for (int i = 1; i <= 30000; i++) {
       if (i & 1) // only store every 2nd page to avoid collapsing
         pm->m_free_pages[page_size * i] = 1;
@@ -366,8 +368,11 @@ struct PageManagerFixture {
 
     pm->flush_all_pages();
     pm->m_free_pages.clear();
+    pm->m_last_blob_page_id = 0;
 
     pm->load_state(page_id);
+
+    REQUIRE(pm->m_last_blob_page_id == page_size * 100);
 
     REQUIRE(15000 == pm->m_free_pages.size());
     for (int i = 1; i <= 30000; i++) {

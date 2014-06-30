@@ -428,6 +428,15 @@ x ham/types.h: do not include winsock2.h because it can conflict with
 
 x deprecate ham_db_get_error - it won't be threadsafe
 
+x need new API to retrieve the duplicate position of a cursor:
+    ham_status_t ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
+                    ham_u32_t *position)
+    x add implementation
+    x add unittests for local, w/o transactions
+    x add unittests for local, w/ transactions
+    x also for remote
+    x add unittests for remote
+
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
@@ -790,26 +799,15 @@ o Refactorings for the Default layout with the following goals:
     o update the documentation (internal + external)
         x also update documentation in btree_impl_pax.h
 
-o the steps above will create an incompatible file format
-    o increment file version
-    o reserve space for other file format updates
-        o PageManager state needs to persist m_last_blob_page_id
-        o EnvHeader is completely full; add at least 8 bytes for
+x the steps above will create an incompatible file format
+    x increment file version
+    x reserve space for other file format updates
+        x EnvHeader is completely full; add at least 8 bytes for
                 flags + reserved
-        o reserve CRC32 for each page
-        o make sure that we can store additional flags in the database
-            descriptor, i.e. for compression
-        . PAX Layout: can compress the flags for the DefaultRecordList
-        . Default Layout: can compress the flags for the Duplicate*RecordList
-
-x need new API to retrieve the duplicate position of a cursor:
-    ham_status_t ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
-                    ham_u32_t *position)
-    x add implementation
-    x add unittests for local, w/o transactions
-    x add unittests for local, w/ transactions
-    x also for remote
-    x add unittests for remote
+        x reserve CRC32 for each page
+        x make sure that we can store additional flags in the database
+            descriptor, i.e. for compression (still have 1 byte left)
+    x PageManager state needs to persist m_last_blob_page_id
 
 o check with boost 1.55 and clang - seems that ham_bench does not compile
 
@@ -896,6 +894,10 @@ o remove support for big endian. better now than later, and this will get
     rid of a lot of complexities
     o also from documentation, webpage
     o add documentation that database is host-endian
+
+o improve node layout compression
+    o PAX Layout: can compress the flags for the DefaultRecordList
+    o Default Layout: can compress the flags for the Duplicate*RecordList
 
 o QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically

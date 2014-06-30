@@ -39,7 +39,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   ham_u8_t  _version[4];
 
   /** reserved */
-  ham_u32_t _reserved1;
+  ham_u64_t _reserved1;
 
   /** size of the page */
   ham_u32_t _page_size;
@@ -47,11 +47,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   /** maximum number of databases for this environment */
   ham_u16_t _max_databases;
 
-  /** PRO: for storing journal compression algorithm and level */
+  /** PRO: for storing journal compression algorithm */
   ham_u8_t _journal_compression;
 
   /** reserved */
-  ham_u8_t _reserved2;
+  ham_u8_t _reserved3;
 
   /** blob id of the PageManager's state */
   ham_u64_t _pm_state;

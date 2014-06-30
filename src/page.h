@@ -45,6 +45,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   ham_u32_t _flags;
 
+  // reserved
+  ham_u32_t _reserved;
+
   // the lsn of the last operation
   ham_u64_t _lsn;
 

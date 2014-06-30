@@ -220,7 +220,7 @@ struct BlobManagerFixture {
         REQUIRE(header->get_free_bytes() == 3666);
         REQUIRE(header->get_freelist_size(0) == 3666);
       }
-      REQUIRE(header->get_freelist_offset(0) == 433);
+      REQUIRE(header->get_freelist_offset(0) == 437);
     }
 
     ByteArray *arena = &ldb->get_record_arena();
