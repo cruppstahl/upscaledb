@@ -60,7 +60,7 @@ RemoteEnvironment::perform_request(Protocol *request)
 
   // no need to check the magic; it's verified in Protocol::unpack
   ham_u32_t size = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
-  m_buffer.resize(ham_db2h32(size) + 8);
+  m_buffer.resize(size + 8);
   m_socket.recv((ham_u8_t *)m_buffer.get_ptr() + 8, size);
 
   return (Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8));

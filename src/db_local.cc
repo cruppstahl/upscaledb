@@ -543,7 +543,6 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   ham_assert(key.size == sizeof(ham_u64_t));
   m_recno = *(ham_u64_t *)key.data;
-  m_recno = ham_h2db64(m_recno);
 
   return (0);
 }
@@ -830,7 +829,6 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
 {
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-  ham_u64_t recno = 0;
 
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     if (key->size != 0 && key->size != get_key_size()) {
@@ -860,6 +858,7 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
    * record number: make sure that we have a valid key structure,
    * and lazy load the last used record number
    */
+  ham_u64_t recno = 0;
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     if (flags & HAM_OVERWRITE) {
       ham_assert(key->size == sizeof(ham_u64_t));
@@ -867,7 +866,7 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
       recno = *(ham_u64_t *)key->data;
     }
     else {
-      /* get the record number (host endian) and increment it */
+      /* get the record number and increment it */
       recno = get_incremented_recno();
     }
 
@@ -875,13 +874,9 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
     if (!key->data) {
       arena->resize(sizeof(ham_u64_t));
       key->data = arena->get_ptr();
-      key->size = sizeof(ham_u64_t);
     }
-
-    /* store it in db endian */
-    recno = ham_h2db64(recno);
-    memcpy(key->data, &recno, sizeof(ham_u64_t));
     key->size = sizeof(ham_u64_t);
+    memcpy(key->data, &recno, sizeof(ham_u64_t));
 
     /* we're appending this key sequentially */
     flags |= HAM_HINT_APPEND;
@@ -927,15 +922,9 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
     return (st);
   }
 
-  /*
-   * record numbers: return key in host endian! and return the incremented
-   * record number in the key.
-   */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    recno = ham_db2h64(recno);
-    memcpy(key->data, &recno, sizeof(ham_u64_t));
+  // return the incremented record number in the key.
+  if (get_rt_flags() & HAM_RECORD_NUMBER)
     key->size = sizeof(ham_u64_t);
-  }
 
   if (local_txn)
     get_local_env()->get_txn_manager()->commit(local_txn);
@@ -967,8 +956,6 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
       return (HAM_INV_PARAMETER);
     }
     recno = *(ham_u64_t *)key->data;
-    recno = ham_h2db64(recno);
-    *(ham_u64_t *)key->data = recno;
   }
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
@@ -995,9 +982,8 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
     return (st);
   }
 
-  /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_u64_t *)key->data = ham_db2h64(recno);
+    *(ham_u64_t *)key->data = recno;
 
   if (local_txn)
     get_local_env()->get_txn_manager()->commit(local_txn);
@@ -1045,15 +1031,6 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
     return (st);
   }
 
-  /* record number: make sure we have a number in little endian */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    ham_assert(key->size == sizeof(ham_u64_t));
-    ham_assert(key->data != 0);
-    recno = *(ham_u64_t *)key->data;
-    recno = ham_h2db64(recno);
-    *(ham_u64_t *)key->data = recno;
-  }
-
   /*
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
@@ -1065,9 +1042,8 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
 
   get_local_env()->get_changeset().clear();
 
-  /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_u64_t *)key->data = ham_db2h64(recno);
+    *(ham_u64_t *)key->data = recno;
 
   return (st);
 }
@@ -1127,7 +1103,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
       recno = *(ham_u64_t *)key->data;
     }
     else {
-      /* get the record number (host endian) and increment it */
+      /* get the record number and increment it */
       recno = get_incremented_recno();
     }
 
@@ -1138,8 +1114,6 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
       key->size = sizeof(ham_u64_t);
     }
 
-    /* store it in db endian */
-    recno = ham_h2db64(recno);
     memcpy(key->data, &recno, sizeof(ham_u64_t));
     key->size = sizeof(ham_u64_t);
 
@@ -1221,12 +1195,8 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 
   /* no need to append the journal entry - it's appended in insert_txn() */
 
-  /*
-   * record numbers: return key in host endian! and store the incremented
-   * record number
-   */
+  /* store the incremented record number */
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    recno = ham_db2h64(recno);
     memcpy(key->data, &recno, sizeof(ham_u64_t));
     key->size = sizeof(ham_u64_t);
   }
@@ -1301,7 +1271,6 @@ ham_status_t
 LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
           ham_record_t *record, ham_u32_t flags)
 {
-  ham_u64_t recno = 0;
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
@@ -1311,18 +1280,11 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     return (HAM_INV_KEY_SIZE);
   }
 
-  /*
-   * record number: make sure that we have a valid key structure,
-   * and translate the record number to database endian
-   */
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     if (key->size != sizeof(ham_u64_t) || !key->data) {
       ham_trace(("key->size must be 8, key->data must not be NULL"));
       return (HAM_INV_PARAMETER);
     }
-    recno = *(ham_u64_t *)key->data;
-    recno = ham_h2db64(recno);
-    *(ham_u64_t *)key->data = recno;
   }
 
   /* purge cache if necessary */
@@ -1440,10 +1402,6 @@ bail:
 
   if (st)
     return (st);
-
-  /* record number: re-translate the number to host endian */
-  if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_u64_t *)key->data = ham_db2h64(recno);
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */

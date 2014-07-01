@@ -22,7 +22,6 @@
 
 #include <ham/hamsterdb_int.h>
 
-#include "endianswap.h"
 #include "error.h"
 #include "mutex.h"
 

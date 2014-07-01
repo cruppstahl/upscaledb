@@ -799,7 +799,7 @@ o Refactorings for the Default layout with the following goals:
     x run recovery tests (currently failing)
     x run unittests
     x run valgrind tests - there are memory leaks
-    o run monster tests
+    x run monster tests
     o run performance tests
     o profile and micro-optimize
         o delete performance slightly worse than in 2.1.7
@@ -809,6 +809,12 @@ o Refactorings for the Default layout with the following goals:
     o remove conditional check for split? (btree_insert)
     o update the documentation (internal + external)
         x also update documentation in btree_impl_pax.h
+
+x duplicate table: check for overflow of the capacity/duplicate counter
+
+x remove support for big endian. better now than later, and this will get
+    rid of a lot of complexities
+    x clean up the code
 
 o check with boost 1.55 and clang - seems that ham_bench does not compile
     - not reproducible on linux (gcc 4.6, clang 3.0)
@@ -846,6 +852,7 @@ o collect/publish benchmark against leveldb (with and without SSD)
 
 o documentation TODOs for 2.1.8
     o remove endian agnosticitiy from web page
+    o faq about endian-ness
     o fixed length keys: add big warning that this increases the
         node fanout!
         o header file
@@ -892,8 +899,6 @@ o start using likely/unlikely
     #   define unlikely(x) (x)
     #endif
 
-o duplicate table: check for overflow of the capacity/duplicate counter
-
 o can we add a generic macro like this:
     #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
     which can be used as an initializer:
@@ -903,11 +908,6 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
-
-o remove support for big endian. better now than later, and this will get
-    rid of a lot of complexities
-    o also from documentation, webpage
-    o add documentation that database is host-endian
 
 o improve node layout compression
     o PAX Layout: can compress the flags for the DefaultRecordList

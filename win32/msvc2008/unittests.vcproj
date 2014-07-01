@@ -404,10 +404,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\endian.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\env.cpp"
 			>
 		</File>

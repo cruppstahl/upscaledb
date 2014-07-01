@@ -19,7 +19,6 @@
 
 #include <ham/hamsterdb.h>
 
-#include "endianswap.h"
 #include "error.h"
 #include "page.h"
 
@@ -117,7 +116,7 @@ class EnvironmentHeader
 
     // Returns get the maximum number of databases for this file
     ham_u16_t get_max_databases() {
-      return (ham_db2h16(get_header()->_max_databases));
+      return (get_header()->_max_databases);
     }
 
     // Sets the maximum number of databases for this file
@@ -127,22 +126,22 @@ class EnvironmentHeader
 
     // Returns the page size from the header page
     ham_u32_t get_page_size() {
-      return (ham_db2h32(get_header()->_page_size));
+      return (get_header()->_page_size);
     }
 
     // Sets the page size in the header page
     void set_page_size(ham_u32_t ps) {
-      get_header()->_page_size = ham_h2db32(ps);
+      get_header()->_page_size = ps;
     }
 
     // Returns the PageManager's blob id
     ham_u64_t get_page_manager_blobid() {
-      return (ham_db2h64(get_header()->_pm_state));
+      return (get_header()->_pm_state);
     }
 
     // Sets the page size in the header page
     void set_page_manager_blobid(ham_u64_t blobid) {
-      get_header()->_pm_state = ham_h2db64(blobid);
+      get_header()->_pm_state = blobid;
     }
 
     // Returns the Journal compression configuration

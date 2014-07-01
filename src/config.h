@@ -41,19 +41,6 @@
 #   endif
 #endif
 
-// The endian-architecture of the host computer; set this to
-// HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN. Little endian is the
-// default setting
-#ifndef HAM_LITTLE_ENDIAN
-#   ifndef HAM_BIG_ENDIAN
-#       ifdef WORDS_BIGENDIAN
-#           define HAM_BIG_ENDIAN           1
-#       else // default
-#           define HAM_LITTLE_ENDIAN        1
-#       endif
-#   endif
-#endif
-
 // the default cache size is 2 MB
 #define HAM_DEFAULT_CACHESIZE    (2 * 1024 * 1024)
 

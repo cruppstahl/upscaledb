@@ -168,8 +168,7 @@ class DuplicateTable
     // Returns the number of duplicates in that table
     ham_u32_t get_record_count() const {
       ham_assert(m_table.get_size() > 4);
-      ham_u32_t count = *(ham_u32_t *)m_table.get_ptr();
-      return (ham_db2h32(count));
+      return (*(ham_u32_t *)m_table.get_ptr());
     }
 
     // Returns the record size of a duplicate
@@ -190,7 +189,7 @@ class DuplicateTable
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
 
-      ham_u64_t blob_id = ham_db2h64(*(ham_u64_t *)p);
+      ham_u64_t blob_id = *(ham_u64_t *)p;
       return (m_db->get_local_env()->get_blob_manager()->get_blob_size(m_db,
                               blob_id));
     }
@@ -263,7 +262,7 @@ class DuplicateTable
         return;
       }
 
-      ham_u64_t blob_id = ham_db2h64(*(ham_u64_t *)p);
+      ham_u64_t blob_id = *(ham_u64_t *)p;
 
       // the record is stored as a blob
       LocalEnvironment *env = m_db->get_local_env();
@@ -305,6 +304,12 @@ class DuplicateTable
       // "gap" in the table
       else {
         ham_u32_t count = get_record_count();
+
+        // check for overflow
+        if (count == 0xffffffff) {
+          ham_log(("Duplicate table overflow"));
+          throw Exception(HAM_LIMITS_REACHED);
+        }
 
         // adjust flags
         if (flags & HAM_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
@@ -433,8 +438,7 @@ class DuplicateTable
     // This method could be private, but it's required by the unittests
     ham_u32_t get_record_capacity() const {
       ham_assert(m_table.get_size() >= 8);
-      ham_u32_t count = *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4);
-      return (ham_db2h32(count));
+      return (*(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4));
     }
 
   private:
@@ -499,13 +503,13 @@ class DuplicateTable
 
     // Sets the number of used elements in a duplicate table
     void set_record_count(ham_u32_t count) {
-      *(ham_u32_t *)m_table.get_ptr() = ham_h2db32(count);
+      *(ham_u32_t *)m_table.get_ptr() = count;
     }
 
     // Sets the maximum capacity of elements in a duplicate table
     void set_record_capacity(ham_u32_t capacity) {
       ham_assert(m_table.get_size() >= 8);
-      *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4) = ham_h2db32(capacity);
+      *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4) = capacity;
     }
 
     // The database
@@ -679,10 +683,10 @@ class UpfrontIndex
     ham_u32_t get_chunk_offset(ham_u32_t slot) const {
       ham_u8_t *p = &m_data[kPayloadOffset + get_full_index_size() * slot];
       if (m_sizeof_offset == 2)
-        return (ham_db2h16(*(ham_u16_t *)p));
+        return (*(ham_u16_t *)p);
       else {
         ham_assert(m_sizeof_offset == 4);
-        return (ham_db2h32(*(ham_u32_t *)p));
+        return (*(ham_u32_t *)p);
       }
     }
 
@@ -1028,12 +1032,12 @@ class UpfrontIndex
 
     // Returns the full size of the range
     ham_u32_t get_range_size() const {
-      return (ham_db2h32(*(ham_u32_t *)(m_data + 8)));
+      return (*(ham_u32_t *)(m_data + 8));
     }
 
     // Returns the offset of the unused space at the end of the page
     ham_u32_t get_next_offset(size_t node_count) {
-      ham_u32_t ret = ham_db2h32(*(ham_u32_t *)(m_data + 4));
+      ham_u32_t ret = *(ham_u32_t *)(m_data + 4);
       if (ret == (ham_u32_t)-1 && node_count > 0) {
         ret = calc_next_offset(node_count);
         set_next_offset(ret);
@@ -1044,7 +1048,7 @@ class UpfrontIndex
     // Returns the offset of the unused space at the end of the page
     // (const version)
     ham_u32_t get_next_offset(size_t node_count) const {
-      ham_u32_t ret = ham_db2h32(*(ham_u32_t *)(m_data + 4));
+      ham_u32_t ret = *(ham_u32_t *)(m_data + 4);
       if (ret == (ham_u32_t)-1)
         return (calc_next_offset(node_count));
       return (ret);
@@ -1078,13 +1082,13 @@ class UpfrontIndex
 
     // Returns the number of freelist entries
     size_t get_freelist_count() const {
-      return (ham_db2h32(*(ham_u32_t *)m_data));
+      return (*(ham_u32_t *)m_data);
     }
 
     // Sets the number of freelist entries
     void set_freelist_count(size_t freelist_count) {
       ham_assert(freelist_count <= m_capacity);
-      *(ham_u32_t *)m_data = ham_h2db32(freelist_count);
+      *(ham_u32_t *)m_data = freelist_count;
     }
 
     // Calculates and returns the next offset; does not store it
@@ -1101,13 +1105,13 @@ class UpfrontIndex
 
     // Sets the offset of the unused space at the end of the page
     void set_next_offset(ham_u32_t next_offset) {
-      *(ham_u32_t *)(m_data + 4) = ham_h2db32(next_offset);
+      *(ham_u32_t *)(m_data + 4) = next_offset;
     }
 
     // The full size of the whole range (includes metadata overhead at the
     // beginning)
     void set_full_range_size(ham_u32_t full_size) {
-      *(ham_u32_t *)(m_data + 8) = ham_h2db32(full_size);
+      *(ham_u32_t *)(m_data + 8) = full_size;
     }
 
     // The physical data in the node
@@ -1470,13 +1474,12 @@ class VariableLengthKeyList
 
     // Returns the record address of an extended key overflow area
     ham_u64_t get_extended_blob_id(ham_u32_t slot) const {
-      ham_u64_t rid = *(ham_u64_t *)get_key_data(slot);
-      return (ham_db2h_offset(rid));
+      return (*(ham_u64_t *)get_key_data(slot));
     }
 
     // Sets the record address of an extended key overflow area
     void set_extended_blob_id(ham_u32_t slot, ham_u64_t blobid) {
-      *(ham_u64_t *)get_key_data(slot) = ham_h2db_offset(blobid);
+      *(ham_u64_t *)get_key_data(slot) = blobid;
     }
 
     // Erases an extended key from disk and from the cache
@@ -2031,8 +2034,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     // Returns a 64bit record id from a record
     ham_u64_t get_record_id(ham_u32_t slot,
                     ham_u32_t duplicate_index = 0) const {
-      ham_u64_t ptr = *(ham_u64_t *)get_record_data(slot, duplicate_index);
-      return (ham_db2h_offset(ptr));
+      return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
     // Sets a 64bit record id; used for internal nodes to store Page IDs
@@ -2167,9 +2169,8 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
 
-      ham_u64_t blob_id = ham_db2h64(*(ham_u64_t *)p);
       return (m_db->get_local_env()->get_blob_manager()->get_blob_size(m_db,
-                              blob_id));
+                              *(ham_u64_t *)p));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
@@ -2231,7 +2232,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         return;
       }
 
-      ham_u64_t blob_id = ham_db2h64(*(ham_u64_t *)p);
+      ham_u64_t blob_id = *(ham_u64_t *)p;
 
       // the record is stored as a blob
       LocalEnvironment *env = m_db->get_local_env();
@@ -2491,8 +2492,7 @@ write_record:
     // Returns a record id
     ham_u64_t get_record_id(ham_u32_t slot,
                     ham_u32_t duplicate_index = 0) const {
-      ham_u64_t ptr = *(ham_u64_t *)get_record_data(slot, duplicate_index);
-      return (ham_db2h_offset(ptr));
+      return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
     // Sets a record id

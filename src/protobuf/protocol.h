@@ -25,7 +25,6 @@
 #include "../mem.h"
 #include "../error.h"
 #include "../util.h"
-#include "../endianswap.h"
 #include "messages.pb.h"
 
 using namespace hamsterdb;
@@ -71,7 +70,7 @@ class Protocol : public hamsterdb::ProtoWrapper
      * buffer
      */
     static Protocol *unpack(const ham_u8_t *buf, ham_u32_t size) {
-      if (*(ham_u32_t *)&buf[0] != ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
+      if (*(ham_u32_t *)&buf[0] != HAM_TRANSFER_MAGIC_V1) {
         ham_trace(("invalid protocol version"));
         return (0);
       }
@@ -96,8 +95,8 @@ class Protocol : public hamsterdb::ProtoWrapper
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(ham_u32_t *)&p[0] = ham_h2db32(HAM_TRANSFER_MAGIC_V1);
-      *(ham_u32_t *)&p[4] = ham_h2db32(packed_size);
+      *(ham_u32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(ham_u32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
       if (!SerializeToArray(&p[8], packed_size)) {
@@ -121,8 +120,8 @@ class Protocol : public hamsterdb::ProtoWrapper
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(ham_u32_t *)&p[0] = ham_h2db32(HAM_TRANSFER_MAGIC_V1);
-      *(ham_u32_t *)&p[4] = ham_h2db32(packed_size);
+      *(ham_u32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(ham_u32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
       return (SerializeToArray(&p[8], packed_size));

@@ -759,9 +759,6 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *
  * If the key type is ommitted then @ref HAM_TYPE_BINARY is the default.
  *
- * Numeric key types are stored in host endian format and are NOT endian
- * converted!
- *
  * If binary/custom keys are so big that they cannot be stored in the Btree,
  * then the full key will be stored in an overflow area, which has
  * performance implications when accessing such keys.
@@ -794,8 +791,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *      Keys in Record Number Databases are automatically assigned an
  *      incrementing 64bit value. If key->data is not NULL
  *      (and key->flags is @ref HAM_KEY_USER_ALLOC and key->size is 8),
- *      the value of the current key is returned in @a key (a
- *      host-endian 64bit number of type ham_u64_t). If key-data is NULL
+ *      the value of the current key is returned in @a key. If key-data is NULL
  *      and key->size is 0, key->data is temporarily allocated by
  *      hamsterdb.
  *    </ul>
@@ -1404,7 +1400,7 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * of 8 and a valid data pointer).
  * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
  * allocate memory for key->data, which will then point to an 8-byte
- * unsigned integer in host-endian.
+ * unsigned integer.
  *
  * For very fast sequential inserts please use @ref ham_cursor_insert in
  * combination with the flag @ref HAM_HINT_APPEND.
@@ -2309,7 +2305,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * of 8 and a valid data pointer).
  * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
  * allocate memory for key->data, which will then point to an 8-byte
- * unsigned integer in host-endian.
+ * unsigned integer.
  *
  * @param cursor A valid Cursor handle
  * @param key A valid key structure

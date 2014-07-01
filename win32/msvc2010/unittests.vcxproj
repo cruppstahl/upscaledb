@@ -194,7 +194,6 @@
     <ClCompile Include="..\..\unittests\db.cpp" />
     <ClCompile Include="..\..\unittests\device.cpp" />
     <ClCompile Include="..\..\unittests\duplicates.cpp" />
-    <ClCompile Include="..\..\unittests\endian.cpp" />
     <ClCompile Include="..\..\unittests\env.cpp" />
     <ClCompile Include="..\..\unittests\error.cpp" />
     <ClCompile Include="..\..\unittests\hamsterdb.cpp" />

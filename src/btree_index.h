@@ -19,8 +19,6 @@
 
 #include <algorithm>
 
-#include "endianswap.h"
-
 #include "globals.h"
 #include "db.h"
 #include "abi.h"
@@ -48,62 +46,62 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
     // Returns the database name
     ham_u16_t get_dbname() const {
-      return (ham_db2h16(m_dbname));
+      return (m_dbname);
     }
 
     // Sets the database name
-    void set_dbname(ham_u16_t n) {
-      m_dbname = ham_h2db16(n);
+    void set_dbname(ham_u16_t name) {
+      m_dbname = name;
     }
 
     // Returns the btree's max. key_size
     ham_u16_t get_key_size() const {
-      return (ham_db2h16(m_key_size));
+      return (m_key_size);
     }
 
     // Sets the btree's max. key_size
-    void set_key_size(ham_u16_t n) {
-      m_key_size = ham_h2db16(n);
+    void set_key_size(ham_u16_t key_size) {
+      m_key_size = key_size;
     }
 
     // Returns the record size (or 0 if none was specified)
     ham_u32_t get_record_size() const {
-      return (ham_db2h32(m_rec_size));
+      return (m_rec_size);
     }
 
     // Sets the record size
-    void set_rec_size(ham_u32_t n) {
-      m_rec_size = ham_h2db32(n);
+    void set_rec_size(ham_u32_t rec_size) {
+      m_rec_size = rec_size;
     }
 
     // Returns the btree's key type
     ham_u16_t get_key_type() const {
-      return (ham_db2h16(m_key_type));
+      return (m_key_type);
     }
 
     // Sets the btree's key type
-    void set_key_type(ham_u16_t type) {
-      m_key_type = ham_h2db16(type);
+    void set_key_type(ham_u16_t key_type) {
+      m_key_type = key_type;
     }
 
     // Returns the address of the btree's root page.
     ham_u64_t get_root_address() const {
-      return (ham_db2h_offset(m_root_address));
+      return (m_root_address);
     }
 
     // Sets the address of the btree's root page.
-    void set_root_address(ham_u64_t n) {
-      m_root_address = ham_h2db_offset(n);
+    void set_root_address(ham_u64_t root_address) {
+      m_root_address = root_address;
     }
 
     // Returns the btree's flags
     ham_u32_t get_flags() const {
-      return (ham_db2h32(m_flags));
+      return (m_flags);
     }
 
     // Sets the btree's flags
-    void set_flags(ham_u32_t n) {
-      m_flags = ham_h2db32(n);
+    void set_flags(ham_u32_t flags) {
+      m_flags = flags;
     }
 
     // PRO: Returns the record compression

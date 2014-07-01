@@ -148,8 +148,7 @@ class BtreeNodeProxy
     virtual int find_exact(ham_key_t *key) = 0;
 
     // Returns the full key at the |slot|. Also resolves extended keys
-    // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
-    // are endian-translated.
+    // and respects HAM_KEY_USER_ALLOC in dest->flags.
     virtual void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) = 0;
 
     // Returns the number of records of a key at the given |slot|. This is
@@ -251,25 +250,7 @@ struct CallbackCompare
 };
 
 //
-// A comparator for record number keys (includes endian conversion)
-//
-struct RecordNumberCompare
-{
-  RecordNumberCompare(LocalDatabase *) {
-  }
-
-  int operator()(const void *lhs_data, ham_u32_t lhs_size,
-          const void *rhs_data, ham_u32_t rhs_size) const {
-    ham_assert(lhs_size == rhs_size);
-    ham_assert(lhs_size == sizeof(ham_u64_t));
-    ham_u64_t l = ham_db2h64(*(ham_u64_t *)lhs_data);
-    ham_u64_t r = ham_db2h64(*(ham_u64_t *)rhs_data);
-    return (l < r ? -1 : (l > r ? +1 : 0));
-  }
-};
-
-//
-// A comparator for numeric keys (without endian conversion).
+// A comparator for numeric keys.
 // The actual type for the key is supplied with a template parameter.
 // This has to be a POD type with support for operators < and >.
 //
@@ -288,6 +269,11 @@ struct NumericCompare
     return (l < r ? -1 : (l > r ? +1 : 0));
   }
 };
+
+//
+// A comparator for record number keys
+//
+typedef NumericCompare<ham_u64_t> RecordNumberCompare;
 
 //
 // The default comparator for two keys, implemented with memcmp(3).
@@ -422,17 +408,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns the full key at the |slot|. Also resolves extended keys
-    // and respects HAM_KEY_USER_ALLOC in dest->flags. Record number keys
-    // are endian-translated.
+    // and respects HAM_KEY_USER_ALLOC in dest->flags.
     virtual void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
-#if 0
-      if (dest->flags & HAM_KEY_USER_ALLOC) {
-        arena->assign(dest->data, dest->size);
-        arena->disown();
-        // TODO raus? durch das disown wird eine persistente struktur
-        // dauerhaft verändert
-      }
-#endif
       m_impl.get_key(slot, arena, dest);
     }
 

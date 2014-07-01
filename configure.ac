@@ -126,18 +126,6 @@ fi
 AM_CONDITIONAL(ENABLE_JAVA, test "x$enable_java" != "xno")
 
 # -------------------------------------------------------------------------
-# Check for little endian/big endian
-# -------------------------------------------------------------------------
-AC_C_BIGENDIAN(ac_big_endian=yes, ac_big_endian=no, ac_big_endian=no)
-if test x$ac_big_endian = xyes; then
-  CFLAGS="${CFLAGS} -DHAM_BIG_ENDIAN"
-  settings="$settings (big endian)"
-else
-  # no need to set flags - little endian is the default
-  settings="$settings (little endian)"
-fi
-
-# -------------------------------------------------------------------------
 # Check if protocol buffers are installed
 # -------------------------------------------------------------------------
 AC_LANG(C++)

@@ -17,7 +17,6 @@
 #ifndef HAM_BTREE_NODE_H__
 #define HAM_BTREE_NODE_H__
 
-#include "endianswap.h"
 #include "btree_flags.h"
 #include "db_local.h"
 #include "page.h"
@@ -31,8 +30,7 @@ class PBtreeKeyDefault;
 /*
  * A BtreeNode structure spans the persistent part of a Page
  *
- * This structure is directly written to/read from the file. The
- * getters/setters provide endian-agnostic access.
+ * This structure is directly written to/read from the file.
  */
 HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 {
@@ -54,48 +52,48 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // Returns the flags of the btree node (|kLeafNode|)
     ham_u32_t get_flags() const {
-      return (ham_db2h32(m_flags));
+      return (m_flags);
     }
 
     // Sets the flags of the btree node (|kLeafNode|)
     void set_flags(ham_u32_t flags) {
-      m_flags = ham_h2db32(flags);
+      m_flags = flags;
     }
 
     // Returns the number of entries in a BtreeNode
     ham_u32_t get_count() const {
-      return (ham_db2h32(m_count));
+      return (m_count);
     }
 
     // Sets the number of entries in a BtreeNode
-    void set_count(ham_u32_t c) {
-      ham_assert((int)c >= 0);
-      m_count = ham_h2db32(c);
+    void set_count(ham_u32_t count) {
+      ham_assert((int)count >= 0);
+      m_count = count;
     }
 
     // Returns the address of the left sibling of this node
     ham_u64_t get_left() const {
-      return (ham_db2h_offset(m_left));
+      return (m_left);
     }
 
     // Sets the address of the left sibling of this node
-    void set_left(ham_u64_t o) {
-      m_left = ham_h2db_offset(o);
+    void set_left(ham_u64_t left) {
+      m_left = left;
     }
 
     // Returns the address of the right sibling of this node
     ham_u64_t get_right() const {
-      return (ham_db2h_offset(m_right));
+      return (m_right);
     }
 
     // Sets the address of the right sibling of this node
-    void set_right(ham_u64_t o) {
-      m_right = ham_h2db_offset(o);
+    void set_right(ham_u64_t right) {
+      m_right = right;
     }
 
     // Returns the ptr_down of this node
     ham_u64_t get_ptr_down() const {
-      return (ham_db2h_offset(m_ptr_down));
+      return (m_ptr_down);
     }
 
     // Returns true if this btree node is a leaf node
@@ -104,8 +102,8 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
     // Sets the ptr_down of this node
-    void set_ptr_down(ham_u64_t o) {
-      m_ptr_down = ham_h2db_offset(o);
+    void set_ptr_down(ham_u64_t ptr_down) {
+      m_ptr_down = ptr_down;
     }
 
     // Returns a pointer to the key data

@@ -44,22 +44,22 @@ HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
 
     // Returns the number of pages which are all managed by this header
     ham_u32_t get_num_pages() const {
-      return (ham_db2h32(m_num_pages));
+      return (m_num_pages);
     }
 
     // Sets the number of pages which are all managed by this header
     void set_num_pages(ham_u32_t num_pages) {
-      m_num_pages = ham_h2db32(num_pages);
+      m_num_pages = num_pages;
     }
 
     // Returns the "free bytes" counter
     ham_u32_t get_free_bytes() const {
-      return (ham_db2h32(m_free_bytes));
+      return (m_free_bytes);
     }
 
     // Sets the "free bytes" counter
     void set_free_bytes(ham_u32_t free_bytes) {
-      m_free_bytes = ham_h2db32(free_bytes);
+      m_free_bytes = free_bytes;
     }
 
     // Returns the total number of freelist entries
@@ -69,22 +69,22 @@ HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
 
     // Returns the offset of freelist entry |i|
     ham_u32_t get_freelist_offset(ham_u32_t i) const {
-      return (ham_h2db32(m_freelist[i].offset));
+      return (m_freelist[i].offset);
     }
 
     // Sets the offset of freelist entry |i|
     void set_freelist_offset(ham_u32_t i, ham_u32_t offset) {
-      m_freelist[i].offset = ham_db2h32(offset);
+      m_freelist[i].offset = offset;
     }
 
     // Returns the size of freelist entry |i|
     ham_u32_t get_freelist_size(ham_u32_t i) const {
-      return (ham_h2db32(m_freelist[i].size));
+      return (m_freelist[i].size);
     }
 
     // Sets the size of freelist entry |i|
     void set_freelist_size(ham_u32_t i, ham_u32_t size) {
-      m_freelist[i].size = ham_db2h32(size);
+      m_freelist[i].size = size;
     }
 
   private:

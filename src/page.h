@@ -19,7 +19,6 @@
 
 #include <string.h>
 
-#include "endianswap.h"
 #include "error.h"
 #include "mem.h"
 
@@ -218,22 +217,22 @@ class Page {
 
     // Returns the page's type (kType*)
     ham_u32_t get_type() const {
-      return (ham_db2h32(m_data->_s._flags));
+      return (m_data->_s._flags);
     }
 
     // Sets the page's type (kType*)
     void set_type(ham_u32_t type) {
-      m_data->_s._flags = ham_h2db32(type);
+      m_data->_s._flags = type;
     }
 
     // Returns the lsn of the last modification
     ham_u64_t get_lsn() const {
-      return (ham_db2h64(m_data->_s._lsn));
+      return (m_data->_s._lsn);
     }
 
     // Sets the lsn of the last modification
     void set_lsn(ham_u64_t lsn) {
-      m_data->_s._lsn = ham_h2db64(lsn);
+      m_data->_s._lsn = lsn;
     }
 
     // Sets the pointer to the persistent data

@@ -65,11 +65,11 @@ PageManager::load_state(ham_u64_t pageid)
       p += sizeof(ham_u64_t);
 
     // get the overflow address
-    ham_u64_t overflow = ham_db2h64(*(ham_u64_t *)p);
+    ham_u64_t overflow = *(ham_u64_t *)p;
     p += 8;
 
     // get the number of stored elements
-    ham_u32_t counter = ham_db2h32(*(ham_u32_t *)p);
+    ham_u32_t counter = *(ham_u32_t *)p;
     p += 4;
 
     // now read all pages
@@ -134,7 +134,7 @@ PageManager::store_state()
   // reset the overflow pointer and the counter
   // TODO here we lose a whole chain of overflow pointers if there was such
   // a chain. We only save the first. That's not critical but also not nice.
-  ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
+  ham_u64_t next_pageid = *(ham_u64_t *)p;
   if (next_pageid) {
     m_free_pages[next_pageid] = 1;
     ham_assert(next_pageid % page_size == 0);
@@ -203,12 +203,12 @@ PageManager::store_state()
     p = page->get_payload();
     if (page == m_state_page) // skip m_last_blob_page_id?
       p += sizeof(ham_u64_t);
-    ham_u64_t next_pageid = ham_db2h64(*(ham_u64_t *)p);
-    *(ham_u64_t *)p = ham_h2db64(0);
+    ham_u64_t next_pageid = *(ham_u64_t *)p;
+    *(ham_u64_t *)p = 0;
     p += 8;  // overflow page
 
     // now store the counter
-    *(ham_u32_t *)p = ham_h2db32(counter);
+    *(ham_u32_t *)p = counter;
 
     // are we done? if not then continue with the next page
     if (it != m_free_pages.end()) {
@@ -219,7 +219,7 @@ PageManager::store_state()
         p = page->get_payload();
         if (page == m_state_page) // skip m_last_blob_page_id?
           p += sizeof(ham_u64_t);
-        *(ham_u64_t *)p = ham_h2db64(new_page->get_address());
+        *(ham_u64_t *)p = new_page->get_address();
 
         // reset the overflow pointer in the new page
         page = new_page;

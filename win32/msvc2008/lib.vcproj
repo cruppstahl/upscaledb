@@ -453,10 +453,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\endianswap.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\env.h"
 			>
 		</File>

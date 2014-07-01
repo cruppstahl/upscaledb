@@ -27,7 +27,6 @@
 #include "../src/db.h"
 #include "../src/blob_manager.h"
 #include "../src/btree_index.h"
-#include "../src/endianswap.h"
 #include "../src/cursor.h"
 #include "../src/env.h"
 #include "../src/btree_cursor.h"

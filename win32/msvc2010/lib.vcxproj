@@ -204,7 +204,6 @@
     <ClInclude Include="..\..\src\device_disk.h" />
     <ClInclude Include="..\..\src\device_factory.h" />
     <ClInclude Include="..\..\src\device_inmem.h" />
-    <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
     <ClInclude Include="..\..\src\env_header.h" />
     <ClInclude Include="..\..\src\env_local.h" />

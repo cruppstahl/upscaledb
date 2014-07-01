@@ -19,9 +19,6 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
-
-#include "../src/endianswap.h"
-
 #include "../src/journal.h"
 #include "../src/txn.h"
 #include "../src/env_local.h"

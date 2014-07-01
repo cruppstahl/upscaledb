@@ -23,7 +23,6 @@ test_SOURCES    = api110.cpp \
 				  db.cpp \
 				  device.cpp \
 				  duplicates.cpp \
-				  endian.cpp \
 				  env.cpp \
 				  error.cpp \
 				  globals.h \

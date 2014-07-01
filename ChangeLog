@@ -1,3 +1,8 @@
+Jul 01, 2014 - chris ---------------------------------------------------
+o The database format no longer tries to be endian agnostic; the database
+	is now stored in host endian format. The endian agnostic code was broken
+	anyway, and I had no hardware to test it.
+
 Jun 30, 2014 - chris ---------------------------------------------------
 o PageManager state now also persists the page id with (likely) gaps
 	for new blobs

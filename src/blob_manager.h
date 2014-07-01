@@ -53,42 +53,42 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 
     // Returns the blob flags
     ham_u32_t get_flags() const {
-      return (ham_db2h32(m_flags));
+      return (m_flags);
     }
 
     // Sets the blob's flags
     void set_flags(ham_u32_t flags) {
-      m_flags = ham_h2db32(flags);
+      m_flags = flags;
     }
 
     // Returns the absolute address of the blob
     ham_u64_t get_self() const {
-      return (ham_db2h_offset(m_blobid));
+      return (m_blobid);
     }
 
     // Sets the absolute address of the blob
     void set_self(ham_u64_t id) {
-      m_blobid = ham_h2db_offset(id);
+      m_blobid = id;
     }
 
     // Returns the payload size of the blob
     ham_u64_t get_size() const {
-      return (ham_db2h_offset(m_size));
+      return (m_size);
     }
 
     // Sets the payload size of the blob
     void set_size(ham_u64_t size) {
-      m_size = ham_h2db_offset(size);
+      m_size = size;
     }
 
     // Returns the allocated size of the blob (includes padding)
     ham_u64_t get_alloc_size() const {
-      return (ham_db2h_offset(m_allocated_size));
+      return (m_allocated_size);
     }
 
     // Sets the allocated size of a blob (includes padding)
     void set_alloc_size(ham_u64_t size) {
-      m_allocated_size = ham_h2db64(size);
+      m_allocated_size = size;
     }
 
   private:
