@@ -816,6 +816,49 @@ x remove support for big endian. better now than later, and this will get
     rid of a lot of complexities
     x clean up the code
 
+o python wrapper: should be part of the sources; build for linux
+    and for windows
+    x stage 1: 
+        Environment: create, open, close, rename_db, erase_db, flush
+        Database: create, open, close, insert, find, erase
+    x Stage 2:
+        Transaction: begin, abort, commit
+    x Stage 3:
+        Cursor: begin, insert, find, erase, move, close
+    x cover with unittests
+    o add to "make test"
+    o need win32 build environment
+
+o verify implementation of ham_cursor_get_duplicate_count()
+    o python unittest fails with -1
+    o if txn's are disabled then dupecache is not used??
+        o add unittest
+
+o performance is good, but mem allocations went up the roof
+    ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+    --open --find-pct=100 --quiet --metrics=all
+        elapsed time 17% down
+        total allocations from 1 to 1786!!
+    ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0 --quiet
+    --metrics=all
+        memory allocations went up (82%)
+    ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0 --quiet
+    --metrics=all
+        throughput went down (50%)
+    ./ham_bench --seed=1380279291 --stop-ops=1000000 --cache=unlimited --quiet
+    --metrics=all
+        elapsed time 13% down
+    ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+    --erase-pct=25 --find-pct=40 --quiet --metrics=all
+        elapsed time 12% down
+    ./ham_bench --seed=1380279291 --stop-ops=1000000 --duplicate=last --quiet
+    --metrics=all
+        elapsed time -24%
+        mem allocations 75%
+    ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb --quiet
+    --metrics=all
+        elapsed time -23%
+
 o check with boost 1.55 and clang - seems that ham_bench does not compile
     - not reproducible on linux (gcc 4.6, clang 3.0)
     o try on MacOS
@@ -853,6 +896,7 @@ o collect/publish benchmark against leveldb (with and without SSD)
 o documentation TODOs for 2.1.8
     o remove endian agnosticitiy from web page
     o faq about endian-ness
+    o python
     o fixed length keys: add big warning that this increases the
         node fanout!
         o header file
@@ -959,19 +1003,6 @@ o delta updates managed in the BtreeNode
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
-
-o python wrapper: should be part of the sources; build for linux
-    and for windows
-    o extend configure scripts
-    o stage 1: 
-        Environment: create, open, close, rename_db, erase_db, flush
-        Database: create, open, close, insert, find, erase
-    o Stage 2:
-        Transaction: begin, abort, commit
-    o Stage 3:
-        Cursor: begin, insert, find, erase, move, close
-    o cover with unittests
-    o need win32 build environment
 
 o release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?

@@ -9,49 +9,65 @@ x add static functions
     x ham_is_evaluation
     x add unittest
 
-o add environment functions
+x add environment functions
     x env_create
     x env_close
     x env_open
-        (all 3 are implemented but without tests)
-    o env_create_db
-    o env_open_db
-    o parameter handling - implement similar to erlang
-    o env_rename_db
-    o env_erase_db
-    o add unittest
+        x all 3 are implemented but without tests - add them
+    x env_create_db
+    x env_open_db
+    x env_rename_db
+    x env_erase_db
+    x get_database_names
+    x add parameter handling - implement similar to erlang
+    x add unittests
 
-o add database functions
-    o db_insert
-    o db_find
-    o db_erase
-    o db_close
-    o add unittest
+x add database functions
+    x db_insert
+    x db_find
+    x db_erase
+    x db_close
+    x db_set_compare_func
+    x db_flush -> env
+    x add unittest
 
-o add cursor functions
-    o cursor_create
-    o cursor_move
-    o cursor_clone
-    o cursor_overwrite
-    o cursor_insert
-    o cursor_erase
-    o cursor_get_duplicate_count
-    o cursor_get_record_size
-    o cursor_close
-    o add unittest
+x add cursor functions
+    x cursor_create
+    x cursor_clone
+    x cursor_close
+    x cursor_insert
+    x cursor_erase
+    x cursor_find
+    x cursor_move
+        -> cursor_move_to
+        -> cursor_get_key
+        -> cursor_get_record
+    x cursor_overwrite
+    x cursor_get_duplicate_count
+    x cursor_get_duplicate_position
+    x cursor_get_record_size
+    x add unittest
 
-o add txn functions
-    o txn_begin
-    o txn_abort
-    o txn_commit
-    o add unittest
+x add txn functions
+    x txn_begin
+    x txn_abort
+    x txn_commit
+    x add txn parameter to db_insert
+    x add txn parameter to db_find
+    x add txn parameter to db_erase
+    x add txn parameter to cursor_create
+    x add unittest
 
+x add file headers
 o split .cc file into separate headers or multiple files? it's quite long
     now, and the structure is a bit chaotic
-
+    - at least clean up the structure
 o add db1 sample
 o add env1 sample
 o update README
 o update Changelog
-o update documentation
+o update documentation (AUTO_CLEANUP is disabled!)
+o update webpage
+o add to the "make test" target of the root Makefile
+o port to Windows
 

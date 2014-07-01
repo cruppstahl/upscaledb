@@ -1442,7 +1442,7 @@ LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
     throw Exception(HAM_CURSOR_IS_NIL);
 
   /* this function will do all the work */
-  return (cursor->get_dupecache_index() - 1);
+  return (cursor->get_dupecache_index());
 }
 
 ham_status_t
