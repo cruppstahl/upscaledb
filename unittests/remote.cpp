@@ -955,17 +955,17 @@ struct RemoteFixture {
         ham_cursor_get_duplicate_position(c, &position));
     REQUIRE((ham_u32_t)0 == position);
 
-    insertData(c, 0, "1111111111");
+    insertData(c, "p", "1111111111");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
     REQUIRE((ham_u32_t)0 == position);
 
-    insertData(c, 0, "2222222222");
+    insertData(c, "p", "2222222222");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
     REQUIRE((ham_u32_t)1 == position);
 
-    insertData(c, 0, "3333333333");
+    insertData(c, "p", "3333333333");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
     REQUIRE((ham_u32_t)2 == position);

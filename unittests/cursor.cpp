@@ -4389,10 +4389,14 @@ struct DupeCursorFixture {
   }
 
   void teardown() {
-    REQUIRE(0 == ham_cursor_close(m_cursor));
-    m_cursor = 0;
-    if (m_txn)
+    if (m_cursor) {
+      REQUIRE(0 == ham_cursor_close(m_cursor));
+      m_cursor = 0;
+    }
+    if (m_txn) {
       REQUIRE(0 == ham_txn_commit(m_txn, 0));
+      m_txn = 0;
+    }
     REQUIRE(0 == ham_db_close(m_db, HAM_TXN_AUTO_COMMIT));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
@@ -6642,6 +6646,15 @@ struct DupeCursorFixture {
   }
 
   void duplicatePositionBtreeTest() {
+    teardown();
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_DUPLICATES, 0664, 0));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 13, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
+
     ham_u32_t position = 0;
     REQUIRE(0 == insertBtree("33333", "aaaaa"));
     REQUIRE(0 == insertBtree("33333", "aaaab", HAM_DUPLICATE));

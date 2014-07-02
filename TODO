@@ -14,283 +14,15 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.1.7 pro ..............................................
-x hamsterdb pro: compression for journal
-x hamsterdb pro: compression for records
-x hamsterdb pro: aes encryption
-x hamsterdb pro: compression for keys
-x hamsterdb: linear searches
-x hamsterdb: upgrade libuv
-x hamsterdb pro: SIMD instructions
-x hamsterdb pro: 30 day evaluation
-
 high-level plan for 2.1.8 ..................................................
 x hamsterdb: code cleanups
 x hamsterdb: performance improvements for remote
 x hamsterdb: improve page splits
-o hamsterdb: start with the hola API
-o hamsterdb: more quickcheck tests
-o hamsterdb: delta updates
+x hamsterdb: start with the hola API
+x hamsterdb: get rid of endian agnostic code
+o hamsterdb: use PAX layouts w/ duplicates
+o hamsterdb: python api
 
-
-
-x web-page requires updates
-    x deployed html differs from git-repository
-    x download/sources: add erlang, remove 1.x
-    x www1-repository and hamsterdb-www should be identical
-        x updates for 2.1.6 are missing
-        x samples fehlen
-        x doku fehlt
-        x download-dateien fehlen
-    x www1
-        x www1 and www2 are already combined in a single remote target
-        x where to host static files? - hetzner server
-        x clean up 'dl' directory
-    x webpage copyright is still 2013
-
-x PRO: enable zlib/snappy/others compression for the records
-    x add documentation to header file
-    x db: add record compression parameter
-        x when creating a database
-        x when opening a database
-    x create compressor in database (w/ autoptr)
-    x refactor BlobManager: should have common functionality, subclasses
-            implement do_overwrite, do_allocate etc
-        x move parameter checks and duplicate code to parent class
-        x do not allow partial updates if compression is enabled
-            x unittests
-    x implement the actual compression/decompression
-        x for in-memory AND disk
-        x compression: store flag in BlobHeader
-        x only compress if compressed size < original size
-        x directly uncompress into output buffer,
-            not in internal buffer of the compressor
-            (or into user allocated buffer)
-        x add unittests (disk and inmemory)
-    x add parameters to ham_bench
-    x add perftests, monster tests
-
-x PRO: should journal and record compression settings really
-    be non-persistent?
-    -> should be persistent, makes things easier
-    x journal compression: store in env-header
-        x env-header has 2 reserved bytes, use them for compression
-    x journal compression: disallow in ham_env_open
-        x unittest
-    x record compression: store in db-header
-        x BtreeHeader has 2 bytes reserved for padding, use them for compression
-    x record compression: disallow in ham_env_open_db
-        x unittest
-    x support ham_env_get_parameters
-        x unittest
-    x support ham_db_get_parameters
-        x unittest
-    x fix ham_bench
-    x add ham_*_get_parameters to header documentation
-    x fix memory leaks in unittests
-
-x PRO: is able to open APL files, but not vice versa
-    x use msb in file version for a marker
-    x when loading a APL file in PRO: set the flag, write back
-    x APL will automatically reject the file
-    x ham_info: show whether db is pro
-    x ham_info should print compression information
-    x make ham_info a 100% user of the public API; do not access
-        internal classes!
-
-x do we really need the compression LEVEL parameters? if not then we can
-    store the key compression flags very conveniently. otherwise we
-    need extra storage! - no, remove it
-
-x PRO: work over the license agreement; PRO will be similar to an NDA
-
-x PRO: heavyweight compression for keys
-    -> support compression with lzf and the other libraries
-    -> keys are stored compressed IF the compressed keys are smaller than the
-        uncompressed keys
-    -> key->size in the node is the compressed size, and it might further
-            be extended! the uncompressed size is part of the payload (16bit
-            at the front)
-    x need new parameters; store persistently
-    x compress before inserting
-        x only compress if the compressed size < uncompressed size
-        x store the uncompressed size up-front
-    x uncompress in get_key(), get_key_direct(), compare() etc
-    x add unittests in combination with record encryption (w/ different
-        algorithms)
-    x what if a PAX layout is selected? -> return an error
-        x add unittest
-    x extend ham_info
-    x add new option to ham_bench
-    x add to dotnet wrapper
-    x add to java wrapper
-    x add to erlang wrapper
-    x ham_bench: accept string parameters when enabling compression
-    x metrics: track number of compressed and uncompressed keys
-        x for journal compression
-        x for record compression
-        x for key compression
-        x print in ham_bench
-    x bugs raus
-
-    x blob mgr: do not compress extended keys if the keys are already compressed
-    x add header file documentation
-    x add to monster and perftests
-        x also test in combination with extended keys (very low threshold)
-        x also test in combination with encryption and record compression
-        x also test in-memory compression (keys + records)
-    x unittest: key/record compression with user_alloc
-    x fix TODOs in btree_impl_default.h
-    x run the full monster suite
-
-x PRO: if a compressor does not exist then ham_env_create_db should immediately
-    return an error (this is currently not the case)
-    x unittest
-
-x use linear search for PAX (see topic/linear), but improve the
-    performance!
-
-x run benchmark with this:
-    -mfpmath=sse -Ofast -flto -march=native -funroll-loops
-    -> add recommendation to Performance documentation
-
-x performance question: running ham_bench with 10mio keys (uint32, no records)
-    and then performing --open --find-pct=100 -> 6.5 sec;
-    with --cache=unlimited -> 6.5 sec
-    why is there no difference? this is random access, and pages should be
-    purged frequently. disabling mmap does not make a difference (SSD!).
-    -> try with a spinning disk (same result)
-    -> since this is a pure read-only workload, the pages are not modified
-        and purging them does not have any I/O costs associated. Fetching them
-        simply returns a pointer to the mmapped storage.
-        disabling mmap becomes very costly, though.
-
-x PRO: use SIMD instructions for the linear search
-    -> SSE2 only supports comparisons for signed integers!
-    x configure switch --enable-sse2: adds -msse2 to CFLAGS
-        x enable by default if `grep /proc/cpuinfo sse2` != 0
-    x need to figure out whether the CPU supports SSE/SSE2 (also on Windows)
-        http://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
-    x metrics: add flag whether sse2 is supported
-    x need unittest: if sse is enabled and supported then perform an
-        sse comparison
-    x rewrite configure settings
-        x a generic enable/disable SIMD option
-        x if enabled: use avx if available; otherwise fallback to sse2
-    x metrics should return the LANE width, not bools (default is 0)
-
-    x replace linear search with the SSE2 variant
-        x move SSE-related code to a template function in simd.h
-        x simd available? -> the find function calls the function in simd.h
-            x if HAM_ENABLE_SIMD is true
-            x if os_get_simd_lane_width() > 1
-        x if threshold is reached: continue with linear search
-            x the linear search implementation is not working identically to
-                the SIMD functions; add unittest (i.e. for signed int)
-                -> no, it's ok
-            x threshold depends on supported instruction set (AVX, SSE2)
-            x implement linear search with SIMD (SSE - 4x4)
-                -> only for exact searches!
-                x ham_u16_t
-                x ham_u32_t
-                x float
-                x ham_u64_t
-                x add unittests for sse
-            x revert support for AVX (move to branch)
-            x currently crashing or failing in debug build
-            x then perform another round of profiling (with different
-                    thresholds!)
-    x ham_bench: add flag to disable simd
-    x review the changes - some can maybe be ported back to hamsterdb (APL)?
-        -> find_exact!
-    x test compilation with clang
-    x add monster tests
-    x add performance tests for all types (no records, many finds, with
-        and without SSE)
-    x run monster tests
-    x test compilation with msvc
-
-x port everything to MacOS
-
-x PRO: 30 day evaluation library
-    x remove the ham_get_license() API - it doesn't make sense and people
-        will not use it anyway
-        x also from erlang
-    x ham_time_t ham_is_pro_evaluation(); -> returns end time, or 0
-    x insert 30 day trial check macros at various positions
-        x insert code in
-            x ham_env_create
-            x ham_env_open
-            x LocalDatabase::create
-            x LocalDatabase::open
-            x flushing transactions
-            x accepting remote connections
-        x implement with static functions and boost::posix_time::second_clock, 
-            boost::posix_time::microsec_clock, time(0)
-        x don't hardcode the timestamp but use a simple calculation, i.e.
-                (1396600000+2536), 0x533e76a8, 012317473250 etc
-            x return in ham_is_pro_evaluation()
-    x needs different licensing output in the tools (evaluation - XX days left)
-    x print message to stdout in ham_env_create, ham_env_open
-        x make sure that all strings are obfuscated!
-    x need a license agreement similar to an NDA
-    x evaluate source obfuscators
-    x prepare code for obfuscator, improve obfuscation with perl-scripts
-    x create automagically in release-build.pl
-
-x PRO: extend release-tool
-    x new switch --product=apl|pro (default: apl)
-    x for pro: use different version tag
-    x for pro: use different packaging directory
-    x for pro: use different file list
-    x for pro: check dependencies (zlib, snappy, lzo, crypto)
-    x for pro: add test for --disable-compression
-    x for pro: add test for --disable-encryption
-    x for pro: add test for --disable-simd
-
-x port everything to Win32/Visual Studio
-
-x PRO: additional stuff for the first release
-    x update the ChangeLog
-    x update the README
-
-    x create new documentation page (wiki) for pro (tutorial + ham_bench)
-        x journal compression
-        x record compression
-        x zlib compression
-        x aes encryption
-        x file compatibility
-        x simd
-
-    x user-area: customers.hamsterdb.com
-        x create "download" directory with all files
-        x create one directory per customer
-            x enable directory listing
-            x enable symlinks
-        x create one directory for trials
-            x disable directory listing
-            x enable symlinks
-        x use htpasswd to regulate the access
-        x store passwords in customer database
-        x the "download" directory keeps all the files; the customer
-            directories just have symlinks into this directory
-
-    x webpage
-        x new marketing focus
-        x feature matrix APL vs. closed source
-        x new layout
-        x request evaluation version
-        x commit everything to git
-        x daily backups of the mysql database
-        x once more check all the links, make sure they are relative!
-        x add google analytics token!
-        x go live
-
-    o send email to all customers (add this to the release process)
-        o include license agreement
-        o include link to their download area, username/password
-
-------------- first release of hamsterdb-pro 2.1.7 --------------------------
 
 x remote code: get rid of protocol buffers (but leave them in the server
     for other languages). they are too expensive.
@@ -446,6 +178,21 @@ x the steps below will create an incompatible file format
         x make sure that we can store additional flags in the database
             descriptor, i.e. for compression (still have 1 byte left)
     x PageManager state needs to persist m_last_blob_page_id
+
+x duplicate table: check for overflow of the capacity/duplicate counter
+
+x remove support for big endian. better now than later, and this will get
+    rid of a lot of complexities
+    x clean up the code
+
+x start using likely/unlikely
+    #if defined __GNUC__
+    #   define likely(x) __builtin_expect ((x), 1)
+    #   define unlikely(x) __builtin_expect ((x), 0)
+    #else
+    #   define likely(x) (x)
+    #   define unlikely(x) (x)
+    #endif
 
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
@@ -796,25 +543,41 @@ o Refactorings for the Default layout with the following goals:
     x fails: ./ham_bench --keysize=1024 --recsize=1024 --pagesize=1024 \
             --distribution=ascending
 
+    x update the documentation (internal + external)
+        x also update documentation in btree_impl_pax.h
     x run recovery tests (currently failing)
     x run unittests
     x run valgrind tests - there are memory leaks
     x run monster tests
-    o run performance tests
+    x run performance tests
+    x remove conditional check for split? (btree_insert) - no need to
+        remove it
     o profile and micro-optimize
+        x decrease memory consumption
         o delete performance slightly worse than in 2.1.7
         o slightly improve read-random (10%) - bin16, no duplicates
         o vastly improve write-random/overwrite (50%) - bin16, no duplicates
         o also profile duplicate keys
-    o remove conditional check for split? (btree_insert)
-    o update the documentation (internal + external)
-        x also update documentation in btree_impl_pax.h
 
-x duplicate table: check for overflow of the capacity/duplicate counter
+o performance is good, but mem allocations went up the roof
+    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending --open --find-pct=100 --metrics=all
+        elapsed time 17% down
+        total allocations from 1 to 1786!!
+    o ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0 --metrics=all
+        x memory allocations went up (82%)
+        -> should be much faster now (splits down 50%, filesize down 50% etc),
+            but it has more or less the same performance than before
+    o ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0 --metrics=all
+        -> less allocations, less splits but throughput went down (50%)
+    o ./ham_bench --seed=1380279291 --stop-ops=1000000 --duplicate=last --metrics=all
+        -> less allocations, less splits but throughput went down (50%)
+    o ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb --metrics=all
+        -> less pages, less splits but throughput went down (50%)
 
-x remove support for big endian. better now than later, and this will get
-    rid of a lot of complexities
-    x clean up the code
+x verify implementation of ham_cursor_get_duplicate_count()
+    x if txn's are disabled then dupecache is not used??
+        x add unittest
+    x python unittest fails with -1
 
 o python wrapper: should be part of the sources; build for linux
     and for windows
@@ -826,44 +589,28 @@ o python wrapper: should be part of the sources; build for linux
     x Stage 3:
         Cursor: begin, insert, find, erase, move, close
     x cover with unittests
-    o add to "make test"
+    o add samples (db1, env1)
+    o add to "make test" (run samples, unittests)
     o need win32 build environment
-
-o verify implementation of ham_cursor_get_duplicate_count()
-    o python unittest fails with -1
-    o if txn's are disabled then dupecache is not used??
-        o add unittest
-
-o performance is good, but mem allocations went up the roof
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending
-    --open --find-pct=100 --quiet --metrics=all
-        elapsed time 17% down
-        total allocations from 1 to 1786!!
-    ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0 --quiet
-    --metrics=all
-        memory allocations went up (82%)
-    ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0 --quiet
-    --metrics=all
-        throughput went down (50%)
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --cache=unlimited --quiet
-    --metrics=all
-        elapsed time 13% down
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending
-    --erase-pct=25 --find-pct=40 --quiet --metrics=all
-        elapsed time 12% down
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --duplicate=last --quiet
-    --metrics=all
-        elapsed time -24%
-        mem allocations 75%
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb --quiet
-    --metrics=all
-        elapsed time -23%
 
 o check with boost 1.55 and clang - seems that ham_bench does not compile
     - not reproducible on linux (gcc 4.6, clang 3.0)
     o try on MacOS
 
-o documentation rewrite
+o documentation TODOs for 2.1.8
+    o remove endian agnosticitiy from web page
+    o faq about endian-ness
+    o python
+    o fixed length keys: add big warning that this increases the
+        node fanout!
+        o header file
+        o performance faq
+    o hola: add samples and documentation
+        o add samples to webpage
+        o extend the tutorial
+    o FAQ: Why is the library size so big?
+
+. documentation rewrite
     o documentation/api: have one file per API, formatted in markup (see above)
         this file is maintained in parallel to the doxygen API
         https://developer.github.com/v3/markdown/
@@ -876,7 +623,7 @@ o documentation rewrite
     o format into html, with an index in a left column
     o look for a technical writer to review the files
 
-o collect/publish benchmark against leveldb (with and without SSD)
+. collect/publish benchmark against leveldb (with and without SSD)
     - each with 100k and 100m keys
     o uint64, small records, random write
     o uint64, small records, linear write
@@ -892,19 +639,6 @@ o collect/publish benchmark against leveldb (with and without SSD)
     o bin16, default records, linear read (w/ compression)
     o uint64, calculate sum()
     o bin16, use count_if() of all keys with checksum % 10 == 0
-
-o documentation TODOs for 2.1.8
-    o remove endian agnosticitiy from web page
-    o faq about endian-ness
-    o python
-    o fixed length keys: add big warning that this increases the
-        node fanout!
-        o header file
-        o performance faq
-    o hola: add samples and documentation
-        o add samples to webpage
-        o extend the tutorial
-    o FAQ: Why is the library size so big?
 
 ------------- hamsterdb pro 2.1.8 ------------------------------------
 
@@ -933,15 +667,6 @@ o PRO: should we have a separate "recsize == 0" RecordList for duplicates?
     -> requires grouped varints
 
 ------------- hamsterdb 2.1.9 ----------------------------------------
-
-o start using likely/unlikely
-    #if defined __GNUC__
-    #   define likely(x) __builtin_expect ((x), 1)
-    #   define unlikely(x) __builtin_expect ((x), 0)
-    #else
-    #   define likely(x) (x)
-    #   define unlikely(x) (x)
-    #endif
 
 o can we add a generic macro like this:
     #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}

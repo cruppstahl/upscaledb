@@ -145,7 +145,7 @@ class DuplicateTable
       // This sets the initial capacity as described above
       size_t capacity = record_count * 2;
       m_table.resize(8 + capacity * get_record_width());
-      if (record_count > 0)
+      if (likely(record_count > 0))
         m_table.overwrite(8, data, (m_inline_records
                                     ? m_record_size * record_count
                                     : 9 * record_count));
@@ -306,7 +306,7 @@ class DuplicateTable
         ham_u32_t count = get_record_count();
 
         // check for overflow
-        if (count == 0xffffffff) {
+        if (unlikely(count == 0xffffffff)) {
           ham_log(("Duplicate table overflow"));
           throw Exception(HAM_LIMITS_REACHED);
         }
@@ -324,7 +324,7 @@ class DuplicateTable
         }
 
         // resize the table, if necessary
-        if (count == get_record_capacity())
+        if (unlikely(count == get_record_capacity()))
           grow_duplicate_table();
 
         // handle overwrites or inserts/appends
@@ -712,7 +712,7 @@ class UpfrontIndex
     // Returns true if this index has at least one free slot available.
     // |node_count| is the number of used slots (this is managed by the caller)
     bool can_insert_slot(size_t node_count) {
-      if (node_count + get_freelist_count() < m_capacity)
+      if (likely(node_count + get_freelist_count() < m_capacity))
         return (true);
       if (m_vacuumize_counter > 0 && get_freelist_count()) {
         vacuumize(node_count);
@@ -773,7 +773,7 @@ class UpfrontIndex
     void add_to_freelist(size_t node_count, ham_u32_t chunk_offset,
                     ham_u32_t chunk_size) {
       size_t total_count = node_count + get_freelist_count();
-      if (total_count < m_capacity) {
+      if (likely(total_count < m_capacity)) {
         set_freelist_count(get_freelist_count() + 1);
         set_chunk_size(total_count, chunk_size);
         set_chunk_offset(total_count, chunk_offset);
@@ -822,7 +822,7 @@ class UpfrontIndex
         ham_u32_t offset = get_chunk_offset(slot);
         // if this slot's data is at the very end then maybe it can be
         // resized without actually moving the data
-        if (next_offset == offset + get_chunk_size(slot)) {
+        if (unlikely(next_offset == offset + get_chunk_size(slot))) {
           set_next_offset(offset + num_bytes);
           set_chunk_size(slot, num_bytes);
           return (offset);
@@ -842,9 +842,10 @@ class UpfrontIndex
         ham_u32_t chunk_offset = get_chunk_offset(i);
         if (chunk_size >= num_bytes) {
           // update next_offset?
-          if (next_offset == chunk_offset + chunk_size)
+          if (unlikely(next_offset == chunk_offset + chunk_size))
             invalidate_next_offset();
-          else if (next_offset == get_chunk_offset(slot) + get_chunk_size(slot))
+          else if (unlikely(next_offset == get_chunk_offset(slot)
+                                  + get_chunk_size(slot)))
             invalidate_next_offset();
           // copy the chunk to the new slot
           set_chunk_size(slot, num_bytes);
@@ -1038,7 +1039,7 @@ class UpfrontIndex
     // Returns the offset of the unused space at the end of the page
     ham_u32_t get_next_offset(size_t node_count) {
       ham_u32_t ret = *(ham_u32_t *)(m_data + 4);
-      if (ret == (ham_u32_t)-1 && node_count > 0) {
+      if (unlikely(ret == (ham_u32_t)-1 && node_count > 0)) {
         ret = calc_next_offset(node_count);
         set_next_offset(ret);
       }
@@ -1049,7 +1050,7 @@ class UpfrontIndex
     // (const version)
     ham_u32_t get_next_offset(size_t node_count) const {
       ham_u32_t ret = *(ham_u32_t *)(m_data + 4);
-      if (ret == (ham_u32_t)-1)
+      if (unlikely(ret == (ham_u32_t)-1))
         return (calc_next_offset(node_count));
       return (ret);
     }
@@ -1220,12 +1221,18 @@ class VariableLengthKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
+    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
+                    bool deep_copy = true) {
       ham_key_t tmp = {0};
       if (get_key_flags(slot) & BtreeKey::kExtendedKey) {
         get_extended_key(get_extended_blob_id(slot), &tmp);
       }
       else {
+        if (likely(deep_copy == false)) {
+          dest->size = get_key_size(slot);
+          dest->data = get_key_data(slot);
+          return;
+        }
         tmp.size = get_key_size(slot);
         tmp.data = get_key_data(slot);
       }
@@ -1808,7 +1815,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
                     ham_u32_t flags) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
         dt->get_record(duplicate_index, arena, record, flags);
         return;
@@ -1915,7 +1922,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
 
       // forward to duplicate table?
-      if (m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)) {
         ham_u64_t table_id = get_record_id(slot);
         DuplicateTable *dt = get_duplicate_table(table_id);
         ham_u64_t new_table_id = dt->set_record(duplicate_index, record,
@@ -1995,7 +2002,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
       // forward to external duplicate table?
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         ham_u64_t table_id = get_record_id(slot);
         DuplicateTable *dt = get_duplicate_table(table_id);
         ham_u64_t new_table_id = dt->erase_record(duplicate_index,
@@ -2144,7 +2151,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     // Returns the number of duplicates
     ham_u32_t get_record_count(ham_u32_t slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
         return (dt->get_record_count());
       }
@@ -2155,7 +2162,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     // Returns the size of a record
     ham_u64_t get_record_size(ham_u32_t slot, ham_u32_t duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
         return (dt->get_record_size(duplicate_index));
       }
@@ -2180,7 +2187,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
                     ham_u32_t flags) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
         dt->get_record(duplicate_index, arena, record, flags);
         return;
@@ -2310,7 +2317,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       }
 
       // forward to duplicate table?
-      if (m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)) {
         ham_u64_t table_id = get_record_id(slot);
         DuplicateTable *dt = get_duplicate_table(table_id);
         ham_u64_t new_table_id = dt->set_record(duplicate_index, record,
@@ -2431,7 +2438,7 @@ write_record:
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
       // forward to external duplicate table?
-      if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
+      if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         ham_u64_t table_id = get_record_id(slot);
         DuplicateTable *dt = get_duplicate_table(table_id);
         ham_u64_t new_table_id = dt->erase_record(duplicate_index,
@@ -2613,7 +2620,7 @@ class DefaultNodeImpl
     template<typename Cmp>
     int compare(const ham_key_t *lhs, ham_u32_t rhs, Cmp &cmp) {
       ham_key_t tmp = {0};
-      get_key(rhs, &m_arena, &tmp);
+      m_keys.get_key(rhs, &m_arena, &tmp, false);
       return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
     }
 
@@ -2728,7 +2735,7 @@ class DefaultNodeImpl
       ham_key_t key = {0};
 
       for (size_t i = start; i < node_count; i++) {
-        get_key(i, &m_arena, &key);
+        m_keys.get_key(i, &m_arena, &key, false);
         (*visitor)(key.data, key.size, distinct ? 1 : get_record_count(i));
       }
     }

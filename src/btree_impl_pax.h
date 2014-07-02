@@ -122,8 +122,13 @@ class PodKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
+    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
+                    bool deep_copy = true) const {
       dest->size = sizeof(T);
+      if (deep_copy == false) {
+        dest->data = &m_data[slot];
+        return;
+      }
 
       // allocate memory (if required)
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
@@ -332,8 +337,13 @@ class BinaryKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
+    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
+                    bool deep_copy = true) const {
       dest->size = m_key_size;
+      if (likely(deep_copy == false)) {
+        dest->data = &m_data[slot];
+        return;
+      }
 
       // allocate memory (if required)
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
@@ -540,7 +550,7 @@ class DefaultRecordList
 
     // Returns the record counter of a key
     ham_u32_t get_record_count(ham_u32_t slot) const {
-      if (!is_record_inline(slot) && get_record_id(slot) == 0)
+      if (unlikely(!is_record_inline(slot) && get_record_id(slot) == 0))
         return (0);
       return (1);
     }
@@ -1328,7 +1338,7 @@ class PaxNodeImpl
     // Returns a copy of a key and stores it in |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) const {
       // copy (or assign) the key data
-      m_keys.get_key(slot, arena, dest);
+      m_keys.get_key(slot, arena, dest, true);
     }
 
     // Returns the record size of a key or one of its duplicates

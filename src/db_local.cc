@@ -1441,8 +1441,12 @@ LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
   if (cursor->is_nil(0) && txnc->is_nil())
     throw Exception(HAM_CURSOR_IS_NIL);
 
-  /* this function will do all the work */
-  return (cursor->get_dupecache_index());
+  // use btree cursor?
+  if (txnc->is_nil())
+    return (cursor->get_btree_cursor()->get_duplicate_index());
+
+  // otherwise return the index in the duplicate cache
+  return (cursor->get_dupecache_index() - 1);
 }
 
 ham_status_t
