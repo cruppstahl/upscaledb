@@ -1,6 +1,6 @@
-# ham_env_create
+# Environment: create
 
-Creates a new Environment.
+**Creates a new Environment.**
 
 A Database Environment is a collection of Databases, which are all stored
 in one physical file (or in-memory). The maximum number of Databases
@@ -104,7 +104,18 @@ class Environment {
 ## Python Synopsis
 
 ```python
-print "@@@ TBD @@@"
+# first create an empty Environment object
+env = hamsterdb.env()
+
+# then call create() to create a new Environment
+filename = "test.db"
+env.create(filename)
+
+# more parameters are supported
+flags = hamsterdb.HAM_CACHE_UNLIMITED
+mode = 0644
+parameters = ((hamsterdb.HAM_PARAM_KEY_TYPE, hamsterdb.HAM_TYPE_UINT64))
+env.create(filename, flags, mode, parameters)
 ```
 
 ## Additional Information
@@ -172,10 +183,11 @@ all parameters are supported by all languages.
   * `HAM_ENVIRONMENT_ALREADY_OPEN` if _env_ is already in use
 
 ## API History
-  |Version|Language|Details|
-  |-------|--------|-------|
-  |0.4.7|C/C++|This API was initially added.|
-  |2.1.0|C/C++|Renamed to ham_env_create.|
+
+  Version|Language|Details
+  -------|--------|-------
+  0.4.7|C/C++|This API was initially added.
+  2.1.0|C/C++|Renamed to ham_env_create.
 
 ## See also...
 

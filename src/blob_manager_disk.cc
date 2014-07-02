@@ -103,7 +103,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
   // PARTIAL WRITE
   //
-  // are there gaps at the beginning? If yes, then we'll fill with zeros
+  // Are there gaps at the beginning? If yes, then we'll fill with zeros
   ByteArray zeroes;
   if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
     ham_u32_t gapsize = record->partial_offset;

@@ -95,9 +95,6 @@ HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
     // Number of free bytes in this page
     ham_u32_t m_free_bytes;
 
-    // Number of freelist entries; currently unused
-    ham_u8_t m_reserved;
-
     struct FreelistEntry {
       ham_u32_t offset;
       ham_u32_t size;

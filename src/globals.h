@@ -35,12 +35,6 @@ struct Globals {
   // for counting extended duplicate tables
   static ham_u64_t ms_extended_duptables;
 
-  // Tracking key bytes before compression
-  static ham_u64_t ms_bytes_before_compression;
-
-  // Tracking key bytes after compression
-  static ham_u64_t ms_bytes_after_compression;
-
   // Move every key > threshold to a blob. For testing purposes.
   // TODO currently gets assigned at runtime
   static ham_u32_t ms_extended_threshold;
@@ -70,6 +64,12 @@ struct Globals {
 
   // used in error.h/error.cc
   static ham_errhandler_fun ms_error_handler;
+
+  // PRO: Tracking key bytes before compression
+  static ham_u64_t ms_bytes_before_compression;
+
+  // PRO: Tracking key bytes after compression
+  static ham_u64_t ms_bytes_after_compression;
 
   // PRO: enable/disable SIMD
   static bool ms_is_simd_enabled;

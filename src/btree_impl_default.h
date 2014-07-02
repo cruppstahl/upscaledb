@@ -405,7 +405,8 @@ class DuplicateTable
             }
           }
         }
-        m_db->get_local_env()->get_blob_manager()->erase(m_db, m_table_id);
+        if (m_table_id != 0)
+          m_db->get_local_env()->get_blob_manager()->erase(m_db, m_table_id);
         set_record_count(0);
         m_table_id = 0;
         return (0);
@@ -1224,7 +1225,7 @@ class VariableLengthKeyList
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
       ham_key_t tmp = {0};
-      if (get_key_flags(slot) & BtreeKey::kExtendedKey) {
+      if (unlikely(get_key_flags(slot) & BtreeKey::kExtendedKey)) {
         get_extended_key(get_extended_blob_id(slot), &tmp);
       }
       else {

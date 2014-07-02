@@ -194,6 +194,24 @@ x start using likely/unlikely
     #   define unlikely(x) (x)
     #endif
 
+x verify implementation of ham_cursor_get_duplicate_count()
+    x if txn's are disabled then dupecache is not used??
+        x add unittest
+    x python unittest fails with -1
+
+x python wrapper: should be part of the sources; build for linux
+    and for windows
+    x stage 1: 
+        Environment: create, open, close, rename_db, erase_db, flush
+        Database: create, open, close, insert, find, erase
+    x Stage 2:
+        Transaction: begin, abort, commit
+    x Stage 3:
+        Cursor: begin, insert, find, erase, move, close
+    x cover with unittests
+    x add sample (db1)
+    x add to release-v2.pl (run samples, unittests)
+
 o Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
@@ -560,6 +578,10 @@ o Refactorings for the Default layout with the following goals:
         o also profile duplicate keys
 
 o performance is good, but mem allocations went up the roof
+    o vacuumize is very costly
+    o Page::~Page is costly (line 44)
+    o VariableLengthKeys::get_key()
+
     x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending --open --find-pct=100 --metrics=all
         elapsed time 17% down
         total allocations from 1 to 1786!!
@@ -574,33 +596,16 @@ o performance is good, but mem allocations went up the roof
     o ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb --metrics=all
         -> less pages, less splits but throughput went down (50%)
 
-x verify implementation of ham_cursor_get_duplicate_count()
-    x if txn's are disabled then dupecache is not used??
-        x add unittest
-    x python unittest fails with -1
-
-o python wrapper: should be part of the sources; build for linux
-    and for windows
-    x stage 1: 
-        Environment: create, open, close, rename_db, erase_db, flush
-        Database: create, open, close, insert, find, erase
-    x Stage 2:
-        Transaction: begin, abort, commit
-    x Stage 3:
-        Cursor: begin, insert, find, erase, move, close
-    x cover with unittests
-    o add samples (db1, env1)
-    o add to "make test" (run samples, unittests)
-    o need win32 build environment
-
 o check with boost 1.55 and clang - seems that ham_bench does not compile
     - not reproducible on linux (gcc 4.6, clang 3.0)
     o try on MacOS
 
-o documentation TODOs for 2.1.8
+o finalize 2.1.8
+    o upate version, libtool version, README etc
+    o need win32 build environment for python wrapper
     o remove endian agnosticitiy from web page
     o faq about endian-ness
-    o python
+    o document python, add to webpage
     o fixed length keys: add big warning that this increases the
         node fanout!
         o header file
@@ -611,16 +616,45 @@ o documentation TODOs for 2.1.8
     o FAQ: Why is the library size so big?
 
 . documentation rewrite
-    o documentation/api: have one file per API, formatted in markup (see above)
-        this file is maintained in parallel to the doxygen API
-        https://developer.github.com/v3/markdown/
-        - one file per API
-        - includes documentation notes for *all* wrappers
-        - includes API history (initial revision, changes)
-        - includes integration for disqus comments
-    o documentation/tutorial: same as the API documentation, but contains
-        the tutorial
-    o format into html, with an index in a left column
+    o look into sphinx: http://sphinx-doc.org/
+
+    /introduction
+    /evaluate & benchmark
+    /faq (merge w/ performance)
+    /tutorial (merge with C API documentation??)
+    /pro
+    /c, c++
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /java
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /dotnet
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /erlang
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /python
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+
+    o format into html, with an index in a column
     o look for a technical writer to review the files
 
 . collect/publish benchmark against leveldb (with and without SSD)
@@ -642,26 +676,48 @@ o documentation TODOs for 2.1.8
 
 ------------- hamsterdb pro 2.1.8 ------------------------------------
 
-o adapt to the newest changes from 2.1.8
+x adapt to the newest changes from 2.1.8
+    x move global variables to Globals
+    x verify that aes encryption still works
+    x verify that key compression is still working for normal keys
+    x verify that key compression is still working for extkeys
+    x verify that record compression is still working
+    x verify that journal compression is still working
+    x verify that SSE is still working for PAX layouts
+
+x PRO: enable SIMD in the default layout if it uses the same KeyList as
+    in PAX *and* if record IDs are stored separately from the keys
 
 . PRO: add avx support
 o PRO: add sse support for real64
-
-o PRO: enable SIMD in the default layout if it uses the same KeyList as
-    in PAX *and* if record IDs are stored separately from the keys
+    __cmpeq_pd
+    everything else is same as with uint64?
 
 o PRO: CRC32-checksums (as soon as the file format is updated)
-    o SSE2 has support for a CRC32 checksum calculation, or find a good
-        library
-    o how to store crc32 for multi-page blobs which do not have a header?
+    x SSE2 has support for a CRC32 checksum calculation, or find a good
+        library -> use murmurhash3
+    o write in Page::flush (if page has a header), verify in Page::read
+        (if page has a  header)
+    o multipage blobs: store in PBlobPageHeader::m_free_bytes
+    o needs new flag HAM_ENABLE_CHECKSUMS
+    o document the flag (and the limitation)
+    o add to java api
+    o add to .NET api
+    o add to erlang api
+    o add to python api
+    o add unittest
+    o add to monster tests
 
-o PRO: think about a bitmap index for recnos; one bit per key, and (later)
-    grouped varints for the records
-    -> can a bitmap be used for other indices as well? theoretically yes;
-        but the splits might look different. also we need to support sparse
-        bitmaps!
+o PRO: use a bitmap index for recnos
+    -> how will hola-objects access the data?
+    -> should be resizable
 
-o PRO: should we have a separate "recsize == 0" RecordList for duplicates?
+o PRO: use grouped varints for the RecordLists
+    o should work for InternalRecordList (64bit record IDs)
+    o and for default records
+        o in this case the record flags are also "compressed"
+
+. PRO: should we have a separate "recsize == 0" RecordList for duplicates?
     they could only store the duplicate count (but should be able to deal
     with duplicates that are > 256!)
     -> requires grouped varints

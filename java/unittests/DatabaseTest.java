@@ -141,7 +141,7 @@ public class DatabaseTest extends TestCase {
     assertEquals(Const.HAM_KEY_SIZE_UNLIMITED, params[0].value);
     assertEquals(1, params[1].value);
     assertEquals(0, params[2].value);
-    assertEquals(510, params[3].value);
+    assertEquals(441, params[3].value);
     env.close();
   }
 
