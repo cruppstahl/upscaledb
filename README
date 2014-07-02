@@ -1,56 +1,27 @@
-hamsterdb 2.1.8                                     Mo 7. Jul 11:02:27 CEST 2014
+hamsterdb pro 2.1.8                                Mo 7. Jul 11:02:27 CEST 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb.
+This is the README file of hamsterdb pro.
 
 Contents:
 
 1. About
 
-hamsterdb is a database engine written in C/C++. It is fast, production-proven
-and easy to use.
+This is the first release of hamsterdb pro. It contains all features of
+hamsterdb 2.1.7, and additionally:
 
-This release has 4 big changes:
+- compression for journal, records and keys with zlib, snappy, lzf, lzo
+        (use of lzo requires a commercial license!)
+- aes encryption
+- simd instructions for lookups in the PAX layout (fixed length numeric keys
+        without duplicates)
 
-The remote protocol no longer uses Google's protocol buffer but a faster
-homemade serialization protocol. Remote performance was improved.
-
-A new set of APIs were added which demonstrate the analytical powers of
-hamsterdb: "hola" (hamsterdb on-line analytics) can perform COUNT,
-COUNT DISTINCT, AVERAGE, SUM and other calculations. These routines are directly
-executed in the Btree context and very fast.
-
-Under the hood, the two Btree layouts were rewritten. The result now allows a
-much more efficient storage of fixed length keys with duplicates, or variable
-length keys without duplicates. Prior to 2.1.8, a less efficient representation
-was used in both cases. This change reduced the file size a lot.
-
-A new Python API was added! A sample is included (see python/samples).
-
-Other changes are:
-
-A new API "ham_cursor_get_duplicate_position" was added to retrieve
-the current position of a cursor in the duplicate list.
-
-The APIs ham_db_get_error was deprecated, ham_get_license was removed.
-
-A regression in 2.1.7 was fixed which created large files under certain
-circumstances. A few other changes were made to decrease the file size.
-
-On Windows, winsock.h is no longer included in order to avoid conflicts with
-winsock2.h.
-
-The database format is no longer endian agnostic but simply uses the host
-endianness. Reason is that i do not have the hardware to test the agnostic
-file format, and therefore the implementation was likely to have bugs anyway.
-
-libuv was updated to version 0.11.22.
-
-The file format of 2.1.8 is not compatible to 2.1.7.
+Please visit the webpage for additional documentation.
 
 2. Changes
 
 New Features
+<<<<<<< HEAD
 * Adding the new "hola" API - hamsterdb analytical functions for COUNT,
 	SUM, AVERAGE etc. See ham/hamsterdb_ola.h for the declarations
 * Added new API ham_cursor_get_duplicate_position
@@ -78,6 +49,23 @@ Other Changes
 * PAX layout now uses linear search for small ranges; this improves search
 	performance by 5-10%
 * Removed the ham_get_license API (and serial.h)
+=======
+* Compression is enabled in ham_env_create (HAM_PARAM_JOURNAL_COMPRESSION)
+    or ham_env_create_db (HAM_PARAM_RECORD_COMPRESSION,
+    HAM_PARAM_KEY_COMPRESSION)
+* AES encryption is enabled in ham_env_create and ham_env_open
+    (HAM_PARAM_ENCRYPTION_KEY)
+* SIMD instructions are used for lookups in the PAX layout (numeric keys)
+
+Bugfixes
+* issue #33: upgraded to libuv 0.11.22
+* Fixed a performance regression from 2.1.7: when using very large
+    variable-length keys, the btree pages were split too early and lots of
+    space was unused
+
+Other Changes
+* Minor performance improvements by reducing memory allocations
+>>>>>>> PRO 2.1.7: commercial fork, heavy-weight compression for records, journal and
 
 To see a list of all changes, look in the file ChangeLog.
 

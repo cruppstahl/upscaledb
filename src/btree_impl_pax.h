@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /**
@@ -64,8 +61,15 @@
 #include "blob_manager.h"
 #include "env_local.h"
 #include "btree_impl_base.h"
+#ifdef HAM_ENABLE_SIMD
+#  include "simd.h"
+#  include "os.h"
+#endif
 
 namespace hamsterdb {
+
+template<typename KeyList, typename RecordList>
+class PaxNodeImpl;
 
 //
 // A BtreeNodeProxy layout which stores key data, key flags and
@@ -95,7 +99,41 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
                               P::m_keys.get_key_size(rhs)));
     }
 
+#ifdef HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      if (m_keys.has_simd_support()
+              && os_get_simd_lane_width() > 1
+              && Globals::ms_is_simd_enabled) {
+        ham_u32_t count = m_node->get_count();
+        return (find_simd_sse<typename KeyList::type>(
+                              (typename KeyList::type *)m_keys.get_key_data(0),
+                              count, key));
+      }
+
+      int cmp;
+      int r = find_child(key, comparator, 0, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+#else // !HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      int cmp;
+      int r = find_child(key, comparator, 0, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+#endif // HAM_ENABLE_SIMD
+
+    // Searches the node for the key and returns the slot of this key
+    // NO simd support!
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
                     int *pcmp) {
@@ -135,7 +173,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
             *precord_id = P::get_record_id(i);
           return (i);
         }
-        /* if the key is bigger than the item: search "to the left" */
+        /* if the key is < the current item: search "to the left" */
         else if (cmp < 0) {
           if (r == 0) {
             ham_assert(i == 0);
@@ -163,17 +201,6 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
           *precord_id = P::get_record_id(slot);
       }
       return (slot);
-    }
-
-    // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
-    template<typename Cmp>
-    int find_exact(ham_key_t *key, Cmp &comparator) {
-      int cmp;
-      int r = find_child(key, comparator, 0, &cmp);
-      if (cmp)
-        return (-1);
-      return (r);
     }
 
     // Iterates all keys, calls the |visitor| on each

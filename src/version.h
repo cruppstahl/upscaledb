@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #ifndef HAM_VERSION_H__
@@ -46,5 +43,11 @@
 #define HAM_VERSION_REV     8
 #define HAM_FILE_VERSION    4
 #define HAM_VERSION_STR     "2.1.8"
+
+/* macros for the evaluation version; will be filled in by a script */
+#define EVAL_PREPARE
+#define EVAL_CHECK
+#define EVAL_HELLO
+#define EVAL_RETURN
 
 #endif /* HAM_VERSION_H__ */

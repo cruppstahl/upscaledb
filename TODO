@@ -687,10 +687,6 @@ o webpage changes
 . documentation rewrite
     o use github wiki
         o remove old cruft
-
-    /introduction
-    /evaluate & benchmark
-    /faq (merge w/ performance)
     /tutorial
     /pro
     /c, c++
@@ -723,6 +719,8 @@ o webpage changes
         usage (compiling, linking)
         api functions (one file per function)
         samples
+
+    o format into html, with an index in a column
     o look for a technical writer to review the files
 
 ------------- hamsterdb 2.1.9 ----------------------------------------

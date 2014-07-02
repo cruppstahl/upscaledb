@@ -8,6 +8,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 libhamsterdb_la_SOURCES = \
 	abi.h \
+	aes.h \
 	blob_manager.h \
 	blob_manager.cc \
 	blob_manager_inmem.h \
@@ -44,6 +45,13 @@ libhamsterdb_la_SOURCES = \
 	cache.h \
 	changeset.cc \
 	changeset.h \
+	compressor.h \
+	compressor_factory.h \
+	compressor_factory.cc \
+	compressor_lzf.h \
+	compressor_lzop.h \
+	compressor_snappy.h \
+	compressor_zlib.h \
 	config.h \
 	cursor.cc \
 	cursor.h \
@@ -87,6 +95,7 @@ libhamsterdb_la_SOURCES = \
 	page_manager.h \
 	pickle.h \
 	rb.h \
+	simd.h \
 	txn_cursor.cc \
 	txn_cursor.h \
 	txn_factory.h \
@@ -105,8 +114,40 @@ AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)
 libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
 
+if ENABLE_COMPRESSION
+AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
+libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la
+if WITH_ZLIB
+libhamsterdb_la_LIBADD  += -lz
+endif
+if WITH_SNAPPY
+libhamsterdb_la_LIBADD  += -lsnappy
+endif
+if WITH_LZOP
+libhamsterdb_la_LIBADD  += -llzo2
+endif
+endif
+
+if ENABLE_ENCRYPTION
+AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
+endif
+
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
 libhamsterdb_la_LIBADD += $(top_builddir)/src/protobuf/libprotocol.la
+endif
+
+AM_CFLAGS	 =
+AM_CXXFLAGS	 =
+if ENABLE_SIMD
+AM_CPPFLAGS += -DHAM_ENABLE_SIMD
+endif
+if ENABLE_SSE2
+AM_CFLAGS	+= -msse2 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse2 -flax-vector-conversions
+endif
+if ENABLE_SSE4
+AM_CFLAGS	+= -msse4 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse4 -flax-vector-conversions
 endif
 

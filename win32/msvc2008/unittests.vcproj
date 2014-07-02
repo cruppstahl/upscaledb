@@ -45,7 +45,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
-				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
+				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -202,7 +202,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="../../../hamsterdb-alien/protobuf/msvc2008/include;../..;../../include;../../../hamsterdb-alien/boost;&quot;../../../hamsterdb-alien/libuv/include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -336,6 +336,10 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\..\unittests\aes.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\api110.cpp"
 			>
 		</File>
@@ -381,6 +385,10 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\check.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\compression.cpp"
 			>
 		</File>
 		<File
@@ -597,6 +605,10 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\remote.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\simd.cpp"
 			>
 		</File>
 		<File

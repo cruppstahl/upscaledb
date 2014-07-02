@@ -1,22 +1,21 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * See the file COPYING for License information.
  */
 
 /**
  * @file hamsterdb_int.h
- * @brief Internal hamsterdb Embedded Storage functions.
+ * @brief Internal hamsterdb Embedded Storage PRO functions.
  * @author Christoph Rupp, chris@crupp.de
  *
  * Please be aware that the interfaces in this file are mostly for internal
@@ -218,6 +217,9 @@ typedef struct ham_env_metrics_t {
 
   // PRO: set to the max. SIMD lane width (0 if SIMD is not available)
   int simd_lane_width;
+
+  // PRO: set to true if AVX is enabled
+  ham_bool_t is_avx_enabled;
 
 } ham_env_metrics_t;
 

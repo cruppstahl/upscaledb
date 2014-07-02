@@ -44,11 +44,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include;&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_REMOTE;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
@@ -66,7 +67,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_debug.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.8.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
@@ -124,11 +125,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;"
-				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION"
+				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
+				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
@@ -146,7 +148,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib_x64.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_x64_debug.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.8.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
@@ -203,9 +205,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/openssl/include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				Optimization="2"
+				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DLL_EXPORTS;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_REMOTE;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				RuntimeLibrary="2"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
 				WarningLevel="3"
@@ -223,7 +227,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib\msvc2008\zlib.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.8.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x86"
@@ -283,9 +287,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;"
-				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION"
+				Optimization="2"
+				AdditionalIncludeDirectories="../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
+				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H"
 				RuntimeLibrary="2"
+				EnableEnhancedInstructionSet="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -302,7 +308,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ..\..\..\hamsterdb-alien\zlib/msvc2008\zlib_x64.lib ..\..\..\hamsterdb-alien\snappy\msvc2008\snappy_x64.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.8.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/msvc2008/x64"
@@ -345,11 +351,15 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\blob_manager.h"
+			RelativePath="..\..\src\aes.h"
 			>
 		</File>
 		<File
 			RelativePath="..\..\src\blob_manager.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager.h"
 			>
 		</File>
 		<File
@@ -397,6 +407,18 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\btree_flags.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_impl_default.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_impl_pax.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\btree_index.cc"
 			>
 		</File>
@@ -413,19 +435,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_flags.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_node.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_impl_default.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_impl_pax.h"
 			>
 		</File>
 		<File
@@ -446,6 +456,34 @@
 		</File>
 		<File
 			RelativePath="..\..\src\changeset.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_factory.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_factory.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_lzf.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_lzop.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_snappy.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\compressor_zlib.h"
 			>
 		</File>
 		<File
@@ -581,6 +619,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\3rdparty\liblzf\lzf_c.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\3rdparty\liblzf\lzf_d.c"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\mem.cc"
 			>
 		</File>
@@ -593,11 +639,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\os.h"
+			RelativePath="..\..\src\os.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\os.cc"
+			RelativePath="..\..\src\os.h"
 			>
 		</File>
 		<File
@@ -637,6 +683,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\simd.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\statistics.h"
 			>
 		</File>
@@ -653,6 +703,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\txn_factory.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\txn_local.cc"
 			>
 		</File>
@@ -666,10 +720,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\txn_remote.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\txn_factory.h"
 			>
 		</File>
 		<File

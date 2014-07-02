@@ -1,6 +1,10 @@
 environment
   page_size:            16384
+<<<<<<< HEAD
   version:              2.1.8 
+=======
+  version:              2.1.7 pro!
+>>>>>>> PRO 2.1.7: commercial fork, heavy-weight compression for records, journal and
   max databases:        676
 
   database 2 (0x2)

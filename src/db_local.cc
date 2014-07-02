@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "config.h"
@@ -32,6 +29,9 @@
 #include "txn_local.h"
 #include "txn_cursor.h"
 #include "version.h"
+#include "compressor_factory.h"
+
+EVAL_PREPARE
 
 namespace hamsterdb {
 
@@ -493,6 +493,8 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, ham_u32_t flags,
 ham_status_t
 LocalDatabase::open(ham_u16_t descriptor)
 {
+  EVAL_CHECK
+
   /*
    * set the database flags; strip off the persistent flags that may have been
    * set by the caller, before mixing in the persistent flags as obtained
@@ -524,12 +526,22 @@ LocalDatabase::open(ham_u16_t descriptor)
   /* initialize the btree */
   m_btree_index->open();
 
+  EVAL_CHECK
+
   /* create the TransactionIndex - TODO only if txn's are enabled? */
   m_txn_index = new TransactionIndex(this);
 
   /* merge the non-persistent database flag with the persistent flags from
    * the btree index */
   m_rt_flags = get_rt_flags(true) | m_btree_index->get_flags();
+
+  /* is record compression enabled? */
+  int record_algo = desc->get_record_compression();
+  if (record_algo)
+    m_record_compressor.reset(CompressorFactory::create(record_algo));
+
+  /* is key compression enabled? */
+  m_key_compressor = desc->get_key_compression();
 
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
@@ -544,6 +556,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   ham_assert(key.size == sizeof(ham_u64_t));
   m_recno = *(ham_u64_t *)key.data;
 
+  EVAL_CHECK
+
   return (0);
 }
 
@@ -551,6 +565,8 @@ ham_status_t
 LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
                         ham_u16_t key_size, ham_u32_t rec_size)
 {
+  EVAL_CHECK
+
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
   persistent_flags &= ~(HAM_CACHE_UNLIMITED
@@ -577,6 +593,8 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
       key_size = 8;
       break;
   }
+
+  EVAL_CHECK
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (key_size != HAM_KEY_SIZE_UNLIMITED) {
@@ -611,6 +629,8 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
 
+  EVAL_CHECK
+
   return (0);
 }
 
@@ -621,6 +641,8 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
   ham_parameter_t *p = param;
 
   ham_assert(get_btree_index() != 0);
+
+  EVAL_CHECK
 
   if (p) {
     for (; p->name; p++) {
@@ -651,10 +673,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         }
         break;
       case HAM_PARAM_RECORD_COMPRESSION:
-        p->value = 0;
+        p->value = get_btree_index()->get_record_compression();
         break;
       case HAM_PARAM_KEY_COMPRESSION:
-        p->value = 0;
+        p->value = get_btree_index()->get_key_compression();
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
@@ -1865,6 +1887,24 @@ void
 LocalDatabase::erase_me()
 {
   m_btree_index->release();
+}
+
+void
+LocalDatabase::enable_record_compression(int algo)
+{
+  EVAL_CHECK
+
+  m_record_compressor.reset(CompressorFactory::create(algo));
+  m_btree_index->set_record_compression(algo);
+}
+
+void
+LocalDatabase::enable_key_compression(int algo)
+{
+  EVAL_CHECK
+
+  m_key_compressor = algo;
+  m_btree_index->set_key_compression(algo);
 }
 
 } // namespace hamsterdb

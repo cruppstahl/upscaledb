@@ -1,23 +1,21 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #ifdef HAM_ENABLE_REMOTE
 
 #include "config.h"
 
+#include "version.h"
 #include "os.h"
 #include "cursor.h"
 #include "db_remote.h"
@@ -25,6 +23,8 @@
 #include "txn_remote.h"
 
 #include "protobuf/protocol.h"
+
+EVAL_PREPARE
 
 namespace hamsterdb {
 
@@ -113,6 +113,8 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
         ham_u64_t cache_size, ham_u64_t file_size_limit)
 {
   m_socket.close();
+
+  //30DAYEVAL_CHECK
 
   ham_assert(url != 0);
   ham_assert(::strstr(url, "ham://") == url);

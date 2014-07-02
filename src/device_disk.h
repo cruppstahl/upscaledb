@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #ifndef HAM_DEVICE_DISK_H__
@@ -22,6 +19,9 @@
 #include "db.h"
 #include "device.h"
 #include "env_local.h"
+#ifdef HAM_ENABLE_ENCRYPTION
+#  include "aes.h"
+#endif
 
 namespace hamsterdb {
 
@@ -114,12 +114,30 @@ class DiskDevice : public Device {
     // reads from the device; this function does NOT use mmap
     virtual void read(ham_u64_t offset, void *buffer, size_t len) {
       m_file.pread(offset, buffer, len);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.decrypt((ham_u8_t *)buffer, (ham_u8_t *)buffer, len);
+      }
+#endif
     }
 
     // writes to the device; this function does not use mmap,
     // and is responsible for writing the data is run through the file
     // filters
     virtual void write(ham_u64_t offset, void *buffer, size_t len) {
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        // encryption disables direct I/O -> only full pages are allowed
+        ham_assert(offset % len == 0);
+
+        m_encryption_buffer.resize(len);
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.encrypt((ham_u8_t *)buffer,
+                        (ham_u8_t *)m_encryption_buffer.get_ptr(), len);
+        buffer = m_encryption_buffer.get_ptr();
+      }
+#endif
       m_file.pwrite(offset, buffer, len);
     }
 
@@ -146,6 +164,13 @@ class DiskDevice : public Device {
       }
 
       m_file.pread(page->get_address(), page->get_data(), page_size);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        AesCipher aes(m_env->get_encryption_key(), page->get_address());
+        aes.decrypt((ham_u8_t *)page->get_data(),
+                        (ham_u8_t *)page->get_data(), page_size);
+      }
+#endif
     }
 
     // writes a page to the device
