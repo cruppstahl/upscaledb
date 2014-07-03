@@ -1,3 +1,8 @@
+Jul 03, 2014 - chris ---------------------------------------------------
+o SIMD support is now always used for numerical keys, even if duplicate
+	keys are enabled (pro-2.1.7 disabled SIMD for duplicate keys)
+o Adapted to hamsterdb 2.1.8
+
 May 18, 2014 - chris ---------------------------------------------------
 						release of hamsterdb-pro 2.1.7
 

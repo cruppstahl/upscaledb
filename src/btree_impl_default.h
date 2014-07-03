@@ -136,6 +136,39 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
     }
 
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      if (m_keys.has_simd_support()
+              && os_get_simd_lane_width() > 1
+              && Globals::ms_is_simd_enabled) {
+        ham_u32_t count = m_node->get_count();
+        return (find_simd_sse<typename KeyList::type>(
+                              (typename KeyList::type *)m_keys.get_key_data(0),
+                              count, key));
+      }
+
+      int cmp;
+      int r = find_child(key, comparator, 0, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+#else // !HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      int cmp;
+      int r = find_child(key, comparator, 0, &cmp);
+      if (cmp)
+        return (-1);
+      return (r);
+    }
+#endif // HAM_ENABLE_SIMD
+
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
@@ -148,15 +181,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
           *precord_id = P::m_records.get_record_id(slot);
       }
       return (slot);
-    }
-
-    // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
-    template<typename Cmp>
-    int find_exact(ham_key_t *key, Cmp &comparator) {
-      int cmp;
-      int r = find_impl(key, comparator, &cmp);
-      return (cmp ? -1 : r);
     }
 
     // Iterates all keys, calls the |visitor| on each
