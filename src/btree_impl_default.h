@@ -713,13 +713,7 @@ class UpfrontIndex
     // Returns true if this index has at least one free slot available.
     // |node_count| is the number of used slots (this is managed by the caller)
     bool can_insert_slot(size_t node_count) {
-      if (likely(node_count + get_freelist_count() < m_capacity))
-        return (true);
-      if (m_vacuumize_counter > 0 && get_freelist_count()) {
-        vacuumize(node_count);
-        return (node_count + get_freelist_count() < m_capacity);
-      }
-      return (false);
+      return (likely(node_count + get_freelist_count() < m_capacity));
     }
 
     // Inserts a slot at the position |slot|. |node_count| is the number of
@@ -782,11 +776,8 @@ class UpfrontIndex
     }
 
     // Returns true if this page has enough space to store at least |num_bytes|
-    // bytes. If not then the method will call |vacuumize()| and then check
-    // again (unless |no_vacuumize| is true, in this case it will give up
-    // immediately).
-    bool can_allocate_space(size_t node_count, size_t num_bytes,
-                    bool no_vacuumize = false) {
+    // bytes.
+    bool can_allocate_space(size_t node_count, size_t num_bytes) {
       // first check if we can append the data; this is the cheapest check,
       // therefore it comes first
       if (get_next_offset(node_count) + num_bytes <= get_usable_data_size())
@@ -797,24 +788,13 @@ class UpfrontIndex
       for (ham_u32_t i = node_count; i < total_count; i++)
         if (get_chunk_size(i) >= num_bytes)
           return (true);
-
-      if (no_vacuumize)
-        return (false);
-
-      // does it make sense to vacuumize the node?
-      if (m_vacuumize_counter > 0) {
-        vacuumize(node_count);
-        ham_assert(m_vacuumize_counter == 0);
-        // and try again
-        return (can_allocate_space(node_count, num_bytes));
-      }
       return (false);
     }
 
     // Allocates space for a |slot| and returns the offset of that chunk
     ham_u32_t allocate_space(ham_u32_t node_count, ham_u32_t slot,
                     size_t num_bytes) {
-      ham_assert(can_allocate_space(node_count, num_bytes, true));
+      ham_assert(can_allocate_space(node_count, num_bytes));
 
       size_t next_offset = get_next_offset(node_count);
 
@@ -954,8 +934,7 @@ class UpfrontIndex
     // Merges all chunks from the |other| index to this index
     void merge_from(UpfrontIndex *other, size_t node_count,
                     size_t other_node_count) {
-      if (m_vacuumize_counter)
-        vacuumize(node_count);
+      vacuumize(node_count);
       
       for (size_t i = 0; i < other_node_count; i++) {
         insert_slot(i + node_count, i + node_count);
@@ -986,7 +965,8 @@ class UpfrontIndex
     // Re-arranges the node: moves all keys sequentially to the beginning
     // of the key space, removes the whole freelist
     void vacuumize(size_t node_count) {
-      ham_assert(m_vacuumize_counter > 0);
+      if (m_vacuumize_counter == 0)
+        return;
 
       // get rid of the freelist - this node is now completely rewritten,
       // and the freelist would just complicate things
@@ -1224,18 +1204,23 @@ class VariableLengthKeyList
     // Copies a key into |dest|
     void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
-      ham_key_t tmp = {0};
-      if (unlikely(get_key_flags(slot) & BtreeKey::kExtendedKey)) {
+      ham_key_t tmp;
+      ham_u32_t offset = m_index.get_chunk_offset(slot);
+      ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
+
+      if (unlikely(*p & BtreeKey::kExtendedKey)) {
+        memset(&tmp, 0, sizeof(tmp));
         get_extended_key(get_extended_blob_id(slot), &tmp);
       }
       else {
-        if (likely(deep_copy == false)) {
-          dest->size = get_key_size(slot);
-          dest->data = get_key_data(slot);
-          return;
-        }
         tmp.size = get_key_size(slot);
-        tmp.data = get_key_data(slot);
+        tmp.data = p + 1;
+      }
+
+      if (likely(deep_copy == false)) {
+        dest->size = get_key_size(slot);
+        dest->data = p + 1;
+        return;
       }
 
       dest->size = tmp.size;
@@ -1305,7 +1290,7 @@ class VariableLengthKeyList
 
       // When inserting the data: always add 1 byte for key flags
       if (key->size <= m_extkey_threshold
-            && m_index.can_allocate_space(node_count, key->size + 1, true)) {
+            && m_index.can_allocate_space(node_count, key->size + 1)) {
         ham_u32_t offset = m_index.allocate_space(node_count, slot,
                         key->size + 1);
         ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
@@ -2629,81 +2614,12 @@ class DefaultNodeImpl
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
                     int *pcmp) {
-      size_t node_count = m_node->get_count();
-      ham_assert(node_count > 0);
-
-#ifdef HAM_DEBUG
-      check_index_integrity(m_node->get_count());
-#endif
-
-      int i, l = 0, r = (int)node_count;
-      int last = node_count + 1;
-      int cmp = -1;
-
-      // Run a binary search, but fall back to linear search as soon as
-      // the remaining range is too small. Sets threshold to 0 if linear
-      // search is disabled for this KeyList.
-      int threshold = m_keys.get_linear_search_threshold();
-
-      /* repeat till we found the key or the remaining range is so small that
-       * we rather perform a linear search (which is faster for small ranges) */
-      while (r - l > threshold) {
-        /* get the median item; if it's identical with the "last" item,
-         * we've found the slot */
-        i = (l + r) / 2;
-
-        if (i == last) {
-          ham_assert(i >= 0);
-          ham_assert(i < (int)node_count);
-          *pcmp = 1;
-          if (precord_id)
-            *precord_id = get_record_id(i);
-          return (i);
-        }
-
-        /* compare it against the key */
-        cmp = compare(key, i, comparator);
-
-        /* found it? */
-        if (cmp == 0) {
-          *pcmp = cmp;
-          if (precord_id)
-            *precord_id = get_record_id(i);
-          return (i);
-        }
-        /* if the key is bigger than the item: search "to the left" */
-        else if (cmp < 0) {
-          if (r == 0) {
-            ham_assert(i == 0);
-            *pcmp = cmp;
-            if (precord_id)
-              *precord_id = m_node->get_ptr_down();
-            return (-1);
-          }
-          r = i;
-        }
-        /* otherwise search "to the right" */
-        else {
-          last = i;
-          l = i;
-        }
-      }
-
-      if (threshold == 0) {
-        *pcmp = cmp;
-        if (precord_id)
-          *precord_id = m_node->get_ptr_down();
-        return (-1);
-      }
-
-      // still here? then perform a linear search for the remaining range
-      ham_assert(r - l <= threshold);
-      int slot = m_keys.linear_search(l, r - l, key, comparator, pcmp);
+      int slot = find_impl(key, comparator, pcmp);  
       if (precord_id) {
         if (slot == -1)
           *precord_id = m_node->get_ptr_down();
         else
-          *precord_id = get_record_id(slot);
+          *precord_id = m_records.get_record_id(slot);
       }
       return (slot);
     }
@@ -2713,10 +2629,8 @@ class DefaultNodeImpl
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
       int cmp;
-      int r = find_child(key, comparator, 0, &cmp);
-      if (cmp)
-        return (-1);
-      return (r);
+      int r = find_impl(key, comparator, &cmp);
+      return (cmp ? -1 : r);
     }
 
     // Iterates all keys, calls the |visitor| on each
@@ -2836,6 +2750,16 @@ class DefaultNodeImpl
       // the page
       bool keys_require_split = m_keys.requires_split(node_count, key);
       bool records_require_split = m_records.requires_split(node_count);
+      if (!keys_require_split && !records_require_split)
+        return (false);
+      if (keys_require_split) {
+        m_keys.vacuumize(node_count, false);
+        keys_require_split = m_keys.requires_split(node_count, key);
+      }
+      if (records_require_split) {
+        m_records.vacuumize(node_count, false);
+        records_require_split = m_records.requires_split(node_count);
+      }
       if (keys_require_split || records_require_split) {
         if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
@@ -3043,10 +2967,6 @@ class DefaultNodeImpl
       ham_assert(!KeyList::kHasSequentialData
               || !RecordList::kHasSequentialData);
 
-      // make sure that both lists are packed
-      m_keys.vacuumize(node_count, true);
-      m_records.vacuumize(node_count, true);
-
       size_t key_range_size = 0;
       size_t record_range_size = 0;
       size_t old_capacity = m_capacity;
@@ -3174,6 +3094,73 @@ apply_changes:
       // finally check if the new space is sufficient for the new key
       return (!m_records.requires_split(node_count)
                 && !m_keys.requires_split(node_count, key));
+    }
+
+    // Implementation of the find method
+    template<typename Cmp>
+    int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+      size_t node_count = m_node->get_count();
+      ham_assert(node_count > 0);
+
+#ifdef HAM_DEBUG
+      check_index_integrity(m_node->get_count());
+#endif
+
+      int i, l = 0, r = (int)node_count;
+      int last = node_count + 1;
+      int cmp = -1;
+
+      // Run a binary search, but fall back to linear search as soon as
+      // the remaining range is too small. Sets threshold to 0 if linear
+      // search is disabled for this KeyList.
+      int threshold = m_keys.get_linear_search_threshold();
+
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > threshold) {
+        /* get the median item; if it's identical with the "last" item,
+         * we've found the slot */
+        i = (l + r) / 2;
+
+        if (i == last) {
+          ham_assert(i >= 0);
+          ham_assert(i < (int)node_count);
+          *pcmp = 1;
+          return (i);
+        }
+
+        /* compare it against the key */
+        cmp = compare(key, i, comparator);
+
+        /* found it? */
+        if (cmp == 0) {
+          *pcmp = cmp;
+          return (i);
+        }
+        /* if the key is bigger than the item: search "to the left" */
+        else if (cmp < 0) {
+          if (r == 0) {
+            ham_assert(i == 0);
+            *pcmp = cmp;
+            return (-1);
+          }
+          r = i;
+        }
+        /* otherwise search "to the right" */
+        else {
+          last = i;
+          l = i;
+        }
+      }
+
+      if (threshold == 0) {
+        *pcmp = cmp;
+        return (-1);
+      }
+
+      // still here? then perform a linear search for the remaining range
+      ham_assert(r - l <= threshold);
+      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
     }
 
     // Checks the integrity of the key- and record-ranges. Throws an exception

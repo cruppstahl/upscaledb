@@ -164,7 +164,9 @@ class DiskDevice : public Device {
 
     // Frees a page on the device; plays counterpoint to |ref alloc_page|
     virtual void free_page(Page *page) {
-      if (page->get_data() && page->get_flags() & Page::kNpersMalloc) {
+      ham_assert(page->get_data() != 0);
+
+      if (page->get_flags() & Page::kNpersMalloc) {
         Memory::release(page->get_data());
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       }

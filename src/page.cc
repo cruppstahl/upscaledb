@@ -41,7 +41,7 @@ Page::Page(LocalEnvironment *env, LocalDatabase *db)
 
 Page::~Page()
 {
-  if (m_env && m_env->get_device() && m_data != 0)
+  if (m_data != 0)
     m_env->get_device()->free_page(this);
 
   if (m_node_proxy) {

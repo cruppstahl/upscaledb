@@ -212,7 +212,7 @@ x python wrapper: should be part of the sources; build for linux
     x add sample (db1)
     x add to release-v2.pl (run samples, unittests)
 
-o Refactorings for the Default layout with the following goals:
+x Refactorings for the Default layout with the following goals:
     -> responsible for duplicate keys ONLY!!
     -> UpfrontIndex manages freelist, upfront index
     -> KeyList manages the keys, incl. extended keys
@@ -570,17 +570,16 @@ o Refactorings for the Default layout with the following goals:
     x run performance tests
     x remove conditional check for split? (btree_insert) - no need to
         remove it
-    o profile and micro-optimize
+    x profile and micro-optimize
         x decrease memory consumption
-        o delete performance slightly worse than in 2.1.7
-        o slightly improve read-random (10%) - bin16, no duplicates
-        o vastly improve write-random/overwrite (50%) - bin16, no duplicates
-        o also profile duplicate keys
+        x delete performance slightly worse than in 2.1.7
+        x slightly improve read-random (10%) - bin16, no duplicates
+        x also profile duplicate keys
 
 o performance is good, but mem allocations went up the roof
-    o vacuumize is very costly
-    o Page::~Page is costly (line 44)
-    o VariableLengthKeys::get_key()
+    x VariableLengthKeys::get_key()
+    x Page::~Page is costly (line 44)
+    x vacuumize is very expensive
 
     x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending --open --find-pct=100 --metrics=all
         elapsed time 17% down
