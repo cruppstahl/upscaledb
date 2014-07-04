@@ -8,7 +8,6 @@ noinst_BIN      = test recovery issue32
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
 test_SOURCES    = api110.cpp \
-				  aes.cpp \
 			      approx.cpp \
 				  blob_manager.cpp \
 				  btree.cpp \
@@ -21,6 +20,7 @@ test_SOURCES    = api110.cpp \
 				  check.cpp \
 				  compression.cpp \
 				  cppapi.cpp \
+				  crc32.cpp \
 				  cursor.cpp \
 				  db.cpp \
 				  device.cpp \
@@ -94,6 +94,10 @@ test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 recovery_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
+endif
+
+if ENABLE_ENCRYPTION
+test_SOURCES   += aes.cpp
 endif
 
 if ENABLE_COMPRESSION

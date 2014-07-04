@@ -112,7 +112,8 @@ EXTRA_DIST = os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)
-libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) \
+						  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
 
 if ENABLE_COMPRESSION
 AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION

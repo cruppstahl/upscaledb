@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "../3rdparty/murmurhash3/MurmurHash3.h"
+
 #include "config.h"
 
 #include "device.h"
@@ -98,12 +100,22 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     header->set_free_bytes((num_pages * page_size) - kPageOverhead);
 
     // and move the remaining space to the freelist, unless we span multiple
-    // pages (then the rest will be discarded) - TODO can we reuse it somehow?
+    // pages (then the rest will be discarded)
     if (num_pages == 1
           && kPageOverhead + alloc_size > 0
           && header->get_free_bytes() - alloc_size > 0) {
       header->set_freelist_offset(0, kPageOverhead + alloc_size);
       header->set_freelist_size(0, header->get_free_bytes() - alloc_size);
+    }
+
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(num_pages > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))) {
+      ham_u32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
     }
 
     address = page->get_address() + kPageOverhead;
@@ -293,6 +305,23 @@ DiskBlobManager::do_read(LocalDatabase *db, ham_u64_t blobid,
                           : 0),
                   db, (ham_u8_t *)record->data, blobsize, true);
   }
+
+  // Pro: multi-page blobs store their CRC in the first freelist offset,
+  // but only if partial writes are not used
+  PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+  if (unlikely(header->get_num_pages() > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))
+        && !(flags & HAM_PARTIAL)) {
+    ham_u32_t old_crc32 = header->get_freelist_offset(0);
+    ham_u32_t new_crc32;
+    MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
+
+    if (old_crc32 != new_crc32) {
+      ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                      page->get_address(), old_crc32, new_crc32));
+      throw Exception(HAM_INTEGRITY_VIOLATED);
+    }
+  }
 }
 
 ham_u64_t
@@ -379,14 +408,25 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                       chunk_data, chunk_size, 2);
     }
 
+    PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+
     // move remaining data to the freelist
     if (alloc_size < old_blob_header.get_alloc_size()) {
-      PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       header->set_free_bytes(header->get_free_bytes()
                       + (old_blob_header.get_alloc_size() - alloc_size));
       add_to_freelist(header,
                       (old_blobid + alloc_size) - page->get_address(),
                       old_blob_header.get_alloc_size() - alloc_size);
+    }
+
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(header->get_num_pages() > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))) {
+      ham_u32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
     }
 
     // the old rid is the new rid
@@ -628,6 +668,7 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
             bool fetch_read_only)
 {
   ham_u32_t page_size = m_env->get_page_size();
+  bool first_page = true;
 
   while (size) {
     // get the page-id from this chunk
@@ -637,9 +678,15 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
     // otherwise fetch the page
     if (page && page->get_address() != pageid)
       page = 0;
-    if (!page)
-      page = m_env->get_page_manager()->fetch_page(db, pageid,
-                        fetch_read_only ? PageManager::kReadOnly : 0);
+
+    if (!page) {
+      ham_u32_t flags = 0;
+      if (fetch_read_only)
+        flags |= PageManager::kReadOnly;
+      if (!first_page)
+        flags |= PageManager::kNoHeader;
+      page = m_env->get_page_manager()->fetch_page(db, pageid, flags);
+    }
 
     // now read the data from the page
     ham_u32_t read_start = (ham_u32_t)(address - page->get_address());
@@ -650,6 +697,8 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, ham_u64_t address,
     address += read_size;
     data += read_size;
     size -= read_size;
+
+    first_page = false;
   }
 
   if (ppage)

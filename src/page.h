@@ -41,8 +41,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   ham_u32_t _flags;
 
-  // reserved
-  ham_u32_t _reserved;
+  // PRO: crc32
+  ham_u32_t _crc32;
 
   // the lsn of the last operation
   ham_u64_t _lsn;
@@ -220,6 +220,16 @@ class Page {
     // Sets the page's type (kType*)
     void set_type(ham_u32_t type) {
       m_data->_s._flags = type;
+    }
+ 
+    // PRO: Returns the crc32
+    ham_u32_t get_crc32() const {
+      return (m_data->_s._crc32);
+    }
+
+    // PRO: Sets the crc32
+    void set_crc32(ham_u32_t crc32) {
+      m_data->_s._crc32 = crc32;
     }
 
     // Returns the lsn of the last modification

@@ -627,6 +627,13 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\3rdparty\murmurhash3\MurmurHash3.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\3rdparty\murmurhash3\MurmurHash3.h"
+			>
+		<File
 			RelativePath="..\..\src\mem.cc"
 			>
 		</File>

@@ -15,7 +15,7 @@
 
 /**
  * @file hamsterdb.h
- * @brief Include file for hamsterdb Embedded Storage PRO
+ * @brief Include file for hamsterdb Embedded Storage Pro
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.8-pro
  *
@@ -515,6 +515,12 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  * (see below). The identical key has to be provided in @ref ham_env_open
  * as well. Ignored for remote Environments.
  *
+ * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * when it is fetched from disk if the flag @ref HAM_ENABLE_CRC32 is set.
+ * API functions will return @ref HAM_INTEGRITY_VIOLATED in case of failed
+ * verifications. Not allowed in In-Memory Environments. This flag is not
+ * persisted.
+ *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
@@ -550,6 +556,8 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
+ *     <li>@ref HAM_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *      checksums. Not allowed in combination with @ref HAM_IN_MEMORY.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -630,6 +638,11 @@ ham_env_create(ham_env_t **env, const char *filename,
  * hamsterdb pro documentation for more details. This parameter is not
  * persisted.
  *
+ * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * when it is fetched from disk if the flag @ref HAM_ENABLE_CRC32 is set.
+ * API functions will return @ref HAM_INTEGRITY_VIOLATED in case of failed
+ * verifications. This flag is not persisted.
+ *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file, or URL of a hamsterdb
  *      Server
@@ -666,6 +679,8 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
+ *     <li>@ref HAM_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *      checksums.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:

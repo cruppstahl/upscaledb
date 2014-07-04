@@ -346,6 +346,13 @@ ham_env_create(ham_env_t **henv, const char *filename,
     return (HAM_INV_PARAMETER);
   }
 
+  /* in-memory? crc32 is not possible */
+  if ((flags & HAM_IN_MEMORY) && (flags & HAM_ENABLE_CRC32)) {
+    ham_trace(("combination of HAM_IN_MEMORY and HAM_ENABLE_CRC32 "
+            "not allowed"));
+    return (HAM_INV_PARAMETER);
+  }
+
   EVAL_CHECK
 
   /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly

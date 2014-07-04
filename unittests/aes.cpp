@@ -9,13 +9,11 @@
  * See files COPYING.* for License information.
  */
 
-#ifdef HAM_ENABLE_ENCRYPTION
-
 #include <string.h>
 #include <assert.h>
 
 #include "3rdparty/catch/catch.hpp"
-#include "globals.h"
+#include "utils.h"
 
 #include "../src/env.h"
 
@@ -30,7 +28,7 @@ TEST_CASE("Aes/disabledIfInMemory", "")
   };
 
   REQUIRE(HAM_INV_PARAMETER ==
-          ham_env_create(&env, Globals::opath("test.db"), 
+          ham_env_create(&env, Utils::opath("test.db"), 
                   HAM_IN_MEMORY, 0644, p));
 }
 
@@ -46,15 +44,15 @@ TEST_CASE("Aes/disableMmap", "")
           { 0, 0 }
   };
 
-  REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0644, p));
+  REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0644, p));
   REQUIRE((((Environment *)env)->get_flags() & HAM_DISABLE_MMAP) != 0);
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
   REQUIRE(HAM_INV_FILE_HEADER ==
-                  ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+                  ham_env_open(&env, Utils::opath("test.db"), 0, 0));
   REQUIRE(HAM_INV_FILE_HEADER ==
-                  ham_env_open(&env, Globals::opath("test.db"), 0, bad));
-  REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, p));
+                  ham_env_open(&env, Utils::opath("test.db"), 0, bad));
+  REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, p));
   REQUIRE((((Environment *)env)->get_flags() & HAM_DISABLE_MMAP) != 0);
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
@@ -68,7 +66,7 @@ TEST_CASE("Aes/simpleInsert", "")
           { 0, 0 }
   };
 
-  REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0644, p));
+  REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0644, p));
   REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
 
   char buffer[512];
@@ -98,7 +96,7 @@ TEST_CASE("Aes/simpleInsert", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
   // reopen and check again
-  REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, p));
+  REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, p));
   REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
 
   for (int i = 0; i < 512; i++) {
@@ -124,7 +122,7 @@ TEST_CASE("Aes/transactionInsert", "")
           { 0, 0 }
   };
 
-  REQUIRE(0 ==ham_env_create(&env, Globals::opath("test.db"),
+  REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
                           HAM_ENABLE_TRANSACTIONS, 0644, p));
   REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
 
@@ -155,7 +153,7 @@ TEST_CASE("Aes/transactionInsert", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
   // reopen and check again
-  REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"),
+  REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"),
                           HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, p));
   REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
 
@@ -173,4 +171,3 @@ TEST_CASE("Aes/transactionInsert", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
-#endif // HAM_ENABLE_ENCRYPTION

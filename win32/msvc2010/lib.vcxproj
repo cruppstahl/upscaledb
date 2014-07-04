@@ -176,6 +176,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rdparty\liblzf\lzf.h" />
+    <ClInclude Include="..\..\3rdparty\murmurhash3\MurmurHash3.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
     <ClInclude Include="..\..\include\ham\hamsterdb_ola.h" />
@@ -243,6 +244,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
+    <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
+    <ClInclude Include="..\..\3rdparty\murmurhash3\MurmurHash3.h" />
     <ClCompile Include="..\..\src\blob_manager.cc" />
     <ClCompile Include="..\..\src\blob_manager_disk.cc" />
     <ClCompile Include="..\..\src\blob_manager_inmem.cc" />

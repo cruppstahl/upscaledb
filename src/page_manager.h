@@ -102,12 +102,7 @@ class PageManager {
     Page *alloc_multiple_blob_pages(LocalDatabase *, size_t num_pages);
 
     // Flushes a Page to disk
-    void flush_page(Page *page) {
-      if (page->is_dirty()) {
-        m_page_count_flushed++;
-        page->flush();
-      }
-    }
+    void flush_page(Page *page);
 
     // Flush all pages, and clear the cache.
     //
@@ -209,6 +204,10 @@ class PageManager {
 
     // callback for purging pages
     static void purge_callback(Page *page, PageManager *pm);
+
+    // verifies the crc32 checksum of a page; throws an exception if the
+    // verification fails
+    void verify_crc32(Page *page);
 
     // The current Environment handle
     LocalEnvironment *m_env;

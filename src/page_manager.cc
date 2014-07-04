@@ -13,6 +13,8 @@
 
 #include <string.h>
 
+#include "../3rdparty/murmurhash3/MurmurHash3.h"
+
 #include "util.h"
 #include "page.h"
 #include "pickle.h"
@@ -45,6 +47,8 @@ PageManager::load_state(ham_u64_t pageid)
 
   m_state_page = new Page(m_env, 0);
   m_state_page->fetch(pageid);
+  if (m_env->get_flags() & HAM_ENABLE_CRC32)
+    verify_crc32(m_state_page);
 
   m_free_pages.clear();
 
@@ -279,11 +283,14 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
 
   ham_assert(page->get_data());
 
-  /* store the page in the list */
-  store_page(page);
-
   if (flags & kNoHeader)
     page->set_flags(page->get_flags() | Page::kNpersNoHeader);
+  // Pro: verify crc32
+  else if (m_env->get_flags() & HAM_ENABLE_CRC32)
+    verify_crc32(page);
+
+  /* store the page in the list */
+  store_page(page);
 
   /* store the page in the changeset */
   if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -339,6 +346,7 @@ done:
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(db);
+  page->set_crc32(0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -445,6 +453,26 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
   }
 
   return (false);
+}
+
+void
+PageManager::flush_page(Page *page)
+{
+  if (page->is_dirty()) {
+    m_page_count_flushed++;
+
+    // Pro: update crc32
+    if ((m_env->get_flags() & HAM_ENABLE_CRC32)
+        && unlikely((page->get_flags() & Page::kNpersNoHeader) == 0)) {
+      ham_u32_t crc32;
+      MurmurHash3_x86_32(page->get_payload(),
+                      m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                      (ham_u32_t)page->get_address(), &crc32);
+      page->set_crc32(crc32);
+    }
+
+    page->flush();
+  }
 }
 
 void
@@ -620,6 +648,20 @@ PageManager::close()
   delete m_state_page;
   m_state_page = 0;
   m_last_blob_page = 0;
+}
+
+void
+PageManager::verify_crc32(Page *page)
+{
+  ham_u32_t crc32;
+  MurmurHash3_x86_32(page->get_payload(),
+                  m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                  (ham_u32_t)page->get_address(), &crc32);
+  if (crc32 != page->get_crc32()) {
+    ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                    page->get_address(), crc32, page->get_crc32()));
+    throw Exception(HAM_INTEGRITY_VIOLATED);
+  }
 }
 
 } // namespace hamsterdb
