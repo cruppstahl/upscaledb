@@ -19,7 +19,7 @@
 #ifdef HAM_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #  include <google/malloc_extension.h>
-#elif __GNUC__
+#elif HAVE_MALLOC_H
 #  include <malloc.h>
 #endif
 

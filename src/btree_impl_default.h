@@ -1235,9 +1235,9 @@ class VariableLengthKeyList
 
     // Returns the threshold when switching from binary search to
     // linear search. For this layout we do not want to use any linear
-    // search, therefore return 0.
+    // search, therefore return -1.
     size_t get_linear_search_threshold() const {
-      return (0);
+      return (0xffffffff);
     }
 
     // Performs a linear search in a given range between |start| and
@@ -3151,11 +3151,6 @@ apply_changes:
           last = i;
           l = i;
         }
-      }
-
-      if (threshold == 0) {
-        *pcmp = cmp;
-        return (-1);
       }
 
       // still here? then perform a linear search for the remaining range
