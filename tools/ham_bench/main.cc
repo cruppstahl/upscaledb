@@ -716,7 +716,7 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_USE_REMOTE) {
 #ifndef HAM_ENABLE_REMOTE
-      printf("[FAIL] I was built without support for berkeleydb!\n");
+      printf("[FAIL] I was built without support for remote!\n");
       exit(-1);
 #else
       c->use_remote = true;

@@ -1,4 +1,4 @@
-hamsterdb 2.1.7                                     Di 25. Mär 23:01:12 CET 2014
+hamsterdb 2.1.8                                     Mo 7. Jul 11:02:27 CEST 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -10,38 +10,74 @@ Contents:
 hamsterdb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This release fixes a few bugs and improves Transactional performance.
-Committed Transactions are no longer flushed immediately to the btree but
-are buffered and flushed together with other committed Transactions. If
-you prefer the old behavior then use the flag HAM_FLUSH_WHEN_COMMITTED when
-creating or opening your Environment.
+This release has 4 big changes:
 
-The Btree code was cleaned up and most of the complexity was removed by
-reorganizing the SMOs.
+The remote protocol no longer uses Google's protocol buffer but a faster
+homemade serialization protocol. Remote performance was improved.
 
-Also, the license was changed to APL (Apache Public License 2.0).
-hamsterdb is now free to use for closed-source applications.
+A new set of APIs were added which demonstrate the analytical powers of
+hamsterdb: "hola" (hamsterdb on-line analytics) can perform COUNT,
+COUNT DISTINCT, AVERAGE, SUM and other calculations. These routines are directly
+executed in the Btree context and very fast.
 
-The AES encryption was removed. This will be part of a commercial "pro" version
-which will be available soon, together with more new functionality (i.e.
-compression, hot backups etc). No other features were removed. Visit the blog
-(http://crupp.de) for more background information regarding the license change.
+Under the hood, the two Btree layouts were rewritten. The result now allows a
+much more efficient storage of fixed length keys with duplicates, or variable
+length keys without duplicates. Prior to 2.1.8, a less efficient representation
+was used in both cases. This change reduced the file size a lot.
+
+A new Python API was added! A sample is included (see python/samples).
+
+Other changes are:
+
+A new API "ham_cursor_get_duplicate_position" was added to retrieve
+the current position of a cursor in the duplicate list.
+
+The APIs ham_db_get_error was deprecated, ham_get_license was removed.
+
+A regression in 2.1.7 was fixed which created large files under certain
+circumstances. A few other changes were made to decrease the file size.
+
+On Windows, winsock.h is no longer included in order to avoid conflicts with
+winsock2.h.
+
+The database format is no longer endian agnostic but simply uses the host
+endianness. Reason is that i do not have the hardware to test the agnostic
+file format, and therefore the implementation was likely to have bugs anyway.
+
+libuv was updated to version 0.11.22.
+
+The file format of 2.1.8 is not compatible to 2.1.7.
 
 2. Changes
 
 New Features
-* Added flag HAM_DISABLE_RECOVERY; disables recovery/journal when used in 
-	combination with HAM_ENABLE_TRANSACTIONS
+* Adding the new "hola" API - hamsterdb analytical functions for COUNT,
+	SUM, AVERAGE etc. See ham/hamsterdb_ola.h for the declarations
+* Added new API ham_cursor_get_duplicate_position
+* A new Python API was added
 
 Bugfixes
-* issue #32: fixed segfault during recovery
-* Fixed a journalling bug; partial records were not logged correctly
+* issue #33: upgraded to libuv 0.11.22
+* Fixing a performance regression in 2.1.7 - large fixed-length keys
+	created too many page splits, even if they were stored as extended
+	keys
 
 Other Changes
-* License is now APL 2.0
-* Committed Transactions are no longer flushed immediately, but can be
-	buffered and flushed together with other committed Transactions
-* Removed a parameter from ham_db_check_integrity
+* The database format no longer tries to be endian agnostic; the database
+	is now stored in host endian format. The endian agnostic code was broken
+	anyway, and I had no hardware to test it.
+* ham_db_get_error is now deprecated
+* header files no longer include winsock.h to avoid conflicts with winsock2.h
+	on Windows platforms
+* Both btree layouts have been completely rewritten; PAX KeyLists
+	can now be used in combination with duplicate RecordLists, and variable
+	length KeyLists can now be used in combination with PAX RecordLists
+* Avoiding Btree splits if keys are appended (HAM_HINT_APPEND)
+* The internal communication with the remote server now uses a different
+	protocol which is faster than google's protobuffer
+* PAX layout now uses linear search for small ranges; this improves search
+	performance by 5-10%
+* Removed the ham_get_license API (and serial.h)
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -55,6 +91,7 @@ To see a list of all changes, look in the file ChangeLog.
 - PRO: transparent compression for journal, keys and records using 
     zlib, snappy, lzf or lzo 
 - Very fast sorted B+Tree with variable length keys
+- Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
 - Can run as an in-memory database
 - Supports multiple databases in one file
 - Supports record number databases ("auto-increment")
@@ -63,7 +100,6 @@ To see a list of all changes, look in the file ChangeLog.
 - Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases) via TCP/Protocol Buffers
-- Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
 - Very fast database cursors
 - Configurable page size, cache size, key size etc
 - Runs on Linux, Unices, Microsoft Windows and other architectures
@@ -72,7 +108,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
 - Open source and released under APL 2.0 license
-- Wrappers for C++, Java, .NET, Erlang, Ada and others
+- Wrappers for C++, Java, .NET, Erlang, Python, Ada and others
 
 5. Known Issues/Bugs
 

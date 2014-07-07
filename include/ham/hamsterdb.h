@@ -18,7 +18,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.7
+ * @version 2.1.8
  *
  * @mainpage
  *

@@ -1,9 +1,13 @@
+Jul 10, 2014 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.8
+
 Jul 01, 2014 - chris ---------------------------------------------------
 o The database format no longer tries to be endian agnostic; the database
 	is now stored in host endian format. The endian agnostic code was broken
 	anyway, and I had no hardware to test it.
 
 Jun 30, 2014 - chris ---------------------------------------------------
+o Added a Python API
 o PageManager state now also persists the page id with (likely) gaps
 	for new blobs
 o Added new API ham_cursor_get_duplicate_position

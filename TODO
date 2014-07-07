@@ -20,8 +20,8 @@ x hamsterdb: performance improvements for remote
 x hamsterdb: improve page splits
 x hamsterdb: start with the hola API
 x hamsterdb: get rid of endian agnostic code
-o hamsterdb: use PAX layouts w/ duplicates
-o hamsterdb: python api
+x hamsterdb: use PAX layouts w/ duplicates
+x hamsterdb: python api
 
 
 x remote code: get rid of protocol buffers (but leave them in the server
@@ -576,43 +576,43 @@ x Refactorings for the Default layout with the following goals:
         x slightly improve read-random (10%) - bin16, no duplicates
         x also profile duplicate keys
 
-o performance is good, but mem allocations went up the roof
+x check with boost 1.55 and clang - seems that ham_bench does not compile
+    - not reproducible on linux (gcc 4.6, clang 3.0)
+
+x performance is good, but mem allocations went up the roof
     x VariableLengthKeys::get_key()
     x Page::~Page is costly (line 44)
     x vacuumize is very expensive
 
-    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending --open --find-pct=100 --metrics=all
+    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending\
+         --open --find-pct=100
         elapsed time 17% down
         total allocations from 1 to 1786!!
-    o ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0 --metrics=all
+    x ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0
         x memory allocations went up (82%)
         -> should be much faster now (splits down 50%, filesize down 50% etc),
             but it has more or less the same performance than before
-    o ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0 --metrics=all
+    x ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0
         -> less allocations, less splits but throughput went down (50%)
-    o ./ham_bench --seed=1380279291 --stop-ops=1000000 --duplicate=last --metrics=all
+    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --duplicate=last
         -> less allocations, less splits but throughput went down (50%)
-    o ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb --metrics=all
+    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb
         -> less pages, less splits but throughput went down (50%)
-
-o check with boost 1.55 and clang - seems that ham_bench does not compile
-    - not reproducible on linux (gcc 4.6, clang 3.0)
-    o try on MacOS
 
 o finalize 2.1.8
     o upate version, libtool version, README etc
     o need win32 build environment for python wrapper
-    o remove endian agnosticitiy from web page
-    o faq about endian-ness
-    o document python, add to webpage
+    x remove endian agnosticitiy from web page
+    x faq about endian-ness
+    x document python, add to webpage
     o fixed length keys: add big warning that this increases the
         node fanout!
-        o header file
-        o performance faq
+        x header file
+        x performance faq
     o hola: add samples and documentation
         o add samples to webpage
         o extend the tutorial
-    o FAQ: Why is the library size so big?
+    x FAQ: Why is the library size so big?
 
 . documentation rewrite
     o look into sphinx: http://sphinx-doc.org/
