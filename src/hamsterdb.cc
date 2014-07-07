@@ -256,11 +256,11 @@ ham_strerror(ham_status_t result)
 static inline bool
 __prepare_key(ham_key_t *key)
 {
-  if (key->size && !key->data) {
+  if (unlikely(key->size && !key->data)) {
     ham_trace(("key->size != 0, but key->data is NULL"));
     return (false);
   }
-  if (key->flags != 0 && key->flags != HAM_KEY_USER_ALLOC) {
+  if (unlikely(key->flags != 0 && key->flags != HAM_KEY_USER_ALLOC)) {
     ham_trace(("invalid flag in key->flags"));
     return (false);
   }
@@ -283,13 +283,13 @@ __prepare_key(ham_key_t *key)
 static inline bool
 __prepare_record(ham_record_t *record)
 {
-  if (record->size && !record->data) {
+  if (unlikely(record->size && !record->data)) {
     ham_trace(("record->size != 0, but record->data is NULL"));
     return false;
   }
-  if (record->flags & HAM_DIRECT_ACCESS)
+  if (unlikely(record->flags & HAM_DIRECT_ACCESS))
     record->flags &= ~HAM_DIRECT_ACCESS;
-  if (record->flags != 0 && record->flags != HAM_RECORD_USER_ALLOC) {
+  if (unlikely(record->flags != 0 && record->flags != HAM_RECORD_USER_ALLOC)) {
     ham_trace(("invalid flag in record->flags"));
     return (false);
   }

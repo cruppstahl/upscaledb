@@ -623,7 +623,8 @@ class UpfrontIndex
       // the vacuumize-counter is not persisted, therefore
       // pretend that the counter is very high; in worst case this will cause
       // an invalid call to vacuumize(), which is not a problem
-      m_vacuumize_counter = get_range_size();
+      if (get_freelist_count())
+        m_vacuumize_counter = get_range_size();
     }
 
     // Returns the capacity; required for tests
@@ -635,7 +636,6 @@ class UpfrontIndex
     // RecordList
     void change_capacity(size_t node_count, ham_u8_t *new_data_ptr,
             size_t full_range_size_bytes, size_t new_capacity) {
-      ham_assert(get_freelist_count() == 0);
       size_t used_data_size = get_next_offset(node_count); 
       ham_u8_t *src = &m_data[kPayloadOffset
                             + m_capacity * get_full_index_size()];
@@ -706,8 +706,14 @@ class UpfrontIndex
 
     // Increases the "vacuumize-counter", which is an indicator whether
     // rearranging the node makes sense
-    void increase_vacuumize_counter() {
-      m_vacuumize_counter++;
+    void increase_vacuumize_counter(size_t gap_size) {
+      m_vacuumize_counter += gap_size;
+    }
+
+    // Returns the 'vacuumize counter' - an indicator how much space can
+    // be gained by calling vacuumize()
+    size_t get_vacuumize_counter() const {
+      return (m_vacuumize_counter);
     }
 
     // Returns true if this index has at least one free slot available.
@@ -743,7 +749,9 @@ class UpfrontIndex
 
       set_freelist_count(get_freelist_count() + 1);
 
-      increase_vacuumize_counter();
+      size_t chunk_size = get_chunk_size(slot);
+
+      increase_vacuumize_counter(chunk_size);
 
       // nothing to do if we delete the very last (used) slot; the freelist
       // counter was already incremented, the used counter is decremented
@@ -752,7 +760,6 @@ class UpfrontIndex
         return;
 
       size_t chunk_offset = get_chunk_offset(slot);
-      size_t chunk_size = get_chunk_size(slot);
 
       // shift all items to the left
       ham_u8_t *p = &m_data[kPayloadOffset + slot_size * slot];
@@ -963,7 +970,9 @@ class UpfrontIndex
     }
 
     // Re-arranges the node: moves all keys sequentially to the beginning
-    // of the key space, removes the whole freelist
+    // of the key space, removes the whole freelist.
+    //
+    // This call is extremely expensive! Try to avoid it as good as possible.
     void vacuumize(size_t node_count) {
       if (m_vacuumize_counter == 0)
         return;
@@ -973,14 +982,19 @@ class UpfrontIndex
       set_freelist_count(0);
 
       // make a copy of all indices (excluding the freelist)
+      bool requires_sort = false;
       SortHelper s[node_count];
       for (ham_u32_t i = 0; i < node_count; i++) {
         s[i].slot = i;
         s[i].offset = get_chunk_offset(i);
+        if (i > 0 && s[i].offset < s[i - 1].offset)
+          requires_sort = true;
       }
 
-      // sort them by offset
-      std::sort(&s[0], &s[node_count], sort_by_offset);
+      // sort them by offset; this is a very expensive call. only sort if
+      // it's absolutely necessary!
+      if (requires_sort)
+        std::sort(&s[0], &s[node_count], sort_by_offset);
 
       // shift all keys to the left, get rid of all gaps at the front of the
       // key data or between the keys
@@ -1217,13 +1231,12 @@ class VariableLengthKeyList
         tmp.data = p + 1;
       }
 
+      dest->size = tmp.size;
+
       if (likely(deep_copy == false)) {
-        dest->size = get_key_size(slot);
-        dest->data = p + 1;
+        dest->data = tmp.data;
         return;
       }
-
-      dest->size = tmp.size;
 
       // allocate memory (if required)
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
@@ -1308,11 +1321,15 @@ class VariableLengthKeyList
     // Returns true if the |key| no longer fits into the node and a split
     // is required. Makes sure that there is ALWAYS enough headroom
     // for an extended key!
-    bool requires_split(size_t node_count, const ham_key_t *key) {
+    bool requires_split(size_t node_count, const ham_key_t *key,
+                    bool vacuumize = false) {
+      size_t required = key->size + 1;
       // add 1 byte for flags
       if (key->size > m_extkey_threshold || key->size < 8 + 1)
-        return (m_index.requires_split(node_count, 8 + 1));
-      return (m_index.requires_split(node_count, key->size + 1));
+        required = 8 + 1;
+      if (vacuumize && m_index.get_vacuumize_counter() < required)
+        return (true);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
@@ -1394,7 +1411,7 @@ class VariableLengthKeyList
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
       if (force)
-        m_index.increase_vacuumize_counter();
+        m_index.increase_vacuumize_counter(1);
       m_index.vacuumize(node_count);
     }
 
@@ -1696,7 +1713,7 @@ class DuplicateRecordList
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
       if (force)
-        m_index.increase_vacuumize_counter();
+        m_index.increase_vacuumize_counter(1);
       m_index.vacuumize(node_count);
     }
 
@@ -1900,7 +1917,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
           set_inline_record_count(slot, 0);
 
           m_index.set_chunk_size(slot, 8 + 1);
-          m_index.increase_vacuumize_counter();
+          m_index.increase_vacuumize_counter(m_index.get_chunk_size(slot) - 9);
           m_index.invalidate_next_offset();
 
           // fall through
@@ -2051,13 +2068,15 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) {
+    bool requires_split(size_t node_count, bool vacuumize = false) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
-      size_t record_size = get_full_record_size();
-      if (record_size < 10)
-        record_size = 10;
-      return (m_index.requires_split(node_count, record_size));
+      size_t required = get_full_record_size();
+      if (required < 10)
+        required = 10;
+      if (vacuumize && m_index.get_vacuumize_counter() < required)
+        return (true);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Prints a slot to |out| (for debugging)
@@ -2295,7 +2314,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
           set_inline_record_count(slot, 0);
 
           m_index.set_chunk_size(slot, 10);
-          m_index.increase_vacuumize_counter();
+          m_index.increase_vacuumize_counter(m_index.get_chunk_size(slot) - 10);
           m_index.invalidate_next_offset();
 
           // fall through
@@ -2507,11 +2526,15 @@ write_record:
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) {
+    bool requires_split(size_t node_count, bool vacuumize = false) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
-      return (m_index.requires_split(node_count,
-                              std::min(get_full_record_size(), 10ul)));
+      size_t required = get_full_record_size();
+      if (required < 10)
+        required = 10;
+      if (vacuumize && m_index.get_vacuumize_counter() < required)
+        return (true);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Prints a slot to |out| (for debugging)
@@ -2614,7 +2637,7 @@ class DefaultNodeImpl
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
                     int *pcmp) {
-      int slot = find_impl(key, comparator, pcmp);  
+      int slot = find_impl(key, comparator, pcmp);
       if (precord_id) {
         if (slot == -1)
           *precord_id = m_node->get_ptr_down();
@@ -2752,14 +2775,10 @@ class DefaultNodeImpl
       bool records_require_split = m_records.requires_split(node_count);
       if (!keys_require_split && !records_require_split)
         return (false);
-      if (keys_require_split) {
-        m_keys.vacuumize(node_count, false);
-        keys_require_split = m_keys.requires_split(node_count, key);
-      }
-      if (records_require_split) {
-        m_records.vacuumize(node_count, false);
-        records_require_split = m_records.requires_split(node_count);
-      }
+      if (keys_require_split)
+        keys_require_split = m_keys.requires_split(node_count, key, true);
+      if (records_require_split)
+        records_require_split = m_records.requires_split(node_count, true);
       if (keys_require_split || records_require_split) {
         if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
@@ -2838,8 +2857,8 @@ class DefaultNodeImpl
       size_t node_count = m_node->get_count();
       size_t other_node_count = other->m_node->get_count();
 
-      m_keys.vacuumize(node_count, true);
-      m_records.vacuumize(node_count, true);
+      m_keys.vacuumize(node_count, false);
+      m_records.vacuumize(node_count, false);
 
       // shift items from the sibling to this page
       other->m_keys.copy_to(0, other_node_count, m_keys,
@@ -2870,7 +2889,7 @@ class DefaultNodeImpl
       m_keys.print(slot, ss);
       ss << " -> ";
       m_records.print(slot, ss);
-      std::cout << ss << std::endl;
+      std::cout << ss.str() << std::endl;
     }
 
   private:
@@ -3096,7 +3115,7 @@ apply_changes:
                 && !m_keys.requires_split(node_count, key));
     }
 
-    // Implementation of the find method
+    // Implementation of the find method; uses a linear search if possible
     template<typename Cmp>
     int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
       size_t node_count = m_node->get_count();

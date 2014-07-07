@@ -228,7 +228,8 @@ class PodKeyList
     }
 
     // Returns true if the |key| no longer fits into the node
-    bool requires_split(size_t node_count, const ham_key_t *key) {
+    bool requires_split(size_t node_count, const ham_key_t *key,
+                    bool vacuumize = false) const {
       return (node_count >= m_capacity);
     }
 
@@ -341,7 +342,7 @@ class BinaryKeyList
                     bool deep_copy = true) const {
       dest->size = m_key_size;
       if (likely(deep_copy == false)) {
-        dest->data = &m_data[slot];
+        dest->data = &m_data[slot * m_key_size];
         return;
       }
 
@@ -431,7 +432,8 @@ class BinaryKeyList
     }
 
     // Returns true if the |key| no longer fits into the node
-    bool requires_split(size_t node_count, const ham_key_t *key) {
+    bool requires_split(size_t node_count, const ham_key_t *key,
+                    bool vacuumize = false) const {
       return (node_count >= m_capacity);
     }
 
@@ -464,7 +466,7 @@ class BinaryKeyList
     // Prints a slot to |out| (for debugging)
     void print(ham_u32_t slot, std::stringstream &out) const {
       for (size_t i = 0; i < m_key_size; i++)
-        out << m_data[slot * m_key_size + i];
+        out << (char)m_data[slot * m_key_size + i];
     }
 
     // Returns the key size
@@ -716,7 +718,7 @@ class DefaultRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) {
+    bool requires_split(size_t node_count, bool vacuumize = false) const {
       return (node_count >= m_capacity);
     }
 
@@ -972,7 +974,7 @@ class InternalRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) {
+    bool requires_split(size_t node_count, bool vacuumize = false) const {
       return (node_count >= m_capacity);
     }
 
@@ -1155,7 +1157,7 @@ class InlineRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) {
+    bool requires_split(size_t node_count, bool vacuumize = false) const {
       return (node_count >= m_capacity);
     }
 
@@ -1397,7 +1399,7 @@ class PaxNodeImpl
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(const ham_key_t *key) const {
+    bool requires_split(const ham_key_t *key, bool vacuumize = false) const {
       return (m_node->get_count() >= m_capacity);
     }
 
@@ -1453,7 +1455,7 @@ class PaxNodeImpl
       m_keys.print(slot, ss);
       ss << " -> ";
       m_records.print(slot, ss);
-      std::cout << ss << std::endl;
+      std::cout << ss.str() << std::endl;
     }
 
     // Returns the record id

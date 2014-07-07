@@ -183,6 +183,7 @@ struct BtreeDefaultFixture {
       rec.data = key.data;
       rec.size = key.size;
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      // REQUIRE(0 == ham_db_check_integrity(m_db, 0));
     }
 
     for (IntVector::const_iterator it = inserts.begin();

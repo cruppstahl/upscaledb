@@ -580,15 +580,18 @@ x check with boost 1.55 and clang - seems that ham_bench does not compile
     - not reproducible on linux (gcc 4.6, clang 3.0)
 
 x performance is good, but mem allocations went up the roof
+    x try on MacOS - also not reproducible
+
+x mem allocations went up the roof; file size down, but performance not. why?
     x VariableLengthKeys::get_key()
     x Page::~Page is costly (line 44)
     x vacuumize is very expensive
 
-    x ./ham_bench --seed=1380279291 --stop-ops=1000000 --distribution=ascending\
-         --open --find-pct=100
+    x --seed=1380279291 --stop-ops=1000000 --distribution=ascending --open \
+            --find-pct=100
         elapsed time 17% down
         total allocations from 1 to 1786!!
-    x ./ham_bench --seed=12345 --stop-ops=10000000 --recsize-fixed=0
+    x --seed=12345 --stop-ops=10000000 --recsize-fixed=0
         x memory allocations went up (82%)
         -> should be much faster now (splits down 50%, filesize down 50% etc),
             but it has more or less the same performance than before
