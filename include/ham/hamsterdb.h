@@ -733,6 +733,13 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * For fixed-length keys (without duplicates) the "pax" layout is chosen.
  * The "pax" layout is more compact and usually faster.
  *
+ * A word of warning regarding the use of fixed length binary keys
+ * (@ref HAM_TYPE_CUSTOM or @ref HAM_TYPE_BINARY in combination with
+ * @ref HAM_PARAM_KEY_SIZE): if your key size is too large, only few keys
+ * will fit in a Btree node. The Btree fanout will be very high, which will
+ * decrease performance. In such cases it might be better to NOT specify
+ * the key size; then hamsterdb will store keys as blobs if they are too large.
+ *
  * See the Wiki documentation for <a href=
    "https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking">
  * Evaluating and Benchmarking</a> on how to test different configurations and

@@ -974,8 +974,13 @@ class UpfrontIndex
     //
     // This call is extremely expensive! Try to avoid it as good as possible.
     void vacuumize(size_t node_count) {
-      if (m_vacuumize_counter == 0)
+      if (m_vacuumize_counter == 0) {
+        if (get_freelist_count() > 0) {
+          set_freelist_count(0);
+          invalidate_next_offset();
+        }
         return;
+      }
 
       // get rid of the freelist - this node is now completely rewritten,
       // and the freelist would just complicate things
@@ -1050,6 +1055,11 @@ class UpfrontIndex
       return (ret);
     }
 
+    // Returns the number of freelist entries
+    size_t get_freelist_count() const {
+      return (*(ham_u32_t *)m_data);
+    }
+
   private:
     friend class UpfrontIndexFixture;
 
@@ -1074,11 +1084,6 @@ class UpfrontIndex
         *(ham_u16_t *)p = (ham_u16_t)offset;
       else
         *(ham_u32_t *)p = offset;
-    }
-
-    // Returns the number of freelist entries
-    size_t get_freelist_count() const {
-      return (*(ham_u32_t *)m_data);
     }
 
     // Sets the number of freelist entries
@@ -1327,9 +1332,15 @@ class VariableLengthKeyList
       // add 1 byte for flags
       if (key->size > m_extkey_threshold || key->size < 8 + 1)
         required = 8 + 1;
-      if (vacuumize && m_index.get_vacuumize_counter() < required)
-        return (true);
-      return (m_index.requires_split(node_count, required));
+      bool ret = m_index.requires_split(node_count, required);
+      if (ret == false || vacuumize == false)
+        return (ret);
+      if (m_index.get_vacuumize_counter() < required
+              || m_index.get_freelist_count() > 0) {
+        m_index.vacuumize(node_count);
+        ret = requires_split(node_count, key, false);
+      }
+      return (ret);
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
@@ -2074,9 +2085,15 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       size_t required = get_full_record_size();
       if (required < 10)
         required = 10;
-      if (vacuumize && m_index.get_vacuumize_counter() < required)
-        return (true);
-      return (m_index.requires_split(node_count, required));
+      bool ret = m_index.requires_split(node_count, required);
+      if (ret == false || vacuumize == false)
+        return (ret);
+      if (m_index.get_vacuumize_counter() < required
+              || m_index.get_freelist_count() > 0) {
+        m_index.vacuumize(node_count);
+        ret = requires_split(node_count, false);
+      }
+      return (ret);
     }
 
     // Prints a slot to |out| (for debugging)
@@ -2532,9 +2549,15 @@ write_record:
       size_t required = get_full_record_size();
       if (required < 10)
         required = 10;
-      if (vacuumize && m_index.get_vacuumize_counter() < required)
-        return (true);
-      return (m_index.requires_split(node_count, required));
+      bool ret = m_index.requires_split(node_count, required);
+      if (ret == false || vacuumize == false)
+        return (ret);
+      if (m_index.get_vacuumize_counter() < required
+              || m_index.get_freelist_count() > 0) {
+        m_index.vacuumize(node_count);
+        ret = requires_split(node_count, false);
+      }
+      return (ret);
     }
 
     // Prints a slot to |out| (for debugging)
@@ -2769,6 +2792,9 @@ class DefaultNodeImpl
     bool requires_split(const ham_key_t *key) {
       size_t node_count = m_node->get_count();
 
+      if (node_count == 0)
+        return (false);
+
       // try to resize the lists before admitting defeat and splitting
       // the page
       bool keys_require_split = m_keys.requires_split(node_count, key);
@@ -2857,8 +2883,8 @@ class DefaultNodeImpl
       size_t node_count = m_node->get_count();
       size_t other_node_count = other->m_node->get_count();
 
-      m_keys.vacuumize(node_count, false);
-      m_records.vacuumize(node_count, false);
+      m_keys.vacuumize(node_count, true);
+      m_records.vacuumize(node_count, true);
 
       // shift items from the sibling to this page
       other->m_keys.copy_to(0, other_node_count, m_keys,

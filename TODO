@@ -603,27 +603,29 @@ x mem allocations went up the roof; file size down, but performance not. why?
         -> less pages, less splits but throughput went down (50%)
 
 o finalize 2.1.8
-    o upate version, libtool version, README etc
-    o need win32 build environment for python wrapper
+    x upate version, libtool version, README etc
     x remove endian agnosticitiy from web page
     x faq about endian-ness
     x document python, add to webpage
-    o fixed length keys: add big warning that this increases the
+    x fixed length keys: add big warning that this increases the
         node fanout!
         x header file
         x performance faq
+    x FAQ: Why is the library size so big?
     o hola: add samples and documentation
         o add samples to webpage
         o extend the tutorial
-    x FAQ: Why is the library size so big?
+    o need win32 build environment for python wrapper
 
 . documentation rewrite
-    o look into sphinx: http://sphinx-doc.org/
+    o use github wiki
+        o remove old cruft
+    o use jekyll??
 
     /introduction
     /evaluate & benchmark
     /faq (merge w/ performance)
-    /tutorial (merge with C API documentation??)
+    /tutorial
     /pro
     /c, c++
         overview (description, status)
@@ -656,7 +658,6 @@ o finalize 2.1.8
         api functions (one file per function)
         samples
 
-    o format into html, with an index in a column
     o look for a technical writer to review the files
 
 . collect/publish benchmark against leveldb (with and without SSD)
@@ -699,10 +700,10 @@ o PRO: CRC32-checksums (as soon as the file format is updated)
     x SSE2 has support for a CRC32 checksum calculation, or find a good
         library -> use murmurhash3
     o write in Page::flush (if page has a header), verify in Page::read
-        (if page has a  header)
+        (if page has a header)
     o multipage blobs: store in PBlobPageHeader::m_free_bytes
     o needs new flag HAM_ENABLE_CHECKSUMS
-    o document the flag (and the limitation)
+    o document the flag
     o add to java api
     o add to .NET api
     o add to erlang api
@@ -1032,21 +1033,8 @@ o the bucket for concurrency TODOs
 
 ------------------- idea soup ---------------------------------------------
 
-o btree_impl_default::set_record: if the duplicate is LAST of the last key
-    in the node then simply append the record and increase next_offset
-
 o asynchronous prefetching of pages
     -> see posix_fadvice, libprefetch
-
-o Improve leaf pages caching
-    Store start/end key of each leaf page in a separate lookup table in order
-    to avoid btree traversals. This could be part of the hinter.
-  - one such cache per database
-  - should work for insert/find/erase
-
-o allow transactions w/o journal
-
-o allow transactions w/o recovery
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
@@ -1084,9 +1072,3 @@ o need a function to get the txn of a conflict (same as in v2)
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
-. new flag for Transactions: HAM_TXN_WILL_COMMIT
-    if this flag is set, then write all records directly to the file, not
-    to the log. the log will only contain the rid.
-    o in case of an abort: move the record to the freelist
-    -> this affects all temporary ham_insert-transactions
-    (not sure if this should get high priority)
