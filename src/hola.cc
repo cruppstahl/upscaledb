@@ -91,6 +91,47 @@ struct CountIfScanVisitor : public ScanVisitor {
   hola_bool_predicate_t *m_pred;
 };
 
+//
+// A ScanVisitor for hola_count_if on binary keys
+//
+struct CountIfScanVisitorBinary : public ScanVisitor {
+  CountIfScanVisitorBinary(size_t key_size, hola_bool_predicate_t *pred)
+    : m_count(0), m_key_size(key_size), m_pred(pred) {
+  }
+
+  // Operates on a single key
+  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+                  size_t duplicate_count) {
+    if (m_pred->predicate_func(key_data, key_size, m_pred->context))
+      m_count++;
+  }
+
+  // Operates on an array of keys
+  virtual void operator()(const void *key_array, size_t key_count) {
+    assert(m_key_size != HAM_KEY_SIZE_UNLIMITED);
+    const ham_u8_t *p = (const ham_u8_t *)key_array;
+    const ham_u8_t *end = &p[key_count * m_key_size];
+    for (; p < end; p += m_key_size) {
+      if (m_pred->predicate_func(p, m_key_size, m_pred->context))
+        m_count++;
+    }
+  }
+
+  // Assigns the result to |result|
+  virtual void assign_result(hola_result_t *result) {
+    memcpy(&result->u.result_u64, &m_count, sizeof(ham_u64_t));
+  }
+
+  // The counter
+  ham_u64_t m_count;
+
+  // The key size
+  size_t m_key_size;
+
+  // The user's predicate
+  hola_bool_predicate_t *m_pred;
+};
+
 ham_status_t HAM_CALLCONV
 hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
                 hola_result_t *result)
@@ -139,10 +180,7 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
-      // template parameter is irrelevant - BINARY keys do not call any
-      // template-specific function in CountIfScanVisitor
-      // TODO this is nevertheless UGLY!
-      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
+      visitor.reset(new CountIfScanVisitorBinary(db->get_key_size(), pred));
       break;
     default:
       ham_assert(!"shouldn't be here");
@@ -151,7 +189,6 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
 
   try {
     ScopedLock lock(db->get_env()->get_mutex());
-
     db->scan((Transaction *)txn, visitor.get(), false);
     visitor->assign_result(result);
     return (db->set_error(0));
@@ -238,10 +275,7 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
       visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
-      // template parameter is irrelevant - BINARY keys do not call any
-      // template-specific function in CountIfScanVisitor
-      // TODO this is nevertheless UGLY!
-      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
+      visitor.reset(new CountIfScanVisitorBinary(db->get_key_size(), pred));
       break;
     default:
       ham_assert(!"shouldn't be here");

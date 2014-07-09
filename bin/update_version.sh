@@ -40,6 +40,7 @@ win32/msvc2010/server_lib.vcxproj
 hamsterdb.spec
 include/ham/hamsterdb.h
 include/ham/hamsterdb.hpp
+include/ham/hamsterdb_ola.h
 src/version.h
 dotnet/hamsterdb-dotnet/NativeMethods.cs
 dotnet/unittests/*.cs

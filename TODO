@@ -602,6 +602,10 @@ x mem allocations went up the roof; file size down, but performance not. why?
     x ./ham_bench --seed=1380279291 --stop-ops=1000000 --inmemorydb
         -> less pages, less splits but throughput went down (50%)
 
+x the scan API (i.e. for hola_count_if) does not work if keys are
+    fixed length binaries, because hola.cc:77 does not properly increment
+    the pointer
+
 o finalize 2.1.8
     x upate version, libtool version, README etc
     x remove endian agnosticitiy from web page
@@ -617,10 +621,31 @@ o finalize 2.1.8
         o extend the tutorial
     o need win32 build environment for python wrapper
 
+o collect/publish benchmark against leveldb (with and without SSD)
+    x uint64, small records, random write
+    x uint64, small records, random read
+    x uint64, small records, linear write
+    x uint64, small records, linear read
+    x uint64, large records, random write
+    x uint64, large records, random read
+    x uint64, large records, linear write
+    x uint64, large records, linear read
+    x bin16, default records, random write (w/o compression)
+    x bin16, default records, linear write (w/o compression)
+    x bin16, default records, random read (w/o compression)
+    x bin16, default records, linear read (w/o compression)
+    x uint64, calculate sum()
+    x bin16, use count_if() of all keys with a certain postfix ("X")
+
+    x make sure that the hamsterdb databases are using the correct parameters
+        x bin16 should use fixed length keys
+
+    o SSD: run each with 100k, 1m, 10m and 100m keys
+    o HDD: run each with 100k, 1m, 10m and 100m keys
+
 . documentation rewrite
     o use github wiki
         o remove old cruft
-    o use jekyll??
 
     /introduction
     /evaluate & benchmark
@@ -659,23 +684,6 @@ o finalize 2.1.8
         samples
 
     o look for a technical writer to review the files
-
-. collect/publish benchmark against leveldb (with and without SSD)
-    - each with 100k and 100m keys
-    o uint64, small records, random write
-    o uint64, small records, linear write
-    o uint64, small records, random read
-    o uint64, small records, linear read
-    o bin16, default records, random write (w/o compression)
-    o bin16, default records, linear write (w/o compression)
-    o bin16, default records, random read (w/o compression)
-    o bin16, default records, linear read (w/o compression)
-    o bin16, default records, random write (w/ compression)
-    o bin16, default records, linear write (w/ compression)
-    o bin16, default records, random read (w/ compression)
-    o bin16, default records, linear read (w/ compression)
-    o uint64, calculate sum()
-    o bin16, use count_if() of all keys with checksum % 10 == 0
 
 ------------- hamsterdb pro 2.1.8 ------------------------------------
 
