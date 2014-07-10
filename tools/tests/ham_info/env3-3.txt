@@ -1,11 +1,11 @@
 environment
   page_size:            16384
-  version:              2.1.8.3 
+  version:              2.1.8 
   max databases:        676
 
   database 3 (0x3)
     key type:             HAM_TYPE_UINT32
     max key size:         4
-    max keys per page:    2042
+    max keys per page:    1360
     flags:                0x804004
     record size:          4 (inline: yes)

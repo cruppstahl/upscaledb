@@ -15,6 +15,19 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              README                                     \
              CREDITS                                    \
              COPYING                                    \
+             python                                     \
+             python/Makefile                            \
+             python/MANIFEST                            \
+             python/setup.py                            \
+             python/samples/db1.py                      \
+             python/samples/Makefile                    \
+             python/src/python.cc                       \
+             python/unittests/cursor.py                 \
+             python/unittests/database.py               \
+             python/unittests/environment.py            \
+             python/unittests/library.py                \
+             python/unittests/transaction.py            \
+             python/unittests/Makefile                  \
              3rdparty/catch/catch.hpp                   \
              win32/msvc2008/hamsterdb.sln               \
              win32/msvc2008/*.vcproj                    \
