@@ -640,8 +640,10 @@ o collect/publish benchmark against leveldb (with and without SSD)
     x make sure that the hamsterdb databases are using the correct parameters
         x bin16 should use fixed length keys
 
-    o SSD: run each with 100k, 1m, 10m and 100m keys
-    o HDD: run each with 100k, 1m, 10m and 100m keys
+    o SSD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
+    o SSD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
+    o HDD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
+    o HDD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
 
 . documentation rewrite
     o use github wiki
@@ -699,55 +701,110 @@ x adapt to the newest changes from 2.1.8
 x PRO: enable SIMD in the default layout if it uses the same KeyList as
     in PAX *and* if record IDs are stored separately from the keys
 
-. PRO: add avx support
+o PRO: CRC32-checksums (as soon as the file format is updated)
+    x SSE2 has support for a CRC32 checksum calculation, or find a good
+        library -> use murmurhash3
+    x needs new flag HAM_ENABLE_CRC32
+    x document the flag
+    x do not allow with in-memory Environments
+        x unittest
+    x flag is not persisted
+        x unittest
+    x write in Page::flush (if page has a header), verify in Page::read
+        (if page has a header)
+    x multipage blobs: store in PBlobPageHeader::m_free_bytes
+    x add to ham_bench
+    x add unittest
+        x corrupt a page
+        x allocate, read, overwrite, erase etc multi-page blobs
+        x corrupt a multi-page blob
+    x add to java api
+    x add to .NET api
+    x add to python api
+    o add to monster-pro tests (incl. reopen, big blobs, overwrite)
+./ham_bench --enable-crc32 --recsize=10241024 --seed=1405078961 --stop-ops=1000
+./ham_bench --enable-crc32 --recsize=10241024 --open --find-pct=100 --seed=1405078961 --stop-ops=1000
+    o add to erlang api
+
+./ham_bench --enable-crc32 --recsize=32 --key=uint32 --pagesize=1024
+./ham_bench --enable-crc32 --recsize=32 --key=uint32 --pagesize=1024 --open --find-pct=50
+./ham_bench --enable-crc32 --recsize=32 --key=uint32 --pagesize=1024 --open --find-pct=50
+./ham_bench --enable-crc32 --recsize=32 --key=uint32 --pagesize=1024 --open --find-pct=50
+
+    o apl: support and document the flag, but return error if selected
+
+o add SIMD support for hola_sum
+    non-SIMD: parallelize
+        s1 = a1 + b1
+        s2 = a2 + b2
+        s3 = a3 + b3
+        s4 = a4 + b4
+        return s1+s2+s3+s4
+    SIMD: 
+        __m128 a = _mm_load_ps(A);
+        __m128 b = _mm_load_ps(B);
+        __m128 c = _mm_add_ps(a, b);
+        _mm_store_ps(C, c);
+
 o PRO: add sse support for real64
     __cmpeq_pd
     everything else is same as with uint64?
 
-o PRO: CRC32-checksums (as soon as the file format is updated)
-    x SSE2 has support for a CRC32 checksum calculation, or find a good
-        library -> use murmurhash3
-    o write in Page::flush (if page has a header), verify in Page::read
-        (if page has a header)
-    o multipage blobs: store in PBlobPageHeader::m_free_bytes
-    o needs new flag HAM_ENABLE_CHECKSUMS
-    o document the flag
-    o add to java api
-    o add to .NET api
-    o add to erlang api
-    o add to python api
-    o add unittest
-    o add to monster tests
-
 o PRO: use a bitmap index for recnos
-    -> how will hola-objects access the data?
-    -> should be resizable
+    -> how will hola-scans access the data? -> don't use iterators
+        but uncompress them in a 4kb-buffer
+    -> should be resizable; only for leafs (b/c keys in the internal nodes 
+        are too sparse)
+    -> can we come up with a solution that also works for non-recnos?
+        then we need to implement sparse indices (maybe even compress them
+        with RLEs)
+    -> also need to modify the split routine, because the pivot element is
+        now chosen by the KeyList
+    -> compression idea:
+        a "minimap" is a bitmap stored in 32bit
+        2 bits per minimap for flags
+            00: minimap contains all zeroes (-> minimap is not required)
+            11: minimap contains all ones (-> minimap is not required)
+            10: minimap contains a bitmap (-> minimap is required)
 
 o PRO: use grouped varints for the RecordLists
     o should work for InternalRecordList (64bit record IDs)
+    o also for DefaultRecordList, if flags are separated from the record id's
     o and for default records
-        o in this case the record flags are also "compressed"
+        o in this case the record flags should also be "compressed"
+    o can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
+    o GroupedVarints should be parameterized and work for 32bit and 64bit
+        numbers and a variety of capacities
 
 . PRO: should we have a separate "recsize == 0" RecordList for duplicates?
     they could only store the duplicate count (but should be able to deal
     with duplicates that are > 256!)
     -> requires grouped varints
 
+o documentation
+    o add CRC32
+
+o webpage: give away for free for non-profits
+
 ------------- hamsterdb 2.1.9 ----------------------------------------
 
+o windows cleanups
+    o need win32 python project
+    o a few projects are not built (hamzilla_debug_x64, server_dlll_x64...)
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+    o can we create a CHM from the documentation?
+    o automate the build process
+    o ... and the packaging
+
 o can we add a generic macro like this:
-    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
+    #define ham_initialize_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
     which can be used as an initializer:
-    ham_key_t key = ham_make_key("hello", 5);
+    ham_key_t key = ham_initialize_key("hello", 5);
     o same for records
     o use in samples
     o use in source
     o use in unittests
     o document
-
-o improve node layout compression
-    o PAX Layout: can compress the flags for the DefaultRecordList
-    o Default Layout: can compress the flags for the Duplicate*RecordList
 
 o QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically
@@ -796,6 +853,31 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
+o use cache-oblivious b-tree layout
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
+
+o improve node layout compression (when the file format changes)
+    -> btw: flags are not required at all if fixed length record size > 8
+        (and record size is too large for inline records)
+    o PAX Layout: can compress the flags for the DefaultRecordList
+    o Default Layout: can compress the flags for the Duplicate*RecordList
+
 o release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
 
@@ -836,7 +918,7 @@ o release-v2.pl: valgrind takes sooo long. should we use clang's
         o importing new releases
         o etc
 
-. look into hive-integration
+. look into spark integration
     -> would be an interesting market with requirements for column store
         storage
     -> how does the integration look like?
@@ -865,6 +947,7 @@ o PRO: bulk updates
     o also for .NET
     o also for java
     o also for erlang
+    o also for python
 
 o PRO: prefix compression for variable-length keys
     ==> not efficient for random read/writes, but that's ok. linear scans
@@ -902,61 +985,12 @@ o PRO: use grouped varints for compressing int32/int64, record IDs and
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
 
-o hola: use sum-prefix-trees to precalculate partial sums/results?
+. hola: use sum-prefix-trees to precalculate partial sums/results?
     they could be stored in a btree, and used to dynamically recalculate
     requested values 
     https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf
 
-o use cache-oblivious b-tree layout
-    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
-    o see roadmap document for more information
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o the new pages are not managed by the freelist! therefore the freelist
-        will not need any modifications
-    o after resize: mmap the whole file area. this is actually important because
-        mmap is much faster than r/w; but when the database is created, the
-        original mapping already exists. therefore we might have to handle
-        more than one mapping in the file
-    o PageManager: when allocating a new page then use the distribution
-        function to fetch a page from the reserved storage
-    . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages (if the database is big enough)
-        -> could create a second memory mapping for the next chunk
-
-. binary search in the nodes: keep track of the last result, use this as
-    a starting point? or use a weighted search with "hot spots" for the first
-    few lookups? this would require tests with different lookup characteristics,
-    i.e. zipfian instead of purely random. bad for benchmarking.
-
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
-
-o PRO: hot backups (vacuumizes to a different file)
-    - copies the database file
-    - if compaction is enabled: copies keys w/ iterator
-        (later: performs bulk updates)
-    - then applies all committed transactions to the other file
-    --> think this through; how to deal with delta updates? -> merge them
-        what if only a few databases should be backed up?
-        what if i want to back up in a logical format (i.e. csv)?
-
-o "hola" - olap functions that operate directly on the btree data
-    -> see wiki
-    -> see java8 stream API:
-        http://download.java.net/jdk8/docs/api/java/util/stream/Stream.html
-    -> see supersonic:
-        https://code.google.com/p/supersonic/
-    -> see fast bitmap indices
-        http://code.google.com/p/lemurbitmapindex/
-    o create a design
-    o operations on compressed data (COUNT(), MIN(), MAX(), ...)?
-    o use async operations or futures/promises
-    o deprecate ham_db_get_key_count() (tutorial, documentation)
-
-- bloom filter -> PRO
-- concurrency -> PRO
 
 o the bucket for concurrency TODOs
     o create coding rules
@@ -1004,6 +1038,34 @@ o the bucket for concurrency TODOs
     o the global environment-lock should go because it's expensive; rather
         increment an atomic latch, and refuse to close/erase the database as
         long as the latch is > 0 
+
+
+
+
+o PRO: hot backups (vacuumizes to a different file)
+    - copies the database file
+    - if compaction is enabled: copies keys w/ iterator
+        (later: performs bulk updates)
+    - then applies all committed transactions to the other file
+    --> think this through; how to deal with delta updates? -> merge them
+        what if only a few databases should be backed up?
+        what if i want to back up in a logical format (i.e. csv)?
+
+o "hola" - olap functions that operate directly on the btree data
+    -> see wiki
+    -> see java8 stream API:
+        http://download.java.net/jdk8/docs/api/java/util/stream/Stream.html
+    -> see supersonic:
+        https://code.google.com/p/supersonic/
+    -> see fast bitmap indices
+        http://code.google.com/p/lemurbitmapindex/
+    o create a design
+    o operations on compressed data (COUNT(), MIN(), MAX(), ...)?
+    o use async operations or futures/promises
+    o deprecate ham_db_get_key_count() (tutorial, documentation)
+
+- bloom filter -> PRO
+- concurrency -> PRO
 
 . clean up approx. matching
     o ONLY for cursors
