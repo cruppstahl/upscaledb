@@ -823,7 +823,8 @@ struct DuplicateTableFixture
     for (size_t i = 0; i < num_records; i++) {
       dt.get_record(i, &arena, &record, 0);
       REQUIRE(record.size == record_size);
-      REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
+	  if (record_size > 0)
+        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
     }
 
     // clean up
@@ -868,7 +869,8 @@ struct DuplicateTableFixture
       for (size_t j = 0; j < num_records - i - 1; j++) {
         dt.get_record(j, &arena, &record, 0);
         REQUIRE(record.size == record_size);
-        REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
+		if (record_size > 0)
+          REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
@@ -916,7 +918,8 @@ struct DuplicateTableFixture
       for (size_t j = 0; j < i - 1; j++) {
         dt.get_record(j, &arena, &record, 0);
         REQUIRE(record.size == record_size);
-        REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
+		if (record_size > 0)
+          REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
@@ -966,7 +969,8 @@ struct DuplicateTableFixture
       for (size_t j = 0; j < num_records - i - 1; j++) {
         dt.get_record(j, &arena, &record, 0);
         REQUIRE(record.size == record_size);
-        REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
+		if (record_size > 0)
+          REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
@@ -1018,7 +1022,8 @@ struct DuplicateTableFixture
     for (size_t i = 0; i < num_records; i++) {
       dt.get_record(i, &arena, &record, 0);
       REQUIRE(record.size == record_size);
-      REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
+	  if (record_size > 0)
+        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
     }
     // clean up
     dt.erase_record(0, true);
@@ -1066,7 +1071,8 @@ struct DuplicateTableFixture
       *(size_t *)&buf[0] = i + 1000;
       dt.get_record(i, &arena, &record, 0);
       REQUIRE(record.size == (ham_u32_t)((i + 1) % 15));
-      REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));
+	  if (record.size > 0)
+        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));
     }
     // clean up
     dt.erase_record(0, true);

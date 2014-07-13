@@ -20,6 +20,16 @@
 #include <stdio.h>
 #include <limits.h>
 
+/*
+ * windows.h is needed for HANDLE
+ */
+#if defined(WIN32)
+#  define WIN32_MEAN_AND_LEAN
+#  include <windows.h>
+#  undef min
+#  undef max
+#endif
+
 #include <ham/types.h>
 
 namespace hamsterdb {
@@ -59,12 +69,13 @@ class File
       kSeekSet = SEEK_SET,
       kSeekEnd = SEEK_END,
       kSeekCur = SEEK_CUR,
+      kMaxPath = PATH_MAX
 #else
       kSeekSet = FILE_BEGIN,
       kSeekEnd = FILE_END,
       kSeekCur = FILE_CURRENT,
+      kMaxPath = MAX_PATH
 #endif
-      kMaxPath = PATH_MAX
     };
 
     // Constructor: creates an empty File handle

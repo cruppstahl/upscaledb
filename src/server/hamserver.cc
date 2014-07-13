@@ -16,9 +16,16 @@
 
 #include <string.h>
 
+// winsock2.h is required for libuv
+#ifdef WIN32
+#  include <winsock2.h>
+#endif
+
+#include <uv-version.h>
+
+#include "os.h"
 #include "../protobuf/protocol.h"
 #include "../protoserde/messages.h"
-#include "os.h"
 #include "error.h"
 #include "errorinducer.h"
 #include "mem.h"
@@ -2036,7 +2043,11 @@ on_run_thread(void *loop)
 }
 
 static void
+#if UV_VERSION_PATCH <= 22
 on_async_cb(uv_async_t *handle, int status)
+#else
+on_async_cb(uv_async_t *handle)
+#endif
 {
   ServerContext *srv = (ServerContext *)handle->data;
 

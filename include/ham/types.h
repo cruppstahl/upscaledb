@@ -60,14 +60,6 @@ extern "C" {
 #endif
 
 /*
- * windows.h is needed for for HANDLE
- */
-#if defined(HAM_OS_WIN32)
-#  define WIN32_MEAN_AND_LEAN
-#  include <windows.h>
-#endif
-
-/*
  * improve memory debugging on WIN32 by using crtdbg.h (only MSVC
  * compiler and debug builds!)
  *

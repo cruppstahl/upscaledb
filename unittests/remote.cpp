@@ -16,7 +16,8 @@
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include "../src/config.h"
+// include this first, otherwise winsock has compilation errors
+#include "../src/server/hamserver.h"
 
 #include "3rdparty/catch/catch.hpp"
 
@@ -25,10 +26,7 @@
 
 #include <ham/hamsterdb_srv.h>
 
-#include "../src/env.h"
 #include "../src/errorinducer.h"
-#include "../src/db_remote.h"
-#include "../src/server/hamserver.h"
 
 using namespace hamsterdb;
 
@@ -205,7 +203,6 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
-    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
 
     REQUIRE(0 == ham_db_close(db, 0));
     REQUIRE(0 == ham_env_close(env, 0));
@@ -221,7 +218,6 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, &params[0]));
-    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
 
     params[0].value=0;
     REQUIRE(0 == ham_db_get_parameters(db, &params[0]));
@@ -238,11 +234,9 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
 
     REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
-    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
     REQUIRE(0 == ham_db_close(db, 0));
 
     REQUIRE(0 == ham_env_open_db(env, &db, 22, 0, 0));
-    REQUIRE(0x400000001ull == ((RemoteDatabase *)db)->get_remote_handle());
     REQUIRE(0 == ham_db_close(db, 0));
 
     REQUIRE(0 == ham_env_close(env, 0));

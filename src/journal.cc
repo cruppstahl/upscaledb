@@ -19,8 +19,6 @@
 #include <string.h>
 #ifndef HAM_OS_WIN32
 #  include <libgen.h>
-#else
-#  undef max // avoid clashes with std::max
 #endif
 
 #include "db.h"

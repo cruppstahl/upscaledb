@@ -83,6 +83,7 @@
 #define HAM_BTREE_IMPL_DEFAULT_H__
 
 #include <algorithm>
+#include <iostream>
 #include <vector>
 #include <map>
 
@@ -218,7 +219,7 @@ class DuplicateTable
           record->data = p;
         else {
           if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
-            arena->resize(m_record_size);
+            arena->resize(record->size);
             record->data = arena->get_ptr();
           }
           memcpy(record->data, p, m_record_size);
@@ -240,7 +241,7 @@ class DuplicateTable
           record->data = &p[0];
         else {
           if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
-            arena->resize(m_record_size);
+            arena->resize(record->size);
             record->data = arena->get_ptr();
           }
           memcpy(record->data, &p[0], record->size);
@@ -254,7 +255,7 @@ class DuplicateTable
           record->data = &p[0];
         else {
           if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
-            arena->resize(m_record_size);
+            arena->resize(record->size);
             record->data = arena->get_ptr();
           }
           memcpy(record->data, &p[0], record->size);
@@ -988,7 +989,7 @@ class UpfrontIndex
 
       // make a copy of all indices (excluding the freelist)
       bool requires_sort = false;
-      SortHelper s[node_count];
+	  SortHelper *s = (SortHelper *)::alloca(node_count * sizeof(SortHelper));
       for (ham_u32_t i = 0; i < node_count; i++) {
         s[i].slot = i;
         s[i].offset = get_chunk_offset(i);

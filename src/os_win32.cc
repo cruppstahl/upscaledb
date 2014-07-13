@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+#include <winsock2.h>
+
 #include "config.h"
 
-#include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -410,7 +411,7 @@ void
 File::close()
 {
   if (m_fd != HAM_INVALID_FD) {
-    if (!CloseHandle((HANDLE)fd)) {
+    if (!CloseHandle((HANDLE)m_fd)) {
       char buf[256];
       ham_status_t st = (ham_status_t)GetLastError();
       ham_log(("CloseHandle failed with OS status %u (%s)", st,

@@ -29,9 +29,9 @@
 
 namespace hamsterdb {
 
-#include "packstart.h"
-
 #undef max // avoid MSVC conflicts with std::max
+
+#include "packstart.h"
 
 //
 // The persistent btree index descriptor. This structure manages the

@@ -297,11 +297,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\blob_manager.h"
+			RelativePath="..\..\src\blob_manager.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\blob_manager.cc"
+			RelativePath="..\..\src\blob_manager.h"
 			>
 		</File>
 		<File
@@ -337,15 +337,23 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_visit.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_erase.cc"
 			>
 		</File>
 		<File
 			RelativePath="..\..\src\btree_find.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_flags.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_impl_default.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_impl_pax.h"
 			>
 		</File>
 		<File
@@ -365,19 +373,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_flags.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_node.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_impl_default.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_impl_pax.h"
 			>
 		</File>
 		<File
@@ -390,6 +386,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_stats.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_visit.cc"
 			>
 		</File>
 		<File
@@ -489,19 +489,15 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\globals.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\globals.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\hamsterdb.cc"
+			RelativePath="..\..\src\globals.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\hola.cc"
+			RelativePath="..\..\src\hamsterdb.cc"
 			>
 		</File>
 		<File
@@ -513,11 +509,15 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\include\ham\hamsterdb_ola.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\include\ham\hamsterdb_srv.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\include\ham\hamsterdb_ola.h"
+			RelativePath="..\..\src\hola.cc"
 			>
 		</File>
 		<File
@@ -545,11 +545,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\os.h"
+			RelativePath="..\..\src\os.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\os.cc"
+			RelativePath="..\..\src\os.h"
 			>
 		</File>
 		<File
@@ -605,6 +605,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\txn_factory.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\txn_local.cc"
 			>
 		</File>
@@ -618,10 +622,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\txn_remote.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\txn_factory.h"
 			>
 		</File>
 		<File

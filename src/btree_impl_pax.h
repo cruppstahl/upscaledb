@@ -55,6 +55,7 @@
 #define HAM_BTREE_IMPL_PAX_H__
 
 #include <sstream>
+#include <iostream>
 
 #include "globals.h"
 #include "util.h"
