@@ -1,22 +1,21 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "0root/root.h"
 
 #include <string.h>
+
+#include "3rdparty/murmurhash3/MurmurHash3.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/byte_array.h"
@@ -50,6 +49,8 @@ PageManager::load_state(uint64_t pageid)
 
   m_state_page = new Page(m_env->get_device());
   m_state_page->fetch(pageid);
+  if (m_env->get_flags() & HAM_ENABLE_CRC32)
+    verify_crc32(m_state_page);
 
   m_free_pages.clear();
 
@@ -284,11 +285,14 @@ PageManager::fetch_page(LocalDatabase *db, uint64_t address,
 
   ham_assert(page->get_data());
 
-  /* store the page in the list */
-  store_page(page);
-
   if (flags & kNoHeader)
     page->set_without_header(true);
+  // Pro: verify crc32
+  else if (m_env->get_flags() & HAM_ENABLE_CRC32)
+    verify_crc32(page);
+
+  /* store the page in the list */
+  store_page(page);
 
   /* store the page in the changeset */
   if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -354,6 +358,7 @@ done:
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(db);
+  page->set_crc32(0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -461,6 +466,26 @@ flush_all_pages_callback(Page *page, LocalEnvironment *env,
   }
 
   return (false);
+}
+
+void
+PageManager::flush_page(Page *page)
+{
+  if (page->is_dirty()) {
+    m_page_count_flushed++;
+
+    // Pro: update crc32
+    if ((m_env->get_flags() & HAM_ENABLE_CRC32)
+        && likely(!page->is_without_header())) {
+      uint32_t crc32;
+      MurmurHash3_x86_32(page->get_payload(),
+                      m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                      (uint32_t)page->get_address(), &crc32);
+      page->set_crc32(crc32);
+    }
+
+    page->flush();
+  }
 }
 
 void
@@ -635,6 +660,20 @@ PageManager::close()
   delete m_state_page;
   m_state_page = 0;
   m_last_blob_page = 0;
+}
+
+void
+PageManager::verify_crc32(Page *page)
+{
+  uint32_t crc32;
+  MurmurHash3_x86_32(page->get_payload(),
+                  m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                  (uint32_t)page->get_address(), &crc32);
+  if (crc32 != page->get_crc32()) {
+    ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                    page->get_address(), crc32, page->get_crc32()));
+    throw Exception(HAM_INTEGRITY_VIOLATED);
+  }
 }
 
 } // namespace hamsterdb

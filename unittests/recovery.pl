@@ -162,13 +162,21 @@ big_records_test(0);
 
 print "----------------------------\nsimple_test\n";
 simple_test(0);
+print "----------------------------\nsimple_test (compression)\n";
+simple_test(1);
 
+print "----------------------------\nextended_test (compression)\n";
+extended_test(1);
 print "----------------------------\nextended_test\n";
 extended_test(0);
 
+print "----------------------------\nduplicate_test (compression)\n";
+duplicate_test(1);
 print "----------------------------\nduplicate_test\n";
 duplicate_test(0);
 
+print "----------------------------\nextended_duplicate_test (compression)\n";
+extended_duplicate_test(1);
 print "----------------------------\nextended_duplicate_test\n";
 extended_duplicate_test(0);
 

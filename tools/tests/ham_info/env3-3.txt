@@ -1,6 +1,10 @@
 environment
   page_size:            16384
+<<<<<<< HEAD
   version:              2.1.9 
+=======
+  version:              2.1.8 pro!
+>>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and     keys, AES encryption, SIMD
   max databases:        676
 
   database 3 (0x3)

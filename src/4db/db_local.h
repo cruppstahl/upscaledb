@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -26,6 +23,10 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
+// need to include the header file, a forward declaration of class Compressor
+// is not sufficient because std::auto_ptr then fails to call the
+// destructor
+#include "2compressor/compressor.h"
 #include "3btree/btree_index.h"
 #include "4txn/txn_local.h"
 #include "4db/db.h"
@@ -42,6 +43,7 @@ class TransactionCursor;
 class TransactionOperation;
 class LocalEnvironment;
 class LocalTransaction;
+class Compressor;
 
 //
 // The database implementation for local file access
@@ -176,6 +178,16 @@ class LocalDatabase : public Database {
     ham_status_t flush_txn_operation(LocalTransaction *txn,
                     TransactionOperation *op);
 
+    // Returns the compressor for compressing/uncompressing the records
+    Compressor *get_record_compressor() {
+      return (m_record_compressor.get());
+    }
+
+    // Returns the key compression algorithm
+    int get_key_compression_algorithm() {
+      return (m_key_compression_algo);
+    }
+
   protected:
     // Copies the ham_record_t structure from |op| into |record|
     static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
@@ -197,6 +209,12 @@ class LocalDatabase : public Database {
     friend struct DbFixture;
     friend struct HamsterdbFixture;
     friend struct ExtendedKeyFixture;
+
+    // Enables record compression for this database
+    void enable_record_compression(int algo);
+
+    // Enables key compression for this database
+    void enable_key_compression(int algo);
 
     // returns the next record number
     uint64_t get_incremented_recno() {
@@ -242,6 +260,12 @@ class LocalDatabase : public Database {
 
     // the comparison function
     ham_compare_func_t m_cmp_func;
+
+    // The record compressor; can be null
+    std::auto_ptr<Compressor> m_record_compressor;
+
+    // The key compression algorithm
+    int m_key_compression_algo;
 };
 
 } // namespace hamsterdb

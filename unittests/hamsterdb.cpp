@@ -1889,8 +1889,12 @@ struct HamsterdbFixture {
     REQUIRE((ldb->get_rt_flags() & flags) == flags);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string s = ldb->get_btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::CallbackCompare>");
+    // do not run the next test if this is an evaluation version, because
+    // eval-versions have obfuscated symbol names
+    if (ham_is_pro_evaluation() == 0) {
+      std::string s = ldb->get_btree_index()->test_get_classname();
+      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::CallbackCompare>");
+    }
 #endif
 
     ham_parameter_t query[] = {

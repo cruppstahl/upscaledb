@@ -66,9 +66,6 @@ Aug 21, 2014 - chris ---------------------------------------------------
 o Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
 	without HAM_ENABLE_TRANSACTIONS)
 
-Jul 15, 2014 - chris ---------------------------------------------------
-o hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
-
 Jul 14, 2014 - chris ---------------------------------------------------
 o Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE_LIMIT
 

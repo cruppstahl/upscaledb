@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -77,8 +74,10 @@
 #include "ham/hamsterdb_int.h" // for metrics
 
 #include "1base/byte_array.h"
+#include "1base/scoped_ptr.h"
 #include "1os/file.h"
 #include "1errorinducer/errorinducer.h"
+#include "2compressor/compressor.h"
 #include "3journal/journal_entries.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -222,6 +221,10 @@ class Journal
     // Fills the metrics
     void get_metrics(ham_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_count_bytes_flushed;
+      metrics->journal_bytes_before_compression
+              = m_count_bytes_before_compression;
+      metrics->journal_bytes_after_compression
+              = m_count_bytes_after_compression;
     }
 
     // Sets the switch threshold
@@ -345,8 +348,17 @@ class Journal
     // Set to false to disable logging; used during recovery
     bool m_disable_logging;
 
+    // The compressor; can be null
+    std::auto_ptr<Compressor> m_compressor;
+
     // Counting the flushed bytes (for ham_env_get_metrics)
     uint64_t m_count_bytes_flushed;
+
+    // Counting the bytes before compression (for ham_env_get_metrics)
+    uint64_t m_count_bytes_before_compression;
+
+    // Counting the bytes after compression (for ham_env_get_metrics)
+    uint64_t m_count_bytes_after_compression;
 };
 
 #include "1base/packstop.h"

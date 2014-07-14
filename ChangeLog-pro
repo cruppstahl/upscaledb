@@ -1,0 +1,32 @@
+Sep 13, 2014 - chris ---------------------------------------------------
+						release of hamsterdb-pro 2.1.8
+
+Jul 14, 2014 - chris ---------------------------------------------------
+o SIMD support now enabled for real64 keys
+
+Jul 11, 2014 - chris ---------------------------------------------------
+o Adding crc32 verification; use HAM_ENABLE_CRC32 in ham_env_create
+	and ham_env_open
+
+Jul 03, 2014 - chris ---------------------------------------------------
+o SIMD support is now always used for numerical keys, even if duplicate
+	keys are enabled (pro-2.1.7 disabled SIMD for duplicate keys)
+o Adapted to hamsterdb 2.1.8
+
+May 18, 2014 - chris ---------------------------------------------------
+						release of hamsterdb-pro 2.1.7
+
+Apr 09, 2014 - chris ---------------------------------------------------
+o Adding SIMD support for the PAX layout
+
+Mar 31, 2014 - chris ---------------------------------------------------
+o Adding key compression with zlib, snappy, lzf and lzo
+
+Mar 24, 2014 - chris ---------------------------------------------------
+o Adding record compression with zlib, snappy, lzf and lzo
+
+Mar 17, 2014 - chris ---------------------------------------------------
+o Adding journal compression with zlib, snappy, lzf and lzo
+
+Mar 17, 2014 - chris ---------------------------------------------------
+o Adding AES encryption

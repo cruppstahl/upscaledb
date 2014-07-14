@@ -1,17 +1,23 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 #include "0root/root.h"
@@ -19,12 +25,16 @@
 #include <algorithm>
 #include <vector>
 
+#include "3rdparty/murmurhash3/MurmurHash3.h"
+
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/byte_array.h"
+#include "2compressor/compressor.h"
 #include "2device/device.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"
+#include "4db/db_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -40,8 +50,25 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   uint32_t chunk_size[2];
   uint32_t page_size = m_env->get_page_size();
 
+  void *record_data = record->data;
+  uint32_t record_size = record->size;
+  uint32_t original_size = record->size;
+
+  // compression enabled? then try to compress the data
+  Compressor *compressor = db->get_record_compressor();
+  if (compressor && !(flags & kDisableCompression)) {
+    m_metric_before_compression += record_size;
+    uint32_t len = compressor->compress((uint8_t *)record->data,
+                        record->size);
+    if (len < record->size) {
+      record_data = (void *)compressor->get_output_data();
+      record_size = len;
+    }
+    m_metric_after_compression += record_size;
+  }
+
   PBlobHeader blob_header;
-  uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
+  uint32_t alloc_size = sizeof(PBlobHeader) + record_size;
 
   // first check if we can add another blob to the last used page
   Page *page = m_env->get_page_manager()->get_last_blob_page(db);
@@ -77,12 +104,22 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     header->set_free_bytes((num_pages * page_size) - kPageOverhead);
 
     // and move the remaining space to the freelist, unless we span multiple
-    // pages (then the rest will be discarded) - TODO can we reuse it somehow?
+    // pages (then the rest will be discarded)
     if (num_pages == 1
           && kPageOverhead + alloc_size > 0
           && header->get_free_bytes() - alloc_size > 0) {
       header->set_freelist_offset(0, kPageOverhead + alloc_size);
       header->set_freelist_size(0, header->get_free_bytes() - alloc_size);
+    }
+
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(num_pages > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))) {
+      uint32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
     }
 
     address = page->get_address() + kPageOverhead;
@@ -101,12 +138,16 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
   // initialize the blob header
   blob_header.set_alloc_size(alloc_size);
-  blob_header.set_size(record->size);
+  blob_header.set_size(original_size);
   blob_header.set_self(address);
+  blob_header.set_flags(original_size != record_size ? kIsCompressed : 0);
 
   // PARTIAL WRITE
   //
-  // Are there gaps at the beginning? If yes, then we'll fill with zeros
+  // Are there gaps at the beginning? If yes, then we'll fill with zeros.
+  // Partial updates are not allowed in combination with compression,
+  // therefore we do not have to check any compression conditions if
+  // HAM_PARTIAL is set.
   ByteArray zeroes;
   if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
     uint32_t gapsize = record->partial_offset;
@@ -142,10 +183,10 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     // not writing partially: write header and data, then we're done
     chunk_data[0] = (uint8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    chunk_data[1] = (uint8_t *)record->data;
+    chunk_data[1] = (uint8_t *)record_data;
     chunk_size[1] = (flags & HAM_PARTIAL)
                         ? record->partial_size
-                        : record->size;
+                        : record_size;
 
     write_chunks(db, page, address, chunk_data, chunk_size, 2);
     address += chunk_size[0] + chunk_size[1];
@@ -225,18 +266,66 @@ DiskBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
     return;
   }
 
-  // second step: resize the blob buffer
-  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-    arena->resize(blobsize);
-    record->data = arena->get_ptr();
-  }
+  // read the blob data. if compression is enabled then
+  // read into the Compressor's arena, otherwise read directly into the
+  // caller's arena
+  if (blob_header.get_flags() & kIsCompressed) {
+    Compressor *compressor = db->get_record_compressor();
+    ham_assert(compressor != 0);
 
-  // third step: read the blob data
-  read_chunk(page, 0,
+    // read into temporary buffer; we reuse the compressor's memory arena
+    // for this
+    ByteArray *dest = compressor->get_arena();
+    dest->resize(blob_header.get_alloc_size() - sizeof(PBlobHeader));
+
+    read_chunk(page, 0, blobid + sizeof(PBlobHeader),
+                    db, (uint8_t *)dest->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader), true);
+
+    // now uncompress into the caller's memory arena
+    if (record->flags & HAM_RECORD_USER_ALLOC)
+      compressor->decompress((uint8_t *)dest->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader),
+                    blobsize, (uint8_t *)record->data);
+    else {
+      arena->resize(blobsize);
+      compressor->decompress((uint8_t *)dest->get_ptr(),
+                    blob_header.get_alloc_size() - sizeof(PBlobHeader),
+                    blobsize, arena);
+      record->data = arena->get_ptr();
+    }
+  }
+  else {
+    // resize the caller's buffer
+    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      arena->resize(blobsize);
+      record->data = arena->get_ptr();
+    }
+
+    // and directly read the data into the buffer
+    read_chunk(page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
                   db, (uint8_t *)record->data, blobsize, true);
+  }
+
+  // Pro: multi-page blobs store their CRC in the first freelist offset,
+  // but only if partial writes are not used
+  PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+  if (unlikely(header->get_num_pages() > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))
+        && !(flags & HAM_PARTIAL)) {
+    uint32_t old_crc32 = header->get_freelist_offset(0);
+    uint32_t new_crc32;
+    MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
+
+    if (old_crc32 != new_crc32) {
+      ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                      page->get_address(), old_crc32, new_crc32));
+      throw Exception(HAM_INTEGRITY_VIOLATED);
+    }
+  }
 }
 
 uint64_t
@@ -257,6 +346,15 @@ uint64_t
 DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
                 ham_record_t *record, uint32_t flags)
 {
+  // This routine basically ignores compression. The likelyhood, that a
+  // compressed buffer has an identical size as the record that's overwritten,
+  // is very small. In most cases this check will be false, and then
+  // the record would be compressed again in do_allocate().
+  //
+  // As a consequence, the existing record is only overwritten if the
+  // uncompressed record would fit in. Otherwise a new record is allocated,
+  // and this one then is compressed.
+
   PBlobHeader old_blob_header, new_blob_header;
   Page *page;
 
@@ -314,14 +412,25 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
                       chunk_data, chunk_size, 2);
     }
 
+    PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+
     // move remaining data to the freelist
     if (alloc_size < old_blob_header.get_alloc_size()) {
-      PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       header->set_free_bytes(header->get_free_bytes()
                   + (uint32_t)(old_blob_header.get_alloc_size() - alloc_size));
       add_to_freelist(header,
                   (uint32_t)(old_blobid + alloc_size) - page->get_address(),
                   (uint32_t)old_blob_header.get_alloc_size() - alloc_size);
+    }
+
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(header->get_num_pages() > 1
+        && (m_env->get_flags() & HAM_ENABLE_CRC32))) {
+      uint32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
     }
 
     // the old rid is the new rid
@@ -563,6 +672,7 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
             bool fetch_read_only)
 {
   uint32_t page_size = m_env->get_page_size();
+  bool first_page = true;
 
   while (size) {
     // get the page-id from this chunk
@@ -572,9 +682,15 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
     // otherwise fetch the page
     if (page && page->get_address() != pageid)
       page = 0;
-    if (!page)
-      page = m_env->get_page_manager()->fetch_page(db, pageid,
-                        fetch_read_only ? PageManager::kReadOnly : 0);
+
+    if (!page) {
+      uint32_t flags = 0;
+      if (fetch_read_only)
+        flags |= PageManager::kReadOnly;
+      if (!first_page)
+        flags |= PageManager::kNoHeader;
+      page = m_env->get_page_manager()->fetch_page(db, pageid, flags);
+    }
 
     // now read the data from the page
     uint32_t read_start = (uint32_t)(address - page->get_address());
@@ -585,6 +701,8 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
     address += read_size;
     data += read_size;
     size -= read_size;
+
+    first_page = false;
   }
 
   if (ppage)

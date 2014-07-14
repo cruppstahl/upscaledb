@@ -399,8 +399,7 @@ static option_t opts[] = {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo', "
-            "'bitmap')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,

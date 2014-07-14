@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -193,6 +190,25 @@ class BaseNodeImpl
       return (slot);
     }
 
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      if (P::m_keys.has_simd_support()
+              && os_get_simd_lane_width() > 1
+              && Globals::ms_is_simd_enabled) {
+        size_t node_count = P::m_node->get_count();
+        return (find_simd_sse<typename KeyList::type>(
+                            (typename KeyList::type *)P::m_keys.get_simd_data(),
+                            count, key));
+      }
+
+      int cmp;
+      int r = find_impl(key, comparator, 0, &cmp);
+      return (cmp ? -1 : r);
+    }
+#else // !HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
@@ -201,6 +217,8 @@ class BaseNodeImpl
       int r = find_impl(key, comparator, &cmp);
       return (cmp ? -1 : r);
     }
+
+#endif // HAM_ENABLE_SIMD
 
     // Splits a node and moves parts of the current node into |other|, starting
     // at the |pivot| slot

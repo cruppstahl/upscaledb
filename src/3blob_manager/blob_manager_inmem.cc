@@ -1,17 +1,23 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 #include "0root/root.h"
@@ -20,6 +26,7 @@
 #include "1base/byte_array.h"
 #include "2device/device_inmem.h"
 #include "3blob_manager/blob_manager_inmem.h"
+#include "4db/db_local.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
@@ -32,6 +39,23 @@ uint64_t
 InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
             uint32_t flags)
 {
+  void *record_data = record->data;
+  uint32_t record_size = record->size;
+  uint32_t original_size = record->size;
+
+  // compression enabled? then try to compress the data
+  Compressor *compressor = db->get_record_compressor();
+  if (compressor) {
+    m_metric_before_compression += record_size;
+    uint32_t len = compressor->compress((uint8_t *)record->data,
+                        record->size);
+    if (len < record->size) {
+      record_data = (void *)compressor->get_output_data();
+      record_size = len;
+    }
+    m_metric_after_compression += record_size;
+  }
+
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
   uint8_t *p = (uint8_t *)m_env->get_device()->alloc(record->size
@@ -41,10 +65,14 @@ InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   PBlobHeader *blob_header = (PBlobHeader *)p;
   memset(blob_header, 0, sizeof(*blob_header));
   blob_header->set_self((uint64_t)PTR_TO_U64(p));
-  blob_header->set_alloc_size(record->size + sizeof(PBlobHeader));
-  blob_header->set_size(record->size);
+  blob_header->set_alloc_size(record_size + sizeof(PBlobHeader));
+  blob_header->set_size(original_size);
+  blob_header->set_flags(original_size != record_size ? kIsCompressed : 0);
 
   // do we have gaps? if yes, fill them with zeroes
+  //
+  // HAM_PARTIAL is not allowed in combination with compression,
+  // therefore we do not have to check compression stuff in here.
   if (flags & HAM_PARTIAL) {
     uint8_t *s = p + sizeof(PBlobHeader);
     if (record->partial_offset)
@@ -55,7 +83,7 @@ InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
               record->size - (record->partial_offset + record->partial_size));
   }
   else {
-    memcpy(p + sizeof(PBlobHeader), record->data, record->size);
+    memcpy(p + sizeof(PBlobHeader), record_data, record_size);
   }
 
   return ((uint64_t)PTR_TO_U64(p));
@@ -97,22 +125,44 @@ InMemoryBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
     record->size = 0;
   }
   else {
-    uint8_t *d = data;
     if (flags & HAM_PARTIAL)
-      d += record->partial_offset;
+      data += record->partial_offset;
 
-    if ((flags & HAM_DIRECT_ACCESS)
-          && !(record->flags & HAM_RECORD_USER_ALLOC)) {
-      record->data = d;
-    }
-    else {
-      // resize buffer if necessary
+    // is the record compressed? if yes then decompress directly in the
+    // caller's memory arena to avoid additional memcpys
+    if (blob_header->get_flags() & kIsCompressed) {
+      Compressor *compressor = db->get_record_compressor();
+      if (!compressor)
+        throw Exception(HAM_NOT_READY);
+
       if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-          arena->resize(blobsize);
-          record->data = arena->get_ptr();
+        compressor->decompress(data,
+                      blob_header->get_alloc_size() - sizeof(PBlobHeader),
+                      blobsize, arena);
+        data = (uint8_t *)arena->get_ptr();
       }
-      // and copy the data
-      memcpy(record->data, d, blobsize);
+      else {
+        compressor->decompress(data,
+                      blob_header->get_alloc_size() - sizeof(PBlobHeader),
+                      blobsize);
+        data = (uint8_t *)compressor->get_output_data();
+      }
+      record->data = data;
+    }
+    else { // no compression
+      if ((flags & HAM_DIRECT_ACCESS)
+            && !(record->flags & HAM_RECORD_USER_ALLOC)) {
+        record->data = data;
+      }
+      else {
+        // resize buffer if necessary
+        if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+            arena->resize(blobsize);
+            record->data = arena->get_ptr();
+        }
+        // and copy the data
+        memcpy(record->data, data, blobsize);
+      }
     }
   }
 }
@@ -121,7 +171,16 @@ uint64_t
 InMemoryBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
                     ham_record_t *record, uint32_t flags)
 {
-  // free the old blob, allocate a new blob (but if both sizes are equal,
+  // This routine basically ignores compression. The likelyhood, that a
+  // compressed buffer has an identical size as the record that's overwritten,
+  // is very small. In most cases this check will be false, and then
+  // the record would be compressed again in do_allocate().
+  //
+  // As a consequence, the existing record is only overwritten if the
+  // uncompressed record would fit in. Otherwise a new record is allocated,
+  // and this one then is compressed.
+
+  // Free the old blob, allocate a new blob (but if both sizes are equal,
   // just overwrite the data)
   PBlobHeader *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
 
@@ -131,9 +190,9 @@ InMemoryBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
       memmove(p + sizeof(PBlobHeader) + record->partial_offset,
               record->data, record->partial_size);
     }
-    else {
+    else
       memmove(p + sizeof(PBlobHeader), record->data, record->size);
-    }
+    phdr->set_flags(0); // disable compression, just in case
     return ((uint64_t)PTR_TO_U64(phdr));
   }
   else {
