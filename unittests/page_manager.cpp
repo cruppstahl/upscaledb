@@ -458,19 +458,19 @@ TEST_CASE("PageManager/cacheNegativeGets", "")
 
 TEST_CASE("PageManager/cacheFullTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGESIZE);
+  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
   f.cacheFullTest();
 }
 
 TEST_CASE("PageManager/storeStateTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGESIZE);
+  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
   f.storeStateTest();
 }
 
 TEST_CASE("PageManager/reclaimTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGESIZE);
+  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
   f.reclaimTest();
 }
 

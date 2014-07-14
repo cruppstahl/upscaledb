@@ -18,7 +18,7 @@ high-level plan for 2.1.8 pro ..............................................
 x all changes of APL version
 x SIMD for default layout/PAX keylists
 x CRC32
-o SIMD for real64
+x SIMD for real64
 o add parameter to limit file size (APL + PRO)
 o benchmark (APL)
 o bitmap index
@@ -61,6 +61,28 @@ x PRO: CRC32-checksums (as soon as the file format is updated)
         x add to python api
         x add to erlang api
 
+x PRO: add sse support for real64
+    __cmpeq_pd
+    everything else is same as with uint64?
+
+x add parameter to limit file size (also for APL)
+    x make sure that db does not end up in an inconsistent state if a
+        page allocation fails!
+    x device_disk.h: cache the file size (but verify it in debug builds)
+    x add parameter and documentation (header file)
+        HAM_PARAM_FILE_SIZE: 0x00000109
+    x fail if in-memory db
+        x unittest
+    x device_disk.h: check for the file size limit (default: 0xffffffffff...)
+    x add unittest
+        x check integrity after a split
+        x when allocating a blob: make sure that the inserted key is removed
+            afterwards (check integrity)
+    x add to java
+    x add to .NET
+    x add to python
+    x add to erlang
+
 o collect/publish benchmark against leveldb (with and without SSD)
     x uint64, small records, random write
     x uint64, small records, random read
@@ -87,30 +109,39 @@ o collect/publish benchmark against leveldb (with and without SSD)
 
 o hola: extend the tutorial
 
-o PRO: add sse support for real64
-    __cmpeq_pd
-    everything else is same as with uint64?
-
-o add parameter to limit file size (also for APL)
-
 o PRO: use a bitmap index for recnos
-    -> how will hola-scans access the data? -> don't use iterators
-        but uncompress them in a 4kb-buffer
-    -> should be resizable; only for leafs (b/c keys in the internal nodes 
-        are too sparse)
     -> can we come up with a solution that also works for non-recnos?
         then we need to implement sparse indices (maybe even compress them
         with RLEs)
-    -> also need to modify the split routine, because the pivot element is
-        now chosen by the KeyList
     -> compression idea:
-        a "minimap" is a bitmap stored in 32bit
-        2 bits per minimap for flags
-            00: minimap contains all zeroes (-> minimap is not required)
-            11: minimap contains all ones (-> minimap is not required)
-            10: minimap contains a bitmap (-> minimap is required)
-        32 bits flags -> 16 pairs => 17 unit32 for one bitmap, +4 bytes
-            + a compressed (absolute) offset?
+        a "macromap" is a bitmap stored in 32bit
+        2 bits per macromap for flags
+            00: macromap contains all zeroes (-> macromap is not required)
+            11: macromap contains all ones (-> macromap is not required)
+            10: macromap contains a bitmap (-> macromap is required)
+        a "minimap" is a set of flags (32bit -> 16 flags) with the corresponding
+            (unknown) number of macromaps; minimum size is 4 bytes, 
+            maximum is sizeof(T) + 17 * 4 = sizeof(T) + 68
+
+    o implement a testable template version of a minimap
+        template parameters: type T (uint16, uint32, uint64)
+                number of 2bit flags
+        o needs to know its size
+        o must be able to insert/append, flip bits, test bits
+        o must iterate; use precomputed lookup-table for the flag word
+        o sparsemap: add another layer on top of this which manages a variable
+            number of minimaps, and can iterate, lookup and insert
+
+    o need new parameter/compression type; store it persistently
+        o unittest
+    o create a resizable KeyList based on a sparsemap
+        o needs fixes in adjust_capacity??
+    o for hola scans: don't use iterators but uncompress keys in a 4kb-buffer
+        (-> caller interface can stay as is)
+    o btree split: pivot interface must be chosen (or "adjusted") by the KeyList
+    o use KeyList only for leafs (b/c keys in the internal nodes are too sparse)
+    o document - write a paper etc to claim prior art; release code as a
+        separate open-source library (GPL)?
 
 o PRO: use grouped varints for the RecordLists
     o should work for InternalRecordList (64bit record IDs)
@@ -120,6 +151,12 @@ o PRO: use grouped varints for the RecordLists
     o can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
     o GroupedVarints should be parameterized and work for 32bit and 64bit
         numbers and a variety of capacities
+    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
+    http://www.oschina.net/code/snippet_12_5083
+    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
+    -> the concept will be similar to prefix compression
+    -> can we come up with a schema that allows compression AND
+        fast random access?
 
 o webpage changes
     o give away for free to non-profits
@@ -175,15 +212,6 @@ o webpage changes
 
 o erlang: 2 tests are failing
 
-o windows cleanups
-    o need win32 python project
-    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
-        or end up in wrong directories
-    o C# unittests sporadically fail b/c a handle is closed multiple times
-    o automate the build process
-    o ... and the packaging
-    . can we create a CHM from the documentation?
-
 o java still has license.java/version.java - remove!
     o also check dotnet!
 
@@ -194,7 +222,7 @@ o improve performance for hola-sum (profile!)
     s2 = a2 + b2
     s3 = a3 + b3
     s4 = a4 + b4
-    return s1+s2+s3+s4
+    return s1 + s2 + s3 + s4
 
 o can we add a generic macro like this:
     #define ham_initialize_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
@@ -205,6 +233,23 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
+
+o refactoring: it would be nicer if the ham_paramter_t lists are passed to
+    the Environment implementation and do not have to be parsed in hamsterdb.cc
+    (see HAM_PARAM_FILE_SIZE, which is not relevant for in-memory and remote
+    Environments)
+    - db_config.h: a class with the run-time configuration of
+        the database
+    - env_config.h: a class with the run-time configuration of
+        the environment
+    - These classes initialize themselves with the parameters supplied by
+        the user, and call all other modules (device, cache...) with this
+        structure as the parameter for initialization
+    - All getters of these classes are const/immutable
+
+o refactoring: improve the code separation of cursor and txn_cursor, i.e.
+    in db_local::cursor_get_record_size (wtf - is_null(0)?)
+    etc
 
 o QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically
@@ -254,10 +299,15 @@ o delta updates managed in the BtreeNode
         bulk updates are used)
 
 o use cache-oblivious b-tree layout
+    ===> a much simpler approach would be to reserve "X" bytes when creating
+        the environment (and then map the whole range)
+        this would include storage for the blobs AND we would not have to mess
+        around with the mapping
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
     o see roadmap document for more information
     o this feature is *per database*
     o calculate number of reqd pages based on estimated keys from the user
+        (but what about the blobs??)
     o make sure that this is not reverted when "reduce file size" feature
         (above) is enabled
     o the new pages are not managed by the freelist! therefore the freelist
@@ -272,9 +322,14 @@ o use cache-oblivious b-tree layout
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
-o refactoring: improve the code separation of cursor and txn_cursor, i.e.
-    in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
+o windows cleanups
+    o need win32 python project (or wait till someone needs it?)
+    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+        or end up in wrong directories
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+    o automate the build process
+    o ... and the packaging
+    . can we create a CHM from the documentation?
 
 o improve node layout compression (when the file format changes)
     -> btw: flags are not required at all if fixed length record size > 8
@@ -377,15 +432,6 @@ o PRO: prefix compression for variable-length keys
     o full keys can be further compressed with lzf or lzo
     o key search: jumps from full key to full key; in between, there's a
         linear search for the key
-
-o PRO: use grouped varints for compressing int32/int64, record IDs and
-    duplicate tables
-    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
-    http://www.oschina.net/code/snippet_12_5083
-    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
-    -> the concept will be similar to prefix compression
-    -> can we come up with a schema that allows compression AND
-        fast random access?
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
 

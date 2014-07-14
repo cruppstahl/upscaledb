@@ -127,7 +127,7 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_env_get_parameters(env, params));
 
-    REQUIRE((unsigned)HAM_DEFAULT_CACHESIZE == params[0].value);
+    REQUIRE((unsigned)HAM_DEFAULT_CACHE_SIZE == params[0].value);
     REQUIRE((ham_u64_t)(1024 * 16) == params[1].value);
     REQUIRE((ham_u64_t)676 == params[2].value);
     REQUIRE((ham_u64_t)(HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY)

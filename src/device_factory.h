@@ -26,11 +26,12 @@ namespace hamsterdb {
 class DeviceFactory {
   public:
     // creates a new Device instance depending on the flags
-    static Device *create(LocalEnvironment *env, ham_u32_t flags) {
+    static Device *create(LocalEnvironment *env, ham_u32_t flags,
+                    ham_u64_t file_size_limit) {
       if (flags & HAM_IN_MEMORY)
         return (new InMemoryDevice(env, flags));
       else
-        return (new DiskDevice(env, flags));
+        return (new DiskDevice(env, flags, file_size_limit));
     }
 };
 

@@ -138,9 +138,9 @@ struct APIv110Fixture {
 
     REQUIRE(0 == ham_env_get_parameters(m_env, params));
 
-    REQUIRE((ham_u64_t)HAM_DEFAULT_CACHESIZE ==
-        get_param_value(params, HAM_PARAM_CACHESIZE));
-    REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
+    REQUIRE((ham_u64_t)HAM_DEFAULT_CACHE_SIZE ==
+        get_param_value(params, HAM_PARAM_CACHE_SIZE));
+    REQUIRE(get_param_value(params, HAM_PARAM_PAGE_SIZE)
                     == (ham_u64_t)(1024 * 64));
     REQUIRE((ham_u64_t)HAM_READ_ONLY ==
         get_param_value(params, HAM_PARAM_FLAGS));

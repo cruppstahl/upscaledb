@@ -101,7 +101,7 @@ struct DeviceFixture
   void mmapUnmapTest() {
     int i;
     Page pages[10];
-    ham_u32_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
     REQUIRE(true == m_dev->is_open());
@@ -134,7 +134,7 @@ struct DeviceFixture
   void readWriteTest() {
     int i;
     ham_u8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    ham_u32_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
     m_dev->test_disable_mmap();
@@ -161,7 +161,7 @@ struct DeviceFixture
   void readWritePageTest() {
     int i;
     Page *pages[2];
-    ham_u32_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
 
     m_dev->test_disable_mmap();
 
@@ -181,7 +181,7 @@ struct DeviceFixture
     }
 
     for (i = 0; i < 2; i++) {
-      char temp[HAM_DEFAULT_PAGESIZE];
+      char temp[HAM_DEFAULT_PAGE_SIZE];
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);

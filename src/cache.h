@@ -53,12 +53,11 @@ class Cache
     // the default constructor
     // |capacity_size| is in bytes!
     Cache(LocalEnvironment *env,
-            ham_u64_t capacity_bytes = HAM_DEFAULT_CACHESIZE)
+            ham_u64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
       : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
         m_alloc_elements(0), m_totallist(0), m_totallist_tail(0),
         m_cache_hits(0), m_cache_misses(0) {
-      if (m_capacity == 0)
-        m_capacity = HAM_DEFAULT_CACHESIZE;
+      ham_assert(m_capacity > 0);
 
       for (ham_u32_t i = 0; i < kBucketSize; i++)
         m_buckets.push_back(0);
