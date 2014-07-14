@@ -1194,6 +1194,10 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * This flag is non persistent. */
 #define HAM_FLUSH_WHEN_COMMITTED                    0x01000000
 
+/** Pro: Flag for @ref ham_env_open, @ref ham_env_create.
+ * This flag is non persistent. */
+#define HAM_ENABLE_CRC32                            0x02000000
+
 /**
  * Returns the last error code
  *

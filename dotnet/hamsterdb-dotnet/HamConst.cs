@@ -130,6 +130,8 @@ namespace Hamster
     public const int HAM_CACHE_UNLIMITED        =  0x40000;
     /// <summary>Flag for Environment.Create, Environment.Open</summary>
     public const int HAM_FLUSH_WHEN_COMMITTED   =  0x01000000;
+    /// <summary>Flag for Environment.Create, Environment.Open</summary>
+    public const int HAM_ENABLE_CRC32           =  0x02000000;
 
     // Extended parameters
     /// <summary>Parameter name for Database.Open, Database.Create</summary>
