@@ -1,3 +1,6 @@
+Jul 14, 2014 - chris ---------------------------------------------------
+o SIMD support now enabled for real64 keys
+
 Jul 11, 2014 - chris ---------------------------------------------------
 o Adding crc32 verification; use HAM_ENABLE_CRC32 in ham_env_create
 	and ham_env_open

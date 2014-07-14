@@ -106,6 +106,13 @@ get_sse_threshold<ham_u64_t>()
   return (4);
 }
 
+template<>
+int
+get_sse_threshold<double>()
+{
+  return (4);
+}
+
 template<typename T>
 int
 find_simd_sse(T *data, ham_u32_t count, ham_key_t *hkey)
@@ -219,13 +226,12 @@ linear_search_sse<ham_u32_t>(ham_u32_t *data, int start, int count,
 
 template<>
 inline int
-linear_search_sse<float>(float *data, int start, int count,
-                float key)
+linear_search_sse<float>(float *data, int start, int count, float key)
 {
-  __m128 key4 = _mm_set1_ps(key);
-
   if (count < 16)
     return (linear_search(data, start, count, key));
+
+  __m128 key4 = _mm_set1_ps(key);
 
   __m128 v1 = _mm_loadu_ps((const float *)&data[start + 0]);
   __m128 v2 = _mm_loadu_ps((const float *)&data[start + 4]);
@@ -253,6 +259,37 @@ linear_search_sse<float>(float *data, int start, int count,
 }
 
 #ifdef __SSE4_1__
+template<>
+inline int
+linear_search_sse<double>(double *data, int start, int count, double key)
+{
+  if (count < 4)
+    return (linear_search(data, start, count, key));
+
+  __m128d key2 = _mm_set1_pd(key);
+
+  __m128d v1 = _mm_loadu_pd(&data[start + 0]);
+  __m128d v2 = _mm_loadu_pd(&data[start + 2]);
+
+  __m128d cmp0 = _mm_cmpeq_pd(key2, v1);
+  __m128d cmp1 = _mm_cmpeq_pd(key2, v2);
+
+  __m128i low2  = _mm_shuffle_epi32(cmp0, 0xD8);
+  __m128i high2 = _mm_shuffle_epi32(cmp1, 0xD8);
+  __m128i pack = _mm_unpacklo_epi64(low2, high2);
+
+  __m128i pack01 = _mm_packs_epi32(pack, _mm_setzero_si128());
+  __m128i pack0123 = _mm_packs_epi16(pack01, _mm_setzero_si128());
+
+  int res = _mm_movemask_epi8(pack0123);
+  if (res > 0)
+    return (start + ctz(~res + 1));
+
+  ham_assert(4 == count);
+  /* the new key is > the last key in the page */
+  return (-1);
+}
+
 template<>
 inline int
 linear_search_sse<ham_u64_t>(ham_u64_t *data, int start, int count,
