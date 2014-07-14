@@ -134,15 +134,21 @@ namespace Hamster
     public const int HAM_ENABLE_CRC32           =  0x02000000;
 
     // Extended parameters
-    /// <summary>Parameter name for Database.Open, Database.Create</summary>
+    /// <summary>Parameter name for Environment.Open,
+    /// Environment.Create</summary>
+    public const int HAM_PARAM_CACHE_SIZE       =  0x00100;
+    /// <summary>Parameter name for Environment.Open,
+    /// Environment.Create (deprecated)</summary>
     public const int HAM_PARAM_CACHESIZE        =  0x00100;
-    /// <summary>Parameter name for Database.Create</summary>
+    /// <summary>Parameter name for Environment.Create</summary>
+    public const int HAM_PARAM_PAGE_SIZE        =  0x00101;
+    /// <summary>Parameter name for Environment.Create (deprecated)</summary>
     public const int HAM_PARAM_PAGESIZE         =  0x00101;
     /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_KEY_SIZE         =  0x00102;
-    /// <summary>Parameter name for Database.Create</summary>
+    /// <summary>Parameter name for Database.Create (deprecated)</summary>
     public const int HAM_PARAM_KEYSIZE          =  0x00102;
-    /// <summary>Parameter name for Environment.Create</summary>
+    /// <summary>Parameter name for GetParameters</summary>
     public const int HAM_PARAM_MAX_DATABASES    =  0x00103;
     /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_KEY_TYPE         =  0x00104;
@@ -150,6 +156,9 @@ namespace Hamster
     public const int HAM_PARAM_NETWORK_TIMEOUT_SEC = 0x00000107;
     /// <summary>Parameter name for Database.Create</summary>
     public const int HAM_PARAM_RECORD_SIZE      =  0x00108;
+    /// <summary>Parameter name for Environment.Create,
+    /// Environment.Open</summary>
+    public const int HAM_PARAM_FILE_SIZE        =  0x00109;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>

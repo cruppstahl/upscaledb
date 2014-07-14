@@ -176,9 +176,11 @@ public class Const {
     public final static int HAM_ENABLE_CRC32                    =  0x02000000;
 
     /** Parameter name for Database.open(), Database.create() */
+    public final static int HAM_PARAM_CACHE_SIZE                =    0x100;
     public final static int HAM_PARAM_CACHESIZE                 =    0x100;
 
     /** Parameter name for Database.create() */
+    public final static int HAM_PARAM_PAGE_SIZE                 =    0x101;
     public final static int HAM_PARAM_PAGESIZE                  =    0x101;
 
     /** Parameter name for Database.create() */
@@ -196,6 +198,9 @@ public class Const {
 
     /** Parameter name for Database.create() */
     public final static int HAM_PARAM_RECORD_SIZE               =    0x108;
+
+    /** Parameter name for Environment.open(), Environment.create() */
+    public final static int HAM_PARAM_FILE_SIZE                 =    0x109;
 
     /** Value for unlimited record sizes */
     public final static int HAM_RECORD_SIZE_UNLIMITED           =    0xffffffff;

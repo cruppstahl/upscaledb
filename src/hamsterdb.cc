@@ -314,8 +314,9 @@ ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
-  ham_u32_t page_size = HAM_DEFAULT_PAGESIZE;
+  ham_u32_t page_size = HAM_DEFAULT_PAGE_SIZE;
   ham_u64_t cache_size = 0;
+  ham_u64_t file_size_limit = 0xffffffffffffffff;
   ham_u16_t max_databases = 0;
   ham_u32_t timeout = 0;
   std::string logdir;
@@ -365,7 +366,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
       case HAM_PARAM_JOURNAL_COMPRESSION:
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
-      case HAM_PARAM_CACHESIZE:
+      case HAM_PARAM_CACHE_SIZE:
         cache_size = param->value;
         if (flags & HAM_IN_MEMORY && cache_size != 0) {
           ham_trace(("combination of HAM_IN_MEMORY and cache size != 0 "
@@ -373,12 +374,16 @@ ham_env_create(ham_env_t **henv, const char *filename,
           return (HAM_INV_PARAMETER);
         }
         break;
-      case HAM_PARAM_PAGESIZE:
+      case HAM_PARAM_PAGE_SIZE:
         if (param->value != 1024 && param->value % 2048 != 0) {
           ham_trace(("invalid page size - must be 1024 or a multiple of 2048"));
           return (HAM_INV_PAGESIZE);
         }
         page_size = (ham_u32_t)param->value;
+        break;
+      case HAM_PARAM_FILE_SIZE:
+        if (param->value > 0)
+          file_size_limit = param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
@@ -402,11 +407,16 @@ ham_env_create(ham_env_t **henv, const char *filename,
           "not allowed"));
     return (HAM_INV_PARAMETER);
   }
+  if ((flags & HAM_IN_MEMORY) && file_size_limit != 0xffffffffffffffff) {
+    ham_trace(("combination of HAM_IN_MEMORY and HAM_PARAM_FILE_SIZE "
+          "not allowed"));
+    return (HAM_INV_PARAMETER);
+  }
 
   if (cache_size == 0)
-    cache_size = HAM_DEFAULT_CACHESIZE;
+    cache_size = HAM_DEFAULT_CACHE_SIZE;
   if (page_size == 0)
-    page_size = HAM_DEFAULT_PAGESIZE;
+    page_size = HAM_DEFAULT_PAGE_SIZE;
 
   if (!filename && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));
@@ -449,7 +459,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
     /* and finish the initialization of the Environment */
     st = env->create(filename, flags, mode, page_size,
-                    cache_size, max_databases);
+                    cache_size, max_databases, file_size_limit);
 
     /* flush the environment to make sure that the header page is written
      * to disk */
@@ -576,6 +586,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
             const ham_parameter_t *param)
 {
   ham_u64_t cache_size = 0;
+  ham_u64_t file_size_limit = 0xffffffffffffffff;
   ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
@@ -626,8 +637,12 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
       case HAM_PARAM_JOURNAL_COMPRESSION:
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
-      case HAM_PARAM_CACHESIZE:
+      case HAM_PARAM_CACHE_SIZE:
         cache_size = param->value;
+        break;
+      case HAM_PARAM_FILE_SIZE:
+        if (param->value > 0)
+          file_size_limit = param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
@@ -653,7 +668,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   }
 
   if (cache_size == 0)
-    cache_size = HAM_DEFAULT_CACHESIZE;
+    cache_size = HAM_DEFAULT_CACHE_SIZE;
 
   ham_status_t st = 0;
   Environment *env = 0;
@@ -683,7 +698,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->open(filename, flags, cache_size);
+    st = env->open(filename, flags, cache_size, file_size_limit);
   }
   catch (Exception &ex) {
     st = ex.code;

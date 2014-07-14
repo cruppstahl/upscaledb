@@ -30,8 +30,10 @@ namespace hamsterdb {
  */
 class DiskDevice : public Device {
   public:
-    DiskDevice(LocalEnvironment *env, ham_u32_t flags)
-      : Device(env, flags), m_mmapptr(0), m_mapped_size(0) {
+    DiskDevice(LocalEnvironment *env, ham_u32_t flags,
+                    ham_u64_t file_size_limit)
+      : Device(env, flags), m_mmapptr(0), m_mapped_size(0), m_file_size(),
+            m_file_size_limit(file_size_limit) {
     }
 
     // Create a new device
@@ -47,19 +49,22 @@ class DiskDevice : public Device {
       m_flags = flags;
       m_file.open(filename, flags);
 
+      // the file size which backs the mapped ptr; use m_file's method
+      // directly, otherwise the (non-initialized) m_file_size would be
+      // returned
+      ham_u64_t file_size = m_file.get_file_size();
+      m_file_size = file_size;
+
       if (m_flags & HAM_DISABLE_MMAP)
         return;
-
-      // the file size which backs the mapped ptr
-      ham_u64_t open_filesize = get_file_size();
 
       // make sure we do not exceed the "real" size of the file, otherwise
       // we run into issues when accessing that memory (at least on windows)
       size_t granularity = File::get_granularity();
-      if (open_filesize == 0 || open_filesize % granularity)
+      if (file_size == 0 || file_size % granularity)
         return;
 
-      m_mapped_size = open_filesize;
+      m_mapped_size = file_size;
 
       m_file.mmap(0, m_mapped_size, (flags & HAM_READ_ONLY) != 0, &m_mmapptr);
     }
@@ -78,8 +83,11 @@ class DiskDevice : public Device {
     }
 
     // truncate/resize the device
-    virtual void truncate(ham_u64_t newsize) {
-      m_file.truncate(newsize);
+    virtual void truncate(ham_u64_t new_file_size) {
+      if (new_file_size > m_file_size_limit)
+        throw Exception(HAM_LIMITS_REACHED);
+      m_file.truncate(new_file_size);
+      m_file_size = new_file_size;
     }
 
     // returns true if the device is open
@@ -89,7 +97,8 @@ class DiskDevice : public Device {
 
     // get the current file/storage size
     virtual ham_u64_t get_file_size() {
-      return (m_file.get_file_size());
+      ham_assert(m_file_size == m_file.get_file_size());
+      return (m_file_size);
     }
 
     // seek to a position in a file
@@ -120,8 +129,8 @@ class DiskDevice : public Device {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (page->get_address() < m_mapped_size && m_mmapptr != 0) {
-        // ok, this page is mapped. If the Page object has a memory buffer:
-        // free it
+        // ok, this page is mapped. If the Page object has a memory buffer
+        // then free it; afterwards return a pointer into the mapped memory
         ham_assert(m_env->is_encryption_enabled() == false);
         Memory::release(page->get_data());
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
@@ -147,17 +156,17 @@ class DiskDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual ham_u64_t alloc(size_t len) {
-      ham_u64_t address = m_file.get_file_size();
-      m_file.truncate(address + len);
+      ham_u64_t address = get_file_size();
+      truncate(address + len);
       return (address);
     }
 
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page, size_t page_size) {
-      ham_u64_t pos = m_file.get_file_size();
+      ham_u64_t pos = get_file_size();
 
-      m_file.truncate(pos + page_size);
+      truncate(pos + page_size);
       page->set_address(pos);
       read_page(page, page_size);
     }
@@ -182,6 +191,12 @@ class DiskDevice : public Device {
 
     // the size of m_mmapptr as used in mmap
     ham_u64_t m_mapped_size;
+
+    // the (cached) size of the file
+    ham_u64_t m_file_size;
+
+    // the file size limit (in bytes)
+    ham_u64_t m_file_size_limit;
 
     // dynamic byte array providing temporary space for encryption
     ByteArray m_encryption_buffer;

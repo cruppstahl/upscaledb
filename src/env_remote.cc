@@ -102,15 +102,15 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 ham_status_t
 RemoteEnvironment::create(const char *url, ham_u32_t flags,
         ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
-        ham_u16_t maxdbs)
+        ham_u16_t maxdbs, ham_u64_t file_size_limit)
 {
   // the 'create' operation is identical to 'open'
-  return (open(url, flags, cache_size));
+  return (open(url, flags, cache_size, file_size_limit));
 }
 
 ham_status_t
 RemoteEnvironment::open(const char *url, ham_u32_t flags,
-        ham_u64_t cache_size)
+        ham_u64_t cache_size, ham_u64_t file_size_limit)
 {
   m_socket.close();
 

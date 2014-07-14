@@ -59,7 +59,7 @@ LocalEnvironment::~LocalEnvironment()
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
             ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
-            ham_u16_t max_databases)
+            ham_u16_t max_databases, ham_u64_t file_size_limit)
 {
   if (flags & HAM_IN_MEMORY)
     flags |= HAM_DISABLE_RECLAIM_INTERNAL;
@@ -72,7 +72,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(this, flags);
+  m_device = DeviceFactory::create(this, flags, file_size_limit);
   if (flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager = new LocalTransactionManager(this);
 
@@ -122,13 +122,13 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-            ham_u64_t cache_size)
+            ham_u64_t cache_size, ham_u64_t file_size_limit)
 {
   ham_status_t st = 0;
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(this, flags);
+  m_device = DeviceFactory::create(this, flags, file_size_limit);
 
   if (filename)
     m_filename = filename;
@@ -496,10 +496,10 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
   if (p) {
     for (; p->name; p++) {
       switch (p->name) {
-      case HAM_PARAM_CACHESIZE:
+      case HAM_PARAM_CACHE_SIZE:
         p->value = get_page_manager()->get_cache_capacity();
         break;
-      case HAM_PARAM_PAGESIZE:
+      case HAM_PARAM_PAGE_SIZE:
         p->value = m_page_size;
         break;
       case HAM_PARAM_MAX_DATABASES:

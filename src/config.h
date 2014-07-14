@@ -42,10 +42,10 @@
 #endif
 
 // the default cache size is 2 MB
-#define HAM_DEFAULT_CACHESIZE    (2 * 1024 * 1024)
+#define HAM_DEFAULT_CACHE_SIZE    (2 * 1024 * 1024)
 
 // the default page size is 16 kb
-#define HAM_DEFAULT_PAGESIZE     (16 * 1024)
+#define HAM_DEFAULT_PAGE_SIZE     (16 * 1024)
 
 // use tcmalloc?
 #if HAVE_GOOGLE_TCMALLOC_H == 1

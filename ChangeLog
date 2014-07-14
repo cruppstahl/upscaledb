@@ -1,3 +1,6 @@
+Jul 14, 2014 - chris ---------------------------------------------------
+o Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE
+
 Jul 10, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.8
 
