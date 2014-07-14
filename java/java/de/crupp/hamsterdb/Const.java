@@ -172,6 +172,9 @@ public class Const {
     /** Flag for Environment.create, Environment.open() */
     public final static int HAM_FLUSH_WHEN_COMMITTED            =  0x01000000;
 
+    /** Flag for Environment.create, Environment.open() */
+    public final static int HAM_ENABLE_CRC32                    =  0x02000000;
+
     /** Parameter name for Database.open(), Database.create() */
     public final static int HAM_PARAM_CACHESIZE                 =    0x100;
 
