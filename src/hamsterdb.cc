@@ -439,6 +439,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
+      (void)timeout; // suppress compiler warning
       return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
       RemoteEnvironment *renv = new RemoteEnvironment();
@@ -679,6 +680,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
+      (void)timeout; // suppress compiler warning
       return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
       RemoteEnvironment *renv = new RemoteEnvironment();

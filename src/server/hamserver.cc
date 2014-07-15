@@ -21,7 +21,7 @@
 #  include <winsock2.h>
 #endif
 
-#include <uv-version.h>
+#include <uv.h>
 
 #include "os.h"
 #include "../protobuf/protocol.h"
@@ -1931,19 +1931,33 @@ on_close_connection(uv_handle_t *handle)
   Memory::release(handle);
 }
 
+#if UV_VERSION_MINOR >= 11
 static void
 on_alloc_buffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
 {
   buf->base = Memory::allocate<char>(size);
   buf->len = size;
 }
+#else
+static uv_buf_t
+on_alloc_buffer(uv_handle_t *handle, size_t size)
+{
+  return (uv_buf_init(Memory::allocate<char>(size), size));
+}
+#endif
 
 // TODO
 // this routine uses a ByteArray to allocate memory; should we directly use
 // |buf| instead, and then re-use |buf| instead of releasing the memory?
 static void
+#if UV_VERSION_MINOR >= 11
 on_read_data(uv_stream_t *tcp, ssize_t nread, const uv_buf_t *buf)
 {
+#else
+on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
+{
+  uv_buf_t *buf = &buf_struct;
+#endif
   ham_assert(tcp != 0);
   ham_u32_t size = 0;
   ham_u32_t magic = 0;
@@ -2029,7 +2043,11 @@ on_new_connection(uv_stream_t *server, int status)
   uv_tcp_t *client = Memory::allocate<uv_tcp_t>(sizeof(uv_tcp_t));
   client->data = new ClientContext(srv);
 
+#if UV_VERSION_MINOR >= 11
   uv_tcp_init(&srv->loop, client);
+#else
+  uv_tcp_init(srv->loop, client);
+#endif
   if (uv_accept(server, (uv_stream_t *)client) == 0)
     uv_read_start((uv_stream_t *)client, on_alloc_buffer, on_read_data);
   else
@@ -2068,13 +2086,20 @@ ham_status_t
 ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
 {
   ServerContext *srv = new ServerContext();
+  struct sockaddr_in bind_addr;
 
+#if UV_VERSION_MINOR >= 11
   uv_loop_init(&srv->loop);
   uv_tcp_init(&srv->loop, &srv->server);
-
-  struct sockaddr_in bind_addr;
   uv_ip4_addr("0.0.0.0", config->port, &bind_addr);
   uv_tcp_bind(&srv->server, (sockaddr *)&bind_addr, 0);
+#else
+  srv->loop = uv_loop_new();
+  uv_tcp_init(srv->loop, &srv->server);
+  bind_addr = uv_ip4_addr("0.0.0.0", config->port);
+  uv_tcp_bind(&srv->server, bind_addr);
+#endif
+
   srv->server.data = srv;
   int r = uv_listen((uv_stream_t *)&srv->server, 128,
             hamsterdb::on_new_connection);
@@ -2084,9 +2109,13 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
   }
 
   srv->async.data = srv;
+#if UV_VERSION_MINOR >= 11
   uv_async_init(&srv->loop, &srv->async, on_async_cb);
-
   uv_thread_create(&srv->thread_id, on_run_thread, &srv->loop);
+#else
+  uv_async_init(srv->loop, &srv->async, on_async_cb);
+  uv_thread_create(&srv->thread_id, on_run_thread, srv->loop);
+#endif
 
   *psrv = (ham_srv_t *)srv;
   return (HAM_SUCCESS);
@@ -2123,7 +2152,11 @@ ham_srv_close(ham_srv_t *hsrv)
   // TODO clean up all allocated objects and handles
 
   /* stop the event loop */
+#if UV_VERSION_MINOR >= 11
   uv_stop(&srv->loop);
+#else
+  uv_stop(srv->loop);
+#endif
   uv_async_send(&srv->async);
 
   /* join the libuv thread */
@@ -2134,7 +2167,11 @@ ham_srv_close(ham_srv_t *hsrv)
   uv_close((uv_handle_t *)&srv->server, 0);
 
   /* clean up libuv */
+#if UV_VERSION_MINOR >= 11
   uv_loop_close(&srv->loop);
+#else
+  uv_loop_delete(srv->loop);
+#endif
 
   delete srv;
 

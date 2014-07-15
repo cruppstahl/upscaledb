@@ -22,6 +22,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <vector>
+
 #include <uv.h>
 
 #include <ham/hamsterdb.h>
@@ -255,7 +256,11 @@ class ServerContext {
     uv_tcp_t server;
     uv_thread_t thread_id;
     uv_async_t async;
+#if UV_VERSION_MINOR >= 11
 	uv_loop_t loop;
+#else
+	uv_loop_t *loop;
+#endif
     EnvironmentMap open_envs;
     ErrorInducer *m_inducer;
 
