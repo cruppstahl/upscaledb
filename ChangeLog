@@ -1,3 +1,6 @@
+Jul 15, 2014 - chris ---------------------------------------------------
+o hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
+
 Jul 10, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.8
 
