@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /**
@@ -50,6 +47,7 @@
 #include "env_local.h"
 #include "btree_index.h"
 #include "btree_keys_base.h"
+#include "compressor_factory.h"
 
 #ifdef WIN32
 // MSVC: disable warning about use of 'this' in base member initializer list
@@ -688,7 +686,10 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Constructor
     VariableLengthKeyList(LocalDatabase *db)
-      : m_db(db), m_index(db), m_data(0), m_extkey_cache(0) {
+      : m_db(db), m_index(db), m_data(0), m_extkey_cache(0), m_compressor(0) {
+      int algo = m_db->get_key_compression_algorithm();
+      if (algo)
+        m_compressor = CompressorFactory::create(algo);
       size_t page_size = db->get_local_env()->get_page_size();
       if (Globals::ms_extended_threshold)
         m_extkey_threshold = Globals::ms_extended_threshold;
@@ -711,6 +712,10 @@ class VariableLengthKeyList : public BaseKeyList
         delete m_extkey_cache;
         m_extkey_cache = 0;
       }
+      if (m_compressor) {
+        delete m_compressor;
+        m_compressor = 0;
+      }
     }
 
     // Creates a new KeyList starting at |ptr|, total size is
@@ -721,8 +726,8 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Opens an existing KeyList
-    void open(ham_u8_t *ptr, size_t capacity) {
-      m_data = ptr;
+    void open(ham_u8_t *data, size_t capacity) {
+      m_data = data;
       m_index.open(m_data, capacity);
     }
 
@@ -841,20 +846,28 @@ class VariableLengthKeyList : public BaseKeyList
       // now there's one additional slot
       node_count++;
 
+      // try to compress the key
+      ham_u32_t key_flags = 0;
+      ham_key_t helper = {0};
+      if (m_compressor && compress(key, &helper)) {
+        key_flags = BtreeKey::kCompressed;
+        key = &helper;
+      }
+
       // When inserting the data: always add 1 byte for key flags
       if (key->size <= m_extkey_threshold
             && m_index.can_allocate_space(node_count, key->size + 1)) {
         ham_u32_t offset = m_index.allocate_space(node_count, slot,
                         key->size + 1);
         ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
-        *p = 0; // sets flags
+        *p = key_flags;
         memcpy(p + 1, key->data, key->size); // and data
       }
       else {
         ham_u64_t blob_id = add_extended_key(key);
         m_index.allocate_space(node_count, slot, 8 + 1);
         set_extended_blob_id(slot, blob_id);
-        set_key_flags(slot, BtreeKey::kExtendedKey);
+        set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
       }
     }
 
@@ -985,6 +998,12 @@ class VariableLengthKeyList : public BaseKeyList
       out << (const char *)tmp.data;
     }
 
+    // Returns the pointer to the key's inline data - for SIMD calculations
+    // Not implemented by this KeyList
+    ham_u8_t *get_simd_data() {
+      return (0);
+    }
+
   private:
     // Returns the flags of a key. Flags are defined in btree_flags.h
     ham_u8_t get_key_flags(ham_u32_t slot) const {
@@ -1081,8 +1100,14 @@ class VariableLengthKeyList : public BaseKeyList
       rec.data = key->data;
       rec.size = key->size;
 
+      // if keys are compressed then disable the compression for the
+      // extended blob, because compressing already compressed data usually
+      // has not much of an effect
       ham_u64_t blob_id = m_db->get_local_env()->get_blob_manager()->allocate(
-                                            m_db, &rec, 0);
+                                        m_db, &rec,
+                                        m_compressor
+                                            ? BlobManager::kDisableCompression
+                                            : 0);
       ham_assert(blob_id != 0);
       ham_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
 
@@ -1098,6 +1123,43 @@ class VariableLengthKeyList : public BaseKeyList
       return (blob_id);
     }
 
+    bool compress(const ham_key_t *src, ham_key_t *dest) {
+      ham_assert(m_compressor != 0);
+      Globals::ms_bytes_before_compression += src->size;
+
+      // reserve 2 bytes for the uncompressed key length
+      m_compressor->reserve(sizeof(ham_u16_t));
+
+      // perform compression, but abort if the compressed data exceeds
+      // the uncompressed data
+      ham_u32_t clen = m_compressor->compress((ham_u8_t *)src->data, src->size);
+      if (clen >= src->size)
+        return (false);
+
+      // fill in the length
+      ham_u8_t *ptr = m_compressor->get_output_data();
+      *(ham_u16_t *)ptr = src->size;
+
+      dest->data = ptr;
+      dest->size = clen + sizeof(ham_u16_t);
+      Globals::ms_bytes_after_compression += dest->size;
+
+      return (true);
+    }
+
+    void uncompress(const ham_key_t *src, ham_key_t *dest) {
+      ham_assert(m_compressor != 0);
+
+      ham_u8_t *ptr = (ham_u8_t *)src->data;
+
+      // first 2 bytes are the uncompressed length
+      ham_u16_t uclen = *(ham_u16_t *)ptr;
+      m_compressor->decompress(ptr + sizeof(ham_u16_t),
+                      src->size - sizeof(ham_u16_t), uclen);
+
+      dest->size = uclen;
+      dest->data = m_compressor->get_output_data();
+    }
     // The database
     LocalDatabase *m_db;
 
@@ -1113,6 +1175,9 @@ class VariableLengthKeyList : public BaseKeyList
     // Threshold for extended keys; if key size is > threshold then the
     // key is moved to a blob
     size_t m_extkey_threshold;
+
+    // Compressor for the keys
+    Compressor *m_compressor;
 };
 
 } // namespace DefLayout

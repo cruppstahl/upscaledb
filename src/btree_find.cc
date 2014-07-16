@@ -119,7 +119,10 @@ class BtreeFindAction
         }
 
         /* check the leaf page for the key */
-        if (m_flags == 0)
+        const ham_u32_t mask = ~(HAM_OVERWRITE
+                                  | HAM_HINT_APPEND
+                                  | HAM_HINT_PREPEND);
+        if (m_flags == 0 || (m_flags & mask) == 0)
           slot = node->find_exact(m_key);
         else
           slot = m_btree->find_leaf(page, m_key, hints.flags);

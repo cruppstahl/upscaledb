@@ -9,6 +9,7 @@ AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
 test_SOURCES    = api110.cpp \
 			      approx.cpp \
+				  bitmap.cpp \
 				  blob_manager.cpp \
 				  btree.cpp \
 				  btree_cursor.cpp \

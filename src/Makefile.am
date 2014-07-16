@@ -30,6 +30,7 @@ libhamsterdb_la_SOURCES = \
 	btree_index_factory.h \
 	btree_insert.cc \
 	btree_keys_base.h \
+	btree_keys_bitmap.h \
 	btree_keys_binary.h \
 	btree_keys_varlen.h \
 	btree_keys_pod.h \

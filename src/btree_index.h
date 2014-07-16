@@ -108,7 +108,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
     // PRO: Sets the record compression
     void set_record_compression(int algorithm) {
-      m_compression = algorithm << 4;
+      m_compression |= algorithm << 4;
     }
 
     // PRO: Returns the key compression

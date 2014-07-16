@@ -68,9 +68,6 @@
 
 namespace hamsterdb {
 
-template<typename KeyList, typename RecordList>
-class PaxNodeImpl;
-
 //
 // A BtreeNodeProxy layout which stores key data, key flags and
 // and the record pointers in a PAX style layout.
@@ -104,13 +101,13 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // - only for exact matches!
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
-      if (m_keys.has_simd_support()
+      if (P::m_keys.has_simd_support()
               && os_get_simd_lane_width() > 1
               && Globals::ms_is_simd_enabled) {
-        ham_u32_t count = m_node->get_count();
+        ham_u32_t count = P::m_node->get_count();
         return (find_simd_sse<typename KeyList::type>(
-                              (typename KeyList::type *)m_keys.get_key_data(0),
-                              count, key));
+                            (typename KeyList::type *)P::m_keys.get_simd_data(),
+                            count, key));
       }
 
       int cmp;
@@ -241,7 +238,6 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         P::m_records.open(&p[P::m_capacity * (size_t)ks], P::m_capacity);
       }
     }
-
 };
 
 } // namespace hamsterdb

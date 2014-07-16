@@ -18,6 +18,7 @@
 #include "btree_index.h"
 #include "btree_impl_default.h"
 #include "btree_impl_pax.h"
+#include "btree_keys_bitmap.h"
 #include "btree_keys_pod.h"
 #include "btree_keys_binary.h"
 #include "btree_keys_varlen.h"
@@ -73,12 +74,12 @@ struct BtreeIndexFactory
     switch (key_type) {
       // 8bit unsigned integer
       case HAM_TYPE_UINT8:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<ham_u8_t> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
-                          PaxLayout::InternalRecordList>,
-                    NumericCompare<ham_u8_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
@@ -91,11 +92,6 @@ struct BtreeIndexFactory
                   NumericCompare<ham_u8_t> >());
         }
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                      PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<ham_u8_t> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<ham_u8_t>,
@@ -109,120 +105,195 @@ struct BtreeIndexFactory
         }
       // 16bit unsigned integer
       case HAM_TYPE_UINT16:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<ham_u16_t> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                          PaxLayout::InternalRecordList>,
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u16_t>,
+                          DefLayout::DuplicateInlineRecordList>,
                     NumericCompare<ham_u16_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                        DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<ham_u16_t> >());
-          else
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                        DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<ham_u16_t> >());
-        }
+            else
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u16_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u16_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                          DefLayout::DuplicateInlineRecordList>,
+                    NumericCompare<ham_u16_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u16_t> >());
+          }
+        } // !use_duplicates
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<ham_u16_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                            PaxLayout::InlineRecordList>,
-                      NumericCompare<ham_u16_t> >());
-          else
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
-                            PaxLayout::DefaultRecordList>,
-                      NumericCompare<ham_u16_t> >());
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u16_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u16_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u16_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u16_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u16_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<ham_u16_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u16_t> >());
+          }
         }
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<ham_u32_t> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                          PaxLayout::InternalRecordList>,
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u32_t>,
+                          DefLayout::DuplicateInlineRecordList>,
                     NumericCompare<ham_u32_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                        DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<ham_u32_t> >());
-          else
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                        DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<ham_u32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u32_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u32_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                          DefLayout::DuplicateInlineRecordList>,
+                    NumericCompare<ham_u32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u32_t> >());
+          }
         }
-        else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<ham_u32_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                            PaxLayout::InlineRecordList>,
-                      NumericCompare<ham_u32_t> >());
-          else
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
-                            PaxLayout::DefaultRecordList>,
-                      NumericCompare<ham_u32_t> >());
+        else { // !use_duplicates
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u32_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u32_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u32_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<ham_u32_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u32_t> >());
+          }
         }
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<ham_u64_t> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                          PaxLayout::InternalRecordList>,
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u64_t>,
+                          DefLayout::DuplicateInlineRecordList>,
                     NumericCompare<ham_u64_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                        DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<ham_u64_t> >());
-          else
-            return (new BtreeIndexTraitsImpl<
-                  DefaultNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                        DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<ham_u64_t> >());
-        }
+            else
+              return (new BtreeIndexTraitsImpl<
+                    DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u64_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u64_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                          DefLayout::DuplicateInlineRecordList>,
+                    NumericCompare<ham_u64_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                    PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                          DefLayout::DuplicateDefaultRecordList>,
+                    NumericCompare<ham_u64_t> >());
+          }
+        } // !use_duplicates
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                      PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<ham_u64_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                            PaxLayout::InlineRecordList>,
-                      NumericCompare<ham_u64_t> >());
-          else
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                            PaxLayout::DefaultRecordList>,
-                      NumericCompare<ham_u64_t> >());
+          // PRO: use bitmap compression?
+          if (db->get_key_compression_algorithm() == HAM_COMPRESSOR_BITMAP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u64_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u64_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                        DefaultNodeImpl<ProLayout::BitmapKeyList<ham_u64_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u64_t> >());
+          }
+          else {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl<
+                        PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<ham_u64_t> >());
+            else
+              return (new BtreeIndexTraitsImpl<
+                        PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<ham_u64_t> >());
+          }
         }
       // 32bit float
       case HAM_TYPE_REAL32:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<float>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<float> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<float>,
-                          PaxLayout::InternalRecordList>,
-                    NumericCompare<float> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<float>,
@@ -235,11 +306,6 @@ struct BtreeIndexFactory
                   NumericCompare<float> >());
         }
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<float>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<float> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<float>,
@@ -253,12 +319,12 @@ struct BtreeIndexFactory
         }
       // 64bit double
       case HAM_TYPE_REAL64:
+        if (!is_leaf)
+          return (new BtreeIndexTraitsImpl<
+                  PaxNodeImpl<PaxLayout::PodKeyList<double>,
+                        PaxLayout::InternalRecordList>,
+                  NumericCompare<double> >());
         if (use_duplicates) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl<
-                    PaxNodeImpl<PaxLayout::PodKeyList<double>,
-                          PaxLayout::InternalRecordList>,
-                    NumericCompare<double> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<double>,
@@ -271,11 +337,6 @@ struct BtreeIndexFactory
                   NumericCompare<double> >());
         }
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<double>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<double> >());
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<double>,

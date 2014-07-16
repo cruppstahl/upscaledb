@@ -641,11 +641,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     return (HAM_INV_PARAMETER);
   }
 
-  if (flags & HAM_ENABLE_CRC32) {
-    ham_trace(("Crc32 is only available in hamsterdb pro"));
-    return (HAM_NOT_IMPLEMENTED);
-  }
-
   /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
    * disabled */
   if ((flags & HAM_ENABLE_TRANSACTIONS) && !(flags & HAM_DISABLE_RECOVERY))

@@ -894,7 +894,8 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
 
   // print key compression ratio
-  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->key_compression && conf->key_compression < HAM_COMPRESSOR_BITMAP
+          && !strcmp(name, "hamsterdb")) {
     float ratio;
     if (metrics->hamster_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;

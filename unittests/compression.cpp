@@ -536,4 +536,31 @@ TEST_CASE("Compression/unknownCompressorTest", "")
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
+TEST_CASE("Compression/bitmapCompressionTest", "")
+{
+  ham_parameter_t params[] = {
+    {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
+    {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_BITMAP},
+    {0, 0}
+  };
+  ham_db_t *db;
+  ham_env_t *env;
+  REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+  REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &params[0]));
+  params[0].value = HAM_TYPE_UINT64;
+  REQUIRE(0 == ham_env_create_db(env, &db, 1, HAM_RECORD_NUMBER, &params[0]));
+
+  params[1].value = 0;
+  REQUIRE(0 == ham_db_get_parameters(db, &params[1]));
+  REQUIRE(HAM_COMPRESSOR_BITMAP == (int)params[1].value);
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+  REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
+  REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
+  params[1].value = 0;
+  REQUIRE(0 == ham_db_get_parameters(db, &params[1]));
+  REQUIRE(HAM_COMPRESSOR_BITMAP == (int)params[1].value);
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}
+
 #endif // HAM_ENABLE_COMPRESSION

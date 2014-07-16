@@ -511,6 +511,9 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
 
+  /* is key compression enabled? */
+  m_key_compression_algo = desc->get_key_compression();
+
   /* create the BtreeIndex */
   m_btree_index = new BtreeIndex(this, descriptor, flags | desc->get_flags(),
                             desc->get_key_type(), desc->get_key_size());
@@ -536,12 +539,11 @@ LocalDatabase::open(ham_u16_t descriptor)
   m_rt_flags = get_rt_flags(true) | m_btree_index->get_flags();
 
   /* is record compression enabled? */
-  int record_algo = desc->get_record_compression();
-  if (record_algo)
-    m_record_compressor.reset(CompressorFactory::create(record_algo));
-
-  /* is key compression enabled? */
-  m_key_compressor = desc->get_key_compression();
+  int algo = desc->get_record_compression();
+  if (algo) {
+    enable_record_compression(algo);
+    m_record_compressor.reset(CompressorFactory::create(algo));
+  }
 
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
@@ -563,7 +565,8 @@ LocalDatabase::open(ham_u16_t descriptor)
 
 ham_status_t
 LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
-                        ham_u16_t key_size, ham_u32_t rec_size)
+                        ham_u16_t key_size, ham_u32_t rec_size,
+                        int key_compressor, int record_compressor)
 {
   EVAL_CHECK
 
@@ -605,23 +608,66 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
     }
   }
 
+  // bitmap compression is only allowed for recno-databases
+  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
+    if ((m_rt_flags & HAM_RECORD_NUMBER) == 0) {
+      ham_trace(("bitmap compression is only allowed for record number "
+                  "databases"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
+
   // fixed length records:
   //
-  // if records are <= 8 bytes OR if we can fit at least 500 keys AND
+  // if records are <= 8 bytes OR if we can fit at least 512 keys AND
   // records into the leaf then store the records in the leaf;
-  // otherwise they're allocated as a blob
+  // otherwise they're allocated as a blob.
+  //
+  // 512 is the capacity of a single compressed bitmap, therefore this is
+  // the minimum required capacity for a node.
   if (rec_size != HAM_RECORD_SIZE_UNLIMITED) {
     if (rec_size <= 8
         || (rec_size <= kInlineRecordThreshold
-          && get_local_env()->get_page_size() / (key_size + rec_size) > 500)) {
+          && get_local_env()->get_page_size() / (key_size + rec_size) > 512)) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
       m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
     }
   }
 
+  // if bitmap compression is enabled then check again if we can use
+  // inline records, and make sure that at least 512 key/record pairs
+  // fit into a node
+  //
+  // TODO
+  // this function requires a cleanup; the key/record capacity planning
+  // should be handled in the btree implementation.
+  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
+    size_t tmp = rec_size;
+    if (tmp == HAM_RECORD_SIZE_UNLIMITED)
+      tmp = 9;
+    else if (tmp == 0)
+      tmp = 1;
+    int keys_per_page = (get_local_env()->get_page_size() - 16) / tmp;
+    if (keys_per_page < 512) {
+      ham_trace(("bitmap compression requires minimum of 512 keys per page"));
+      return (HAM_INV_PARAMETER);
+    }
+    if (keys_per_page > 512 && rec_size != HAM_RECORD_SIZE_UNLIMITED) {
+      persistent_flags |= HAM_FORCE_RECORDS_INLINE;
+      m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
+    }
+  }
+
+  m_key_compression_algo = key_compressor;
+
   // create the btree
   m_btree_index = new BtreeIndex(this, descriptor, persistent_flags,
                         key_type, key_size);
+
+  if (key_compressor)
+    enable_key_compression(key_compressor);
+  if (record_compressor)
+    enable_record_compression(record_compressor);
 
   /* initialize the btree */
   m_btree_index->create(key_type, key_size, rec_size);
@@ -1903,7 +1949,7 @@ LocalDatabase::enable_key_compression(int algo)
 {
   EVAL_CHECK
 
-  m_key_compressor = algo;
+  m_key_compression_algo = algo;
   m_btree_index->set_key_compression(algo);
 }
 

@@ -247,8 +247,6 @@ class BtreeInsertAction
       if (!parent)
         parent = allocate_new_root(old_page);
 
-
-
       Page *to_return = 0;
       ByteArray pivot_key_arena;
       ham_key_t pivot_key = {0};
@@ -340,7 +338,7 @@ class BtreeInsertAction
       if (m_hints.flags & HAM_HINT_APPEND && m_hints.append_count > 5)
         pivot_at_end = true;
       else if (old_node->get_right() == 0) {
-        int cmp = old_node->compare(m_key, old_node->get_count() - 1);
+        int cmp = old_node->compare(m_key, old_count - 1);
         if (cmp > 0)
           pivot_at_end = true;
       }

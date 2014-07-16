@@ -71,6 +71,10 @@
 #include "env_local.h"
 #include "btree_index.h"
 #include "btree_impl_base.h"
+#ifdef HAM_ENABLE_SIMD
+#  include "simd.h"
+#  include "os.h"
+#endif
 
 #ifdef WIN32
 // MSVC: disable warning about use of 'this' in base member initializer list
@@ -141,13 +145,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // - only for exact matches!
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
-      if (m_keys.has_simd_support()
+      if (P::m_keys.has_simd_support()
               && os_get_simd_lane_width() > 1
               && Globals::ms_is_simd_enabled) {
-        ham_u32_t count = m_node->get_count();
+        ham_u32_t count = P::m_node->get_count();
         return (find_simd_sse<typename KeyList::type>(
-                              (typename KeyList::type *)m_keys.get_key_data(0),
-                              count, key));
+                            (typename KeyList::type *)P::m_keys.get_simd_data(),
+                            count, key));
       }
 
       int cmp;
@@ -258,8 +262,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (node_count == 0)
         return (false);
 
-      // try to resize the lists before admitting defeat and splitting
-      // the page
       bool keys_require_split = P::m_keys.requires_split(node_count, key);
       bool records_require_split = P::m_records.requires_split(node_count);
       if (!keys_require_split && !records_require_split)
@@ -271,6 +273,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (records_require_split)
         records_require_split = P::m_records.requires_split(node_count, true);
 
+      // try to resize the lists before admitting defeat and splitting
+      // the page
       if (keys_require_split || records_require_split) {
         if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
@@ -293,12 +297,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       }
 
       return (false);
-    }
-
-    // Can return a modified pivot key; required for compressed KeyLists
-    // and RecordLists of PRO.
-    int adjust_split_pivot(int pivot) {
-      return (P::m_keys.adjust_split_pivot(pivot));
     }
 
     // Splits this node and moves some/half of the keys to |other|
@@ -499,12 +497,21 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // purpose. In this case we try to increase the data size of the KeyList,
       // but do not decrease the capacity
       else {
-        size_t shrink_slots = (old_capacity - node_count) / 2;
-        if (shrink_slots == 0)
-          shrink_slots = 1;
-        new_capacity = old_capacity - shrink_slots;
-        if (new_capacity < node_count + 1)
-          return (false);
+        if (P::m_page->get_db()->get_key_compression_algorithm()
+                == HAM_COMPRESSOR_BITMAP) {
+          record_range_size = P::m_records.calculate_required_range_size(
+                          node_count, old_capacity);
+          key_range_size = usable_page_size - record_range_size;
+          new_capacity = old_capacity;
+        }
+        else {
+          size_t shrink_slots = (old_capacity - node_count) / 2;
+          if (shrink_slots == 0)
+            shrink_slots = 1;
+          new_capacity = old_capacity - shrink_slots;
+          if (new_capacity < node_count + 1)
+            return (false);
+        }
       }
 
       // Calculate the range sizes for the new capacity

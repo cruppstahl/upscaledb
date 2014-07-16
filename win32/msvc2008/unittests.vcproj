@@ -348,6 +348,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\unittests\bitmap.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\blob_manager.cpp"
 			>
 		</File>

@@ -45,7 +45,7 @@ class LocalDatabase : public Database {
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_txn_index(0), m_cmp_func(0), m_key_compressor(0) {
+        m_txn_index(0), m_cmp_func(0), m_key_compression_algo(0) {
     }
 
     // Returns the btree index
@@ -68,7 +68,8 @@ class LocalDatabase : public Database {
 
     // Creates a new Database
     virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t key_type,
-                        ham_u16_t key_size, ham_u32_t rec_size);
+                                ham_u16_t key_size, ham_u32_t rec_size,
+                                int key_compressor, int record_compressor);
 
     // Erases this Database
     void erase_me();
@@ -172,12 +173,6 @@ class LocalDatabase : public Database {
     ham_status_t flush_txn_operation(LocalTransaction *txn,
                     TransactionOperation *op);
 
-    // Enables record compression for this database
-    void enable_record_compression(int algo);
-
-    // Enables key compression for this database
-    void enable_key_compression(int algo);
-
     // Returns the compressor for compressing/uncompressing the records
     Compressor *get_record_compressor() {
       return (m_record_compressor.get());
@@ -185,7 +180,7 @@ class LocalDatabase : public Database {
 
     // Returns the key compression algorithm
     int get_key_compression_algorithm() {
-      return (m_key_compressor);
+      return (m_key_compression_algo);
     }
 
   protected:
@@ -209,6 +204,12 @@ class LocalDatabase : public Database {
     friend struct DbFixture;
     friend struct HamsterdbFixture;
     friend struct ExtendedKeyFixture;
+
+    // Enables record compression for this database
+    void enable_record_compression(int algo);
+
+    // Enables key compression for this database
+    void enable_key_compression(int algo);
 
     // returns the next record number
     ham_u64_t get_incremented_recno() {
@@ -259,7 +260,7 @@ class LocalDatabase : public Database {
     std::auto_ptr<Compressor> m_record_compressor;
 
     // The key compression algorithm
-    int m_key_compressor;
+    int m_key_compression_algo;
 };
 
 } // namespace hamsterdb

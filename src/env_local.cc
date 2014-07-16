@@ -612,7 +612,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
           record_compressor = (int)param->value;
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          if (!CompressorFactory::is_available(param->value)) {
+          if (param->value != HAM_COMPRESSOR_BITMAP
+              && !CompressorFactory::is_available(param->value)) {
             ham_trace(("unknown algorithm for key compression"));
             return (HAM_INV_PARAMETER);
           }
@@ -661,8 +662,20 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (flags & HAM_RECORD_NUMBER)
     key_type = HAM_TYPE_UINT64;
 
-  // Pro: Key compression is not allowed for PAX layouts!
-  if (key_compressor != HAM_COMPRESSOR_NONE) {
+  // Pro: bitmap compression is only supported with uint16, uint32
+  // and uint64 keys
+  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
+    if (key_type != HAM_TYPE_UINT16
+        && key_type != HAM_TYPE_UINT32
+        && key_type != HAM_TYPE_UINT64) {
+      ham_trace(("HAM_COMPRESSOR_BITMAP only allowed for HAM_TYPE_UINT16, "
+                      "HAM_TYPE_UINT32 and HAM_TYPE_UINT64 databases"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
+  // Pro: all other heavy-weight compressors are only allowed for
+  // variable-length binary keys
+  else if (key_compressor != HAM_COMPRESSOR_NONE) {
     if (key_type != HAM_TYPE_BINARY || key_size != HAM_KEY_SIZE_UNLIMITED) {
       ham_trace(("Key compression only allowed for unlimited binary keys "
                  "(HAM_TYPE_BINARY"));
@@ -712,17 +725,12 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   LocalDatabase *db = new LocalDatabase(this, dbname, flags);
 
   /* initialize the Database */
-  ham_status_t st = db->create(dbi, key_type, key_size, rec_size);
+  ham_status_t st = db->create(dbi, key_type, key_size, rec_size,
+                            key_compressor, record_compressor);
   if (st) {
     delete db;
     return (st);
   }
-
-  /* enable compression? */
-  if (record_compressor)
-    db->enable_record_compression(record_compressor);
-  if (key_compressor)
-    db->enable_key_compression(key_compressor);
 
   mark_header_page_dirty();
 
@@ -746,7 +754,6 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
                 ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_u16_t dbi;
-  ham_u32_t record_compressor = HAM_COMPRESSOR_NONE;
 
   *pdb = 0;
 
@@ -806,10 +813,6 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
     ham_trace(("Database could not be opened"));
     return (st);
   }
-
-  /* enable compression? */
-  if (record_compressor)
-    db->enable_record_compression(record_compressor);
 
   /*
    * on success: store the open database in the environment's list of
