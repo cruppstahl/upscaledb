@@ -83,7 +83,9 @@ x add parameter to limit file size (also for APL)
     x add to python
     x add to erlang
 
-o collect/publish benchmark against leveldb (with and without SSD)
+x hola: extend the documentation
+
+x collect/publish benchmark against leveldb (with and without SSD)
     x uint64, small records, random write
     x uint64, small records, random read
     x uint64, small records, linear write
@@ -105,20 +107,22 @@ o collect/publish benchmark against leveldb (with and without SSD)
     x SSD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
     x SSD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
     x HDD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
-    o HDD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
+    x HDD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
 
-o hola: extend the tutorial
+x make sure that hamsterdb/master can compile against libuv 0.10.25
+    x rebase v2 to master
+    x rebase pro to base
 
 o PRO: use a bitmap index for recnos
     -> can we come up with a solution that also works for non-recnos?
         then we need to implement sparse indices (maybe even compress them
         with RLEs)
     -> compression idea:
-        a "macromap" is a bitmap stored in 32bit
-        2 bits per macromap for flags
-            00: macromap contains all zeroes (-> macromap is not required)
-            11: macromap contains all ones (-> macromap is not required)
-            10: macromap contains a bitmap (-> macromap is required)
+        a "BitVector" is a bitmap stored in 32bit
+        2 bits per BitVector for flags
+            00: BitVector contains all zeroes (-> macromap is not required)
+            11: BitVector contains all ones (-> macromap is not required)
+            10: BitVector contains a bitmap (-> macromap is required)
         a "minimap" is a set of flags (32bit -> 16 flags) with the corresponding
             (unknown) number of macromaps; minimum size is 4 bytes, 
             maximum is sizeof(T) + 17 * 4 = sizeof(T) + 68
@@ -126,25 +130,48 @@ o PRO: use a bitmap index for recnos
     o implement a testable template version of a minimap
         template parameters: type T (uint16, uint32, uint64)
                 number of 2bit flags
-        o needs to know its size
-        o must be able to insert/append, flip bits, test bits
-        o must iterate; use precomputed lookup-table for the flag word
+        x needs to shrink if all bits of a word are set (or not set)
+        x must iterate; use precomputed lookup-table for the flag word
+        x should be serialized in a flat buffer
+        x must be able to insert/append, flip bits, test bits
         o sparsemap: add another layer on top of this which manages a variable
             number of minimaps, and can iterate, lookup and insert
+            x all minimap offsets must be aligned to their capacity! otherwise
+                they must get merged and this creates awful complexity
+            x must be able to insert/append, test bits
+            x use a fixed length memory block instead of std::vector
+            o many unittests
+                x set range(1..10000), test if bit is set
+                o unset range(1..10000), test if bit is set
+            o remove the TODOs
+            o add more tests
+                o set range(1..10000) in reverse order
+                o unset range(1..10000) in reverse order
+                o add multiple MiniMaps
+        o check for overflow when growing
+        o improve performance
+            o very fast code path for appending bits (recno!)
+            o fast random access (use lookup table of minimaps and
+                    their offsets)
+        o refactor/beautify code
 
     o need new parameter/compression type; store it persistently
         o unittest
     o create a resizable KeyList based on a sparsemap
         o needs fixes in adjust_capacity??
+    o search: use skip-list approach? binary search will be inefficient
+        o needs fixes in insert(), erase()? currently uses slots, but should
+            use numeric key instead
+    o btree split: pivot interface must be chosen (or "adjusted") by the KeyList
     o for hola scans: don't use iterators but uncompress keys in a 4kb-buffer
         (-> caller interface can stay as is)
-    o btree split: pivot interface must be chosen (or "adjusted") by the KeyList
     o use KeyList only for leafs (b/c keys in the internal nodes are too sparse)
     o document - write a paper etc to claim prior art; release code as a
         separate open-source library (GPL)?
 
 o PRO: use grouped varints for the RecordLists
     o should work for InternalRecordList (64bit record IDs)
+        record ID could be modulo page-size (makes numbers smaller)
     o also for DefaultRecordList, if flags are separated from the record id's
     o and for default records
         o in this case the record flags should also be "compressed"
@@ -160,12 +187,8 @@ o PRO: use grouped varints for the RecordLists
 
 o webpage changes
     o give away for free to non-profits
+    o also add a startup program?
     o add CRC32 to pro documentation, feature matrix
-
-. PRO: should we have a separate "recsize == 0" RecordList for duplicates?
-    they could only store the duplicate count (but should be able to deal
-    with duplicates that are > 256!)
-    -> requires grouped varints
 
 . documentation rewrite
     o use github wiki
@@ -329,7 +352,6 @@ o windows cleanups
     o C# unittests sporadically fail b/c a handle is closed multiple times
     o automate the build process
     o ... and the packaging
-    . can we create a CHM from the documentation?
 
 o improve node layout compression (when the file format changes)
     -> btw: flags are not required at all if fixed length record size > 8
@@ -377,7 +399,7 @@ o release-v2.pl: valgrind takes sooo long. should we use clang's
         o importing new releases
         o etc
 
-. look into spark integration
+. look into spark and mongodb integration
     -> would be an interesting market with requirements for column store
         storage
     -> how does the integration look like?
@@ -443,6 +465,17 @@ o PRO: prefix compression for variable-length keys
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
 o the bucket for concurrency TODOs
+    this are the requirements:
+    - PRO: inserts are fully concurrent (APL: only one insert at a time)
+    - transactions are flushed in background
+    - dirty pages are flushed in background
+    - reading pages is synchronous, writing pages is asynchronous
+        -> needs a very fast locking scheme
+    - SSDs support many async. writes in parallel - be prepared!
+
+    o an intermediate stage would be to have concurrent reads but exclusive
+        writes (one writer, many readers) - makes sense?
+
     o create coding rules
         o synchronization either in lowest or highest level of the callstack
         o when to use what kind of synchronization
@@ -466,13 +499,7 @@ o the bucket for concurrency TODOs
         o the page manager, the device and the cache
         o the btree
         o the btree nodes (i.e. extkeycache, compressor)
-
-    o come up with a list of functions for which concurrency makes most sense
-        - parallel lookups (using the same memory arena)
-        - flushing transactions asynchronously
-        - purging caches asynchronously
-        - async. merging of delta updates
-        - have concurrent lookups/find/inserts (with delta updates)
+        o parallel lookups (using the same memory arena)
 
     o reduce the linked lists - they're hard to be updated with atomic
         operations
@@ -552,6 +579,11 @@ o "hola" - olap functions that operate directly on the btree data
 . also remove locking from C# and Java APIs
 
 ------------------- idea soup ---------------------------------------------
+
+. PRO: should we have a separate "recsize == 0" RecordList for duplicates?
+    they could only store the duplicate count (but should be able to deal
+    with duplicates that are > 256!)
+    -> requires grouped varints
 
 o asynchronous prefetching of pages
     -> see posix_fadvice, libprefetch
