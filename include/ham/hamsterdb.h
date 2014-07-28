@@ -1753,6 +1753,12 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_COMPRESSOR_LZO          4
 
 /**
+ * hamsterdb pro: enables bitmap compression (for HAM_TYPE_UINT32 and
+ * HAM_TYPE_UINT64 keys)
+ */
+#define HAM_COMPRESSOR_BITMAP       5
+
+/**
  * Retrieves the Environment handle of a Database
  *
  * @param db A valid Database handle

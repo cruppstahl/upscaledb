@@ -78,6 +78,8 @@ get_compressor_name(int library) {
       return ("lzf");
     case HAM_COMPRESSOR_LZO:
       return ("lzo");
+    case HAM_COMPRESSOR_BITMAP:
+      return ("bitmap");
     default:
       return ("???");
   }

@@ -113,11 +113,16 @@ x make sure that hamsterdb/master can compile against libuv 0.10.25
     x rebase v2 to master
     x rebase pro to base
 
+<<<<<<< HEAD
 x Refactoring: preparations for bitmap compression
+=======
+o Refactoring: preparations for bitmap compression
+>>>>>>> Started splitting btree classes into different files
     x btree_index_factory: RecordNumberCompare is no longer necessary since
         numbers are now host endian (it's a synonym for uint64!)
     x KeyList::has_simd_support() is the same as KeyList::kIsSimdEnabled
         remove the latter
+<<<<<<< HEAD
     x move each KeyList and RecordList into its own file
         x also make sure that each file is properly documented
         x update Makefile.am
@@ -132,6 +137,39 @@ x Refactoring: preparations for bitmap compression
 
 x PRO: KeyList::get_key_data() is only required to retrieve a buffer
     for SIMD search; rename the function (i.e. "get_simd_data()")
+=======
+    o move each KeyList and RecordList into its own file
+    o merge both btree layouts - this will reduce lots of code and make
+        the following refactorings easier
+        o rename file to btree_node_impl.h
+    o once more rewrite the capacity calculations in the LayoutImpl: right now
+        it's based on byte-wise calculations, but these do not work with
+        the bitmap (and with other sub-byte compression schemes as well)
+        - KeyList::calculate_capacity(range_size)
+        - RecordList::calculate_capacity(range_size)
+        then meet in the middle, store the result and reuse it for the next
+        page
+    o kHasSequentialData still required?
+    o PRO: KeyList::get_key_data() is only required to retrieve a buffer
+        for SIMD search; rename the function (i.e. "get_simd_data()")
+
+    o split files
+        0root/root.h - very first header file
+        1base/error.h, mem.h - all stuff based on 0root
+        1os/os* - all stuff based on 1base
+        2device/device*
+        2protoserde/protoserde*
+        2protobuf/protobuf*
+        3blob/blob*
+        3journal/journal*
+        3log/log*
+        3btree/btree*
+        4txn/...
+        4cursor/...
+        5server/...
+        hamsterdb.cc, hola.cc (remain in root directory)
+        o enforce "layers" with macros in header file
+>>>>>>> Started splitting btree classes into different files
 
 o PRO: use a bitmap index for recnos
     -> can we come up with a solution that also works for non-recnos?
@@ -180,6 +218,7 @@ o PRO: use a bitmap index for recnos
     x print in ham_info
     x only allowed for uint16, uint32 and uint64 keys
 
+<<<<<<< HEAD
     x rebase to v2
         x verify that aes encryption still works
         x verify that journal compression is still working
@@ -189,10 +228,14 @@ o PRO: use a bitmap index for recnos
         x verify that key compression is still working for extkeys
 
     x create a resizable KeyList based on a sparsemap
+=======
+    o create a resizable KeyList based on a sparsemap
+>>>>>>> Started splitting btree classes into different files
         x start with a minimal KeyList which compiles, but does not have any
             functionality
         x use KeyList only for leafs (b/c keys in the internal nodes are
             too sparse)
+<<<<<<< HEAD
         x implement erase_slot()
         x implement insert() - cannot work on slots!!
         x search: use skip-list approach? binary search will be inefficient
@@ -319,6 +362,27 @@ erasing, the node has either to be split or rearranged.
     o (APL) disable duplicates in combination with recnos
 
     o (APL) RecordNumbers always start with 1, which means bit 0 will always be
+=======
+        o fix capacity calculation
+            (KeyList::get_full_key_size still required?)
+        o implement get_key()
+        o implement erase_slot()
+        o implement insert()
+        o implement requires_split()
+        o implement copy_to()
+        o implement change_capacity()
+        o implement print()
+        o search: use skip-list approach? binary search will be inefficient
+        o needs fixes in adjust_capacity??
+        o needs fixes in insert(), erase()? currently uses slots, but should
+            use numeric key instead
+        o btree split: pivot interface must be chosen (or "adjusted") by the
+            KeyList
+        o for hola scans: don't use iterators but uncompress keys in a buffer
+            (size depends on BitVector size) -> caller interface can stay as is
+
+    o RecordNumbers always start with 1, which means bit 0 will always be
+>>>>>>> Started splitting btree classes into different files
         false and the first bitmap will not be compressible. Make sure that
         internally, recno's start with 0
 
@@ -326,6 +390,7 @@ erasing, the node has either to be split or rearranged.
         suggestion: use fixed-length lookup table with offsets for the minimap
         the last entry is always for the last minimap (this will be the
         starting point for appending bits)
+<<<<<<< HEAD
         x scan() has many branches because of the "skip" - can they be avoided?
         o perform a profiling run with valgrind
         o insert() checks if it can prepend/append, but this requires
@@ -346,6 +411,13 @@ erasing, the node has either to be split or rearranged.
         o move select(), count(), split() to the derived class
         o ... and everything else that is hamsterdb-related
     o document in header file (esp. for recno!)
+=======
+        o very fast code path for appending bits (recno!)
+        o fast random access (use lookup table of minimaps and
+                their offsets)
+
+    o run sparsemap's unittests as part of the regular unittests
+>>>>>>> Started splitting btree classes into different files
     o document - write a paper etc to claim prior art; release code as a
         separate open-source library (GPL)?
 
@@ -355,6 +427,26 @@ o webpage changes
     o add CRC32 to pro documentation, feature matrix
     o add bitmap compression to pro documentation, feature matrix
 
+<<<<<<< HEAD
+=======
+. PRO: use grouped varints for the RecordLists
+    x can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
+        -> no, better use bitmaps
+    o should work for InternalRecordList (64bit record IDs)
+        record ID could be modulo page-size (makes numbers smaller)
+    o also for DefaultRecordList, if flags are separated from the record id's
+    o and for default records
+        o in this case the record flags should also be "compressed"
+    o GroupedVarints should be parameterized and work for 32bit and 64bit
+        numbers and a variety of capacities
+    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
+    http://www.oschina.net/code/snippet_12_5083
+    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
+    -> the concept will be similar to prefix compression
+    -> can we come up with a schema that allows compression AND
+        fast random access?
+
+>>>>>>> Started splitting btree classes into different files
 . documentation rewrite
     o use github wiki
         o remove old cruft
@@ -567,6 +659,24 @@ o can we add a generic macro like this:
     o use in unittests
     o document
 
+<<<<<<< HEAD
+=======
+o refactoring: can we merge both btree layouts? it would reduce lots of code
+
+o refactoring: it would be nicer if the ham_paramter_t lists are passed to
+    the Environment implementation and do not have to be parsed in hamsterdb.cc
+    (see HAM_PARAM_FILE_SIZE, which is not relevant for in-memory and remote
+    Environments)
+    - db_config.h: a class with the run-time configuration of
+        the database
+    - env_config.h: a class with the run-time configuration of
+        the environment
+    - These classes initialize themselves with the parameters supplied by
+        the user, and call all other modules (device, cache...) with this
+        structure as the parameter for initialization
+    - All getters of these classes are const/immutable
+
+>>>>>>> Started splitting btree classes into different files
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
