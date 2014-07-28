@@ -24,7 +24,7 @@
 #include "os.hpp"
 
 #include "../src/db_local.h"
-#include "../src/btree_impl_default.h"
+#include "../src/btree_index_factory.h"
 
 #ifdef WIN32
 #  undef min
@@ -679,7 +679,7 @@ struct DuplicateTableFixture
 
     const ham_u8_t *p = record_data;
     for (size_t i = 0; i < num_records; i++) {
-      dt.get_record(i, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_sizes[i]);
 
       // this test does not compare record contents if they're not
@@ -729,7 +729,7 @@ struct DuplicateTableFixture
     for (size_t i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = i;
 
-      dt.get_record(i, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
       REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
     }
@@ -772,7 +772,7 @@ struct DuplicateTableFixture
     for (size_t i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
 
-      dt.get_record(i - 1, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i - 1);
       REQUIRE(record.size == record_size);
       REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
     }
@@ -821,7 +821,7 @@ struct DuplicateTableFixture
     record.data = arena.get_ptr();
 
     for (size_t i = 0; i < num_records; i++) {
-      dt.get_record(i, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
@@ -867,7 +867,7 @@ struct DuplicateTableFixture
       model.erase(model.begin());
 
       for (size_t j = 0; j < num_records - i - 1; j++) {
-        dt.get_record(j, &arena, &record, 0);
+        dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
@@ -916,7 +916,7 @@ struct DuplicateTableFixture
       model.erase(model.end() - 1);
 
       for (size_t j = 0; j < i - 1; j++) {
-        dt.get_record(j, &arena, &record, 0);
+        dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
@@ -967,7 +967,7 @@ struct DuplicateTableFixture
       model.erase(model.begin() + position);
 
       for (size_t j = 0; j < num_records - i - 1; j++) {
-        dt.get_record(j, &arena, &record, 0);
+        dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
@@ -1020,7 +1020,7 @@ struct DuplicateTableFixture
     record.data = arena.get_ptr();
 
     for (size_t i = 0; i < num_records; i++) {
-      dt.get_record(i, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
@@ -1069,7 +1069,7 @@ struct DuplicateTableFixture
     for (size_t i = 0; i < num_records; i++) {
       record.data = arena.get_ptr();
       *(size_t *)&buf[0] = i + 1000;
-      dt.get_record(i, &arena, &record, 0);
+      dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == (ham_u32_t)((i + 1) % 15));
 	  if (record.size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));

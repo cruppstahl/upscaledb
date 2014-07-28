@@ -91,6 +91,7 @@
 #define ARG_PAX_LINEAR_THRESHOLD                65
 #define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
+#define ARG_ENABLE_CRC32                        68
 
 /*
  * command line parameters
@@ -384,37 +385,44 @@ static option_t opts[] = {
     ARG_JOURNAL_COMPRESSION,
     0,
     "journal-compression",
-    "PRO: Enables journal compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables journal compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_RECORD_COMPRESSION,
     0,
     "record-compression",
-    "PRO: Enables record compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables record compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "PRO: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo', "
+            "'bitmap')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,
     0,
     "pax-linear-threshold",
-    "Sets the threshold when switching from binary search to linear search (PAX only)",
+    "Sets the threshold when switching from binary search to linear search",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_DISABLE_SIMD,
     0,
     "pax-disable-simd",
-    "Enables use of SIMD instructions (PAX only)",
+    "Pro: Enables use of SIMD instructions",
     0 },
   {
     ARG_READ_ONLY,
     0,
     "read-only",
     "Uses the HAM_READ_ONLY flag",
+    0 },
+  {
+    ARG_ENABLE_CRC32,
+    0,
+    "enable-crc32",
+    "Pro: Enables use of CRC32 verification",
     0 },
   {0, 0}
 };
@@ -432,8 +440,10 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
+  if (!strcmp(param, "bitmap"))
+    return (HAM_COMPRESSOR_BITMAP);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo'\n", param);
+                  "'snappy', 'lzf', 'lzo', 'bitmap'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
@@ -759,6 +769,9 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_PAX_DISABLE_SIMD) {
       hamsterdb::Globals::ms_is_simd_enabled = false;
+    }
+    else if (opt == ARG_ENABLE_CRC32) {
+      c->enable_crc32 = true;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;

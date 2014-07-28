@@ -1728,7 +1728,10 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** hamsterdb pro: helper macro for disabling compression */
 #define HAM_COMPRESSOR_NONE         0
 
-/** hamsterdb pro: selects zlib compression */
+/**
+ * hamsterdb pro: selects zlib compression
+ * http://www.zlib.net/
+ */
 #define HAM_COMPRESSOR_ZLIB         1
 
 /**
@@ -1744,10 +1747,16 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_COMPRESSOR_LZF          3
 
 /**
- * hamsterdb pro: selects lzop compression
+ * hamsterdb pro: selects lzo compression
  * http://www.oberhumer.com/opensource/lzo
  */
 #define HAM_COMPRESSOR_LZO          4
+
+/**
+ * hamsterdb pro: enables bitmap compression (for HAM_TYPE_UINT32 and
+ * HAM_TYPE_UINT64 keys)
+ */
+#define HAM_COMPRESSOR_BITMAP       5
 
 /**
  * Retrieves the Environment handle of a Database

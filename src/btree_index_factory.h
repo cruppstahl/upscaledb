@@ -21,6 +21,13 @@
 #include "btree_index.h"
 #include "btree_impl_default.h"
 #include "btree_impl_pax.h"
+#include "btree_keys_pod.h"
+#include "btree_keys_binary.h"
+#include "btree_keys_varlen.h"
+#include "btree_records_default.h"
+#include "btree_records_inline.h"
+#include "btree_records_internal.h"
+#include "btree_records_duplicate.h"
 #include "btree_node_proxy.h"
 
 
@@ -65,25 +72,6 @@ struct BtreeIndexFactory
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
     bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
-
-    // Record number database
-    if (flags & HAM_RECORD_NUMBER) {
-      if (!is_leaf)
-        return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                        PaxLayout::InternalRecordList>,
-                    RecordNumberCompare>());
-      if (inline_records)
-        return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                        PaxLayout::InlineRecordList>,
-                    RecordNumberCompare>());
-      else
-        return (new BtreeIndexTraitsImpl
-                    <PaxNodeImpl<PaxLayout::PodKeyList<ham_u64_t>,
-                        PaxLayout::DefaultRecordList>,
-                    RecordNumberCompare>());
-    }
 
     switch (key_type) {
       // 8bit unsigned integer

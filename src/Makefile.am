@@ -21,14 +21,23 @@ libhamsterdb_la_SOURCES = \
 	btree_erase.cc \
 	btree_find.cc \
 	btree_flags.h \
+	btree_impl_base.h \
 	btree_impl_default.h \
 	btree_impl_pax.h \
 	btree_index.cc \
 	btree_index.h \
 	btree_index_factory.h \
 	btree_insert.cc \
+	btree_keys_base.h \
+	btree_keys_binary.h \
+	btree_keys_varlen.h \
+	btree_keys_pod.h \
 	btree_node.h \
 	btree_node_proxy.h \
+	btree_records_default.h \
+	btree_records_inline.h \
+	btree_records_internal.h \
+	btree_records_duplicate.h \
 	btree_stats.cc \
 	btree_stats.h \
 	btree_visit.cc \

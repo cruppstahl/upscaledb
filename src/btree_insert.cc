@@ -250,27 +250,27 @@ class BtreeInsertAction
       if (!parent)
         parent = allocate_new_root(old_page);
 
+
+
       Page *to_return = 0;
       ByteArray pivot_key_arena;
       ham_key_t pivot_key = {0};
 
       /* if the key is appended then don't split the page; simply allocate
        * a new page and insert the new key. */
-      bool append = false;
+      int pivot = 0;
       if (m_hints.flags & HAM_HINT_APPEND && old_node->is_leaf()) {
         int cmp = old_node->compare(key, old_node->get_count() - 1);
-        if (cmp == +1)
-          append = true;
+        if (cmp == +1) {
+          to_return = new_page;
+          pivot_key = *key;
+          pivot = old_node->adjust_split_pivot(old_node->get_count());
+        }
       }
 
-      if (append) {
-        to_return = new_page;
-
-        pivot_key = *key;
-      }
-      else {
-        /* get the slot of the pivot key */
-        int pivot = get_pivot(old_node);
+      /* no append? then calculate the pivot key and perform the split */
+      if (pivot != (int)old_node->get_count()) {
+        pivot = get_pivot(old_node);
 
         /* and store the pivot key for later */
         old_node->get_key(pivot, &pivot_key_arena, &pivot_key);
@@ -361,6 +361,9 @@ class BtreeInsertAction
         pivot = 2;
       else
         pivot = old_count / 2;
+
+      pivot = old_node->adjust_split_pivot(pivot);
+
       ham_assert(pivot > 0 && pivot <= (int)old_count - 2);
 
       return (pivot);

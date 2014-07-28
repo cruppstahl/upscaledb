@@ -84,8 +84,7 @@ struct BaseCursorFixture {
       rec.data = data;
       rec.size = i;
       ::memset(&data, i + 0x15, sizeof(data));
-      REQUIRE(0 ==
-          ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
     }
 
     for (int i = 0; i < MAX; i++) {
@@ -94,9 +93,8 @@ struct BaseCursorFixture {
       ::memset(&key, 0, sizeof(key));
       REQUIRE(0 ==
           ham_cursor_move(c, &key, &rec,
-            i == 0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
-      REQUIRE(0 ==
-          ham_cursor_get_record_size(c, &size));
+                i == 0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_get_record_size(c, &size));
       REQUIRE(size == rec.size);
     }
 
