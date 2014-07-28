@@ -19,10 +19,10 @@ x all changes of APL version
 x SIMD for default layout/PAX keylists
 x CRC32
 x SIMD for real64
-o add parameter to limit file size (APL + PRO)
-o benchmark (APL)
+x add parameter to limit file size (APL + PRO)
+x benchmark (APL)
 o bitmap index
-o grouped varints
+. grouped varints
 
 x adapt to the newest changes from 2.1.8
     x move global variables to Globals
@@ -113,6 +113,26 @@ x make sure that hamsterdb/master can compile against libuv 0.10.25
     x rebase v2 to master
     x rebase pro to base
 
+x Refactoring: preparations for bitmap compression
+    x btree_index_factory: RecordNumberCompare is no longer necessary since
+        numbers are now host endian (it's a synonym for uint64!)
+    x KeyList::has_simd_support() is the same as KeyList::kIsSimdEnabled
+        remove the latter
+    x move each KeyList and RecordList into its own file
+        x also make sure that each file is properly documented
+        x update Makefile.am
+    x kHasSequentialData still required? - yes, absolutely
+    x have both btree layouts derive from common subclass and reduce code
+        x file is btree_impl_base.h
+    x once more rewrite the capacity calculations in the LayoutImpl: right now
+        it's based on byte-wise calculations, but these do not work with
+        the bitmap (and with other sub-byte compression schemes as well)
+        -> use double for key size calculations (get_full_key_size(),
+            get_full_record_size())
+
+x PRO: KeyList::get_key_data() is only required to retrieve a buffer
+    for SIMD search; rename the function (i.e. "get_simd_data()")
+
 o PRO: use a bitmap index for recnos
     -> can we come up with a solution that also works for non-recnos?
         then we need to implement sparse indices (maybe even compress them
@@ -127,68 +147,184 @@ o PRO: use a bitmap index for recnos
             (unknown) number of macromaps; minimum size is 4 bytes, 
             maximum is sizeof(T) + 17 * 4 = sizeof(T) + 68
 
-    o implement a testable template version of a minimap
+    x implement a testable template version of a minimap
         template parameters: type T (uint16, uint32, uint64)
                 number of 2bit flags
         x needs to shrink if all bits of a word are set (or not set)
         x must iterate; use precomputed lookup-table for the flag word
         x should be serialized in a flat buffer
         x must be able to insert/append, flip bits, test bits
-        o sparsemap: add another layer on top of this which manages a variable
+        x sparsemap: add another layer on top of this which manages a variable
             number of minimaps, and can iterate, lookup and insert
             x all minimap offsets must be aligned to their capacity! otherwise
                 they must get merged and this creates awful complexity
             x must be able to insert/append, test bits
             x use a fixed length memory block instead of std::vector
-            o many unittests
+            x many unittests
                 x set range(1..10000), test if bit is set
-                o unset range(1..10000), test if bit is set
-            o remove the TODOs
-            o add more tests
-                o set range(1..10000) in reverse order
-                o unset range(1..10000) in reverse order
-                o add multiple MiniMaps
-        o check for overflow when growing
-        o improve performance
-            o very fast code path for appending bits (recno!)
-            o fast random access (use lookup table of minimaps and
-                    their offsets)
-        o refactor/beautify code
+                x unset range(1..10000), test if bit is set
+                x set range(10000..1) in reverse order
+                x unset range(10000..1) in reverse order
+                x set 1; set 2048*2+1; set 2048; must insert a MiniMap in
+                    between two other MiniMaps
+                x unset all above -> should we delete the full minimap?
+                    implemented, but tests are failing
+        x check for overflow when growing; make sure that the code flow
+            is exception safe!
+        x review/refactor/beautify code
 
-    o need new parameter/compression type; store it persistently
-        o unittest
+    x add to header file
+    x need new parameter/compression type; store it persistently
+        x unittest
+    x add to ham_bench
+    x print in ham_info
+    x only allowed for uint16, uint32 and uint64 keys
+
+    x rebase to v2
+        x verify that aes encryption still works
+        x verify that journal compression is still working
+        x verify that record compression is still working
+        x verify that SSE is still working for PAX layouts
+        x verify that key compression is still working for normal keys
+        x verify that key compression is still working for extkeys
+
     o create a resizable KeyList based on a sparsemap
-        o needs fixes in adjust_capacity??
-    o search: use skip-list approach? binary search will be inefficient
-        o needs fixes in insert(), erase()? currently uses slots, but should
-            use numeric key instead
-    o btree split: pivot interface must be chosen (or "adjusted") by the KeyList
-    o for hola scans: don't use iterators but uncompress keys in a 4kb-buffer
-        (-> caller interface can stay as is)
-    o use KeyList only for leafs (b/c keys in the internal nodes are too sparse)
+        x start with a minimal KeyList which compiles, but does not have any
+            functionality
+        x use KeyList only for leafs (b/c keys in the internal nodes are
+            too sparse)
+        x implement erase_slot()
+        x implement insert() - cannot work on slots!!
+        x search: use skip-list approach? binary search will be inefficient
+            -> simply set m_keys.linear_search_threshold to 0
+        x fix capacity calculation
+            x initial key size: KeyList::get_full_key_size (return 1.0/8.0)
+            x implement requires_split()
+            x implement change_capacity()
+        x implement print() and get_key()
+            -> sparsemap.h: implement nth_set_bit()
+        x for hola scans: don't use iterators but uncompress keys in a buffer
+            (size depends on BitVector size) -> caller interface can stay as is
+        x btree split: pivot interface must be chosen (or "adjusted") by the
+            KeyList
+        x use 32bit words instead of 64bit; otherwise the minimum capacity
+            is too big for default-sized records 
+            x also make sure that records are not inlined if the minimum
+                capacity of the bitmap is missed
+        x implement copy_to()
+            assert that the slot is on a minimap-boundary and properly aligned,
+            then simply copy the minimaps
+        x fix remaining TODOs in btree_keys_bitmap.h
+
+        x run some basic tests with ham_bench
+            x make sure that flag is persisted and used
+            x currently always performs very slow binary search
+
+        o unittests
+            x integrate sparsemap's unittests (w/ both word sizes!)
+            x sparsemap-tests for move_and_append()
+            x check capacity of node w/ default records
+            x check capacity of node w/ empty records
+            x insert/find/erase/find
+================
+            o splits/merges
+                -> run insert/find/erase/find test, but with default record
+                    sizes; this causes 7-8 splits and merges
+crashes because there's a split for a leaf node with just 3 items.
+seems that at initialization the range for the bitmap is too small.
+================
+            o cursor moves
+            o hola
+
+    o there are currently several conceptual problems:
+        1. the capacity of the node must be aligned to the bitmap capacity
+            -> fix the initialization routine
+        2. if duplicates are enabled then it's possible that the minimum
+            capacity of a bitmap will not fit in a page 
+        3. the "capacity"/aligned minimaps are problematic because the number
+            of records will not exceed the minimap capacity. therefore there is
+            lots of free space in the node. as long as the minimaps are
+            aligned, this will be hard to solve
+
+    x MiniMaps should remain aligned, but to the Wordsize and not to the
+        full capacity. Unused words are flagged as 2#01, and cannot grow
+        because then they might have to be merged with the following MiniMap.
+        x adjust the lookup table (calc_vector_size)
+        x adjust get_size()
+        x introduce get_capacity()
+        x fix everything else
+    x fix the node initialization - not enough bytes are currently allocated
+        -> is ok
+
+    x SparseMap needs to know its capacity
+    x SparseMap needs to know its *remaining* capacity
+
+    x when creating a MiniMap: pass the remaining capacity; set the MiniMap
+        flags in m_data[0] (can use a lookup table)
+        x then update the remaining capacity in the SparseMap
+    x update after move_and_append()
+
+    x rename move_and_split() to split()
+    x adjust the split function; it should be possible to split a SparseMap
+        into multiple MiniMaps -> make sure that we can split word-aligned
+
+==========================
+    o make sure that the KeyList resizes properly
+        -> is not ok yet - seems to resize too much, then the node
+            ends up with 44 bytes left
+        x make sure that resizing is word-aligned!
+- currently crashes in the unittest; seems to be related to the split()
+    function
+- nach dem split hat die neue sparsemap eine capacity -1, auch wenn mitten
+    in einer minimap gesplittet wurde; wird die capacity da überhaupt
+    noch benötigt?
+- could write a test which inserts 3*capacity (w/ different patterns); then
+    splits at arbitrary positions and compares the result with the original
+    - then select() the highest bit
+==========================
+
+    o add many monster tests (keys: uint16, uint32, uint64; different
+        record sizes; different distributions etc)
+        o also with duplicates!
+
+    o RecordNumbers always start with 1, which means bit 0 will always be
+        false and the first bitmap will not be compressible. Make sure that
+        internally, recno's start with 0
+
+    o improve sparsemap performance
+        suggestion: use fixed-length lookup table with offsets for the minimap
+        the last entry is always for the last minimap (this will be the
+        starting point for appending bits)
+        x scan() has many branches because of the "skip" - can they be avoided?
+        o get_capacity() is called frequently, but there's a difference between
+            calculating capacity and comparing the index, or checking whether
+            the index is *in* that minimap capacity; the second one is faster
+        o very fast code path for appending bits (recno!)
+        o fast random access (use lookup table of minimaps and
+                their offsets)
+        o some functions like get_key() (called in cursor_move) are slow
+            because they operate on "slots" instead of keys. can they be
+            optimized? (i.e. add popcount to the lookup table)
+
+    o improve separation between hamsterdb sources and sparsemap by deriving
+        from sparsemap::SparseMap, and use the derived class
+        o move select(), count(), split() to the derived class
+        o ... and everything else that is hamsterdb-related
+    o document in header file (esp. for recno!)
     o document - write a paper etc to claim prior art; release code as a
         separate open-source library (GPL)?
 
-o PRO: use grouped varints for the RecordLists
-    o should work for InternalRecordList (64bit record IDs)
-        record ID could be modulo page-size (makes numbers smaller)
-    o also for DefaultRecordList, if flags are separated from the record id's
-    o and for default records
-        o in this case the record flags should also be "compressed"
-    o can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
-    o GroupedVarints should be parameterized and work for 32bit and 64bit
-        numbers and a variety of capacities
-    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
-    http://www.oschina.net/code/snippet_12_5083
-    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
-    -> the concept will be similar to prefix compression
-    -> can we come up with a schema that allows compression AND
-        fast random access?
+o Refactoring: LocalDatabase::create() should accept key_compression and
+    record_compression as a parameter; but LocalDatabase::open() should *not*
+    require any of them, because the flags are persisted!
+    (if not then persist them)
+    -> or postpone, because we want to rewrite the parameter handling anyway
 
 o webpage changes
     o give away for free to non-profits
     o also add a startup program?
     o add CRC32 to pro documentation, feature matrix
+    o add bitmap compression to pro documentation, feature matrix
 
 . documentation rewrite
     o use github wiki
@@ -233,6 +369,121 @@ o webpage changes
 
 ------------- hamsterdb 2.1.9 ----------------------------------------
 
+o refactoring: split files
+    0root/root.h - very first header file (only one!)
+    1base/error.h, pack*, util, mutex, version - all stuff based on 0root
+    1os/os* - all stuff based on 1base (split in os_file.h and os_socket.h)
+    1mem
+    2page/
+    2changeset/
+    2device/
+    2protoserde/
+    2protobuf/
+    3blob/
+    3journal/
+    3log/
+    3page_manager/
+    3btree/btree*
+    4txn/...
+    4db/...
+    4env/...
+    4cursor/...
+    5server/...
+    hamsterdb.cc, hola.cc (remain in root directory)
+    o root0: add pragmas from btree_impl_default.h, undef min/max
+    o enforce "layers" with macros in header file
+        (HAM_HEADER_START(tier, guard)
+            -> #ifndef guard
+               #  define guard
+               #if current_tier > tier
+               #  error ...
+               #  current_tier = tier
+               #endif
+               #if namespace_Started
+               #  error ...
+               #endif
+               #define namespace_Started 1
+               #ifndef root0_included
+               #  error 0root/root.h was not included
+               #endif
+               namespace hamsterdb {
+        HAM_HEADER_END()
+               } // namespace hamsterdb
+               #endif // guard
+               #undef namespace_Started
+
+o refactoring: get_linear_search_threshold returns size_t, but is
+    then used as (signed) int; some return 0, others -1
+    right now the code works but is cheesy. return (int)0 to disable.
+
+o refactoring: it would be nicer if the ham_paramter_t lists are passed to
+    the Environment implementation and do not have to be parsed in hamsterdb.cc
+    (see HAM_PARAM_FILE_SIZE, which is not relevant for in-memory and remote
+    Environments)
+    - db_config.h: a class with the run-time configuration of
+        the database
+    - env_config.h: a class with the run-time configuration of
+        the environment
+    - These classes initialize themselves with the parameters supplied by
+        the user, and call all other modules (device, cache...) with this
+        structure as the parameter for initialization
+    - All getters of these classes are const/immutable
+
+o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
+    then we end up in troubles because of code inflation, and because
+    the BtreeIndexFactory will become so complex.
+    check if it's possible to unify the KeyList/RecordList; both are fairly
+    identical with one exception: the RecordLists have to support duplicates
+    (but i think this should be manageable)
+    -> yes, it's possible. The KeyList has a few methods that are not
+        required by the RecordList, and vice versa
+    -> try to get rid of these methods; if not possible then create a common
+        base class and derive the KeyList and RecordList from it
+    -> then replace
+            InlineRecordList -> PodKeyList<uint64>
+            InlineRecordList -> BinaryKeyList
+            (other will follow as soon as compression is enabled)
+
+o refactoring: rewrite capacity calculations (again...)
+    -> in LocalDatabase::create -> call calc_estimated_capacity()
+    -> in initialize() of the node implementation
+    -> in requires_split()
+    -> in adjust_capacity()
+    o come up with a universal solution that works in all cases, and where
+        the logic is implemented in the node/KL/RL, and nowhere else!
+      - initialize(), calc_estimated_capacity():
+        -> from each KL/RL collect
+            - static overhead for metadata
+            - estimated size for each item
+      - requires_split(): simply check if another item *could be inserted*
+      - adjust_capacity(): KL/RL should know whether to grow or shrink
+      - some KLs (Bitmap!) require a minimum range size
+    o should requires_split() and insert() be merged? and always throw an
+        exception (LIMITS_REACHED) if the insert would fail, and rearranging
+        would fail?
+        -> yes! Also, the function could inform how much *additional space* the
+            list requires; this would make the resize function much simpler!
+    o rename copy_to() to remove_and_append()
+
+o refactoring: once more check if we can unify the PaxLayout and
+    the DefaultLayout
+
+o review exception safety
+    http://exceptionsafecode.com/
+    o consistently use smart_pointers to manage allocated resources!
+    o introduce on_scope_exit macro
+    o every destructor has to clean up (must not throw)
+    o all cleanup code in destructor
+    o support std::swap
+    o manage state like a resource
+    o defer commits till success is guaranteed
+    o use "critical line" for strong guarantees
+    o every state has to be restored in case of an exception
+    o document every rewritten class with an annotation ("@@exception_safe yes")
+    o if no method in the class throws: "@@exception_nothrow yes"
+
+o get rid of the virtual inheritance for hola workers
+
 o erlang: 2 tests are failing
 
 o java still has license.java/version.java - remove!
@@ -256,19 +507,6 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
-
-o refactoring: it would be nicer if the ham_paramter_t lists are passed to
-    the Environment implementation and do not have to be parsed in hamsterdb.cc
-    (see HAM_PARAM_FILE_SIZE, which is not relevant for in-memory and remote
-    Environments)
-    - db_config.h: a class with the run-time configuration of
-        the database
-    - env_config.h: a class with the run-time configuration of
-        the environment
-    - These classes initialize themselves with the parameters supplied by
-        the user, and call all other modules (device, cache...) with this
-        structure as the parameter for initialization
-    - All getters of these classes are const/immutable
 
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
@@ -366,7 +604,8 @@ o release-v2.pl: valgrind takes sooo long. should we use clang's
     o support java api
     o support .net api
     o support erlang api
-    o PRO: lua-functions as callbacks - then remote marshalling will work
+    o lua-functions as callbacks - then remote marshalling will work
+    o PRO: compile callbacks with clang remotely
     o add remote support where it makes sense (only for PRO?)
 
 . architecture for a new webpage
@@ -399,7 +638,7 @@ o release-v2.pl: valgrind takes sooo long. should we use clang's
         o importing new releases
         o etc
 
-. look into spark and mongodb integration
+. look into spark, mongodb and mariadb integration
     -> would be an interesting market with requirements for column store
         storage
     -> how does the integration look like?
@@ -429,6 +668,29 @@ o PRO: bulk updates
     o also for java
     o also for erlang
     o also for python
+
+o PRO: use grouped varints for the RecordLists
+    -> use in combination with "distance encoding" - only encode the distances
+        between the values! i.e.
+        <start><flags><d1|d2|d3|...>
+          d2 is the difference of d2 to d1, d1 is the difference of d1 to start
+          the "d"-values are compressed. usually they are very small and
+          therefore require little space.
+    o can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
+        -> yes, absolutely
+    o should work for InternalRecordList (64bit record IDs)
+        record ID could be modulo page-size (makes numbers smaller)
+    o also for DefaultRecordList, if flags are separated from the record id's
+    o and for default records
+        o in this case the record flags should also be "compressed"
+    o GroupedVarints should be parameterized and work for 32bit and 64bit
+        numbers and a variety of capacities
+    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
+    http://www.oschina.net/code/snippet_12_5083
+    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
+    -> the concept will be similar to prefix compression
+    -> can we come up with a schema that allows compression AND
+        fast random access?
 
 o PRO: prefix compression for variable-length keys
     ==> not efficient for random read/writes, but that's ok. linear scans
@@ -490,6 +752,7 @@ o the bucket for concurrency TODOs
 
     o mutex implementations should have built-in monitoring, i.e.
         number of locks/unlocks, wait times, contention etc
+        o need read/write mutex, fast latches
 
     o come up with a list of all functions, define which locking operation
         is required; then review the code and make sure this will work
@@ -520,10 +783,13 @@ o the bucket for concurrency TODOs
 
 
 o PRO: hot backups (vacuumizes to a different file)
-    - copies the database file
+    really only for PRO?
+    http://sqlite.org/c3ref/backup_finish.html
+    - make sure that all transactions are closed
+    - perform ham_env_flush
+    - then copy the file
     - if compaction is enabled: copies keys w/ iterator
         (later: performs bulk updates)
-    - then applies all committed transactions to the other file
     --> think this through; how to deal with delta updates? -> merge them
         what if only a few databases should be backed up?
         what if i want to back up in a logical format (i.e. csv)?

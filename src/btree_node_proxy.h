@@ -20,6 +20,7 @@
 #include "abi.h"
 #include "util.h"
 #include "page.h"
+#include "error.h"
 #include "btree_node.h"
 #include "blob_manager.h"
 #include "env_local.h"
@@ -209,6 +210,10 @@ class BtreeNodeProxy
     // Returns true if a node requires a merge or a shift
     virtual bool requires_merge() const = 0;
 
+    // Can return a modified pivot key; required for compressed KeyLists
+    // and RecordLists of PRO
+    virtual int adjust_split_pivot(int pivot) = 0;
+
     // Splits a page and moves all elements at a position >= |pivot|
     // to the |other| page. If the node is a leaf node then the pivot element
     // is also copied, otherwise it is not because it will be propagated
@@ -269,11 +274,6 @@ struct NumericCompare
     return (l < r ? -1 : (l > r ? +1 : 0));
   }
 };
-
-//
-// A comparator for record number keys
-//
-typedef NumericCompare<ham_u64_t> RecordNumberCompare;
 
 //
 // The default comparator for two keys, implemented with memcmp(3).
@@ -507,6 +507,12 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns true if a node requires a merge or a shift
     virtual bool requires_merge() const {
       return (m_impl.requires_merge());
+    }
+
+    // Can return a modified pivot key; required for compressed KeyLists
+    // and RecordLists of PRO
+    virtual int adjust_split_pivot(int pivot) {
+      return (m_impl.adjust_split_pivot(pivot));
     }
 
     // Splits the node
