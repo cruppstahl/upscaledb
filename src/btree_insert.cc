@@ -264,7 +264,7 @@ class BtreeInsertAction
         if (cmp == +1) {
           to_return = new_page;
           pivot_key = *key;
-          pivot = old_node->adjust_split_pivot(old_node->get_count());
+          pivot = old_node->get_count();
         }
       }
 
@@ -361,8 +361,6 @@ class BtreeInsertAction
         pivot = 2;
       else
         pivot = old_count / 2;
-
-      pivot = old_node->adjust_split_pivot(pivot);
 
       ham_assert(pivot > 0 && pivot <= (int)old_count - 2);
 
