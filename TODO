@@ -481,23 +481,30 @@ seems that at initialization the range for the bitmap is too small.
     x adjust the split function; it should be possible to split a SparseMap
         into multiple MiniMaps -> make sure that we can split word-aligned
 
-==========================
-    o make sure that the KeyList resizes properly
+    x make sure that the KeyList resizes properly
         -> is not ok yet - seems to resize too much, then the node
             ends up with 44 bytes left
         x make sure that resizing is word-aligned!
-- currently crashes in the unittest; seems to be related to the split()
-    function
-- nach dem split hat die neue sparsemap eine capacity -1, auch wenn mitten
-    in einer minimap gesplittet wurde; wird die capacity da überhaupt
-    noch benötigt?
-- could write a test which inserts 3*capacity (w/ different patterns); then
-    splits at arbitrary positions and compares the result with the original
-    - then select() the highest bit
-==========================
+        x remove the capacity interface of the sparsemap - it's not required
 
-    o add many monster tests (keys: uint16, uint32, uint64; different
-        record sizes; different distributions etc)
+    o if a minimap is inserted *between* two minimaps then it has to
+        make sure that the capacities don't overlap
+        x this affects splits as well? - no
+        x merges? - no
+        - if a minimap is appended, the start of the next sibling has to
+            be checked
+        - also when it's prepended
+        -> we cannot solve this issue with the current design (and I do not
+            want to change the design); but it would work for recnos!
+        x make sure that with recnos existing keys can be deleted or
+            overwritten, but not re-inserted!
+        x ham_bench: support recnos (hamsterdb, berkeleydb)
+        o only allow bitmap compression with recnos
+
+    o add many monster tests
+        o different record sizes
+        o without records
+        o with erase and lookups
         o also with duplicates!
 
     o RecordNumbers always start with 1, which means bit 0 will always be
@@ -860,7 +867,10 @@ o get rid of the virtual inheritance for hola workers
 
 o erlang: 2 tests are failing
     o quickcheck-ci.com
+<<<<<<< HEAD
     o look into Thomas' mail
+=======
+>>>>>>> Record number databases no longer fail when created with uint64 key type
 
 o java still has license.java/version.java - remove!
     o also check dotnet!
