@@ -77,7 +77,7 @@ class NumericAscendingDatasource : public Datasource
     // resets the input and restarts delivering the same sequence
     // from scratch
     virtual void reset() {
-      m_value = 0;
+      m_value = 1;
     }
 
     // returns the next piece of data; overflows are ignored

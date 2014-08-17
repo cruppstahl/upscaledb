@@ -92,6 +92,7 @@
 #define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
+#define ARG_RECORD_NUMBER                       69
 
 /*
  * command line parameters
@@ -423,6 +424,12 @@ static option_t opts[] = {
     0,
     "enable-crc32",
     "Pro: Enables use of CRC32 verification",
+    0 },
+  {
+    ARG_RECORD_NUMBER,
+    0,
+    "record-number",
+    "Enables use of record numbers",
     0 },
   {0, 0}
 };
@@ -772,6 +779,13 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_ENABLE_CRC32) {
       c->enable_crc32 = true;
+    }
+    else if (opt == ARG_RECORD_NUMBER) {
+      c->record_number = true;
+      c->key_is_fixed_size = true;
+      c->key_size = 8;
+      c->key_type = Configuration::kKeyUint64;
+      c->distribution = Configuration::kDistributionAscending;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;

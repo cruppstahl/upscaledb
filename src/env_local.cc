@@ -620,7 +620,6 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (key_type == HAM_TYPE_UINT8
         || key_type == HAM_TYPE_UINT16
         || key_type == HAM_TYPE_UINT32
-        || key_type == HAM_TYPE_UINT64
         || key_type == HAM_TYPE_REAL32
         || key_type == HAM_TYPE_REAL64) {
     if (flags & HAM_RECORD_NUMBER) {

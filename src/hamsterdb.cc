@@ -1167,8 +1167,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
       else {
         if (key->flags & HAM_KEY_USER_ALLOC) {
           if (!key->data || key->size != sizeof(ham_u64_t)) {
-            ham_trace(("key->size must be 8, key->data must not "
-                  "be NULL"));
+            ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (db->set_error(HAM_INV_PARAMETER));
           }
         }
