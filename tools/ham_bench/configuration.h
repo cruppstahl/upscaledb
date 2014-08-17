@@ -88,7 +88,7 @@ struct Configuration
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
       flush_txn_immediately(false), disable_recovery(false),
       journal_compression(0), record_compression(0), key_compression(0),
-      read_only(false), enable_crc32(false) {
+      read_only(false), enable_crc32(false), record_number(false) {
   }
 
   void print() const {
@@ -171,6 +171,8 @@ struct Configuration
       printf("--duptable-threshold=%d ", duptable_threshold);
     if (enable_crc32)
       printf("--enable-crc32 ");
+    if (record_number)
+      printf("--record-number ");
     if (!filename.empty()) {
       printf("%s\n", filename.c_str());
     }
@@ -278,6 +280,7 @@ struct Configuration
   int key_compression;
   bool read_only;
   bool enable_crc32;
+  bool record_number;
 };
 
 #endif /* CONFIGURATION_H__ */
