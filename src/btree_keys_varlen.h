@@ -680,7 +680,10 @@ class VariableLengthKeyList : public BaseKeyList
 
     enum {
       // A flag whether this KeyList has sequential data
-      kHasSequentialData = 0
+      kHasSequentialData = 0,
+
+      // A flag whether this KeyList supports the scan() call
+      kSupportsBlockScans = 0
     };
 
     // Constructor

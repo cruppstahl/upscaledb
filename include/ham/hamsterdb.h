@@ -550,7 +550,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *      bytes. It is recommended not to change the default size. The
  *      default size depends on hardware and operating system.
  *      Page sizes must be 1024 or a multiple of 2048.
- *    <li>@ref HAM_PARAM_FILE_SIZE</li> Sets a file size limit (in bytes).
+ *    <li>@ref HAM_PARAM_FILE_SIZE_LIMIT</li> Sets a file size limit (in bytes).
  *      Disabled by default. Not allowed in combination with @ref HAM_IN_MEMORY.
  *      If the limit is exceeded, API functions return @ref HAM_LIMITS_REACHED.
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
@@ -645,7 +645,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_CACHE_SIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
- *    <li>@ref HAM_PARAM_FILE_SIZE</li> Sets a file size limit (in bytes).
+ *    <li>@ref HAM_PARAM_FILE_SIZE_LIMIT</li> Sets a file size limit (in bytes).
  *      Disabled by default. If the limit is exceeded, API functions
  *      return @ref HAM_LIMITS_REACHED.
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
@@ -1667,7 +1667,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /** Parameter name for @ref ham_env_create, @ref ham_env_open; sets a
  * limit for the file size (in bytes) */
-#define HAM_PARAM_FILE_SIZE             0x00000109
+#define HAM_PARAM_FILE_SIZE_LIMIT       0x00000109
 
 /** Value for unlimited record sizes */
 #define HAM_RECORD_SIZE_UNLIMITED       ((ham_u32_t)-1)
