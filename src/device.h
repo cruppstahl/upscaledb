@@ -35,8 +35,8 @@ class LocalEnvironment;
 class Device {
   public:
     // Constructor
-    Device(LocalEnvironment *env, ham_u32_t flags)
-      : m_env(env), m_flags(flags) {
+    Device(LocalEnvironment *env, ham_u32_t flags, ham_u64_t file_size_limit)
+      : m_env(env), m_flags(flags), m_file_size_limit(file_size_limit) {
     }
 
     // virtual destructor
@@ -115,6 +115,9 @@ class Device {
 
     // the device flags 
     ham_u32_t m_flags;
+
+    // the file size limit (in bytes)
+    ham_u64_t m_file_size_limit;
 
     friend class DeviceTest;
     friend class InMemoryDeviceTest;

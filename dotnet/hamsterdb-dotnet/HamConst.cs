@@ -158,7 +158,7 @@ namespace Hamster
     public const int HAM_PARAM_RECORD_SIZE      =  0x00108;
     /// <summary>Parameter name for Environment.Create,
     /// Environment.Open</summary>
-    public const int HAM_PARAM_FILE_SIZE        =  0x00109;
+    public const int HAM_PARAM_FILE_SIZE_LIMIT  =  0x00109;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>

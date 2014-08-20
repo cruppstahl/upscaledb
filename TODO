@@ -188,7 +188,7 @@ o PRO: use a bitmap index for recnos
         x verify that key compression is still working for normal keys
         x verify that key compression is still working for extkeys
 
-    o create a resizable KeyList based on a sparsemap
+    x create a resizable KeyList based on a sparsemap
         x start with a minimal KeyList which compiles, but does not have any
             functionality
         x use KeyList only for leafs (b/c keys in the internal nodes are
@@ -220,23 +220,14 @@ o PRO: use a bitmap index for recnos
             x make sure that flag is persisted and used
             x currently always performs very slow binary search
 
-        o unittests
+        x unittests
             x integrate sparsemap's unittests (w/ both word sizes!)
             x sparsemap-tests for move_and_append()
             x check capacity of node w/ default records
             x check capacity of node w/ empty records
             x insert/find/erase/find
-================
-            o splits/merges
-                -> run insert/find/erase/find test, but with default record
-                    sizes; this causes 7-8 splits and merges
-crashes because there's a split for a leaf node with just 3 items.
-seems that at initialization the range for the bitmap is too small.
-================
-            o cursor moves
-            o hola
 
-    o there are currently several conceptual problems:
+    x there are currently several conceptual problems:
         1. the capacity of the node must be aligned to the bitmap capacity
             -> fix the initialization routine
         2. if duplicates are enabled then it's possible that the minimum
@@ -286,12 +277,14 @@ seems that at initialization the range for the bitmap is too small.
         x make sure that with recnos existing keys can be deleted or
             overwritten, but not re-inserted!
         x ham_bench: support recnos (hamsterdb, berkeleydb)
+        x allow bitmap compression with recnos only
+        x splits/merges
+             -> run insert/find/erase/find test, but with default record
+                 sizes; this causes 7-8 splits and merges
+        x cursor moves
 ===================
-        o only allow bitmap compression with recnos
-            o unittest
-unittests are currently broken
-        o add unittest which inserts/erases a lot, then clears the db; always
-            fullcheck against std::vector<bool>
+        o hola
+            o with cursor
 ===================
 
     o add many monster tests
@@ -309,6 +302,8 @@ unittests are currently broken
         the last entry is always for the last minimap (this will be the
         starting point for appending bits)
         x scan() has many branches because of the "skip" - can they be avoided?
+        o insert() checks if it can prepend/append, but this requires
+            a call to sparsemap::select() - avoid if recnos are enabled
         o get_capacity() is called frequently, but there's a difference between
             calculating capacity and comparing the index, or checking whether
             the index is *in* that minimap capacity; the second one is faster
@@ -318,6 +313,7 @@ unittests are currently broken
         o some functions like get_key() (called in cursor_move) are slow
             because they operate on "slots" instead of keys. can they be
             optimized? (i.e. add popcount to the lookup table)
+        o we can make select faster by checking if *p == 0xff
 
     o improve separation between hamsterdb sources and sparsemap by deriving
         from sparsemap::SparseMap, and use the derived class
@@ -404,6 +400,11 @@ o refactoring: split files
     5server/...
     hamsterdb.cc, hola.cc (remain in root directory)
     o root0: add pragmas from btree_impl_default.h, undef min/max
+    o #34: header guards/macros should not clash with reserved identifiers
+        (no leading/trailing underscores)
+    o enforce "layers" with macros in header file (the code shown here
+        is problematic because it does not allow to include header files
+        between start of the guard and the namespace declaration...)
     o enforce "layers" with macros in header file
         (HAM_HEADER_START(tier, guard)
             -> #ifndef guard
@@ -428,6 +429,11 @@ o refactoring: split files
 o refactoring: get_linear_search_threshold returns size_t, but is
     then used as (signed) int; some return 0, others -1
     right now the code works but is cheesy. return (int)0 to disable.
+
+o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
+
+o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
+    -> translate to c++ code
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -531,6 +537,9 @@ o QuickCheck: create a new property for testing duplicates; the key is always
     the same. The number of duplicate keys is tracked and periodically
     checked with the API. A cursor can be used to remove a specific
     duplicate, or to fetch a specific duplicate.
+
+o QuickCheck: create a new property for testing recnos, with lots of deletes
+    and including bitmap compression
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -749,6 +758,7 @@ o the bucket for concurrency TODOs
     - reading pages is synchronous, writing pages is asynchronous
         -> needs a very fast locking scheme
     - SSDs support many async. writes in parallel - be prepared!
+    http://meetingcpp.com/tl_files/2013/talks/scaling_with_cpp11_edouard_alligand.pdf
 
     o an intermediate stage would be to have concurrent reads but exclusive
         writes (one writer, many readers) - makes sense?

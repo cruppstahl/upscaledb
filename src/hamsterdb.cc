@@ -381,7 +381,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
         }
         page_size = (ham_u32_t)param->value;
         break;
-      case HAM_PARAM_FILE_SIZE:
+      case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
           file_size_limit = param->value;
         break;
@@ -404,11 +404,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   /* don't allow cache limits with unlimited cache */
   if (flags & HAM_CACHE_UNLIMITED && cache_size != 0) {
     ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
-          "not allowed"));
-    return (HAM_INV_PARAMETER);
-  }
-  if ((flags & HAM_IN_MEMORY) && file_size_limit != 0xffffffffffffffff) {
-    ham_trace(("combination of HAM_IN_MEMORY and HAM_PARAM_FILE_SIZE "
           "not allowed"));
     return (HAM_INV_PARAMETER);
   }
@@ -641,7 +636,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
       case HAM_PARAM_CACHE_SIZE:
         cache_size = param->value;
         break;
-      case HAM_PARAM_FILE_SIZE:
+      case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
           file_size_limit = param->value;
         break;

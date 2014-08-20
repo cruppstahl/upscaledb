@@ -200,7 +200,7 @@ public class Const {
     public final static int HAM_PARAM_RECORD_SIZE               =    0x108;
 
     /** Parameter name for Environment.open(), Environment.create() */
-    public final static int HAM_PARAM_FILE_SIZE                 =    0x109;
+    public final static int HAM_PARAM_FILE_SIZE_LIMIT           =    0x109;
 
     /** Value for unlimited record sizes */
     public final static int HAM_RECORD_SIZE_UNLIMITED           =    0xffffffff;

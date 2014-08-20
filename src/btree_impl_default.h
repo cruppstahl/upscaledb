@@ -169,7 +169,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
 
       // a distinct scan over fixed-length keys can be moved to the KeyList
-      if (KeyList::kHasSequentialData && distinct) {
+      if (KeyList::kSupportsBlockScans && distinct) {
         P::m_keys.scan(visitor, start, P::m_node->get_count() - start);
         return;
       }
@@ -237,16 +237,19 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (node_count == 0)
         return (false);
 
-      // try to resize the lists before admitting defeat and splitting
-      // the page
       bool keys_require_split = P::m_keys.requires_split(node_count, key);
       bool records_require_split = P::m_records.requires_split(node_count);
       if (!keys_require_split && !records_require_split)
         return (false);
+
+      // vacuumize the lists
       if (keys_require_split)
         keys_require_split = P::m_keys.requires_split(node_count, key, true);
       if (records_require_split)
         records_require_split = P::m_records.requires_split(node_count, true);
+
+      // try to resize the lists before admitting defeat and splitting
+      // the page
       if (keys_require_split || records_require_split) {
         if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
@@ -357,7 +360,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
           double dcapacity = (double)usable_page_size
                             / (P::m_keys.get_full_key_size()
                                     + P::m_records.get_full_record_size());
-          P::m_capacity = (size_t)dcapacity;
+          P::m_capacity = P::m_keys.adjust_split_pivot((size_t)dcapacity);
 
           // calculate the sizes of the KeyList and RecordList
           if (KeyList::kHasSequentialData) {
@@ -462,13 +465,21 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         }
       }
 
-      // Option 2: if the capacity is expleted then increase it.  
+      // Option 2: if the capacity is exhausted then increase it.  
       if (node_count == old_capacity) {
-        new_capacity = old_capacity + 1;
+        int i = 1;
+        do {
+          new_capacity = P::m_keys.adjust_split_pivot(old_capacity + i * 32);
+        } while (new_capacity <= P::m_capacity);
       }
       // Option 3: we reduce the capacity. This also reduces the metadata in
       // the Lists (the UpfrontIndex shrinks) and therefore generates room
       // for more data.
+      //
+      // We won't do that for Bitmap KeyLists! Shrinking them by 50% creates
+      // way too much free space for the RecordList and defeats the whole
+      // purpose. In this case we try to increase the data size of the KeyList,
+      // but do not decrease the capacity
       else {
         size_t shrink_slots = (old_capacity - node_count) / 2;
         if (shrink_slots == 0)
@@ -488,6 +499,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       else if (RecordList::kHasSequentialData) {
         record_range_size = P::m_records.calculate_required_range_size(
                                   node_count, new_capacity);
+        if (record_range_size > usable_page_size)
+          return (false);
         key_range_size = usable_page_size - record_range_size;
         if (key_range_size < P::m_keys.calculate_required_range_size(
                     node_count, new_capacity))
@@ -508,7 +521,9 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // there is enough room for a DuplicateTable id (if duplicates
       // are enabled)
 apply_changes:
-      if (key_range_size + record_range_size > usable_page_size)
+      if (key_range_size > usable_page_size
+          || record_range_size > usable_page_size
+          || key_range_size + record_range_size > usable_page_size)
         return (false);
 
       // Get a pointer to the data area and persist the new capacity

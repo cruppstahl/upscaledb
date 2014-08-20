@@ -29,8 +29,9 @@ namespace hamsterdb {
 class InMemoryDevice : public Device {
   public:
     // constructor
-    InMemoryDevice(LocalEnvironment *env, ham_u32_t flags)
-      : Device(env, flags), m_is_open(false) {
+    InMemoryDevice(LocalEnvironment *env, ham_u32_t flags,
+                    ham_u64_t file_size_limit)
+      : Device(env, flags, file_size_limit), m_is_open(false), m_file_size(0) {
     }
 
     // Create a new device
@@ -108,13 +109,20 @@ class InMemoryDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
     virtual ham_u64_t alloc(size_t size) {
-      ham_assert(!"can't alloc from an in-memory-device");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      m_file_size += size;
+      if (m_file_size > m_file_size_limit)
+        throw Exception(HAM_LIMITS_REACHED);
+
+      return ((ham_u64_t)Memory::allocate<ham_u8_t>(size));
     }
 
     // allocate storage for a page from this device 
     virtual void alloc_page(Page *page, size_t page_size) {
       ham_assert(page->get_data() == 0);
+
+      m_file_size += page_size;
+      if (m_file_size > m_file_size_limit)
+        throw Exception(HAM_LIMITS_REACHED);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
       page->set_data((PPageData *)p);
@@ -127,13 +135,27 @@ class InMemoryDevice : public Device {
       ham_assert(page->get_data() != 0);
       ham_assert(page->get_flags() & Page::kNpersMalloc);
 
+      ham_assert(m_file_size >= m_env->get_page_size());
+      m_file_size -= m_env->get_page_size();
+
       page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       Memory::release(page->get_data());
       page->set_data(0);
     }
 
+    // releases a chunk of memory previously allocated with alloc()
+    void release(void *ptr, size_t size) {
+      ham_assert(m_file_size >= size);
+      m_file_size -= size;
+      Memory::release(ptr);
+    }
+
   private:
+    // flag whether this device was "opened" or is uninitialized
     bool m_is_open;
+
+    // the allocated bytes
+    ham_u64_t m_file_size;
 };
 
 } // namespace hamsterdb

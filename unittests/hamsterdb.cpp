@@ -1411,7 +1411,8 @@ struct HamsterdbFixture {
   void recoveryEnvTest() {
     ham_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Utils::opath(".test"), HAM_ENABLE_RECOVERY, 0664, 0));
+        ham_env_create(&env, Utils::opath(".test"),
+                HAM_ENABLE_RECOVERY, 0664, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }
 
@@ -1955,22 +1956,41 @@ struct HamsterdbFixture {
     REQUIRE(false == os::file_exists("test.db.jrn1"));
   }
 
-  void fileSizeLimitTest() {
+  void fileSizeLimitInMemoryTest() {
+    ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t params[] = {
-        {HAM_PARAM_FILE_SIZE, 16 * 1024},
+        {HAM_PARAM_FILE_SIZE_LIMIT, 3 * 16 * 1024},
         {0, 0}
     };
 
-    REQUIRE(HAM_INV_PARAMETER == ham_env_create(&env, Utils::opath("test.db"),
-                        HAM_IN_MEMORY, 0, &params[0]));
+    REQUIRE(0 == ham_env_create(&env, 0, HAM_IN_MEMORY, 0, &params[0]));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
+
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
+    char buffer[32] = {0};
+    key.data = &buffer[0];
+    key.size = sizeof(buffer);
+
+    while (true) {
+      *(int *)&buffer[0] += 1; // make key unique
+      ham_status_t st = ham_db_insert(db, 0, &key, &rec, 0);
+      if (st == HAM_LIMITS_REACHED)
+        break;
+      REQUIRE(st == HAM_SUCCESS);
+    }
+
+    // check integrity
+    REQUIRE(0 == ham_db_check_integrity(db, 0));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
   void fileSizeLimitSplitTest() {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t params[] = {
-        {HAM_PARAM_FILE_SIZE, 3 * 16 * 1024}, // 3 pages
+        {HAM_PARAM_FILE_SIZE_LIMIT, 3 * 16 * 1024}, // 3 pages
         {0, 0}
     };
 
@@ -2002,16 +2022,16 @@ struct HamsterdbFixture {
     REQUIRE(f.get_file_size() == 3 * 16 * 1024);
   }
 
-  void fileSizeLimitBlobTest() {
+  void fileSizeLimitBlobTest(bool inmemory) {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t params[] = {
-        {HAM_PARAM_FILE_SIZE, 2 * 16 * 1024}, // 2 pages
+        {HAM_PARAM_FILE_SIZE_LIMIT, 2 * 16 * 1024}, // 2 pages
         {0, 0}
     };
 
     REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
-                        0, 0, &params[0]));
+                        inmemory ? HAM_IN_MEMORY : 0, 0, &params[0]));
 
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
     ham_key_t key = {0};
@@ -2039,9 +2059,11 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
     // verify the file size
-    File f;
-    f.open(Utils::opath("test.db"), 0);
-    REQUIRE(f.get_file_size() == 2 * 16 * 1024);
+    if (!inmemory) {
+      File f;
+      f.open(Utils::opath("test.db"), 0);
+      REQUIRE(f.get_file_size() == 2 * 16 * 1024);
+    }
   }
 };
 
@@ -2405,10 +2427,10 @@ TEST_CASE("Hamsterdb/disableRecoveryTest", "")
   f.disableRecoveryTest();
 }
 
-TEST_CASE("Hamsterdb/fileSizeLimitTest", "")
+TEST_CASE("Hamsterdb/fileSizeLimitInMemoryTest", "")
 {
   HamsterdbFixture f;
-  f.fileSizeLimitTest();
+  f.fileSizeLimitInMemoryTest();
 }
 
 TEST_CASE("Hamsterdb/fileSizeLimitSplitTest", "")
@@ -2420,7 +2442,13 @@ TEST_CASE("Hamsterdb/fileSizeLimitSplitTest", "")
 TEST_CASE("Hamsterdb/fileSizeLimitBlobTest", "")
 {
   HamsterdbFixture f;
-  f.fileSizeLimitBlobTest();
+  f.fileSizeLimitBlobTest(false);
+}
+
+TEST_CASE("Hamsterdb/fileSizeLimitBlobInMemoryTest", "")
+{
+  HamsterdbFixture f;
+  f.fileSizeLimitBlobTest(true);
 }
 
 } // namespace hamsterdb

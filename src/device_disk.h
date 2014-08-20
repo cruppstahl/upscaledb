@@ -32,8 +32,8 @@ class DiskDevice : public Device {
   public:
     DiskDevice(LocalEnvironment *env, ham_u32_t flags,
                     ham_u64_t file_size_limit)
-      : Device(env, flags), m_mmapptr(0), m_mapped_size(0), m_file_size(),
-            m_file_size_limit(file_size_limit) {
+      : Device(env, flags, file_size_limit), m_mmapptr(0), m_mapped_size(0),
+            m_file_size() {
     }
 
     // Create a new device
@@ -194,9 +194,6 @@ class DiskDevice : public Device {
 
     // the (cached) size of the file
     ham_u64_t m_file_size;
-
-    // the file size limit (in bytes)
-    ham_u64_t m_file_size_limit;
 
     // dynamic byte array providing temporary space for encryption
     ByteArray m_encryption_buffer;

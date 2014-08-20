@@ -52,9 +52,14 @@ namespace PaxLayout {
 class BinaryKeyList : public BaseKeyList
 {
   public:
+    typedef ham_u8_t type;
+
     enum {
       // A flag whether this KeyList has sequential data
-      kHasSequentialData = 1
+      kHasSequentialData = 1,
+
+      // A flag whether this KeyList supports the scan() call
+      kSupportsBlockScans = 1
     };
 
     // Constructor

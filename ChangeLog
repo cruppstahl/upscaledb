@@ -6,7 +6,7 @@ Jul 15, 2014 - chris ---------------------------------------------------
 o hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
 
 Jul 14, 2014 - chris ---------------------------------------------------
-o Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE
+o Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE_LIMIT
 
 Jul 10, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.8

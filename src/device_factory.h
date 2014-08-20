@@ -29,7 +29,7 @@ class DeviceFactory {
     static Device *create(LocalEnvironment *env, ham_u32_t flags,
                     ham_u64_t file_size_limit) {
       if (flags & HAM_IN_MEMORY)
-        return (new InMemoryDevice(env, flags));
+        return (new InMemoryDevice(env, flags, file_size_limit));
       else
         return (new DiskDevice(env, flags, file_size_limit));
     }

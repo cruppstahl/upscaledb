@@ -17,6 +17,7 @@
 #include "config.h"
 #include "mem.h"
 #include "env_local.h"
+#include "device_inmem.h"
 
 #include "blob_manager_inmem.h"
 
@@ -29,7 +30,8 @@ InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
-  ham_u8_t *p = Memory::allocate<ham_u8_t>(record->size + sizeof(PBlobHeader));
+  ham_u8_t *p = (ham_u8_t *)m_env->get_device()->alloc(record->size
+                  + sizeof(PBlobHeader));
 
   // initialize the header
   PBlobHeader *blob_header = (PBlobHeader *)p;
@@ -134,7 +136,8 @@ InMemoryBlobManager::do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
     ham_u64_t new_blobid = m_env->get_blob_manager()->allocate(db, record,
             flags);
 
-    Memory::release(phdr);
+    InMemoryDevice *dev = (InMemoryDevice *)m_env->get_device();
+    dev->release(phdr, phdr->get_alloc_size());
     return (new_blobid);
   }
 }
