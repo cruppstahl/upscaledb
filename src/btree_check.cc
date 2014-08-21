@@ -238,8 +238,8 @@ class BtreeCheckAction
       node->check_integrity();
 
       if (node->get_count() > 0) {
-        for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
-          int cmp = compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i + 1));
+        for (ham_u32_t i = 0; i < node->get_count() - 1; i++) {
+          int cmp = compare_keys(db, page, (ham_u32_t)i, (ham_u32_t)(i + 1));
           if (cmp >= 0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
                     "< item #%d", page->get_address(), i, i + 1));
@@ -257,7 +257,7 @@ class BtreeCheckAction
         }
         m_children.insert(node->get_ptr_down());
 
-        for (ham_u16_t i = 0; i < node->get_count(); i++) {
+        for (ham_u32_t i = 0; i < node->get_count(); i++) {
           ham_u64_t child_id = node->get_record_id(i);
           if (m_children.find(child_id) != m_children.end()) {
             ham_log(("integrity check failed in page 0x%llx: record of item "

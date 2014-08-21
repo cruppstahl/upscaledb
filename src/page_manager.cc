@@ -596,6 +596,13 @@ PageManager::close()
   bool try_reclaim = m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL
                 ? false
                 : true;
+
+  // TODO this is just a hack b/c of a too complex cleanup logic in
+  // the environment; will be removed in 2.1.9
+  if ((m_env->get_flags() & HAM_ENABLE_RECOVERY)
+        && (m_env->get_journal() == 0))
+    try_reclaim = false;
+
 #ifdef WIN32
   // Win32: it's not possible to truncate the file while there's an active
   // mapping, therefore only reclaim if memory mapped I/O is disabled

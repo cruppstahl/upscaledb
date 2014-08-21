@@ -1392,12 +1392,44 @@ struct HamsterdbFixture {
   }
 
   void recoveryTest() {
-    ham_env_t *old = m_env;
-    REQUIRE(0 ==
-            ham_env_create(&m_env, Utils::opath(".test"),
+    ham_env_t *env;
+    ham_db_t *db;
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
                     HAM_ENABLE_RECOVERY, 0664, 0));
-    REQUIRE(0 == ham_env_close(m_env, 0));
-    m_env = old;
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
+
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    for (unsigned i = 0; i < 10; i++) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      rec.size = sizeof(i);
+      rec.data = (void *)&i;
+      REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+    }
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    //REQUIRE(HAM_NEED_RECOVERY == ham_env_open(&env, Utils::opath(".test"),
+                    //HAM_ENABLE_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open(&env, Utils::opath(".test"),
+                    HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
+
+    for (unsigned i = 0; i < 10; i++) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      REQUIRE(0 == ham_db_find(db, 0, &key, &rec, 0));
+    }
+
+    for (unsigned i = 0; i < 10; i++) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      rec.size = sizeof(i);
+      rec.data = (void *)&i;
+      REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    }
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
   void recoveryNegativeTest() {
