@@ -447,10 +447,8 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
-  if (!strcmp(param, "bitmap"))
-    return (HAM_COMPRESSOR_BITMAP);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo', 'bitmap'\n", param);
+                  "'snappy', 'lzf', 'lzo'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }

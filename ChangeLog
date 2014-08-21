@@ -2,6 +2,10 @@ Sep 11, 2014 - chris ---------------------------------------------------
 o issue #38: temporary transactions and recovery (w/o transactions)
 	created huge logfiles; fixed
 
+Aug 21, 2014 - chris ---------------------------------------------------
+o Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
+	without HAM_ENABLE_TRANSACTIONS)
+
 Jul 15, 2014 - chris ---------------------------------------------------
 o hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
 

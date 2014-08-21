@@ -481,7 +481,8 @@ class BtreeInsertAction
         // In case of an error: undo the insert. This happens very rarely but
         // it's possible, i.e. if the BlobManager fails to allocate storage.
         catch (Exception &ex) {
-          node->erase(slot);
+          if (slot < (int)node->get_count())
+            node->erase(slot);
           throw ex;
         }
       }

@@ -265,7 +265,7 @@ o PRO: use a bitmap index for recnos
         x make sure that resizing is word-aligned!
         x remove the capacity interface of the sparsemap - it's not required
 
-    o if a minimap is inserted *between* two minimaps then it has to
+    x if a minimap is inserted *between* two minimaps then it has to
         make sure that the capacities don't overlap
         x this affects splits as well? - no
         x merges? - no
@@ -282,18 +282,43 @@ o PRO: use a bitmap index for recnos
              -> run insert/find/erase/find test, but with default record
                  sizes; this causes 7-8 splits and merges
         x cursor moves
-===================
-        o hola
-            o with cursor
-===================
+        x hola
+            x without transactions
+            x with transactions
 
     o add many monster tests
-        o different record sizes
-        o without records
-        o with erase and lookups
-        o also with duplicates!
+        x different record sizes
+            x --record-number --recsize=8 --key-compression=bitmap 
+            x --record-number --recsize-fixed=1 --key-compression=bitmap 
+        x without records
+            x --record-number --recsize-fixed=0 --key-compression=bitmap 
+        x with recovery && reopen
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --use-recovery
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --use-recovery --open --find-pct=100
+        o with find & erase
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
+=========================
+here is a conceptual problem. By erasing many elements, the size of the
+sparsemap will grow and overwrite the record area. in other words: before
+erasing, the node has either to be split or rearranged.
+-> move the split logic to btree_janitor.h/.cc
+-> if bitmap compression is enabled then check if the keylist requires a split
+    -> if yes then split
+    -> not so trivial in btree_erase.cc. hard to say whether we would get more
+        issues
+    -> or bite the bullet and use a non-compressed bitmap?
 
-    o RecordNumbers always start with 1, which means bit 0 will always be
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --erase-pct=50 --find-pct=50
+=========================
+            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
+            o --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --erase-pct=90 --find-pct=10
+            o --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
+        o add all those tests to the monster suite
+
+    o (APL) disable duplicates in combination with recnos
+
+    o (APL) RecordNumbers always start with 1, which means bit 0 will always be
         false and the first bitmap will not be compressible. Make sure that
         internally, recno's start with 0
 
@@ -302,18 +327,19 @@ o PRO: use a bitmap index for recnos
         the last entry is always for the last minimap (this will be the
         starting point for appending bits)
         x scan() has many branches because of the "skip" - can they be avoided?
+        o perform a profiling run with valgrind
         o insert() checks if it can prepend/append, but this requires
             a call to sparsemap::select() - avoid if recnos are enabled
-        o get_capacity() is called frequently, but there's a difference between
+        o we can make select faster by checking if *p == 0xff
+        o very fast code path for appending bits for recno's
+        . get_capacity() is called frequently, but there's a difference between
             calculating capacity and comparing the index, or checking whether
             the index is *in* that minimap capacity; the second one is faster
-        o very fast code path for appending bits (recno!)
-        o fast random access (use lookup table of minimaps and
+        . fast random access (use lookup table of minimaps and
                 their offsets)
-        o some functions like get_key() (called in cursor_move) are slow
+        . some functions like get_key() (called in cursor_move) are slow
             because they operate on "slots" instead of keys. can they be
             optimized? (i.e. add popcount to the lookup table)
-        o we can make select faster by checking if *p == 0xff
 
     o improve separation between hamsterdb sources and sparsemap by deriving
         from sparsemap::SparseMap, and use the derived class
@@ -322,12 +348,6 @@ o PRO: use a bitmap index for recnos
     o document in header file (esp. for recno!)
     o document - write a paper etc to claim prior art; release code as a
         separate open-source library (GPL)?
-
-o Refactoring: LocalDatabase::create() should accept key_compression and
-    record_compression as a parameter; but LocalDatabase::open() should *not*
-    require any of them, because the flags are persisted!
-    (if not then persist them)
-    -> or postpone, because we want to rewrite the parameter handling anyway
 
 o webpage changes
     o give away for free to non-profits
@@ -426,6 +446,10 @@ o refactoring: split files
                #endif // guard
                #undef namespace_Started
 
+o bugfix: the C# PInvoke for ham_cursor_find is missing the Record structure
+    - also accept flags in ham_db_find and ham_cursor_find for approx.
+        matching, and copy the key!
+
 o refactoring: get_linear_search_threshold returns size_t, but is
     then used as (signed) int; some return 0, others -1
     right now the code works but is cheesy. return (int)0 to disable.
@@ -501,7 +525,21 @@ o review exception safety
     o document every rewritten class with an annotation ("@@exception_safe yes")
     o if no method in the class throws: "@@exception_nothrow yes"
 
-o get rid of the virtual inheritance for hola workers
+o refactoring: clean up the close() code of the LocalEnvironment (and also
+    of the LocalDatabase). distinguish two cases:
+    1) a close() called by ham_env_close/ham_db_close
+        performs logic that can fail; must not be exception safe
+    2) a close() called in the destructor
+        do not perform any logic besides cleaning up; must NOT THROW!
+
+o refactoring: get rid of the virtual inheritance for hola workers
+
+o refactoring: the split/merge mess is annoying, esp. because erase() can now
+    requests splits for the compressed bitmap. Wouldn't it be nicer if the
+    erase/insert routines are performed without checking sizes, and if they
+    discover that a split (or merge) is required they simply throw; the caller
+    asks the janitor to perform this action and then retries?
+    if the code is exception safe then there shouldn't be any issues.
 
 o erlang: 2 tests are failing
     o quickcheck-ci.com

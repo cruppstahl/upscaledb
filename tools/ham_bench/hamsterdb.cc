@@ -181,6 +181,7 @@ HamsterDatabase::do_open_env()
     flags |= m_config->disable_recovery ? HAM_DISABLE_RECOVERY : 0;
     flags |= m_config->read_only ? HAM_READ_ONLY : 0;
     flags |= m_config->enable_crc32 ? HAM_ENABLE_CRC32 : 0;
+    flags |= m_config->use_recovery ? HAM_AUTO_RECOVERY : 0;
 
     st = ham_env_open(&ms_env, "test-ham.db", flags, &params[0]);
     if (st) {

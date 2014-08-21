@@ -406,14 +406,17 @@ LocalEnvironment::close(ham_u32_t flags)
       && (get_flags() & HAM_IN_MEMORY) == 0
       && (get_flags() & HAM_READ_ONLY) == 0) {
     ham_u64_t new_blobid = m_page_manager->store_state();
+    Page *hdrpage = get_header()->get_header_page();
     if (new_blobid != get_header()->get_page_manager_blobid()) {
       get_header()->set_page_manager_blobid(new_blobid);
-      get_header()->get_header_page()->set_dirty(true);
+      hdrpage->set_dirty(true);
     }
     if (get_flags() & HAM_ENABLE_RECOVERY) {
-      get_changeset().add_page(get_header()->get_header_page());
+      if (hdrpage->is_dirty())
+        get_changeset().add_page(hdrpage);
       //if (m_journal && (flags & HAM_DONT_CLEAR_LOG) == 0)
-      get_changeset().flush(get_incremented_lsn());
+      if (!get_changeset().is_empty())
+        get_changeset().flush(get_incremented_lsn());
     }
   }
 
