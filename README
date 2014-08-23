@@ -1,4 +1,4 @@
-hamsterdb pro 2.1.8                                Mo 7. Jul 11:02:27 CEST 2014
+hamsterdb pro 2.1.8                                Sa 23. Aug 22:19:56 CEST 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb pro.
@@ -7,65 +7,29 @@ Contents:
 
 1. About
 
-This is the first release of hamsterdb pro. It contains all features of
-hamsterdb 2.1.7, and additionally:
+This release of hamsterdb pro is based on hamsterdb 2.1.8, and contains the
+following additional changes:
 
-- compression for journal, records and keys with zlib, snappy, lzf, lzo
-        (use of lzo requires a commercial license!)
-- aes encryption
-- simd instructions for lookups in the PAX layout (fixed length numeric keys
-        without duplicates)
+- Added CRC32 verification (use HAM_ENABLE_CRC32)
+- SIMD instructions are now also used if duplicates are enabled (the use of
+    duplicate keys prevented SIMD instructions in the previous versions)
+- SIMD instructions are now also used for HAM_TYPE_REAL64 keys
 
 Please visit the webpage for additional documentation.
 
 2. Changes
 
 New Features
-<<<<<<< HEAD
-* Adding the new "hola" API - hamsterdb analytical functions for COUNT,
-	SUM, AVERAGE etc. See ham/hamsterdb_ola.h for the declarations
-* Added new API ham_cursor_get_duplicate_position
-* A new Python API was added
+* Enabling SIMD support for duplicate keys
+* Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE_LIMIT
+* Added SIMD support for HAM_TYPE_REAL64 keys
 
 Bugfixes
-* issue #33: upgraded to libuv 0.11.22
-* Fixing a performance regression in 2.1.7 - large fixed-length keys
-	created too many page splits, even if they were stored as extended
-	keys
+* Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
+	without HAM_ENABLE_TRANSACTIONS)
 
 Other Changes
-* The database format no longer tries to be endian agnostic; the database
-	is now stored in host endian format. The endian agnostic code was broken
-	anyway, and I had no hardware to test it.
-* ham_db_get_error is now deprecated
-* header files no longer include winsock.h to avoid conflicts with winsock2.h
-	on Windows platforms
-* Both btree layouts have been completely rewritten; PAX KeyLists
-	can now be used in combination with duplicate RecordLists, and variable
-	length KeyLists can now be used in combination with PAX RecordLists
-* Avoiding Btree splits if keys are appended (HAM_HINT_APPEND)
-* The internal communication with the remote server now uses a different
-	protocol which is faster than google's protobuffer
-* PAX layout now uses linear search for small ranges; this improves search
-	performance by 5-10%
-* Removed the ham_get_license API (and serial.h)
-=======
-* Compression is enabled in ham_env_create (HAM_PARAM_JOURNAL_COMPRESSION)
-    or ham_env_create_db (HAM_PARAM_RECORD_COMPRESSION,
-    HAM_PARAM_KEY_COMPRESSION)
-* AES encryption is enabled in ham_env_create and ham_env_open
-    (HAM_PARAM_ENCRYPTION_KEY)
-* SIMD instructions are used for lookups in the PAX layout (numeric keys)
-
-Bugfixes
-* issue #33: upgraded to libuv 0.11.22
-* Fixed a performance regression from 2.1.7: when using very large
-    variable-length keys, the btree pages were split too early and lots of
-    space was unused
-
-Other Changes
-* Minor performance improvements by reducing memory allocations
->>>>>>> PRO 2.1.7: commercial fork, heavy-weight compression for records, journal and
+* hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -74,6 +38,7 @@ To see a list of all changes, look in the file ChangeLog.
 
 4. Features
 
+- PRO: CRC32 verification
 - PRO: SIMD instructions for lookups (numeric keys)
 - PRO: transparent AES encryption
 - PRO: transparent compression for journal, keys and records using 

@@ -274,9 +274,9 @@ linear_search_sse<double>(double *data, int start, int count, double key)
   __m128d cmp0 = _mm_cmpeq_pd(key2, v1);
   __m128d cmp1 = _mm_cmpeq_pd(key2, v2);
 
-  __m128i low2  = _mm_shuffle_epi32(cmp0, 0xD8);
-  __m128i high2 = _mm_shuffle_epi32(cmp1, 0xD8);
-  __m128i pack = _mm_unpacklo_epi64(low2, high2);
+  __m128i low  = _mm_shuffle_epi32(_mm_castpd_si128(cmp0), 0xD8);
+  __m128i high = _mm_shuffle_epi32(_mm_castpd_si128(cmp1), 0xD8);
+  __m128i pack = _mm_unpacklo_epi64(low, high);
 
   __m128i pack01 = _mm_packs_epi32(pack, _mm_setzero_si128());
   __m128i pack0123 = _mm_packs_epi16(pack01, _mm_setzero_si128());
@@ -306,9 +306,9 @@ linear_search_sse<ham_u64_t>(ham_u64_t *data, int start, int count,
   __m128i cmp0 = _mm_cmpeq_epi64(key2, v1);
   __m128i cmp1 = _mm_cmpeq_epi64(key2, v2);
 
-  __m128i low2  = _mm_shuffle_epi32(cmp0, 0xD8);
-  __m128i high2 = _mm_shuffle_epi32(cmp1, 0xD8);
-  __m128i pack = _mm_unpacklo_epi64(low2, high2);
+  __m128i low  = _mm_shuffle_epi32(cmp0, 0xD8);
+  __m128i high = _mm_shuffle_epi32(cmp1, 0xD8);
+  __m128i pack = _mm_unpacklo_epi64(low, high);
 
   __m128i pack01 = _mm_packs_epi32(pack, _mm_setzero_si128());
   __m128i pack0123 = _mm_packs_epi16(pack01, _mm_setzero_si128());

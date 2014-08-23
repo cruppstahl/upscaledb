@@ -72,7 +72,18 @@ TEST_CASE("Simd/floatSseTest", "")
 
 TEST_CASE("Simd/doubleSseTest", "")
 {
-  test_linear_search_sse<float>();
+#undef MAX
+#define MAX 4
+  double arr[MAX];
+  for (ham_u32_t i = 0; i < MAX; i++)
+    arr[i] = i + 1;
+
+  REQUIRE(-1 == linear_search_sse<double>(&arr[0], 0, MAX, 0));
+
+  REQUIRE(-1 == linear_search_sse<double>(&arr[0], 0, MAX, MAX + 1));
+
+  for (int i = 0; i < MAX; i++)
+    REQUIRE(i == linear_search_sse<double>(&arr[0], 0, MAX, (i + 1)));
 }
 
 #endif // HAM_ENABLE_SIMD

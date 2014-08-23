@@ -5,4 +5,4 @@ if ENABLE_REMOTE
 SUBDIRS += json
 endif
 
-DIST_SUBDIRS = liblzf json murmurhash3 sparsemap
+DIST_SUBDIRS = liblzf json murmurhash3
