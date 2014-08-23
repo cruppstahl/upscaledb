@@ -608,15 +608,6 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
     }
   }
 
-  // bitmap compression is only allowed for recno-databases
-  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
-    if ((m_rt_flags & HAM_RECORD_NUMBER) == 0) {
-      ham_trace(("bitmap compression is only allowed for record number "
-                  "databases"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-
   // fixed length records:
   //
   // if records are <= 8 bytes OR if we can fit at least 512 keys AND
@@ -634,30 +625,9 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
     }
   }
 
-  // if bitmap compression is enabled then check again if we can use
-  // inline records, and make sure that at least 512 key/record pairs
-  // fit into a node
-  //
   // TODO
   // this function requires a cleanup; the key/record capacity planning
   // should be handled in the btree implementation.
-  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
-    size_t tmp = rec_size;
-    if (tmp == HAM_RECORD_SIZE_UNLIMITED)
-      tmp = 9;
-    else if (tmp == 0)
-      tmp = 1;
-    int keys_per_page = (get_local_env()->get_page_size() - 16) / tmp;
-    if (keys_per_page < 512) {
-      ham_trace(("bitmap compression requires minimum of 512 keys per page"));
-      return (HAM_INV_PARAMETER);
-    }
-    if (keys_per_page > 512 && rec_size != HAM_RECORD_SIZE_UNLIMITED) {
-      persistent_flags |= HAM_FORCE_RECORDS_INLINE;
-      m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
-    }
-  }
-
   m_key_compression_algo = key_compressor;
 
   // create the btree

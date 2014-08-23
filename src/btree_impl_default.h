@@ -491,27 +491,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // Option 3: we reduce the capacity. This also reduces the metadata in
       // the Lists (the UpfrontIndex shrinks) and therefore generates room
       // for more data.
-      //
-      // We won't do that for Bitmap KeyLists! Shrinking them by 50% creates
-      // way too much free space for the RecordList and defeats the whole
-      // purpose. In this case we try to increase the data size of the KeyList,
-      // but do not decrease the capacity
       else {
-        if (P::m_page->get_db()->get_key_compression_algorithm()
-                == HAM_COMPRESSOR_BITMAP) {
-          record_range_size = P::m_records.calculate_required_range_size(
-                          node_count, old_capacity);
-          key_range_size = usable_page_size - record_range_size;
-          new_capacity = old_capacity;
-        }
-        else {
-          size_t shrink_slots = (old_capacity - node_count) / 2;
-          if (shrink_slots == 0)
-            shrink_slots = 1;
-          new_capacity = old_capacity - shrink_slots;
-          if (new_capacity < node_count + 1)
-            return (false);
-        }
+        size_t shrink_slots = (old_capacity - node_count) / 2;
+        if (shrink_slots == 0)
+          shrink_slots = 1;
+        new_capacity = old_capacity - shrink_slots;
+        if (new_capacity < node_count + 1)
+          return (false);
       }
 
       // Calculate the range sizes for the new capacity

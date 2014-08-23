@@ -398,8 +398,7 @@ static option_t opts[] = {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo', "
-            "'bitmap')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,
@@ -447,10 +446,8 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
-  if (!strcmp(param, "bitmap"))
-    return (HAM_COMPRESSOR_BITMAP);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo', 'bitmap'\n", param);
+                  "'snappy', 'lzf', 'lzo'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
@@ -894,8 +891,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
 
   // print key compression ratio
-  if (conf->key_compression && conf->key_compression < HAM_COMPRESSOR_BITMAP
-          && !strcmp(name, "hamsterdb")) {
+  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
     float ratio;
     if (metrics->hamster_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;

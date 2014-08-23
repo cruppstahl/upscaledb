@@ -612,8 +612,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
           record_compressor = (int)param->value;
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          if (param->value != HAM_COMPRESSOR_BITMAP
-              && !CompressorFactory::is_available(param->value)) {
+          if (!CompressorFactory::is_available(param->value)) {
             ham_trace(("unknown algorithm for key compression"));
             return (HAM_INV_PARAMETER);
           }
@@ -662,18 +661,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (flags & HAM_RECORD_NUMBER)
     key_type = HAM_TYPE_UINT64;
 
-  // Pro: bitmap compression is only supported with uint16, uint32
-  // and uint64 keys
-  if (key_compressor == HAM_COMPRESSOR_BITMAP) {
-    if (key_type != HAM_TYPE_UINT16
-        && key_type != HAM_TYPE_UINT32
-        && key_type != HAM_TYPE_UINT64) {
-      ham_trace(("HAM_COMPRESSOR_BITMAP only allowed for HAM_TYPE_UINT16, "
-                      "HAM_TYPE_UINT32 and HAM_TYPE_UINT64 databases"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-  // Pro: all other heavy-weight compressors are only allowed for
+  // Pro: all heavy-weight compressors are only allowed for
   // variable-length binary keys
   else if (key_compressor != HAM_COMPRESSOR_NONE) {
     if (key_type != HAM_TYPE_BINARY || key_size != HAM_KEY_SIZE_UNLIMITED) {
