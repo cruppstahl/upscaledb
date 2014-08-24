@@ -353,48 +353,6 @@ o webpage changes
     o give away for free to non-profits
     o also add a startup program?
     o add CRC32 to pro documentation, feature matrix
-    o add bitmap compression to pro documentation, feature matrix
-
-. documentation rewrite
-    o use github wiki
-        o remove old cruft
-
-    /introduction
-    /evaluate & benchmark
-    /faq (merge w/ performance)
-    /tutorial
-    /pro
-    /c, c++
-        overview (description, status)
-        installation
-        usage (compiling, linking)
-        api functions (one file per function)
-        samples
-    /java
-        overview (description, status)
-        installation
-        usage (compiling, linking)
-        api functions (one file per function)
-        samples
-    /dotnet
-        overview (description, status)
-        installation
-        usage (compiling, linking)
-        api functions (one file per function)
-        samples
-    /erlang
-        overview (description, status)
-        installation
-        usage (compiling, linking)
-        api functions (one file per function)
-        samples
-    /python
-        overview (description, status)
-        installation
-        usage (compiling, linking)
-        api functions (one file per function)
-        samples
-    o look for a technical writer to review the files
 
 ------------- hamsterdb 2.1.9 ----------------------------------------
 
@@ -446,9 +404,10 @@ o refactoring: split files
                #endif // guard
                #undef namespace_Started
 
-o bugfix: the C# PInvoke for ham_cursor_find is missing the Record structure
-    - also accept flags in ham_db_find and ham_cursor_find for approx.
-        matching, and copy the key!
+o java still has license.java/version.java - remove!
+    o also check dotnet!
+
+o remove version.h, embed in hamsterdb.h
 
 o refactoring: get_linear_search_threshold returns size_t, but is
     then used as (signed) int; some return 0, others -1
@@ -458,6 +417,36 @@ o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
 
 o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
     -> translate to c++ code
+
+o can we add a generic macro like this:
+    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
+    which can be used as an initializer:
+    ham_key_t key = ham_make_key("hello", 5);
+    o same for records
+    o use in samples
+    o use in source
+    o use in unittests
+    o document
+
+o review exception safety
+    http://exceptionsafecode.com/
+    o consistently use smart_pointers to manage allocated resources!
+        -> define rules
+    o introduce on_scope_exit macro
+    o consistently force use of RAII
+    o every destructor has to clean up but MOST NOT THROW!
+    o support std::swap
+        -> define rules
+    o manage state like a resource
+        -> define rules
+    o use "critical line" for strong guarantees and defer commits till
+        success is guaranteed
+    o every state has to be restored in case of an exception
+    o document every rewritten class with an annotation ("@@exception_safe yes")
+        -> define rules
+    o if no method in the class throws: "@@exception_safe nothrow"
+        -> define rules
+    o add annotations to *each* file
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -471,6 +460,15 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
         the user, and call all other modules (device, cache...) with this
         structure as the parameter for initialization
     - All getters of these classes are const/immutable
+
+o refactoring: clean up the close() code of the LocalEnvironment (and also
+    of the LocalDatabase). distinguish two cases:
+    1) a close() called by ham_env_close/ham_db_close
+        performs logic that can fail; must not be exception safe
+    2) a close() called in the destructor
+        do not perform any logic besides cleaning up; must NOT THROW!
+
+o refactoring: get rid of the virtual inheritance for hola workers
 
 o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
     then we end up in troubles because of code inflation, and because
@@ -511,61 +509,27 @@ o refactoring: rewrite capacity calculations (again...)
 o refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout
 
-o review exception safety
-    http://exceptionsafecode.com/
-    o consistently use smart_pointers to manage allocated resources!
-    o introduce on_scope_exit macro
-    o every destructor has to clean up (must not throw)
-    o all cleanup code in destructor
-    o support std::swap
-    o manage state like a resource
-    o defer commits till success is guaranteed
-    o use "critical line" for strong guarantees
-    o every state has to be restored in case of an exception
-    o document every rewritten class with an annotation ("@@exception_safe yes")
-    o if no method in the class throws: "@@exception_nothrow yes"
+o refactoring: Wouldn't it be nice if the erase/insert routines are
+    performed without checking sizes, and if they discover that a
+    split (or merge) is required they simply throw; the caller asks the
+    janitor to perform this action and then retries? if the code is
+    exception safe then there shouldn't be any issues.
 
-o refactoring: clean up the close() code of the LocalEnvironment (and also
-    of the LocalDatabase). distinguish two cases:
-    1) a close() called by ham_env_close/ham_db_close
-        performs logic that can fail; must not be exception safe
-    2) a close() called in the destructor
-        do not perform any logic besides cleaning up; must NOT THROW!
-
-o refactoring: get rid of the virtual inheritance for hola workers
-
-o refactoring: the split/merge mess is annoying, esp. because erase() can now
-    requests splits for the compressed bitmap. Wouldn't it be nicer if the
-    erase/insert routines are performed without checking sizes, and if they
-    discover that a split (or merge) is required they simply throw; the caller
-    asks the janitor to perform this action and then retries?
-    if the code is exception safe then there shouldn't be any issues.
+o The C# PInvoke for ham_cursor_find is missing the Record structure
+    - also accept flags in ham_db_find and ham_cursor_find for approx.
+        matching, and copy the key!
 
 o erlang: 2 tests are failing
     o quickcheck-ci.com
     o look into Thomas' mail
 
-o java still has license.java/version.java - remove!
-    o also check dotnet!
-
-o remove version.h, embed in hamsterdb.h
-
 o improve performance for hola-sum (profile!)
+    http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
     s1 = a1 + b1
     s2 = a2 + b2
     s3 = a3 + b3
     s4 = a4 + b4
     return s1 + s2 + s3 + s4
-
-o can we add a generic macro like this:
-    #define ham_initialize_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
-    which can be used as an initializer:
-    ham_key_t key = ham_initialize_key("hello", 5);
-    o same for records
-    o use in samples
-    o use in source
-    o use in unittests
-    o document
 
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
@@ -577,7 +541,14 @@ o QuickCheck: create a new property for testing duplicates; the key is always
     duplicate, or to fetch a specific duplicate.
 
 o QuickCheck: create a new property for testing recnos, with lots of deletes
-    and including bitmap compression
+
+o windows cleanups
+    o need win32 python project (or wait till someone needs it?)
+    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+        or end up in wrong directories
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+    o automate the build process
+    o ... and the packaging
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -621,7 +592,48 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-o use cache-oblivious b-tree layout
+. documentation rewrite
+    o use github wiki
+        o remove old cruft
+
+    /introduction
+    /evaluate & benchmark
+    /faq (merge w/ performance)
+    /tutorial
+    /pro
+    /c, c++
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /java
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /dotnet
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /erlang
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    /python
+        overview (description, status)
+        installation
+        usage (compiling, linking)
+        api functions (one file per function)
+        samples
+    o look for a technical writer to review the files
+
+. use cache-oblivious b-tree layout
     ===> a much simpler approach would be to reserve "X" bytes when creating
         the environment (and then map the whole range)
         this would include storage for the blobs AND we would not have to mess
@@ -645,21 +657,13 @@ o use cache-oblivious b-tree layout
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
-o windows cleanups
-    o need win32 python project (or wait till someone needs it?)
-    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
-        or end up in wrong directories
-    o C# unittests sporadically fail b/c a handle is closed multiple times
-    o automate the build process
-    o ... and the packaging
-
-o improve node layout compression (when the file format changes)
+. improve node layout compression (when the file format changes)
     -> btw: flags are not required at all if fixed length record size > 8
         (and record size is too large for inline records)
     o PAX Layout: can compress the flags for the DefaultRecordList
     o Default Layout: can compress the flags for the Duplicate*RecordList
 
-o release-v2.pl: valgrind takes sooo long. should we use clang's
+. release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
 
 . hola - next steps
@@ -711,25 +715,7 @@ o release-v2.pl: valgrind takes sooo long. should we use clang's
 
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
-o PRO: bulk updates
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort, but
-        fail hard if the sort order is violated
-    - add those delta updates to the txn-trees or to the btree node,
-        simply transfer ownership of the memory
-    -> or are these "batched" updates, in combination with cache-oblivious
-        btrees? the batched updates contain lists of structures with
-        information about the update (i.e. insert, erase etc). internally,
-        a cursor is used to perform the update. this would be fast and a
-        relatively cheap way to perform multiple operations in one
-        single transaction. and they would not require delta updates, but
-        still provide real value.
-    o also for remote, transfer in a single message
-    o also for .NET
-    o also for java
-    o also for erlang
-    o also for python
+o PRO: rebase to vanilla 2.1.9
 
 o PRO: use grouped varints for the RecordLists
     -> use in combination with "distance encoding" - only encode the distances
@@ -753,6 +739,26 @@ o PRO: use grouped varints for the RecordLists
     -> the concept will be similar to prefix compression
     -> can we come up with a schema that allows compression AND
         fast random access?
+
+o PRO: bulk updates
+    - require delta updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort, but
+        fail hard if the sort order is violated
+    - add those delta updates to the txn-trees or to the btree node,
+        simply transfer ownership of the memory
+    -> or are these "batched" updates, in combination with cache-oblivious
+        btrees? the batched updates contain lists of structures with
+        information about the update (i.e. insert, erase etc). internally,
+        a cursor is used to perform the update. this would be fast and a
+        relatively cheap way to perform multiple operations in one
+        single transaction. and they would not require delta updates, but
+        still provide real value.
+    o also for remote, transfer in a single message
+    o also for .NET
+    o also for java
+    o also for erlang
+    o also for python
 
 o PRO: prefix compression for variable-length keys
     ==> not efficient for random read/writes, but that's ok. linear scans
