@@ -303,6 +303,7 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
   ham_u64_t address = 0;
   Page *page = 0;
   ham_u32_t page_size = m_env->get_page_size();
+  bool allocated = false;
 
   /* first check the internal list for a free page */
   if ((flags & kIgnoreFreelist) == 0 && !m_free_pages.empty()) {
@@ -328,10 +329,19 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
 
   m_freelist_misses++;
 
-  if (!page)
-    page = new Page(m_env, db);
+  try {
+    if (!page) {
+      allocated = true;
+      page = new Page(m_env, db);
+    }
 
-  page->allocate(page_type);
+    page->allocate(page_type);
+  }
+  catch (Exception &ex) {
+    if (allocated)
+      delete page;
+    throw ex;
+  }
 
 done:
   /* clear the page with zeroes?  */

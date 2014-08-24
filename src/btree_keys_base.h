@@ -27,12 +27,6 @@ namespace hamsterdb {
 
 class BaseKeyList
 {
-  public:
-    // Can return a modified pivot key; required for compressed KeyLists
-    // and RecordLists of PRO.
-    int adjust_split_pivot(int pivot) {
-      return (pivot);
-    }
 };
 
 } // namespace hamsterdb

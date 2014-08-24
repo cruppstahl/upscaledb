@@ -274,12 +274,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (false);
     }
 
-    // Can return a modified pivot key; required for compressed KeyLists
-    // and RecordLists of PRO.
-    int adjust_split_pivot(int pivot) {
-      return (P::m_keys.adjust_split_pivot(pivot));
-    }
-
     // Splits this node and moves some/half of the keys to |other|
     void split(DefaultNodeImpl *other, int pivot) {
       size_t node_count = P::m_node->get_count();
@@ -360,7 +354,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
           double dcapacity = (double)usable_page_size
                             / (P::m_keys.get_full_key_size()
                                     + P::m_records.get_full_record_size());
-          P::m_capacity = P::m_keys.adjust_split_pivot((size_t)dcapacity);
+          P::m_capacity = (size_t)dcapacity;
 
           // calculate the sizes of the KeyList and RecordList
           if (KeyList::kHasSequentialData) {
@@ -467,10 +461,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // Option 2: if the capacity is exhausted then increase it.  
       if (node_count == old_capacity) {
-        int i = 1;
-        do {
-          new_capacity = P::m_keys.adjust_split_pivot(old_capacity + i * 32);
-        } while (new_capacity <= P::m_capacity);
+        new_capacity = old_capacity + 1;
       }
       // Option 3: we reduce the capacity. This also reduces the metadata in
       // the Lists (the UpfrontIndex shrinks) and therefore generates room

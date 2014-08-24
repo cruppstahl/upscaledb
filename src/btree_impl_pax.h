@@ -186,12 +186,6 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (P::m_node->get_count() >= P::m_capacity);
     }
 
-    // Can return a modified pivot key; required for compressed KeyLists
-    // and RecordLists of PRO. Not used w/ the PAX layout.
-    int adjust_split_pivot(int pivot) const {
-      return (pivot);
-    }
-
   private:
     void initialize() {
       ham_u32_t usable_nodesize
