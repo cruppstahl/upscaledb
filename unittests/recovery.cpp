@@ -23,7 +23,7 @@
 
 #include <ham/hamsterdb_int.h>
 #include "../src/env_local.h"
-#include "../src/errorinducer.h"
+#include "1errorinducer/errorinducer.h"
 #include "os.hpp"
 
 using namespace hamsterdb;

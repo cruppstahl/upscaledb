@@ -16,12 +16,12 @@
 
 #include "config.h"
 
-#include "version.h"
+#include "1base/version.h"
 #include "db.h"
 #include "btree_index.h"
 #include "btree_stats.h"
-#include "device_factory.h"
-#include "blob_manager_factory.h"
+#include "2device/device_factory.h"
+#include "3blob_manager/blob_manager_factory.h"
 #include "page_manager.h"
 #include "journal.h"
 #include "txn.h"
@@ -29,7 +29,7 @@
 #include "env_local.h"
 #include "cursor.h"
 #include "txn_cursor.h"
-#include "os.h"
+#include "1os/os.h"
 
 using namespace hamsterdb;
 

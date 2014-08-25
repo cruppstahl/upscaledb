@@ -41,8 +41,8 @@
 #ifndef HAM_BTREE_CURSORS_H__
 #define HAM_BTREE_CURSORS_H__
 
-#include "error.h"
-#include "util.h"
+#include "1base/byte_array.h"
+#include "1base/error.h"
 
 namespace hamsterdb {
 

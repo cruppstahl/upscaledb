@@ -1,6 +1,6 @@
 
 bin_PROGRAMS	= ham_bench
-AM_CPPFLAGS     = -I$(top_builddir)/include -I..
+AM_CPPFLAGS     = -I$(top_builddir)/include -I.. -I$(top_builddir)/src 
 
 if WITH_BERKELEYDB
 AM_CPPFLAGS     += -DHAM_WITH_BERKELEYDB

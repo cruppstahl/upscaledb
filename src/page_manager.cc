@@ -16,10 +16,10 @@
 
 #include <string.h>
 
-#include "util.h"
-#include "page.h"
-#include "pickle.h"
-#include "device.h"
+#include "1base/byte_array.h"
+#include "1base/pickle.h"
+#include "2page/page.h"
+#include "2device/device.h"
 #include "btree_index.h"
 #include "btree_node_proxy.h"
 

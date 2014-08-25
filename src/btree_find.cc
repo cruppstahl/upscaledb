@@ -19,10 +19,9 @@
 #include <string.h>
 
 #include "db.h"
-#include "error.h"
-#include "mem.h"
-#include "page.h"
-#include "util.h"
+#include "1base/error.h"
+#include "2page/page.h"
+#include "1base/byte_array.h"
 #include "cursor.h"
 #include "btree_index.h"
 #include "btree_cursor.h"

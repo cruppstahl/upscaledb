@@ -16,22 +16,22 @@
 
 #include "config.h"
 
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "btree_index.h"
 #include "btree_index_factory.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
 #include "cursor.h"
 #include "db_local.h"
-#include "device.h"
+#include "2device/device.h"
 #include "journal.h"
-#include "mem.h"
-#include "os.h"
-#include "page.h"
+#include "1mem/mem.h"
+#include "1os/os.h"
+#include "2page/page.h"
 #include "page_manager.h"
 #include "txn_local.h"
 #include "txn_cursor.h"
-#include "version.h"
+#include "1base/version.h"
 
 namespace hamsterdb {
 

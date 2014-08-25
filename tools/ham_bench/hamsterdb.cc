@@ -23,7 +23,7 @@
 #include "configuration.h"
 #include "misc.h"
 #include "hamsterdb.h"
-#include "../../src/globals.h"
+#include "1globals/globals.h"
 
 ham_env_t *HamsterDatabase::ms_env = 0;
 #ifdef HAM_ENABLE_REMOTE

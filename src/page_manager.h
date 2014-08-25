@@ -21,10 +21,10 @@
 
 #include "ham/hamsterdb_int.h"
 
-#include "error.h"
+#include "1base/error.h"
+#include "3cache/cache.h"
 #include "env_local.h"
 #include "db_local.h"
-#include "cache.h"
 
 namespace hamsterdb {
 

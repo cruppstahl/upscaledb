@@ -25,10 +25,10 @@
 
 #include "../src/db.h"
 #include "../src/env.h"
-#include "../src/version.h"
+#include "1base/version.h"
 #include "../src/btree_index.h"
 #include "../src/btree_stats.h"
-#include "../src/os.h"
+#include "1os/os.h"
 
 using namespace hamsterdb;
 

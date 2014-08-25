@@ -22,10 +22,9 @@
 #include "os.hpp"
 
 #include "../src/db.h"
-#include "../src/blob_manager.h"
+#include "3blob_manager/blob_manager_disk.h"
 #include "../src/env.h"
-#include "../src/page.h"
-#include "../src/blob_manager_disk.h"
+#include "2page/page.h"
 #include "../src/btree_flags.h"
 #include "../src/page_manager.h"
 

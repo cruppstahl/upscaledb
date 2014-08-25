@@ -24,7 +24,7 @@
 #include "../src/db.h"
 #include "../src/blob_manager.h"
 #include "../src/env_local.h"
-#include "../src/page.h"
+#include "2page/page.h"
 
 using namespace hamsterdb;
 

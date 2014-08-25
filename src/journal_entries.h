@@ -23,7 +23,7 @@
 
 namespace hamsterdb {
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 /*
  * A journal entry for all txn related operations (begin, commit, abort)
@@ -58,10 +58,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
   ham_u16_t _reserved;
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // a Journal entry for an 'insert' operation
@@ -113,10 +113,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   }
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // a Journal entry for 'erase' operations
@@ -151,10 +151,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   }
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // a Journal entry for a 'changeset' group
@@ -169,10 +169,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
   ham_u32_t num_pages;
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // a Journal entry for a single page
@@ -190,7 +190,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
   ham_u32_t compressed_size;
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 
 } // namespace hamsterdb

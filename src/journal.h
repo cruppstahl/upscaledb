@@ -73,8 +73,8 @@
 
 #include <ham/hamsterdb_int.h> // for metrics
 
-#include "os.h"
-#include "util.h"
+#include "1os/os.h"
+#include "1base/byte_array.h"
 #include "journal_entries.h"
 
 namespace hamsterdb {
@@ -84,7 +84,7 @@ class Database;
 class LocalEnvironment;
 class LocalTransaction;
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // The Journal object
@@ -371,7 +371,7 @@ class Journal
     ham_u64_t m_count_bytes_flushed;
 };
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 } // namespace hamsterdb
 

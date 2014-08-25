@@ -21,12 +21,11 @@
 #include "db_remote.h"
 #include "env_remote.h"
 #include "txn_remote.h"
-#include "mem.h"
 #include "cursor.h"
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include "protobuf/protocol.h"
+#include "2protobuf/protocol.h"
 
 namespace hamsterdb {
 

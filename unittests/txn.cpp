@@ -24,9 +24,9 @@
 #include <ham/hamsterdb.h>
 
 #include "../src/txn.h"
-#include "../src/page.h"
-#include "../src/error.h"
-#include "../src/os.h"
+#include "2page/page.h"
+#include "1base/error.h"
+#include "1os/os.h"
 #include "../src/db_local.h"
 #include "../src/env_local.h"
 #include "../src/txn_local.h"

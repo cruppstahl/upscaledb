@@ -32,8 +32,8 @@ using namespace boost::filesystem;
 
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
-#include <../src/error.h>
-#include <../src/util.h>
+#include "1base/error.h"
+#include "1base/util.h"
 
 class os
 {

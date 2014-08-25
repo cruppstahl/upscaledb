@@ -21,11 +21,11 @@
 
 #include <ham/hamsterdb.h>
 
-#include "os.h"
+#include "1os/os.h"
 #include "env.h"
-#include "util.h"
-#include "protobuf/protocol.h"
-#include "protoserde/messages.h"
+#include "1base/byte_array.h"
+#include "2protobuf/protocol.h"
+#include "2protoserde/messages.h"
 
 namespace hamsterdb {
 

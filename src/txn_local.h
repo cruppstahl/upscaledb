@@ -18,7 +18,7 @@
 #define HAM_TXN_LOCAL_H__
 
 #include "txn.h"
-#include "rb.h"
+#include "1rb/rb.h"
 
 namespace hamsterdb {
 

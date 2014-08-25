@@ -18,7 +18,7 @@
 
 #include <ham/hamsterdb_ola.h>
 
-#include "error.h"
+#include "1base/error.h"
 #include "db.h"
 #include "db_local.h"
 

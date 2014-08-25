@@ -30,7 +30,7 @@
 #include <ham/hamsterdb_srv.h>
 
 #include "../db.h"
-#include "../mutex.h"
+#include "../1base/mutex.h"
 #include "../cursor.h"
 
 struct ham_srv_t {

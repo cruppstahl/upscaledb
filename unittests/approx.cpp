@@ -25,7 +25,6 @@
 #include <string>
 #include <algorithm>
 #include "../src/db.h"
-#include "../src/blob_manager.h"
 #include "../src/btree_index.h"
 #include "../src/cursor.h"
 #include "../src/env.h"

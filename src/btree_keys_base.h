@@ -21,11 +21,9 @@
 #ifndef HAM_BTREE_KEYS_BASE_H__
 #define HAM_BTREE_KEYS_BASE_H__
 
-#include "globals.h"
-
 namespace hamsterdb {
 
-class BaseKeyList
+struct BaseKeyList
 {
 };
 

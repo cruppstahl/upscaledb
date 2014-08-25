@@ -23,11 +23,11 @@
 #include "../src/db.h"
 #include "../src/txn.h"
 #include "../src/txn_cursor.h"
-#include "../src/page.h"
-#include "../src/error.h"
+#include "2page/page.h"
+#include "1base/error.h"
 #include "../src/cursor.h"
 #include "../src/env.h"
-#include "../src/os.h"
+#include "1os/os.h"
 
 namespace hamsterdb {
 

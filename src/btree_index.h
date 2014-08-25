@@ -19,10 +19,10 @@
 
 #include <algorithm>
 
-#include "globals.h"
+#include "1globals/globals.h"
 #include "db.h"
-#include "abi.h"
-#include "util.h"
+#include "1base/abi.h"
+#include "1base/byte_array.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
 #include "btree_node.h"
@@ -31,7 +31,7 @@ namespace hamsterdb {
 
 #undef max // avoid MSVC conflicts with std::max
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 //
 // The persistent btree index descriptor. This structure manages the
@@ -151,7 +151,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 class LocalDatabase;
 class BtreeNodeProxy;

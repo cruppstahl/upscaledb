@@ -22,8 +22,8 @@
 #include "os.hpp"
 
 #include "../src/db.h"
-#include "../src/version.h"
-#include "../src/page.h"
+#include "1base/version.h"
+#include "2page/page.h"
 #include "../src/env.h"
 #include "../src/btree_index.h"
 #include "../src/btree_node.h"

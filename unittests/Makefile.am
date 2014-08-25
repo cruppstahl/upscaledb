@@ -5,7 +5,7 @@ noinst_PROGRAMS = test recovery issue32
 noinst_BIN      = test recovery issue32
 
 
-AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
+AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include -I../src
 
 test_SOURCES    = api110.cpp \
 			      approx.cpp \

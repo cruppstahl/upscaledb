@@ -23,12 +23,12 @@
 
 #include <uv.h>
 
-#include "os.h"
-#include "../protobuf/protocol.h"
-#include "../protoserde/messages.h"
-#include "error.h"
-#include "errorinducer.h"
-#include "mem.h"
+#include "1os/os.h"
+#include "2protobuf/protocol.h"
+#include "2protoserde/messages.h"
+#include "1base/error.h"
+#include "1errorinducer/errorinducer.h"
+#include "1mem/mem.h"
 #include "env.h"
 #include "hamserver.h"
 

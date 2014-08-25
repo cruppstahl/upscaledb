@@ -20,8 +20,8 @@
 
 #include "utils.h"
 
-#include "../src/changeset.h"
-#include "../src/page.h"
+#include "2page/page.h"
+#include "3changeset/changeset.h"
 #include "../src/db.h"
 
 using namespace hamsterdb;

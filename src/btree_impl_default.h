@@ -66,11 +66,11 @@
 #include <vector>
 #include <map>
 
-#include "globals.h"
-#include "util.h"
-#include "page.h"
+#include "1globals/globals.h"
+#include "1base/byte_array.h"
+#include "2page/page.h"
 #include "btree_node.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "env_local.h"
 #include "btree_index.h"
 #include "btree_impl_base.h"
@@ -466,11 +466,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // Option 3: we reduce the capacity. This also reduces the metadata in
       // the Lists (the UpfrontIndex shrinks) and therefore generates room
       // for more data.
-      //
-      // We won't do that for Bitmap KeyLists! Shrinking them by 50% creates
-      // way too much free space for the RecordList and defeats the whole
-      // purpose. In this case we try to increase the data size of the KeyList,
-      // but do not decrease the capacity
       else {
         size_t shrink_slots = (old_capacity - node_count) / 2;
         if (shrink_slots == 0)

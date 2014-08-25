@@ -28,11 +28,11 @@
 #include <sstream>
 #include <iostream>
 
-#include "globals.h"
-#include "util.h"
-#include "page.h"
+#include "1globals/globals.h"
+#include "1base/byte_array.h"
+#include "2page/page.h"
 #include "btree_node.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "env_local.h"
 
 namespace hamsterdb {

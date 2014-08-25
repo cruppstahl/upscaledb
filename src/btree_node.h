@@ -19,9 +19,9 @@
 
 #include "btree_flags.h"
 #include "db_local.h"
-#include "page.h"
+#include "2page/page.h"
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 namespace hamsterdb {
 
@@ -137,7 +137,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
 } HAM_PACK_2;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 } // namespace hamsterdb
 

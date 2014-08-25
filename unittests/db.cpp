@@ -23,7 +23,7 @@
 #include <ham/hamsterdb.h>
 
 #include "../src/db.h"
-#include "../src/page.h"
+#include "2page/page.h"
 #include "../src/env.h"
 #include "../src/env_header.h"
 #include "../src/btree_index.h"

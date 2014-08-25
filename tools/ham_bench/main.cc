@@ -37,7 +37,7 @@
 #endif
 #include "metrics.h"
 #include "misc.h"
-#include "../../src/globals.h"
+#include "1globals/globals.h"
 
 #define ARG_HELP                                1
 #define ARG_VERBOSE                             2

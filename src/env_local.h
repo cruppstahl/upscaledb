@@ -20,7 +20,7 @@
 #include <ham/hamsterdb.h>
 
 #include "env.h"
-#include "changeset.h"
+#include "3changeset/changeset.h"
 #include "env_header.h"
 
 namespace hamsterdb {

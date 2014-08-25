@@ -18,9 +18,8 @@
 
 #include <string.h>
 
-#include "error.h"
-#include "mem.h"
-#include "page.h"
+#include "1base/error.h"
+#include "2page/page.h"
 #include "txn.h"
 #include "cursor.h"
 #include "page_manager.h"

@@ -19,12 +19,12 @@
 
 #include <ham/hamsterdb.h>
 
-#include "error.h"
-#include "page.h"
+#include "1base/error.h"
+#include "2page/page.h"
 
 namespace hamsterdb {
 
-#include "packstart.h"
+#include "1base/packstart.h"
 
 /**
  * the persistent file header
@@ -63,7 +63,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
    */
 } HAM_PACK_2 PEnvironmentHeader;
 
-#include "packstop.h"
+#include "1base/packstop.h"
 
 class EnvironmentHeader
 {

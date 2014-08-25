@@ -24,27 +24,27 @@
 #include <string.h>
 
 #ifdef HAM_ENABLE_REMOTE
-#  include "protobuf/protocol.h"
+#  include "2protobuf/protocol.h"
 #endif
 
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "btree_index.h"
 #include "btree_cursor.h"
 #include "cursor.h"
 #include "db.h"
-#include "device.h"
+#include "2device/device.h"
 #include "env.h"
 #include "env_header.h"
 #include "env_local.h"
 #include "env_remote.h"
-#include "error.h"
-#include "mem.h"
-#include "os.h"
-#include "page.h"
+#include "1base/error.h"
+#include "1mem/mem.h"
+#include "1os/os.h"
+#include "2page/page.h"
 #include "btree_stats.h"
 #include "txn.h"
-#include "util.h"
-#include "version.h"
+#include "1base/byte_array.h"
+#include "1base/version.h"
 
 using namespace hamsterdb;
 

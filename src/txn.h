@@ -46,8 +46,8 @@
 
 #include <string>
 
-#include "util.h"
-#include "error.h"
+#include "1base/byte_array.h"
+#include "1base/error.h"
 
 //
 // A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an

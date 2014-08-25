@@ -19,9 +19,9 @@
 #define CATCH_CONFIG_RUNNER 1
 #include "3rdparty/catch/catch.hpp"
 
-#include "../src/error.h"
+#include "1base/error.h"
 #ifdef HAM_ENABLE_REMOTE
-#  include "../src/protobuf/protocol.h"
+#  include "2protobuf/protocol.h"
 #endif
 
 int

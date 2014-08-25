@@ -22,8 +22,8 @@
 #include "os.hpp"
 
 #include "../src/db.h"
-#include "../src/page.h"
-#include "../src/device.h"
+#include "2page/page.h"
+#include "2device/device.h"
 #include "../src/env_local.h"
 #include "../src/txn.h"
 

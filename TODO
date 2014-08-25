@@ -21,8 +21,7 @@ x CRC32
 x SIMD for real64
 x add parameter to limit file size (APL + PRO)
 x benchmark (APL)
-o bitmap index
-. grouped varints
+- bitmap index
 
 x adapt to the newest changes from 2.1.8
     x move global variables to Globals
@@ -134,220 +133,9 @@ x PRO: KeyList::get_key_data() is only required to retrieve a buffer
     for SIMD search; rename the function (i.e. "get_simd_data()")
 
 o PRO: use a bitmap index for recnos
-    -> can we come up with a solution that also works for non-recnos?
-        then we need to implement sparse indices (maybe even compress them
-        with RLEs)
-    -> compression idea:
-        a "BitVector" is a bitmap stored in 32bit
-        2 bits per BitVector for flags
-            00: BitVector contains all zeroes (-> macromap is not required)
-            11: BitVector contains all ones (-> macromap is not required)
-            10: BitVector contains a bitmap (-> macromap is required)
-        a "minimap" is a set of flags (32bit -> 16 flags) with the corresponding
-            (unknown) number of macromaps; minimum size is 4 bytes, 
-            maximum is sizeof(T) + 17 * 4 = sizeof(T) + 68
-
-    x implement a testable template version of a minimap
-        template parameters: type T (uint16, uint32, uint64)
-                number of 2bit flags
-        x needs to shrink if all bits of a word are set (or not set)
-        x must iterate; use precomputed lookup-table for the flag word
-        x should be serialized in a flat buffer
-        x must be able to insert/append, flip bits, test bits
-        x sparsemap: add another layer on top of this which manages a variable
-            number of minimaps, and can iterate, lookup and insert
-            x all minimap offsets must be aligned to their capacity! otherwise
-                they must get merged and this creates awful complexity
-            x must be able to insert/append, test bits
-            x use a fixed length memory block instead of std::vector
-            x many unittests
-                x set range(1..10000), test if bit is set
-                x unset range(1..10000), test if bit is set
-                x set range(10000..1) in reverse order
-                x unset range(10000..1) in reverse order
-                x set 1; set 2048*2+1; set 2048; must insert a MiniMap in
-                    between two other MiniMaps
-                x unset all above -> should we delete the full minimap?
-                    implemented, but tests are failing
-        x check for overflow when growing; make sure that the code flow
-            is exception safe!
-        x review/refactor/beautify code
-
-    x add to header file
-    x need new parameter/compression type; store it persistently
-        x unittest
-    x add to ham_bench
-    x print in ham_info
-    x only allowed for uint16, uint32 and uint64 keys
-
-    x rebase to v2
-        x verify that aes encryption still works
-        x verify that journal compression is still working
-        x verify that record compression is still working
-        x verify that SSE is still working for PAX layouts
-        x verify that key compression is still working for normal keys
-        x verify that key compression is still working for extkeys
-
-    x create a resizable KeyList based on a sparsemap
-        x start with a minimal KeyList which compiles, but does not have any
-            functionality
-        x use KeyList only for leafs (b/c keys in the internal nodes are
-            too sparse)
-        x implement erase_slot()
-        x implement insert() - cannot work on slots!!
-        x search: use skip-list approach? binary search will be inefficient
-            -> simply set m_keys.linear_search_threshold to 0
-        x fix capacity calculation
-            x initial key size: KeyList::get_full_key_size (return 1.0/8.0)
-            x implement requires_split()
-            x implement change_capacity()
-        x implement print() and get_key()
-            -> sparsemap.h: implement nth_set_bit()
-        x for hola scans: don't use iterators but uncompress keys in a buffer
-            (size depends on BitVector size) -> caller interface can stay as is
-        x btree split: pivot interface must be chosen (or "adjusted") by the
-            KeyList
-        x use 32bit words instead of 64bit; otherwise the minimum capacity
-            is too big for default-sized records 
-            x also make sure that records are not inlined if the minimum
-                capacity of the bitmap is missed
-        x implement copy_to()
-            assert that the slot is on a minimap-boundary and properly aligned,
-            then simply copy the minimaps
-        x fix remaining TODOs in btree_keys_bitmap.h
-
-        x run some basic tests with ham_bench
-            x make sure that flag is persisted and used
-            x currently always performs very slow binary search
-
-        x unittests
-            x integrate sparsemap's unittests (w/ both word sizes!)
-            x sparsemap-tests for move_and_append()
-            x check capacity of node w/ default records
-            x check capacity of node w/ empty records
-            x insert/find/erase/find
-
-    x there are currently several conceptual problems:
-        1. the capacity of the node must be aligned to the bitmap capacity
-            -> fix the initialization routine
-        2. if duplicates are enabled then it's possible that the minimum
-            capacity of a bitmap will not fit in a page 
-        3. the "capacity"/aligned minimaps are problematic because the number
-            of records will not exceed the minimap capacity. therefore there is
-            lots of free space in the node. as long as the minimaps are
-            aligned, this will be hard to solve
-
-    x MiniMaps should remain aligned, but to the Wordsize and not to the
-        full capacity. Unused words are flagged as 2#01, and cannot grow
-        because then they might have to be merged with the following MiniMap.
-        x adjust the lookup table (calc_vector_size)
-        x adjust get_size()
-        x introduce get_capacity()
-        x fix everything else
-    x fix the node initialization - not enough bytes are currently allocated
-        -> is ok
-
-    x SparseMap needs to know its capacity
-    x SparseMap needs to know its *remaining* capacity
-
-    x when creating a MiniMap: pass the remaining capacity; set the MiniMap
-        flags in m_data[0] (can use a lookup table)
-        x then update the remaining capacity in the SparseMap
-    x update after move_and_append()
-
-    x rename move_and_split() to split()
-    x adjust the split function; it should be possible to split a SparseMap
-        into multiple MiniMaps -> make sure that we can split word-aligned
-
-    x make sure that the KeyList resizes properly
-        -> is not ok yet - seems to resize too much, then the node
-            ends up with 44 bytes left
-        x make sure that resizing is word-aligned!
-        x remove the capacity interface of the sparsemap - it's not required
-
-    x if a minimap is inserted *between* two minimaps then it has to
-        make sure that the capacities don't overlap
-        x this affects splits as well? - no
-        x merges? - no
-        - if a minimap is appended, the start of the next sibling has to
-            be checked
-        - also when it's prepended
-        -> we cannot solve this issue with the current design (and I do not
-            want to change the design); but it would work for recnos!
-        x make sure that with recnos existing keys can be deleted or
-            overwritten, but not re-inserted!
-        x ham_bench: support recnos (hamsterdb, berkeleydb)
-        x allow bitmap compression with recnos only
-        x splits/merges
-             -> run insert/find/erase/find test, but with default record
-                 sizes; this causes 7-8 splits and merges
-        x cursor moves
-        x hola
-            x without transactions
-            x with transactions
-
-    o add many monster tests
-        x different record sizes
-            x --record-number --recsize=8 --key-compression=bitmap 
-            x --record-number --recsize-fixed=1 --key-compression=bitmap 
-        x without records
-            x --record-number --recsize-fixed=0 --key-compression=bitmap 
-        x with recovery && reopen
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --use-recovery
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --use-recovery --open --find-pct=100
-        o with find & erase
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
-=========================
-here is a conceptual problem. By erasing many elements, the size of the
-sparsemap will grow and overwrite the record area. in other words: before
-erasing, the node has either to be split or rearranged.
--> move the split logic to btree_janitor.h/.cc
--> if bitmap compression is enabled then check if the keylist requires a split
-    -> if yes then split
-    -> not so trivial in btree_erase.cc. hard to say whether we would get more
-        issues
-    -> or bite the bullet and use a non-compressed bitmap?
-
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --erase-pct=50 --find-pct=50
-=========================
-            x --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
-            o --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --erase-pct=90 --find-pct=10
-            o --record-number --recsize-fixed=5 --key-compression=bitmap --seed=1 --open --find-pct=100
-        o add all those tests to the monster suite
-
-    o (APL) disable duplicates in combination with recnos
-
-    o (APL) RecordNumbers always start with 1, which means bit 0 will always be
-        false and the first bitmap will not be compressible. Make sure that
-        internally, recno's start with 0
-
-    o improve sparsemap performance
-        suggestion: use fixed-length lookup table with offsets for the minimap
-        the last entry is always for the last minimap (this will be the
-        starting point for appending bits)
-        x scan() has many branches because of the "skip" - can they be avoided?
-        o perform a profiling run with valgrind
-        o insert() checks if it can prepend/append, but this requires
-            a call to sparsemap::select() - avoid if recnos are enabled
-        o we can make select faster by checking if *p == 0xff
-        o very fast code path for appending bits for recno's
-        . get_capacity() is called frequently, but there's a difference between
-            calculating capacity and comparing the index, or checking whether
-            the index is *in* that minimap capacity; the second one is faster
-        . fast random access (use lookup table of minimaps and
-                their offsets)
-        . some functions like get_key() (called in cursor_move) are slow
-            because they operate on "slots" instead of keys. can they be
-            optimized? (i.e. add popcount to the lookup table)
-
-    o improve separation between hamsterdb sources and sparsemap by deriving
-        from sparsemap::SparseMap, and use the derived class
-        o move select(), count(), split() to the derived class
-        o ... and everything else that is hamsterdb-related
-    o document in header file (esp. for recno!)
-    o document - write a paper etc to claim prior art; release code as a
-        separate open-source library (GPL)?
+    - nah...
+    o but move the sparsemap library to github, as a seperate project
+    o also write an accompanying blog post or documentation
 
 o webpage changes
     o give away for free to non-profits
@@ -356,53 +144,43 @@ o webpage changes
 
 ------------- hamsterdb 2.1.9 ----------------------------------------
 
+x faq: add documentation about library size: strip helps
+
 o refactoring: split files
-    0root/root.h - very first header file (only one!)
-    1base/error.h, pack*, util, mutex, version - all stuff based on 0root
-    1os/os* - all stuff based on 1base (split in os_file.h and os_socket.h)
-    1mem
-    2page/
-    2changeset/
-    2device/
-    2protoserde/
-    2protobuf/
-    3blob/
-    3journal/
-    3log/
-    3page_manager/
-    3btree/btree*
-    4txn/...
-    4db/...
-    4env/...
-    4cursor/...
-    5server/...
-    hamsterdb.cc, hola.cc (remain in root directory)
-    o root0: add pragmas from btree_impl_default.h, undef min/max
-    o #34: header guards/macros should not clash with reserved identifiers
-        (no leading/trailing underscores)
-    o enforce "layers" with macros in header file (the code shown here
-        is problematic because it does not allow to include header files
-        between start of the guard and the namespace declaration...)
-    o enforce "layers" with macros in header file
-        (HAM_HEADER_START(tier, guard)
-            -> #ifndef guard
-               #  define guard
-               #if current_tier > tier
-               #  error ...
-               #  current_tier = tier
-               #endif
-               #if namespace_Started
-               #  error ...
-               #endif
-               #define namespace_Started 1
-               #ifndef root0_included
-               #  error 0root/root.h was not included
-               #endif
-               namespace hamsterdb {
-        HAM_HEADER_END()
-               } // namespace hamsterdb
-               #endif // guard
-               #undef namespace_Started
+    x root0: add pragmas from btree_impl_default.h, undef min/max
+    x create a template for the header files
+    x document the source code structure
+
+    o for each file, perform the following changes:
+        o #34: header guards/macros should not clash with reserved identifiers
+            (no leading/trailing underscores)
+        o adapt to template.h, template.cc
+        o make sure that the layers are respected (do not include n+1!)
+        o classes without private or protected members should become structs
+
+    x 0root/root.h - very first header file (only one!)
+    x 1base/error.h, pack*, util, mutex, version, abi, pickle
+    x 1globals/
+    x 1errorinducer/
+    x 1mem/
+    x 1os/
+    x 1rb/
+    x 2page/
+    x 2device/
+    x 2protoserde/
+    x 2protobuf/
+    x 3changeset/
+    x 3cache/
+    o 3blob_manager/
+    o 3journal/
+    o 3page_manager/
+    o 3btree/btree*
+    o 4txn/...
+    o 4db/...
+    o 4env/...
+    o 4cursor/...
+    o 5server/...
+    o 5hamsterdb/hamsterdb.cc, hola.cc
 
 o java still has license.java/version.java - remove!
     o also check dotnet!
@@ -416,7 +194,7 @@ o refactoring: get_linear_search_threshold returns size_t, but is
 o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
 
 o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
-    -> translate to c++ code
+    -> transform to c++ code
 
 o can we add a generic macro like this:
     #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
@@ -430,43 +208,67 @@ o can we add a generic macro like this:
 
 o review exception safety
     http://exceptionsafecode.com/
-    o consistently use smart_pointers to manage allocated resources!
-        -> define rules
-    o introduce on_scope_exit macro
-    o consistently force use of RAII
-    o every destructor has to clean up but MOST NOT THROW!
-    o support std::swap
-        -> define rules
-    o manage state like a resource
-        -> define rules
-    o use "critical line" for strong guarantees and defer commits till
+    - consistently use smart_pointers to manage allocated resources!
+        use boost::scoped_ptr (from <boost/scoped_ptr.hpp>)
+    - introduce on_scope_exit macro
+        can use BOOST_SCOPE_EXIT:
+        http://www.boost.org/doc/libs/1_56_0/libs/scope_exit/doc/html/scope_exit/tutorial.html
+    - consistently force use of RAII
+    - every destructor has to clean up but MOST NOT THROW!
+    - support std::swap
+    - manage state like a resource
+        Each state is moved to a separate struct (ClassNameState). The class
+        itself can return the struct as "const", and it has (in best case)
+        a single method which performs write-access.
+        Try to make the State-struct exception safe, whenever members
+        are retrieved or overwritten.
+    - use "critical line" for strong guarantees and defer commits till
         success is guaranteed
-    o every state has to be restored in case of an exception
-    o document every rewritten class with an annotation ("@@exception_safe yes")
+        -> this relates to the use of std::swap
+    - every state has to be restored in case of an exception
+    - document every rewritten class with an annotation ("@exception_safe yes")
         -> define rules
-    o if no method in the class throws: "@@exception_safe nothrow"
-        -> define rules
+        @exception_safe [yes|no|unknown|nothrow]
+        @thread_safe [no|unknown|atomic|blocking]
+    o document the annotations
     o add annotations to *each* file
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
-    (see HAM_PARAM_FILE_SIZE, which is not relevant for in-memory and remote
-    Environments)
-    - db_config.h: a class with the run-time configuration of
-        the database
-    - env_config.h: a class with the run-time configuration of
+    o env_config.h: a struct with the run-time configuration of
         the environment
-    - These classes initialize themselves with the parameters supplied by
+        o a State struct (no methods!) for
+            - the ham_parameter_t list
+            - the parameters from ham_env_open and ham_env_create
+            (without any dependencies!)
+        o gets initialized with data from the header page
+            o and with the parameters and the parameter list
+        o can only be retrieved as const ref for the whole structure
+    o db_config.h: a struct with the run-time configuration of
+        the database
+        o proceed as described above
+    o These classes initialize themselves with the parameters supplied by
         the user, and call all other modules (device, cache...) with this
         structure as the parameter for initialization
-    - All getters of these classes are const/immutable
 
 o refactoring: clean up the close() code of the LocalEnvironment (and also
     of the LocalDatabase). distinguish two cases:
-    1) a close() called by ham_env_close/ham_db_close
+    o a close() called by ham_env_close/ham_db_close
         performs logic that can fail; must not be exception safe
-    2) a close() called in the destructor
+    o a close() called in the destructor
         do not perform any logic besides cleaning up; must NOT THROW!
+        actually there shouldn't be a need to do anything if scoped_ptr
+        is used consistently
+
+o refactoring: move layering improvements
+    o improve layer separation of page (remove dependency to env)
+    o improve layer separation of device (remove dependency to env)
+    o can we move cache to layer 2 or 3?
+    o can we move page_manager to layer 2 or 3?
+    o can we move changeset to layer 2?
+    o can we move journal to layer 2 or 3?
+    o can we move blob_manager to layer 2 or 3?
+    o can we move btree* to layer 3?
 
 o refactoring: get rid of the virtual inheritance for hola workers
 
@@ -490,6 +292,11 @@ o refactoring: rewrite capacity calculations (again...)
     -> in initialize() of the node implementation
     -> in requires_split()
     -> in adjust_capacity()
+    o should requires_split() and insert() be merged? and always throw an
+        exception (LIMITS_REACHED) if the insert would fail, and rearranging
+        would fail?
+        -> yes! Also, the function could inform how much *additional space* the
+            list requires; this would make the resize function much simpler!
     o come up with a universal solution that works in all cases, and where
         the logic is implemented in the node/KL/RL, and nowhere else!
       - initialize(), calc_estimated_capacity():
@@ -498,22 +305,13 @@ o refactoring: rewrite capacity calculations (again...)
             - estimated size for each item
       - requires_split(): simply check if another item *could be inserted*
       - adjust_capacity(): KL/RL should know whether to grow or shrink
+            pass the required new size as a parameter!
       - some KLs (Bitmap!) require a minimum range size
-    o should requires_split() and insert() be merged? and always throw an
-        exception (LIMITS_REACHED) if the insert would fail, and rearranging
-        would fail?
-        -> yes! Also, the function could inform how much *additional space* the
-            list requires; this would make the resize function much simpler!
     o rename copy_to() to remove_and_append()
 
-o refactoring: once more check if we can unify the PaxLayout and
-    the DefaultLayout
-
-o refactoring: Wouldn't it be nice if the erase/insert routines are
-    performed without checking sizes, and if they discover that a
-    split (or merge) is required they simply throw; the caller asks the
-    janitor to perform this action and then retries? if the code is
-    exception safe then there shouldn't be any issues.
+x refactoring: once more check if we can unify the PaxLayout and
+    the DefaultLayout (or move more code to the base class!)
+    - no, not required. Stripping the library will reduce the size.
 
 o The C# PInvoke for ham_cursor_find is missing the Record structure
     - also accept flags in ham_db_find and ham_cursor_find for approx.
@@ -543,6 +341,8 @@ o QuickCheck: create a new property for testing duplicates; the key is always
 o QuickCheck: create a new property for testing recnos, with lots of deletes
 
 o windows cleanups
+    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
+        or figure out why the file size is so big
     o need win32 python project (or wait till someone needs it?)
     o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
         or end up in wrong directories

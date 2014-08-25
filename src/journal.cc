@@ -22,10 +22,10 @@
 #endif
 
 #include "db.h"
-#include "device.h"
-#include "error.h"
-#include "os.h"
-#include "util.h"
+#include "2device/device.h"
+#include "1base/error.h"
+#include "1os/os.h"
+#include "1base/byte_array.h"
 #include "journal.h"
 #include "txn_local.h"
 #include "env_local.h"

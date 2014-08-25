@@ -20,7 +20,7 @@
 #include <ham/hamsterdb_ola.h>
 
 #include "config.h"
-#include "util.h"
+#include "1base/byte_array.h"
 #include "env.h"
 
 // A helper structure; ham_db_t is declared in ham/hamsterdb.h as an

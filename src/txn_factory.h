@@ -21,7 +21,7 @@
 
 #include <ham/hamsterdb.h>
 
-#include "mem.h"
+#include "1mem/mem.h"
 #include "txn.h"
 
 namespace hamsterdb {

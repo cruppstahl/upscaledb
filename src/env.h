@@ -22,8 +22,8 @@
 
 #include <ham/hamsterdb_int.h>
 
-#include "error.h"
-#include "mutex.h"
+#include "1base/error.h"
+#include "1base/mutex.h"
 
 // A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
 // opaque C structure, but internally we use a C++ class. The ham_env_t

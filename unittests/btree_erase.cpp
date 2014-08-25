@@ -22,7 +22,7 @@
 #include "os.hpp"
 
 #include "../src/db.h"
-#include "../src/version.h"
+#include "1base/version.h"
 
 struct BtreeEraseFixture {
   ham_db_t *m_db;

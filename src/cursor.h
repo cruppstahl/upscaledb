@@ -79,10 +79,10 @@
 
 #include <vector>
 
-#include "error.h"
+#include "1base/error.h"
 #include "txn_cursor.h"
 #include "btree_cursor.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "env.h"
 #include "db_local.h"
 

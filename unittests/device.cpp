@@ -21,7 +21,7 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/device.h"
+#include "2device/device.h"
 #include "../src/env_local.h"
 
 using namespace hamsterdb;

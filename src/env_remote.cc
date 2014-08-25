@@ -18,13 +18,13 @@
 
 #include "config.h"
 
-#include "os.h"
+#include "1os/os.h"
 #include "cursor.h"
 #include "db_remote.h"
 #include "env_remote.h"
 #include "txn_remote.h"
 
-#include "protobuf/protocol.h"
+#include "2protobuf/protocol.h"
 
 namespace hamsterdb {
 

@@ -23,8 +23,8 @@
 
 #include "../src/btree_cursor.h"
 #include "../src/db.h"
-#include "../src/page.h"
-#include "../src/error.h"
+#include "2page/page.h"
+#include "1base/error.h"
 #include "../src/btree_index.h"
 #include "../src/env.h"
 #include "../src/cursor.h"

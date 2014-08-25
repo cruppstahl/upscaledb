@@ -42,11 +42,11 @@
 #include <vector>
 #include <map>
 
-#include "globals.h"
-#include "util.h"
-#include "page.h"
+#include "1globals/globals.h"
+#include "1base/byte_array.h"
+#include "2page/page.h"
 #include "btree_node.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "env_local.h"
 #include "btree_index.h"
 #include "btree_keys_base.h"
@@ -721,8 +721,8 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Opens an existing KeyList
-    void open(ham_u8_t *ptr, size_t capacity) {
-      m_data = ptr;
+    void open(ham_u8_t *data, size_t capacity) {
+      m_data = data;
       m_index.open(m_data, capacity);
     }
 
@@ -841,20 +841,22 @@ class VariableLengthKeyList : public BaseKeyList
       // now there's one additional slot
       node_count++;
 
+      ham_u32_t key_flags = 0;
+
       // When inserting the data: always add 1 byte for key flags
       if (key->size <= m_extkey_threshold
             && m_index.can_allocate_space(node_count, key->size + 1)) {
         ham_u32_t offset = m_index.allocate_space(node_count, slot,
                         key->size + 1);
         ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
-        *p = 0; // sets flags
+        *p = key_flags;
         memcpy(p + 1, key->data, key->size); // and data
       }
       else {
         ham_u64_t blob_id = add_extended_key(key);
         m_index.allocate_space(node_count, slot, 8 + 1);
         set_extended_blob_id(slot, blob_id);
-        set_key_flags(slot, BtreeKey::kExtendedKey);
+        set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
       }
     }
 

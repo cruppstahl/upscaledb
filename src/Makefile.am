@@ -1,20 +1,49 @@
 
-SUBDIRS  = protoserde
+SUBDIRS  = 2protoserde
 if ENABLE_REMOTE
-SUBDIRS += protobuf server
+SUBDIRS += 2protobuf server
 endif # ENABLE_REMOTE
 
 lib_LTLIBRARIES = libhamsterdb.la
 
 libhamsterdb_la_SOURCES = \
-	abi.h \
-	blob_manager.h \
-	blob_manager.cc \
-	blob_manager_inmem.h \
-	blob_manager_inmem.cc \
-	blob_manager_disk.h \
-	blob_manager_disk.cc \
-	blob_manager_factory.h \
+	0root/root.h \
+	1base/abi.h \
+	1base/byte_array.h \
+	1base/error.cc \
+	1base/error.h \
+	1errorinducer/errorinducer.h \
+	1base/mutex.h \
+	1base/packstart.h \
+	1base/packstop.h \
+	1base/pickle.h \
+	1base/util.cc \
+	1base/util.h \
+	1base/version.h \
+	1globals/globals.h \
+	1globals/globals.cc \
+	1mem/mem.cc \
+	1mem/mem.h \
+	1os/os.h \
+	1os/os.cc \
+	1os/os_posix.cc \
+	1rb/rb.h \
+	2page/page.cc \
+	2page/page.h \
+	2device/device.h \
+	2device/device_disk.h \
+	2device/device_inmem.h \
+	2device/device_factory.h \
+	3cache/cache.h \
+	3changeset/changeset.cc \
+	3changeset/changeset.h \
+	3blob_manager/blob_manager.h \
+	3blob_manager/blob_manager.cc \
+	3blob_manager/blob_manager_inmem.h \
+	3blob_manager/blob_manager_inmem.cc \
+	3blob_manager/blob_manager_disk.h \
+	3blob_manager/blob_manager_disk.cc \
+	3blob_manager/blob_manager_factory.h \
 	btree_check.cc \
 	btree_cursor.cc \
 	btree_cursor.h \
@@ -41,9 +70,6 @@ libhamsterdb_la_SOURCES = \
 	btree_stats.cc \
 	btree_stats.h \
 	btree_visit.cc \
-	cache.h \
-	changeset.cc \
-	changeset.h \
 	config.h \
 	cursor.cc \
 	cursor.h \
@@ -53,40 +79,19 @@ libhamsterdb_la_SOURCES = \
 	db_local.h \
 	db_remote.cc \
 	db_remote.h \
-	device.h \
-	device_disk.h \
-	device_inmem.h \
-	device_factory.h \
 	env.h \
 	env_header.h \
 	env_local.h \
 	env_local.cc \
 	env_remote.h \
 	env_remote.cc \
-	error.cc \
-	error.h \
-	errorinducer.h \
 	hamsterdb.cc \
 	hola.cc \
-	globals.h \
-	globals.cc \
 	journal.cc \
 	journal_entries.h \
 	journal.h \
-	mem.cc \
-	mem.h \
-	mutex.h \
-	os.h \
-	os.cc \
-	os_posix.cc \
-	packstart.h \
-	packstop.h \
-	page.cc \
-	page.h \
 	page_manager.cc \
 	page_manager.h \
-	pickle.h \
-	rb.h \
 	txn_cursor.cc \
 	txn_cursor.h \
 	txn_factory.h \
@@ -94,12 +99,9 @@ libhamsterdb_la_SOURCES = \
 	txn_local.h \
 	txn_remote.cc \
 	txn_remote.h \
-	txn.h \
-	util.cc \
-	util.h \
-	version.h
+	txn.h
 
-EXTRA_DIST = os_win32.cc
+EXTRA_DIST = 1os/os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)
@@ -107,6 +109,6 @@ libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
-libhamsterdb_la_LIBADD += $(top_builddir)/src/protobuf/libprotocol.la
+libhamsterdb_la_LIBADD += $(top_builddir)/src/2protobuf/libprotocol.la
 endif
 

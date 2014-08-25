@@ -17,12 +17,12 @@
 #ifndef HAM_BTREE_NODE_PROXY_H__
 #define HAM_BTREE_NODE_PROXY_H__
 
-#include "abi.h"
-#include "util.h"
-#include "page.h"
-#include "error.h"
+#include "1base/abi.h"
+#include "1base/byte_array.h"
+#include "2page/page.h"
+#include "1base/error.h"
 #include "btree_node.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 #include "env_local.h"
 
 #undef min  // avoid MSVC conflicts with std::min

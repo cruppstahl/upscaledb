@@ -19,16 +19,16 @@
 #include <string.h>
 
 #include "db.h"
-#include "error.h"
-#include "page.h"
+#include "1base/error.h"
+#include "2page/page.h"
 #include "txn.h"
-#include "util.h"
+#include "1base/byte_array.h"
 #include "cursor.h"
 #include "btree_stats.h"
 #include "btree_index.h"
 #include "btree_node_proxy.h"
 #include "page_manager.h"
-#include "blob_manager.h"
+#include "3blob_manager/blob_manager.h"
 
 namespace hamsterdb {
 

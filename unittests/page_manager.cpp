@@ -20,12 +20,12 @@
 
 #include "utils.h"
 
-#include "../src/page.h"
-#include "../src/device.h"
+#include "2page/page.h"
+#include "2device/device.h"
 #include "../src/env.h"
 #include "../src/txn.h"
 #include "../src/config.h"
-#include "../src/pickle.h"
+#include "1base/pickle.h"
 #include "../src/page_manager.h"
 
 namespace hamsterdb {

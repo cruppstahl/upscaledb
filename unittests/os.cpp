@@ -22,7 +22,7 @@
 
 #include "utils.h"
 
-#include "../src/os.h"
+#include "1os/os.h"
 #include "os.hpp"
 
 #ifdef WIN32

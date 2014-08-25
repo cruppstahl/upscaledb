@@ -26,7 +26,7 @@
 
 #include <ham/hamsterdb_srv.h>
 
-#include "../src/errorinducer.h"
+#include "1errorinducer/errorinducer.h"
 
 using namespace hamsterdb;
 
