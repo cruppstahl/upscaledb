@@ -770,10 +770,16 @@ class VariableLengthKeyList : public BaseKeyList
       if (unlikely(*p & BtreeKey::kExtendedKey)) {
         memset(&tmp, 0, sizeof(tmp));
         get_extended_key(get_extended_blob_id(slot), &tmp);
+
+        if (unlikely(*p & BtreeKey::kCompressed))
+          uncompress(&tmp, &tmp);
       }
       else {
         tmp.size = get_key_size(slot);
         tmp.data = p + 1;
+
+        if (unlikely(*p & BtreeKey::kCompressed))
+          uncompress(&tmp, &tmp);
       }
 
       dest->size = tmp.size;
