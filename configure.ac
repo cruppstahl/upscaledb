@@ -178,7 +178,7 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile src/Makefile src/protobuf/Makefile src/protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile src/2protobuf/Makefile src/2protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_OUTPUT
 
 # Messages

@@ -22,11 +22,11 @@
 
 #include "utils.h"
 
-#include "../src/db_local.h"
+#include "4db/db_local.h"
 #include "2page/page.h"
 #include "../src/env.h"
-#include "../src/btree_index.h"
-#include "../src/btree_node_proxy.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_node_proxy.h"
 
 namespace hamsterdb {
 

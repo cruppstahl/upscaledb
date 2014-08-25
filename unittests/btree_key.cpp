@@ -21,16 +21,16 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
-#include "../src/btree_index.h"
-#include "../src/btree_flags.h"
-#include "../src/btree_node_proxy.h"
-#include "../src/btree_impl_default.h"
+#include "4db/db.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_flags.h"
+#include "3btree/btree_node_proxy.h"
+#include "3btree/btree_impl_default.h"
 #include "../src/1base/byte_array.h"
 #include "2page/page.h"
-#include "../src/page_manager.h"
+#include "3page_manager/page_manager.h"
 #include "../src/env_local.h"
-#include "../src/btree_node.h"
+#include "3btree/btree_node.h"
 
 namespace hamsterdb {
 

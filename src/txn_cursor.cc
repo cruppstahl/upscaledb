@@ -20,7 +20,7 @@
 #include "txn.h"
 #include "txn_cursor.h"
 #include "txn_local.h"
-#include "btree_cursor.h"
+#include "3btree/btree_cursor.h"
 
 namespace hamsterdb {
 

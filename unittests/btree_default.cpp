@@ -23,8 +23,8 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db_local.h"
-#include "../src/btree_index_factory.h"
+#include "4db/db_local.h"
+#include "3btree/btree_index_factory.h"
 
 #ifdef WIN32
 #  undef min

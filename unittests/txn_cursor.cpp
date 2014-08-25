@@ -20,7 +20,7 @@
 
 #include "utils.h"
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "../src/txn.h"
 #include "../src/txn_cursor.h"
 #include "2page/page.h"

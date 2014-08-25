@@ -21,8 +21,8 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
-#include "../src/blob_manager.h"
+#include "4db/db.h"
+#include "3blob_manager/blob_manager.h"
 #include "../src/env_local.h"
 #include "2page/page.h"
 

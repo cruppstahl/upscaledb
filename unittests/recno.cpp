@@ -21,8 +21,8 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/btree_index.h"
-#include "../src/page_manager.h"
+#include "3btree/btree_index.h"
+#include "3page_manager/page_manager.h"
 
 namespace hamsterdb {
 

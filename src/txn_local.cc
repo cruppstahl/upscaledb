@@ -19,12 +19,12 @@
 #include <string.h>
 
 #include "cursor.h"
-#include "journal.h"
+#include "3journal/journal.h"
 #include "txn_local.h"
 #include "txn_factory.h"
 #include "txn_cursor.h"
 #include "env_local.h"
-#include "btree_index.h"
+#include "3btree/btree_index.h"
 
 namespace hamsterdb {
 

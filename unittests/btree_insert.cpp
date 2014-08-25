@@ -21,13 +21,13 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "1base/version.h"
 #include "2page/page.h"
 #include "../src/env.h"
-#include "../src/btree_index.h"
-#include "../src/btree_node.h"
-#include "../src/page_manager.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_node.h"
+#include "3page_manager/page_manager.h"
 
 using namespace hamsterdb;
 

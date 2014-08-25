@@ -21,14 +21,14 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/btree_cursor.h"
-#include "../src/db.h"
+#include "3btree/btree_cursor.h"
+#include "4db/db.h"
 #include "2page/page.h"
 #include "1base/error.h"
-#include "../src/btree_index.h"
+#include "3btree/btree_index.h"
 #include "../src/env.h"
 #include "../src/cursor.h"
-#include "../src/page_manager.h"
+#include "3page_manager/page_manager.h"
 
 namespace hamsterdb {
 

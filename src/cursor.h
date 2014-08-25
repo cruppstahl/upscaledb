@@ -81,10 +81,10 @@
 
 #include "1base/error.h"
 #include "txn_cursor.h"
-#include "btree_cursor.h"
+#include "3btree/btree_cursor.h"
 #include "3blob_manager/blob_manager.h"
+#include "4db/db_local.h"
 #include "env.h"
-#include "db_local.h"
 
 // A helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
 // opaque C structure, but internally we use a C++ class. The ham_cursor_t

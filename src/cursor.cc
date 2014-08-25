@@ -22,9 +22,9 @@
 #include "db.h"
 #include "env_local.h"
 #include "txn_local.h"
-#include "btree_cursor.h"
-#include "btree_index.h"
-#include "btree_node_proxy.h"
+#include "3btree/btree_cursor.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_node_proxy.h"
 
 using namespace hamsterdb;
 

@@ -26,7 +26,7 @@
 #include "../src/txn.h"
 #include "../src/config.h"
 #include "1base/pickle.h"
-#include "../src/page_manager.h"
+#include "3page_manager/page_manager.h"
 
 namespace hamsterdb {
 

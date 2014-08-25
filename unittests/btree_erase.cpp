@@ -21,7 +21,7 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "1base/version.h"
 
 struct BtreeEraseFixture {

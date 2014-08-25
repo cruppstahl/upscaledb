@@ -22,7 +22,7 @@
 
 #include "2page/page.h"
 #include "3changeset/changeset.h"
-#include "../src/db.h"
+#include "4db/db.h"
 
 using namespace hamsterdb;
 

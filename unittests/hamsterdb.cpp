@@ -21,9 +21,9 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "1base/version.h"
-#include "../src/btree_index.h"
+#include "3btree/btree_index.h"
 #include "../src/env.h"
 #include "2page/page.h"
 #include "../src/cursor.h"

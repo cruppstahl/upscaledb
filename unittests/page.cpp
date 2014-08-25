@@ -21,7 +21,7 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "2page/page.h"
 #include "2device/device.h"
 #include "../src/env_local.h"

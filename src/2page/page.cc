@@ -22,7 +22,7 @@
 #include "1os/os.h"
 #include "2page/page.h"
 #include "2device/device.h"
-#include "btree_node_proxy.h"
+#include "3btree/btree_node_proxy.h"
 
 namespace hamsterdb {
 

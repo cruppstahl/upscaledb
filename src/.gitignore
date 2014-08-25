@@ -3,5 +3,6 @@
 *.la
 .libs
 .deps
+.dirstamp
 messages.pb.cc
 messages.pb.h

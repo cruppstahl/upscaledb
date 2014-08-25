@@ -44,41 +44,46 @@ libhamsterdb_la_SOURCES = \
 	3blob_manager/blob_manager_disk.h \
 	3blob_manager/blob_manager_disk.cc \
 	3blob_manager/blob_manager_factory.h \
-	btree_check.cc \
-	btree_cursor.cc \
-	btree_cursor.h \
-	btree_erase.cc \
-	btree_find.cc \
-	btree_flags.h \
-	btree_impl_base.h \
-	btree_impl_default.h \
-	btree_impl_pax.h \
-	btree_index.cc \
-	btree_index.h \
-	btree_index_factory.h \
-	btree_insert.cc \
-	btree_keys_base.h \
-	btree_keys_binary.h \
-	btree_keys_varlen.h \
-	btree_keys_pod.h \
-	btree_node.h \
-	btree_node_proxy.h \
-	btree_records_default.h \
-	btree_records_inline.h \
-	btree_records_internal.h \
-	btree_records_duplicate.h \
-	btree_stats.cc \
-	btree_stats.h \
-	btree_visit.cc \
+	3btree/btree_check.cc \
+	3btree/btree_cursor.cc \
+	3btree/btree_cursor.h \
+	3btree/btree_erase.cc \
+	3btree/btree_find.cc \
+	3btree/btree_flags.h \
+	3btree/btree_impl_base.h \
+	3btree/btree_impl_default.h \
+	3btree/btree_impl_pax.h \
+	3btree/btree_index.cc \
+	3btree/btree_index.h \
+	3btree/btree_index_factory.h \
+	3btree/btree_insert.cc \
+	3btree/btree_keys_base.h \
+	3btree/btree_keys_binary.h \
+	3btree/btree_keys_varlen.h \
+	3btree/btree_keys_pod.h \
+	3btree/btree_node.h \
+	3btree/btree_node_proxy.h \
+	3btree/btree_records_default.h \
+	3btree/btree_records_inline.h \
+	3btree/btree_records_internal.h \
+	3btree/btree_records_duplicate.h \
+	3btree/btree_stats.cc \
+	3btree/btree_stats.h \
+	3btree/btree_visit.cc \
+	3journal/journal.cc \
+	3journal/journal_entries.h \
+	3journal/journal.h \
+	3page_manager/page_manager.cc \
+	3page_manager/page_manager.h \
+	4db/db.cc \
+	4db/db.h \
+	4db/db_local.cc \
+	4db/db_local.h \
+	4db/db_remote.cc \
+	4db/db_remote.h \
 	config.h \
 	cursor.cc \
 	cursor.h \
-	db.cc \
-	db.h \
-	db_local.cc \
-	db_local.h \
-	db_remote.cc \
-	db_remote.h \
 	env.h \
 	env_header.h \
 	env_local.h \
@@ -87,11 +92,6 @@ libhamsterdb_la_SOURCES = \
 	env_remote.cc \
 	hamsterdb.cc \
 	hola.cc \
-	journal.cc \
-	journal_entries.h \
-	journal.h \
-	page_manager.cc \
-	page_manager.h \
 	txn_cursor.cc \
 	txn_cursor.h \
 	txn_factory.h \

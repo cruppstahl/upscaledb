@@ -19,7 +19,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
-#include "../src/journal.h"
+#include "3journal/journal.h"
 #include "../src/txn.h"
 #include "../src/env_local.h"
 #include "../src/txn_local.h"

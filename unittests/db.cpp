@@ -22,16 +22,16 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/db.h"
+#include "4db/db.h"
 #include "2page/page.h"
 #include "../src/env.h"
 #include "../src/env_header.h"
-#include "../src/btree_index.h"
-#include "../src/btree_index_factory.h"
-#include "../src/blob_manager.h"
-#include "../src/page_manager.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_index_factory.h"
+#include "3blob_manager/blob_manager.h"
+#include "3page_manager/page_manager.h"
 #include "../src/txn.h"
-#include "../src/btree_node.h"
+#include "3btree/btree_node.h"
 
 namespace hamsterdb {
 

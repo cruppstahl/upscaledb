@@ -14,123 +14,13 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-high-level plan for 2.1.8 pro ..............................................
-x all changes of APL version
-x SIMD for default layout/PAX keylists
-x CRC32
-x SIMD for real64
-x add parameter to limit file size (APL + PRO)
-x benchmark (APL)
-- bitmap index
+high-level plan for 2.1.9 ..................................................
+o new file system structure
+o exception safe code
+o lots of refactoring
+o delta updates
 
-x adapt to the newest changes from 2.1.8
-    x move global variables to Globals
-    x verify that aes encryption still works
-    x verify that key compression is still working for normal keys
-    x verify that key compression is still working for extkeys
-    x verify that record compression is still working
-    x verify that journal compression is still working
-    x verify that SSE is still working for PAX layouts
-
-x PRO: enable SIMD in the default layout if it uses the same KeyList as
-    in PAX *and* if record IDs are stored separately from the keys
-
-x PRO: CRC32-checksums (as soon as the file format is updated)
-    x SSE2 has support for a CRC32 checksum calculation, or find a good
-        library -> use murmurhash3
-    x needs new flag HAM_ENABLE_CRC32
-    x document the flag
-    x do not allow with in-memory Environments
-        x unittest
-    x flag is not persisted
-        x unittest
-    x write in Page::flush (if page has a header), verify in Page::read
-        (if page has a header)
-    x multipage blobs: store in PBlobPageHeader::m_free_bytes
-    x add to ham_bench
-    x add unittest
-        x corrupt a page
-        x allocate, read, overwrite, erase etc multi-page blobs
-        x corrupt a multi-page blob
-    x add to monster-pro tests (incl. reopen, big blobs, overwrite)
-
-    x apl: support and document the flag, but return error if selected
-        x add to java api
-        x add to .NET api
-        x add to python api
-        x add to erlang api
-
-x PRO: add sse support for real64
-    __cmpeq_pd
-    everything else is same as with uint64?
-
-x add parameter to limit file size (also for APL)
-    x make sure that db does not end up in an inconsistent state if a
-        page allocation fails!
-    x device_disk.h: cache the file size (but verify it in debug builds)
-    x add parameter and documentation (header file)
-        HAM_PARAM_FILE_SIZE: 0x00000109
-    x fail if in-memory db
-        x unittest
-    x device_disk.h: check for the file size limit (default: 0xffffffffff...)
-    x add unittest
-        x check integrity after a split
-        x when allocating a blob: make sure that the inserted key is removed
-            afterwards (check integrity)
-    x add to java
-    x add to .NET
-    x add to python
-    x add to erlang
-
-x hola: extend the documentation
-
-x collect/publish benchmark against leveldb (with and without SSD)
-    x uint64, small records, random write
-    x uint64, small records, random read
-    x uint64, small records, linear write
-    x uint64, small records, linear read
-    x uint64, large records, random write
-    x uint64, large records, random read
-    x uint64, large records, linear write
-    x uint64, large records, linear read
-    x bin16, default records, random write (w/o compression)
-    x bin16, default records, linear write (w/o compression)
-    x bin16, default records, random read (w/o compression)
-    x bin16, default records, linear read (w/o compression)
-    x uint64, calculate sum()
-    x bin16, use count_if() of all keys with a certain postfix ("X")
-
-    x make sure that the hamsterdb databases are using the correct parameters
-        x bin16 should use fixed length keys
-
-    x SSD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
-    x SSD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
-    x HDD: run each with 100k, 1m, 10m and 100m keys (4 mb cache)
-    x HDD: run each with 100k, 1m, 10m and 100m keys (1 gb cache)
-
-x make sure that hamsterdb/master can compile against libuv 0.10.25
-    x rebase v2 to master
-    x rebase pro to base
-
-x Refactoring: preparations for bitmap compression
-    x btree_index_factory: RecordNumberCompare is no longer necessary since
-        numbers are now host endian (it's a synonym for uint64!)
-    x KeyList::has_simd_support() is the same as KeyList::kIsSimdEnabled
-        remove the latter
-    x move each KeyList and RecordList into its own file
-        x also make sure that each file is properly documented
-        x update Makefile.am
-    x kHasSequentialData still required? - yes, absolutely
-    x have both btree layouts derive from common subclass and reduce code
-        x file is btree_impl_base.h
-    x once more rewrite the capacity calculations in the LayoutImpl: right now
-        it's based on byte-wise calculations, but these do not work with
-        the bitmap (and with other sub-byte compression schemes as well)
-        -> use double for key size calculations (get_full_key_size(),
-            get_full_record_size())
-
-x PRO: KeyList::get_key_data() is only required to retrieve a buffer
-    for SIMD search; rename the function (i.e. "get_simd_data()")
+x faq: add documentation about library size: strip helps
 
 o PRO: use a bitmap index for recnos
     - nah...
@@ -141,10 +31,6 @@ o webpage changes
     o give away for free to non-profits
     o also add a startup program?
     o add CRC32 to pro documentation, feature matrix
-
-------------- hamsterdb 2.1.9 ----------------------------------------
-
-x faq: add documentation about library size: strip helps
 
 o refactoring: split files
     x root0: add pragmas from btree_impl_default.h, undef min/max
@@ -171,16 +57,20 @@ o refactoring: split files
     x 2protobuf/
     x 3changeset/
     x 3cache/
-    o 3blob_manager/
-    o 3journal/
-    o 3page_manager/
-    o 3btree/btree*
+    x 3blob_manager/
+    x 3journal/
+    x 3page_manager/
+    x 3btree/btree*
+    x 4db/...
     o 4txn/...
-    o 4db/...
     o 4env/...
     o 4cursor/...
     o 5server/...
     o 5hamsterdb/hamsterdb.cc, hola.cc
+
+    o also cleanup unittests
+    o 3journal does not strictly follow the layer-concept
+    o 3page_manager does not strictly follow the layer-concept
 
 o java still has license.java/version.java - remove!
     o also check dotnet!
@@ -230,6 +120,7 @@ o review exception safety
         -> define rules
         @exception_safe [yes|no|unknown|nothrow]
         @thread_safe [no|unknown|atomic|blocking]
+    o document the rules (coding guidelines)
     o document the annotations
     o add annotations to *each* file
 
@@ -237,6 +128,8 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
     o env_config.h: a struct with the run-time configuration of
         the environment
+        o created in hamsterdb.cc/ham_env_create/ham_env_open and passed
+            to all objects that are created
         o a State struct (no methods!) for
             - the ham_parameter_t list
             - the parameters from ham_env_open and ham_env_create

@@ -19,8 +19,8 @@
 #include <ham/hamsterdb_ola.h>
 
 #include "1base/error.h"
-#include "db.h"
-#include "db_local.h"
+#include "4db/db.h"
+#include "4db/db_local.h"
 
 using namespace hamsterdb;
 

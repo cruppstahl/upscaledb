@@ -21,7 +21,7 @@
 
 #include "utils.h"
 #include "os.hpp"
-#include "../src/btree_index.h"
+#include "3btree/btree_index.h"
 
 namespace hamsterdb {
 
