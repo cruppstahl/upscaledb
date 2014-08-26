@@ -321,8 +321,6 @@ struct DuplicateFixture {
     REQUIRE(0 == ham_db_find(m_db, 0, key, &record, 0));
     REQUIRE(rec->size == record.size);
     REQUIRE(0 == ::memcmp(rec->data, record.data, rec->size));
-
-    rec->_rid = record._rid;
   }
 
   void erase(ham_key_t *key) {

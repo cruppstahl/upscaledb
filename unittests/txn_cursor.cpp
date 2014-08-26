@@ -70,10 +70,8 @@ struct TxnCursorFixture {
     TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
-    ham_key_t key = {0};
     ham_record_t record = {0};
-    key.data = (void *)"hello";
-    key.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);
@@ -96,14 +94,11 @@ struct TxnCursorFixture {
     ham_txn_t *txn;
     TransactionNode *node;
     TransactionOperation *op;
-    ham_key_t k = {0};
-    ham_key_t key = {0};
     ham_record_t record = {0};
-    key.data = (void *)"hello";
-    key.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
 
     char buffer[1024] = {0};
-    k.data = &buffer[0];
+    ham_key_t k = ham_make_key(&buffer[0], 0);
     k.flags = HAM_KEY_USER_ALLOC;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -153,10 +148,8 @@ struct TxnCursorFixture {
     TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
-    ham_key_t key = {0};
     ham_record_t record = {0};
-    key.data = (void *)"hello";
-    key.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = create_transaction_node(&key);

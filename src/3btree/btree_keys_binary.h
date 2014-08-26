@@ -133,7 +133,7 @@ class BinaryKeyList : public BaseKeyList
         return (Globals::ms_linear_threshold);
 #endif
       if (m_key_size > 32)
-        return (0xffffffff); // disable linear search for large keys
+        return (0); // disable linear search for large keys
       return (128 / m_key_size);
 
     }

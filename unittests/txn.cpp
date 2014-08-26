@@ -149,15 +149,8 @@ struct TxnFixture {
   void txnNodeCreatedOnceTest() {
     ham_txn_t *txn;
     TransactionNode *node1, *node2;
-    ham_key_t key1, key2;
-    memset(&key1, 0, sizeof(key1));
-    key1.data = (void *)"hello";
-    key1.size = 5;
-    memset(&key2, 0, sizeof(key2));
-    key2.data = (void *)"world";
-    key2.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key1 = ham_make_key((void *)"hello", 5);
+    ham_key_t key2 = ham_make_key((void *)"world", 5);
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key1);
@@ -215,14 +208,8 @@ struct TxnFixture {
     ham_txn_t *txn;
     TransactionNode *node;
     TransactionOperation *op1, *op2, *op3;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key);

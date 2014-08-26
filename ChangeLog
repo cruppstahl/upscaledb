@@ -3,6 +3,8 @@ o issue #38: temporary transactions and recovery (w/o transactions)
 	created huge logfiles; fixed
 
 Aug 26, 2014 - chris ---------------------------------------------------
+o Introduced two new makros to initialize ham_key_t and ham_record_t
+	structures
 o The file structure has been completely reorganized. It is described
 	in documentation/source/structure.txt.
 o Splitting unittests/cursor.cpp in two files to avoid out-of-memory

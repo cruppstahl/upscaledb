@@ -22,6 +22,22 @@ o exception safe code
 o lots of refactoring
 o delta updates
 
+o PRO: webpage changes
+    o give away for free to non-profits
+    o also add a startup program?
+    o add CRC32 to pro documentation, feature matrix
+
+o PRO: fix bug as reported from Ole (mail from 26.)
+
+o PRO:
+http://searchivarius.org/blog/efficient-intersections-compressed-posting-lists-thanks-simd-instructions
+    checkout reference to Nathan Kurz's implementation; review and add
+    to TODO list if required
+
+o PRO: make the release
+
+-------------------------------------------------------------
+
 x faq: add documentation about library size: strip helps
 
 x refactoring: split files
@@ -69,29 +85,22 @@ x refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
 x refactoring: #37 - hamzilla.c/running should be sig_atomic_t
     -> transform to c++ code
 
+x can we add a generic macro like this:
+    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
+    which can be used as an initializer:
+    ham_key_t key = ham_make_key("hello", 5);
+    x same for records
+    x use in samples
+    x document in header file
+
+x refactoring: get_linear_search_threshold returns size_t, but is
+    then used as (signed) int; some return 0, others -1
+    right now the code works but is cheesy. return (int)0 to disable.
+
 o PRO: use a bitmap index for recnos
     - nah...
     o but move the sparsemap library to github, as a seperate project
     o also write an accompanying blog post or documentation
-
-o webpage changes
-    o give away for free to non-profits
-    o also add a startup program?
-    o add CRC32 to pro documentation, feature matrix
-
-o can we add a generic macro like this:
-    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
-    which can be used as an initializer:
-    ham_key_t key = ham_make_key("hello", 5);
-    o same for records
-    o use in samples
-    o use in source
-    o use in unittests
-    o document
-
-o refactoring: get_linear_search_threshold returns size_t, but is
-    then used as (signed) int; some return 0, others -1
-    right now the code works but is cheesy. return (int)0 to disable.
 
 o review exception safety
     http://exceptionsafecode.com/
@@ -103,6 +112,7 @@ o review exception safety
     - consistently force use of RAII
     - every destructor has to clean up but MOST NOT THROW!
     - support std::swap
+        http://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Non-throwing_swap
     - manage state like a resource
         Each state is moved to a separate struct (ClassNameState). The class
         itself can return the struct as "const", and it has (in best case)
@@ -281,6 +291,11 @@ o delta updates managed in the BtreeNode
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
+
+. refactoring: can we get rid of ham_record_t::_intflags and
+    ham_record_t::_rid? at least deprecate them, then remove them with
+    the next ABI change
+    -> yes, just remove them. they are no longer used.
 
 . documentation rewrite
     o use github wiki

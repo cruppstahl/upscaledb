@@ -27,7 +27,7 @@ AC_SYS_LARGEFILE
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 LT_INIT
-AC_CONFIG_SRCDIR(src/hamsterdb.cc)
+AC_CONFIG_SRCDIR(src/5hamsterdb/hamsterdb.cc)
 AC_CONFIG_HEADERS(config.h)
 AM_PROG_CC_C_O
 

@@ -192,10 +192,10 @@ typedef struct {
   ham_u32_t partial_size;
 
   /** For internal use */
-  ham_u32_t _intflags;
+  ham_u32_t __intflags;
 
   /** For internal use */
-  ham_u64_t _rid;
+  ham_u64_t __rid;
 
 } ham_record_t;
 
@@ -203,6 +203,14 @@ typedef struct {
  * @ref ham_cursor_move, @ref ham_cursor_find and @ref ham_db_find)
  */
 #define HAM_RECORD_USER_ALLOC   1
+
+/**
+ * A macro to statically initialize a @ref ham_record_t structure.
+ *
+ * Usage:
+ *    ham_record_t rec = ham_make_record(ptr, size);
+ */
+#define ham_make_record(PTR, SIZE) { SIZE, PTR, 0 }
 
 /**
  * A generic key.
@@ -244,6 +252,14 @@ typedef struct {
   ham_u32_t _flags;
 
 } ham_key_t;
+
+/**
+ * A macro to statically initialize a @ref ham_key_t structure.
+ *
+ * Usage:
+ *    ham_key_t key = ham_make_key(ptr, size);
+ */
+#define ham_make_key(PTR, SIZE) { SIZE, PTR, 0 }
 
 /** Flag for @ref ham_key_t (only really useful in combination with
  * @ref ham_cursor_move, @ref ham_cursor_find and @ref ham_db_find)

@@ -298,8 +298,6 @@ __prepare_record(ham_record_t *record)
     ham_trace(("invalid flag in record->flags"));
     return (false);
   }
-  record->_intflags = 0;
-  record->_rid = 0;
   return (true);
 }
 
