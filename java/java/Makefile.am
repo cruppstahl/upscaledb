@@ -7,10 +7,8 @@ EXTRA_DIST = \
      de/crupp/hamsterdb/Cursor.java \
      de/crupp/hamsterdb/Database.java \
      de/crupp/hamsterdb/DatabaseException.java \
-     de/crupp/hamsterdb/DuplicateCompareCallback.java \
      de/crupp/hamsterdb/Environment.java \
      de/crupp/hamsterdb/ErrorHandler.java \
-     de/crupp/hamsterdb/License.java \
      de/crupp/hamsterdb/Parameter.java \
      de/crupp/hamsterdb/Transaction.java \
      de/crupp/hamsterdb/Version.java \
@@ -23,11 +21,9 @@ all: de/crupp/hamsterdb/Const.class \
      de/crupp/hamsterdb/Environment.class \
      de/crupp/hamsterdb/Cursor.class \
      de/crupp/hamsterdb/Version.class \
-     de/crupp/hamsterdb/License.class \
      de/crupp/hamsterdb/Parameter.class \
      de/crupp/hamsterdb/ErrorHandler.class \
      de/crupp/hamsterdb/CompareCallback.class \
-     de/crupp/hamsterdb/DuplicateCompareCallback.class \
      jar
 
 jar:

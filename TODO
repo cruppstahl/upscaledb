@@ -61,10 +61,7 @@ x refactoring: split files
     x 5hamsterdb/hamsterdb.cc, hola.cc
     x also cleanup unittests
 
-o remove version.h, embed in hamsterdb.h
-    o deprecate API version
-
-o java still has license.java/version.java - remove!
+o java still has license.java - remove!
     o also check dotnet!
 
 o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs

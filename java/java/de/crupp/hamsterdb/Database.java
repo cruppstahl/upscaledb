@@ -434,7 +434,6 @@ public class Database {
    * which is implemented in the native library
    */
   private CompareCallback m_cmp;
-  private DuplicateCompareCallback m_dupe_cmp;
   private static ErrorHandler m_eh;
 
   static {
