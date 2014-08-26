@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include <stdexcept>
 #include <cstring>
 #include <vector>
 #include <sstream>
 
 #include <ham/hamsterdb_int.h>
-#include "../src/env_local.h"
-#include "1errorinducer/errorinducer.h"
+
 #include "os.hpp"
+
+#include "1errorinducer/errorinducer.h"
+#include "4env/env_local.h"
 
 using namespace hamsterdb;
 

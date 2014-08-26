@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include <cstring>
 
 #include "3rdparty/catch/catch.hpp"

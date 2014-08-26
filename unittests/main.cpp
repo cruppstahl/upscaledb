@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #define CATCH_CONFIG_RUNNER 1
 #include "3rdparty/catch/catch.hpp"
 

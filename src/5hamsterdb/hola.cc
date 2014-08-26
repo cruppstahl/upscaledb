@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-#include "config.h"
+#include "0root/root.h"
 
-#include <ham/hamsterdb_ola.h>
+#include "ham/hamsterdb_ola.h"
 
+// Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "4db/db.h"
 #include "4db/db_local.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 using namespace hamsterdb;
 

@@ -87,9 +87,9 @@ recovery_LDFLAGS= $(BOOST_SYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
-test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
+test_LDADD     += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
-recovery_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
+recovery_LDADD += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 endif
 

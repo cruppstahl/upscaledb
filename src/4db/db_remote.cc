@@ -23,9 +23,9 @@
 // Always verify that a file of level N does not include headers > N!
 #include "2protobuf/protocol.h"
 #include "4db/db_remote.h"
-#include "env_remote.h"
-#include "txn_remote.h"
-#include "cursor.h"
+#include "4env/env_remote.h"
+#include "4txn/txn_remote.h"
+#include "4cursor/cursor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

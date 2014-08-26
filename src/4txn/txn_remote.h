@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef HAM_TXN_REMOTE_H__
-#define HAM_TXN_REMOTE_H__
+#ifndef HAM_TXN_REMOTE_H
+#define HAM_TXN_REMOTE_H
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include "txn.h"
+#include "0root/root.h"
+
+// Always verify that a file of level N does not include headers > N!
+#include "4txn/txn.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -81,9 +88,8 @@ class RemoteTransactionManager : public TransactionManager
     virtual void flush_committed_txns();
 };
 
-
 } // namespace hamsterdb
 
 #endif // HAM_ENABLE_REMOTE
 
-#endif /* HAM_TXN_REMOTE_H__ */
+#endif /* HAM_TXN_REMOTE_H */

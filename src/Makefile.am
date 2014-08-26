@@ -1,7 +1,7 @@
 
 SUBDIRS  = 2protoserde
 if ENABLE_REMOTE
-SUBDIRS += 2protobuf server
+SUBDIRS += 2protobuf 5server
 endif # ENABLE_REMOTE
 
 lib_LTLIBRARIES = libhamsterdb.la
@@ -75,31 +75,30 @@ libhamsterdb_la_SOURCES = \
 	3journal/journal.h \
 	3page_manager/page_manager.cc \
 	3page_manager/page_manager.h \
+	4cursor/cursor.cc \
+	4cursor/cursor.h \
 	4db/db.cc \
 	4db/db.h \
 	4db/db_local.cc \
 	4db/db_local.h \
 	4db/db_remote.cc \
 	4db/db_remote.h \
-	config.h \
-	cursor.cc \
-	cursor.h \
-	env.h \
-	env_header.h \
-	env_local.h \
-	env_local.cc \
-	env_remote.h \
-	env_remote.cc \
-	hamsterdb.cc \
-	hola.cc \
-	txn_cursor.cc \
-	txn_cursor.h \
-	txn_factory.h \
-	txn_local.cc \
-	txn_local.h \
-	txn_remote.cc \
-	txn_remote.h \
-	txn.h
+	4env/env.h \
+	4env/env_header.h \
+	4env/env_local.h \
+	4env/env_local.cc \
+	4env/env_remote.h \
+	4env/env_remote.cc \
+	4txn/txn_cursor.cc \
+	4txn/txn_cursor.h \
+	4txn/txn_factory.h \
+	4txn/txn_local.cc \
+	4txn/txn_local.h \
+	4txn/txn_remote.cc \
+	4txn/txn_remote.h \
+	4txn/txn.h \
+	5hamsterdb/hamsterdb.cc \
+	5hamsterdb/hola.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 

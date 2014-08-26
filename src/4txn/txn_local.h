@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef HAM_TXN_LOCAL_H__
-#define HAM_TXN_LOCAL_H__
+#ifndef HAM_TXN_LOCAL_H
+#define HAM_TXN_LOCAL_H
 
-#include "txn.h"
+#include "0root/root.h"
+
+// Always verify that a file of level N does not include headers > N!
 #include "1rb/rb.h"
+#include "4txn/txn.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -559,7 +566,6 @@ class LocalTransactionManager : public TransactionManager
     int m_bytes_threshold;
 };
 
-
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_LOCAL_H__ */
+#endif /* HAM_TXN_LOCAL_H */

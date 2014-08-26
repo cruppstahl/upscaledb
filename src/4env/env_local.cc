@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-#include "config.h"
+#include "0root/root.h"
 
+// Always verify that a file of level N does not include headers > N!
 #include "1base/version.h"
-#include "db.h"
+#include "1os/os.h"
+#include "2device/device_factory.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_stats.h"
-#include "2device/device_factory.h"
 #include "3blob_manager/blob_manager_factory.h"
 #include "3page_manager/page_manager.h"
 #include "3journal/journal.h"
-#include "txn.h"
-#include "txn_local.h"
-#include "env_local.h"
-#include "cursor.h"
-#include "txn_cursor.h"
-#include "1os/os.h"
+#include "4db/db.h"
+#include "4txn/txn.h"
+#include "4txn/txn_local.h"
+#include "4env/env_local.h"
+#include "4cursor/cursor.h"
+#include "4txn/txn_cursor.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 using namespace hamsterdb;
 

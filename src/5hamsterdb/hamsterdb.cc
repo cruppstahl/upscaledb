@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "config.h"
+#include "0root/root.h"
 
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
@@ -23,31 +23,36 @@
 #endif
 #include <string.h>
 
-#ifdef HAM_ENABLE_REMOTE
-#  include "2protobuf/protocol.h"
-#endif
+#include "ham/hamsterdb.h"
 
-#include "3blob_manager/blob_manager.h"
-#include "3btree/btree_index.h"
-#include "3btree/btree_cursor.h"
-#include "cursor.h"
-#include "db.h"
-#include "2device/device.h"
-#include "env.h"
-#include "env_header.h"
-#include "env_local.h"
-#include "env_remote.h"
+// Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
+#include "1base/byte_array.h"
+#include "1base/version.h"
 #include "1mem/mem.h"
 #include "1os/os.h"
 #include "2page/page.h"
+#ifdef HAM_ENABLE_REMOTE
+#  include "2protobuf/protocol.h"
+#endif
+#include "2device/device.h"
 #include "3btree/btree_stats.h"
-#include "txn.h"
-#include "1base/byte_array.h"
-#include "1base/version.h"
+#include "3blob_manager/blob_manager.h"
+#include "3btree/btree_index.h"
+#include "3btree/btree_cursor.h"
+#include "4cursor/cursor.h"
+#include "4db/db.h"
+#include "4env/env.h"
+#include "4env/env_header.h"
+#include "4env/env_local.h"
+#include "4env/env_remote.h"
+#include "4txn/txn.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 using namespace hamsterdb;
-
 
 /* return true if the filename is for a local file */
 static bool

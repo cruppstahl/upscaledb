@@ -29,10 +29,17 @@
  * Transaction operation (TransactionOperation) or it is unused.
  */
 
-#ifndef HAM_TXN_CURSOR_H__
-#define HAM_TXN_CURSOR_H__
+#ifndef HAM_TXN_CURSOR_H
+#define HAM_TXN_CURSOR_H
 
-#include "txn_local.h"
+#include "0root/root.h"
+
+// Always verify that a file of level N does not include headers > N!
+#include "4txn/txn_local.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -161,4 +168,4 @@ class TransactionCursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_CURSOR_H__ */
+#endif /* HAM_TXN_CURSOR_H */

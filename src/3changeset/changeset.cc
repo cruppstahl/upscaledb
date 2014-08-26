@@ -15,13 +15,13 @@
  */
 
 // Always verify that a file of level N does not include headers > N!
-#include "db.h"
-#include "env.h"
-#include "3journal/journal.h"
 #include "2device/device.h"
 #include "2page/page.h"
 #include "3changeset/changeset.h"
+#include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
+#include "4db/db.h"
+#include "4env/env.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

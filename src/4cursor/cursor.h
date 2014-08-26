@@ -77,14 +77,21 @@
 #ifndef HAM_CURSORS_H__
 #define HAM_CURSORS_H__
 
+#include "0root/root.h"
+
 #include <vector>
 
+// Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
-#include "txn_cursor.h"
+#include "4txn/txn_cursor.h"
 #include "3btree/btree_cursor.h"
 #include "3blob_manager/blob_manager.h"
 #include "4db/db_local.h"
-#include "env.h"
+#include "4env/env.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 // A helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
 // opaque C structure, but internally we use a C++ class. The ham_cursor_t

@@ -16,20 +16,24 @@
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include "config.h"
+#include "0root/root.h"
 
+// Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
-#include "cursor.h"
-#include "4db/db_remote.h"
-#include "env_remote.h"
-#include "txn_remote.h"
-
 #include "2protobuf/protocol.h"
+#include "4cursor/cursor.h"
+#include "4db/db_remote.h"
+#include "4env/env_remote.h"
+#include "4txn/txn_remote.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
 RemoteEnvironment::RemoteEnvironment()
-: Environment(), m_remote_handle(0), m_buffer(1024 * 4), m_timeout(0)
+  : Environment(), m_remote_handle(0), m_buffer(1024 * 4), m_timeout(0)
 {
 }
 

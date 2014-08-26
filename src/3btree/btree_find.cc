@@ -31,8 +31,8 @@
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node_proxy.h"
 #include "3page_manager/page_manager.h"
-#include "cursor.h"
-#include "db.h"
+#include "4cursor/cursor.h"
+#include "4db/db.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef HAM_HAMSERVER_H__
-#define HAM_HAMSERVER_H__
+#ifndef HAM_HAMSERVER_H
+#define HAM_HAMSERVER_H
 
-// otherwise uv.h includes <windows.h>, which includes
-// <winsock.h>, which conflicts with <winsock2.h>
-#define WIN32_LEAN_AND_MEAN
+#include "0root/root.h"
 
 #include <vector>
 
 #include <uv.h>
 
-#include <ham/hamsterdb.h>
-#include <ham/types.h>
-#include <ham/hamsterdb_srv.h>
+#include "ham/hamsterdb.h"
+#include "ham/types.h"
+#include "ham/hamsterdb_srv.h"
 
-#include "../db.h"
-#include "../1base/mutex.h"
-#include "../cursor.h"
+#include "1base/mutex.h"
+#include "4db/db.h"
+#include "4cursor/cursor.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 struct ham_srv_t {
   bool dummy;
@@ -286,7 +288,6 @@ struct ClientContext {
   ServerContext *srv;
 };
 
-
 } // namespace hamsterdb
 
-#endif /* HAM_HAMSERVER_H__ */
+#endif /* HAM_HAMSERVER_H */

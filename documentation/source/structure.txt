@@ -28,3 +28,7 @@ requires and on which layer it should be implemented.
 
 The use the file templates (documentation/source/template.*) as a starting
 point.
+
+As of today, the separation between the layers is not perfect and there are
+still a lot of things to do. This is work in progress.
+

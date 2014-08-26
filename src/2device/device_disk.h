@@ -27,8 +27,8 @@
 #include "1os/os.h"
 #include "1mem/mem.h"
 #include "2device/device.h"
-#include "db.h"
-#include "env_local.h"
+#include "4db/db.h"
+#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

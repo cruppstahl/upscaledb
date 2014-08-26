@@ -39,7 +39,7 @@
 #include "3btree/btree_node.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_keys_base.h"
-#include "env_local.h"
+#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

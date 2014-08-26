@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
@@ -24,11 +22,12 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "4db/db.h"
+
 #include "3btree/btree_index.h"
-#include "../src/cursor.h"
-#include "../src/env.h"
 #include "3btree/btree_cursor.h"
+#include "4db/db.h"
+#include "4cursor/cursor.h"
+#include "4env/env.h"
 
 using namespace hamsterdb;
 

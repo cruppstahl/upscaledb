@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "ham/hamsterdb_int.h"
 
 #define REQUIRE_CATCH(x, y) \

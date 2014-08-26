@@ -30,9 +30,9 @@
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_stats.h"
 #include "4db/db_local.h"
-#include "cursor.h"
-#include "txn_local.h"
-#include "txn_cursor.h"
+#include "4cursor/cursor.h"
+#include "4txn/txn_local.h"
+#include "4txn/txn_cursor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

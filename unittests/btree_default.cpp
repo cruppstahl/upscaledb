@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
 #include <vector>
 #include <algorithm>
 
@@ -23,13 +22,8 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "4db/db_local.h"
 #include "3btree/btree_index_factory.h"
-
-#ifdef WIN32
-#  undef min
-#  undef max
-#endif
+#include "4db/db_local.h"
 
 namespace hamsterdb {
 

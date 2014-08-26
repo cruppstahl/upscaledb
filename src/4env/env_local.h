@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef HAM_ENV_LOCAL_H__
-#define HAM_ENV_LOCAL_H__
+#ifndef HAM_ENV_LOCAL_H
+#define HAM_ENV_LOCAL_H
 
-#include <ham/hamsterdb.h>
+#include "ham/hamsterdb.h"
 
-#include "env.h"
+#include "0root/root.h"
+
+// Always verify that a file of level N does not include headers > N!
 #include "3changeset/changeset.h"
-#include "env_header.h"
+#include "4env/env.h"
+#include "4env/env_header.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -214,4 +221,4 @@ class LocalEnvironment : public Environment
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENV_LOCAL_H__ */
+#endif /* HAM_ENV_LOCAL_H */

@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef HAM_TXN_FACTORY_H__
-#define HAM_TXN_FACTORY_H__
+/*
+ * A factory to create TransactionOperation and TransactionNode instances.
+ */
 
-#include <string>
+#ifndef HAM_TXN_FACTORY_H
+#define HAM_TXN_FACTORY_H
 
-#include <ham/hamsterdb.h>
+#include "0root/root.h"
 
+#include "ham/types.h"
+
+// Always verify that a file of level N does not include headers > N!
 #include "1mem/mem.h"
-#include "txn.h"
+#include "4txn/txn.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
-//
-// A static class to create TransactionOperation and TransactionNode instances.
-//
 struct TransactionFactory
 {
   // Creates a new TransactionOperation
@@ -51,4 +57,4 @@ struct TransactionFactory
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_FACTORY_H__ */
+#endif /* HAM_TXN_FACTORY_H */

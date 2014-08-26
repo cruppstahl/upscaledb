@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
 
-#include "../include/ham/hamsterdb.hpp"
+#include "ham/hamsterdb.hpp"
 
 static int
 my_compare_func(ham_db_t *db,

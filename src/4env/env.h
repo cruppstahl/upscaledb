@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef HAM_ENV_H__
-#define HAM_ENV_H__
+#ifndef HAM_ENV_H
+#define HAM_ENV_H
+
+#include "0root/root.h"
 
 #include <map>
 #include <string>
 
-#include <ham/hamsterdb_int.h>
+#include "ham/hamsterdb_int.h"
 
+// Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/mutex.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 // A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
 // opaque C structure, but internally we use a C++ class. The ham_env_t
@@ -173,9 +180,8 @@ class Environment
     // The Environment flags - a combination of the persistent flags
     // and runtime flags
     ham_u32_t m_flags;
-
 };
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENV_H__ */
+#endif /* HAM_ENV_H */

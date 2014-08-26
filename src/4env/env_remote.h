@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef HAM_ENV_REMOTE_H__
-#define HAM_ENV_REMOTE_H__
+#ifndef HAM_ENV_REMOTE_H
+#define HAM_ENV_REMOTE_H
 
 #ifdef HAM_ENABLE_REMOTE
 
-#include <ham/hamsterdb.h>
+#include "0root/root.h"
 
+#include "ham/hamsterdb.h"
+
+// Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
-#include "env.h"
 #include "1base/byte_array.h"
 #include "2protobuf/protocol.h"
 #include "2protoserde/messages.h"
+#include "4env/env.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -117,4 +124,4 @@ class RemoteEnvironment : public Environment
 
 #endif // HAM_ENABLE_REMOTE
 
-#endif /* HAM_ENV_REMOTE_H__ */
+#endif /* HAM_ENV_REMOTE_H */

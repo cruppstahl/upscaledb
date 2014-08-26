@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
+
 #include "ham/hamsterdb_ola.h"
 
 #include "utils.h"
 #include "os.hpp"
+
 #include "3btree/btree_index.h"
 
 namespace hamsterdb {

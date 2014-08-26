@@ -8,7 +8,7 @@ AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \
 
 hamzilla_SOURCES    = hamzilla.c config.h config.c $(COMMON)
 hamzilla_LDADD      = $(top_builddir)/src/libhamsterdb.la \
-                      $(top_builddir)/src/server/libhamserver.la
+                      $(top_builddir)/src/5server/libhamserver.la
 
 ham_info_SOURCES    = ham_info.cc $(COMMON)
 ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la $(BOOST_SYSTEM_LIBS)

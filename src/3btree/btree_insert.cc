@@ -24,9 +24,6 @@
 #include <algorithm>
 
 // Always verify that a file of level N does not include headers > N!
-#include "cursor.h"
-#include "db.h"
-#include "env.h"
 #include "1base/error.h"
 #include "1base/byte_array.h"
 #include "2page/page.h"
@@ -36,6 +33,9 @@
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node_proxy.h"
 #include "3btree/btree_cursor.h"
+#include "4cursor/cursor.h"
+#include "4db/db.h"
+#include "4env/env.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

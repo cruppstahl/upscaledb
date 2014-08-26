@@ -18,7 +18,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "4db/db.h"
-#include "cursor.h"
+#include "4cursor/cursor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

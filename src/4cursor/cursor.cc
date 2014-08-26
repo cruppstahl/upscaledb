@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-#include "config.h"
+#include "0root/root.h"
 
 #include <string.h>
 
-#include "cursor.h"
-#include "db.h"
-#include "env_local.h"
-#include "txn_local.h"
+// Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
+#include "4cursor/cursor.h"
+#include "4env/env_local.h"
+#include "4txn/txn_local.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 using namespace hamsterdb;
-
 
 Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),

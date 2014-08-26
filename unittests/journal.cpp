@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "3journal/journal.h"
-#include "../src/txn.h"
-#include "../src/env_local.h"
-#include "../src/txn_local.h"
 #include "os.hpp"
+#include "utils.h"
+
+#include "3journal/journal.h"
+#include "4txn/txn.h"
+#include "4env/env_local.h"
+#include "4txn/txn_local.h"
 
 using namespace hamsterdb;
 

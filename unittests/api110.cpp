@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include <time.h>
 
 #include "3rdparty/catch/catch.hpp"
@@ -23,12 +21,12 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "4db/db.h"
-#include "../src/env.h"
+#include "1os/os.h"
 #include "1base/version.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_stats.h"
-#include "1os/os.h"
+#include "4db/db.h"
+#include "4env/env.h"
 
 using namespace hamsterdb;
 

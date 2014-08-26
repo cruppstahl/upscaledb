@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
 #include "os.hpp"
 
+#include "1base/error.h"
+#include "2page/page.h"
+#include "3btree/btree_index.h"
+#include "3page_manager/page_manager.h"
 #include "3btree/btree_cursor.h"
 #include "4db/db.h"
-#include "2page/page.h"
-#include "1base/error.h"
-#include "3btree/btree_index.h"
-#include "../src/env.h"
-#include "../src/cursor.h"
-#include "3page_manager/page_manager.h"
+#include "4env/env.h"
+#include "4cursor/cursor.h"
 
 namespace hamsterdb {
 

@@ -15,34 +15,26 @@ to scale with the number of cores.
 ==============================================================================
 
 high-level plan for 2.1.9 ..................................................
-o new file system structure
+x new file system structure
+o release sparsemap library w/ documentation and sample/tests
+o update the webpage (free for non-profits, cheap for startups, add crc32)
 o exception safe code
 o lots of refactoring
 o delta updates
 
 x faq: add documentation about library size: strip helps
 
-o PRO: use a bitmap index for recnos
-    - nah...
-    o but move the sparsemap library to github, as a seperate project
-    o also write an accompanying blog post or documentation
-
-o webpage changes
-    o give away for free to non-profits
-    o also add a startup program?
-    o add CRC32 to pro documentation, feature matrix
-
-o refactoring: split files
+x refactoring: split files
     x root0: add pragmas from btree_impl_default.h, undef min/max
     x create a template for the header files
     x document the source code structure
 
-    o for each file, perform the following changes:
-        o #34: header guards/macros should not clash with reserved identifiers
+    x for each file, perform the following changes:
+        x #34: header guards/macros should not clash with reserved identifiers
             (no leading/trailing underscores)
-        o adapt to template.h, template.cc
-        o make sure that the layers are respected (do not include n+1!)
-        o classes without private or protected members should become structs
+        x adapt to template.h, template.cc
+        x make sure that the layers are respected (do not include n+1!)
+        x classes without private or protected members should become structs
 
     x 0root/root.h - very first header file (only one!)
     x 1base/error.h, pack*, util, mutex, version, abi, pickle
@@ -62,29 +54,30 @@ o refactoring: split files
     x 3page_manager/
     x 3btree/btree*
     x 4db/...
-    o 4txn/...
-    o 4env/...
-    o 4cursor/...
-    o 5server/...
-    o 5hamsterdb/hamsterdb.cc, hola.cc
+    x 4txn/...
+    x 4env/...
+    x 4cursor/...
+    x 5server/...
+    x 5hamsterdb/hamsterdb.cc, hola.cc
+    x also cleanup unittests
 
-    o also cleanup unittests
-    o 3journal does not strictly follow the layer-concept
-    o 3page_manager does not strictly follow the layer-concept
+o remove version.h, embed in hamsterdb.h
+    o deprecate API version
 
 o java still has license.java/version.java - remove!
     o also check dotnet!
 
-o remove version.h, embed in hamsterdb.h
-
-o refactoring: get_linear_search_threshold returns size_t, but is
-    then used as (signed) int; some return 0, others -1
-    right now the code works but is cheesy. return (int)0 to disable.
-
 o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
 
-o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
-    -> transform to c++ code
+o PRO: use a bitmap index for recnos
+    - nah...
+    o but move the sparsemap library to github, as a seperate project
+    o also write an accompanying blog post or documentation
+
+o webpage changes
+    o give away for free to non-profits
+    o also add a startup program?
+    o add CRC32 to pro documentation, feature matrix
 
 o can we add a generic macro like this:
     #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
@@ -95,6 +88,13 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
+
+o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
+    -> transform to c++ code
+
+o refactoring: get_linear_search_threshold returns size_t, but is
+    then used as (signed) int; some return 0, others -1
+    right now the code works but is cheesy. return (int)0 to disable.
 
 o review exception safety
     http://exceptionsafecode.com/
@@ -153,7 +153,7 @@ o refactoring: clean up the close() code of the LocalEnvironment (and also
         actually there shouldn't be a need to do anything if scoped_ptr
         is used consistently
 
-o refactoring: move layering improvements
+o refactoring: improve layering
     o improve layer separation of page (remove dependency to env)
     o improve layer separation of device (remove dependency to env)
     o can we move cache to layer 2 or 3?

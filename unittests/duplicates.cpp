@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include <vector>
 #include <string>
 
@@ -24,13 +22,13 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "4db/db.h"
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
 #include "3btree/btree_index.h"
-#include "../src/cursor.h"
-#include "../src/env.h"
 #include "3btree/btree_cursor.h"
+#include "4db/db.h"
+#include "4cursor/cursor.h"
+#include "4env/env.h"
 
 namespace hamsterdb {
 

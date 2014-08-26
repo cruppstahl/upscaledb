@@ -17,7 +17,7 @@
 #ifdef HAM_ENABLE_REMOTE
 
 // include this first, otherwise winsock has compilation errors
-#include "../src/server/hamserver.h"
+#include "5server/hamserver.h"
 
 #include "3rdparty/catch/catch.hpp"
 

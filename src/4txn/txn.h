@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef HAM_TXN_H__
-#define HAM_TXN_H__
-
 /*
  * The hamsterdb Transaction implementation
  *
@@ -44,10 +41,20 @@
  * (see Transaction::get_newer and Transaction::get_older).
  */
 
+#ifndef HAM_TXN_H
+#define HAM_TXN_H
+
+#include "0root/root.h"
+
 #include <string>
 
+// Always verify that a file of level N does not include headers > N!
 #include "1base/byte_array.h"
 #include "1base/error.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 //
 // A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
@@ -282,7 +289,6 @@ class TransactionManager
     Transaction *m_newest_txn;
 };
 
-
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_H__ */
+#endif /* HAM_TXN_H */

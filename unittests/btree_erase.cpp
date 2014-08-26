@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
 #include "os.hpp"
 
-#include "4db/db.h"
 #include "1base/version.h"
+#include "4db/db.h"
 
 struct BtreeEraseFixture {
   ham_db_t *m_db;

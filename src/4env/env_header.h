@@ -14,13 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef HAM_ENV_HEADER_H__
-#define HAM_ENV_HEADER_H__
+#ifndef HAM_ENV_HEADER_H
+#define HAM_ENV_HEADER_H
 
-#include <ham/hamsterdb.h>
+#include "0root/root.h"
 
+#include <map>
+#include <string>
+
+#include "ham/hamsterdb.h"
+
+// Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "2page/page.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
@@ -175,4 +185,4 @@ class EnvironmentHeader
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENV_HEADER_H__ */
+#endif /* HAM_ENV_HEADER_H */

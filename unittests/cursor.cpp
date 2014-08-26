@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
 
-#include "../src/env_local.h"
-#include "../src/cursor.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
+#include "4env/env_local.h"
+#include "4cursor/cursor.h"
 
 using namespace hamsterdb;
 

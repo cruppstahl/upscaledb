@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "0root/root.h"
+
 #include <string.h>
 
 // winsock2.h is required for libuv
@@ -23,14 +25,19 @@
 
 #include <uv.h>
 
+// Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
-#include "2protobuf/protocol.h"
-#include "2protoserde/messages.h"
 #include "1base/error.h"
 #include "1errorinducer/errorinducer.h"
 #include "1mem/mem.h"
-#include "env.h"
-#include "hamserver.h"
+#include "2protobuf/protocol.h"
+#include "2protoserde/messages.h"
+#include "4env/env.h"
+#include "5server/hamserver.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 #define INDUCE(id)                                                  \
   while (srv->m_inducer) {                                          \

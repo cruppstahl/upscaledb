@@ -27,9 +27,9 @@
 #include "3btree/btree_stats.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
-#include "db.h"
-#include "txn.h"
-#include "cursor.h"
+#include "4db/db.h"
+#include "4txn/txn.h"
+#include "4cursor/cursor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

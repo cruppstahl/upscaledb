@@ -28,8 +28,8 @@
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db.h"
-#include "txn_local.h"
-#include "env_local.h"
+#include "4txn/txn_local.h"
+#include "4env/env_local.h"
 
 // Always verify that a file of level N does not include headers > N!
 

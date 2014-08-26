@@ -39,9 +39,9 @@ env3_LDADD      = $(top_builddir)/src/libhamsterdb.la
 
 server1_SOURCES = server1.c
 server1_LDADD   = $(top_builddir)/src/libhamsterdb.la \
-                  $(top_builddir)/src/server/libhamserver.la -ldl -lpthread
+                  $(top_builddir)/src/5server/libhamserver.la -ldl -lpthread
 
 client1_SOURCES = client1.c
 client1_LDADD   = $(top_builddir)/src/libhamsterdb.la \
-                  $(top_builddir)/src/server/libhamserver.la -ldl -lpthread
+                  $(top_builddir)/src/5server/libhamserver.la -ldl -lpthread
 

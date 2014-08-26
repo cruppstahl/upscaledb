@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-#include "../src/config.h"
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
 
+#include "1base/pickle.h"
 #include "2page/page.h"
 #include "2device/device.h"
-#include "../src/env.h"
-#include "../src/txn.h"
-#include "../src/config.h"
-#include "1base/pickle.h"
 #include "3page_manager/page_manager.h"
+#include "4env/env.h"
+#include "4txn/txn.h"
 
 namespace hamsterdb {
 

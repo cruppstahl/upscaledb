@@ -49,7 +49,7 @@ endif
 
 if ENABLE_REMOTE
 AM_CPPFLAGS     += -DHAM_ENABLE_REMOTE
-ham_bench_LDADD += $(top_builddir)/src/server/.libs/libhamserver.a \
+ham_bench_LDADD += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				   -lprotobuf -luv -ldl
 endif
 
