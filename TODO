@@ -61,8 +61,8 @@ x refactoring: split files
     x 5hamsterdb/hamsterdb.cc, hola.cc
     x also cleanup unittests
 
-o java still has license.java - remove!
-    o also check dotnet!
+x java still has license.java - remove!
+    x also check dotnet!
 
 o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
 

@@ -190,7 +190,8 @@
     <ClCompile Include="..\..\unittests\changeset.cpp" />
     <ClCompile Include="..\..\unittests\check.cpp" />
     <ClCompile Include="..\..\unittests\cppapi.cpp" />
-    <ClCompile Include="..\..\unittests\cursor.cpp" />
+    <ClCompile Include="..\..\unittests\cursor1.cpp" />
+    <ClCompile Include="..\..\unittests\cursor2.cpp" />
     <ClCompile Include="..\..\unittests\db.cpp" />
     <ClCompile Include="..\..\unittests\device.cpp" />
     <ClCompile Include="..\..\unittests\duplicates.cpp" />

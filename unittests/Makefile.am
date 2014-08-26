@@ -19,7 +19,8 @@ test_SOURCES    = api110.cpp \
 				  changeset.cpp \
 				  check.cpp \
 				  cppapi.cpp \
-				  cursor.cpp \
+				  cursor1.cpp \
+				  cursor2.cpp \
 				  db.cpp \
 				  device.cpp \
 				  duplicates.cpp \

@@ -388,7 +388,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\cursor.cpp"
+			RelativePath="..\..\unittests\cursor1.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\cursor2.cpp"
 			>
 		</File>
 		<File

@@ -5,6 +5,8 @@ o issue #38: temporary transactions and recovery (w/o transactions)
 Aug 26, 2014 - chris ---------------------------------------------------
 o The file structure has been completely reorganized. It is described
 	in documentation/source/structure.txt.
+o Splitting unittests/cursor.cpp in two files to avoid out-of-memory
+	errors during compilation on weak VM's
 
 Aug 21, 2014 - chris ---------------------------------------------------
 o Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
