@@ -64,7 +64,10 @@ x refactoring: split files
 x java still has license.java - remove!
     x also check dotnet!
 
-o refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
+x refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
+
+x refactoring: #37 - hamzilla.c/running should be sig_atomic_t
+    -> transform to c++ code
 
 o PRO: use a bitmap index for recnos
     - nah...
@@ -85,9 +88,6 @@ o can we add a generic macro like this:
     o use in source
     o use in unittests
     o document
-
-o refactoring: #37 - hamzilla.c/running should be sig_atomic_t
-    -> transform to c++ code
 
 o refactoring: get_linear_search_threshold returns size_t, but is
     then used as (signed) int; some return 0, others -1

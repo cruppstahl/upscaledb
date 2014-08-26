@@ -6,7 +6,7 @@ COMMON				= getopts.h getopts.c common.h common.c
 AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \
 					  -I../3rdparty/json
 
-hamzilla_SOURCES    = hamzilla.c config.h config.c $(COMMON)
+hamzilla_SOURCES    = hamzilla.cc config.h config.c $(COMMON)
 hamzilla_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                       $(top_builddir)/src/5server/libhamserver.la
 

@@ -25,8 +25,8 @@
 
 #include "config.h"
 
-#define STATE_NONE      0
-#define STATE_GLOBAL      1
+#define STATE_NONE          0
+#define STATE_GLOBAL        1
 #define STATE_ENVIRONMENTS  2
 #define STATE_DATABASES     3
 

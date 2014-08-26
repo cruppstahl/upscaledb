@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONFIG_H__
-#define CONFIG_H__
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,33 +25,33 @@ extern "C" {
 
 typedef struct config_table_t
 {
-    unsigned int state;
-    unsigned int cur_env;
-    unsigned int cur_db;
-    char *key;
+  unsigned int state;
+  unsigned int cur_env;
+  unsigned int cur_db;
+  char *key;
 
-    struct config_global_t {
-        unsigned int port;
-        unsigned int enable_error_log;
-        char *error_log;
-        unsigned int enable_access_log;
-        char *access_log;
-    } globals;
+  struct config_global_t {
+    unsigned int port;
+    unsigned int enable_error_log;
+    char *error_log;
+    unsigned int enable_access_log;
+    char *access_log;
+  } globals;
 
-    struct config_env_t {
-        char *url;
-        char *path;
-        char *flags;
-        unsigned int open_exclusive;
-        ham_env_t *env;
+  struct config_env_t {
+    char *url;
+    char *path;
+    char *flags;
+    unsigned int open_exclusive;
+    ham_env_t *env;
 
-        struct config_db_t {
-            unsigned int name;
-            char *flags;
-        } *dbs;
-        unsigned int db_count;
-    } *envs;
-    unsigned int env_count;
+    struct config_db_t {
+      unsigned int name;
+      char *flags;
+    } *dbs;
+    unsigned int db_count;
+  } *envs;
+  unsigned int env_count;
 } config_table_t;
 
 
@@ -69,10 +69,9 @@ config_parse_string(const char *string, config_table_t **params);
 extern void
 config_clear_table(config_table_t *params);
 
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif /* CONFIG_H__ */
+#endif /* CONFIG_H */
 

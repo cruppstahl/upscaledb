@@ -171,7 +171,7 @@
     <ClCompile Include="..\..\tools\common.c" />
     <ClCompile Include="..\..\tools\config.c" />
     <ClCompile Include="..\..\tools\getopts.c" />
-    <ClCompile Include="..\..\tools\hamzilla.c" />
+    <ClCompile Include="..\..\tools\hamzilla.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\common.h" />

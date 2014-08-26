@@ -359,7 +359,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\tools\hamzilla.c"
+			RelativePath="..\..\tools\hamzilla.cc"
 			>
 		</File>
 	</Files>

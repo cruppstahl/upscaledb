@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/**
+/*
  * This is the hamsterdb Database Server.
  *
  * On Unix it's implemented as a daemon, on Windows it's a Win32 Service.
@@ -46,13 +46,13 @@
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <winioctl.h>
-#  include <signal.h>
 #  define STRTOK_SAFE strtok_s
 #  define EXENAME "hamzilla.exe"
 #  define MAX_PATH_LENGTH   _MAX_PATH
 static TCHAR *serviceName = TEXT("hamsterdb Database Server");
 static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Databases.");
 #endif
+#include <signal.h>
 #include <errno.h>
 
 #include <ham/hamsterdb.h>
@@ -141,7 +141,7 @@ static option_t opts[] = {
 #define LOG_WARN    2
 #define LOG_FATAL   3
 
-static int running  = 1;
+static sig_atomic_t running  = 1;
 static int foreground = 0;
 static int log_level  = LOG_NORMAL;
 
@@ -159,6 +159,7 @@ close_syslog() {
 #endif
 }
 
+extern "C" {
 void
 hlog(int level, const char *format, ...) {
   va_list ap;
@@ -216,6 +217,7 @@ hlog(int level, const char *format, ...) {
     syslog(code, "%s", buffer);
 #endif
   }
+}
 }
 
 static void
@@ -281,7 +283,7 @@ read_config(const char *configfile, config_table_t **params) {
   r = fread(buf, 1, len, fp);
   fclose(fp);
 
-  if (r != len) {
+  if (r != (size_t)len) {
     hlog(LOG_FATAL, "failed to read configuration file: %s\n",
                     strerror(errno));
     exit(-1);
