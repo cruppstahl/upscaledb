@@ -63,19 +63,6 @@ namespace Hamster
   public delegate int CompareFunc(byte[] lhs, byte[] rhs);
 
   /// <summary>
-  /// Delegate for comparing two records of duplicate keys
-  /// </summary>
-  /// <remarks>
-  /// This delegate compares two records - the "left-hand side"
-  /// (lhs) and the "right-hand side" (rhs).
-  /// </remarks>
-  /// <param name="lhs">The first record</param>
-  /// <param name="rhs">The second record</param>
-  /// <returns>-1 if the first record (lhs) is smaller, +1 if the first
-  /// record is larger, 0 if both records are equal</returns>
-  public delegate int DuplicateCompareFunc(byte[] lhs, byte[] rhs);
-
-  /// <summary>
   /// Delegate for handling error messages
   /// </summary>
   /// <remarks>
