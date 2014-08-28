@@ -874,11 +874,11 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         ham_u32_t new_chunk_offset = m_index.allocate_space(m_node->get_count(),
                         slot, required_size);
         chunk_offset = m_index.get_absolute_offset(new_chunk_offset);
-        if (current_size > 0)
+        if (current_size > 0 && old_chunk_offset != new_chunk_offset) {
           memmove(&m_data[chunk_offset], oldp, current_size);
-        if (old_chunk_offset != new_chunk_offset)
           m_index.add_to_freelist(m_node->get_count(), old_chunk_offset,
-                          old_chunk_size);
+                        old_chunk_size);
+        }
       }
 
       // adjust flags
@@ -897,7 +897,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       if (flags & HAM_DUPLICATE_INSERT_FIRST) {
         if (record_count > 0) {
           ham_u8_t *ptr = get_record_data(slot, 0);
-          memmove(get_record_data(1), ptr, record_count * m_record_size);
+          memmove(get_record_data(slot, 1), ptr, record_count * m_record_size);
         }
         duplicate_index = 0;
       }

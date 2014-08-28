@@ -661,7 +661,7 @@ struct DuplicateTableFixture
                   size_t num_records) {
     DuplicateTable dt((LocalDatabase *)m_db, inline_records, fixed_record_size);
     ham_u64_t table_id = dt.create(record_data, num_records);
-    REQUIRE(table_id != 0);
+    REQUIRE(table_id != 0u);
     REQUIRE(dt.get_record_count() == num_records);
     REQUIRE(dt.get_record_capacity() == num_records * 2);
 

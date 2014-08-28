@@ -78,6 +78,56 @@ struct DuplicateFixture {
     REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
   }
 
+  void insertDuplicatesFirstTest() {
+    ham_env_t *env;
+    ham_db_t *db;
+    ham_parameter_t params[] = {
+      {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT64},
+      {HAM_PARAM_RECORD_SIZE, 10},
+      {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
+          0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1,
+          HAM_ENABLE_DUPLICATE_KEYS, &params[0]));
+
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    ham_record_t rec2 = {};
+    char data[10];
+
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+    ham_u64_t k = 0;
+    key.data = &k;
+    key.size = sizeof(k);
+    rec.data = data;
+    rec.size = sizeof(data);
+    int i;
+    for (i = 0; i < 10; i++) {
+      ::memset(&data, i + 0x15, sizeof(data));
+      REQUIRE(0 ==
+            ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE_INSERT_FIRST));
+    }
+
+    REQUIRE(0 ==
+        ham_cursor_move(cursor, &key, &rec2, HAM_CURSOR_FIRST));
+    for (i--; i >= 0; i--) {
+      ::memset(&data, i + 0x15, sizeof(data));
+      REQUIRE(sizeof(k) == key.size);
+      REQUIRE(*(ham_u64_t *)key.data == k);
+      REQUIRE((ham_u32_t)sizeof(data) == rec2.size);
+      REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
+
+      if (i > 0)
+        REQUIRE(0 ==
+            ham_cursor_move(cursor, &key, &rec2, HAM_CURSOR_NEXT));
+    }
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
   void overwriteDuplicatesTest()
   {
     ham_key_t key = {};
@@ -1620,6 +1670,12 @@ TEST_CASE("DuplicateFixture/insertDuplicatesTest", "")
 {
   DuplicateFixture f;
   f.insertDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/insertDuplicatesFirstTest", "")
+{
+  DuplicateFixture f;
+  f.insertDuplicatesFirstTest();
 }
 
 TEST_CASE("DuplicateFixture/overwriteDuplicatesTest", "")

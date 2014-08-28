@@ -2,6 +2,10 @@ Sep 11, 2014 - chris ---------------------------------------------------
 o issue #38: temporary transactions and recovery (w/o transactions)
 	created huge logfiles; fixed
 
+Aug 28, 2014 - chris ---------------------------------------------------
+o Bugfix: fixed-length records were sometimes not inserted correctly 
+	with HAM_DUPLICATE_INSERT_FIRST
+
 Aug 26, 2014 - chris ---------------------------------------------------
 o Introduced two new makros to initialize ham_key_t and ham_record_t
 	structures

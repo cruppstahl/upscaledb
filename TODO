@@ -27,7 +27,10 @@ o PRO: webpage changes
     o also add a startup program?
     o add CRC32 to pro documentation, feature matrix
 
-o PRO: fix bug as reported from Ole (mail from 26.)
+o PRO: 
+    x fix bug as reported from Ole (mail from 26.)
+    x also fix segfault during recovery
+    o create new unittest from his sample
 
 o PRO:
 http://searchivarius.org/blog/efficient-intersections-compressed-posting-lists-thanks-simd-instructions
@@ -171,6 +174,9 @@ o refactoring: improve layering
     o can we move btree* to layer 3?
 
 o refactoring: get rid of the virtual inheritance for hola workers
+
+o ham_bench/config.h: use iostream instead of printf to avoid compiler
+    warnings on 32bit linux
 
 o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
     then we end up in troubles because of code inflation, and because
