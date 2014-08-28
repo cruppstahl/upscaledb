@@ -855,13 +855,6 @@ bail:
     throw Exception(st);
   }
 
-  /* done with recovering - if there's no log and/or no journal then
-   * create them and store them in the environment */
-  if (!(get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    delete m_journal;
-    m_journal = 0;
-  }
-
   /* reset the page manager */
   m_page_manager->close();
 }
