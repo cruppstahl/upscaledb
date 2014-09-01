@@ -57,13 +57,15 @@ class Graph
         sprintf(filename, "%s-ops.dat", m_name.c_str());
         m_opspersec_file = fopen(filename, "w");
         if (!m_opspersec_file) {
-          printf("error writing to file: %s\n", strerror(errno));
+          std::cerr << "error writing to file: " << strerror(errno)
+              << std::endl;
           exit(-1);
         }
         setvbuf(m_opspersec_file, NULL, _IOFBF, 2 * 1024 * 1024);
       }
-      fprintf(m_opspersec_file, "%lu %u %u %u %u\n", time, insert,
-                      find, erase, commit);
+      fprintf(m_opspersec_file, "%lu %u %u %u %u\n", (long unsigned int)time,
+                        (unsigned int)insert, (unsigned int)find,
+                        (unsigned int)erase, (unsigned int)commit);
     }
 
     // add latency metrics to the graphs

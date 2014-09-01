@@ -824,12 +824,13 @@ print_metrics(Metrics *metrics, Configuration *conf)
 
   printf("\t%s elapsed time (sec)             %f\n", name, total);
   printf("\t%s total_#ops                     %lu\n",
-                  name, metrics->insert_ops + metrics->erase_ops
-                  + metrics->find_ops + metrics->txn_commit_ops
-                  + metrics->other_ops);
+                  name, (long unsigned int)(metrics->insert_ops
+                  + metrics->erase_ops + metrics->find_ops
+                  + metrics->txn_commit_ops
+                  + metrics->other_ops));
   if (metrics->insert_ops) {
     printf("\t%s insert_#ops                    %lu (%f/sec)\n",
-                  name, metrics->insert_ops,
+                  name, (long unsigned int)metrics->insert_ops,
                   (double)metrics->insert_ops / metrics->insert_latency_total);
     printf("\t%s insert_throughput              %f/sec\n",
                   name, (double)metrics->insert_bytes
@@ -841,7 +842,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
   if (metrics->find_ops) {
     printf("\t%s find_#ops                      %lu (%f/sec)\n",
-                  name, metrics->find_ops,
+                  name, (long unsigned int)metrics->find_ops,
                   (double)metrics->find_ops / metrics->find_latency_total);
     printf("\t%s find_throughput                %f/sec\n",
                   name, (double)metrics->find_bytes
@@ -853,7 +854,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
   if (metrics->erase_ops) {
     printf("\t%s erase_#ops                     %lu (%f/sec)\n",
-                  name, metrics->erase_ops,
+                  name, (long unsigned int)metrics->erase_ops,
                   (double)metrics->erase_ops / metrics->erase_latency_total);
     printf("\t%s erase_latency (min, avg, max)  %f, %f, %f\n",
                   name, metrics->erase_latency_min,
@@ -863,10 +864,10 @@ print_metrics(Metrics *metrics, Configuration *conf)
   if (!conf->inmemory) {
     if (!strcmp(name, "hamsterdb"))
       printf("\t%s filesize                       %lu\n",
-                  name, boost::filesystem::file_size("test-ham.db"));
+                  name, (long unsigned int)boost::filesystem::file_size("test-ham.db"));
     else
       printf("\t%s filesize                       %lu\n",
-                  name, boost::filesystem::file_size("test-berk.db"));
+                  name, (long unsigned int)boost::filesystem::file_size("test-berk.db"));
   }
 
   // print journal compression ratio
@@ -906,43 +907,43 @@ print_metrics(Metrics *metrics, Configuration *conf)
     return;
 
   printf("\thamsterdb mem_total_allocations       %lu\n",
-          metrics->hamster_metrics.mem_total_allocations);
+          (long unsigned int)metrics->hamster_metrics.mem_total_allocations);
   printf("\thamsterdb mem_current_usage           %lu\n",
-          metrics->hamster_metrics.mem_current_usage);
+          (long unsigned int)metrics->hamster_metrics.mem_current_usage);
   printf("\thamsterdb mem_peak_usage              %lu\n",
-          metrics->hamster_metrics.mem_peak_usage);
+          (long unsigned int)metrics->hamster_metrics.mem_peak_usage);
   printf("\thamsterdb page_count_fetched          %lu\n",
-          metrics->hamster_metrics.page_count_fetched);
+          (long unsigned int)metrics->hamster_metrics.page_count_fetched);
   printf("\thamsterdb page_count_flushed          %lu\n",
-          metrics->hamster_metrics.page_count_flushed);
+          (long unsigned int)metrics->hamster_metrics.page_count_flushed);
   printf("\thamsterdb page_count_type_index       %lu\n",
-          metrics->hamster_metrics.page_count_type_index);
+          (long unsigned int)metrics->hamster_metrics.page_count_type_index);
   printf("\thamsterdb page_count_type_blob        %lu\n",
-          metrics->hamster_metrics.page_count_type_blob);
+          (long unsigned int)metrics->hamster_metrics.page_count_type_blob);
   printf("\thamsterdb page_count_type_page_manager %lu\n",
-          metrics->hamster_metrics.page_count_type_page_manager);
+          (long unsigned int)metrics->hamster_metrics.page_count_type_page_manager);
   printf("\thamsterdb freelist_hits               %lu\n",
-          metrics->hamster_metrics.freelist_hits);
+          (long unsigned int)metrics->hamster_metrics.freelist_hits);
   printf("\thamsterdb freelist_misses             %lu\n",
-          metrics->hamster_metrics.freelist_misses);
+          (long unsigned int)metrics->hamster_metrics.freelist_misses);
   printf("\thamsterdb cache_hits                  %lu\n",
-          metrics->hamster_metrics.cache_hits);
+          (long unsigned int)metrics->hamster_metrics.cache_hits);
   printf("\thamsterdb cache_misses                %lu\n",
-          metrics->hamster_metrics.cache_misses);
+          (long unsigned int)metrics->hamster_metrics.cache_misses);
   printf("\thamsterdb blob_total_allocated        %lu\n",
-          metrics->hamster_metrics.blob_total_allocated);
+          (long unsigned int)metrics->hamster_metrics.blob_total_allocated);
   printf("\thamsterdb blob_total_read             %lu\n",
-          metrics->hamster_metrics.blob_total_read);
+          (long unsigned int)metrics->hamster_metrics.blob_total_read);
   printf("\thamsterdb btree_smo_split             %lu\n",
-          metrics->hamster_metrics.btree_smo_split);
+          (long unsigned int)metrics->hamster_metrics.btree_smo_split);
   printf("\thamsterdb btree_smo_merge             %lu\n",
-          metrics->hamster_metrics.btree_smo_merge);
+          (long unsigned int)metrics->hamster_metrics.btree_smo_merge);
   printf("\thamsterdb extended_keys               %lu\n",
-          metrics->hamster_metrics.extended_keys);
+          (long unsigned int)metrics->hamster_metrics.extended_keys);
   printf("\thamsterdb extended_duptables          %lu\n",
-          metrics->hamster_metrics.extended_duptables);
+          (long unsigned int)metrics->hamster_metrics.extended_duptables);
   printf("\thamsterdb journal_bytes_flushed       %lu\n",
-          metrics->hamster_metrics.journal_bytes_flushed);
+          (long unsigned int)metrics->hamster_metrics.journal_bytes_flushed);
   printf("\thamsterdb simd_lane_width             %d\n",
           metrics->hamster_metrics.simd_lane_width);
 }

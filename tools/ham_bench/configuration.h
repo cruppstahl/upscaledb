@@ -19,6 +19,7 @@
 
 #include <string>
 #include <cstdio>
+#include <iostream>
 #include <ham/hamsterdb.h>
 #include <boost/thread.hpp>
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint
@@ -100,129 +101,131 @@ struct Configuration
       "lzo",
       "bitmap"
     };
-    printf("Configuration: --seed=%lu ", seed);
+    std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)
-      printf("--journal-compression=%s ", compressors[journal_compression]);
+      std::cout << "--journal-compression=" << compressors[journal_compression]
+          << " ";
     if (record_compression)
-      printf("--record-compression=%s ", compressors[record_compression]);
+      std::cout << "--record-compression=" << compressors[record_compression]
+          << " ";
     if (key_compression)
-      printf("--key-compression=%s ", compressors[key_compression]);
+      std::cout << "--key-compression=" << compressors[key_compression]
+          << " ";
     if (use_encryption)
-      printf("--use-encryption ");
+      std::cout << "--use-encryption ";
     if (use_remote)
-      printf("--use-remote ");
+      std::cout << "--use-remote ";
     if (use_fsync)
-      printf("--use-fsync ");
+      std::cout << "--use-fsync ";
     if (use_recovery)
-      printf("--use-recovery ");
+      std::cout << "--use-recovery ";
     if (disable_recovery)
-      printf("--disable-recovery ");
+      std::cout << "--disable-recovery ";
     if (use_cursors)
-      printf("--use-cursors ");
+      std::cout << "--use-cursors ";
     if (duplicate == kDuplicateFirst)
-      printf("--duplicate=first ");
+      std::cout << "--duplicate=first ";
     else if (duplicate == kDuplicateLast)
-      printf("--duplicate=last ");
+      std::cout << "--duplicate=last ";
     if (overwrite)
-      printf("--overwrite ");
+      std::cout << "--overwrite ";
     if (inmemory)
-      printf("--inmemorydb ");
+      std::cout << "--inmemorydb ";
     if (no_mmap)
-      printf("--no-mmap ");
+      std::cout << "--no-mmap ";
     if (cacheunlimited)
-      printf("--cache=unlimited ");
+      std::cout << "--cache=unlimited ";
     if (cachesize)
-      printf("--cache=%d ", cachesize);
+      std::cout << "--cache=" << cachesize << " ";
     if (pagesize)
-      printf("--pagesize=%d ", pagesize);
+      std::cout << "--pagesize=" << pagesize << " ";
     if (num_threads > 1)
-      printf("--num-threads=%d ", num_threads);
+      std::cout << "--num-threads=" << num_threads << " ";
     if (direct_access)
-      printf("--direct-access ");
+      std::cout << "--direct-access ";
     if (use_berkeleydb)
-      printf("--use-berkeleydb ");
+      std::cout << "--use-berkeleydb ";
     if (!use_hamsterdb)
-      printf("--use-hamsterdb=false ");
+      std::cout << "--use-hamsterdb=false ";
     if (bulk_erase)
-      printf("--bulk-erase ");
+      std::cout << "--bulk-erase ";
     if (flush_txn_immediately)
-      printf("--flush-txn-immediately ");
+      std::cout << "--flush-txn-immediately ";
     if (use_transactions) {
       if (!transactions_nth)
-        printf("--use-transactions=tmp ");
+        std::cout << "--use-transactions=tmp ";
       else if (transactions_nth == 0xffffffffu)
-        printf("--use-transactions=all ");
+        std::cout << "--use-transactions=all ";
       else
-        printf("--use-transactions=%d ", transactions_nth);
+        std::cout << "--use-transactions=" << transactions_nth << " ";
     }
     if (hints & HAM_HINT_APPEND)
-      printf("--hints=HAM_HINT_APPEND ");
+      std::cout << "--hints=HAM_HINT_APPEND ";
     else if (hints & HAM_HINT_PREPEND)
-      printf("--hints=HAM_HINT_PREPEND ");
+      std::cout << "--hints=HAM_HINT_PREPEND ";
     if (fullcheck == kFullcheckFind)
-      printf("--fullcheck=find ");
+      std::cout << "--fullcheck=find ";
     if (fullcheck == kFullcheckReverse)
-      printf("--fullcheck=reverse ");
+      std::cout << "--fullcheck=reverse ";
     if (fullcheck == kFullcheckNone)
-      printf("--fullcheck=none ");
+      std::cout << "--fullcheck=none ";
     if (extkey_threshold)
-      printf("--extkey-threshold=%d ", extkey_threshold);
+      std::cout << "--extkey-threshold=" << extkey_threshold << " ";
     if (duptable_threshold)
-      printf("--duptable-threshold=%d ", duptable_threshold);
+      std::cout << "--duptable-threshold=" << duptable_threshold << " ";
     if (enable_crc32)
-      printf("--enable-crc32 ");
+      std::cout << "--enable-crc32 ";
     if (record_number)
-      printf("--record-number ");
-    if (!filename.empty()) {
-      printf("%s\n", filename.c_str());
-    }
+      std::cout << "--record-number ";
+    if (!filename.empty())
+      std::cout << filename;
     else {
       if (key_type == kKeyCustom)
-        printf("--key=custom ");
+        std::cout << "--key=custom ";
       else if (key_type == kKeyUint8)
-        printf("--key=uint8 ");
+        std::cout << "--key=uint8 ";
       else if (key_type == kKeyUint16)
-        printf("--key=uint16 ");
+        std::cout << "--key=uint16 ";
       else if (key_type == kKeyUint32)
-        printf("--key=uint32 ");
+        std::cout << "--key=uint32 ";
       else if (key_type == kKeyUint64)
-        printf("--key=uint64 ");
+        std::cout << "--key=uint64 ";
       else if (key_type == kKeyReal32)
-        printf("--key=real32 ");
+        std::cout << "--key=real32 ";
       else if (key_type == kKeyReal64)
-        printf("--key=real64 ");
+        std::cout << "--key=real64 ";
       if (key_size != kDefaultKeysize)
-        printf("--keysize=%d ", key_size);
+        std::cout << "--keysize=" << key_size << " ";
       if (key_is_fixed_size)
-        printf("--keysize-fixed ");
+        std::cout << "--keysize-fixed ";
       if (rec_size_fixed != HAM_RECORD_SIZE_UNLIMITED)
-        printf("--recsize-fixed=%d ", rec_size_fixed);
+        std::cout << "--recsize-fixed=" << rec_size_fixed << " ";
       if (force_records_inline)
-        printf("--force-records-inline ");
-      printf("--recsize=%d ", rec_size);
+        std::cout << "--force-records-inline ";
+      std::cout << "--recsize=" << rec_size << " ";
       if (distribution == kDistributionRandom)
-        printf("--distribution=random ");
+        std::cout << "--distribution=random ";
       if (distribution == kDistributionAscending)
-        printf("--distribution=ascending ");
+        std::cout << "--distribution=ascending ";
       if (distribution == kDistributionDescending)
-        printf("--distribution=descending ");
+        std::cout << "--distribution=descending ";
       if (distribution == kDistributionZipfian)
-        printf("--distribution=zipfian ");
+        std::cout << "--distribution=zipfian ";
       if (limit_ops)
-        printf("--stop-ops=%lu ", limit_ops);
+        std::cout << "--stop-ops=" << limit_ops << " ";
       if (limit_seconds)
-        printf("--stop-seconds=%lu ", limit_seconds);
+        std::cout << "--stop-seconds=" << limit_seconds << " ";
       if (limit_bytes)
-        printf("--stop-bytes=%ld ", limit_bytes);
+        std::cout << "--stop-bytes=" << limit_bytes << " ";
       if (erase_pct)
-        printf("--erase-pct=%d ", erase_pct);
+        std::cout << "--erase-pct=" << erase_pct << " ";
       if (find_pct)
-        printf("--find-pct=%d ", find_pct);
+        std::cout << "--find-pct=" << find_pct << " ";
       if (table_scan_pct)
-        printf("--table-scan-pct=%d ", table_scan_pct);
+        std::cout << "--table-scan-pct=" << table_scan_pct << " ";
       if (read_only)
-        printf("--read-only ");
-      printf("\n");
+        std::cout << "--read-only ";
+      std::cout << std::endl;
     }
   }
 
