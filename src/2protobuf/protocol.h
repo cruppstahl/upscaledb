@@ -16,6 +16,9 @@
 
 /*
  * Abstraction layer for the remote protocol
+ *
+ * @exception_safe: no
+ * @thread_safe: no
  */
 
 #ifndef HAM_PROTOCOL_H

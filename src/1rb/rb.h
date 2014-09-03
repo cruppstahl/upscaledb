@@ -60,6 +60,9 @@
  * comparison function, which makes it possible to write comparison functions
  * that treat the first argument specially.
  *
+ * @exception_safe: nothrow
+ * @thread_safe: no
+ *
  ******************************************************************************/
 
 #ifndef RB_H_

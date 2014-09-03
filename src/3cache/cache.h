@@ -23,6 +23,9 @@
  * linked list, and whenever a page is accessed it is removed and re-inserted
  * at the head. The tail therefore points to the page which was not used
  * in a long time, and is the primary candidate for purging.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_CACHE_H

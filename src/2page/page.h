@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef HAM_PAGE_H__
-#define HAM_PAGE_H__
+/*
+ * @exception_safe: no (no RAII; can destructor throw? fetch() can throw and
+ *          leave *      state undefined)
+ * @thread_safe: no
+ */
+
+#ifndef HAM_PAGE_H
+#define HAM_PAGE_H
 
 #include <string.h>
 
@@ -384,4 +390,4 @@ class Page {
 
 } // namespace hamsterdb
 
-#endif /* HAM_PAGE_H__ */
+#endif /* HAM_PAGE_H */

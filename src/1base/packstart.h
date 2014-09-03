@@ -27,6 +27,8 @@
  *
  *  #include "packstop.h"
  *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 /* This class does NOT include root.h! */

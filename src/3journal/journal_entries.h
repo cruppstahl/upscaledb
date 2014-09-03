@@ -16,6 +16,9 @@
 
 /*
  * journal entries for insert, erase, begin, commit, abort...
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_JOURNAL_ENTRIES_H

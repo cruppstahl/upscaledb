@@ -16,6 +16,10 @@
 
 /*
  * Abstraction layer for operating system functions
+ *
+ * @exception_safe: basic // for socket
+ * @exception_safe: strong // for file
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_OS_H

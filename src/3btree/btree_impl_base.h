@@ -16,6 +16,9 @@
 
 /*
  * Base class for btree node implementations
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_IMPL_BASE_H

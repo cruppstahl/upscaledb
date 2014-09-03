@@ -1,0 +1,35 @@
+Wed Sep  3 23:28:35 CEST 2014
+
+This file describes the annotations that are used in hamsterdb's sources.
+
+When looking through the sources you might have noticed something akin to
+annotations from java, i.e.
+
+        @exception_safe yes
+        @thread_safe unknown
+
+These annotations currently have only decorative purpose and help documenting
+the class. They also serve as a "TODO" list; i.e. if @thread_safe is unknown 
+then more analysis has to be performed.
+
+    @exception_safe
+    see http://en.wikipedia.org/wiki/Exception_safety
+
+    - unknown: Can be anything; needs more analysis
+    - nothrow: Exceptions will be handled internaly; an exception is never
+        thrown
+    - strong: Operations can fail, but failure will not have side effects.
+        If an Exception is thrown then the original data is retained
+    - basic: Partial execution of failed operations can cause side effects,
+        but all invariants are preserved and no resources are leaked.
+        Stored data will remain valid, but might have new values.
+    - no: No guarantees are made
+
+    @thread_safe
+    see http://en.wikipedia.org/wiki/Thread_safety
+    - unknown: Can be anything; needs more analysis
+    - yes: Code is free of race conditions when accessed simultaneously
+    - conditionally: Access from shared data is protected from race
+        conditions
+    - no: Code should not be accessed simultaneously from different threads
+

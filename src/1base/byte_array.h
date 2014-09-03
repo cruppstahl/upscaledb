@@ -16,6 +16,9 @@
 
 /*
  * A class managing a dynamically sized byte array
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_BYTE_ARRAY_H

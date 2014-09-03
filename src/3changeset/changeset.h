@@ -17,6 +17,9 @@
 /*
  * A changeset collects all pages that are modified during a single
  * operation.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_CHANGESET_H

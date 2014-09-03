@@ -33,6 +33,9 @@
  *
  *  - DuplicateInlineRecordList: stores small fixed length records as
  *          duplicates
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_RECORDS_DUPLICATE_H

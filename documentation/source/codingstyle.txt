@@ -1,0 +1,35 @@
+Wed Sep  3 23:22:37 CEST 2014
+
+This document describes the coding style of hamsterdb's source code.
+
+If you look at the code (i.e. template.h/template.cc in the current
+directory, or the header files of the hamsterdb api) then you'll find enough
+examples that describe hamsterdb's source formatting (i.e. no tabs, indention
+level 2 etc).
+
+This document describes additional rules, that are more important than
+the format. hamsterdb is currently undergoing major changes in the direction
+of a concurrent library, and one important milestone is to become exception
+safe. The following rules are therefore mandatory:
+
+1. Consistently use RAII
+
+2. Use smart pointers to manage allocated resources
+    boost::scoped_ptr (from <boost/scoped_ptr.hpp>)
+
+3. Every destructor has to clean up but MUST NOT THROW!
+
+4. Manage state like a resource
+    Each class with a state that is not able to change the state atomically
+    must move its state to a separate struct. The class itself has a getter
+    to return the state as "const", and a single method which updates the
+    state (via RCU - Read/Copy/Update, or atomic methods). 
+
+    These structs must be exception-safe.
+
+5. Use "critical line" for strong guarantees and defer commits till
+        success is guaranteed
+        -> this relates to the use of std::swap
+
+6. Restore the old state in case an exception is thrown
+

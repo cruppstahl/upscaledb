@@ -16,6 +16,9 @@
 
 /*
  * Error handling routines, assert macros, logging facilities
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: no (b/c of the logging macros)
  */
 
 #ifndef HAM_ERROR_H
@@ -46,7 +49,8 @@ struct Exception
 };
 
 // the default error handler
-void HAM_CALLCONV default_errhandler(int level, const char *message);
+void HAM_CALLCONV
+default_errhandler(int level, const char *message);
 
 extern void
 dbg_prepare(int level, const char *file, int line, const char *function,

@@ -20,6 +20,9 @@
  * Only for records of internal nodes. Internal nodes only store page IDs,
  * therefore this |InternalRecordList| is optimized for 64bit IDs
  * (and is implemented as a ham_u64_t[] array).
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_RECORDS_INTERNAL_H

@@ -39,6 +39,9 @@
  * All Transactions in an Environment for a linked list, where the tail is
  * the chronologically newest Transaction and the head is the oldest
  * (see Transaction::get_newer and Transaction::get_older).
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_TXN_H

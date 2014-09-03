@@ -16,6 +16,9 @@
 
 /*
  * A operating-system dependent mutex
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 #ifndef HAM_MUTEX_H

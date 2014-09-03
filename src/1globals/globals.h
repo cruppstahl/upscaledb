@@ -16,6 +16,9 @@
 
 /*
  * Global variables; used for tests and metrics
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
  
 #ifndef HAM_GLOBALS_H

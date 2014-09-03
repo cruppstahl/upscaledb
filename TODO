@@ -128,9 +128,15 @@ o review exception safety
         -> define rules
         @exception_safe [yes|no|unknown|nothrow]
         @thread_safe [no|unknown|atomic|blocking]
-    o document the rules (coding guidelines)
-    o document the annotations
-    o add annotations to *each* file
+    x document the rules (coding guidelines)
+    x document the annotations
+    x add annotations to *each* file
+    o also from this: http://www.boost.org/community/exception_safety.html
+
+o refactoring: split os.h in file.h and socket.h
+    and upgrade File to "strong" exception safety
+
+o refactoring: upgrade "device" to strong exception safety
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -306,6 +312,7 @@ o delta updates managed in the BtreeNode
         o Default Layout: can compress the flags for the Duplicate*RecordList
     o internal node layout: store page IDs div pagesize to get smaller
         integers (will be compressed better)
+        o and align pages to the pagesize when using malloc
     o leaf nodes: if records have fixed size and are NOT inlined then
         do not store flags!
 
@@ -472,15 +479,15 @@ o PRO: bulk updates
     o also for python
 
 o PRO: prefix compression for variable-length keys
-    ==> not efficient for random read/writes, but that's ok. linear scans
-        and appends will nevertheless be fast, and the delta updates
-        will make it efficient too 
-    ==> when performing bulk updates/batched updates, make sure that the
-        page is compressed only once
-    ==> only for leaf keys!? internal keys have too much "distance", and
-        the decompression would require too much time
-    ==> implement this as an "aspect" for the default-layout with
-        variable-sized keys
+    use an indirection for the prefixes and suffixes; store each
+    part in a slot. the keys themselves have then fixed length (2 slot id's)
+        ==> supports efficient binary search!
+        ==> is efficient for random read/writes AND linear scans
+        however, it's very complex to figure out how to optimally split the
+        strings into prefixes and suffixes
+    ==> prefixes and suffixes can be stored as extended keys if they become
+        too large
+    see indexcompression2009.pdf - Efficient index compression in DB2 LUW
 
     o if key is appended at the end: just write the delta
     o every "n'th" (50th?) key is written uncompressed
@@ -495,6 +502,10 @@ o PRO: prefix compression for variable-length keys
     o full keys can be further compressed with lzf or lzo
     o key search: jumps from full key to full key; in between, there's a
         linear search for the key
+
+o PRO: compress the varkey index (slot size/offset)?
+    ==> come up with a good scheme
+    -> for APL
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
 

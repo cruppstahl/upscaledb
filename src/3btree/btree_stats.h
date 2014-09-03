@@ -16,6 +16,9 @@
 
 /*
  * btree find/insert/erase statistical structures, functions and macros
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_STATS_H

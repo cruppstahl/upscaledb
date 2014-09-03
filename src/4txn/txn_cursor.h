@@ -27,6 +27,9 @@
  *
  * The Transaction Cursor has two states: either it is coupled to a
  * Transaction operation (TransactionOperation) or it is unused.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_TXN_CURSOR_H

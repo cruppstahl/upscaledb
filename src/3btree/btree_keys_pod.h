@@ -22,6 +22,9 @@
  * C array of type ham_u32_t[]. Each key has zero overhead.
  *
  * This KeyList cannot be resized.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_KEYS_POD_H

@@ -16,6 +16,9 @@
 
 /*
  * Device-implementation for disk-based files
+ *
+ * @exception_safe: no (could leak when throwing)
+ * @thread_safe: no
  */
 
 #ifndef HAM_DEVICE_DISK_H

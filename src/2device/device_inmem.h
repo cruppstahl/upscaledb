@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/*
+ * @exception_safe: no
+ * @thread_safe: no
+ */
+
 #ifndef HAM_DEVICE_INMEM_H
 #define HAM_DEVICE_INMEM_H
 

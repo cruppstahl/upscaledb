@@ -22,6 +22,9 @@
  * key #N starts at data[N * keysize].
  *
  * This KeyList cannot be resized.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_KEYS_BINARY_H

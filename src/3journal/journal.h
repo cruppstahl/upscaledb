@@ -63,6 +63,9 @@
  * In this phase all changesets are skipped because the newest changeset was
  * already applied, and we know that all older changesets
  * have already been written successfully to the database file.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_JOURNAL_H

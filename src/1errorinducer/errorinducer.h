@@ -16,6 +16,9 @@
 
 /*
  * Facility to simulate errors
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_ERRORINDUCER_H

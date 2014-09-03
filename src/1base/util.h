@@ -16,6 +16,9 @@
 
 /*
  * Misc. utility classes and functions
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 #ifndef HAM_UTIL_H

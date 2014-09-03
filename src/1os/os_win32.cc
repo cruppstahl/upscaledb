@@ -85,8 +85,7 @@ calc_wlen4str(const char *str)
 {
   // Since we call MultiByteToWideChar with an input length of -1, the
   // output will include the wchar NUL sentinel as well, so count it
-  size_t len = strlen(str) + 1;
-  return (int)len;
+  return (int)(strlen(str) + 1);
 }
 
 size_t

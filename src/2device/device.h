@@ -18,6 +18,8 @@
  * Device management; a device encapsulates the physical device, either a
  * file or memory chunks (for in-memory-databases)
  *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
  
 #ifndef HAM_DEVICE_H

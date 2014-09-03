@@ -16,6 +16,9 @@
 
 /*
  * Semantic versioning for hamsterdb
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 #ifndef HAM_VERSION_H

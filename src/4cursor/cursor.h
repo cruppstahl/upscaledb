@@ -72,6 +72,9 @@
  * In order to speed up Cursor::move() we keep track of the last compare
  * between the two cursors. i.e. if the btree cursor is currently pointing to
  * a larger key than the txn-cursor, the 'lastcmp' field is <0 etc.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_CURSORS_H__

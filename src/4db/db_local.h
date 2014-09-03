@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/*
+ * @exception_safe: unknown
+ * @thread_safe: unknown
+ */
+
 #ifndef HAM_DB_LOCAL_H
 #define HAM_DB_LOCAL_H
 

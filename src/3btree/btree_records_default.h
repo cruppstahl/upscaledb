@@ -20,6 +20,9 @@
  * address of a blob) or is stored inline, if the record's size is <= 8 bytes.
  *
  * Stores 1 byte of flags per record (see btree_flags.h).
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_BTREE_RECORDS_DEFAULT_H

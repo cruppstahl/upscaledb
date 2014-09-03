@@ -16,6 +16,9 @@
 
 /*
  * Returns the demangled name of a class
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 #ifndef HAM_ABI_H

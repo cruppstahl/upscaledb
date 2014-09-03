@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * Memory handling
+ *
+ * @exception_safe: nothrow
+ * @thread_safe: no (b/c of metrics)
+ */
+
 #ifndef HAM_MEM_H
 #define HAM_MEM_H
 

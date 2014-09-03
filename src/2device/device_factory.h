@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * A factory for Device objects
+ *
+ * @exception_safe: no
+ * @thread_safe: yes
+ */
+
 #ifndef HAM_DEVICE_FACTORY_H
 #define HAM_DEVICE_FACTORY_H
 

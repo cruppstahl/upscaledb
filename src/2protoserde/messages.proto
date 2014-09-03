@@ -16,6 +16,12 @@ PROLOGUE_BEGIN
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * @exception_safe: nothrow
+ * @thread_safe: no
+ */
+
 #ifndef HAM_MESSAGES_H
 #define HAM_MESSAGES_H
 

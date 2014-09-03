@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/*
+ * @exception_safe: unknown
+ * @thread_safe: unknown
+ */
+
 #ifndef HAM_BTREE_INDEX_FACTORY_H
 #define HAM_BTREE_INDEX_FACTORY_H
 

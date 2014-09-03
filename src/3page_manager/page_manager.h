@@ -18,6 +18,9 @@
  * The PageManager allocates, fetches and frees pages. It manages the
  * list of all pages (free and not free), and maps their virtual ID to
  * their physical address in the file.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_PAGE_MANAGER_H

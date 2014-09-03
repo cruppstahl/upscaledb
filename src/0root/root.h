@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * The root of all evil. This header file must be included *before all others*!
+ *
+ * @thread_safe: yes
+ * @exception_safe: nothrow
+ */
+
 #ifndef HAM_ROOT_H
 #define HAM_ROOT_H
 

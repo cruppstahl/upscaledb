@@ -16,6 +16,9 @@
 
 /*
  * A factory to create TransactionOperation and TransactionNode instances.
+ *
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_TXN_FACTORY_H
