@@ -792,9 +792,9 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Returns the threshold when switching from binary search to
     // linear search. For this layout we do not want to use any linear
-    // search, therefore return 0.
+    // search, therefore return -1.
     size_t get_linear_search_threshold() const {
-      return (0);
+      return ((size_t)-1);
     }
 
     // Performs a linear search in a given range between |start| and

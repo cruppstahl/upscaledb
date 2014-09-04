@@ -438,8 +438,13 @@ TEST_CASE("Btree/uint32Type", "")
 TEST_CASE("Btree/uint64Type", "")
 {
   BtreeFixture f;
-  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long> >");
+  const char *abiname;
+  if (sizeof(unsigned long) == 4)
+    abiname = "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long long> >";
+  else
+    abiname = "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long> >";
+
+  f.fixedTypeTest(HAM_TYPE_UINT64, 8, 960, abiname);
 }
 
 TEST_CASE("Btree/real32Type", "")

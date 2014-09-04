@@ -17,7 +17,7 @@
 /*
  * Device-implementation for disk-based files
  *
- * @exception_safe: no (could leak when throwing)
+ * @exception_safe: basic
  * @thread_safe: no
  */
 
@@ -52,33 +52,31 @@ class DiskDevice : public Device {
 
     // Create a new device
     virtual void create(const char *filename, ham_u32_t flags, ham_u32_t mode) {
-      m_flags = flags;
       m_file.create(filename, flags, mode);
+      m_flags = flags;
     }
 
     // opens an existing device
     //
     // tries to map the file; if it fails then continue with read/write 
     virtual void open(const char *filename, ham_u32_t flags) {
-      m_flags = flags;
       m_file.open(filename, flags);
+      m_flags = flags;
 
-      // the file size which backs the mapped ptr; use m_file's method
-      // directly, otherwise the (non-initialized) m_file_size would be
-      // returned
-      ham_u64_t file_size = m_file.get_file_size();
-      m_file_size = file_size;
+      // the file size which backs the mapped ptr
+      m_file_size = m_file.get_file_size();
 
       if (m_flags & HAM_DISABLE_MMAP)
         return;
 
       // make sure we do not exceed the "real" size of the file, otherwise
-      // we run into issues when accessing that memory (at least on windows)
+      // we crash when accessing memory which exceeds the mapping (at least
+      // on Win32)
       size_t granularity = File::get_granularity();
-      if (file_size == 0 || file_size % granularity)
+      if (m_file_size == 0 || m_file_size % granularity)
         return;
 
-      m_mapped_size = file_size;
+      m_mapped_size = m_file_size;
 
       m_file.mmap(0, m_mapped_size, (flags & HAM_READ_ONLY) != 0, &m_mmapptr);
     }
@@ -207,9 +205,6 @@ class DiskDevice : public Device {
 
     // the (cached) size of the file
     ham_u64_t m_file_size;
-
-    // dynamic byte array providing temporary space for encryption
-    ByteArray m_encryption_buffer;
 };
 
 } // namespace hamsterdb

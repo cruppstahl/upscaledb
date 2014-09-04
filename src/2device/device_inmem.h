@@ -15,7 +15,7 @@
  */
 
 /*
- * @exception_safe: no
+ * @exception_safe: strong
  * @thread_safe: no
  */
 
@@ -123,25 +123,27 @@ class InMemoryDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
     virtual ham_u64_t alloc(size_t size) {
-      m_file_size += size;
-      if (m_file_size > m_file_size_limit)
+      if (m_file_size + size > m_file_size_limit)
         throw Exception(HAM_LIMITS_REACHED);
 
-      return ((ham_u64_t)Memory::allocate<ham_u8_t>(size));
+      ham_u64_t retval = (ham_u64_t)Memory::allocate<ham_u8_t>(size);
+      m_file_size += size;
+      return (retval);
     }
 
     // allocate storage for a page from this device 
     virtual void alloc_page(Page *page, size_t page_size) {
       ham_assert(page->get_data() == 0);
 
-      m_file_size += page_size;
-      if (m_file_size > m_file_size_limit)
+      if (m_file_size + page_size > m_file_size_limit)
         throw Exception(HAM_LIMITS_REACHED);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
       page->set_data((PPageData *)p);
       page->set_flags(page->get_flags() | Page::kNpersMalloc);
       page->set_address((ham_u64_t)PTR_TO_U64(p));
+
+      m_file_size += page_size;
     }
 
     // frees a page on the device; plays counterpoint to @ref alloc_page 
@@ -149,19 +151,19 @@ class InMemoryDevice : public Device {
       ham_assert(page->get_data() != 0);
       ham_assert(page->get_flags() & Page::kNpersMalloc);
 
-      ham_assert(m_file_size >= m_env->get_page_size());
-      m_file_size -= m_env->get_page_size();
-
       page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       Memory::release(page->get_data());
       page->set_data(0);
+
+      ham_assert(m_file_size >= m_env->get_page_size());
+      m_file_size -= m_env->get_page_size();
     }
 
     // releases a chunk of memory previously allocated with alloc()
     void release(void *ptr, size_t size) {
+      Memory::release(ptr);
       ham_assert(m_file_size >= size);
       m_file_size -= size;
-      Memory::release(ptr);
     }
 
   private:

@@ -149,6 +149,15 @@ o refactoring: improve layering
     o can we move blob_manager to layer 2 or 3?
     o can we move btree* to layer 3?
 
+o refactoring: clean up the close() code of the LocalEnvironment (and also
+    of the LocalDatabase). distinguish two cases:
+    o a close() called by ham_env_close/ham_db_close
+        performs logic that can fail; must not be exception safe
+    o a close() called in the destructor
+        do not perform any logic besides cleaning up; must NOT THROW!
+        actually there shouldn't be a need to do anything if scoped_ptr
+        is used consistently
+
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
     o env_config.h: a struct with the run-time configuration of
@@ -168,15 +177,6 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     o These classes initialize themselves with the parameters supplied by
         the user, and call all other modules (device, cache...) with this
         structure as the parameter for initialization
-
-o refactoring: clean up the close() code of the LocalEnvironment (and also
-    of the LocalDatabase). distinguish two cases:
-    o a close() called by ham_env_close/ham_db_close
-        performs logic that can fail; must not be exception safe
-    o a close() called in the destructor
-        do not perform any logic besides cleaning up; must NOT THROW!
-        actually there shouldn't be a need to do anything if scoped_ptr
-        is used consistently
 
 o refactoring: get rid of the virtual inheritance for hola workers
 
@@ -227,9 +227,17 @@ o The C# PInvoke for ham_cursor_find is missing the Record structure
     - also accept flags in ham_db_find and ham_cursor_find for approx.
         matching, and copy the key!
 
-o erlang: 2 tests are failing
+o erlang fixes are required
+    o 2 tests are failing
     o quickcheck-ci.com
     o look into Thomas' mail
+
+o QuickCheck: create a new property for testing duplicates; the key is always
+    the same. The number of duplicate keys is tracked and periodically
+    checked with the API. A cursor can be used to remove a specific
+    duplicate, or to fetch a specific duplicate.
+
+o QuickCheck: create a new property for testing recnos, with lots of deletes
 
 o improve performance for hola-sum (profile!)
     http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
@@ -242,13 +250,6 @@ o improve performance for hola-sum (profile!)
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
-
-o QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
-
-o QuickCheck: create a new property for testing recnos, with lots of deletes
 
 o windows cleanups
     o build release lib/dll with /PDBSTRIPPED (reduces file size?),
