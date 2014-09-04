@@ -24,6 +24,8 @@ libhamsterdb_la_SOURCES = \
 	1globals/globals.cc \
 	1mem/mem.cc \
 	1mem/mem.h \
+	1os/file.h \
+	1os/socket.h \
 	1os/os.h \
 	1os/os.cc \
 	1os/os_posix.cc \

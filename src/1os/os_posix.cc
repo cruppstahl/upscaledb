@@ -38,7 +38,8 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
-#include "1os/os.h"
+#include "1os/file.h"
+#include "1os/socket.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

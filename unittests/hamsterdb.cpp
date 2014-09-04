@@ -20,7 +20,7 @@
 #include "os.hpp"
 
 #include "1base/version.h"
-#include "1os/os.h"
+#include "1os/file.h"
 #include "2page/page.h"
 #include "3btree/btree_index.h"
 #include "4db/db.h"
@@ -1899,8 +1899,8 @@ struct HamsterdbFixture {
         {0, 0}
     };
     REQUIRE(0 == ham_db_get_parameters(db, query));
-    REQUIRE(HAM_TYPE_CUSTOM == query[0].value);
-    REQUIRE(22 == query[1].value);
+    REQUIRE((ham_u64_t)HAM_TYPE_CUSTOM == query[0].value);
+    REQUIRE(22u == (unsigned)query[1].value);
 
     REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
 
@@ -2049,7 +2049,7 @@ struct HamsterdbFixture {
     // verify the file size
     File f;
     f.open(Utils::opath("test.db"), 0);
-    REQUIRE(f.get_file_size() == 3 * 16 * 1024);
+    REQUIRE(f.get_file_size() == (size_t)3 * 16 * 1024);
   }
 
   void fileSizeLimitBlobTest(bool inmemory) {
@@ -2084,7 +2084,7 @@ struct HamsterdbFixture {
     // only one key must be installed!
     ham_u64_t keycount = 0;
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
-    REQUIRE(keycount == 1);
+    REQUIRE(keycount == 1u);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
@@ -2092,7 +2092,7 @@ struct HamsterdbFixture {
     if (!inmemory) {
       File f;
       f.open(Utils::opath("test.db"), 0);
-      REQUIRE(f.get_file_size() == 2 * 16 * 1024);
+      REQUIRE(f.get_file_size() == (size_t)2 * 16 * 1024);
     }
   }
 };

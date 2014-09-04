@@ -15,15 +15,15 @@
  */
 
 /*
- * Abstraction layer for operating system functions
+ * A simple wrapper around a tcp socket handle. Throws exceptions in
+ * case of errors
  *
- * @exception_safe: basic // for socket
- * @exception_safe: strong // for file
+ * @exception_safe: basic
  * @thread_safe: unknown
  */
 
-#ifndef HAM_OS_H
-#define HAM_OS_H
+#ifndef HAM_SOCKET_H
+#define HAM_SOCKET_H
 
 #include "0root/root.h"
 
@@ -33,6 +33,7 @@
 #include "ham/types.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "1os/os.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -40,34 +41,35 @@
 
 namespace hamsterdb {
 
-/*
- * typedefs for posix
- */
-#ifdef HAM_OS_POSIX
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
-#  define HAM_INVALID_FD  (-1)
-#endif
+class Socket
+{
+  public:
+    // Constructor creates an empty socket
+    Socket()
+      : m_socket(HAM_INVALID_FD) {
+    }
 
-/*
- * typedefs for Windows 32- and 64-bit
- */
-#ifdef HAM_OS_WIN32
-#  ifdef CYGWIN
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
-#  else
-typedef HANDLE             ham_fd_t;
-typedef SOCKET             ham_socket_t;
-#  endif
-#  define HAM_INVALID_FD   (0)
-#endif
+    // Destructor closes the socket
+    ~Socket() {
+      close();
+    }
 
-// Returns the number of 32bit integers that the CPU can process in
-// parallel (the SIMD lane width) 
-extern int
-os_get_simd_lane_width();
+    // Connects to a remote host
+    void connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec);
+
+    // Sends data to the connected server
+    void send(const ham_u8_t *data, size_t len);
+
+    // Receives data from the connected server; blocking!
+    void recv(ham_u8_t *data, size_t len);
+
+    // Closes the connection; no problem if socket was already closed
+    void close();
+
+  private:
+    ham_socket_t m_socket;
+};
 
 } // namespace hamsterdb
 
-#endif /* HAM_OS_H */
+#endif /* HAM_SOCKET_H */

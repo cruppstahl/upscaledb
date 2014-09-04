@@ -78,7 +78,7 @@
 
 #include "ham/hamsterdb_int.h" // for metrics
 
-#include "1os/os.h"
+#include "1os/file.h"
 #include "1base/byte_array.h"
 #include "3journal/journal_entries.h"
 

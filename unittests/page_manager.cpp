@@ -377,7 +377,7 @@ struct PageManagerFixture {
         REQUIRE(pm->m_free_pages[page_size * i] == 1);
     }
 
-    REQUIRE(pm->m_page_count_page_manager == 4);
+    REQUIRE(pm->m_page_count_page_manager == 4u);
   }
 
   void allocMultiBlobs() {

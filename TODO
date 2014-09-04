@@ -103,7 +103,7 @@ x refactoring: get_linear_search_threshold returns size_t, but is
 x ham_bench/config.h: use iostream instead of printf to avoid compiler
     warnings on 32bit linux
 
-o review exception safety
+x review exception safety
     http://exceptionsafecode.com/
     - consistently use smart_pointers to manage allocated resources!
         use boost::scoped_ptr (from <boost/scoped_ptr.hpp>)
@@ -131,12 +131,23 @@ o review exception safety
     x document the rules (coding guidelines)
     x document the annotations
     x add annotations to *each* file
-    o also from this: http://www.boost.org/community/exception_safety.html
 
-o refactoring: split os.h in file.h and socket.h
+x refactoring: split os.h in file.h and socket.h
     and upgrade File to "strong" exception safety
 
 o refactoring: upgrade "device" to strong exception safety
+
+o refactoring: upgrade "page" to strong exception safety
+
+o refactoring: improve layering
+    o improve layer separation of page (remove dependency to env)
+    o improve layer separation of device (remove dependency to env)
+    o can we move cache to layer 2 or 3?
+    o can we move page_manager to layer 2 or 3?
+    o can we move changeset to layer 2?
+    o can we move journal to layer 2 or 3?
+    o can we move blob_manager to layer 2 or 3?
+    o can we move btree* to layer 3?
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -167,16 +178,6 @@ o refactoring: clean up the close() code of the LocalEnvironment (and also
         actually there shouldn't be a need to do anything if scoped_ptr
         is used consistently
 
-o refactoring: improve layering
-    o improve layer separation of page (remove dependency to env)
-    o improve layer separation of device (remove dependency to env)
-    o can we move cache to layer 2 or 3?
-    o can we move page_manager to layer 2 or 3?
-    o can we move changeset to layer 2?
-    o can we move journal to layer 2 or 3?
-    o can we move blob_manager to layer 2 or 3?
-    o can we move btree* to layer 3?
-
 o refactoring: get rid of the virtual inheritance for hola workers
 
 o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
@@ -193,6 +194,8 @@ o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
             InlineRecordList -> PodKeyList<uint64>
             InlineRecordList -> BinaryKeyList
             (other will follow as soon as compression is enabled)
+    ==> does this really make sense? After all, the compression will most
+        likely be different for keys and records. -> postpone
 
 o refactoring: rewrite capacity calculations (again...)
     -> in LocalDatabase::create -> call calc_estimated_capacity()
@@ -435,20 +438,13 @@ o delta updates managed in the BtreeNode
 
 o PRO: rebase to vanilla 2.1.9
 
-o PRO: use grouped varints for the RecordLists
-    -> use in combination with "distance encoding" - only encode the distances
-        between the values! i.e.
-        <start><flags><d1|d2|d3|...>
-          d2 is the difference of d2 to d1, d1 is the difference of d1 to start
-          the "d"-values are compressed. usually they are very small and
-          therefore require little space.
-    o can also be used for PodKeyList<uint32> and PodKeyList<uint64>?
-        -> yes, absolutely
-    o should work for InternalRecordList (64bit record IDs)
-        record ID could be modulo page-size (makes numbers smaller)
-    o also for DefaultRecordList, if flags are separated from the record id's
-    o and for default records
-        o in this case the record flags should also be "compressed"
+o PRO: find an efficient compression method for RecordLists, more precisely for
+    - default record lists (incl. flags, record IDs)
+    - internal record lists (page IDs)
+    - duplicate record lists (incl. flags, record IDs)
+    The compression method should allow fast binary search.
+    The page IDs should be modulo page-size (makes numbers smaller)
+
     o GroupedVarints should be parameterized and work for 32bit and 64bit
         numbers and a variety of capacities
     https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
@@ -457,26 +453,6 @@ o PRO: use grouped varints for the RecordLists
     -> the concept will be similar to prefix compression
     -> can we come up with a schema that allows compression AND
         fast random access?
-
-o PRO: bulk updates
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort, but
-        fail hard if the sort order is violated
-    - add those delta updates to the txn-trees or to the btree node,
-        simply transfer ownership of the memory
-    -> or are these "batched" updates, in combination with cache-oblivious
-        btrees? the batched updates contain lists of structures with
-        information about the update (i.e. insert, erase etc). internally,
-        a cursor is used to perform the update. this would be fast and a
-        relatively cheap way to perform multiple operations in one
-        single transaction. and they would not require delta updates, but
-        still provide real value.
-    o also for remote, transfer in a single message
-    o also for .NET
-    o also for java
-    o also for erlang
-    o also for python
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -506,6 +482,26 @@ o PRO: prefix compression for variable-length keys
 o PRO: compress the varkey index (slot size/offset)?
     ==> come up with a good scheme
     -> for APL
+
+o PRO: bulk updates
+    - require delta updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort, but
+        fail hard if the sort order is violated
+    - add those delta updates to the txn-trees or to the btree node,
+        simply transfer ownership of the memory
+    -> or are these "batched" updates, in combination with cache-oblivious
+        btrees? the batched updates contain lists of structures with
+        information about the update (i.e. insert, erase etc). internally,
+        a cursor is used to perform the update. this would be fast and a
+        relatively cheap way to perform multiple operations in one
+        single transaction. and they would not require delta updates, but
+        still provide real value.
+    o also for remote, transfer in a single message
+    o also for .NET
+    o also for java
+    o also for erlang
+    o also for python
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
 
