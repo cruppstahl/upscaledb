@@ -73,13 +73,13 @@ Database::cursor_close(Cursor *cursor)
 {
   Cursor *p, *n;
 
+  // first close the cursor
+  cursor_close_impl(cursor);
+
   // decrease the transaction refcount; the refcount specifies how many
   // cursors are attached to the transaction
   if (cursor->get_txn())
     cursor->get_txn()->decrease_cursor_refcount();
-
-  // now finally close the cursor
-  cursor_close_impl(cursor);
 
   // fix the linked list of cursors
   p = cursor->get_previous();
@@ -119,12 +119,7 @@ Database::close(ham_u32_t flags)
     return (set_error(st));
 
   // remove from the Environment's list
-  // TODO the Environment should be responsible to do that??
   m_env->get_database_map().erase(m_name);
-
-  // free cached memory
-  get_key_arena().clear();
-  get_record_arena().clear();
 
   m_env = 0;
   return (0);

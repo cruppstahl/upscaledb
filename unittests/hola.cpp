@@ -22,6 +22,7 @@
 #include "os.hpp"
 
 #include "3btree/btree_index.h"
+#include "4db/db_local.h"
 
 namespace hamsterdb {
 

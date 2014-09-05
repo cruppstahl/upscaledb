@@ -156,12 +156,12 @@ struct DbFixture {
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page(0);
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
-    BtreeIndex be(&db, 0, 0, 0, HAM_KEY_SIZE_UNLIMITED);
 
     page.set_address(1000);
     page.set_db(&db);
-    db.m_btree_index = &be;
-    be.m_key_size = 666;
+    db.m_btree_index.reset(new BtreeIndex(&db, 0, 0, 0,
+                HAM_KEY_SIZE_UNLIMITED));
+    db.m_btree_index->m_key_size = 666;
     REQUIRE(Page::kSizeofPersistentHeader == 16);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...

@@ -79,7 +79,9 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_impl_base.h"
 #include "3btree/btree_node.h"
+#include "3btree/btree_visitor.h"
 #include "4env/env_local.h"
+#include "4db/db_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

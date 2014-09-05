@@ -33,15 +33,12 @@
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node.h"
-#include "db.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
 #endif
 
 namespace hamsterdb {
-
-#undef max // avoid MSVC conflicts with std::max
 
 #include "1base/packstart.h"
 
@@ -167,6 +164,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 class LocalDatabase;
 class BtreeNodeProxy;
+class Transaction;
 struct PDupeEntry;
 
 struct BtreeVisitor {

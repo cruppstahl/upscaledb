@@ -15,8 +15,8 @@
  */
 
 /*
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_DB_H
@@ -44,22 +44,7 @@ struct ham_db_t {
 namespace hamsterdb {
 
 class Cursor;
-
-//
-// The ScanVisitor is the callback implementation for the scan call.
-// It will either receive single keys or multiple keys in an array.
-//
-struct ScanVisitor {
-  // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
-                  size_t duplicate_count) = 0;
-
-  // Operates on an array of keys
-  virtual void operator()(const void *key_array, size_t key_count) = 0;
-
-  // Assigns the internal result to |result|
-  virtual void assign_result(hola_result_t *result) = 0;
-};
+struct ScanVisitor;
 
 /*
  * An abstract base class for a Database; is overwritten for local and
@@ -68,11 +53,6 @@ struct ScanVisitor {
 class Database
 {
   public:
-    enum {
-      // The default number of indices in an Environment
-      kMaxIndices1k = 32
-    };
-
     // Constructor
     Database(Environment *env, ham_u16_t name, ham_u32_t flags);
 

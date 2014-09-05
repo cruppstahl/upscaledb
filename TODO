@@ -147,16 +147,22 @@ x refactoring: improve layering
 
 o refactoring: clean up the close() code of the LocalEnvironment (and also
     of the LocalDatabase). distinguish two cases:
-    o a close() called by ham_env_close/ham_db_close
+    - a close() called by ham_env_close/ham_db_close
         performs logic that can fail; must not be exception safe
-    o a close() called in the destructor
+    - a close() called in the destructor
         do not perform any logic besides cleaning up; must NOT THROW!
         actually there shouldn't be a need to do anything if scoped_ptr
         is used consistently
+    x use smart_ptr for all members of the LocalDatabase
+        (m_txn_index, m_btree_index)
+        x then make sure that the tests run again
+    x ... and for the RemoteEnvironment (if required) - not required
+    o ... and for the LocalEnvironment
+        (m_header, m_blob_manager, m_page_manager, m_journal)
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
-    o env_config.h: a struct with the run-time configuration of
+    o 2config/env_config.h: a struct with the run-time configuration of
         the environment
         o created in hamsterdb.cc/ham_env_create/ham_env_open and passed
             to all objects that are created
@@ -164,15 +170,24 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
             - the ham_parameter_t list
             - the parameters from ham_env_open and ham_env_create
             (without any dependencies!)
+            - log directory
+            - remote address
+            - remote timeout
+            - encryption settings
+            - page size
         o gets initialized with data from the header page
             o and with the parameters and the parameter list
         o can only be retrieved as const ref for the whole structure
-    o db_config.h: a struct with the run-time configuration of
+    o 2config/db_config.h: a struct with the run-time configuration of
         the database
         o proceed as described above
+            - db name
+            - db flags
     o These classes initialize themselves with the parameters supplied by
         the user, and call all other modules (device, cache...) with this
         structure as the parameter for initialization
+        - these classes do no longer have to use the env to access runtime
+            flags or parameters
 
 o refactoring: get rid of the virtual inheritance for hola workers
 
@@ -246,6 +261,10 @@ o improve performance for hola-sum (profile!)
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
+    -> clean up the whole Cursor stuff
+
+o refactoring: clean up the whole Database code; it's too much and too
+    complex
 
 o windows cleanups
     o build release lib/dll with /PDBSTRIPPED (reduces file size?),
@@ -518,6 +537,9 @@ o the bucket for concurrency TODOs
         -> needs a very fast locking scheme
     - SSDs support many async. writes in parallel - be prepared!
     http://meetingcpp.com/tl_files/2013/talks/scaling_with_cpp11_edouard_alligand.pdf
+    - remove db_get_last_error?
+    - how to deal with temporary pointers (key->data, record->data)?
+        store them in tls?
 
     o an intermediate stage would be to have concurrent reads but exclusive
         writes (one writer, many readers) - makes sense?

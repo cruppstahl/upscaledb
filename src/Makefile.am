@@ -17,6 +17,7 @@ libhamsterdb_la_SOURCES = \
 	1base/packstart.h \
 	1base/packstop.h \
 	1base/pickle.h \
+	1base/scoped_ptr.h \
 	1base/util.cc \
 	1base/util.h \
 	1base/version.h \
@@ -72,6 +73,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_stats.cc \
 	3btree/btree_stats.h \
 	3btree/btree_visit.cc \
+	3btree/btree_visitor.h \
 	3journal/journal.cc \
 	3journal/journal_entries.h \
 	3journal/journal.h \

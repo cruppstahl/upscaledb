@@ -20,6 +20,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
+#include "3btree/btree_visitor.h"
 #include "4db/db.h"
 #include "4db/db_local.h"
 

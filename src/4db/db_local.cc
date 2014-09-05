@@ -515,8 +515,8 @@ LocalDatabase::open(ham_u16_t descriptor)
   PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
 
   /* create the BtreeIndex */
-  m_btree_index = new BtreeIndex(this, descriptor, flags | desc->get_flags(),
-                            desc->get_key_type(), desc->get_key_size());
+  m_btree_index.reset(new BtreeIndex(this, descriptor, flags | desc->get_flags(),
+                            desc->get_key_type(), desc->get_key_size()));
 
   ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
   ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
@@ -530,7 +530,7 @@ LocalDatabase::open(ham_u16_t descriptor)
   m_btree_index->open();
 
   /* create the TransactionIndex - TODO only if txn's are enabled? */
-  m_txn_index = new TransactionIndex(this);
+  m_txn_index.reset(new TransactionIndex(this));
 
   /* merge the non-persistent database flag with the persistent flags from
    * the btree index */
@@ -607,14 +607,14 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
   }
 
   // create the btree
-  m_btree_index = new BtreeIndex(this, descriptor, persistent_flags,
-                        key_type, key_size);
+  m_btree_index.reset(new BtreeIndex(this, descriptor, persistent_flags,
+                        key_type, key_size));
 
   /* initialize the btree */
   m_btree_index->create(key_type, key_size, rec_size);
 
   /* and the TransactionIndex */
-  m_txn_index = new TransactionIndex(this);
+  m_txn_index.reset(new TransactionIndex(this));
 
   return (0);
 }
@@ -1634,18 +1634,6 @@ LocalDatabase::close_impl(ham_u32_t flags)
    * it's still required and will be flushed below)
    */
   get_local_env()->get_page_manager()->close_database(this);
-
-  /* clean up the transaction tree */
-  if (m_txn_index) {
-    delete m_txn_index;
-    m_txn_index = 0;
-  }
-
-  /* close the btree */
-  if (m_btree_index) {
-    delete m_btree_index;
-    m_btree_index = 0;
-  }
 
   return (0);
 }

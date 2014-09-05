@@ -16,7 +16,7 @@
 
 /*
  * @exception_safe: unknown
- * @thread_safe: unknown
+ * @thread_safe: no
  */
 
 #ifndef HAM_DB_LOCAL_H
@@ -25,6 +25,9 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/scoped_ptr.h"
+#include "3btree/btree_index.h"
+#include "4txn/txn_local.h"
 #include "4db/db.h"
 
 #ifndef HAM_ROOT_H
@@ -33,7 +36,6 @@
 
 namespace hamsterdb {
 
-class BtreeIndex;
 class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
@@ -53,18 +55,17 @@ class LocalDatabase : public Database {
 
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
-      : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_txn_index(0), m_cmp_func(0) {
+      : Database(env, name, flags), m_recno(0), m_cmp_func(0) {
     }
 
     // Returns the btree index
     BtreeIndex *get_btree_index() {
-      return (m_btree_index);
+      return (m_btree_index.get());
     }
 
     // Returns the transactional index
     TransactionIndex *get_txn_index() {
-      return (m_txn_index);
+      return (m_txn_index.get());
     }
 
     // Returns the LocalEnvironment instance
@@ -240,10 +241,10 @@ class LocalDatabase : public Database {
     ham_u64_t m_recno;
 
     // the btree index
-    BtreeIndex *m_btree_index;
+    ScopedPtr<BtreeIndex> m_btree_index;
 
     // the transaction index
-    TransactionIndex *m_txn_index;
+    ScopedPtr<TransactionIndex> m_txn_index;
 
     // the comparison function
     ham_compare_func_t m_cmp_func;
