@@ -32,4 +32,3 @@ safe. The following rules are therefore mandatory:
         -> this relates to the use of std::swap
 
 6. Restore the old state in case an exception is thrown
-

@@ -30,8 +30,7 @@
 #include "1os/file.h"
 #include "1mem/mem.h"
 #include "2device/device.h"
-#include "4db/db.h"
-#include "4env/env_local.h"
+#include "2page/page.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -44,10 +43,9 @@ namespace hamsterdb {
  */
 class DiskDevice : public Device {
   public:
-    DiskDevice(LocalEnvironment *env, ham_u32_t flags,
-                    ham_u64_t file_size_limit)
-      : Device(env, flags, file_size_limit), m_mmapptr(0), m_mapped_size(0),
-            m_file_size() {
+    DiskDevice(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
+      : Device(flags, page_size, file_size_limit), m_mmapptr(0),
+        m_mapped_size(0), m_file_size() {
     }
 
     // Create a new device
@@ -137,15 +135,15 @@ class DiskDevice : public Device {
 
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
-    virtual void read_page(Page *page, size_t page_size) {
+    virtual void read_page(Page *page, ham_u64_t address, size_t page_size) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
-      if (page->get_address() < m_mapped_size && m_mmapptr != 0) {
+      if (address < m_mapped_size && m_mmapptr != 0) {
         // ok, this page is mapped. If the Page object has a memory buffer
         // then free it; afterwards return a pointer into the mapped memory
         Memory::release(page->get_data());
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
-        page->set_data((PPageData *)&m_mmapptr[page->get_address()]);
+        page->set_data((PPageData *)&m_mmapptr[address]);
         return;
       }
 
@@ -156,12 +154,12 @@ class DiskDevice : public Device {
         page->set_flags(page->get_flags() | Page::kNpersMalloc);
       }
 
-      m_file.pread(page->get_address(), page->get_data(), page_size);
+      m_file.pread(address, page->get_data(), page_size);
     }
 
     // writes a page to the device
     virtual void write_page(Page *page) {
-      write(page->get_address(), page->get_data(), m_env->get_page_size());
+      write(page->get_address(), page->get_data(), m_page_size);
     }
 
     // allocate storage from this device; this function
@@ -179,7 +177,7 @@ class DiskDevice : public Device {
 
       truncate(pos + page_size);
       page->set_address(pos);
-      read_page(page, page_size);
+      read_page(page, pos, page_size);
     }
 
     // Frees a page on the device; plays counterpoint to |ref alloc_page|

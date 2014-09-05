@@ -135,19 +135,15 @@ x review exception safety
 x refactoring: split os.h in file.h and socket.h
     and upgrade File to "strong" exception safety
 
-o refactoring: upgrade "device" to strong exception safety
+x refactoring: upgrade "device" to strong exception safety
 
-o refactoring: upgrade "page" to strong exception safety
+x refactoring: upgrade "page" to strong exception safety
+    x see TODOs in page.cc
 
-o refactoring: improve layering
-    o improve layer separation of page (remove dependency to env)
-    o improve layer separation of device (remove dependency to env)
-    o can we move cache to layer 2 or 3?
-    o can we move page_manager to layer 2 or 3?
-    o can we move changeset to layer 2?
-    o can we move journal to layer 2 or 3?
-    o can we move blob_manager to layer 2 or 3?
-    o can we move btree* to layer 3?
+x refactoring: improve layering
+    x improve layer separation of device (remove dependency to env)
+    x improve layer separation of page (remove dependency to env)
+    x can we move cache to layer 2 or 3?
 
 o refactoring: clean up the close() code of the LocalEnvironment (and also
     of the LocalDatabase). distinguish two cases:

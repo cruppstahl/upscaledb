@@ -24,8 +24,8 @@
  * at the head. The tail therefore points to the page which was not used
  * in a long time, and is the primary candidate for purging.
  *
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_CACHE_H
@@ -176,8 +176,6 @@ class Cache
     // Purges the cache; the callback is called for every page that needs
     // to be purged
     void purge(PurgeCallback cb, PageManager *pm, unsigned limit) {
-      ham_assert(is_full() && limit > 0);
-
       unsigned i = 0;
 
       /* get the chronologically oldest page */
@@ -206,26 +204,23 @@ class Cache
 
     // the visitor callback returns true if the page should be removed from
     // the cache and deleted
-    typedef bool (*VisitCallback)(Page *page, Database *db, ham_u32_t flags);
+    typedef bool (*VisitCallback)(Page *page, LocalEnvironment *env,
+            LocalDatabase *db, ham_u32_t flags);
 
     // Visits all pages in the "totallist"; this is used by the Environment
     // to flush (and delete) pages
-    void visit(VisitCallback cb, Database *db, ham_u32_t flags) {
+    void visit(VisitCallback cb, LocalEnvironment *env, LocalDatabase *db,
+            ham_u32_t flags) {
       Page *head = m_totallist;
       while (head) {
         Page *next = head->get_next(Page::kListCache);
 
-        if (cb(head, db, flags)) {
+        if (cb(head, env, db, flags)) {
           remove_page(head);
           delete head;
         }
         head = next;
       }
-    }
-
-    // Returns true if the caller should purge the cache
-    bool is_full() const {
-      return (m_alloc_elements * m_env->get_page_size() > m_capacity);
     }
 
     // Returns the capacity (in bytes)
@@ -238,9 +233,11 @@ class Cache
       return (m_cur_elements);
     }
 
-    // Checks the cache integrity; throws an exception if the integrity
-    // was violated
-    void check_integrity();
+    // Returns the number of currently cached elements (excluding those that
+    // are mmapped)
+    size_t get_allocated_elements() const {
+      return (m_alloc_elements);
+    }
 
     // Fills in the current metrics
     void get_metrics(ham_env_metrics_t *metrics) const {

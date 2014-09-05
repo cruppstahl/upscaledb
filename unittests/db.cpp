@@ -154,7 +154,7 @@ struct DbFixture {
     REQUIRE(Page::kSizeofPersistentHeader == 16);
 
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
-    Page page;
+    Page page(0);
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
     BtreeIndex be(&db, 0, 0, 0, HAM_KEY_SIZE_UNLIMITED);
 
@@ -169,7 +169,7 @@ struct DbFixture {
       PPageData drit;
       PEnvironmentHeader drat;
     } hdrpage_pers = {{{0}}};
-    Page hdrpage;
+    Page hdrpage(0);
     hdrpage.set_data((PPageData *)&hdrpage_pers);
     Page *hp = &hdrpage;
     ham_u8_t *pl1 = hp->get_payload();

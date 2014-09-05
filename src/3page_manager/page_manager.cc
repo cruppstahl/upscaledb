@@ -52,7 +52,7 @@ PageManager::load_state(ham_u64_t pageid)
   if (m_state_page)
     delete m_state_page;
 
-  m_state_page = new Page(m_env, 0);
+  m_state_page = new Page(m_env->get_device());
   m_state_page->fetch(pageid);
 
   m_free_pages.clear();
@@ -116,7 +116,7 @@ PageManager::store_state()
 
   // otherwise allocate a new page, if required
   if (!m_state_page) {
-    m_state_page = new Page(m_env, 0);
+    m_state_page = new Page(m_env->get_device());
     m_state_page->allocate(Page::kTypePageManager, Page::kInitializeWithZeroes);
   }
 
@@ -170,7 +170,7 @@ PageManager::store_state()
     while (it != m_free_pages.end()) {
       // 9 bytes is the maximum amount of storage that we will need for a
       // new entry; if it does not fit then break
-      if ((p + 9) - page->get_payload() >= m_env->get_usable_page_size())
+      if ((p + 9) - page->get_payload() >= (ptrdiff_t)m_env->get_usable_page_size())
         break;
 
       // ... and check if the next entry (and the following) are directly
@@ -277,7 +277,7 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   if ((flags & kOnlyFromCache) || m_env->get_flags() & HAM_IN_MEMORY)
     return (0);
 
-  page = new Page(m_env, db);
+  page = new Page(m_env->get_device(), db);
   try {
     page->fetch(address);
   }
@@ -328,7 +328,7 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
     if (page)
       goto done;
     /* allocate a new page structure and read the page from disk */
-    page = new Page(m_env, db);
+    page = new Page(m_env->get_device(), db);
     page->fetch(address);
     goto done;
   }
@@ -338,7 +338,7 @@ PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
   try {
     if (!page) {
       allocated = true;
-      page = new Page(m_env, db);
+      page = new Page(m_env->get_device(), db);
     }
 
     page->allocate(page_type);
@@ -450,9 +450,10 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
 }
 
 static bool
-flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
+flush_all_pages_callback(Page *page, LocalEnvironment *env,
+        LocalDatabase *db, ham_u32_t flags)
 {
-  page->get_env()->get_page_manager()->flush_page(page);
+  env->get_page_manager()->flush_page(page);
 
   /*
    * if the page is deleted, uncouple all cursors, then
@@ -473,7 +474,7 @@ PageManager::flush_all_pages(bool nodelete)
     m_last_blob_page_id = m_last_blob_page->get_address();
     m_last_blob_page = 0;
   }
-  m_cache.visit(flush_all_pages_callback, 0, nodelete ? 1 : 0);
+  m_cache.visit(flush_all_pages_callback, m_env, 0, nodelete ? 1 : 0);
 
   if (m_state_page)
     flush_page(m_state_page);
@@ -489,7 +490,7 @@ PageManager::purge_callback(Page *page, PageManager *pm)
     pm->m_last_blob_page = 0;
   }
 
-  page->get_env()->get_page_manager()->flush_page(page);
+  pm->flush_page(page);
   delete page;
 }
 
@@ -497,7 +498,7 @@ void
 PageManager::purge_cache()
 {
   // in-memory-db: don't remove the pages or they would be lost
-  if (m_env->get_flags() & HAM_IN_MEMORY || !m_cache.is_full())
+  if (m_env->get_flags() & HAM_IN_MEMORY || !cache_is_full())
     return;
 
   // Purge as many pages as possible to get memory usage down to the
@@ -515,10 +516,9 @@ PageManager::purge_cache()
 }
 
 static bool
-db_close_callback(Page *page, Database *db, ham_u32_t flags)
+db_close_callback(Page *page, LocalEnvironment *env,
+        LocalDatabase *db, ham_u32_t flags)
 {
-  LocalEnvironment *env = page->get_env();
-
   if (page->get_db() == db && page->get_address() != 0) {
     env->get_page_manager()->flush_page(page);
 
@@ -537,14 +537,14 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 }
 
 void
-PageManager::close_database(Database *db)
+PageManager::close_database(LocalDatabase *db)
 {
   if (m_last_blob_page) {
     m_last_blob_page_id = m_last_blob_page->get_address();
     m_last_blob_page = 0;
   }
 
-  m_cache.visit(db_close_callback, db, 0);
+  m_cache.visit(db_close_callback, m_env, db, 0);
 }
 
 void

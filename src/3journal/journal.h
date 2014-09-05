@@ -64,8 +64,8 @@
  * already applied, and we know that all older changesets
  * have already been written successfully to the database file.
  *
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: basic
+ * @thread_safe: no
  */
 
 #ifndef HAM_JOURNAL_H
@@ -215,7 +215,6 @@ class Journal
     }
 
     // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
-    // TODO |env| parameter is not necessary
     void append_txn_begin(LocalTransaction *txn, const char *name,
                     ham_u64_t lsn);
 

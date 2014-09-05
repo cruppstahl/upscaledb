@@ -683,18 +683,18 @@ Journal::recover_changeset()
     if (page_header.address == file_size) {
       file_size += page_size;
 
-      page = new Page(m_env);
+      page = new Page(m_env->get_device());
       page->allocate(0);
     }
     else if (page_header.address > file_size) {
       file_size = page_header.address + page_size;
       m_env->get_device()->truncate(file_size);
 
-      page = new Page(m_env);
+      page = new Page(m_env->get_device());
       page->fetch(page_header.address);
     }
     else {
-      page = new Page(m_env);
+      page = new Page(m_env->get_device());
       page->fetch(page_header.address);
     }
 

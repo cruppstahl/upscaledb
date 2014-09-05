@@ -26,8 +26,8 @@
 
 namespace hamsterdb {
 
-Page::Page(LocalEnvironment *env, LocalDatabase *db)
-  : m_env(env), m_db(db), m_address(0), m_flags(0), m_dirty(false),
+Page::Page(Device *device, LocalDatabase *db)
+  : m_device(device), m_db(db), m_address(0), m_flags(0), m_dirty(false),
     m_cursor_list(0), m_node_proxy(0), m_data(0)
 {
   memset(&m_prev[0], 0, sizeof(m_prev));
@@ -36,24 +36,23 @@ Page::Page(LocalEnvironment *env, LocalDatabase *db)
 
 Page::~Page()
 {
+  ham_assert(m_cursor_list == 0);
+
   if (m_data != 0)
-    m_env->get_device()->free_page(this);
+    m_device->free_page(this);
 
   if (m_node_proxy) {
     delete m_node_proxy;
     m_node_proxy = 0;
   }
-
-  ham_assert(m_data == 0);
-  ham_assert(m_cursor_list == 0);
 }
 
 void
 Page::allocate(ham_u32_t type, ham_u32_t flags)
 {
-  m_env->get_device()->alloc_page(this, m_env->get_page_size());
+  m_device->alloc_page(this, m_device->get_page_size());
   if (flags & kInitializeWithZeroes)
-    memset(get_raw_payload(), 0, m_env->get_page_size());
+    memset(get_raw_payload(), 0, m_device->get_page_size());
   if (type)
     set_type(type);
 }
@@ -61,15 +60,15 @@ Page::allocate(ham_u32_t type, ham_u32_t flags)
 void
 Page::fetch(ham_u64_t address)
 {
+  m_device->read_page(this, address, m_device->get_page_size());
   set_address(address);
-  m_env->get_device()->read_page(this, m_env->get_page_size());
 }
 
 void
 Page::flush()
 {
   if (is_dirty()) {
-    m_env->get_device()->write_page(this);
+    m_device->write_page(this);
     set_dirty(false);
   }
 }

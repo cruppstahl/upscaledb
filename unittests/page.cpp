@@ -54,14 +54,14 @@ struct PageFixture {
 
   void newDeleteTest() {
     Page *page;
-    page = new Page((LocalEnvironment *)m_env);
+    page = new Page(((LocalEnvironment *)m_env)->get_device());
     REQUIRE(page);
     delete page;
   }
 
   void allocFreeTest() {
     Page *page;
-    page = new Page((LocalEnvironment *)m_env);
+    page = new Page(((LocalEnvironment *)m_env)->get_device());
     page->allocate(0, 1024);
     delete page;
   }
@@ -72,7 +72,7 @@ struct PageFixture {
     ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
 
     for (i = 0; i < 10; i++) {
-      page = new Page((LocalEnvironment *)m_env);
+      page = new Page(((LocalEnvironment *)m_env)->get_device());
       page->allocate(0, ps);
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
@@ -86,8 +86,8 @@ struct PageFixture {
     Page *page, *temp;
     ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
 
-    page = new Page((LocalEnvironment *)m_env);
-    temp = new Page((LocalEnvironment *)m_env);
+    page = new Page(((LocalEnvironment *)m_env)->get_device());
+    temp = new Page(((LocalEnvironment *)m_env)->get_device());
     page->allocate(0, ps);
     REQUIRE(page->get_address() == ps * 2);
 

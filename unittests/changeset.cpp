@@ -21,6 +21,7 @@
 #include "2page/page.h"
 #include "3changeset/changeset.h"
 #include "4db/db.h"
+#include "4env/env_local.h"
 
 using namespace hamsterdb;
 
@@ -48,7 +49,7 @@ TEST_CASE("Changeset/addPages",
   Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((LocalEnvironment *)f.m_env);
+    page[i] = new Page(((LocalEnvironment *)f.m_env)->get_device());
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
@@ -76,7 +77,7 @@ TEST_CASE("Changeset/getPages",
   Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((LocalEnvironment *)f.m_env);
+    page[i] = new Page(((LocalEnvironment *)f.m_env)->get_device());
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
@@ -97,7 +98,7 @@ TEST_CASE("Changeset/clear",
   Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((LocalEnvironment *)f.m_env);
+    page[i] = new Page(((LocalEnvironment *)f.m_env)->get_device());
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)

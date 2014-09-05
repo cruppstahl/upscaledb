@@ -77,7 +77,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* initialize the device if it does not yet exist */
   m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(this, flags, file_size_limit);
+  m_device = DeviceFactory::create(flags, page_size, file_size_limit);
   if (flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager = new LocalTransactionManager(this);
 
@@ -89,7 +89,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* allocate the header page */
   {
-    Page *page = new Page(this);
+    Page *page = new Page(this->get_device());
     page->allocate(Page::kTypeHeader, m_page_size);
     memset(page->get_data(), 0, m_page_size);
     page->set_type(Page::kTypeHeader);
@@ -131,9 +131,10 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 {
   ham_status_t st = 0;
 
-  /* initialize the device if it does not yet exist */
+  /* Initialize the device if it does not yet exist. The page size will
+   * be filled in later (at this point in time, it's still unknown) */
   m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(this, flags, file_size_limit);
+  m_device = DeviceFactory::create(flags, 0, file_size_limit);
 
   if (filename)
     m_filename = filename;
@@ -162,7 +163,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   {
     Page *page = 0;
     ham_u8_t hdrbuf[512];
-    Page fakepage(this);
+    Page fakepage(m_device);
 
     /*
      * in here, we're going to set up a faked headerpage for the
@@ -179,6 +180,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
     m_page_size = m_header->get_page_size();
+    m_device->set_page_size(m_page_size);
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -220,7 +222,7 @@ fail_with_fake_cleansing:
     }
 
     /* now read the "real" header page and store it in the Environment */
-    page = new Page(this);
+    page = new Page(this->get_device());
     page->fetch(0);
     m_header->set_header_page(page);
   }

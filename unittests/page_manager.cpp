@@ -129,7 +129,7 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv);
+    Page *page = new Page(lenv->get_device());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_flags(Page::kNpersNoHeader);
@@ -148,7 +148,7 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv);
+    Page *page = new Page(lenv->get_device());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_flags(Page::kNpersNoHeader);
@@ -168,7 +168,7 @@ struct PageManagerFixture {
     PPageData pers[20];
 
     for (int i = 0; i < 20; i++) {
-      page[i] = new Page(lenv);
+      page[i] = new Page(lenv->get_device());
       memset(&pers[i], 0, sizeof(pers[i]));
       page[i]->set_flags(Page::kNpersNoHeader);
       page[i]->set_address(i + 1);
@@ -201,7 +201,7 @@ struct PageManagerFixture {
     std::vector<Page *> v;
 
     for (unsigned int i = 0; i < 15; i++) {
-      Page *p = new Page(lenv);
+      Page *p = new Page(lenv->get_device());
       p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
       p->set_address(i + 1);
       p->set_data(&pers);
@@ -211,7 +211,7 @@ struct PageManagerFixture {
     }
 
     for (unsigned int i = 0; i < 5; i++) {
-      Page *p = new Page(lenv);
+      Page *p = new Page(lenv->get_device());
       p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
       p->set_address(i + 15 + 1);
       p->set_data(&pers);

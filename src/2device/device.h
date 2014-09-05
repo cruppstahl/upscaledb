@@ -38,13 +38,13 @@
 namespace hamsterdb {
 
 class Page;
-class LocalEnvironment;
 
 class Device {
   public:
     // Constructor
-    Device(LocalEnvironment *env, ham_u32_t flags, ham_u64_t file_size_limit)
-      : m_env(env), m_flags(flags), m_file_size_limit(file_size_limit) {
+    Device(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
+      : m_flags(flags), m_page_size(page_size),
+        m_file_size_limit(file_size_limit) {
     }
 
     // virtual destructor
@@ -57,6 +57,16 @@ class Device {
 
     // opens an existing device - called in ham_env_open
     virtual void open(const char *filename, ham_u32_t flags) = 0;
+
+    // sets the page size (used when opening the device)
+    void set_page_size(size_t page_size) {
+      m_page_size = page_size;
+    }
+
+    // returns the page size
+    size_t get_page_size() const {
+      return (m_page_size);
+    }
 
     // closes the device - called in ham_env_close
     virtual void close() = 0;
@@ -86,7 +96,7 @@ class Device {
     virtual void write(ham_u64_t offset, void *buffer, size_t len) = 0;
 
     // reads a page from the device; this function CAN use mmap
-    virtual void read_page(Page *page, size_t page_size) = 0;
+    virtual void read_page(Page *page, ham_u64_t address, size_t page_size) = 0;
 
     // writes a page to the device
     virtual void write_page(Page *page) = 0;
@@ -111,11 +121,11 @@ class Device {
     }
 
   protected:
-    // the environment which employs this device 
-    LocalEnvironment *m_env;
-
     // the device flags 
     ham_u32_t m_flags;
+
+    // the page size
+    size_t m_page_size;
 
     // the file size limit (in bytes)
     ham_u64_t m_file_size_limit;

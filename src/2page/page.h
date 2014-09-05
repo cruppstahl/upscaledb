@@ -15,8 +15,7 @@
  */
 
 /*
- * @exception_safe: no (no RAII; can destructor throw? fetch() can throw and
- *          leave *      state undefined)
+ * @exception_safe: strong
  * @thread_safe: no
  */
 
@@ -34,7 +33,6 @@ class Device;
 class BtreeCursor;
 class BtreeNodeProxy;
 class LocalDatabase;
-class LocalEnvironment;
 
 #include "1base/packstart.h"
 
@@ -153,17 +151,12 @@ class Page {
     };
 
     // Default constructor
-    Page(LocalEnvironment *env = 0, LocalDatabase *db = 0);
+    Page(Device *device, LocalDatabase *db = 0);
 
     // Destructor - releases allocated memory and resources, but neither
     // flushes dirty pages to disk nor moves them to the freelist!
     // Asserts that no cursors are attached.
     ~Page();
-
-    // Returns the Environment
-    LocalEnvironment *get_env() {
-      return (m_env);
-    }
 
     // Returns the database which manages this page; can be NULL if this
     // page belongs to the Environment (i.e. for freelist-pages)
@@ -359,8 +352,8 @@ class Page {
       m_next[which] = other;
     }
 
-    // the Environment handle
-    LocalEnvironment *m_env;
+    // the Device for allocating storage
+    Device *m_device;
 
     // the Database handle (can be NULL)
     LocalDatabase *m_db;
@@ -384,7 +377,7 @@ class Page {
     // the cached BtreeNodeProxy object
     BtreeNodeProxy *m_node_proxy;
 
-    // from here on everything will be written to disk
+    // the persistent data of this page
     PPageData *m_data;
 };
 

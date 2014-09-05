@@ -136,7 +136,7 @@ class PageManager {
     void reclaim_space();
 
     // Flushes all pages of a database
-    void close_database(Database *db);
+    void close_database(LocalDatabase *db);
 
     // Returns the cache's capacity
     ham_u64_t get_cache_capacity() const {
@@ -198,7 +198,8 @@ class PageManager {
 
     /* returns true if the cache is full */
     bool cache_is_full() const {
-      return (m_cache.is_full());
+      return (m_cache.get_allocated_elements() * m_env->get_page_size()
+              > m_cache.get_capacity());
     }
 
     /* if recovery is enabled then immediately write the modified blob */

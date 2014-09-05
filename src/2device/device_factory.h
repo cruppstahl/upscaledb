@@ -17,7 +17,7 @@
 /*
  * A factory for Device objects
  *
- * @exception_safe: no
+ * @exception_safe: strong
  * @thread_safe: yes
  */
 
@@ -38,12 +38,12 @@ namespace hamsterdb {
 
 struct DeviceFactory {
   // creates a new Device instance depending on the flags
-  static Device *create(LocalEnvironment *env, ham_u32_t flags,
+  static Device *create(ham_u32_t flags, size_t page_size,
                   ham_u64_t file_size_limit) {
     if (flags & HAM_IN_MEMORY)
-      return (new InMemoryDevice(env, flags, file_size_limit));
+      return (new InMemoryDevice(flags, page_size, file_size_limit));
     else
-      return (new DiskDevice(env, flags, file_size_limit));
+      return (new DiskDevice(flags, page_size, file_size_limit));
   }
 };
 

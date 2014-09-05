@@ -28,8 +28,6 @@
 #include "1mem/mem.h"
 #include "2device/device.h"
 #include "2page/page.h"
-#include "4db/db.h"
-#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -43,9 +41,9 @@ namespace hamsterdb {
 class InMemoryDevice : public Device {
   public:
     // constructor
-    InMemoryDevice(LocalEnvironment *env, ham_u32_t flags,
-                    ham_u64_t file_size_limit)
-      : Device(env, flags, file_size_limit), m_is_open(false), m_file_size(0) {
+    InMemoryDevice(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
+      : Device(flags, page_size, file_size_limit), m_is_open(false),
+        m_file_size(0) {
     }
 
     // Create a new device
@@ -111,7 +109,7 @@ class InMemoryDevice : public Device {
     }
 
     // reads a page from the device 
-    virtual void read_page(Page *page, size_t page_size) {
+    virtual void read_page(Page *page, ham_u64_t address, size_t page_size) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -155,8 +153,8 @@ class InMemoryDevice : public Device {
       Memory::release(page->get_data());
       page->set_data(0);
 
-      ham_assert(m_file_size >= m_env->get_page_size());
-      m_file_size -= m_env->get_page_size();
+      ham_assert(m_file_size >= m_page_size);
+      m_file_size -= m_page_size;
     }
 
     // releases a chunk of memory previously allocated with alloc()
