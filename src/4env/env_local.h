@@ -27,7 +27,9 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/scoped_ptr.h"
 #include "3changeset/changeset.h"
+#include "3journal/journal.h"
 #include "4env/env.h"
 #include "4env/env_header.h"
 
@@ -57,12 +59,12 @@ class LocalEnvironment : public Environment
 
     // Returns the Device object
     Device *get_device() {
-      return (m_device);
+      return (m_device.get());
     }
 
     // Returns the Environment's header object with the persistent configuration
     EnvironmentHeader *get_header() {
-      return (m_header);
+      return (m_header.get());
     }
 
     // Returns the current changeset (stores all modified pages of the current
@@ -73,22 +75,22 @@ class LocalEnvironment : public Environment
 
     // Returns the blob manager
     BlobManager *get_blob_manager() {
-      return (m_blob_manager);
+      return (m_blob_manager.get());
     }
 
     // Returns the PageManager instance
     PageManager *get_page_manager() {
-      return (m_page_manager);
+      return (m_page_manager.get());
     }
 
     // Returns the Journal
     Journal *get_journal() {
-      return (m_journal);
+      return (m_journal.get());
     }
 
     // Sets the Journal; only for testing!
     void test_set_journal(Journal *journal) {
-      m_journal = journal;
+      m_journal.reset(journal);
     }
 
     // Increments the lsn and returns the incremented value. If the journal
@@ -193,23 +195,23 @@ class LocalEnvironment : public Environment
     void recover(ham_u32_t flags);
 
     // The Environment's header page/configuration
-    EnvironmentHeader *m_header;
+    ScopedPtr<EnvironmentHeader> m_header;
 
     // The device instance (either a file or an in-memory-db)
-    Device *m_device;
+    ScopedPtr<Device> m_device;
 
     // The changeset - a list of all pages that were modified during
     // the current database operation
     Changeset m_changeset;
 
     // The BlobManager instance
-    BlobManager *m_blob_manager;
+    ScopedPtr<BlobManager> m_blob_manager;
 
     // The PageManager instance
-    PageManager *m_page_manager;
+    ScopedPtr<PageManager> m_page_manager;
 
     // The logical journal
-    Journal *m_journal;
+    ScopedPtr<Journal> m_journal;
 
     // The directory with the log file and journal files
     std::string m_log_directory;

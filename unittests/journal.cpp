@@ -103,19 +103,14 @@ struct JournalFixture {
     Journal *j = new Journal(m_lenv);
 
     REQUIRE_CATCH(j->create(), HAM_WOULD_BLOCK);
-    j->close();
-    delete (j);
+    delete j;
 
     /*
-     * make sure db->journal is already NULL, i.e. disconnected.
-     * Otherwise an BFC ASSERT for journal_close() will segfault
-     * the teardown() code, which will try to close the db->journal
-     * all over AGAIN!
+     * setting the journal to NULL calls close() and deletes the
+     * old journal
      */
     j = m_lenv->get_journal();
     m_lenv->test_set_journal(NULL);
-    j->close();
-    delete j;
 
     j = new Journal(m_lenv);
     j->create();
@@ -270,7 +265,6 @@ struct JournalFixture {
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
     j->open();
-    m_lenv->test_set_journal(j);
 
     /* verify that the insert entry was written correctly */
     Journal::Iterator iter;
@@ -310,9 +304,7 @@ struct JournalFixture {
               &key, &rec, HAM_PARTIAL, lsn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
-
     j->open();
-    m_lenv->test_set_journal(j);
 
     /* verify that the insert entry was written correctly */
     Journal::Iterator iter;
@@ -348,9 +340,7 @@ struct JournalFixture {
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
     j->close(true);
-
     j->open();
-    m_lenv->test_set_journal(j);
 
     /* verify that the erase entry was written correctly */
     Journal::Iterator iter;
@@ -392,7 +382,6 @@ struct JournalFixture {
     j->close();
     j->open();
     REQUIRE((ham_u64_t)3 == j->test_get_lsn());
-    m_lenv->test_set_journal(j);
   }
 
   void iterateOverEmptyLogTest() {
@@ -415,10 +404,8 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     j->append_txn_begin((LocalTransaction *)txn, 0, j->test_get_lsn());
     j->close(true);
-
     j->open();
     REQUIRE(2ull == j->test_get_lsn());
-    m_lenv->test_set_journal(j);
 
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));

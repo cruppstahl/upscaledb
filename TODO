@@ -145,7 +145,7 @@ x refactoring: improve layering
     x improve layer separation of page (remove dependency to env)
     x can we move cache to layer 2 or 3?
 
-o refactoring: clean up the close() code of the LocalEnvironment (and also
+x refactoring: clean up the close() code of the LocalEnvironment (and also
     of the LocalDatabase). distinguish two cases:
     - a close() called by ham_env_close/ham_db_close
         performs logic that can fail; must not be exception safe
@@ -157,7 +157,7 @@ o refactoring: clean up the close() code of the LocalEnvironment (and also
         (m_txn_index, m_btree_index)
         x then make sure that the tests run again
     x ... and for the RemoteEnvironment (if required) - not required
-    o ... and for the LocalEnvironment
+    x ... and for the LocalEnvironment
         (m_header, m_blob_manager, m_page_manager, m_journal)
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to

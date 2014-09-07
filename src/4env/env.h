@@ -32,6 +32,8 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/mutex.h"
+#include "1base/scoped_ptr.h"
+#include "4txn/txn.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -48,7 +50,6 @@ namespace hamsterdb {
 
 class Database;
 class Transaction;
-class TransactionManager;
 
 //
 // The Environment is the "root" of all hamsterdb objects. It's a container
@@ -62,7 +63,7 @@ class Environment
 
     // Constructor
     Environment()
-      : m_file_mode(0644), m_txn_manager(0), m_context(0), m_flags(0) {
+      : m_file_mode(0644), m_context(0), m_flags(0) {
     }
 
     // Virtual destructor can be overwritten in derived classes
@@ -159,7 +160,7 @@ class Environment
 
     // The transaction manager
     TransactionManager *get_txn_manager() {
-      return (m_txn_manager);
+      return (m_txn_manager.get());
     }
 
   protected:
@@ -173,7 +174,7 @@ class Environment
     ham_u32_t m_file_mode;
 
     // The Transaction manager; can be 0
-    TransactionManager *m_txn_manager;
+    ScopedPtr<TransactionManager> m_txn_manager;
 
   private:
     // The user-provided context data

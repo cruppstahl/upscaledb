@@ -50,15 +50,13 @@ LocalEnvironment::get_btree_descriptor(int i)
 }
 
 LocalEnvironment::LocalEnvironment()
-  : Environment(), m_header(0), m_device(0), m_changeset(this),
-    m_blob_manager(0), m_page_manager(0), m_journal(0), 
-    m_encryption_enabled(false), m_page_size(0)
+  : Environment(), m_changeset(this), m_encryption_enabled(false),
+    m_page_size(0)
 {
 }
 
 LocalEnvironment::~LocalEnvironment()
 {
-  (void)close(HAM_AUTO_CLEANUP);
 }
 
 ham_status_t
@@ -76,16 +74,16 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   m_page_size = page_size;
 
   /* initialize the device if it does not yet exist */
-  m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(flags, page_size, file_size_limit);
+  m_blob_manager.reset(BlobManagerFactory::create(this, flags));
+  m_device.reset(DeviceFactory::create(flags, page_size, file_size_limit));
   if (flags & HAM_ENABLE_TRANSACTIONS)
-    m_txn_manager = new LocalTransactionManager(this);
+    m_txn_manager.reset(new LocalTransactionManager(this));
 
   /* create the file */
   m_device->create(filename, flags, mode);
 
   /* create the configuration object */
-  m_header = new EnvironmentHeader(m_device);
+  m_header.reset(new EnvironmentHeader(m_device.get()));
 
   /* allocate the header page */
   {
@@ -106,14 +104,14 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager = new PageManager(this,
-                        flags & HAM_CACHE_UNLIMITED
-                            ? 0xffffffffffffffffull
-                            : cache_size);
+  m_page_manager.reset(new PageManager(this,
+                          flags & HAM_CACHE_UNLIMITED
+                              ? 0xffffffffffffffffull
+                              : cache_size));
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
-    m_journal = new Journal(this);
+    m_journal.reset(new Journal(this));
     m_journal->create();
   }
 
@@ -133,8 +131,8 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 
   /* Initialize the device if it does not yet exist. The page size will
    * be filled in later (at this point in time, it's still unknown) */
-  m_blob_manager = BlobManagerFactory::create(this, flags);
-  m_device = DeviceFactory::create(flags, 0, file_size_limit);
+  m_blob_manager.reset(BlobManagerFactory::create(this, flags));
+  m_device.reset(DeviceFactory::create(flags, 0, file_size_limit));
 
   if (filename)
     m_filename = filename;
@@ -144,10 +142,10 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   m_device->open(filename, flags);
 
   if (flags & HAM_ENABLE_TRANSACTIONS)
-    m_txn_manager = new LocalTransactionManager(this);
+    m_txn_manager.reset(new LocalTransactionManager(this));
 
   /* create the configuration object */
-  m_header = new EnvironmentHeader(m_device);
+  m_header.reset(new EnvironmentHeader(m_device.get()));
 
   /*
    * read the database header
@@ -163,7 +161,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   {
     Page *page = 0;
     ham_u8_t hdrbuf[512];
-    Page fakepage(m_device);
+    Page fakepage(m_device.get());
 
     /*
      * in here, we're going to set up a faked headerpage for the
@@ -216,8 +214,6 @@ fail_with_fake_cleansing:
     if (st) {
       if (m_device->is_open())
         m_device->close();
-      delete m_device;
-      m_device = 0;
       return (st);
     }
 
@@ -228,10 +224,10 @@ fail_with_fake_cleansing:
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager = new PageManager(this,
-                        flags & HAM_CACHE_UNLIMITED
-                            ? 0xffffffffffffffffull
-                            : cache_size);
+  m_page_manager.reset(new PageManager(this,
+                          flags & HAM_CACHE_UNLIMITED
+                              ? 0xffffffffffffffffull
+                              : cache_size));
 
   /*
    * open the logfile and check if we need recovery. first open the
@@ -444,19 +440,6 @@ LocalEnvironment::close(ham_u32_t flags)
     m_header->get_header_page()->flush();
   }
 
-  /* now delete the TransactionManager (it's required during
-   * PageManager::close(), therefore it cannot be deleted earlier) */
-  if (m_txn_manager) {
-    delete m_txn_manager;
-    m_txn_manager = 0;
-  }
-
-  /* close the page manager (includes cache and freelist) */
-  if (m_page_manager) {
-    delete m_page_manager;
-    m_page_manager = 0;
-  }
-
   /* close the header page */
   if (m_header && m_header->get_header_page()) {
     Page *page = m_header->get_header_page();
@@ -474,26 +457,11 @@ LocalEnvironment::close(ham_u32_t flags)
         device->flush();
       device->close();
     }
-    delete device;
-    m_device = 0;
   }
 
   /* close the log and the journal */
-  if (m_journal) {
+  if (m_journal)
     m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
-    delete m_journal;
-    m_journal = 0;
-  }
-
-  if (m_blob_manager) {
-    delete m_blob_manager;
-    m_blob_manager = 0;
-  }
-
-  if (m_header != 0) {
-    delete m_header;
-    m_header = 0;
-  }
 
   return (0);
 }
@@ -796,7 +764,7 @@ void
 LocalEnvironment::recover(ham_u32_t flags)
 {
   ham_status_t st = 0;
-  m_journal = new Journal(this);
+  m_journal.reset(new Journal(this));
 
   ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
 
@@ -823,8 +791,6 @@ bail:
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
     m_journal->close(true);
-    delete m_journal;
-    m_journal = 0;
     throw Exception(st);
   }
 
@@ -854,7 +820,7 @@ LocalEnvironment::get_incremented_lsn()
   Journal *j = get_journal();
   if (j)
     return (j->get_incremented_lsn());
-  LocalTransactionManager *ltm = (LocalTransactionManager *)m_txn_manager;
+  LocalTransactionManager *ltm = (LocalTransactionManager *)get_txn_manager();
   return (ltm->get_incremented_lsn());
 }
 
