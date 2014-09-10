@@ -37,14 +37,6 @@ RemoteEnvironment::RemoteEnvironment()
 {
 }
 
-RemoteEnvironment::~RemoteEnvironment()
-{
-  if (m_txn_manager) {
-    delete m_txn_manager;
-    m_txn_manager = 0;
-  }
-}
-
 Protocol *
 RemoteEnvironment::perform_request(Protocol *request)
 {
@@ -153,7 +145,7 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
     m_remote_handle = reply->connect_reply().env_handle();
 
     if (get_flags() & HAM_ENABLE_TRANSACTIONS)
-      m_txn_manager = new RemoteTransactionManager(this);
+      m_txn_manager.reset(new RemoteTransactionManager(this));
   }
 
   return (st);

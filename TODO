@@ -160,6 +160,10 @@ x refactoring: clean up the close() code of the LocalEnvironment (and also
     x ... and for the LocalEnvironment
         (m_header, m_blob_manager, m_page_manager, m_journal)
 
+o see mail from Michael Möllney: journal files are not truncated if
+    temporary transactions are used
+    ./ham_bench --use-transactions=tmp --key=uint64 --distribution=ascending --recsize=10241024
+
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
     o 2config/env_config.h: a struct with the run-time configuration of
@@ -442,6 +446,11 @@ o delta updates managed in the BtreeNode
         o etc
 
 . look into spark, mongodb and mariadb integration
+    -> like MapReduce, Spark requires an InputFormat class; templates are 
+        available here:
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
+
     -> would be an interesting market with requirements for column store
         storage
     -> how does the integration look like?

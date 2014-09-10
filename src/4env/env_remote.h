@@ -29,7 +29,7 @@
 #include "ham/hamsterdb.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1os/os.h"
+#include "1os/socket.h"
 #include "1base/byte_array.h"
 #include "2protobuf/protocol.h"
 #include "2protoserde/messages.h"
@@ -49,9 +49,6 @@ class RemoteEnvironment : public Environment
   public:
     // Constructor
     RemoteEnvironment();
-
-    // Destructor
-    virtual ~RemoteEnvironment();
 
     // Sets the timeout (in seconds)
     void set_timeout(ham_u32_t seconds) {
