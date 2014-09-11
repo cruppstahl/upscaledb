@@ -92,7 +92,7 @@ class Journal
 {
     enum {
       // switch log file after |kSwitchTxnThreshold| transactions
-      kSwitchTxnThreshold = 16,
+      kSwitchTxnThreshold = 32,
 
       // flush buffers if this limit is exceeded
       kBufferLimit = 1024 * 1024, // 1 mb
@@ -281,9 +281,9 @@ class Journal
     // Recovers the logical journal
     void recover_journal(ham_u64_t start_lsn);
 
-    // Switches the log file if necessary; sets the new log descriptor in the
+    // Switches the log file if necessary; returns the new log descriptor in the
     // transaction
-    void switch_files_maybe(LocalTransaction *txn);
+    int switch_files_maybe();
 
     // returns the path of the journal file
     std::string get_path(int i);

@@ -152,25 +152,26 @@ Journal::open()
   }
 }
 
-void
-Journal::switch_files_maybe(LocalTransaction *txn)
+int
+Journal::switch_files_maybe()
 {
-  int cur = m_current_fd;
-  int other = cur ? 0 : 1;
+  int other = m_current_fd ? 0 : 1;
 
   // determine the journal file which is used for this transaction 
   // if the "current" file is not yet full, continue to write to this file
-  if (m_open_txn[cur] + m_closed_txn[cur] < m_threshold) {
-    txn->set_log_desc(cur);
-  }
-  else if (m_open_txn[other] == 0) {
-    // Otherwise, if the other file does no longer have open Transactions,
-    // delete the other file and use the other file as the current file
+  if (m_open_txn[m_current_fd] + m_closed_txn[m_current_fd] < m_threshold)
+    return (m_current_fd);
+
+  // If the other file does no longer have open Transactions then
+  // delete the other file and use the other file as the current file
+  if (m_open_txn[other] == 0) {
     clear_file(other);
-    cur = other;
-    m_current_fd = cur;
-    txn->set_log_desc(cur);
+    m_current_fd = other;
+    // fall through
   }
+
+  // Otherwise just continue using the current file
+  return (m_current_fd);
 }
 
 void
@@ -193,7 +194,7 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
   trailer.type = entry.type;
   trailer.full_size = sizeof(entry) + entry.followup_size;
 
-  switch_files_maybe(txn);
+  txn->set_log_desc(switch_files_maybe());
 
   int cur = txn->get_log_desc();
 
@@ -292,7 +293,8 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   int idx;
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {
     entry.txn_id = 0;
-    idx = m_current_fd;
+    idx = switch_files_maybe();
+    m_closed_txn[idx]++;
   }
   else {
     entry.txn_id = txn->get_id();
@@ -402,7 +404,8 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   int idx;
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {
     entry.txn_id = 0;
-    idx = m_current_fd;
+    idx = switch_files_maybe();
+    m_closed_txn[idx]++;
   }
   else {
     entry.txn_id = txn->get_id();
@@ -474,6 +477,11 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
 
   // and flush the file
   flush_buffer(m_current_fd, m_env->get_flags() & HAM_ENABLE_FSYNC);
+
+  // if recovery is enabled (w/o transactions) then simulate a "commit" to
+  // make sure that the log files are switched properly
+  m_closed_txn[m_current_fd]++;
+  (void)switch_files_maybe();
 }
 
 ham_u32_t
