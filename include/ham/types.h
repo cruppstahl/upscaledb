@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef HAM_TYPES_H__
-#define HAM_TYPES_H__
+#ifndef HAM_TYPES_H
+#define HAM_TYPES_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -158,4 +158,4 @@ typedef int                ham_status_t;
 } // extern "C"
 #endif
 
-#endif /* HAM_TYPES_H__ */
+#endif /* HAM_TYPES_H */

@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef HAM_MESSAGES_H__
-#define HAM_MESSAGES_H__
+#ifndef HAM_MESSAGES_H
+#define HAM_MESSAGES_H
 
 #include <ham/hamsterdb.h>
 #include <assert.h>
@@ -1850,5 +1850,5 @@ struct SerializedWrapper {
 
 
 } // namespace hamsterdb
-#endif // HAM_MESSAGES_H__
+#endif // HAM_MESSAGES_H
 

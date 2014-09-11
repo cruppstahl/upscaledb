@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GRAPH_H__
-#define GRAPH_H__
+#ifndef GRAPH_H
+#define GRAPH_H
 
 #include <string>
 #include <fstream>
@@ -164,5 +164,5 @@ class Graph
     bool m_has_lat_commits;
 };
 
-#endif /* GRAPH_H__ */
+#endif /* GRAPH_H */
 

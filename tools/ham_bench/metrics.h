@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef METRICS_H__
-#define METRICS_H__
+#ifndef METRICS_H
+#define METRICS_H
 
 #include <ham/hamsterdb_int.h>
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint.h
@@ -46,4 +46,4 @@ struct Metrics {
   ham_env_metrics_t hamster_metrics;
 };
 
-#endif /* METRICS_H__ */
+#endif /* METRICS_H */

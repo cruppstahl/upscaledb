@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DATASOURCE_BINARY_H__
-#define DATASOURCE_BINARY_H__
+#ifndef DATASOURCE_BINARY_H
+#define DATASOURCE_BINARY_H
 
 #include <string>
 #include <boost/limits.hpp>
@@ -253,5 +253,5 @@ class BinaryZipfianDatasource : public Datasource
     unsigned int m_seed;
 };
 
-#endif /* DATASOURCE_BINARY_H__ */
+#endif /* DATASOURCE_BINARY_H */
 

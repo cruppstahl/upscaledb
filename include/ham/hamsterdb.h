@@ -104,8 +104,8 @@
  * Have fun!
  */
 
-#ifndef HAM_HAMSTERDB_H__
-#define HAM_HAMSTERDB_H__
+#ifndef HAM_HAMSTERDB_H
+#define HAM_HAMSTERDB_H
 
 #include <ham/types.h>
 
@@ -2514,4 +2514,4 @@ ham_cursor_close(ham_cursor_t *cursor);
 } // extern "C"
 #endif
 
-#endif /* HAM_HAMSTERDB_H__ */
+#endif /* HAM_HAMSTERDB_H */

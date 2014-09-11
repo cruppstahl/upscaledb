@@ -23,8 +23,8 @@
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */
 
-#ifndef HAM_HAMSTERDB_OLA_H__
-#define HAM_HAMSTERDB_OLA_H__
+#ifndef HAM_HAMSTERDB_OLA_H
+#define HAM_HAMSTERDB_OLA_H
 
 #include <ham/hamsterdb.h>
 
@@ -241,4 +241,4 @@ hola_sum_if(ham_db_t *db, ham_txn_t *txn, hola_bool_predicate_t *pred,
 } // extern "C"
 #endif
 
-#endif /* HAM_HAMSTERDB_OLA_H__ */
+#endif /* HAM_HAMSTERDB_OLA_H */

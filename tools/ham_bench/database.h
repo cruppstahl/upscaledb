@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DATABASE_H__
-#define DATABASE_H__
+#ifndef DATABASE_H
+#define DATABASE_H
 
 #include <boost/cstdint.hpp>
 using namespace boost;
@@ -136,4 +136,4 @@ class Database
     Configuration *m_config;
 };
 
-#endif /* DATABASE_H__ */
+#endif /* DATABASE_H */

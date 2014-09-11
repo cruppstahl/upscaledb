@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef HAM_HAMSTERDB_HPP__
-#define HAM_HAMSTERDB_HPP__
+#ifndef HAM_HAMSTERDB_HPP
+#define HAM_HAMSTERDB_HPP
 
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
@@ -708,4 +708,4 @@ class env {
  * @}
  */
 
-#endif // HAMSTERDB_HPP__
+#endif // HAMSTERDB_HPP

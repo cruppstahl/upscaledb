@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DATASOURCE_STRING_H__
-#define DATASOURCE_STRING_H__
+#ifndef DATASOURCE_STRING_H
+#define DATASOURCE_STRING_H
 
 #include <string>
 #include <fstream>
@@ -231,5 +231,5 @@ class StringZipfianDatasource : public Datasource
     long m_seed;
 };
 
-#endif /* DATASOURCE_STRING_H__ */
+#endif /* DATASOURCE_STRING_H */
 

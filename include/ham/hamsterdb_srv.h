@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef HAM_HAMSTERDB_SRV_H__
-#define HAM_HAMSTERDB_SRV_H__
+#ifndef HAM_HAMSTERDB_SRV_H
+#define HAM_HAMSTERDB_SRV_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,4 +115,4 @@ ham_srv_close(ham_srv_t *srv);
 } // extern "C"
 #endif
 
-#endif /* HAM_HAMSTERDB_SRV_H__ */
+#endif /* HAM_HAMSTERDB_SRV_H */

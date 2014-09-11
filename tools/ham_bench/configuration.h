@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONFIGURATION_H__
-#define CONFIGURATION_H__
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
 
 #include <string>
 #include <cstdio>
@@ -286,4 +286,4 @@ struct Configuration
   bool record_number;
 };
 
-#endif /* CONFIGURATION_H__ */
+#endif /* CONFIGURATION_H */

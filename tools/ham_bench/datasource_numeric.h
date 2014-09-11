@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DATASOURCE_NUMERIC_H__
-#define DATASOURCE_NUMERIC_H__
+#ifndef DATASOURCE_NUMERIC_H
+#define DATASOURCE_NUMERIC_H
 
 #include <limits>
 #include <boost/random.hpp>
@@ -179,5 +179,5 @@ class NumericZipfianDatasource : public Datasource
     long m_seed;
 };
 
-#endif /* DATASOURCE_NUMERIC_H__ */
+#endif /* DATASOURCE_NUMERIC_H */
 

@@ -99,8 +99,8 @@
  *
  */
 
-#ifndef GETOPTS_H__
-#define GETOPTS_H__
+#ifndef GETOPTS_H
+#define GETOPTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -217,4 +217,4 @@ getopts(option_t *options, char **param);
 } // extern "C"
 #endif
 
-#endif /* GETOPTS_H__ */
+#endif /* GETOPTS_H */

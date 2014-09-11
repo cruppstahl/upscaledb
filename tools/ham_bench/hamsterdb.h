@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef HAMSTERDB_H__
-#define HAMSTERDB_H__
+#ifndef HAMSTERDB_H
+#define HAMSTERDB_H
 
 #include <ham/hamsterdb_int.h>
 #ifdef HAM_ENABLE_REMOTE
@@ -101,4 +101,4 @@ class HamsterDatabase : public Database
     ham_txn_t *m_txn;
 };
 
-#endif /* HAMSTERDB_H__ */
+#endif /* HAMSTERDB_H */

@@ -25,8 +25,8 @@
  *
  */
 
-#ifndef HAM_HAMSTERDB_INT_H__
-#define HAM_HAMSTERDB_INT_H__
+#ifndef HAM_HAMSTERDB_INT_H
+#define HAM_HAMSTERDB_INT_H
 
 #include <ham/hamsterdb.h>
 
@@ -257,4 +257,4 @@ ham_is_pro_evaluation();
 } // extern "C"
 #endif
 
-#endif /* HAM_HAMSTERDB_INT_H__ */
+#endif /* HAM_HAMSTERDB_INT_H */

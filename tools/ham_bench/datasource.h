@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef DATASOURCE_H__
-#define DATASOURCE_H__
+#ifndef DATASOURCE_H
+#define DATASOURCE_H
 
 #include <vector>
 
@@ -37,5 +37,5 @@ class Datasource
     virtual void get_next(std::vector<uint8_t> &vec) = 0;
 };
 
-#endif /* DATASOURCE_H__ */
+#endif /* DATASOURCE_H */
 

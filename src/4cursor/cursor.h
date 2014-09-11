@@ -77,8 +77,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_CURSORS_H__
-#define HAM_CURSORS_H__
+#ifndef HAM_CURSORS_H
+#define HAM_CURSORS_H
 
 #include "0root/root.h"
 
@@ -556,4 +556,4 @@ class Cursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_CURSORS_H__ */
+#endif /* HAM_CURSORS_H */
