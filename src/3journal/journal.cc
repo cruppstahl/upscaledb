@@ -131,8 +131,8 @@ Journal::open()
       m_files[i].pread(size - sizeof(PJournalTrailer), &trailer,
                       sizeof(trailer));
 
-      // Verify the trailer magic; if it's invalid then skip this file
-      // TODO fallback and fetch lsn from the beginning of the file??
+      // Verify the trailer magic; if it's invalid then skip this file for
+      // now. It will be recovered later, though.
       if (trailer.magic != kTrailerMagic) {
         ham_log(("Changeset magic is invalid, skipping"));
         continue;
@@ -498,21 +498,27 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   }
 
   // now try to read the next entry
-  m_files[iter->fdidx].pread(iter->offset, entry, sizeof(*entry));
+  try {
+    m_files[iter->fdidx].pread(iter->offset, entry, sizeof(*entry));
 
-  iter->offset += sizeof(*entry);
+    iter->offset += sizeof(*entry);
 
-  // read auxiliary data if it's available
-  if (entry->followup_size) {
-    auxbuffer->resize((ham_u32_t)entry->followup_size);
+    // read auxiliary data if it's available
+    if (entry->followup_size) {
+      auxbuffer->resize((ham_u32_t)entry->followup_size);
 
-    m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
-                    entry->followup_size);
-    iter->offset += entry->followup_size;
+      m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
+                      entry->followup_size);
+      iter->offset += entry->followup_size;
+    }
+
+    // skip the trailer
+    iter->offset += sizeof(PJournalTrailer);
   }
-
-  // skip the trailer
-  iter->offset += sizeof(PJournalTrailer);
+  catch (Exception &ex) {
+    ham_trace(("failed to read journal entry, aborting recovery"));
+    entry->lsn = 0; // this triggers the end of recovery
+  }
 }
 
 void

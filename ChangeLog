@@ -1,6 +1,9 @@
 Sep 11, 2014 - chris ---------------------------------------------------
+o issue #39: recovery can fail with IO_ERROR if journal file is incomplete;
+	fixed (thanks, Michael Moellney)
+
 o issue #38: temporary transactions and recovery (w/o transactions)
-	created huge logfiles; fixed
+	created huge logfiles; fixed (thanks, Michael Moellney)
 
 Sep 10, 2014 - chris ---------------------------------------------------
 o issue #34: some names violated reserved identifiers, fixed (thanks,

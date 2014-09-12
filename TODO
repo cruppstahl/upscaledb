@@ -162,7 +162,13 @@ x refactoring: clean up the close() code of the LocalEnvironment (and also
 
 o see mail from Michael Möllney: journal files are not truncated if
     temporary transactions are used
-    ./ham_bench --use-transactions=tmp --key=uint64 --distribution=ascending --recsize=10241024
+    ./ham_bench --use-transactions=1 --key=uint64 --distribution=ascending --recsize=10241024
+    x fix the bug
+    o investigate why this was not discovered with the recovery.pl script
+        o add larger records
+        o check error inducer when flushing the changeset, not when
+            filling it! this is critical. right now some of the INDUCE
+            invocations are bogus!
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc

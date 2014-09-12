@@ -9,6 +9,36 @@ sub check {
   }
 }
 
+sub big_records_test {
+  $cmprsn = shift;
+  for ($i = 0; $i <= 7; $i++) {
+    unlink("recovery.db");
+    unlink("recovery.db.jrn0");
+    unlink("recovery.db.jrn1");
+
+    print "===========================================================\n";
+    print "inserting $max keys...\n";
+    for ($k = 0; $k < $max; $k++) {
+      #`cp recovery.db rec-$k.db`;
+      #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
+      #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery insert 64 32768 $k 0 $cmprsn $i"));
+      check(system("./recovery recover $cmprsn"));
+      check(system("./recovery verify 64 32768 $k 0 $cmprsn 1"));
+    }
+
+    print "erasing $max keys...\n";
+    for ($k = $max - 1; $k >= 0; $k--) {
+      #`cp recovery.db rec-$k.db`;
+      #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
+      #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
+      check(system("./recovery erase 64 $k 0 $cmprsn $i"));
+      check(system("./recovery recover $cmprsn"));
+      check(system("./recovery verify 64 32768 $k 0 $cmprsn 0"));
+    }
+  }
+}
+
 sub simple_test {
   $cmprsn = shift;
   for ($i = 0; $i <= 7; $i++) {
@@ -124,6 +154,9 @@ sub extended_duplicate_test {
     }
   }
 }
+
+print "----------------------------\nbig_records_test\n";
+big_records_test(0);
 
 print "----------------------------\nsimple_test\n";
 simple_test(0);
