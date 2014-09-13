@@ -395,10 +395,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_visit.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_erase.cc"
 			>
 		</File>
@@ -448,6 +444,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_stats.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_visit.cc"
 			>
 		</File>
 		<File
@@ -575,19 +575,15 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\globals.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\globals.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\hamsterdb.cc"
+			RelativePath="..\..\src\globals.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\hola.cc"
+			RelativePath="..\..\src\hamsterdb.cc"
 			>
 		</File>
 		<File
@@ -599,11 +595,15 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\include\ham\hamsterdb_ola.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\include\ham\hamsterdb_srv.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\include\ham\hamsterdb_ola.h"
+			RelativePath="..\..\src\hola.cc"
 			>
 		</File>
 		<File
@@ -633,6 +633,7 @@
 		<File
 			RelativePath="..\..\3rdparty\murmurhash3\MurmurHash3.h"
 			>
+		</File>
 		<File
 			RelativePath="..\..\src\mem.cc"
 			>

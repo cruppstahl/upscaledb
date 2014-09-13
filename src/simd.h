@@ -22,6 +22,7 @@
 //#  include <xmmintrin.h>
 //#  include <smmintrin.h>
 #  include <intrin.h>
+#  include <windows.h>
 ham_u32_t __inline ctz(ham_u32_t value)
 {
   DWORD trailing_zero = 0;
@@ -72,42 +73,42 @@ linear_search(T *data, int start, int count, T key)
 }
 
 template<typename T>
-int
+inline int
 linear_search_sse(T *data, int start, int count, T key)
 {
   return (linear_search(data, start, count, key));
 }
 
 template<typename T>
-static int
+inline int
 get_sse_threshold()
 {
   return (16);
 }
 
 template<>
-int
+inline int
 get_sse_threshold<ham_u32_t>()
 {
   return (16);
 }
 
 template<>
-int
+inline int
 get_sse_threshold<float>()
 {
   return (16);
 }
 
 template<>
-int
+inline int
 get_sse_threshold<ham_u64_t>()
 {
   return (4);
 }
 
 template<>
-int
+inline int
 get_sse_threshold<double>()
 {
   return (4);

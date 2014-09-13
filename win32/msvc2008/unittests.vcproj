@@ -348,10 +348,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\bitmap.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\blob_manager.cpp"
 			>
 		</File>
@@ -421,10 +417,6 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\error.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\unittests\utils.h"
 			>
 		</File>
 		<File
@@ -621,6 +613,10 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\txn_cursor.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\utils.h"
 			>
 		</File>
 	</Files>
