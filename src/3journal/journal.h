@@ -78,8 +78,9 @@
 
 #include "ham/hamsterdb_int.h" // for metrics
 
-#include "1os/file.h"
 #include "1base/byte_array.h"
+#include "1os/file.h"
+#include "1errorinducer/errorinducer.h"
 #include "3journal/journal_entries.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -334,6 +335,14 @@ class Journal
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
       if (m_buffer[idx].get_size() > 0) {
+        // error inducer? then write only a part of the buffer and return
+        if (ErrorInducer::is_active()
+              && ErrorInducer::get_instance()->induce(ErrorInducer::kChangesetFlush)) {
+          m_files[idx].write(m_buffer[idx].get_ptr(),
+                  m_buffer[idx].get_size() - 5);
+          throw Exception(HAM_INTERNAL_ERROR);
+        }
+
         m_files[idx].write(m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
         m_count_bytes_flushed += m_buffer[idx].get_size();
 

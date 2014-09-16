@@ -15,6 +15,7 @@
  */
 
 // Always verify that a file of level N does not include headers > N!
+#include "1errorinducer/errorinducer.h"
 #include "2device/device.h"
 #include "2page/page.h"
 #include "3changeset/changeset.h"
@@ -26,14 +27,6 @@
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
 #endif
-
-#define INDUCE(id)                                                  \
-  while (m_inducer) {                                               \
-    ham_status_t st = m_inducer->induce(id);                        \
-    if (st)                                                         \
-      throw Exception(st);                                          \
-    break;                                                          \
-  }
 
 namespace hamsterdb {
 
@@ -91,7 +84,7 @@ Changeset::flush(ham_u64_t lsn)
   if (!p)
     return;
 
-  INDUCE(ErrorInducer::kChangesetFlush);
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   m_blobs_size = 0;
   m_page_manager_size = 0;
@@ -134,17 +127,12 @@ Changeset::flush(ham_u64_t lsn)
     }
     page_count++;
     p = n;
-
-    INDUCE(ErrorInducer::kChangesetFlush);
   }
 
   if (page_count == 0) {
-    INDUCE(ErrorInducer::kChangesetFlush);
     clear();
     return;
   }
-
-  INDUCE(ErrorInducer::kChangesetFlush);
 
   // If there's more than one index operation then the operation must
   // be atomic and therefore logged.
@@ -168,9 +156,9 @@ Changeset::flush(ham_u64_t lsn)
                     lsn);
   }
 
-  p = m_head;
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  INDUCE(ErrorInducer::kChangesetFlush);
+  p = m_head;
 
   // now flush all modified pages to disk
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
@@ -188,12 +176,14 @@ Changeset::flush(ham_u64_t lsn)
     m_env->get_page_manager()->flush_page(p);
     p = p->get_next(Page::kListChangeset);
 
-    INDUCE(ErrorInducer::kChangesetFlush);
+    HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
   }
 
   /* flush the file handle (if required) */
   if (m_env->get_flags() & HAM_ENABLE_FSYNC)
     m_env->get_device()->flush();
+
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   /* done - we can now clear the changeset */
   clear();

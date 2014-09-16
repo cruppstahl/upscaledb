@@ -39,14 +39,6 @@
 #  error "root.h was not included"
 #endif
 
-#define INDUCE(id)                                                  \
-  while (srv->m_inducer) {                                          \
-    ham_status_t st = srv->m_inducer->induce(id);                   \
-    if (st)                                                         \
-      return;                                                       \
-    break;                                                          \
-  }
-
 namespace hamsterdb {
 
 static void
@@ -109,7 +101,7 @@ handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ham_assert(request != 0);
   Environment *env = srv->open_envs[request->connect_request().path()];
 
-  INDUCE(ErrorInducer::kServerConnect);
+  HAM_INDUCE_ERROR(ErrorInducer::kServerConnect);
 
   Protocol reply(Protocol::CONNECT_REPLY);
   if (!env) {

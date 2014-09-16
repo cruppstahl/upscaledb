@@ -32,11 +32,6 @@ using namespace hamsterdb;
 
 #define SERVER_URL "ham://localhost:8989/test.db"
 
-namespace {
-extern void
-test_hamserver_set_inducer(ham_srv_t *hsrv, ErrorInducer *ei);
-}
-
 struct RemoteFixture {
   ham_env_t *m_env;
   ham_db_t *m_db;
@@ -1141,10 +1136,9 @@ struct RemoteFixture {
       { 0,0 }
     };
 
-    ErrorInducer *ei = new ErrorInducer();
+    ErrorInducer::activate();
+    ErrorInducer *ei = ErrorInducer::get_instance();
     ei->add(ErrorInducer::kServerConnect, 1);
-    ServerContext *sc = (ServerContext *)m_srv;
-    sc->m_inducer = ei;
 
     REQUIRE(HAM_IO_ERROR == ham_env_create(&env,
                 SERVER_URL, 0, 0664, &params[0]));

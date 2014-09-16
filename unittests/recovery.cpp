@@ -147,9 +147,11 @@ insert(int argc, char **argv) {
     exit(-1);
   }
 
-  ErrorInducer *ei = new ErrorInducer();
-  ((LocalEnvironment *)env)->get_changeset().m_inducer = ei;
-  ei->add(ErrorInducer::kChangesetFlush, inducer);
+  if (inducer) {
+    ErrorInducer::activate();
+    ErrorInducer *ei = ErrorInducer::get_instance();
+    ei->add(ErrorInducer::kChangesetFlush, inducer);
+  }
 
   for (int j = 0; j < NUM_STEPS; j++) {
     create_key(&key, i * NUM_STEPS + j);
@@ -218,9 +220,11 @@ erase(int argc, char **argv) {
     exit(-1);
   }
 
-  ErrorInducer *ei = new ErrorInducer();
-  ((LocalEnvironment *)env)->get_changeset().m_inducer = ei;
-  ei->add(ErrorInducer::kChangesetFlush, inducer);
+  if (inducer) {
+    ErrorInducer::activate();
+    ErrorInducer *ei = ErrorInducer::get_instance();
+    ei->add(ErrorInducer::kChangesetFlush, inducer);
+  }
 
   for (int j = 0; j < NUM_STEPS; j++) {
     create_key(&key, i * NUM_STEPS + j);

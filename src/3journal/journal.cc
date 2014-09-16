@@ -22,8 +22,9 @@
 #endif
 
 #include "1base/error.h"
-#include "1os/os.h"
 #include "1base/byte_array.h"
+#include "1errorinducer/errorinducer.h"
+#include "1os/os.h"
 #include "2device/device.h"
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
@@ -420,11 +421,17 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   trailer.full_size = sizeof(entry) + entry.followup_size;
   append_entry(m_current_fd, &trailer, sizeof(trailer));
 
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+
   // and patch in the followup-size
   m_buffer[m_current_fd].overwrite(entry_position, &entry, sizeof(entry));
 
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+
   // and flush the file
   flush_buffer(m_current_fd, m_env->get_flags() & HAM_ENABLE_FSYNC);
+
+  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // if recovery is enabled (w/o transactions) then simulate a "commit" to
   // make sure that the log files are switched properly

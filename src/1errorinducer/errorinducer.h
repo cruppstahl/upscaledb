@@ -37,6 +37,15 @@
 #  error "root.h was not included"
 #endif
 
+// a macro to invoke errors
+#define HAM_INDUCE_ERROR(id)                                        \
+  while (ErrorInducer::is_active()) {                               \
+    ham_status_t st = ErrorInducer::get_instance()->induce(id);     \
+    if (st)                                                         \
+      throw Exception(st);                                          \
+    break;                                                          \
+  }
+
 namespace hamsterdb {
 
 class ErrorInducer {
@@ -60,6 +69,21 @@ class ErrorInducer {
       kMaxActions
     };
 
+    // Activates the error inducer
+    static void activate() {
+      ms_is_active = true;
+    }
+
+    // Returns true if the error inducer is active
+    static bool is_active() {
+      return (ms_is_active);
+    }
+
+    // Returns the singleton instance
+    static ErrorInducer *get_instance() {
+      return (&ms_instance);
+    }
+
     ErrorInducer() {
       memset(&m_state[0], 0, sizeof(m_state));
     }
@@ -79,6 +103,12 @@ class ErrorInducer {
 
   private:
     State m_state[kMaxActions];
+
+    // The singleton instance
+    static ErrorInducer ms_instance;
+
+    // Is the ErrorInducer active?
+    static bool ms_is_active;
 };
 
 } // namespace hamsterdb

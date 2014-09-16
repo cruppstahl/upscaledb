@@ -13,6 +13,7 @@ libhamsterdb_la_SOURCES = \
 	1base/error.cc \
 	1base/error.h \
 	1errorinducer/errorinducer.h \
+	1errorinducer/errorinducer.cc \
 	1base/mutex.h \
 	1base/packstart.h \
 	1base/packstop.h \

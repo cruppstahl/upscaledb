@@ -32,12 +32,12 @@ x PRO: use a bitmap index for recnos
     x but move the sparsemap library to github, as a seperate project
     x also write an accompanying blog post or documentation
 
-o PRO: make the release
+x PRO: make the release
 
 o PRO: webpage changes
+    x add CRC32 to pro documentation, feature matrix
     o give away for free to non-profits
-    o also add a startup program?
-    o add CRC32 to pro documentation, feature matrix
+    o also add a startup program? or make it cheaper???
 
 -------------------------------------------------------------
 
@@ -164,11 +164,38 @@ o see mail from Michael Möllney: journal files are not truncated if
     temporary transactions are used
     ./ham_bench --use-transactions=1 --key=uint64 --distribution=ascending --recsize=10241024
     x fix the bug
-    o investigate why this was not discovered with the recovery.pl script
-        o add larger records
-        o check error inducer when flushing the changeset, not when
-            filling it! this is critical. right now some of the INDUCE
-            invocations are bogus!
+    x check Michael's mail - is an enum large enough for big values?
+    x investigate why this was not discovered with the recovery.pl script
+        x add larger records
+        x check error inducer when flushing the changeset, not when
+            filling it! this is critical. right now many of the INDUCE
+            invocations are ignored!
+        x still not reproducible - wtf? make sure that the inducer in
+            journal.h is triggered - it is
+        x also, the bugfix was reverted to make sure that it's covered
+            by the tests
+    o what are the possible states during recovery?
+        o last changeset is valid, gets applied, no newer transactions
+            o add a test
+        o last changeset is valid, gets applied, but newer transactions must be
+            recreated (possible?)
+            o add a test
+        o last changeset is invalid (right now the journal is re-applied
+            from the beginning, but this would cause duplicate keys to be
+            added twice) -> need to scan the file from the beginning and
+            get the header of the last changeset (incl. lsn)
+            o add a test
+    o what if the recovery recreates pending transactions and then flushes
+        them, and there's a problem during flush? these flushes are not covered
+        by the journal and errors cannot be recovered from. -> write ALL
+        flushes to a single Changeset and then write it to disk (with
+        logging!)
+        o add a test
+    o make the threshold parameter configurable
+
+o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
+    pages
+    o but run performance tests!
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -200,23 +227,6 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
             flags or parameters
 
 o refactoring: get rid of the virtual inheritance for hola workers
-
-o refactoring: when adding more KeyLists/RecordLists (i.e. with compression)
-    then we end up in troubles because of code inflation, and because
-    the BtreeIndexFactory will become so complex.
-    check if it's possible to unify the KeyList/RecordList; both are fairly
-    identical with one exception: the RecordLists have to support duplicates
-    (but i think this should be manageable)
-    -> yes, it's possible. The KeyList has a few methods that are not
-        required by the RecordList, and vice versa
-    -> try to get rid of these methods; if not possible then create a common
-        base class and derive the KeyList and RecordList from it
-    -> then replace
-            InlineRecordList -> PodKeyList<uint64>
-            InlineRecordList -> BinaryKeyList
-            (other will follow as soon as compression is enabled)
-    ==> does this really make sense? After all, the compression will most
-        likely be different for keys and records. -> postpone
 
 o refactoring: rewrite capacity calculations (again...)
     -> in LocalDatabase::create -> call calc_estimated_capacity()
@@ -267,14 +277,6 @@ o improve performance for hola-sum (profile!)
     s3 = a3 + b3
     s4 = a4 + b4
     return s1 + s2 + s3 + s4
-
-o refactoring: improve the code separation of cursor and txn_cursor, i.e.
-    in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-    -> clean up the whole Cursor stuff
-
-o refactoring: clean up the whole Database code; it's too much and too
-    complex
 
 o windows cleanups
     o build release lib/dll with /PDBSTRIPPED (reduces file size?),
@@ -344,6 +346,14 @@ o delta updates managed in the BtreeNode
         o and align pages to the pagesize when using malloc
     o leaf nodes: if records have fixed size and are NOT inlined then
         do not store flags!
+
+. refactoring: improve the code separation of cursor and txn_cursor, i.e.
+    in db_local::cursor_get_record_size (wtf - is_null(0)?)
+    etc
+    -> clean up the whole Cursor stuff
+
+. refactoring: clean up the whole Database code; it's too much and too
+    complex
 
 . documentation rewrite
     o use github wiki

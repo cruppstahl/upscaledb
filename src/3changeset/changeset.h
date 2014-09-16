@@ -34,7 +34,6 @@
 #endif
 
 // Always verify that a file of level N does not include headers > N!
-#include "1errorinducer/errorinducer.h"
 #include "2page/page.h"
 
 #ifndef HAM_ROOT_H
@@ -59,11 +58,10 @@ class Changeset
     : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
       m_page_manager(0), m_page_manager_size(0), m_page_manager_capacity(0),
       m_indices(0), m_indices_size(0), m_indices_capacity(0),
-      m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
+      m_others(0), m_others_size(0), m_others_capacity(0) {
     }
 
     ~Changeset() {
-      delete m_inducer;
       if (m_blobs)
         ::free(m_blobs);
       if (m_page_manager)
@@ -132,10 +130,6 @@ class Changeset
     Page **m_others;
     size_t m_others_size;
     size_t m_others_capacity;
-
-  public:
-    /** an error inducer - required for testing */
-    ErrorInducer *m_inducer;
 };
 
 } // namespace hamsterdb

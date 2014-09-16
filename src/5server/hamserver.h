@@ -46,8 +46,6 @@ struct ham_srv_t {
 
 namespace hamsterdb {
 
-class ErrorInducer;
-
 template<typename T>
 struct Handle {
   Handle(ham_u64_t _index, T *_object)
@@ -67,7 +65,7 @@ typedef std::map<std::string, Environment *> EnvironmentMap;
 class ServerContext {
   public:
     ServerContext()
-      : thread_id(0), m_inducer(0), m_handle_counter(1) {
+      : thread_id(0), m_handle_counter(1) {
       memset(&server, 0, sizeof(server));
       memset(&async, 0, sizeof(async));
     }
@@ -269,7 +267,6 @@ class ServerContext {
 	uv_loop_t *loop;
 #endif
     EnvironmentMap open_envs;
-    ErrorInducer *m_inducer;
 
     Mutex open_queue_mutex;
     EnvironmentMap open_queue;
