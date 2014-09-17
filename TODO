@@ -221,6 +221,33 @@ o see mail from Michael Möllney: journal files are not truncated if
     o do we really need to store the lsn in the page?
     o make the threshold parameter configurable
 
+o refactoring: rewrite capacity calculations (again...)
+    -> in LocalDatabase::create -> call calc_estimated_capacity()
+    -> in initialize() of the node implementation
+    -> in requires_split()
+    -> in adjust_capacity()
+    -> some Lists cannot estimate their capacity, i.e. when they use
+        compression
+    o come up with a universal solution that works in all cases, and where
+        the logic is implemented in the node/KL/RL, and nowhere else!
+      - initialize(), calc_estimated_capacity():
+        -> from each KL/RL collect
+            - static overhead for metadata
+            - estimated size for each item
+      - requires_split(): simply check if another item *could be inserted*
+      - adjust_capacity(): KL/RL should know whether to grow or shrink
+            pass the required new size as a parameter!
+      - some KLs (Bitmap!) require a minimum range size
+    o rename copy_to() to remove_and_append()
+    o merge requires_split() and insert(), always throw an exception
+        (SPLIT_REQUIRED) if the insert (and rearrange) fails
+        -> Also, the function could inform how much *additional space* the
+            list requires; this would make the resize function much simpler!
+    o run performance tests
+
+o refactoring: btree_keys_base should implement get_key(), because
+    it's 90% related to arena handling
+
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
     o 2config/env_config.h: a struct with the run-time configuration of
@@ -263,28 +290,6 @@ o improve performance for hola-sum (profile!)
     s3 = a3 + b3
     s4 = a4 + b4
     return s1 + s2 + s3 + s4
-
-o refactoring: rewrite capacity calculations (again...)
-    -> in LocalDatabase::create -> call calc_estimated_capacity()
-    -> in initialize() of the node implementation
-    -> in requires_split()
-    -> in adjust_capacity()
-    o merge requires_split() and insert(), always throw an exception
-        (SPLIT_REQUIRED) if the insert (and rearrange) fails
-        -> Also, the function could inform how much *additional space* the
-            list requires; this would make the resize function much simpler!
-    o come up with a universal solution that works in all cases, and where
-        the logic is implemented in the node/KL/RL, and nowhere else!
-      - initialize(), calc_estimated_capacity():
-        -> from each KL/RL collect
-            - static overhead for metadata
-            - estimated size for each item
-      - requires_split(): simply check if another item *could be inserted*
-      - adjust_capacity(): KL/RL should know whether to grow or shrink
-            pass the required new size as a parameter!
-      - some KLs (Bitmap!) require a minimum range size
-    o rename copy_to() to remove_and_append()
-    o run performance tests
 
 x refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout (or move more code to the base class!)
