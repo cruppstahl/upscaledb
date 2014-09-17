@@ -772,8 +772,10 @@ LocalEnvironment::recover(ham_u32_t flags)
     m_journal->open();
   }
   catch (Exception &ex) {
-    if (ex.code == HAM_FILE_NOT_FOUND)
+    if (ex.code == HAM_FILE_NOT_FOUND) {
       m_journal->create();
+      return;
+    }
   }
 
   /* success - check if we need recovery */

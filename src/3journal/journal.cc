@@ -69,90 +69,17 @@ Journal::create()
 void
 Journal::open()
 {
-  PJournalHeader header;
-  PJournalEntry entry;
-  PJournalTrailer trailer;
-  ham_u64_t lsn[2];
-  ham_status_t st1 = 0, st2 = 0;
-
-  m_current_fd = 0;
-
-  // open the two files; if the files do not exist then create them
-  std::string path = get_path(0);
+  // open the two files
   try {
+    std::string path = get_path(0);
     m_files[0].open(path.c_str(), 0);
-  }
-  catch (Exception &ex) {
-    st1 = ex.code;
-  }
-  path = get_path(1);
-  try {
+    path = get_path(1);
     m_files[1].open(path.c_str(), 0);
   }
   catch (Exception &ex) {
-    st2 = ex.code;
-  }
-
-  if (st1 == st2 && st2 == HAM_FILE_NOT_FOUND)
-    throw Exception(HAM_FILE_NOT_FOUND);
-
-  if (st1 || st2) {
-    (void)close();
-    throw Exception(st1 ? st1 : st2);
-  }
-
-  // now read the header structures of both files; the file with the larger
-  // lsn is "newer"
-  for (int i = 0; i < 2; i++) {
-    // check the magic
-    m_files[i].pread(0, &header, sizeof(header));
-
-    if (header.magic != kHeaderMagic) {
-      ham_trace(("journal has unknown magic or is corrupt"));
-      (void)close();
-      throw Exception(HAM_LOG_INV_FILE_HEADER);
-    }
-
-    // read the lsn from the header structure
-    lsn[i] = header.lsn;
-  }
-
-  // the larger lsn will become the active file
-  if (lsn[0] < lsn[1])
-    m_current_fd = 1;
-
-  m_lsn = std::max(lsn[0], lsn[1]);
-
-  // now extract the highest lsn - this is where we will continue
-  for (int i = 0; i < 2; i++) {
-    // but make sure that the file is large enough!
-    ham_u64_t size = m_files[i].get_file_size();
-
-    if (size >= sizeof(entry)) {
-      m_files[i].pread(size - sizeof(PJournalTrailer), &trailer,
-                      sizeof(trailer));
-
-      // Verify the trailer magic; if it's invalid then skip this file for
-      // now. It will be recovered later, though.
-      if (trailer.magic != kTrailerMagic) {
-        ham_log(("Changeset magic is invalid, skipping"));
-        continue;
-      }
-
-      m_files[i].pread(size - trailer.full_size - sizeof(trailer),
-                      &entry, sizeof(entry));
-      ham_assert(entry.lsn != 0);
-
-      // update the highest lsn
-      //
-      // also, if we have not yet figured out which file is "newer" then
-      // use the file with the highest lsn as the "current" file
-      if (m_lsn < entry.lsn) {
-        m_lsn = entry.lsn;
-        if (lsn[0] == lsn[1])
-          m_current_fd = i;
-      }
-    }
+    m_files[1].close();
+    m_files[0].close();
+    throw ex;
   }
 }
 
@@ -644,35 +571,63 @@ Journal::recover()
 }
 
 ham_u64_t 
-Journal::recover_changeset()
+Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
 {
-  ham_u64_t start_lsn = 0;
-  ham_u64_t log_size = m_files[m_current_fd].get_file_size();
-  ham_u64_t file_size = m_env->get_device()->get_file_size();
+  Iterator it;
   PJournalEntry entry;
+  ByteArray buffer;
+  ham_u64_t result = 0;
 
-  // seek to the position of the last journal entry
-  if (log_size <= sizeof(PJournalEntry))
-    return (0);
-  
-  PJournalTrailer trailer;
-  m_files[m_current_fd].pread(log_size - sizeof(PJournalTrailer),
-                  &trailer, sizeof(trailer));
+  // get the next entry
+  try {
+    ham_u64_t filesize = file->get_file_size();
 
-  // Verify the trailer magic; if it's invalid then skip the Changeset
-  if (trailer.magic != kTrailerMagic) {
-    ham_log(("Changeset magic is invalid, skipping"));
-    return (0);
+    it.offset = 16; // skip header, TODO
+
+    while (it.offset < filesize - sizeof(PJournalTrailer)) {
+      file->pread(it.offset, &entry, sizeof(entry));
+
+      if (entry.lsn == 0)
+        break;
+
+      if (entry.type == kEntryTypeChangeset) {
+        *position = it.offset;
+        result = entry.lsn;
+      }
+
+      // increment the offset
+      it.offset += sizeof(entry) + sizeof(PJournalTrailer);
+      if (entry.followup_size)
+        it.offset += entry.followup_size;
+    }
+  }
+  catch (Exception &ex) {
+    ham_log(("exception (error %d) while reading journal", ex.code));
   }
 
-  ham_u64_t position = log_size - trailer.full_size - sizeof(trailer);
+  return (result);
+}
+
+ham_u64_t 
+Journal::recover_changeset()
+{
+  // scan through both files, look for the file with the newest changeset
+  ham_u64_t position0, position1, position;
+  ham_u64_t lsn1 = scan_for_newest_changeset(&m_files[0], &position0);
+  ham_u64_t lsn2 = scan_for_newest_changeset(&m_files[1], &position1);
+
+  // both files are empty or do not contain a changeset?
+  if (lsn1 == 0 && lsn2 == 0)
+    return (0);
+
+  // re-apply the newest changeset
+  m_current_fd = lsn1 > lsn2 ? 0 : 1;
+  position = lsn1 > lsn2 ? position0 : position1;
+
+  PJournalEntry entry;
   m_files[m_current_fd].pread(position, &entry, sizeof(entry));
   position += sizeof(entry);
-
-  // only continue if it was a changeset; otherwise return, and the journal
-  // will be applied
-  if (entry.type != kEntryTypeChangeset)
-    return (0);
+  ham_assert(entry.type == kEntryTypeChangeset);
 
   // Read the Changeset header
   PJournalEntryChangeset changeset;
@@ -682,7 +637,10 @@ Journal::recover_changeset()
   ham_u32_t page_size = m_env->get_page_size();
   ByteArray arena(page_size);
 
+  ham_u64_t file_size = m_env->get_device()->get_file_size();
+
   // for each page in this changeset...
+  ham_u64_t start_lsn = 0;
   for (ham_u32_t i = 0; i < changeset.num_pages; i++) {
     PJournalEntryPageHeader page_header;
     m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
@@ -746,25 +704,14 @@ Journal::recover_journal(ham_u64_t start_lsn)
   ByteArray buffer;
 
   /* recovering the journal is rather simple - we iterate over the
-   * files and re-apply EVERY operation (incl. txn_begin and txn_abort).
+   * files and re-apply EVERY operation (incl. txn_begin and txn_abort),
+   * that was not yet flushed with a Changeset.
    *
-   * in hamsterdb 1.x this routine just skipped all journal entries that were
-   * already flushed to disk (i.e. everything with a lsn <= start_lsn
-   * was ignored). However, if we also skip the txn_begin entries, then
-   * some scenarios will fail:
+   * Basically we iterate over both log files and skip everything with
+   * a sequence number (lsn) smaller the one of the last Changeset.
    *
-   *  --- time -------------------------->
-   *  BEGIN,    INSERT,    COMMIT
-   *  flush(1), flush(2), ^crash
-   *
-   * if the application crashes BEFORE the commit is flushed, then
-   * start_lsn will be 2, and the txn_begin will be skipped. During recovery
-   * we'd then end up in a situation where we want to commit a transaction
-   * which was not created. Therefore start_lsn is ignored for txn_begin/
-   * txn_commit/txn_abort, and only checked for insert/erase.
-   *
-   * when done then auto-abort all transactions that were not yet
-   * committed
+   * When done then auto-abort all transactions that were not yet
+   * committed.
    */
 
   // make sure that there are no pending transactions - start with

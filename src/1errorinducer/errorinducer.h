@@ -69,9 +69,9 @@ class ErrorInducer {
       kMaxActions
     };
 
-    // Activates the error inducer
-    static void activate() {
-      ms_is_active = true;
+    // Activates or deactivates the error inducer
+    static void activate(bool active) {
+      ms_is_active = active;
     }
 
     // Returns true if the error inducer is active

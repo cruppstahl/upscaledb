@@ -286,6 +286,10 @@ class Journal
     // Changelog
     ham_u64_t recover_changeset();
 
+    // Scans a file for the newest changeset. Returns the lsn of this
+    // changeset, and the position (offset) in the file
+    ham_u64_t scan_for_newest_changeset(File *file, ham_u64_t *position);
+
     // Recovers the logical journal
     void recover_journal(ham_u64_t start_lsn);
 

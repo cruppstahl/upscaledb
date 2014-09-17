@@ -148,7 +148,7 @@ insert(int argc, char **argv) {
   }
 
   if (inducer) {
-    ErrorInducer::activate();
+    ErrorInducer::activate(true);
     ErrorInducer *ei = ErrorInducer::get_instance();
     ei->add(ErrorInducer::kChangesetFlush, inducer);
   }
@@ -221,7 +221,7 @@ erase(int argc, char **argv) {
   }
 
   if (inducer) {
-    ErrorInducer::activate();
+    ErrorInducer::activate(true);
     ErrorInducer *ei = ErrorInducer::get_instance();
     ei->add(ErrorInducer::kChangesetFlush, inducer);
   }

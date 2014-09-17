@@ -178,18 +178,8 @@ o see mail from Michael Möllney: journal files are not truncated if
         invariant: a changeset flushes all committed transactions.
         in other word: after a changeset was flushed, only active
             transactions remain.
-        o last changeset is valid, gets applied, no newer transactions
-            o add a test
--> fails! problem is that the changeset is fetched from the wrong file. it's in
-    file[1], but fetched from file[0] because file[0]'s header has a newer lsn
--> is the lsn in the header still required? the correct flow looks more like...
-    scan both files for their last changeset
-    re-apply the newer changeset
-    start applying transactional updates starting from the changeset's lsn
-    then reset both files
--> when opening: do not scan for the last lsn, this always happens during
-    recovery
-
+        x last changeset is valid, gets applied, no newer transactions
+            x add a test
         o last changeset is valid, gets applied, but newer transactions must be
             recreated
             o add a test
@@ -212,11 +202,12 @@ o see mail from Michael Möllney: journal files are not truncated if
     o what if the recovery recreates pending transactions and then flushes
         them, and there's a problem during flush? these flushes are not covered
         by the journal and errors cannot be recovered from. -> write ALL
-        flushes to a single Changeset and then write it to disk (with
-        logging - but to which file? a new one?)
+        flushes to a single Changeset and then write it to disk as soon as
+        the log was processed completely
         o add a test
-    o remove the header structure, it is not required (but always add a magic
-        at the beginning of an entry)
+    o remove the journal header structure, it is not required (but always
+        add a magic at the beginning of an entry)
+    o remove the journal trailer, it's no longer required
     o recovery.pl: enable duplicates, use cursor in verify(); this will
         uncover duplicate inserts immediately
     o do we really need to store the lsn in a page?
@@ -257,6 +248,14 @@ o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
 
 o refactoring: get rid of the virtual inheritance for hola workers
 
+o improve performance for hola-sum (profile!)
+    http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
+    s1 = a1 + b1
+    s2 = a2 + b2
+    s3 = a3 + b3
+    s4 = a4 + b4
+    return s1 + s2 + s3 + s4
+
 o refactoring: rewrite capacity calculations (again...)
     -> in LocalDatabase::create -> call calc_estimated_capacity()
     -> in initialize() of the node implementation
@@ -291,21 +290,11 @@ o erlang fixes are required
     o 2 tests are failing
     o quickcheck-ci.com
     o look into Thomas' mail
-
-o QuickCheck: create a new property for testing duplicates; the key is always
-    the same. The number of duplicate keys is tracked and periodically
-    checked with the API. A cursor can be used to remove a specific
-    duplicate, or to fetch a specific duplicate.
-
-o QuickCheck: create a new property for testing recnos, with lots of deletes
-
-o improve performance for hola-sum (profile!)
-    http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
-    s1 = a1 + b1
-    s2 = a2 + b2
-    s3 = a3 + b3
-    s4 = a4 + b4
-    return s1 + s2 + s3 + s4
+    o QuickCheck: create a new property for testing duplicates; the key is
+        always the same. The number of duplicate keys is tracked and
+        periodically checked with the API. A cursor can be used to remove a
+        specific duplicate, or to fetch a specific duplicate.
+    o QuickCheck: create a new property for testing recnos, with lots of deletes
 
 o windows cleanups
     o build release lib/dll with /PDBSTRIPPED (reduces file size?),

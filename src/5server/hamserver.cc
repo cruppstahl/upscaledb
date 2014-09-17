@@ -101,7 +101,12 @@ handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ham_assert(request != 0);
   Environment *env = srv->open_envs[request->connect_request().path()];
 
-  HAM_INDUCE_ERROR(ErrorInducer::kServerConnect);
+  if (ErrorInducer::is_active()) {
+    if (ErrorInducer::get_instance()->induce(ErrorInducer::kServerConnect)) {
+      sleep(5);
+      ErrorInducer::activate(false);
+    }
+  }
 
   Protocol reply(Protocol::CONNECT_REPLY);
   if (!env) {

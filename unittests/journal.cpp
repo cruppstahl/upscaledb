@@ -43,14 +43,20 @@ struct LogEntry {
   LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u32_t _type,
         ham_u16_t _dbname, const char *_name = "")
     : lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
-    strcpy(name, _name);
+    if (_name)
+      name = _name;
+  }
+
+  // for sorting by lsn
+  bool operator<(const LogEntry &other) const {
+    return (lsn < other.lsn);
   }
 
   ham_u64_t lsn;
   ham_u64_t txn_id;
   ham_u32_t type;
   ham_u16_t dbname;
-  char name[256];
+  std::string name;
 };
 
 struct InsertLogEntry : public LogEntry {
@@ -429,13 +435,14 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 
-  void compareJournal(Journal *journal, LogEntry *vec, unsigned size) {
+  void compareJournal(Journal *journal, LogEntry *vec, size_t size) {
     Journal::Iterator it;
     PJournalEntry entry;
     ByteArray auxbuffer;
-    unsigned s = 0;
 
-    do {
+    std::vector<LogEntry> entries;
+
+    while (true) {
       journal->get_entry(&it, &entry, &auxbuffer);
       if (entry.lsn == 0)
         break;
@@ -444,37 +451,33 @@ struct JournalFixture {
       if (entry.type == Journal::kEntryTypeChangeset)
         continue;
 
-      if (s == size) {
-        REQUIRE(2ull == entry.lsn);
-        break;
+      // txn_begin can include a transaction name
+      if (entry.type == Journal::kEntryTypeTxnBegin) {
+        LogEntry le(entry.lsn, entry.txn_id, entry.type, entry.dbname,
+                    auxbuffer.get_size() > 0
+                        ? (char *)auxbuffer.get_ptr()
+                        : "");
+        entries.push_back(le);
       }
-#if 0
-      std::cout << "vector: lsn=" << (*vit).lsn << "; txn="
-            << (*vit).txn_id << "; type=" << (*vit).type
-            << "; dbname=" << (*vit).dbname << std::endl;
-      std::cout << "journl: lsn=" << entry.lsn
-            << "; txn=" << entry.txn_id
-            << "; type=" << entry.type
-            << "; dbname=" << entry.dbname
-            << std::endl
-            << std::endl;
-#endif
-
-      s++;
-
-      REQUIRE(vec->lsn == entry.lsn);
-      REQUIRE(vec->txn_id == entry.txn_id);
-      REQUIRE(vec->type == entry.type);
-      REQUIRE(vec->dbname == entry.dbname);
-      if (strlen(vec->name)) {
-        REQUIRE(auxbuffer.get_size());
-        REQUIRE(0 == strcmp((char *)auxbuffer.get_ptr(), vec->name));
+      else {
+        LogEntry le(entry.lsn, entry.txn_id, entry.type, entry.dbname);
+        entries.push_back(le);
       }
+    }
 
-      vec++;
-    } while (1);
+    // sort by lsn
+    std::sort(entries.begin(), entries.end());
 
-    REQUIRE(s == size);
+    // now compare against the entries supplied by the user
+    for (size_t i = 0; i < size; i++) {
+      REQUIRE(vec[i].lsn == entries[i].lsn);
+      REQUIRE(vec[i].txn_id == entries[i].txn_id);
+      REQUIRE(vec[i].type == entries[i].type);
+      REQUIRE(vec[i].dbname == entries[i].dbname);
+      REQUIRE(vec[i].name == entries[i].name);
+    }
+
+    REQUIRE(entries.size() == (size_t)size);
   }
 
   void iterateOverLogMultipleEntryTest() {
@@ -765,7 +768,6 @@ struct JournalFixture {
 
   void recoverTempTxns() {
 #ifndef WIN32
-    unsigned p = 0;
     ham_key_t key = {};
     ham_record_t rec = {};
 
@@ -788,19 +790,6 @@ struct JournalFixture {
           Utils::opath(".test.bak1")));
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
-    
-    Journal *j = new Journal(m_lenv);
-    j->open();
-    m_lenv->test_set_journal(j);
-    LogEntry vec[1];
-    compareJournal(j, vec, p); // journal must be empty
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     /* by re-creating the database we make sure that it's definitely
      * empty */

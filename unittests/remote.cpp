@@ -1136,13 +1136,11 @@ struct RemoteFixture {
       { 0,0 }
     };
 
-    ErrorInducer::activate();
-    ErrorInducer *ei = ErrorInducer::get_instance();
-    ei->add(ErrorInducer::kServerConnect, 1);
+    ErrorInducer::activate(true);
+    ErrorInducer::get_instance()->add(ErrorInducer::kServerConnect, 1);
 
     REQUIRE(HAM_IO_ERROR == ham_env_create(&env,
                 SERVER_URL, 0, 0664, &params[0]));
-    delete ei;
   }
 };
 

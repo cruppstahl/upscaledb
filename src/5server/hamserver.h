@@ -151,7 +151,7 @@ class ServerContext {
 
     void remove_env_handle(ham_u64_t handle) {
       ham_u32_t index = handle & 0xffffffff;
-      ham_assert(index < m_environments.size());
+      //ham_assert(index < m_environments.size());
       if (index >= m_environments.size())
         return;
       EnvironmentVector::iterator it = m_environments.begin() + index;
