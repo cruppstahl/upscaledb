@@ -1093,6 +1093,245 @@ struct JournalFixture {
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
   }
+
+  void recoverAfterChangesetAndCommitTest() {
+    ham_txn_t *txn;
+
+    // do not immediately flush the changeset after a commit
+    teardown();
+    setup(false);
+
+    g_changeset_flushed = false;
+    g_CHANGESET_POST_LOG_HOOK = changeset_post_log_hook;
+
+    int i = 0;
+    while (!g_changeset_flushed) {
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+      ham_key_t key = ham_make_key((void *)"key", 4);
+      ham_record_t rec = ham_make_record(&i, sizeof(i));
+
+      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_txn_commit(txn, 0));
+
+      i++;
+    }
+
+    // changeset was flushed, now add another commit
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ham_key_t key = ham_make_key((void *)"kez", 4);
+    ham_record_t rec = ham_make_record((void *)"rec", 4);
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    i++;
+
+    /* backup the files */
+    REQUIRE(true == os::copy(Utils::opath(".test"),
+          Utils::opath(".test.bak")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
+
+    /* close the environment, then restore the files */
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
+          Utils::opath(".test")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+
+    /* open the environment */
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    /* now verify that the database is complete */
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    ham_status_t st;
+    int j = 0;
+    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+      REQUIRE(key.size == 4);
+      if (j <= 64) {
+        REQUIRE(0 == strcmp("key", (const char *)key.data));
+        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+        REQUIRE(rec.size == sizeof(j));
+      }
+      else {
+        REQUIRE(0 == strcmp("kez", (const char *)key.data));
+      }
+      j++;
+    }
+    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(i == j);
+    REQUIRE(0 == ham_cursor_close(cursor));
+  }
+
+  void recoverAfterChangesetAndCommit2Test() {
+    ham_txn_t *txn;
+    ham_txn_t *longtxn;
+
+    // do not immediately flush the changeset after a commit
+    teardown();
+    setup(false);
+
+    REQUIRE(0 == ham_txn_begin(&longtxn, m_env, 0, 0, 0));
+
+    int i = 0;
+    // txn's are only flushed if the oldest txn is committed, and this is
+    // not the case here. Therefore, the CHANGESET_POST_LOG_HOOK is never
+    // invoked. Just write 100 transactions instead of testing against
+    // g_changeset_flushed
+    for (i = 0; i < 100; i++) {
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+      ham_key_t key = ham_make_key((void *)"key", 4);
+      ham_record_t rec = ham_make_record(&i, sizeof(i));
+
+      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_txn_commit(txn, 0));
+    }
+
+    // now commit the previous transaction
+    ham_key_t key = ham_make_key((void *)"kez", 4);
+    ham_record_t rec = ham_make_record((void *)"rec", 4);
+    REQUIRE(0 == ham_db_insert(m_db, longtxn, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_txn_commit(longtxn, 0));
+    i++;
+
+    /* backup the files */
+    REQUIRE(true == os::copy(Utils::opath(".test"),
+          Utils::opath(".test.bak")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
+
+    /* close the environment, then restore the files */
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
+          Utils::opath(".test")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+
+    /* open the environment */
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    /* now verify that the database is complete */
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    ham_status_t st;
+    int j = 0;
+    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+      REQUIRE(key.size == 4);
+      if (j < 100) {
+        REQUIRE(0 == strcmp("key", (const char *)key.data));
+        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+        REQUIRE(rec.size == sizeof(j));
+      }
+      else {
+        REQUIRE(0 == strcmp("kez", (const char *)key.data));
+      }
+      j++;
+    }
+    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(i == j);
+    REQUIRE(0 == ham_cursor_close(cursor));
+  }
+
+  void recoverWithCorruptChangesetTest() {
+    ham_txn_t *txn;
+
+    // do not immediately flush the changeset after a commit
+    teardown();
+    setup(false);
+
+    g_changeset_flushed = false;
+    g_CHANGESET_POST_LOG_HOOK = changeset_post_log_hook;
+
+    int i = 0;
+    while (!g_changeset_flushed) {
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+      ham_key_t key = ham_make_key((void *)"key", 4);
+      ham_record_t rec = ham_make_record(&i, sizeof(i));
+
+      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_txn_commit(txn, 0));
+
+      i++;
+    }
+
+    // changeset was flushed, now add another commit
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ham_key_t key = ham_make_key((void *)"kez", 4);
+    ham_record_t rec = ham_make_record((void *)"rec", 4);
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    i++;
+
+    /* backup the files */
+    REQUIRE(true == os::copy(Utils::opath(".test"),
+          Utils::opath(".test.bak")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
+
+    /* close the environment */
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+
+    /* make sure that the changesets is corrupt by truncating the file */
+    File f;
+    f.open(".test.bak1", 0);
+    ham_u64_t file_size = f.get_file_size();
+    REQUIRE(file_size == 38432ul);
+    f.truncate(file_size - 10);
+    f.close();
+
+    /* restore the files */
+    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
+          Utils::opath(".test")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+
+    /* open the environment */
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    /* now verify that the database is complete */
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    ham_status_t st;
+    int j = 0;
+    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+      REQUIRE(key.size == 4);
+      if (j <= 64) {
+        REQUIRE(0 == strcmp("key", (const char *)key.data));
+        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+        REQUIRE(rec.size == sizeof(j));
+      }
+      else {
+        REQUIRE(0 == strcmp("kez", (const char *)key.data));
+      }
+      j++;
+    }
+    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(i == j);
+    REQUIRE(0 == ham_cursor_close(cursor));
+  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1231,6 +1470,24 @@ TEST_CASE("Journal/recoverAfterChangesetTest", "")
 {
   JournalFixture f;
   f.recoverAfterChangesetTest();
+}
+
+TEST_CASE("Journal/recoverAfterChangesetAndCommitTest", "")
+{
+  JournalFixture f;
+  f.recoverAfterChangesetAndCommitTest();
+}
+
+TEST_CASE("Journal/recoverAfterChangesetAndCommit2Test", "")
+{
+  JournalFixture f;
+  f.recoverAfterChangesetAndCommit2Test();
+}
+
+TEST_CASE("Journal/recoverWithCorruptChangesetTest", "")
+{
+  JournalFixture f;
+  f.recoverWithCorruptChangesetTest();
 }
 
 } // namespace hamsterdb

@@ -180,10 +180,10 @@ o see mail from Michael Möllney: journal files are not truncated if
             transactions remain.
         x last changeset is valid, gets applied, no newer transactions
             x add a test
-        o last changeset is valid, gets applied, but newer transactions must be
+        x last changeset is valid, gets applied, but newer transactions must be
             recreated
-            o add a test
-        o last changeset is valid, but after it's applied an existing txn
+            x add a test
+        x last changeset is valid, but after it's applied an existing txn
             is committed:
             t1 = txn_begin
             insert(t1)
@@ -194,23 +194,31 @@ o see mail from Michael Möllney: journal files are not truncated if
             # changeset flush happens here
             insert(t1)
             txn_commit(t1)
-        o last changeset is invalid (right now the journal is re-applied
+            -> changeset is never flushed! why?? because txn's can only be
+                flushed if the oldest txn is committed. not the case here!
+        x last changeset is invalid (right now the journal is re-applied
             from the beginning, but this would cause duplicate keys to be
             added twice) -> need to scan the file from the beginning and
             get the header of the last changeset (incl. lsn)
-            o add a test
+            x add a test (just truncate a few bytes)
+            x also run manual tests as described in the original bug report
     o what if the recovery recreates pending transactions and then flushes
         them, and there's a problem during flush? these flushes are not covered
         by the journal and errors cannot be recovered from. -> write ALL
         flushes to a single Changeset and then write it to disk as soon as
-        the log was processed completely
+        the log was processed completely, but before the log is deleted
         o add a test
+            - insert 5 transactions; backup the logs, close
+            - activate error handler during a late recovery stage
+            - perform recovery, must fail
+            - deactivate error handler
+            - perform recovery, must work
     o remove the journal header structure, it is not required (but always
         add a magic at the beginning of an entry)
     o remove the journal trailer, it's no longer required
     o recovery.pl: enable duplicates, use cursor in verify(); this will
         uncover duplicate inserts immediately
-    o do we really need to store the lsn in a page?
+    o do we really need to store the lsn in the page?
     o make the threshold parameter configurable
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
@@ -261,10 +269,9 @@ o refactoring: rewrite capacity calculations (again...)
     -> in initialize() of the node implementation
     -> in requires_split()
     -> in adjust_capacity()
-    o should requires_split() and insert() be merged? and always throw an
-        exception (LIMITS_REACHED) if the insert would fail, and rearranging
-        would fail?
-        -> yes! Also, the function could inform how much *additional space* the
+    o merge requires_split() and insert(), always throw an exception
+        (SPLIT_REQUIRED) if the insert (and rearrange) fails
+        -> Also, the function could inform how much *additional space* the
             list requires; this would make the resize function much simpler!
     o come up with a universal solution that works in all cases, and where
         the logic is implemented in the node/KL/RL, and nowhere else!
@@ -277,6 +284,7 @@ o refactoring: rewrite capacity calculations (again...)
             pass the required new size as a parameter!
       - some KLs (Bitmap!) require a minimum range size
     o rename copy_to() to remove_and_append()
+    o run performance tests
 
 x refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout (or move more code to the base class!)
