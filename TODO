@@ -175,11 +175,35 @@ o see mail from Michael Möllney: journal files are not truncated if
         x also, the bugfix was reverted to make sure that it's covered
             by the tests
     o what are the possible states during recovery?
+        invariant: a changeset flushes all committed transactions.
+        in other word: after a changeset was flushed, only active
+            transactions remain.
         o last changeset is valid, gets applied, no newer transactions
             o add a test
+-> fails! problem is that the changeset is fetched from the wrong file. it's in
+    file[1], but fetched from file[0] because file[0]'s header has a newer lsn
+-> is the lsn in the header still required? the correct flow looks more like...
+    scan both files for their last changeset
+    re-apply the newer changeset
+    start applying transactional updates starting from the changeset's lsn
+    then reset both files
+-> when opening: do not scan for the last lsn, this always happens during
+    recovery
+
         o last changeset is valid, gets applied, but newer transactions must be
-            recreated (possible?)
+            recreated
             o add a test
+        o last changeset is valid, but after it's applied an existing txn
+            is committed:
+            t1 = txn_begin
+            insert(t1)
+            for (i : [0..64))
+                t2 = txn_begin
+                insert(t2)
+                txn_commit(t2)
+            # changeset flush happens here
+            insert(t1)
+            txn_commit(t1)
         o last changeset is invalid (right now the journal is re-applied
             from the beginning, but this would cause duplicate keys to be
             added twice) -> need to scan the file from the beginning and
@@ -189,13 +213,14 @@ o see mail from Michael Möllney: journal files are not truncated if
         them, and there's a problem during flush? these flushes are not covered
         by the journal and errors cannot be recovered from. -> write ALL
         flushes to a single Changeset and then write it to disk (with
-        logging!)
+        logging - but to which file? a new one?)
         o add a test
+    o remove the header structure, it is not required (but always add a magic
+        at the beginning of an entry)
+    o recovery.pl: enable duplicates, use cursor in verify(); this will
+        uncover duplicate inserts immediately
+    o do we really need to store the lsn in a page?
     o make the threshold parameter configurable
-
-o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
-    pages
-    o but run performance tests!
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -225,6 +250,10 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
         structure as the parameter for initialization
         - these classes do no longer have to use the env to access runtime
             flags or parameters
+
+o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
+    pages
+    o but run performance tests!
 
 o refactoring: get rid of the virtual inheritance for hola workers
 
