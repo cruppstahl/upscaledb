@@ -1332,6 +1332,83 @@ struct JournalFixture {
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
   }
+
+  void recoverFromRecoveryTest() {
+    ham_txn_t *txn;
+
+    // do not immediately flush the changeset after a commit
+    teardown();
+    setup(false);
+
+    // add 5 commits
+    int i;
+    for (i = 0; i < 5; i++) {
+      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+      ham_key_t key = ham_make_key((void *)"key", 4);
+      ham_record_t rec = ham_make_record(&i, sizeof(i));
+
+      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_txn_commit(txn, 0));
+    }
+
+    // changeset was flushed, now add another commit
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ham_key_t key = ham_make_key((void *)"key", 4);
+    ham_record_t rec = ham_make_record(&i, sizeof(i));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+
+    /* backup the files */
+    REQUIRE(true == os::copy(Utils::opath(".test"),
+          Utils::opath(".test.bak")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
+          Utils::opath(".test.bak0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
+          Utils::opath(".test.bak1")));
+
+    /* close the environment */
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+
+    /* restore the files */
+    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
+          Utils::opath(".test")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+          Utils::opath(".test.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+          Utils::opath(".test.jrn1")));
+
+    /* make sure that recovery will fail */
+    ErrorInducer::activate(true);
+    ErrorInducer::get_instance()->add(ErrorInducer::kChangesetFlush, 3);
+
+    /* open the environment, perform recovery */
+    REQUIRE(HAM_INTERNAL_ERROR ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+
+    /* disable error inducer, try again */
+    ErrorInducer::activate(false);
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    /* now verify that the database is complete */
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    ham_status_t st;
+    int j = 0;
+    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+      REQUIRE(0 == strcmp("key", (const char *)key.data));
+      REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+      REQUIRE(rec.size == sizeof(j));
+      j++;
+    }
+    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(j == i + 1);
+    REQUIRE(0 == ham_cursor_close(cursor));
+  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1488,6 +1565,12 @@ TEST_CASE("Journal/recoverWithCorruptChangesetTest", "")
 {
   JournalFixture f;
   f.recoverWithCorruptChangesetTest();
+}
+
+TEST_CASE("Journal/recoverFromRecoveryTest", "")
+{
+  JournalFixture f;
+  f.recoverFromRecoveryTest();
 }
 
 } // namespace hamsterdb

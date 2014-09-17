@@ -514,7 +514,7 @@ recover_get_txn(Environment *env, ham_u64_t txn_id)
 }
 
 static void
-__close_all_databases(Environment *env)
+__close_all_databases(LocalEnvironment *env)
 {
   ham_status_t st = 0;
 
@@ -523,6 +523,8 @@ __close_all_databases(Environment *env)
     Environment::DatabaseMap::iterator it2 = it; it++;
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
+      if (env->get_flags() & HAM_ENABLE_RECOVERY)
+        env->get_changeset().clear();
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
@@ -582,7 +584,7 @@ Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
   try {
     ham_u64_t filesize = file->get_file_size();
 
-    it.offset = 16; // skip header, TODO
+    it.offset = sizeof(PJournalHeader);
 
     while (it.offset < filesize - sizeof(PJournalTrailer)) {
       file->pread(it.offset, &entry, sizeof(entry));
