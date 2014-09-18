@@ -576,9 +576,9 @@ struct JournalFixture {
     Journal *j = m_lenv->get_journal();
     REQUIRE(j);
     size = j->m_files[0].get_file_size();
-    REQUIRE(sizeof(Journal::PJournalHeader) == size);
+    REQUIRE(0 == size);
     size = j->m_files[1].get_file_size();
-    REQUIRE(sizeof(Journal::PJournalHeader) == size);
+    REQUIRE(0 == size);
   }
 
   void recoverVerifyTxnIdsTest() {
@@ -1293,8 +1293,8 @@ struct JournalFixture {
     File f;
     f.open(".test.bak1", 0);
     ham_u64_t file_size = f.get_file_size();
-    REQUIRE(file_size == 38432ul);
-    f.truncate(file_size - 10);
+    REQUIRE(file_size == 37180ul);
+    f.truncate(file_size - 60);
     f.close();
 
     /* restore the files */

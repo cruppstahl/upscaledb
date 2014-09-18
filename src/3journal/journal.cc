@@ -54,15 +54,10 @@ Journal::Journal(LocalEnvironment *env)
 void
 Journal::create()
 {
-  PJournalHeader header;
-
   // create the two files
   for (int i = 0; i < 2; i++) {
     std::string path = get_path(i);
     m_files[i].create(path.c_str(), 0, 0644);
-
-    // and write the magic
-    m_files[i].write(&header, sizeof(header));
   }
 }
 
@@ -121,10 +116,6 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
   if (name)
     entry.followup_size = strlen(name) + 1;
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + entry.followup_size;
-
   txn->set_log_desc(switch_files_maybe());
 
   int cur = txn->get_log_desc();
@@ -132,11 +123,9 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
   if (txn->get_name().size())
     append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
                 (void *)txn->get_name().c_str(),
-                (ham_u32_t)txn->get_name().size() + 1,
-                (void *)&trailer, sizeof(trailer));
+                (ham_u32_t)txn->get_name().size() + 1);
   else
-    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
-                (void *)&trailer, sizeof(trailer));
+    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry));
   maybe_flush_buffer(cur);
 
   m_open_txn[cur]++;
@@ -161,16 +150,12 @@ Journal::append_txn_abort(LocalTransaction *txn, ham_u64_t lsn)
   entry.txn_id = txn->get_id();
   entry.type = kEntryTypeTxnAbort;
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + entry.followup_size;
-
   // update the transaction counters of this logfile
   idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
-  append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
+  append_entry(idx, &entry, sizeof(entry));
   maybe_flush_buffer(idx);
   // no need for fsync - incomplete transactions will be aborted anyway
 }
@@ -188,16 +173,12 @@ Journal::append_txn_commit(LocalTransaction *txn, ham_u64_t lsn)
   entry.txn_id = txn->get_id();
   entry.type = kEntryTypeTxnCommit;
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + entry.followup_size;
-
   // do not yet update the transaction counters of this logfile; just
   // because the txn was committed does not mean that it will be flushed
   // immediately. The counters will be modified in transaction_flushed().
   int idx = txn->get_log_desc();
 
-  append_entry(idx, &entry, sizeof(entry), &trailer, sizeof(trailer));
+  append_entry(idx, &entry, sizeof(entry));
 
   // and flush the file
   flush_buffer(idx, m_env->get_flags() & HAM_ENABLE_FSYNC);
@@ -242,18 +223,13 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   insert.record_partial_offset = record->partial_offset;
   insert.insert_flags = flags;
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + size;
-
   // append the entry to the logfile
   append_entry(idx, &entry, sizeof(entry),
                 &insert, sizeof(PJournalEntryInsert) - 1,
                 key->data, key->size,
                 record->data, (flags & HAM_PARTIAL
                                 ? record->partial_size
-                                : record->size),
-                &trailer, sizeof(trailer));
+                                : record->size));
   maybe_flush_buffer(idx);
 }
 
@@ -287,16 +263,10 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
     idx = txn->get_log_desc();
   }
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-  trailer.full_size = sizeof(entry) + sizeof(PJournalEntryErase) - 1
-                + key->size;
-
   // append the entry to the logfile
   append_entry(idx, &entry, sizeof(entry),
                 (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
-                key->data, key->size,
-                &trailer, sizeof(trailer));
+                key->data, key->size);
   maybe_flush_buffer(idx);
 }
 
@@ -312,7 +282,6 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
 
   PJournalEntry entry;
   PJournalEntryChangeset changeset;
-  ham_u32_t page_size = m_env->get_page_size();
   
   entry.lsn = lsn;
   entry.dbname = 0;
@@ -323,9 +292,6 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   changeset.num_pages = bucket1_size + bucket2_size
                             + bucket3_size + bucket4_size;
 
-  PJournalTrailer trailer;
-  trailer.type = entry.type;
-
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
   // patched in later.
@@ -335,6 +301,7 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   append_entry(m_current_fd, &entry, sizeof(entry),
                 &changeset, sizeof(PJournalEntryChangeset));
 
+  size_t page_size = m_env->get_page_size();
   for (ham_u32_t i = 0; i < bucket1_size; i++)
     entry.followup_size += append_changeset_page(bucket1[i], page_size);
   for (ham_u32_t i = 0; i < bucket2_size; i++)
@@ -343,10 +310,6 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
     entry.followup_size += append_changeset_page(bucket3[i], page_size);
   for (ham_u32_t i = 0; i < bucket4_size; i++)
     entry.followup_size += append_changeset_page(bucket4[i], page_size);
-
-  // finally append the trailer
-  trailer.full_size = sizeof(entry) + entry.followup_size;
-  append_entry(m_current_fd, &trailer, sizeof(trailer));
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
@@ -406,7 +369,6 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
                         m_current_fd == 0
                             ? 1
                             : 0;
-    iter->offset = sizeof(PJournalHeader);
   }
 
   // get the size of the journal file
@@ -416,7 +378,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
-      iter->offset = sizeof(PJournalHeader);
+      iter->offset = 0;
       filesize = m_files[iter->fdidx].get_file_size();
     }
     else {
@@ -445,9 +407,6 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
                       entry->followup_size);
       iter->offset += entry->followup_size;
     }
-
-    // skip the trailer
-    iter->offset += sizeof(PJournalTrailer);
   }
   catch (Exception &ex) {
     ham_trace(("failed to read journal entry, aborting recovery"));
@@ -468,17 +427,8 @@ Journal::close(bool noclear)
     flush_buffer(1);
   }
 
-  if (!noclear) {
-    PJournalHeader header;
-
+  if (!noclear)
     clear();
-
-    // update the header page of file 0 to store the lsn
-    header.lsn = m_lsn;
-
-    if (m_files[0].is_open())
-      m_files[0].pwrite(0, &header, sizeof(header));
-  }
 
   for (i = 0; i < 2; i++) {
     m_files[i].close();
@@ -584,9 +534,7 @@ Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
   try {
     ham_u64_t filesize = file->get_file_size();
 
-    it.offset = sizeof(PJournalHeader);
-
-    while (it.offset < filesize - sizeof(PJournalTrailer)) {
+    while (it.offset < filesize) {
       file->pread(it.offset, &entry, sizeof(entry));
 
       if (entry.lsn == 0)
@@ -598,7 +546,7 @@ Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
       }
 
       // increment the offset
-      it.offset += sizeof(entry) + sizeof(PJournalTrailer);
+      it.offset += sizeof(entry);
       if (entry.followup_size)
         it.offset += entry.followup_size;
     }
@@ -627,72 +575,79 @@ Journal::recover_changeset()
   position = lsn1 > lsn2 ? position0 : position1;
 
   PJournalEntry entry;
-  m_files[m_current_fd].pread(position, &entry, sizeof(entry));
-  position += sizeof(entry);
-  ham_assert(entry.type == kEntryTypeChangeset);
-
-  // Read the Changeset header
-  PJournalEntryChangeset changeset;
-  m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
-  position += sizeof(changeset);
-
-  ham_u32_t page_size = m_env->get_page_size();
-  ByteArray arena(page_size);
-
-  ham_u64_t file_size = m_env->get_device()->get_file_size();
-
-  // for each page in this changeset...
   ham_u64_t start_lsn = 0;
-  for (ham_u32_t i = 0; i < changeset.num_pages; i++) {
-    PJournalEntryPageHeader page_header;
-    m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
-    position += sizeof(page_header);
-    m_files[m_current_fd].pread(position, arena.get_ptr(), page_size);
-    position += page_size;
 
-    Page *page;
+  try {
+    m_files[m_current_fd].pread(position, &entry, sizeof(entry));
+    position += sizeof(entry);
+    ham_assert(entry.type == kEntryTypeChangeset);
 
-    // now write the page to disk
-    if (page_header.address == file_size) {
-      file_size += page_size;
+    // Read the Changeset header
+    PJournalEntryChangeset changeset;
+    m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
+    position += sizeof(changeset);
 
-      page = new Page(m_env->get_device());
-      page->allocate(0);
-    }
-    else if (page_header.address > file_size) {
-      file_size = page_header.address + page_size;
-      m_env->get_device()->truncate(file_size);
+    ham_u32_t page_size = m_env->get_page_size();
+    ByteArray arena(page_size);
 
-      page = new Page(m_env->get_device());
-      page->fetch(page_header.address);
-    }
-    else {
-      page = new Page(m_env->get_device());
-      page->fetch(page_header.address);
-    }
+    ham_u64_t file_size = m_env->get_device()->get_file_size();
 
-    // only overwrite the page data if the page's last modification
-    // is OLDER than the changeset!
-    bool skip = false;
-    if ((page->get_flags() & Page::kNpersNoHeader) == 0) {
-      if (page->get_lsn() > entry.lsn) {
-        skip = true;
-        start_lsn = page->get_lsn();
+    // for each page in this changeset...
+    for (ham_u32_t i = 0; i < changeset.num_pages; i++) {
+      PJournalEntryPageHeader page_header;
+      m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
+      position += sizeof(page_header);
+      m_files[m_current_fd].pread(position, arena.get_ptr(), page_size);
+      position += page_size;
+
+      Page *page;
+
+      // now write the page to disk
+      if (page_header.address == file_size) {
+        file_size += page_size;
+
+        page = new Page(m_env->get_device());
+        page->allocate(0);
       }
+      else if (page_header.address > file_size) {
+        file_size = page_header.address + page_size;
+        m_env->get_device()->truncate(file_size);
+
+        page = new Page(m_env->get_device());
+        page->fetch(page_header.address);
+      }
+      else {
+        page = new Page(m_env->get_device());
+        page->fetch(page_header.address);
+      }
+
+      // only overwrite the page data if the page's last modification
+      // is OLDER than the changeset!
+      bool skip = false;
+      if ((page->get_flags() & Page::kNpersNoHeader) == 0) {
+        if (page->get_lsn() > entry.lsn) {
+          skip = true;
+          start_lsn = page->get_lsn();
+        }
+      }
+
+      if (!skip) {
+        // overwrite the page data
+        memcpy(page->get_data(), arena.get_ptr(), page_size);
+
+        ham_assert(page->get_address() == page_header.address);
+
+        // flush the modified page to disk
+        page->set_dirty(true);
+        m_env->get_page_manager()->flush_page(page);
+      }
+
+      delete page;
     }
-
-    if (!skip) {
-      // overwrite the page data
-      memcpy(page->get_data(), arena.get_ptr(), page_size);
-
-      ham_assert(page->get_address() == page_header.address);
-
-      // flush the modified page to disk
-      page->set_dirty(true);
-      m_env->get_page_manager()->flush_page(page);
-    }
-
-    delete page;
+  }
+  catch (Exception ex) {
+    ham_trace(("Exception when applying changeset; skipping changeset"));
+    // fall through
   }
 
   return (std::max(start_lsn, entry.lsn));
@@ -863,11 +818,6 @@ Journal::clear_file(int idx)
     // reset the file pointer, or the next write will resize the file to
     // the original size
     m_files[idx].seek(0, File::kSeekSet);
-
-    // now write the header with the up-to-date lsn
-    PJournalHeader header;
-    header.lsn = m_lsn;
-    m_files[idx].write(&header, sizeof(header));
   }
 
   // clear the transaction counters

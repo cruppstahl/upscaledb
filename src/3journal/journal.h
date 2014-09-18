@@ -17,9 +17,9 @@
 /*
  * Routines for the journal - writing, reading, recovering
  *
- * The journal is a log for storing logical and physical redo-information.
+ * The journal is a facility for storing logical and physical redo-information.
  *
- * The logical information describe the database operation (i.e. insert/erase),
+ * The logical information describes the database operation (i.e. insert/erase),
  * the physical information describes the modified pages.
  *
  * "Undo" information is not required because aborted Transactions are never
@@ -36,7 +36,7 @@
  * fsync, if HAM_ENABLE_FSYNC is enabled.
  *
  * The physical information is a collection of pages which are modified in
- * a single database operation (i.e. ham_db_erase). This collection is
+ * one or more database operations (i.e. ham_db_erase). This collection is
  * called a "changeset" and implemented in changeset.h/.cc. As soon as the
  * operation is finished, the changeset is flushed: if the changeset contains
  * just a single page, then this operation is atomic and is NOT logged.
@@ -44,8 +44,6 @@
  * the database file is modified.
  *
  * For recovery to work, each page stores the lsn of its last modification.
- * In addition, the journal also stores the last lsn - in the header structure
- * of each file, but also in each entry. 
  *
  * When recovering, the Journal first extracts the newest/latest entry.
  * If this entry is a changeset then the changeset is reapplied, because
@@ -108,13 +106,7 @@ class Journal
       kSwitchTxnThreshold = 32,
 
       // flush buffers if this limit is exceeded
-      kBufferLimit = 1024 * 1024, // 1 mb
-
-      // magic for a journal file
-      kHeaderMagic = ('h' << 24) | ('j' << 16) | ('o' << 8) | '2',
-
-      // magic for a journal trailer
-      kTrailerMagic = ('h' << 24) | ('t' << 16) | ('r' << 8) | '1'
+      kBufferLimit = 1024 * 1024 // 1 mb
     };
 
   public:
@@ -137,42 +129,6 @@ class Journal
       // marks a whole changeset operation (writes modified pages)
       kEntryTypeChangeset  = 6
     };
-
-    //
-    // The header structure of a journal file
-    //
-    HAM_PACK_0 struct HAM_PACK_1 PJournalHeader {
-      PJournalHeader()
-        : magic(kHeaderMagic), _reserved(0), lsn(0) {
-      }
-
-      // the magic
-      ham_u32_t magic;
-
-      // reserved, for padding
-      ham_u32_t _reserved;
-
-      // the last used lsn
-      ham_u64_t lsn;
-    } HAM_PACK_2;
-
-    //
-    // The trailer of each journal entry
-    //
-    HAM_PACK_0 struct HAM_PACK_1 PJournalTrailer {
-      PJournalTrailer()
-        : magic(kTrailerMagic) {
-      }
-
-      // the magic
-      ham_u32_t magic;
-
-      // the entry type
-      ham_u32_t type;
-
-      // the full size of the entry
-      ham_u32_t full_size;
-    } HAM_PACK_2;
 
     //
     // An "iterator" structure for traversing the journal files
@@ -208,7 +164,7 @@ class Journal
 
       for (int i = 0; i < 2; i++) {
         ham_u64_t size = m_files[i].get_file_size();
-        if (size && size != sizeof(PJournalHeader))
+        if (size > 0)
           return (false);
       }
 

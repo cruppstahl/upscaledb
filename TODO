@@ -206,12 +206,11 @@ o see mail from Michael Möllney: journal files are not truncated if
         them, and there's a problem during flush? these flushes are not covered
         by the journal and errors cannot be recovered from.
         x add a test
-    o remove the journal header structure, it is not required (but always
+    x remove the journal trailer, it's no longer required
+    x remove the journal header structure, it is not required (but always
         add a magic at the beginning of an entry)
-    o remove the journal trailer, it's no longer required
-    o recovery.pl: enable duplicates, use cursor in verify(); this will
-        uncover duplicate inserts immediately
-    o do we really need to store the lsn in the page?
+    x do we really need to store the lsn in the page? - yes, it helps a bit
+    o verify documentation in journal.h
     o make the threshold parameter configurable
 
 o refactoring: rewrite capacity calculations (again...)
