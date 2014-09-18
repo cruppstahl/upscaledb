@@ -1644,6 +1644,10 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
+ * sets the threshold for journal file switching */
+#define HAM_PARAM_JOURNAL_SWITCH_THRESHOLD 0x00001
+
+/** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the cache size */
 #define HAM_PARAM_CACHE_SIZE            0x00000100
 /* deprecated */
@@ -1725,21 +1729,21 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * hamsterdb pro: Parameter name for @ref ham_env_create, @ref ham_env_open;
  * enables compression for the journal.
  */
-#define HAM_PARAM_JOURNAL_COMPRESSION   0x1000
+#define HAM_PARAM_JOURNAL_COMPRESSION   0x00001000
 
 /**
  * hamsterdb pro: Parameter name for @ref ham_env_create_db,
  * @ref ham_env_open_db; enables compression for the records of
  * a Database.
  */
-#define HAM_PARAM_RECORD_COMPRESSION    0x1001
+#define HAM_PARAM_RECORD_COMPRESSION    0x00001001
 
 /**
  * hamsterdb pro: Parameter name for @ref ham_env_create_db,
  * @ref ham_env_open_db; enables compression for the records of
  * a Database.
  */
-#define HAM_PARAM_KEY_COMPRESSION       0x1002
+#define HAM_PARAM_KEY_COMPRESSION       0x00001002
 
 /** hamsterdb pro: helper macro for disabling compression */
 #define HAM_COMPRESSOR_NONE         0

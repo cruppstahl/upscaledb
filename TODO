@@ -160,7 +160,7 @@ x refactoring: clean up the close() code of the LocalEnvironment (and also
     x ... and for the LocalEnvironment
         (m_header, m_blob_manager, m_page_manager, m_journal)
 
-o see mail from Michael Möllney: journal files are not truncated if
+x see mail from Michael Möllney: journal files are not truncated if
     temporary transactions are used
     ./ham_bench --use-transactions=1 --key=uint64 --distribution=ascending --recsize=10241024
     x fix the bug
@@ -174,7 +174,7 @@ o see mail from Michael Möllney: journal files are not truncated if
             journal.h is triggered - it is
         x also, the bugfix was reverted to make sure that it's covered
             by the tests
-    o what are the possible states during recovery?
+    x what are the possible states during recovery?
         invariant: a changeset flushes all committed transactions.
         in other word: after a changeset was flushed, only active
             transactions remain.
@@ -210,8 +210,8 @@ o see mail from Michael Möllney: journal files are not truncated if
     x remove the journal header structure, it is not required (but always
         add a magic at the beginning of an entry)
     x do we really need to store the lsn in the page? - yes, it helps a bit
-    o verify documentation in journal.h
-    o make the threshold parameter configurable
+    x verify documentation in journal.h
+    x make the threshold parameter configurable
 
 o refactoring: rewrite capacity calculations (again...)
     o new function calc_estimated_capacity()
@@ -221,10 +221,6 @@ o refactoring: rewrite capacity calculations (again...)
     o get rid of BtreeNodeProxy::get_capacity, and deprecate
         GET_MAX_KEYS_PER_PAGE; it no longer makes sense (or call
         calc_estimated_capacity instead)
-    o some Lists cannot estimate their capacity, i.e. when they use
-        compression; introduce an attribute (enum), then calculate size of the
-        *other* list, and assign the remainder to the first list.
-        o remove calculate_required_range_size(), use estimate_required_size()
     o refactor requires_split()
         o first: BtreeImpl::insert calls requires_split; if yes then
             tries to re-arrange; if not then it throws
@@ -233,6 +229,11 @@ o refactoring: rewrite capacity calculations (again...)
             required. then optimize the rearrange algorithm to do just that.
         o rename requires_split to prepare_insert; it returns whether everything
             is ok, the capacity is full or the range is full (or both).
+    o rearrange: some Lists cannot estimate their capacity, i.e. when they use
+        compression; introduce an attribute (enum), then calculate size of the
+        *other* list, and assign the remainder to the first list.
+        o maybe this attribute already exists?
+        o remove calculate_required_range_size(), use estimate_required_size()
     o rename copy_to() to move_to()
     o run performance tests
     o rebase hamsterdb-pro

@@ -113,6 +113,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   if (get_flags() & HAM_ENABLE_RECOVERY) {
     m_journal.reset(new Journal(this));
     m_journal->create();
+    if (m_journal_switch_threshold)
+      m_journal->set_switch_threshold(m_journal_switch_threshold);
   }
 
   /* flush the header page - this will write through disk if logging is
@@ -770,6 +772,8 @@ LocalEnvironment::recover(ham_u32_t flags)
 
   try {
     m_journal->open();
+    if (m_journal_switch_threshold)
+      m_journal->set_switch_threshold(m_journal_switch_threshold);
   }
   catch (Exception &ex) {
     if (ex.code == HAM_FILE_NOT_FOUND) {

@@ -224,6 +224,11 @@ class Journal
       metrics->journal_bytes_flushed = m_count_bytes_flushed;
     }
 
+    // Sets the switch threshold
+    void set_switch_threshold(size_t threshold) {
+      m_threshold = threshold ? threshold : kSwitchTxnThreshold;
+    }
+
     // Returns the previous lsn; only for testing!
     // TODO really required? JournalFixture is a friend!
     ham_u64_t test_get_lsn() {

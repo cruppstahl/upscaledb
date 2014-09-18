@@ -147,6 +147,11 @@ class LocalEnvironment : public Environment
       return (m_encryption_key);
     }
 
+    // Set threshold for switching journal files
+    void set_journal_switch_threshold(ham_u32_t journal_switch_threshold) {
+      m_journal_switch_threshold = journal_switch_threshold;
+    }
+
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
                     ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
@@ -224,6 +229,9 @@ class LocalEnvironment : public Environment
 
     // The page_size which was specified when the env was created
     size_t m_page_size;
+
+    // Journal switch threshold
+    ham_u32_t m_journal_switch_threshold;
 };
 
 } // namespace hamsterdb

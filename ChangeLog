@@ -1,3 +1,8 @@
+Sep 18, 2014 - chris ---------------------------------------------------
+o Major rewrite of the recovery logic; increased test coverage
+o Added new parameter HAM_PARAM_JOURNAL_SWITCH_THRESHOLD to control
+	the size of the journal files
+
 Sep 11, 2014 - chris ---------------------------------------------------
 o issue #39: recovery can fail with IO_ERROR if journal file is incomplete;
 	fixed (thanks, Michael Moellney)

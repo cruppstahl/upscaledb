@@ -322,6 +322,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_u64_t file_size_limit = 0xffffffffffffffff;
   ham_u16_t max_databases = 0;
   ham_u32_t timeout = 0;
+  ham_u32_t journal_switch_threshold = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
@@ -388,6 +389,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
         if (param->value > 0)
           file_size_limit = param->value;
         break;
+      case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
+        journal_switch_threshold = (ham_u32_t)param->value;
+        break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
         break;
@@ -439,6 +443,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
         lenv->set_log_directory(logdir);
       if (encryption_key)
         lenv->enable_encryption(encryption_key);
+      if (journal_switch_threshold)
+        lenv->set_journal_switch_threshold(journal_switch_threshold);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
