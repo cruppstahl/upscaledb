@@ -1340,6 +1340,11 @@ struct JournalFixture {
     teardown();
     setup(false);
 
+    // need a second database
+    ham_db_t *db2;
+    REQUIRE(0 == ham_env_create_db(m_env, &db2, 2,
+                            HAM_ENABLE_DUPLICATE_KEYS, 0));
+
     // add 5 commits
     int i;
     for (i = 0; i < 5; i++) {
@@ -1352,11 +1357,13 @@ struct JournalFixture {
       REQUIRE(0 == ham_txn_commit(txn, 0));
     }
 
-    // changeset was flushed, now add another commit
+    // changeset was flushed, now add another commit in the other database,
+    // to make sure that it affects a different page
+    i = 0;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     ham_key_t key = ham_make_key((void *)"key", 4);
     ham_record_t rec = ham_make_record(&i, sizeof(i));
-    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(db2, txn, &key, &rec, HAM_DUPLICATE));
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* backup the files */
@@ -1393,6 +1400,7 @@ struct JournalFixture {
         ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &db2, 2, 0, 0));
 
     /* now verify that the database is complete */
     ham_cursor_t *cursor;
@@ -1406,7 +1414,19 @@ struct JournalFixture {
       j++;
     }
     REQUIRE(st == HAM_KEY_NOT_FOUND);
-    REQUIRE(j == i + 1);
+    REQUIRE(j == 5);
+    REQUIRE(0 == ham_cursor_close(cursor));
+
+    REQUIRE(0 == ham_cursor_create(&cursor, db2, 0, 0));
+    j = 0;
+    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+      REQUIRE(0 == strcmp("key", (const char *)key.data));
+      REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+      REQUIRE(rec.size == sizeof(j));
+      j++;
+    }
+    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(j == 1);
     REQUIRE(0 == ham_cursor_close(cursor));
   }
 };

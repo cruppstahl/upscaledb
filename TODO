@@ -202,17 +202,10 @@ o see mail from Michael Möllney: journal files are not truncated if
             get the header of the last changeset (incl. lsn)
             x add a test (just truncate a few bytes)
             x also run manual tests as described in the original bug report
-    o what if the recovery recreates pending transactions and then flushes
+    x what if the recovery recreates pending transactions and then flushes
         them, and there's a problem during flush? these flushes are not covered
-        by the journal and errors cannot be recovered from. -> write ALL
-        flushes to a single Changeset and then write it to disk as soon as
-        the log was processed completely, but before the log is deleted
-        o add a test
-            - insert 5 transactions; backup the logs, close
-            - activate error handler during a late recovery stage
-            - perform recovery, must fail
-            - deactivate error handler
-            - perform recovery, must work
+        by the journal and errors cannot be recovered from.
+        x add a test
     o remove the journal header structure, it is not required (but always
         add a magic at the beginning of an entry)
     o remove the journal trailer, it's no longer required
@@ -222,28 +215,28 @@ o see mail from Michael Möllney: journal files are not truncated if
     o make the threshold parameter configurable
 
 o refactoring: rewrite capacity calculations (again...)
-    -> in LocalDatabase::create -> call calc_estimated_capacity()
-    -> in initialize() of the node implementation
-    -> in requires_split()
-    -> in adjust_capacity()
-    -> some Lists cannot estimate their capacity, i.e. when they use
-        compression
-    o come up with a universal solution that works in all cases, and where
-        the logic is implemented in the node/KL/RL, and nowhere else!
-      - initialize(), calc_estimated_capacity():
-        -> from each KL/RL collect
-            - static overhead for metadata
-            - estimated size for each item
-      - requires_split(): simply check if another item *could be inserted*
-      - adjust_capacity(): KL/RL should know whether to grow or shrink
-            pass the required new size as a parameter!
-      - some KLs (Bitmap!) require a minimum range size
-    o rename copy_to() to remove_and_append()
-    o merge requires_split() and insert(), always throw an exception
-        (SPLIT_REQUIRED) if the insert (and rearrange) fails
-        -> Also, the function could inform how much *additional space* the
-            list requires; this would make the resize function much simpler!
+    o new function calc_estimated_capacity()
+        o called in LocalDatabase::create
+        o called in initialize() of the node implementation
+        o rename *List::get_full_*_size -> float estimate_required_size(&static_overhead)
+    o get rid of BtreeNodeProxy::get_capacity, and deprecate
+        GET_MAX_KEYS_PER_PAGE; it no longer makes sense (or call
+        calc_estimated_capacity instead)
+    o some Lists cannot estimate their capacity, i.e. when they use
+        compression; introduce an attribute (enum), then calculate size of the
+        *other* list, and assign the remainder to the first list.
+        o remove calculate_required_range_size(), use estimate_required_size()
+    o refactor requires_split()
+        o first: BtreeImpl::insert calls requires_split; if yes then
+            tries to re-arrange; if not then it throws
+        o second: BtreeInsertAction handles the exception and splits
+        o third: requires_split() should return the additional size that is
+            required. then optimize the rearrange algorithm to do just that.
+        o rename requires_split to prepare_insert; it returns whether everything
+            is ok, the capacity is full or the range is full (or both).
+    o rename copy_to() to move_to()
     o run performance tests
+    o rebase hamsterdb-pro
 
 o refactoring: btree_keys_base should implement get_key(), because
     it's 90% related to arena handling
@@ -372,6 +365,8 @@ o delta updates managed in the BtreeNode
             (and record size is too large for inline records)
         o PAX Layout: can compress the flags for the DefaultRecordList
         o Default Layout: can compress the flags for the Duplicate*RecordList
+        o also compress slot/offset pairs of the UpfrontIndex
+            (use bit packing)
     o internal node layout: store page IDs div pagesize to get smaller
         integers (will be compressed better)
         o and align pages to the pagesize when using malloc
