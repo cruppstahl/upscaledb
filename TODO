@@ -214,29 +214,59 @@ x see mail from Michael Möllney: journal files are not truncated if
     x make the threshold parameter configurable
 
 o refactoring: rewrite capacity calculations (again...)
-    o new function calc_estimated_capacity()
-        o called in LocalDatabase::create
-        o called in initialize() of the node implementation
-        o rename *List::get_full_*_size -> float estimate_required_size(&static_overhead)
-    o get rid of BtreeNodeProxy::get_capacity, and deprecate
-        GET_MAX_KEYS_PER_PAGE; it no longer makes sense (or call
-        calc_estimated_capacity instead)
+    x rename copy_to() to move_to() -- no!
     o refactor requires_split()
-        o first: BtreeImpl::insert calls requires_split; if yes then
-            tries to re-arrange; if not then it throws
-        o second: BtreeInsertAction handles the exception and splits
-        o third: requires_split() should return the additional size that is
+        x BtreeInsertAction: currently checks if the key already
+            exists before the page is split. test this only for internal
+            nodes
+        x BtreeNodeProxy::insert calls requires_split; if yes then
+            tries to re-arrange; if not then it throws and the caller splits
+        x BtreeInsertAction handles the exception and splits
+            (this is already implemented)
+        o requires_split should not require the key, because when
+            the function is invoked for internal nodes then we anyway don't
+            know the key yet (-> allow null-pointer as key)
+        o *List::requires_split() should return the additional size that is
             required. then optimize the rearrange algorithm to do just that.
-        o rename requires_split to prepare_insert; it returns whether everything
-            is ok, the capacity is full or the range is full (or both).
+        o use a separate error code instead of HAM_LIMITS_REACHED
+        o run tests
+------------
+i think it makes sense to not persist the capacity, but the KeyList range size
+instead (because the capacity is in flux, but the range size is not).
+
+try to get rid of the capacity as much as possible. If a KeyList requires the
+capacity then it can store it internally.
+
+Instead of calculating an initial capacity, simply divide the ranges in the
+same ratio as the initial key/record sizes; i.e. if key size is 5, record size
+is 1, then the KeyList should be 5 times larger than the RecordList.
+
+(exception is the PAX layout - no need to do any changes.)
+
+Afterwards the lists will anyway be resized as required.
+------------
     o rearrange: some Lists cannot estimate their capacity, i.e. when they use
         compression; introduce an attribute (enum), then calculate size of the
         *other* list, and assign the remainder to the first list.
         o maybe this attribute already exists?
-        o remove calculate_required_range_size(), use estimate_required_size()
-    o rename copy_to() to move_to()
-    o run performance tests
     o rebase hamsterdb-pro
+
+x ZINT: move code changes to a branch of hamsterdb-pro
+
+o ZINT: implement a NULL-compressor; it needs to keep track of
+    the "compressed" size and whether a split is required
+    o persist the number of compressed values, then use it to resize the
+        ByteArray
+    o then run tests against berkeleydb
+
+o ZINT: add varbyte compression
+
+o a test currently fails:
+    --seed=1411263229 --use-cursors --duplicate=first --use-berkeleydb
+../testfiles/2/ext_061.tst
+
+o PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied
 
 o refactoring: btree_keys_base should implement get_key(), because
     it's 90% related to arena handling
@@ -274,19 +304,45 @@ o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
     pages
     o but run performance tests!
 
-o refactoring: get rid of the virtual inheritance for hola workers
-
-o improve performance for hola-sum (profile!)
-    http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
-    s1 = a1 + b1
-    s2 = a2 + b2
-    s3 = a3 + b3
-    s4 = a4 + b4
-    return s1 + s2 + s3 + s4
+o refactoring: improve hola performance
+    o get rid of the virtual inheritance for hola workers
+    o improve performance for hola-sum (profile!)
+        http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
+        s1 = a1 + b1
+        s2 = a2 + b2
+        s3 = a3 + b3
+        s4 = a4 + b4
+        return s1 + s2 + s3 + s4
+    o run leveldb benchmark for comparison
 
 x refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout (or move more code to the base class!)
     - no, not required. Stripping the library will reduce the size.
+
+o refactoring: make device stateless and avoid inheritance
+    - virtual abstract base class
+    - implementation class uses template parameters
+    - template parameters have logic; implementation class has state
+    - state is passed to the logic and can be modified (exception safe)
+    - if this works then do the same for BlobManager
+
+    - if this works then do the same for PageManager
+    - if this works then do the same for EnvironmentHeader
+    - if this works then do the same for Journal
+    - if this works then do the same for Page
+    - if this works then do the same for Compressor
+    - if this works then do the same for Changeset
+    - if this works then do the same for Btree
+
+o refactoring: get rid of inheritance for env
+    - move implementation to a struct, w/o state
+    - struct will be kept separately (if there is any)
+    - base class will be abstract
+    - implementation class uses a template parameter and forwards calls
+        to the struct; the state is a parameter which is only updated
+        if the operation succeeds
+    - if this pattern works then also apply it for Database,
+        Transaction, Cursor
 
 o The C# PInvoke for ham_cursor_find is missing the Record structure
     - also accept flags in ham_db_find and ham_cursor_find for approx.
@@ -360,6 +416,9 @@ o delta updates managed in the BtreeNode
     -> yes, just remove them. they are no longer used.
 
 . refactoring: when the file format is changed then...
+    o get rid of BtreeNodeProxy::m_capacity and store the
+        key_range_size instead. If a KeyList or RecordList requires the capacity
+        then it has to store it on its own.
     o improve node layout compression (when the file format changes)
         -> btw: flags are not required at all if fixed length record size > 8
             (and record size is too large for inline records)
@@ -372,6 +431,17 @@ o delta updates managed in the BtreeNode
         o and align pages to the pagesize when using malloc
     o leaf nodes: if records have fixed size and are NOT inlined then
         do not store flags!
+
+. refactoring: rewrite capacity calculations (again...)
+    o new function calc_estimated_capacity()
+        o called in LocalDatabase::create
+        o called in initialize() of the node implementation
+        o rename *List::get_full_*_size -> float estimate_required_size(&static_overhead)
+    o get rid of BtreeNodeProxy::get_capacity, and deprecate
+        GET_MAX_KEYS_PER_PAGE; it no longer makes sense (or call
+        calc_estimated_capacity instead)
+        o maybe BaseLayout::m_capacity is no longer required?
+    o run performance tests
 
 . refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)

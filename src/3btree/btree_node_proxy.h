@@ -512,6 +512,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual void insert(ham_u32_t slot, const ham_key_t *key) {
+      if (m_impl.requires_split(key))
+        throw Exception(HAM_LIMITS_REACHED);
       m_impl.insert(slot, key);
       set_count(get_count() + 1);
     }

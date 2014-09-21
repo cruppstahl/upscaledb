@@ -194,14 +194,6 @@ class BtreeInsertAction
       // now walk down the tree
       while (1) {
         if (split_required(node)) {
-          if (node->is_leaf()
-                 && !(m_flags & HAM_OVERWRITE)
-                 && !(m_flags & HAM_DUPLICATE)) {
-            int cmp;
-            int slot = node->find_child(m_key, 0, &cmp);
-            if (slot >= 0 && cmp == 0)
-              return (HAM_DUPLICATE_KEY);
-          }
           page = split_page(page, parent, m_key);
           node = m_btree->get_node_from_page(page);
         }
@@ -438,10 +430,6 @@ class BtreeInsertAction
         }
       }
 
-      // uncouple the cursors
-      if (!exists && (int)count > slot)
-        BtreeCursor::uncouple_all_cursors(page, slot);
-
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
@@ -461,7 +449,12 @@ class BtreeInsertAction
       }
       // key does not exist and has to be inserted or appended
       else {
-        // actually insert the key
+        // uncouple the cursors
+        if ((int)count > slot)
+          BtreeCursor::uncouple_all_cursors(page, slot);
+
+        // Finally insert the key. This will throw an exception if the
+        // page must be split
         node->insert(slot, key);
 
         try {
