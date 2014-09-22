@@ -248,15 +248,19 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (!keys_require_split && !records_require_split)
         return (false);
 
-      // vacuumize the lists
-      if (keys_require_split)
-        keys_require_split = P::m_keys.requires_split(node_count, key, true);
-      if (records_require_split)
-        records_require_split = P::m_records.requires_split(node_count, true);
-
       // try to resize the lists before admitting defeat and splitting
       // the page
       if (keys_require_split || records_require_split) {
+        // "vacuumize" both lists
+        // TODO this requires cleanups. The last parameter of requires_split()
+        // should no longer be necessary
+        P::m_records.vacuumize(node_count, false);
+        P::m_keys.vacuumize(node_count, false);
+        if (records_require_split)
+          records_require_split = P::m_records.requires_split(node_count, true);
+        if (keys_require_split)
+          keys_require_split = P::m_keys.requires_split(node_count, key, true);
+
         if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
           check_index_integrity(node_count);
