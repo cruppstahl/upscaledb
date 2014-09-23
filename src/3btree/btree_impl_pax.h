@@ -145,7 +145,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
             *precord_id = P::get_record_id(i);
           return (i);
         }
-        /* if the key is bigger than the item: search "to the left" */
+        /* if the key is < the current item: search "to the left" */
         else if (cmp < 0) {
           if (r == 0) {
             ham_assert(i == 0);
@@ -196,6 +196,10 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (P::m_node->get_count() >= P::m_capacity);
     }
 
+    // Prepares the page for a flush to disk. Nothing to do here!
+    void prepare_flush() {
+    }
+
   private:
     void initialize() {
       ham_u32_t usable_nodesize
@@ -214,7 +218,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
                         P::m_capacity);
       }
       else {
-        P::m_keys.open(&p[0], P::m_capacity);
+        P::m_keys.open(&p[0], P::m_capacity, P::m_node->get_count());
         P::m_records.open(&p[P::m_capacity * (size_t)ks], P::m_capacity);
       }
     }

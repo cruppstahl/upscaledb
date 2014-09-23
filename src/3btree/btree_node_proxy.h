@@ -240,6 +240,9 @@ class BtreeNodeProxy
     // Merges all keys from the |other| node to this node
     virtual void merge_from(BtreeNodeProxy *other) = 0;
 
+    // Prepares the page for a flush to disk
+    virtual void prepare_flush() = 0;
+
     // Prints the node to stdout. Only for testing and debugging!
     virtual void print(ham_u32_t count = 0) = 0;
 
@@ -553,6 +556,11 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
       set_count(get_count() + other->get_count());
       other->set_count(0);
+    }
+
+    // Prepares the page for a flush to disk
+    virtual void prepare_flush() {
+      m_impl.prepare_flush();
     }
 
     // Prints the node to stdout (for debugging)

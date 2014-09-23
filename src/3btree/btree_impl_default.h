@@ -324,6 +324,12 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
     }
 
+    // Prepares the page for a flush to disk; compressed KeyLists can use
+    // this to serialize their data
+    void prepare_flush() {
+      P::m_keys.prepare_flush(P::m_node->get_count());
+    }
+
   private:
     // Initializes the node
     void initialize(NodeType *other = 0) {
@@ -403,7 +409,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         P::m_capacity = *(ham_u32_t *)p;
         p += sizeof(ham_u32_t);
 
-        P::m_keys.open(p, P::m_capacity);
+        P::m_keys.open(p, P::m_capacity, P::m_node->get_count());
         size_t key_range_size = P::m_keys.get_range_size();
         P::m_records.open(p + key_range_size, P::m_capacity);
       }

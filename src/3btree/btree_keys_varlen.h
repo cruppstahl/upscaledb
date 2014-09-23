@@ -725,7 +725,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Opens an existing KeyList
-    void open(ham_u8_t *data, size_t capacity) {
+    void open(ham_u8_t *data, size_t capacity, size_t node_count) {
       m_data = data;
       m_index.open(m_data, capacity);
     }

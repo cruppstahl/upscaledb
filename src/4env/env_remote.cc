@@ -20,6 +20,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
+#include "1base/scoped_ptr.h"
 #include "2protobuf/protocol.h"
 #include "4cursor/cursor.h"
 #include "4db/db_remote.h"
@@ -134,7 +135,7 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->type() == Protocol::CONNECT_REPLY);
 
@@ -161,7 +162,7 @@ RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
   request.mutable_env_rename_request()->set_newname(newname);
   request.mutable_env_rename_request()->set_flags(flags);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_rename_reply());
 
@@ -176,7 +177,7 @@ RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   request.mutable_env_erase_db_request()->set_name(name);
   request.mutable_env_erase_db_request()->set_flags(flags);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_erase_db_reply());
 
@@ -190,7 +191,7 @@ RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
   request.mutable_env_get_database_names_request();
   request.mutable_env_get_database_names_request()->set_env_handle(m_remote_handle);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_get_database_names_reply());
 
@@ -228,7 +229,7 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
     p++;
   }
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_get_parameters_reply());
 
@@ -284,7 +285,7 @@ RemoteEnvironment::flush(ham_u32_t flags)
   request.mutable_env_flush_request()->set_flags(flags);
   request.mutable_env_flush_request()->set_env_handle(m_remote_handle);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_flush_reply());
 
@@ -310,7 +311,7 @@ RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     }
   }
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_create_db_reply());
 
@@ -356,7 +357,7 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     }
   }
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->has_env_open_db_reply());
 
@@ -398,7 +399,7 @@ RemoteEnvironment::close(ham_u32_t flags)
   Protocol request(Protocol::DISCONNECT_REQUEST);
   request.mutable_disconnect_request()->set_env_handle(m_remote_handle);
 
-  std::auto_ptr<Protocol> reply(perform_request(&request));
+  ScopedPtr<Protocol> reply(perform_request(&request));
 
   ham_assert(reply->type() == Protocol::DISCONNECT_REPLY);
 

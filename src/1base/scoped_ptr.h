@@ -40,6 +40,13 @@ namespace hamsterdb {
 template <typename T>
 struct ScopedPtr : public boost::scoped_ptr<T>
 {
+  ScopedPtr()
+    : boost::scoped_ptr<T>() {
+  }
+
+  ScopedPtr(T *t)
+    : boost::scoped_ptr<T>(t) {
+  }
 };
 
 } // namespace hamsterdb

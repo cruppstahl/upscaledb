@@ -87,7 +87,7 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Opens an existing KeyList starting at |data|
-    void open(ham_u8_t *data, size_t capacity) {
+    void open(ham_u8_t *data, size_t capacity, size_t node_count) {
       m_capacity = capacity;
       m_data = data;
     }

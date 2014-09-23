@@ -85,7 +85,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Opens an existing PodKeyList starting at |ptr|
-    void open(ham_u8_t *data, size_t capacity) {
+    void open(ham_u8_t *data, size_t capacity, size_t node_count) {
       m_capacity = capacity;
       m_data = (T *)data;
     }

@@ -36,6 +36,10 @@ namespace hamsterdb {
 
 struct BaseKeyList
 {
+  // Prepares the page for a flush to disk; compressed KeyLists can overwrite
+  // this to serialize their data
+  void prepare_flush(size_t node_count) {
+  }
 };
 
 } // namespace hamsterdb

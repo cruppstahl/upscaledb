@@ -58,7 +58,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // Returns the offset (in bytes) of the member |m_data|
     static ham_u32_t get_entry_offset() {
-      return (OFFSETOF(PBtreeNode, m_data));
+      return (sizeof(PBtreeNode) - 1);
     }
 
     // Returns the flags of the btree node (|kLeafNode|)

@@ -226,14 +226,28 @@ x ZINT32: implement a NULL-compressor; it needs to keep track of
     x check_integrity checks compressed size (+ overhead!) vs full_range_size
     x then run tests against berkeleydb
 
-o ZINT32: add varbyte compression
-
-o ZINT32: use std::vector<int> for uncompressed data, and compare performance
-    -> if it's good then avoid the ByteArray
+x ZINT32: add varbyte compression
+    x make sure that the code runs "as is"
+    x decode-function needs number of encoded keys (do not persist it in
+        the compressor!)
+    x but maybe the compressor needs to keep track of the used storage,
+        esp. after decoding
+    x move check_integrity into the compressor class (parameter is node_count,
+        range_size)
+        -> calculate the "real" size
+    x the split is currently based on "simulated" results; if a split is
+        required then a "real" compression should be performed to figure out
+        how much space is left (if any)
+        x requires a change in the interface
+            (requires_split(size_t available_size))
+    x fix the tests
+    x right now files compressed with varbyte are as large as uncompressed
+        files - but why? is it because the keyrange currently cannot shrink?
+        -> yes; high initial capacity and no shrinking
+    x check if some changes need to be ported back to the apl version
 
 o refactoring: rewrite capacity calculations (again...)
     x rename copy_to() to move_to() -- no!
-    o for splits: use a separate error code instead of HAM_LIMITS_REACHED
     o do not persist capacity, only the range size
         -> if a KeyList requires the capacity then it can store it internally
         -> Instead of calculating an initial capacity, simply divide the
@@ -241,6 +255,26 @@ o refactoring: rewrite capacity calculations (again...)
             if key size is 5, record size is 1, then the KeyList should be 5
             times larger than the RecordList.
         -> exception is the PAX layout - no need to do any changes
+        o remove KeyList::get_range_size() (or move the function to
+                BaseKeyList, but don't persist it)
+        o remove RecordList::get_range_size() (or move the function to
+                BaseRecordList, but don't persist it)
+    o for compressed lists it's not possible to efficiently shrink (reduce
+        capacity) because it does not know it's final size. Right now there's
+        a hack: Zint32KeyList returns a key size of 1 byte (instead of 4), and
+        therefore mostly grows and rarely shrinks. But that's hackish.
+        o instead of calculating the required capacity rather ask for the
+            minimum capacity for the current set of keys
+            -> then add the K:R ratio as described above
+    o require_split should return the number of bytes required; then adjust
+        the K:R ratio
+    o currently, requires_split() is called twice for
+        leaf nodes: in btree_insert.cc (were it should not be called), and in
+        btree_node_proxy.h.
+        However, if the call in btree_insert is removed, some tests fail, i.e.
+            --use-berkeleydb=true --fullcheck=find ../testfiles/2/ext_050.tst
+
+    o for splits: use a separate error code instead of HAM_LIMITS_REACHED
     o run performance tests
     o run monster tests
     o increase file format version
@@ -249,7 +283,20 @@ o refactoring: rewrite capacity calculations (again...)
 
 o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
     o linear search 
-    o btree_keys_base should implement get_key(), because
+    o btree_keys_base should implement get_key(), because it's basically all
+        about the arena handling
+    o rebase hamsterdb-pro
+
+o refactoring: it's ugly that the KeyList/RecordList do not have direct
+    access to node->get_count(); the node_count has to be passed to each
+    function
+    o give BaseKeyList access to m_node, and clean up all interfaces
+    o same for RecordKeyList access to m_node, and clean up all interfaces
+    o if RecordKeyList is identical to BaseKeyList then unify them into
+        a generic BaseList
+
+o refactoring: the btree "slot" should be plain integer instead of ham_u32_t
+    o rebase hamsterdb-pro
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
@@ -279,6 +326,7 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
         structure as the parameter for initialization
         - these classes do no longer have to use the env to access runtime
             flags or parameters
+    o rebase hamsterdb-pro
 
 o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
     pages
@@ -287,7 +335,8 @@ o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
 
-o refactoring: the btree "slot" should be plain integer instead of ham_u32_t
+o ZINT32: if compression/decompression works in-place then do not
+    use the ByteArray!
 
 o refactoring: when the file format is changed then...
     o improve node layout compression (when the file format changes)
@@ -300,6 +349,9 @@ o refactoring: when the file format is changed then...
     o internal node layout: store page IDs div pagesize to get smaller
         integers (will be compressed better)
         o and align pages to the pagesize when using malloc
+        o then compress them with bitpacking (scroll down to 2.1.9-pro for
+            details)
+    o rebase hamsterdb-pro
 
 o refactoring: improve hola performance
     o get rid of the virtual inheritance for hola workers
@@ -311,6 +363,11 @@ o refactoring: improve hola performance
         s4 = a4 + b4
         return s1 + s2 + s3 + s4
     o run leveldb benchmark for comparison
+
+. refactoring: If KeyList implementation would be identical to RecordList
+    implementation then the RecordList could also store variable records
+    (with an UpfrontIndex and "extended keys"), and more data could be stored
+    in the node itself
 
 x refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout (or move more code to the base class!)
@@ -347,7 +404,7 @@ o refactoring: can we get rid of ham_record_t::_intflags and
     the next ABI change
     -> yes, just remove them. they are no longer used.
 
-o delta updates managed in the BtreeNode
+. delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
     is accessed for a lookup or a scan, or immediately before the node
     is flushed, the deltas are merged into the node. So far this does not

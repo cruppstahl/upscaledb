@@ -21,6 +21,7 @@
 #include <string.h>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/scoped_ptr.h"
 #include "2protobuf/protocol.h"
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
@@ -47,7 +48,7 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
       request.mutable_db_get_parameters_request()->add_names(p->name);
   }
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  ScopedPtr<Protocol> reply(env->perform_request(&request));
 
   ham_assert(reply->has_db_get_parameters_reply());
 
@@ -579,7 +580,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
     Protocol::assign_record(request.mutable_cursor_move_request()->mutable_record(),
                   record, false);
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  ScopedPtr<Protocol> reply(env->perform_request(&request));
 
   ham_assert(reply->has_cursor_move_reply() != 0);
 
@@ -637,7 +638,7 @@ RemoteDatabase::close_impl(ham_u32_t flags)
   request.mutable_db_close_request()->set_db_handle(get_remote_handle());
   request.mutable_db_close_request()->set_flags(flags);
 
-  std::auto_ptr<Protocol> reply(env->perform_request(&request));
+  ScopedPtr<Protocol> reply(env->perform_request(&request));
 
   ham_assert(reply->has_db_close_reply());
 
