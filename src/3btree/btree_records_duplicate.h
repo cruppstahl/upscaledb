@@ -50,6 +50,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/globals.h"
+#include "1base/scoped_ptr.h"
 #include "1base/byte_array.h"
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
@@ -513,8 +514,7 @@ class DuplicateRecordList
     DuplicateRecordList(LocalDatabase *db, PBtreeNode *node,
                     bool store_flags, size_t record_size)
       : m_db(db), m_node(node), m_index(db), m_data(0),
-        m_store_flags(store_flags), m_record_size(record_size),
-        m_duptable_cache(0) {
+        m_store_flags(store_flags), m_record_size(record_size) {
       size_t page_size = db->get_local_env()->get_page_size();
       if (Globals::ms_duplicate_threshold)
         m_duptable_threshold = Globals::ms_duplicate_threshold;
@@ -549,32 +549,19 @@ class DuplicateRecordList
         for (DuplicateTableCache::iterator it = m_duptable_cache->begin();
                         it != m_duptable_cache->end(); it++)
           delete it->second;
-        delete m_duptable_cache;
-        m_duptable_cache = 0;
       }
     }
 
-    // Creates a new RecordList starting at |data|
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
-      m_data = data;
-      m_index.create(m_data, full_range_size_bytes, capacity);
-    }
-
     // Opens an existing RecordList
-    void open(ham_u8_t *ptr, size_t capacity) {
+    void open(ham_u8_t *ptr, size_t range_size, size_t node_count) {
       m_data = ptr;
-      m_index.open(m_data, capacity);
-    }
-
-    // Returns the full size of the range
-    size_t get_range_size() const {
-      return (m_index.get_range_size());
+      m_index.open(m_data, range_size);
     }
 
     // Returns a duplicate table; uses a cache to speed up access
     DuplicateTable *get_duplicate_table(ham_u64_t table_id) {
       if (!m_duptable_cache)
-        m_duptable_cache = new DuplicateTableCache();
+        m_duptable_cache.reset(new DuplicateTableCache());
       else {
         DuplicateTableCache::iterator it = m_duptable_cache->find(table_id);
         if (it != m_duptable_cache->end())
@@ -612,10 +599,12 @@ class DuplicateRecordList
     void copy_to(ham_u32_t sstart, size_t node_count,
                     DuplicateRecordList &dest, size_t other_node_count,
                     ham_u32_t dstart) {
-      size_t i = 0;
-      ham_u32_t doffset;
+      // make sure that the other node has sufficient capacity in its
+      // UpfrontIndex
+      dest.m_index.change_range_size(other_node_count, 0, 0, node_count);
 
-      for (; i < node_count - sstart; i++) {
+      ham_u32_t doffset;
+      for (size_t i = 0; i < node_count - sstart; i++) {
         size_t size = m_index.get_chunk_size(sstart + i);
 
         dest.m_index.insert_slot(other_node_count + i, dstart + i);
@@ -645,11 +634,10 @@ class DuplicateRecordList
     // Change the capacity; the capacity will be reduced, growing is not
     // implemented. Which means that the data area must be copied; the offsets
     // do not have to be changed.
-    void change_capacity(size_t node_count, size_t old_capacity,
-            size_t new_capacity, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
             size_t new_range_size) {
-      m_index.change_capacity(node_count, new_data_ptr, new_range_size,
-              new_capacity);
+      m_index.change_range_size(node_count, new_data_ptr, new_range_size,
+                node_count + 1); // TODO ok like this? how much should we grow?
       m_data = new_data_ptr;
     }
 
@@ -676,7 +664,7 @@ class DuplicateRecordList
     size_t m_duptable_threshold;
 
     // A cache for duplicate tables
-    DuplicateTableCache *m_duptable_cache;
+    ScopedPtr<DuplicateTableCache> m_duptable_cache;
 };
 
 //
@@ -707,12 +695,15 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         m_record_size(db->get_record_size()) {
     }
 
+    // Creates a new RecordList starting at |data|
+    void create(ham_u8_t *data, size_t range_size) {
+      m_data = data;
+      m_index.create(m_data, range_size, range_size / get_full_record_size());
+    }
+
     // Calculates the required size for a range with the specified |capacity|
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (UpfrontIndex::kPayloadOffset
-                    + new_capacity * m_index.get_full_index_size()
-                    + m_index.get_next_offset(node_count));
+    size_t get_required_range_size(size_t node_count) const {
+      return (m_index.get_required_range_size(node_count));
     }
 
     // Returns the actual record size including overhead
@@ -821,7 +812,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
           ham_u64_t table_id = dt->create(get_record_data(slot, 0),
                           record_count);
           if (!m_duptable_cache)
-            m_duptable_cache = new DuplicateTableCache();
+            m_duptable_cache.reset(new DuplicateTableCache());
           (*m_duptable_cache)[table_id] = dt;
 
           // write the id of the duplicate table
@@ -1001,11 +992,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       bool ret = m_index.requires_split(node_count, required);
       if (ret == false || vacuumize == false)
         return (ret);
-      if (m_index.get_vacuumize_counter() < required
-              || m_index.get_freelist_count() > 0) {
-        m_index.vacuumize(node_count);
+      if (m_index.maybe_vacuumize(node_count))
         ret = requires_split(node_count, false);
-      }
       return (ret);
     }
 
@@ -1070,16 +1058,19 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       : DuplicateRecordList(db, node, true, HAM_RECORD_SIZE_UNLIMITED) {
     }
 
+    // Creates a new RecordList starting at |data|
+    void create(ham_u8_t *data, size_t range_size) {
+      m_data = data;
+      m_index.create(m_data, range_size, range_size / get_full_record_size());
+    }
+
     // Calculates the required size for a range with the specified |capacity|
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (UpfrontIndex::kPayloadOffset
-                    + new_capacity * m_index.get_full_index_size()
-                    + m_index.get_next_offset(node_count));
+    size_t get_required_range_size(size_t node_count) const {
+      return (m_index.get_required_range_size(node_count));
     }
 
     // Returns the actual key record including overhead
-    double get_full_record_size() const {
+    size_t get_full_record_size() const {
       return (1 + 1 + 8 + m_index.get_full_index_size());
     }
 
@@ -1227,7 +1218,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
           ham_u64_t table_id = dt->create(get_record_data(slot, 0),
                           record_count);
           if (!m_duptable_cache)
-            m_duptable_cache = new DuplicateTableCache();
+            m_duptable_cache.reset(new DuplicateTableCache());
           (*m_duptable_cache)[table_id] = dt;
 
           // write the id of the duplicate table
@@ -1398,9 +1389,8 @@ write_record:
       // adjust next_offset, if necessary. Note that get_next_offset() is
       // called with a node_count of zero, which is valid (it avoids a
       // recalculation in case there is no next_offset)
-      if (m_index.get_next_offset(0) == m_index.get_chunk_offset(slot)
-                                            + m_index.get_chunk_size(slot))
-        m_index.invalidate_next_offset();
+      m_index.maybe_invalidate_next_offset(m_index.get_chunk_offset(slot)
+                      + m_index.get_chunk_size(slot));
 
       // erase all duplicates?
       if (all_duplicates) {
@@ -1464,11 +1454,8 @@ write_record:
       bool ret = m_index.requires_split(node_count, required);
       if (ret == false || vacuumize == false)
         return (ret);
-      if (m_index.get_vacuumize_counter() < required
-              || m_index.get_freelist_count() > 0) {
-        m_index.vacuumize(node_count);
+      if (!m_index.maybe_vacuumize(node_count))
         ret = requires_split(node_count, false);
-      }
       return (ret);
     }
 

@@ -15,14 +15,14 @@
  */
 
 /*
- * Base class for KeyLists
+ * Base class for RecordLists
  *
  * @exception_safe: unknown
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_KEYS_BASE_H
-#define HAM_BTREE_KEYS_BASE_H
+#ifndef HAM_BTREE_RECORDS_BASE_H
+#define HAM_BTREE_RECORDS_BASE_H
 
 #include "0root/root.h"
 
@@ -34,16 +34,11 @@
 
 namespace hamsterdb {
 
-class BaseKeyList
+class BaseRecordList
 {
   public:
-    BaseKeyList()
+    BaseRecordList()
       : m_range_size(0) {
-    }
-
-    // Prepares the page for a flush to disk; compressed KeyLists can overwrite
-    // this to serialize their data
-    void prepare_flush(size_t node_count) {
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
@@ -62,4 +57,4 @@ class BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_BASE_H */
+#endif /* HAM_BTREE_RECORDS_BASE_H */

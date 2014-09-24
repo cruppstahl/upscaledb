@@ -274,10 +274,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // still here? then there's no way to avoid the split
         BtreeIndex *bi = P::m_page->get_db()->get_btree_index();
-        bi->get_statistics()->set_page_capacity(P::m_node->is_leaf(),
-                        P::m_capacity);
         bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
-                        P::m_keys.get_range_size());
+                        load_range_size());
         return (true);
       }
 
@@ -334,91 +332,84 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Initializes the node
     void initialize(NodeType *other = 0) {
       LocalDatabase *db = P::m_page->get_db();
+      size_t usable_page_size = get_usable_page_size();
 
       // initialize this page in the same way as |other| was initialized
       if (other) {
-        P::m_capacity = other->m_capacity;
+        size_t key_range_size = other->load_range_size();
 
-        // persist the capacity
+        // persist the range size
+        store_range_size(key_range_size);
         ham_u8_t *p = P::m_node->get_data();
-        *(ham_u32_t *)p = P::m_capacity;
         p += sizeof(ham_u32_t);
 
         // create the KeyList and RecordList
-        size_t usable_page_size = get_usable_page_size();
-        size_t key_range_size = other->m_keys.get_range_size();
-        P::m_keys.create(p, key_range_size, P::m_capacity);
+        P::m_keys.create(p, key_range_size);
         P::m_records.create(p + key_range_size,
-                        usable_page_size - key_range_size,
-                        P::m_capacity);
+                        usable_page_size - key_range_size);
       }
       // initialize a new page from scratch
       else if ((P::m_node->get_count() == 0
                 && !(db->get_rt_flags() & HAM_READ_ONLY))) {
         size_t key_range_size;
         size_t record_range_size;
-        size_t usable_page_size = get_usable_page_size();
 
-        // if yes then ask the btree for the default capacity (it keeps
-        // track of the average capacity of older pages).
+        // if yes then ask the btree for the default range size (it keeps
+        // track of the average range size of older pages).
         BtreeStatistics *bstats = db->get_btree_index()->get_statistics();
-        P::m_capacity = bstats->get_page_capacity(P::m_node->is_leaf());
         key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
 
         // no data so far? then come up with a good default
-        if (P::m_capacity == 0) {
-          double dcapacity = (double)usable_page_size
-                            / (P::m_keys.get_full_key_size()
-                                    + P::m_records.get_full_record_size());
-          P::m_capacity = (size_t)dcapacity;
-
+        if (key_range_size == 0) {
           // calculate the sizes of the KeyList and RecordList
-          if (KeyList::kHasSequentialData) {
-            key_range_size = P::m_keys.get_full_key_size() * P::m_capacity;
-            record_range_size = usable_page_size - key_range_size;
-          }
-          else if (RecordList::kHasSequentialData) {
-            record_range_size = P::m_records.get_full_record_size()
-                    * P::m_capacity;
+          double ratio = (double)P::m_keys.get_full_key_size() /
+                              (double)P::m_records.get_full_record_size();
+          if (ratio == 1.)
+            key_range_size = usable_page_size / 2;
+          else if (ratio > 1) {
+            ratio = (double)P::m_records.get_full_record_size() /
+                        (double)P::m_keys.get_full_key_size();
+            record_range_size = (double)usable_page_size * ratio;
             key_range_size = usable_page_size - record_range_size;
           }
-          else {
-            key_range_size = P::m_keys.get_full_key_size() * P::m_capacity;
-            record_range_size = P::m_records.get_full_record_size() *
-                    P::m_capacity;
-          }
-        }
-        else {
-          record_range_size = usable_page_size - key_range_size;
+          else // ratio < 1
+            key_range_size = (double)usable_page_size * ratio;
         }
 
-        // persist the capacity
+        record_range_size = usable_page_size - key_range_size;
+
+        // persist the key range size
+        store_range_size(key_range_size);
         ham_u8_t *p = P::m_node->get_data();
-        *(ham_u32_t *)p = P::m_capacity;
         p += sizeof(ham_u32_t);
 
         // and create the lists
-        P::m_keys.create(p, key_range_size, P::m_capacity);
-        P::m_records.create(p + key_range_size, record_range_size,
-                        P::m_capacity);
+        P::m_keys.create(p, key_range_size);
+        P::m_records.create(p + key_range_size, record_range_size);
+
+        P::m_estimated_capacity = key_range_size
+                / (size_t)P::m_keys.get_full_key_size();
       }
       // open a page; read initialization parameters from persisted storage
       else {
-        // get the capacity
+        size_t key_range_size = load_range_size();
+        size_t record_range_size = usable_page_size - key_range_size;
         ham_u8_t *p = P::m_node->get_data();
-        P::m_capacity = *(ham_u32_t *)p;
         p += sizeof(ham_u32_t);
 
-        P::m_keys.open(p, P::m_capacity, P::m_node->get_count());
-        size_t key_range_size = P::m_keys.get_range_size();
-        P::m_records.open(p + key_range_size, P::m_capacity);
+        P::m_keys.open(p, key_range_size, P::m_node->get_count());
+        P::m_records.open(p + key_range_size, record_range_size,
+                        P::m_node->get_count());
+
+        P::m_estimated_capacity = key_range_size
+                / (size_t)P::m_keys.get_full_key_size();
       }
     }
 
-    // Adjusts the capacity of both lists; either increases it or decreases
+    // Adjusts the size of both lists; either increases it or decreases
     // it (in order to free up space for variable length data).
     // Returns true if |key| and an additional record can be inserted, or
-    // false if not; in this case the caller can perform a split.
+    // false if not; in this case the caller must perform a split.
     bool adjust_capacity(const ham_key_t *key, bool keys_require_split,
                     bool records_require_split) {
       size_t node_count = P::m_node->get_count();
@@ -428,136 +419,72 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       ham_assert(!KeyList::kHasSequentialData
               || !RecordList::kHasSequentialData);
 
-      size_t key_range_size = 0;
-      size_t record_range_size = 0;
-      size_t old_capacity = P::m_capacity;
-      size_t new_capacity;
+      // Retrieve the minimum sizes that both lists require to store their
+      // data
+      size_t key_range_size, record_range_size;
+      size_t required_key_range, required_record_range;
+      required_key_range = P::m_keys.get_required_range_size(node_count);
+      required_record_range = P::m_records.get_required_range_size(node_count);
+
+      // TODO make sure that the new size is large enough for the
+      // next insert operation! - simply increase the required sizes for 1 item
+
       size_t usable_page_size = get_usable_page_size();
+      size_t remainder = usable_page_size
+                            - (required_key_range + required_record_range); 
 
-      // We now have three options to make room for the new key/record pair:
-      //
-      // Option 1: if both lists are VariableLength and the capacity is
-      // sufficient then we can just change the sizes of both lists
-      if (!KeyList::kHasSequentialData && !RecordList::kHasSequentialData
-              && node_count < old_capacity) {
-        // KeyList range is too small: calculate the minimum required range
-        // for the KeyList and check if the remaining space is large enough
-        // for the RecordList
-        size_t required = P::m_records.calculate_required_range_size(node_count,
-                                      old_capacity);
-        if (P::m_records.get_full_record_size() < 10)
-          required += 10;
-        else
-          required += P::m_records.get_full_record_size();
-
-        if (keys_require_split) {
-          key_range_size = P::m_keys.calculate_required_range_size(node_count,
-                                      old_capacity)
-                            + P::m_keys.get_full_key_size(key);
-          record_range_size = usable_page_size - key_range_size;
-          if (record_range_size >= required) {
-            new_capacity = old_capacity;
-            goto apply_changes;
-          }
-        }
-        // RecordList range is too small: calculate the minimum required range
-        // for the RecordList and check if the remaining space is large enough
-        // for the Keylist
-        else {
-          record_range_size = required;
-          key_range_size = usable_page_size - record_range_size;
-          if (key_range_size > P::m_keys.calculate_required_range_size(node_count,
-                                old_capacity)
-                          + P::m_keys.get_full_key_size(key)) {
-            new_capacity = old_capacity;
-            goto apply_changes;
-          }
-        }
+      // Now split the remainder between both lists, according to the
+      // ratio of a single item
+      double ratio = (double)P::m_keys.get_full_key_size() /
+                          (double)P::m_records.get_full_record_size();
+      if (ratio == 1.)
+        key_range_size = required_key_range + remainder / 2;
+      else if (ratio > 1) {
+        ratio = (double)P::m_records.get_full_record_size() /
+                    (double)P::m_keys.get_full_key_size();
+        key_range_size = required_key_range + (double)remainder * ratio;
       }
-
-      // Option 2: if the capacity is exhausted then increase it.  
-      if (node_count == old_capacity) {
-        new_capacity = old_capacity + 1;
-      }
-      // Option 3: we reduce the capacity. This also reduces the metadata in
-      // the Lists (the UpfrontIndex shrinks) and therefore generates room
-      // for more data.
-      else {
-        size_t shrink_slots = (old_capacity - node_count) / 2;
-        if (shrink_slots == 0)
-          shrink_slots = 1;
-        new_capacity = old_capacity - shrink_slots;
-        if (new_capacity < node_count + 1)
-          return (false);
-      }
-
-      // Calculate the range sizes for the new capacity
-      if (KeyList::kHasSequentialData) {
-        key_range_size = P::m_keys.calculate_required_range_size(node_count,
-                                    new_capacity);
-        record_range_size = P::m_records.calculate_required_range_size(
-                                  node_count, new_capacity);
-      }
-      else if (RecordList::kHasSequentialData) {
-        record_range_size = P::m_records.calculate_required_range_size(
-                                  node_count, new_capacity);
-        if (record_range_size > usable_page_size)
-          return (false);
-        key_range_size = usable_page_size - record_range_size;
-        if (key_range_size < P::m_keys.calculate_required_range_size(
-                    node_count, new_capacity))
-          return (false);
-      }
-      else {
-        key_range_size = P::m_keys.calculate_required_range_size(node_count,
-                                  new_capacity - 1)
-                          + P::m_keys.get_full_key_size(key);
-        record_range_size = P::m_records.calculate_required_range_size(
-                                  node_count, new_capacity);
-        int diff = usable_page_size - (key_range_size + record_range_size);
-        if (diff > 10) // additional 10 bytes are reserved for the record list
-          key_range_size += diff / 2;
-      }
+      else // ratio < 1
+        key_range_size = required_key_range + (double)remainder * ratio;
+      record_range_size = usable_page_size - key_range_size;
 
       // Check if the required record space is large enough, and make sure
-      // there is enough room for a DuplicateTable id (if duplicates
-      // are enabled)
-apply_changes:
+      // there is enough room for a new item
       if (key_range_size > usable_page_size
           || record_range_size > usable_page_size
+          || key_range_size == load_range_size()
+          || key_range_size < required_key_range
+          || record_range_size < required_record_range
           || key_range_size + record_range_size > usable_page_size)
         return (false);
 
-      // Get a pointer to the data area and persist the new capacity
+      // Get a pointer to the data area and persist the new range size
+      // of the KeyList
+      store_range_size(key_range_size);
       ham_u8_t *p = P::m_node->get_data();
-      *(ham_u32_t *)p = new_capacity;
       p += sizeof(ham_u32_t);
 
-      // Now change the capacity in both lists. If the KeyList grows then
-      // start with resizing the RecordList, otherwise the moved KeyList
-      // will overwrite the beginning of the RecordList.
-      if (key_range_size > P::m_keys.get_range_size()) {
-        P::m_records.change_capacity(node_count, old_capacity, new_capacity,
-                        p + key_range_size,
+      // Now update the lists. If the KeyList grows then start with resizing
+      // the RecordList, otherwise the moved KeyList will overwrite the
+      // beginning of the RecordList.
+      if (key_range_size > load_range_size()) {
+        P::m_records.change_range_size(node_count, p + key_range_size,
                         usable_page_size - key_range_size);
-        P::m_keys.change_capacity(node_count, old_capacity, new_capacity,
-                        p, key_range_size);
+        P::m_keys.change_range_size(node_count, p, key_range_size);
       }
       // And vice versa if the RecordList grows
       else {
-        P::m_keys.change_capacity(node_count, old_capacity, new_capacity,
-                        p, key_range_size);
-        P::m_records.change_capacity(node_count, old_capacity, new_capacity,
-                        p + key_range_size,
+        P::m_keys.change_range_size(node_count, p, key_range_size);
+        P::m_records.change_range_size(node_count, p + key_range_size,
                         usable_page_size - key_range_size);
       }
       
-      P::m_capacity = new_capacity;
-
       // make sure that the page is flushed to disk
       P::m_page->set_dirty(true);
 
       // finally check if the new space is sufficient for the new key
+      // TODO this shouldn't be required if the check above is implemented
+      // -> change to an assert, then return true
       return (!P::m_records.requires_split(node_count)
                 && !P::m_keys.requires_split(node_count, key));
     }
@@ -638,6 +565,18 @@ apply_changes:
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
                     - sizeof(ham_u32_t));
+    }
+
+    // Persists the KeyList's range size
+    void store_range_size(size_t key_range_size) {
+      ham_u8_t *p = P::m_node->get_data();
+      *(ham_u32_t *)p = (ham_u32_t)key_range_size;
+    }
+
+    // Load the stored KeyList's range size
+    size_t load_range_size() const {
+      ham_u8_t *p = P::m_node->get_data();
+      return (*(ham_u32_t *)p);
     }
 
     // A memory arena for various tasks

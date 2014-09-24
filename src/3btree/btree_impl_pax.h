@@ -193,7 +193,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns true if |key| cannot be inserted because a split is required
     bool requires_split(const ham_key_t *key, bool vacuumize = false) const {
-      return (P::m_node->get_count() >= P::m_capacity);
+      return (P::m_node->get_count() >= P::m_estimated_capacity);
     }
 
     // Prepares the page for a flush to disk. Nothing to do here!
@@ -205,22 +205,25 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       ham_u32_t usable_nodesize
               = P::m_page->get_db()->get_local_env()->get_usable_page_size()
                     - PBtreeNode::get_entry_offset();
-      double ks = P::m_keys.get_full_key_size();
-      double rs = P::m_records.get_full_record_size();
-      P::m_capacity = (size_t)((double)usable_nodesize / (ks + rs));
+      size_t ks = P::m_keys.get_full_key_size();
+      size_t rs = P::m_records.get_full_record_size();
+      size_t capacity = usable_nodesize / (ks + rs);
 
       ham_u8_t *p = P::m_node->get_data();
       if (P::m_node->get_count() == 0) {
-        P::m_keys.create(&p[0], P::m_capacity * (size_t)ks,
-                        P::m_capacity);
-        P::m_records.create(&p[P::m_capacity * (size_t)ks],
-                        P::m_capacity * (size_t)rs,
-                        P::m_capacity);
+        P::m_keys.create(&p[0], capacity * ks);
+        P::m_records.create(&p[capacity * ks], capacity * rs);
       }
       else {
-        P::m_keys.open(&p[0], P::m_capacity, P::m_node->get_count());
-        P::m_records.open(&p[P::m_capacity * (size_t)ks], P::m_capacity);
+        size_t key_range_size = capacity * ks;
+        size_t record_range_size = capacity * rs;
+
+        P::m_keys.open(p, key_range_size, P::m_node->get_count());
+        P::m_records.open(p + key_range_size, record_range_size,
+                        P::m_node->get_count());
       }
+
+      P::m_estimated_capacity = capacity;
     }
 };
 

@@ -38,6 +38,7 @@
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_node.h"
+#include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
@@ -52,7 +53,7 @@ namespace hamsterdb {
 //
 namespace PaxLayout {
 
-class InlineRecordList
+class InlineRecordList : public BaseRecordList
 {
   public:
     enum {
@@ -62,37 +63,30 @@ class InlineRecordList
 
     // Constructor
     InlineRecordList(LocalDatabase *db, PBtreeNode *node)
-      : m_db(db), m_record_size(db->get_record_size()), m_data(0),
-        m_capacity(0) {
+      : m_db(db), m_record_size(db->get_record_size()), m_data(0) {
       ham_assert(m_record_size != HAM_RECORD_SIZE_UNLIMITED);
     }
 
     // Sets the data pointer
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+    void create(ham_u8_t *data, size_t range_size) {
       m_data = (ham_u8_t *)data;
-      m_capacity = capacity;
+      m_range_size = range_size;
     }
 
     // Opens an existing RecordList
-    void open(ham_u8_t *ptr, size_t capacity) {
+    void open(ham_u8_t *ptr, size_t range_size, size_t node_count) {
       m_data = ptr;
-      m_capacity = capacity;
+      m_range_size = range_size;
     }
 
     // Returns the actual record size including overhead
-    double get_full_record_size() const {
+    size_t get_full_record_size() const {
       return (m_record_size);
     }
 
-    // Returns the full size of the range
-    size_t get_range_size() const {
-      return (m_capacity * m_record_size);
-    }
-
     // Calculates the required size for a range with the specified |capacity|
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (new_capacity * m_record_size);
+    size_t get_required_range_size(size_t node_count) const {
+      return (node_count * m_record_size);
     }
 
     // Returns the record counter of a key
@@ -191,26 +185,16 @@ class InlineRecordList
 
     // Returns true if there's not enough space for another record
     bool requires_split(size_t node_count, bool vacuumize = false) const {
-      return (node_count >= m_capacity);
-    }
-
-    // Checks the integrity of this node. Throws an exception if there is a
-    // violation.
-    void check_integrity(size_t node_count, bool quick = false) const {
-    }
-
-    // Rearranges the list; not supported
-    void vacuumize(size_t node_count, bool force) const {
+      return (node_count * m_record_size >= m_range_size);
     }
 
     // Change the capacity; for PAX layouts this just means copying the
     // data from one place to the other
-    void change_capacity(size_t node_count, size_t old_capacity,
-            size_t new_capacity, ham_u8_t *new_data_ptr,
-            size_t new_range_size) {
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+                    size_t new_range_size) {
       memmove(new_data_ptr, m_data, node_count * m_record_size);
       m_data = new_data_ptr;
-      m_capacity = new_capacity;
+      m_range_size = new_range_size;
     }
 
     // Prints a slot to |out| (for debugging)
@@ -227,9 +211,6 @@ class InlineRecordList
 
     // The actual record data
     ham_u8_t *m_data;
-
-    // The capacity of m_data
-    size_t m_capacity;
 };
 
 } // namespace PaxLayout

@@ -74,35 +74,29 @@ class PodKeyList : public BaseKeyList
 
     // Constructor
     PodKeyList(LocalDatabase *db)
-      : m_data(0), m_capacity(0) {
+      : m_data(0) {
     }
 
     // Creates a new PodKeyList starting at |ptr|, total size is
-    // |full_range_size_bytes| (in bytes)
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+    // |range_size| (in bytes)
+    void create(ham_u8_t *data, size_t range_size) {
       m_data = (T *)data;
-      m_capacity = capacity;
+      m_range_size = range_size;
     }
 
     // Opens an existing PodKeyList starting at |ptr|
-    void open(ham_u8_t *data, size_t capacity, size_t node_count) {
-      m_capacity = capacity;
+    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
       m_data = (T *)data;
+      m_range_size = range_size;
     }
 
-    // Returns the full size of the range
-    size_t get_range_size() const {
-      return (m_capacity * sizeof(T));
-    }
-
-    // Calculates the required size for a range with the specified |capacity|
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (new_capacity * sizeof(T));
+    // Returns the required size for the current set of keys
+    size_t get_required_range_size(size_t node_count) const {
+      return (node_count * sizeof(T));
     }
 
     // Returns the actual key size including overhead
-    double get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ham_key_t *key = 0) const {
       return (sizeof(T));
     }
 
@@ -127,12 +121,6 @@ class PodKeyList : public BaseKeyList
     // Returns the threshold when switching from binary search to
     // linear search
     size_t get_linear_search_threshold() const {
-      // disabled the check for linear_threshold because it avoids
-      // inlining of this function
-#if 0
-      if (Globals::ms_linear_threshold)
-        return (Globals::ms_linear_threshold);
-#endif
       return (128 / sizeof(T));
     }
 
@@ -215,26 +203,15 @@ class PodKeyList : public BaseKeyList
     // Returns true if the |key| no longer fits into the node
     bool requires_split(size_t node_count, const ham_key_t *key,
                     bool vacuumize = false) const {
-      return (node_count >= m_capacity);
+      return (node_count * sizeof(T) >= m_range_size);
     }
 
-    // Checks the integrity of this node. Throws an exception if there is a
-    // violation.
-    void check_integrity(ham_u32_t count, bool quick = false) const {
-    }
-
-    // Rearranges the list; not supported
-    void vacuumize(ham_u32_t node_count, bool force) const {
-    }
-
-    // Change the capacity; for PAX layouts this just means copying the
-    // data from one place to the other
-    void change_capacity(size_t node_count, size_t old_capacity,
-            size_t new_capacity, ham_u8_t *new_data_ptr,
+    // Change the range size; just copy the data from one place to the other
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
             size_t new_range_size) {
       memmove(new_data_ptr, m_data, node_count * sizeof(T));
       m_data = (T *)new_data_ptr;
-      m_capacity = new_capacity;
+      m_range_size = new_range_size;
     }
 
     // Prints a slot to |out| (for debugging)
@@ -267,9 +244,6 @@ class PodKeyList : public BaseKeyList
 
     // The actual array of T's
     T *m_data;
-
-    // The capacity of m_data
-    size_t m_capacity;
 };
 
 } // namespace PaxLayout

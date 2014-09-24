@@ -115,19 +115,6 @@ class BtreeStatistics {
     // Resets the statistics for a single page
     void reset_page(Page *page);
 
-    // Sets the capacity of a page. The capacities of leaf nodes and
-    // internal pages is tracked separately. If |leaf| is true
-    // then |capacity| is for leaf pages, otherwise for internal pages.
-    void set_page_capacity(bool leaf, size_t capacity) {
-      m_page_capacity[(int)leaf] = capacity;
-    }
-
-    // Returns the default capacity for a page (default layout), or 0
-    // if there was not enough data
-    size_t get_page_capacity(bool leaf) const {
-      return (m_page_capacity[(int)leaf]);
-    }
-
     // Also keep track of the KeyList range size
     void set_keylist_range_size(bool leaf, size_t size) {
       m_keylist_range_size[(int)leaf] = size;
@@ -150,9 +137,6 @@ class BtreeStatistics {
 
     // count the number of prepends
     size_t m_prepend_count;
-
-    // the capacity of the btree nodes
-    size_t m_page_capacity[2];
 
     // the range size of the KeyList
     size_t m_keylist_range_size[2];

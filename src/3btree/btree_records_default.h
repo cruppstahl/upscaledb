@@ -39,6 +39,7 @@
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_node.h"
+#include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
@@ -53,7 +54,7 @@ namespace hamsterdb {
 //
 namespace PaxLayout {
 
-class DefaultRecordList
+class DefaultRecordList : public BaseRecordList
 {
   public:
     enum {
@@ -63,36 +64,32 @@ class DefaultRecordList
 
     // Constructor
     DefaultRecordList(LocalDatabase *db, PBtreeNode *node)
-      : m_db(db), m_flags(0), m_data(0), m_capacity(0) {
+      : m_db(db), m_flags(0), m_data(0) {
     }
 
     // Sets the data pointer; required for initialization
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+    void create(ham_u8_t *data, size_t range_size) {
+      size_t capacity = range_size / get_full_record_size();
       m_flags = data;
       m_data = (ham_u64_t *)&data[capacity];
-      m_capacity = capacity;
+      m_range_size = range_size;
     }
 
     // Opens an existing RecordList
-    void open(ham_u8_t *data, size_t capacity) {
+    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
+      size_t capacity = range_size / get_full_record_size();
       m_flags = data;
       m_data = (ham_u64_t *)&data[capacity];
-      m_capacity = capacity;
+      m_range_size = range_size;
     }
 
-    // Returns the full size of the range
-    size_t get_range_size() const {
-      return (m_capacity * (sizeof(ham_u64_t) + 1));
-    }
-
-    // Calculates the required size for a range with the specified |capacity|
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (new_capacity * (sizeof(ham_u64_t) + 1));
+    // Calculates the required size for a range
+    size_t get_required_range_size(size_t node_count) {
+      return (node_count * (sizeof(ham_u64_t) + 1));
     }
 
     // Returns the actual record size including overhead
-    double get_full_record_size() const {
+    size_t get_full_record_size() const {
       return (sizeof(ham_u64_t) + 1);
     }
 
@@ -240,7 +237,7 @@ class DefaultRecordList
                        sizeof(ham_u64_t) * (node_count - slot));
       }
       m_flags[slot] = 0;
-      memset(&m_data[slot], 0, sizeof(ham_u64_t));
+      m_data[slot] = 0;
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
@@ -264,23 +261,14 @@ class DefaultRecordList
 
     // Returns true if there's not enough space for another record
     bool requires_split(size_t node_count, bool vacuumize = false) const {
-      return (node_count >= m_capacity);
-    }
-
-    // Checks the integrity of this node. Throws an exception if there is a
-    // violation.
-    void check_integrity(size_t node_count, bool quick = false) const {
-    }
-
-    // Rearranges the list; not supported
-    void vacuumize(size_t node_count, bool force) const {
+      return (node_count * get_full_record_size() >= m_range_size);
     }
 
     // Change the capacity; for PAX layouts this just means copying the
     // data from one place to the other
-    void change_capacity(size_t node_count, size_t old_capacity,
-            size_t new_capacity, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
             size_t new_range_size) {
+      size_t new_capacity = new_range_size / get_full_record_size();
       // shift "to the right"? then first shift key data, otherwise
       // the flags might overwrite the data
       if (new_data_ptr > m_flags) {
@@ -295,7 +283,7 @@ class DefaultRecordList
       }
       m_flags = new_data_ptr;
       m_data = (ham_u64_t *)&new_data_ptr[new_capacity];
-      m_capacity = new_capacity;
+      m_range_size = new_range_size;
     }
 
     // Prints a slot to |out| (for debugging)
@@ -386,9 +374,6 @@ class DefaultRecordList
 
     // The actual record data - an array of 64bit record IDs
     ham_u64_t *m_data;
-
-    // The capacity of m_data
-    size_t m_capacity;
 };
 
 } // namespace PaxLayout

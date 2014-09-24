@@ -1575,7 +1575,6 @@ struct UpfrontIndexFixture
     REQUIRE(ui.get_freelist_count() == 0);
     REQUIRE(ui.get_capacity() == 300);
     REQUIRE(ui.get_next_offset(0) == 0);
-    REQUIRE(ui.get_range_size() == sizeof(data));
 
     UpfrontIndex ui2((LocalDatabase *)m_db);
     REQUIRE(ui2.get_full_index_size() == 3);
@@ -1583,7 +1582,6 @@ struct UpfrontIndexFixture
     REQUIRE(ui2.get_freelist_count() == 0);
     REQUIRE(ui2.get_capacity() == 300);
     REQUIRE(ui2.get_next_offset(0) == 0);
-    REQUIRE(ui2.get_range_size() == sizeof(data));
   }
 
   void appendSlotTest() {

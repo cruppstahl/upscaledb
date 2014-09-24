@@ -67,7 +67,7 @@ struct BtreeFixture {
     REQUIRE(0 == ham_db_get_parameters(db, query));
     REQUIRE((ham_u64_t)HAM_TYPE_BINARY == query[0].value);
     REQUIRE(HAM_KEY_SIZE_UNLIMITED == query[1].value);
-    REQUIRE(441u == (unsigned)query[2].value);
+    REQUIRE(395u == (unsigned)query[2].value);
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE

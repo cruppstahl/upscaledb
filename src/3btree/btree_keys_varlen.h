@@ -50,6 +50,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/globals.h"
 #include "1base/byte_array.h"
+#include "1base/scoped_ptr.h"
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_node.h"
@@ -109,7 +110,7 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
 // The UpfrontIndex stores metadata at the beginning:
 //     [0..3]  freelist count
 //     [4..7]  next offset
-//     [8..11] range size
+//     [8..11] capacity
 //
 // Data is stored in the following layout:
 // |metadata|slot1|slot2|...|slotN|free1|free2|...|freeM|data1|data2|...|dataN|
@@ -123,14 +124,14 @@ class UpfrontIndex
 
   public:
     enum {
-      // for freelist_count, next_offset, range_size
+      // for freelist_count, next_offset, capacity
       kPayloadOffset = 12,
     };
 
     // Constructor; creates an empty index which needs to be initialized
     // with |create()| or |open()|.
     UpfrontIndex(LocalDatabase *db)
-      : m_data(0), m_capacity(0), m_vacuumize_counter(0) {
+      : m_data(0), m_range_size(0), m_vacuumize_counter(0) {
       size_t page_size = db->get_local_env()->get_page_size();
       if (page_size <= 64 * 1024)
         m_sizeof_offset = 2;
@@ -140,40 +141,41 @@ class UpfrontIndex
 
     // Initialization routine; sets data pointer, range size and the
     // initial capacity.
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+    void create(ham_u8_t *data, size_t range_size, size_t capacity) {
       m_data = data;
-      m_capacity = capacity;
-      set_full_range_size(full_range_size_bytes);
+      m_range_size = range_size;
+      set_capacity(capacity);
       clear();
     }
 
     // "Opens" an existing index from memory. This method sets the data
     // pointer and initializes itself.
-    void open(ham_u8_t *data, size_t capacity) {
+    void open(ham_u8_t *data, size_t range_size) {
       m_data = data;
-      m_capacity = capacity;
+      m_range_size = range_size;
       // the vacuumize-counter is not persisted, therefore
       // pretend that the counter is very high; in worst case this will cause
       // an invalid call to vacuumize(), which is not a problem
       if (get_freelist_count())
-        m_vacuumize_counter = get_range_size();
+        m_vacuumize_counter = m_range_size;
     }
 
-    // Returns the capacity; required for tests
-    size_t get_capacity() const {
-      return (m_capacity);
-    }
+    // Changes the range size and capacity of the index; used to resize the
+    // KeyList or RecordList
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+                    size_t new_range_size, size_t new_capacity) {
+      if (!new_data_ptr)
+        new_data_ptr = m_data;
+      if (!new_range_size)
+        new_range_size = m_range_size;
 
-    // Changes the capacity of the index; used to resize the KeyList or
-    // RecordList
-    void change_capacity(size_t node_count, ham_u8_t *new_data_ptr,
-            size_t full_range_size_bytes, size_t new_capacity) {
       size_t used_data_size = get_next_offset(node_count); 
+      size_t old_capacity = get_capacity();
       ham_u8_t *src = &m_data[kPayloadOffset
-                            + m_capacity * get_full_index_size()];
+                            + old_capacity * get_full_index_size()];
       ham_u8_t *dst = &new_data_ptr[kPayloadOffset
                             + new_capacity * get_full_index_size()];
-      ham_assert(dst - new_data_ptr + used_data_size <= full_range_size_bytes);
+      ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
       // shift "to the right"? Then first move the data and afterwards
       // the index
       if (dst > src) {
@@ -182,16 +184,23 @@ class UpfrontIndex
                 kPayloadOffset + new_capacity * get_full_index_size());
       }
       // vice versa otherwise
-      else {
+      else if (dst < src) {
         if (new_data_ptr != m_data)
           memmove(new_data_ptr, m_data,
                   kPayloadOffset + new_capacity * get_full_index_size());
         memmove(dst, src, used_data_size);
       }
       m_data = new_data_ptr;
-      m_capacity = new_capacity;
+      m_range_size = new_range_size;
+      set_capacity(new_capacity);
       set_next_offset(used_data_size);
-      set_full_range_size(full_range_size_bytes);
+    }
+
+    // Calculates the required size for a range
+    size_t get_required_range_size(size_t node_count) const {
+      return (UpfrontIndex::kPayloadOffset
+                    + node_count * get_full_index_size()
+                    + get_next_offset(node_count));
     }
 
     // Returns the size of a single index entry
@@ -204,7 +213,7 @@ class UpfrontIndex
     ham_u32_t get_absolute_offset(ham_u32_t offset) const {
       return (offset
                       + kPayloadOffset
-                      + m_capacity * get_full_index_size());
+                      + get_capacity() * get_full_index_size());
     }
 
     // Returns the absolute start offset of a chunk
@@ -242,16 +251,20 @@ class UpfrontIndex
       m_vacuumize_counter += gap_size;
     }
 
-    // Returns the 'vacuumize counter' - an indicator how much space can
-    // be gained by calling vacuumize()
-    size_t get_vacuumize_counter() const {
-      return (m_vacuumize_counter);
+    // Vacuumizes the index, *if it makes sense*. Returns true if the
+    // operation was successful, otherwise false 
+    bool maybe_vacuumize(size_t node_count) {
+      if (m_vacuumize_counter > 0 || get_freelist_count() > 0) {
+        vacuumize(node_count);
+        return (true);
+      }
+      return (false);
     }
 
     // Returns true if this index has at least one free slot available.
     // |node_count| is the number of used slots (this is managed by the caller)
     bool can_insert_slot(size_t node_count) {
-      return (likely(node_count + get_freelist_count() < m_capacity));
+      return (likely(node_count + get_freelist_count() < get_capacity()));
     }
 
     // Inserts a slot at the position |slot|. |node_count| is the number of
@@ -307,7 +320,7 @@ class UpfrontIndex
     void add_to_freelist(size_t node_count, ham_u32_t chunk_offset,
                     ham_u32_t chunk_size) {
       size_t total_count = node_count + get_freelist_count();
-      if (likely(total_count < m_capacity)) {
+      if (likely(total_count < get_capacity())) {
         set_freelist_count(get_freelist_count() + 1);
         set_chunk_size(total_count, chunk_size);
         set_chunk_offset(total_count, chunk_offset);
@@ -402,10 +415,10 @@ class UpfrontIndex
                     ? get_next_offset(node_count) > 0
                     : true);
 
-      if (total_count > m_capacity) {
+      if (total_count > get_capacity()) {
         ham_trace(("integrity violated: total count %u (%u+%u) > capacity %u",
                     total_count, node_count, get_freelist_count(),
-                    m_capacity));
+                    get_capacity()));
         throw Exception(HAM_INTEGRITY_VIOLATED);
       }
 
@@ -490,14 +503,14 @@ class UpfrontIndex
     // Returns a pointer to the actual data of a chunk
     ham_u8_t *get_chunk_data_by_offset(ham_u32_t offset) {
       return (&m_data[kPayloadOffset
-                      + m_capacity * get_full_index_size()
+                      + get_capacity() * get_full_index_size()
                       + offset]);
     }
 
     // Returns a pointer to the actual data of a chunk
     ham_u8_t *get_chunk_data_by_offset(ham_u32_t offset) const {
       return (&m_data[kPayloadOffset
-                      + m_capacity * get_full_index_size()
+                      + get_capacity() * get_full_index_size()
                       + offset]);
     }
 
@@ -536,7 +549,7 @@ class UpfrontIndex
       // shift all keys to the left, get rid of all gaps at the front of the
       // key data or between the keys
       ham_u32_t next_offset = 0;
-      ham_u32_t start = kPayloadOffset + m_capacity * get_full_index_size();
+      ham_u32_t start = kPayloadOffset + get_capacity() * get_full_index_size();
       for (ham_u32_t i = 0; i < node_count; i++) {
         ham_u32_t offset = s[i].offset;
         ham_u32_t slot = s[i].slot;
@@ -563,9 +576,25 @@ class UpfrontIndex
       set_next_offset((ham_u32_t)-1);
     }
 
-    // Returns the full size of the range
-    ham_u32_t get_range_size() const {
-      return (*(ham_u32_t *)(m_data + 8));
+    // Same as above, but only if the next_offset equals |new_offset|
+    void maybe_invalidate_next_offset(size_t new_offset) {
+      if (get_next_offset(0) == new_offset)
+        invalidate_next_offset();
+    }
+
+    // Returns the capacity; required for tests
+    size_t test_get_capacity() const {
+      return (get_capacity());
+    }
+
+  private:
+    friend class UpfrontIndexFixture;
+
+    // Resets the page
+    void clear() {
+      set_freelist_count(0);
+      set_next_offset(0);
+      m_vacuumize_counter = 0;
     }
 
     // Returns the offset of the unused space at the end of the page
@@ -587,26 +616,10 @@ class UpfrontIndex
       return (ret);
     }
 
-    // Returns the number of freelist entries
-    size_t get_freelist_count() const {
-      return (*(ham_u32_t *)m_data);
-    }
-
-  private:
-    friend class UpfrontIndexFixture;
-
-    // Resets the page
-    void clear() {
-      set_freelist_count(0);
-      set_next_offset(0);
-      m_vacuumize_counter = 0;
-    }
-
     // Returns the size (in bytes) where payload data can be stored
     size_t get_usable_data_size() const {
-      return (get_range_size()
-                      - kPayloadOffset
-                      - m_capacity * get_full_index_size());
+      return (m_range_size - kPayloadOffset
+                      - get_capacity() * get_full_index_size());
     }
 
     // Sets the chunk offset of a slot
@@ -618,9 +631,14 @@ class UpfrontIndex
         *(ham_u32_t *)p = offset;
     }
 
+    // Returns the number of freelist entries
+    size_t get_freelist_count() const {
+      return (*(ham_u32_t *)m_data);
+    }
+
     // Sets the number of freelist entries
     void set_freelist_count(size_t freelist_count) {
-      ham_assert(freelist_count <= m_capacity);
+      ham_assert(freelist_count <= get_capacity());
       *(ham_u32_t *)m_data = freelist_count;
     }
 
@@ -641,10 +659,15 @@ class UpfrontIndex
       *(ham_u32_t *)(m_data + 4) = next_offset;
     }
 
-    // The full size of the whole range (includes metadata overhead at the
-    // beginning)
-    void set_full_range_size(ham_u32_t full_size) {
-      *(ham_u32_t *)(m_data + 8) = full_size;
+    // Returns the capacity
+    size_t get_capacity() const {
+      return (*(ham_u32_t *)(m_data + 8));
+    }
+
+    // Sets the capacity (number of slots)
+    void set_capacity(size_t capacity) {
+      ham_assert(capacity > 0);
+      *(ham_u32_t *)(m_data + 8) = (ham_u32_t)capacity;
     }
 
     // The physical data in the node
@@ -653,8 +676,8 @@ class UpfrontIndex
     // The size of the offset; either 16 or 32 bits, depending on page size
     size_t m_sizeof_offset;
 
-    // The capacity (number of available slots)
-    size_t m_capacity;
+    // The size of the range, in bytes
+    size_t m_range_size;
 
     // A counter to indicate when rearranging the data makes sense
     int m_vacuumize_counter;
@@ -692,7 +715,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Constructor
     VariableLengthKeyList(LocalDatabase *db)
-      : m_db(db), m_index(db), m_data(0), m_extkey_cache(0) {
+      : m_db(db), m_index(db), m_data(0) {
       size_t page_size = db->get_local_env()->get_page_size();
       if (Globals::ms_extended_threshold)
         m_extkey_threshold = Globals::ms_extended_threshold;
@@ -709,25 +732,19 @@ class VariableLengthKeyList : public BaseKeyList
       }
     }
 
-    // Destructor; clears the cache to avoid memory leaks
-    ~VariableLengthKeyList() {
-      if (m_extkey_cache) {
-        delete m_extkey_cache;
-        m_extkey_cache = 0;
-      }
-    }
-
     // Creates a new KeyList starting at |ptr|, total size is
-    // |full_range_size_bytes| (in bytes)
-    void create(ham_u8_t *data, size_t full_range_size_bytes, size_t capacity) {
+    // |range_size| (in bytes)
+    void create(ham_u8_t *data, size_t range_size) {
       m_data = data;
-      m_index.create(m_data, full_range_size_bytes, capacity);
+      m_range_size = range_size;
+      m_index.create(m_data, range_size, range_size / get_full_key_size());
     }
 
     // Opens an existing KeyList
-    void open(ham_u8_t *data, size_t capacity, size_t node_count) {
+    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
       m_data = data;
-      m_index.open(m_data, capacity);
+      m_range_size = range_size;
+      m_index.open(m_data, range_size);
     }
 
     // Has support for SIMD style search?
@@ -735,22 +752,14 @@ class VariableLengthKeyList : public BaseKeyList
       return (false);
     }
 
-    // Returns the full size of the range
-    size_t get_range_size() const {
-      return (m_index.get_range_size());
-    }
-
-    // Calculates the required size for a range with the specified |capacity|.
-    size_t calculate_required_range_size(size_t node_count,
-            size_t new_capacity) const {
-      return (UpfrontIndex::kPayloadOffset
-                    + new_capacity * m_index.get_full_index_size()
-                    + m_index.get_next_offset(node_count));
+    // Calculates the required size for a range
+    size_t get_required_range_size(size_t node_count) const {
+      return (m_index.get_required_range_size(node_count));
     }
 
     // Returns the actual key size including overhead. This is an estimate
     // since we don't know how large the keys will be
-    double get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ham_key_t *key = 0) const {
       if (!key)
         return (24 + m_index.get_full_index_size() + 1);
       // always make sure to have enough space for an extkey id
@@ -876,11 +885,8 @@ class VariableLengthKeyList : public BaseKeyList
       bool ret = m_index.requires_split(node_count, required);
       if (ret == false || vacuumize == false)
         return (ret);
-      if (m_index.get_vacuumize_counter() < required
-              || m_index.get_freelist_count() > 0) {
-        m_index.vacuumize(node_count);
+      if (m_index.maybe_vacuumize(node_count))
         ret = requires_split(node_count, key, false);
-      }
       return (ret);
     }
 
@@ -888,6 +894,12 @@ class VariableLengthKeyList : public BaseKeyList
     void copy_to(ham_u32_t sstart, size_t node_count,
                     VariableLengthKeyList &dest, size_t other_node_count,
                     ham_u32_t dstart) {
+      ham_assert(node_count - sstart > 0);
+
+      // make sure that the other node has sufficient capacity in its
+      // UpfrontIndex
+      dest.m_index.change_range_size(other_node_count, 0, 0, node_count);
+
       size_t i = 0;
       for (; i < node_count - sstart; i++) {
         size_t size = get_key_size(sstart + i);
@@ -967,15 +979,16 @@ class VariableLengthKeyList : public BaseKeyList
       m_index.vacuumize(node_count);
     }
 
-    // Change the capacity; the capacity will be reduced, growing is not
-    // implemented. Which means that the data area must be copied; the offsets
-    // do not have to be changed.
-    void change_capacity(size_t node_count, size_t old_capacity,
-            size_t new_capacity, ham_u8_t *new_data_ptr,
+    // Change the range size; the capacity will be adjusted, the data is
+    // copied as necessary
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
             size_t new_range_size) {
-      m_index.change_capacity(node_count, new_data_ptr, new_range_size,
-              new_capacity);
+      m_index.change_range_size(node_count, new_data_ptr, new_range_size,
+                        node_count + 1); // TODO +1 is bogus - only increase
+                                         // if new capacity is required! (but
+                                         // we don't know that here)
       m_data = new_data_ptr;
+      m_range_size = new_range_size;
     }
 
     // Prints a slot to |out| (for debugging)
@@ -1058,7 +1071,7 @@ class VariableLengthKeyList : public BaseKeyList
     // use the cache.
     void get_extended_key(ham_u64_t blob_id, ham_key_t *key) {
       if (!m_extkey_cache)
-        m_extkey_cache = new ExtKeyCache();
+        m_extkey_cache.reset(new ExtKeyCache());
       else {
         ExtKeyCache::iterator it = m_extkey_cache->find(blob_id);
         if (it != m_extkey_cache->end()) {
@@ -1081,7 +1094,7 @@ class VariableLengthKeyList : public BaseKeyList
     // Allocates an extended key and stores it in the cache
     ham_u64_t add_extended_key(const ham_key_t *key) {
       if (!m_extkey_cache)
-        m_extkey_cache = new ExtKeyCache();
+        m_extkey_cache.reset(new ExtKeyCache());
 
       ham_record_t rec = {0};
       rec.data = key->data;
@@ -1114,7 +1127,7 @@ class VariableLengthKeyList : public BaseKeyList
     ham_u8_t *m_data;
 
     // Cache for extended keys
-    ExtKeyCache *m_extkey_cache;
+    ScopedPtr<ExtKeyCache> m_extkey_cache;
 
     // Threshold for extended keys; if key size is > threshold then the
     // key is moved to a blob

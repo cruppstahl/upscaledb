@@ -47,13 +47,14 @@ class BaseNodeImpl
   public:
     // Constructor
     BaseNodeImpl(Page *page)
-      : m_page(page), m_node(PBtreeNode::from_page(page)), m_capacity(0),
-        m_keys(page->get_db()), m_records(page->get_db(), m_node) {
+      : m_page(page), m_node(PBtreeNode::from_page(page)),
+        m_estimated_capacity(0), m_keys(page->get_db()),
+        m_records(page->get_db(), m_node) {
     }
 
-    // Returns the page's capacity
-    size_t get_capacity() const {
-      return (m_capacity);
+    // Returns the estimated page's capacity
+    size_t estimate_capacity() const {
+      return (m_estimated_capacity);
     }
 
     // Checks this node's integrity
@@ -160,7 +161,7 @@ class BaseNodeImpl
 
     // Returns true if the node requires a merge or a shift
     bool requires_merge() const {
-      return (m_node->get_count() <= std::max((size_t)3, m_capacity / 5));
+      return (m_node->get_count() <= 3);
     }
 
     // Merges this node with the |other| node
@@ -169,10 +170,12 @@ class BaseNodeImpl
       size_t other_node_count = other->m_node->get_count();
 
       // shift items from the sibling to this page
-      other->m_keys.copy_to(0, other_node_count, m_keys,
-                      node_count, node_count);
-      other->m_records.copy_to(0, other_node_count, m_records,
-                      node_count, node_count);
+      if (other_node_count > 0) {
+        other->m_keys.copy_to(0, other_node_count, m_keys,
+                        node_count, node_count);
+        other->m_records.copy_to(0, other_node_count, m_records,
+                        node_count, node_count);
+      }
     }
 
     // Prints a slot to stdout (for debugging)
@@ -204,7 +207,7 @@ class BaseNodeImpl
 
     // Capacity of this node (maximum number of key/record pairs that
     // can be stored)
-    size_t m_capacity;
+    size_t m_estimated_capacity;
 
     // for accessing the keys
     KeyList m_keys;

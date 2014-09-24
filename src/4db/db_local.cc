@@ -652,7 +652,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
                         PageManager::kReadOnly);
         if (page) {
           BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
-          p->value = node->get_capacity();
+          p->value = node->estimate_capacity();
         }
         break;
       case HAM_PARAM_RECORD_COMPRESSION:

@@ -137,7 +137,7 @@ class BtreeNodeProxy
     }
 
     // Returns the estimated capacity of this node
-    virtual size_t get_capacity() const = 0;
+    virtual size_t estimate_capacity() const = 0;
 
     // Checks the integrity of the node. Throws an exception if it is
     // not. Called by ham_db_check_integrity().
@@ -368,8 +368,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns the estimated capacity of this node
-    virtual size_t get_capacity() const {
-      return (m_impl.get_capacity());
+    virtual size_t estimate_capacity() const {
+      return (m_impl.estimate_capacity());
     }
 
     // Checks the integrity of the node
