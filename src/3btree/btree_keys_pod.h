@@ -201,8 +201,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Returns true if the |key| no longer fits into the node
-    bool requires_split(size_t node_count, const ham_key_t *key,
-                    bool vacuumize = false) const {
+    bool requires_split(size_t node_count, const ham_key_t *key) const {
       return (node_count * sizeof(T) >= m_range_size);
     }
 

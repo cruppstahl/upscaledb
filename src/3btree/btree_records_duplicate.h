@@ -631,7 +631,7 @@ class DuplicateRecordList : public BaseRecordList
     void vacuumize(size_t node_count, bool force) {
       if (force)
         m_index.increase_vacuumize_counter(1);
-      m_index.vacuumize(node_count);
+      m_index.maybe_vacuumize(node_count);
     }
 
   protected:
@@ -986,9 +986,9 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         capacity_hint = m_index.get_capacity();
         if (new_range_size > m_range_size) {
           int diff = (new_range_size - m_range_size) / get_full_record_size();
-          if (diff == 0)
-            diff = 1;
           capacity_hint += diff;
+        if (capacity_hint <= node_count)
+          capacity_hint = node_count + 1;
         }
         else if (new_range_size < m_range_size && capacity_hint > node_count)
           capacity_hint -= (capacity_hint - node_count) / 2;
@@ -1001,18 +1001,13 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count, bool vacuumize = false) {
+    bool requires_split(size_t node_count) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
       size_t required = get_full_record_size();
       if (required < 10)
         required = 10;
-      bool ret = m_index.requires_split(node_count, required);
-      if (ret == false || vacuumize == false)
-        return (ret);
-      if (m_index.maybe_vacuumize(node_count))
-        ret = requires_split(node_count, false);
-      return (ret);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Prints a slot to |out| (for debugging)
@@ -1472,12 +1467,12 @@ write_record:
         capacity_hint = m_index.get_capacity();
         if (new_range_size > m_range_size) {
           int diff = (new_range_size - m_range_size) / get_full_record_size();
-          if (diff == 0)
-            diff = 1;
           capacity_hint += diff;
         }
         else if (new_range_size < m_range_size && capacity_hint > node_count)
           capacity_hint -= (capacity_hint - node_count) / 2;
+        if (capacity_hint <= node_count)
+          capacity_hint = node_count + 1;
       }
 
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
@@ -1487,18 +1482,13 @@ write_record:
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count, bool vacuumize = false) {
+    bool requires_split(size_t node_count) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
       size_t required = get_full_record_size();
       if (required < 10)
         required = 10;
-      bool ret = m_index.requires_split(node_count, required);
-      if (ret == false || vacuumize == false)
-        return (ret);
-      if (!m_index.maybe_vacuumize(node_count))
-        ret = requires_split(node_count, false);
-      return (ret);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Prints a slot to |out| (for debugging)

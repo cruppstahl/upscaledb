@@ -240,6 +240,10 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     bool requires_split(const ham_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
+      // the node is empty? that's either because nothing was inserted yet,
+      // or because all keys were erased. For the latter case make sure
+      // that no garbage remains behind, otherwise it's possible that
+      // following inserts can fail
       if (node_count == 0) {
         P::m_records.vacuumize(node_count, true);
         P::m_keys.vacuumize(node_count, true);
@@ -251,38 +255,44 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (!keys_require_split && !records_require_split)
         return (false);
 
-      // try to resize the lists before admitting defeat and splitting
+      // first try to vaccumize the lists without rearranging them
       // the page
-      if (keys_require_split || records_require_split) {
-        // "vacuumize" both lists
-        // TODO this requires cleanups. The last parameter of requires_split()
-        // should no longer be necessary
-        P::m_records.vacuumize(node_count, false);
+      if (keys_require_split) {
         P::m_keys.vacuumize(node_count, false);
-        if (records_require_split)
-          records_require_split = P::m_records.requires_split(node_count, true);
-        if (keys_require_split)
-          keys_require_split = P::m_keys.requires_split(node_count, key, true);
+        keys_require_split = P::m_keys.requires_split(node_count, key);
+      }
+     
+      if (records_require_split) {
+        P::m_records.vacuumize(node_count, false);
+        records_require_split = P::m_records.requires_split(node_count);
+      }
 
-        if (adjust_capacity(key, keys_require_split, records_require_split)) {
-#ifdef HAM_DEBUG
-          check_index_integrity(node_count);
-#endif
-          return (false);
-        }
+      if (!keys_require_split && !records_require_split)
+        return (false);
 
+      // not successful? make sure that both lists are vacuumized
+      if (keys_require_split)
+        P::m_records.vacuumize(node_count, false);
+      if (records_require_split)
+        P::m_keys.vacuumize(node_count, false);
+
+      // now adjust the ranges and the capacity
+      if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
         check_index_integrity(node_count);
 #endif
-
-        // still here? then there's no way to avoid the split
-        BtreeIndex *bi = P::m_page->get_db()->get_btree_index();
-        bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
-                        load_range_size());
-        return (true);
+        return (false);
       }
 
-      return (false);
+#ifdef HAM_DEBUG
+      check_index_integrity(node_count);
+#endif
+
+      // still here? then there's no way to avoid the split
+      BtreeIndex *bi = P::m_page->get_db()->get_btree_index();
+      bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
+                      load_range_size());
+      return (true);
     }
 
     // Splits this node and moves some/half of the keys to |other|

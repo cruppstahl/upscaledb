@@ -184,7 +184,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count, bool vacuumize = false) const {
+    bool requires_split(size_t node_count) const {
       return (node_count * m_record_size >= m_range_size);
     }
 

@@ -226,6 +226,8 @@ x ZINT32: implement a NULL-compressor; it needs to keep track of
     x check_integrity checks compressed size (+ overhead!) vs full_range_size
     x then run tests against berkeleydb
 
+x refactoring: the btree "slot" should be plain integer instead of ham_u32_t
+
 x ZINT32: add varbyte compression
     x make sure that the code runs "as is"
     x decode-function needs number of encoded keys (do not persist it in
@@ -280,9 +282,10 @@ o refactoring: rewrite capacity calculations (again...)
             x what about shrinking? if capacity >> node_count then reduce
                 the capacity
     o List:requires_split should no longer vacuumize
-        o lists should rearrange themselves internally for the new key
+        x lists should rearrange themselves internally for the new key
             -> pass capacity + required data to vacuumize()
-        o still no success? then call rearrange in the caller
+        x still no success? then call rearrange() in the caller
+        o unittests are currently failing
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in
         btree_node_proxy.h.
@@ -300,8 +303,6 @@ o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
     o linear search 
     o btree_keys_base should implement get_key(), because it's basically all
         about the arena handling
-
-o refactoring: the btree "slot" should be plain integer instead of ham_u32_t
 
 o ZINT32: if compression/decompression works in-place then do not
     use the ByteArray!
@@ -344,21 +345,6 @@ o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
 
-o refactoring: when the file format is changed then...
-    o improve node layout compression (when the file format changes)
-        o flags are not required at all if fixed length record size > 8
-            (and record size is too large for inline records)
-        o compress the flags for the DefaultRecordList (4 bit per item)
-        o Default Layout: can compress the flags for the Duplicate*RecordList
-        o DuplicateTable: also compress the flags
-        o UpfrontIndex: use bit packing to compress slot/offset pairs
-    o internal node layout: store page IDs div pagesize to get smaller
-        integers (will be compressed better)
-        o and align pages to the pagesize when using malloc
-        o then compress them with bitpacking (scroll down to 2.1.9-pro for
-            details)
-    o rebase hamsterdb-pro
-
 o refactoring: improve hola performance
     o get rid of the virtual inheritance for hola workers
     o improve performance for hola-sum (profile!)
@@ -393,6 +379,26 @@ o erlang fixes are required
         specific duplicate, or to fetch a specific duplicate.
     o QuickCheck: create a new property for testing recnos, with lots of deletes
 
+o refactoring: can we get rid of ham_record_t::_intflags and
+    ham_record_t::_rid? at least deprecate them, then remove them with
+    the next ABI change
+    -> yes, just remove them. they are no longer used.
+
+o refactoring: when the file format is changed then...
+    o improve node layout compression (when the file format changes)
+        o flags are not required at all if fixed length record size > 8
+            (and record size is too large for inline records)
+        o compress the flags for the DefaultRecordList (4 bit per item)
+        o Default Layout: can compress the flags for the Duplicate*RecordList
+        o DuplicateTable: also compress the flags
+        o UpfrontIndex: use bit packing to compress slot/offset pairs
+    o internal node layout: store page IDs div pagesize to get smaller
+        integers (will be compressed better)
+        o and align pages to the pagesize when using malloc
+        o then compress them with bitpacking (scroll down to 2.1.9-pro for
+            details)
+    o rebase hamsterdb-pro
+
 o windows cleanups
     o install VS2008 on the new harddisk
     o install VS2010 on the new harddisk
@@ -404,11 +410,6 @@ o windows cleanups
     o C# unittests sporadically fail b/c a handle is closed multiple times
     o automate the build process
     o ... and the packaging
-
-o refactoring: can we get rid of ham_record_t::_intflags and
-    ham_record_t::_rid? at least deprecate them, then remove them with
-    the next ABI change
-    -> yes, just remove them. they are no longer used.
 
 . delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node

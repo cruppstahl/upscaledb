@@ -175,6 +175,7 @@ class UpfrontIndex
       if (new_capacity < kMinimumCapacity)
         new_capacity = kMinimumCapacity;
 
+      size_t freelist_count = get_freelist_count();
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
       ham_u8_t *src = &m_data[kPayloadOffset
@@ -200,6 +201,7 @@ class UpfrontIndex
       m_range_size = new_range_size;
       set_capacity(new_capacity);
       set_next_offset(used_data_size);
+      set_freelist_count(freelist_count);
     }
 
     // Calculates the required size for a range
@@ -261,7 +263,7 @@ class UpfrontIndex
     // operation was successful, otherwise false 
     bool maybe_vacuumize(size_t node_count) {
       if (m_vacuumize_counter > 0 || get_freelist_count() > 0) {
-        vacuumize(node_count);
+        vacuumize(node_count, true);
         return (true);
       }
       return (false);
@@ -492,7 +494,7 @@ class UpfrontIndex
     // Merges all chunks from the |other| index to this index
     void merge_from(UpfrontIndex *other, size_t node_count,
                     size_t other_node_count) {
-      vacuumize(node_count);
+      vacuumize(node_count, false);
       
       for (size_t i = 0; i < other_node_count; i++) {
         insert_slot(i + node_count, i + node_count);
@@ -523,8 +525,8 @@ class UpfrontIndex
     // Re-arranges the node: moves all keys sequentially to the beginning
     // of the key space, removes the whole freelist.
     //
-    // This call is extremely expensive! Try to avoid it as good as possible.
-    void vacuumize(size_t node_count) {
+    // This call is extremely expensive! Try to avoid it as much as possible.
+    void vacuumize(size_t node_count, bool adjust_capacity) {
       if (m_vacuumize_counter == 0) {
         if (get_freelist_count() > 0) {
           set_freelist_count(0);
@@ -536,6 +538,14 @@ class UpfrontIndex
       // get rid of the freelist - this node is now completely rewritten,
       // and the freelist would just complicate things
       set_freelist_count(0);
+
+      // reduce the capacity, if required
+      if (node_count > 0
+          && adjust_capacity
+          && get_capacity() > node_count + 4) {
+        size_t new_capacity = get_capacity() - (get_capacity() - node_count) / 2;
+        change_range_size(node_count, m_data, m_range_size, new_capacity);
+      }
 
       // make a copy of all indices (excluding the freelist)
       bool requires_sort = false;
@@ -877,18 +887,12 @@ class VariableLengthKeyList : public BaseKeyList
     // Returns true if the |key| no longer fits into the node and a split
     // is required. Makes sure that there is ALWAYS enough headroom
     // for an extended key!
-    bool requires_split(size_t node_count, const ham_key_t *key,
-                    bool vacuumize = false) {
+    bool requires_split(size_t node_count, const ham_key_t *key) {
       size_t required = key->size + 1;
       // add 1 byte for flags
       if (key->size > m_extkey_threshold || key->size < 8 + 1)
         required = 8 + 1;
-      bool ret = m_index.requires_split(node_count, required);
-      if (ret == false || vacuumize == false)
-        return (ret);
-      if (m_index.maybe_vacuumize(node_count))
-        ret = requires_split(node_count, key, false);
-      return (ret);
+      return (m_index.requires_split(node_count, required));
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
@@ -976,9 +980,9 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
-      if (force)
+      if (node_count < m_index.get_capacity() || force)
         m_index.increase_vacuumize_counter(1);
-      m_index.vacuumize(node_count);
+      m_index.maybe_vacuumize(node_count);
     }
 
     // Change the range size; the capacity will be adjusted, the data is
@@ -990,12 +994,12 @@ class VariableLengthKeyList : public BaseKeyList
         capacity_hint = m_index.get_capacity();
         if (new_range_size > m_range_size) {
           int diff = (new_range_size - m_range_size) / get_full_key_size();
-          if (diff == 0)
-            diff = 1;
           capacity_hint += diff;
         }
         else if (new_range_size < m_range_size && capacity_hint > node_count)
           capacity_hint -= (capacity_hint - node_count) / 2;
+        if (capacity_hint <= node_count)
+          capacity_hint = node_count + 1;
       }
 
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
