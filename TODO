@@ -282,8 +282,7 @@ o refactoring: rewrite capacity calculations (again...)
     o List:requires_split should no longer vacuumize
         o lists should rearrange themselves internally for the new key
             -> pass capacity + required data to vacuumize()
-        o still no success? return the number of bytes required, and
-            the caller can then rearrange
+        o still no success? then call rearrange in the caller
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in
         btree_node_proxy.h.
@@ -301,14 +300,6 @@ o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
     o linear search 
     o btree_keys_base should implement get_key(), because it's basically all
         about the arena handling
-
-o refactoring: it's ugly that the KeyList/RecordList do not have direct
-    access to node->get_count(); the node_count has to be passed to each
-    function
-    o give BaseKeyList access to m_node, and clean up all interfaces
-    o same for RecordKeyList access to m_node, and clean up all interfaces
-    o if RecordKeyList is identical to BaseKeyList then unify them into
-        a generic BaseList
 
 o refactoring: the btree "slot" should be plain integer instead of ham_u32_t
     o rebase hamsterdb-pro

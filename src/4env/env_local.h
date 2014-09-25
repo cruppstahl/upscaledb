@@ -54,9 +54,6 @@ class LocalEnvironment : public Environment
   public:
     LocalEnvironment();
 
-    // Virtual destructor can be overwritten in derived classes
-    virtual ~LocalEnvironment();
-
     // Returns the Device object
     Device *get_device() {
       return (m_device.get());

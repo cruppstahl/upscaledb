@@ -51,11 +51,7 @@ LocalEnvironment::get_btree_descriptor(int i)
 
 LocalEnvironment::LocalEnvironment()
   : Environment(), m_changeset(this), m_encryption_enabled(false),
-    m_page_size(0)
-{
-}
-
-LocalEnvironment::~LocalEnvironment()
+    m_page_size(0), m_journal_switch_threshold(0)
 {
 }
 
