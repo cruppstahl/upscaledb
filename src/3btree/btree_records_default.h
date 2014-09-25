@@ -94,14 +94,14 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record counter of a key
-    ham_u32_t get_record_count(ham_u32_t slot) const {
+    int get_record_count(int slot) const {
       if (unlikely(!is_record_inline(slot) && get_record_id(slot) == 0))
         return (0);
       return (1);
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(ham_u32_t slot,
+    ham_u64_t get_record_size(int slot,
                     ham_u32_t duplicate_index = 0) const {
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));
@@ -113,7 +113,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(int slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
@@ -148,7 +148,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+    void set_record(int slot, ham_u32_t duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u64_t ptr = get_record_id(slot);
@@ -207,7 +207,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, ham_u32_t duplicate_index = 0,
                     bool all_duplicates = true) {
       if (is_record_inline(slot)) {
         remove_inline_record(slot);
@@ -221,8 +221,8 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase_slot(size_t node_count, ham_u32_t slot) {
-      if (slot < node_count - 1) {
+    void erase_slot(size_t node_count, int slot) {
+      if (slot < (int)node_count - 1) {
         memmove(&m_flags[slot], &m_flags[slot + 1], node_count - slot - 1);
         memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(ham_u64_t) * (node_count - slot - 1));
@@ -230,8 +230,8 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Creates space for one additional record
-    void insert_slot(size_t node_count, ham_u32_t slot) {
-      if (slot < node_count) {
+    void insert_slot(size_t node_count, int slot) {
+      if (slot < (int)node_count) {
         memmove(&m_flags[slot + 1], &m_flags[slot], node_count - slot);
         memmove(&m_data[slot + 1], &m_data[slot],
                        sizeof(ham_u64_t) * (node_count - slot));
@@ -249,12 +249,12 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Sets the record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+    void set_record_id(int slot, ham_u64_t ptr) {
       m_data[slot] = ptr;
     }
 
     // Returns the record id
-    ham_u64_t get_record_id(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+    ham_u64_t get_record_id(int slot, ham_u32_t duplicate_index = 0)
                     const {
       return (m_data[slot]);
     }
@@ -289,13 +289,13 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) const {
+    void print(int slot, std::stringstream &out) const {
       out << "(" << get_record_size(slot) << " bytes)";
     }
 
   private:
     // Sets record data
-    void set_record_data(ham_u32_t slot, const void *ptr, size_t size) {
+    void set_record_data(int slot, const void *ptr, size_t size) {
       ham_u8_t flags = get_record_flags(slot);
       flags &= ~(BtreeRecord::kBlobSizeSmall
                       | BtreeRecord::kBlobSizeTiny
@@ -323,18 +323,18 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record flags of a given |slot|
-    ham_u8_t get_record_flags(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+    ham_u8_t get_record_flags(int slot, ham_u32_t duplicate_index = 0)
                     const {
       return (m_flags[slot]);
     }
 
     // Sets the record flags of a given |slot|
-    void set_record_flags(ham_u32_t slot, ham_u8_t flags) {
+    void set_record_flags(int slot, ham_u8_t flags) {
       m_flags[slot] = flags;
     }
 
     // Returns the size of an inline record
-    ham_u32_t get_inline_record_size(ham_u32_t slot) const {
+    ham_u32_t get_inline_record_size(int slot) const {
       ham_u8_t flags = get_record_flags(slot);
       ham_assert(is_record_inline(slot));
       if (flags & BtreeRecord::kBlobSizeTiny) {
@@ -351,7 +351,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns true if the record is inline, false if the record is a blob
-    bool is_record_inline(ham_u32_t slot) const {
+    bool is_record_inline(int slot) const {
       ham_u8_t flags = get_record_flags(slot);
       return ((flags & BtreeRecord::kBlobSizeTiny)
               || (flags & BtreeRecord::kBlobSizeSmall)
@@ -359,7 +359,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Removes an inline record; returns the updated record flags
-    void remove_inline_record(ham_u32_t slot) {
+    void remove_inline_record(int slot) {
       ham_u8_t flags = get_record_flags(slot);
       m_data[slot] = 0;
       set_record_flags(slot,

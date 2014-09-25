@@ -207,7 +207,7 @@ BtreeCursor::erase(ham_u32_t flags)
 }
 
 bool
-BtreeCursor::points_to(Page *page, ham_u32_t slot)
+BtreeCursor::points_to(Page *page, int slot)
 {
   if (m_state == kStateUncoupled)
     couple();
@@ -261,7 +261,7 @@ BtreeCursor::move_to_next_page()
   return (0);
 }
 
-ham_u32_t
+int
 BtreeCursor::get_record_count(ham_u32_t flags)
 {
   // uncoupled cursor: couple it
@@ -372,7 +372,7 @@ BtreeCursor::move_next(ham_u32_t flags)
     return (HAM_KEY_NOT_FOUND);
 
   // if the index+1 is still in the coupled page, just increment the index
-  if (m_coupled_index + 1 < node->get_count()) {
+  if (m_coupled_index + 1 < (int)node->get_count()) {
     couple_to_page(m_coupled_page, m_coupled_index + 1, 0);
     return (0);
   }
@@ -552,7 +552,7 @@ BtreeCursor::remove_cursor_from_page(Page *page)
 }
 
 void
-BtreeCursor::uncouple_all_cursors(Page *page, ham_u32_t start)
+BtreeCursor::uncouple_all_cursors(Page *page, int start)
 {
   bool skipped = false;
   Cursor *cursors = page->get_cursor_list()

@@ -762,7 +762,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
     if (!cursor->is_coupled_to_btree())
       break;
 
-    ham_u32_t slot;
+    int slot;
     cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
     BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
 

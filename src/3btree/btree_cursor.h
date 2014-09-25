@@ -105,8 +105,8 @@ class BtreeCursor
     // cursor is coupled to. This is used by Btree functions to optimize
     // certain algorithms, i.e. when erasing the current key.
     // Asserts that the cursor is coupled.
-    void get_coupled_key(Page **page, ham_u32_t *index = 0,
-                    ham_u32_t *duplicate_index = 0) const {
+    void get_coupled_key(Page **page, int *index = 0,
+                    int *duplicate_index = 0) const {
       ham_assert(m_state == kStateCoupled);
       if (page)
         *page = m_coupled_page;
@@ -146,7 +146,7 @@ class BtreeCursor
     void uncouple_from_page();
 
     // Returns true if a cursor points to this btree key
-    bool points_to(Page *page, ham_u32_t slot);
+    bool points_to(Page *page, int slot);
 
     // Returns true if a cursor points to this external key
     bool points_to(ham_key_t *key);
@@ -168,7 +168,7 @@ class BtreeCursor
     ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     // Returns the number of records of the referenced key
-    ham_u32_t get_record_count(ham_u32_t flags);
+    int get_record_count(ham_u32_t flags);
 
     // Overwrite the record of this cursor
     void overwrite(ham_record_t *record, ham_u32_t flags);
@@ -183,7 +183,7 @@ class BtreeCursor
 
     // Uncouples all cursors from a page
     // This method is called whenever the page is deleted or becomes invalid
-    static void uncouple_all_cursors(Page *page, ham_u32_t start = 0);
+    static void uncouple_all_cursors(Page *page, int start = 0);
 
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
@@ -224,13 +224,13 @@ class BtreeCursor
     int m_state;
 
     // the id of the duplicate key to which this cursor is coupled
-    ham_u32_t m_duplicate_index;
+    int m_duplicate_index;
 
     // for coupled cursors: the page we're pointing to
     Page *m_coupled_page;
 
     // ... and the index of the key in that page
-    ham_u32_t m_coupled_index;
+    int m_coupled_index;
 
     // for uncoupled cursors: a copy of the key at which we're pointing
     ham_key_t m_uncoupled_key;

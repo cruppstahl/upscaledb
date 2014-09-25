@@ -354,7 +354,7 @@ Cursor::compare()
 
   if (btrc->get_state() == BtreeCursor::kStateCoupled) {
     Page *page;
-    ham_u32_t slot;
+    int slot;
     btrc->get_coupled_key(&page, &slot, 0);
     m_last_cmp = btree->get_node_from_page(page)->compare(txnk, slot);
 
@@ -1062,7 +1062,7 @@ Cursor::erase(Transaction *txn, ham_u32_t flags)
   return (st);
 }
 
-ham_u32_t
+int
 Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
 {
   if (txn) {

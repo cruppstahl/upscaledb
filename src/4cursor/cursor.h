@@ -320,7 +320,7 @@ class Cursor
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    ham_u32_t get_record_count(Transaction *txn, ham_u32_t flags);
+    int get_record_count(Transaction *txn, ham_u32_t flags);
 
     // Retrieves the size of the current record
     //

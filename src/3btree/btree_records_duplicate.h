@@ -588,12 +588,12 @@ class DuplicateRecordList : public BaseRecordList
 
     // Erases a slot. Only updates the UpfrontIndex; does NOT delete the
     // record blobs!
-    void erase_slot(size_t node_count, ham_u32_t slot) {
+    void erase_slot(size_t node_count, int slot) {
       m_index.erase_slot(node_count, slot);
     }
 
     // Inserts a slot for one additional record
-    void insert_slot(size_t node_count, ham_u32_t slot) {
+    void insert_slot(size_t node_count, int slot) {
       m_index.insert_slot(node_count, slot);
     }
 
@@ -706,7 +706,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns the number of duplicates for a slot
-    ham_u32_t get_record_count(ham_u32_t slot) {
+    ham_u32_t get_record_count(int slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
@@ -717,13 +717,13 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns the size of a record; the size is always constant
-    ham_u64_t get_record_size(ham_u32_t slot, ham_u32_t duplicate_index = 0)
+    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0)
                     const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(int slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
@@ -757,7 +757,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Adds or overwrites a record
-    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+    void set_record(int slot, ham_u32_t duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u32_t chunk_offset = m_index.get_absolute_chunk_offset(slot);
@@ -909,7 +909,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Erases a record's blob (does not remove the slot!)
-    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, ham_u32_t duplicate_index = 0,
                     bool all_duplicates = false) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
@@ -951,14 +951,14 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns a 64bit record id from a record
-    ham_u64_t get_record_id(ham_u32_t slot,
+    ham_u64_t get_record_id(int slot,
                     ham_u32_t duplicate_index = 0) const {
       return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
     // Sets a 64bit record id; used for internal nodes to store Page IDs
     // or for leaf nodes to store DuplicateTable IDs
-    void set_record_id(ham_u32_t slot, ham_u64_t id) {
+    void set_record_id(int slot, ham_u64_t id) {
       ham_assert(m_index.get_chunk_size(slot) >= sizeof(id));
       *(ham_u64_t *)get_record_data(slot, 0) = id;
     }
@@ -1016,19 +1016,19 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) {
+    void print(int slot, std::stringstream &out) {
       out << "(" << get_record_count(slot) << " records)";
     }
 
   private:
     // Returns the number of records that are stored inline
-    ham_u32_t get_inline_record_count(ham_u32_t slot) {
+    ham_u32_t get_inline_record_count(int slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (m_data[offset] & 0x7f);
     }
 
     // Sets the number of records that are stored inline
-    void set_inline_record_count(ham_u32_t slot, size_t count) {
+    void set_inline_record_count(int slot, size_t count) {
       ham_assert(count <= 0x7f);
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       m_data[offset] &= BtreeRecord::kExtendedDuplicates;
@@ -1036,13 +1036,13 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns a pointer to the record data
-    ham_u8_t *get_record_data(ham_u32_t slot, ham_u32_t duplicate_index = 0) {
+    ham_u8_t *get_record_data(int slot, ham_u32_t duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
-    const ham_u8_t *get_record_data(ham_u32_t slot,
+    const ham_u8_t *get_record_data(int slot,
                         ham_u32_t duplicate_index = 0) const {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
@@ -1093,7 +1093,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     }
 
     // Returns the number of duplicates
-    ham_u32_t get_record_count(ham_u32_t slot) {
+    int get_record_count(int slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
@@ -1104,7 +1104,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     }
 
     // Returns the size of a record
-    ham_u64_t get_record_size(ham_u32_t slot, ham_u32_t duplicate_index = 0) {
+    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
@@ -1126,7 +1126,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(int slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
@@ -1190,7 +1190,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     }
 
     // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+    void set_record(int slot, ham_u32_t duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u32_t chunk_offset = m_index.get_absolute_chunk_offset(slot);
@@ -1376,7 +1376,7 @@ write_record:
     }
 
     // Erases a record
-    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, ham_u32_t duplicate_index = 0,
                     bool all_duplicates = false) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
@@ -1439,13 +1439,13 @@ write_record:
     }
 
     // Returns a record id
-    ham_u64_t get_record_id(ham_u32_t slot,
+    ham_u64_t get_record_id(int slot,
                     ham_u32_t duplicate_index = 0) const {
       return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
     // Sets a record id
-    void set_record_id(ham_u32_t slot, ham_u64_t id) {
+    void set_record_id(int slot, ham_u64_t id) {
       *(ham_u64_t *)get_record_data(slot, 0) = id;
     }
 
@@ -1502,19 +1502,19 @@ write_record:
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) {
+    void print(int slot, std::stringstream &out) {
       out << "(" << get_record_count(slot) << " records)";
     }
 
   private:
     // Returns the number of records that are stored inline
-    ham_u32_t get_inline_record_count(ham_u32_t slot) {
+    ham_u32_t get_inline_record_count(int slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (m_data[offset] & 0x7f);
     }
 
     // Sets the number of records that are stored inline
-    void set_inline_record_count(ham_u32_t slot, size_t count) {
+    void set_inline_record_count(int slot, size_t count) {
       ham_assert(count <= 0x7f);
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       m_data[offset] &= BtreeRecord::kExtendedDuplicates;
@@ -1522,13 +1522,13 @@ write_record:
     }
 
     // Returns a pointer to the record data (const flavour)
-    ham_u8_t *get_record_data(ham_u32_t slot, ham_u32_t duplicate_index = 0) {
+    ham_u8_t *get_record_data(int slot, ham_u32_t duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
-    const ham_u8_t *get_record_data(ham_u32_t slot,
+    const ham_u8_t *get_record_data(int slot,
                         ham_u32_t duplicate_index = 0) const {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);

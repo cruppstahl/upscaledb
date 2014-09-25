@@ -72,7 +72,7 @@ namespace DefLayout {
 //
 struct SortHelper {
   ham_u32_t offset;
-  ham_u32_t slot;
+  int slot;
 
   bool operator<(const SortHelper &rhs) const {
     return (offset < rhs.offset);
@@ -181,7 +181,7 @@ class UpfrontIndex
                             + old_capacity * get_full_index_size()];
       ham_u8_t *dst = &new_data_ptr[kPayloadOffset
                             + new_capacity * get_full_index_size()];
-      ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
+      //ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
       // shift "to the right"? Then first move the data and afterwards
       // the index
       if (dst > src) {
@@ -223,12 +223,12 @@ class UpfrontIndex
     }
 
     // Returns the absolute start offset of a chunk
-    ham_u32_t get_absolute_chunk_offset(ham_u32_t slot) const {
+    ham_u32_t get_absolute_chunk_offset(int slot) const {
       return (get_absolute_offset(get_chunk_offset(slot)));
     }
 
     // Returns the relative start offset of a chunk
-    ham_u32_t get_chunk_offset(ham_u32_t slot) const {
+    ham_u32_t get_chunk_offset(int slot) const {
       ham_u8_t *p = &m_data[kPayloadOffset + get_full_index_size() * slot];
       if (m_sizeof_offset == 2)
         return (*(ham_u16_t *)p);
@@ -239,13 +239,13 @@ class UpfrontIndex
     }
 
     // Returns the size of a chunk
-    ham_u16_t get_chunk_size(ham_u32_t slot) const {
+    ham_u16_t get_chunk_size(int slot) const {
       return (m_data[kPayloadOffset + get_full_index_size() * slot
                                 + m_sizeof_offset]);
     }
 
     // Sets the size of a chunk (does NOT actually resize the chunk!)
-    void set_chunk_size(ham_u32_t slot, ham_u16_t size) {
+    void set_chunk_size(int slot, ham_u16_t size) {
       ham_assert(size <= 255);
       m_data[kPayloadOffset + get_full_index_size() * slot
                                 + m_sizeof_offset] = (ham_u8_t)size;
@@ -275,13 +275,13 @@ class UpfrontIndex
 
     // Inserts a slot at the position |slot|. |node_count| is the number of
     // used slots (this is managed by the caller)
-    void insert_slot(size_t node_count, ham_u32_t slot) {
+    void insert_slot(size_t node_count, int slot) {
       ham_assert(can_insert_slot(node_count) == true);
 
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
       ham_u8_t *p = &m_data[kPayloadOffset + slot_size * slot];
-      if (total_count > 0 && slot < total_count) {
+      if (total_count > 0 && slot < (int)total_count) {
         // create a gap in the index
         memmove(p + slot_size, p, slot_size * (total_count - slot));
      }
@@ -292,11 +292,11 @@ class UpfrontIndex
 
     // Erases a slot at the position |slot|
     // |node_count| is the number of used slots (this is managed by the caller)
-    void erase_slot(size_t node_count, ham_u32_t slot) {
+    void erase_slot(size_t node_count, int slot) {
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
 
-      ham_assert(slot < total_count);
+      ham_assert(slot < (int)total_count);
 
       set_freelist_count(get_freelist_count() + 1);
 
@@ -307,7 +307,7 @@ class UpfrontIndex
       // nothing to do if we delete the very last (used) slot; the freelist
       // counter was already incremented, the used counter is decremented
       // by the caller
-      if (slot == node_count - 1)
+      if (slot == (int)node_count - 1)
         return;
 
       size_t chunk_offset = get_chunk_offset(slot);
@@ -350,7 +350,7 @@ class UpfrontIndex
     }
 
     // Allocates space for a |slot| and returns the offset of that chunk
-    ham_u32_t allocate_space(ham_u32_t node_count, ham_u32_t slot,
+    ham_u32_t allocate_space(ham_u32_t node_count, int slot,
                     size_t num_bytes) {
       ham_assert(can_allocate_space(node_count, num_bytes));
 
@@ -558,7 +558,7 @@ class UpfrontIndex
       ham_u32_t start = kPayloadOffset + get_capacity() * get_full_index_size();
       for (ham_u32_t i = 0; i < node_count; i++) {
         ham_u32_t offset = s[i].offset;
-        ham_u32_t slot = s[i].slot;
+        int slot = s[i].slot;
         ham_u32_t size = get_chunk_size(slot);
         if (offset != next_offset) {
           // shift key to the left
@@ -629,7 +629,7 @@ class UpfrontIndex
     }
 
     // Sets the chunk offset of a slot
-    void set_chunk_offset(ham_u32_t slot, ham_u32_t offset) {
+    void set_chunk_offset(int slot, ham_u32_t offset) {
       ham_u8_t *p = &m_data[kPayloadOffset + get_full_index_size() * slot];
       if (m_sizeof_offset == 2)
         *(ham_u16_t *)p = (ham_u16_t)offset;
@@ -770,7 +770,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
       ham_key_t tmp;
       ham_u32_t offset = m_index.get_chunk_offset(slot);
@@ -828,7 +828,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Erases a key's payload. Does NOT remove the chunk from the UpfrontIndex
     // (see |erase_slot()|).
-    void erase_data(ham_u32_t slot) {
+    void erase_data(int slot) {
       ham_u8_t flags = get_key_flags(slot);
       if (flags & BtreeKey::kExtendedKey) {
         // delete the extended key from the cache
@@ -841,7 +841,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Erases a key, including extended blobs
-    void erase_slot(size_t node_count, ham_u32_t slot) {
+    void erase_slot(size_t node_count, int slot) {
       erase_data(slot);
       m_index.erase_slot(node_count, slot);
     }
@@ -849,7 +849,7 @@ class VariableLengthKeyList : public BaseKeyList
     // Inserts the |key| at the position identified by |slot|.
     // This method cannot fail; there MUST be sufficient free space in the
     // node (otherwise the caller would have split the node).
-    void insert(size_t node_count, ham_u32_t slot, const ham_key_t *key) {
+    void insert(size_t node_count, int slot, const ham_key_t *key) {
       m_index.insert_slot(node_count, slot);
 
       // now there's one additional slot
@@ -1005,7 +1005,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) {
+    void print(int slot, std::stringstream &out) {
       ham_key_t tmp = {0};
       if (get_key_flags(slot) & BtreeKey::kExtendedKey) {
         get_extended_key(get_extended_blob_id(slot), &tmp);
@@ -1019,54 +1019,54 @@ class VariableLengthKeyList : public BaseKeyList
 
   private:
     // Returns the flags of a key. Flags are defined in btree_flags.h
-    ham_u8_t get_key_flags(ham_u32_t slot) const {
+    ham_u8_t get_key_flags(int slot) const {
       ham_u32_t offset = m_index.get_chunk_offset(slot);
       return (*m_index.get_chunk_data_by_offset(offset));
     }
 
     // Sets the flags of a key. Flags are defined in btree_flags.h
-    void set_key_flags(ham_u32_t slot, ham_u8_t flags) {
+    void set_key_flags(int slot, ham_u8_t flags) {
       ham_u32_t offset = m_index.get_chunk_offset(slot);
       *m_index.get_chunk_data_by_offset(offset) = flags;
     }
 
     // Returns the pointer to a key's inline data
-    ham_u8_t *get_key_data(ham_u32_t slot) {
+    ham_u8_t *get_key_data(int slot) {
       ham_u32_t offset = m_index.get_chunk_offset(slot);
       return (m_index.get_chunk_data_by_offset(offset) + 1);
     }
 
     // Returns the pointer to a key's inline data (const flavour)
-    ham_u8_t *get_key_data(ham_u32_t slot) const {
+    ham_u8_t *get_key_data(int slot) const {
       ham_u32_t offset = m_index.get_chunk_offset(slot);
       return (m_index.get_chunk_data_by_offset(offset) + 1);
     }
 
     // Overwrites the (inline) data of the key
-    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
+    void set_key_data(int slot, const void *ptr, size_t size) {
       ham_assert(m_index.get_chunk_size(slot) >= size);
       set_key_size(slot, (ham_u16_t)size);
       memcpy(get_key_data(slot), ptr, size);
     }
 
     // Returns the size of a key
-    size_t get_key_size(ham_u32_t slot) const {
+    size_t get_key_size(int slot) const {
       return (m_index.get_chunk_size(slot) - 1);
     }
 
     // Sets the size of a key
-    void set_key_size(ham_u32_t slot, size_t size) {
+    void set_key_size(int slot, size_t size) {
       ham_assert(size + 1 <= m_index.get_chunk_size(slot));
       m_index.set_chunk_size(slot, size + 1);
     }
 
     // Returns the record address of an extended key overflow area
-    ham_u64_t get_extended_blob_id(ham_u32_t slot) const {
+    ham_u64_t get_extended_blob_id(int slot) const {
       return (*(ham_u64_t *)get_key_data(slot));
     }
 
     // Sets the record address of an extended key overflow area
-    void set_extended_blob_id(ham_u32_t slot, ham_u64_t blobid) {
+    void set_extended_blob_id(int slot, ham_u64_t blobid) {
       *(ham_u64_t *)get_key_data(slot) = blobid;
     }
 

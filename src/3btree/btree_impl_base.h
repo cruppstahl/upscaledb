@@ -61,30 +61,30 @@ struct BaseNodeImpl
   }
 
   // Returns a copy of a key and stores it in |dest|
-  void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest) {
+  void get_key(int slot, ByteArray *arena, ham_key_t *dest) {
     // copy (or assign) the key data
     m_keys.get_key(slot, arena, dest, true);
   }
 
   // Returns the record size of a key or one of its duplicates
-  ham_u64_t get_record_size(ham_u32_t slot, int duplicate_index) {
+  ham_u64_t get_record_size(int slot, int duplicate_index) {
     return (m_records.get_record_size(slot, duplicate_index));
   }
 
   // Returns the record counter of a key
-  ham_u32_t get_record_count(ham_u32_t slot) {
+  int get_record_count(int slot) {
     return (m_records.get_record_count(slot));
   }
 
   // Returns the full record and stores it in |dest|
-  void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+  void get_record(int slot, ByteArray *arena, ham_record_t *record,
                   ham_u32_t flags, ham_u32_t duplicate_index) {
     // copy the record data
     m_records.get_record(slot, arena, record, flags, duplicate_index);
   }
 
   // Updates the record of a key
-  void set_record(ham_u32_t slot, ham_record_t *record,
+  void set_record(int slot, ham_record_t *record,
                   ham_u32_t duplicate_index, ham_u32_t flags,
                   ham_u32_t *new_duplicate_index) {
     // automatically overwrite an existing key unless this is a
@@ -102,18 +102,18 @@ struct BaseNodeImpl
   }
 
   // Erases the extended part of a key
-  void erase_key(ham_u32_t slot) {
+  void erase_key(int slot) {
     m_keys.erase_data(slot);
   }
 
   // Erases the record
-  void erase_record(ham_u32_t slot, int duplicate_index,
+  void erase_record(int slot, int duplicate_index,
                   bool all_duplicates) {
     m_records.erase_record(slot, duplicate_index, all_duplicates);
   }
 
   // Erases a key
-  void erase(ham_u32_t slot) {
+  void erase(int slot) {
     size_t node_count = m_node->get_count();
 
     m_keys.erase_slot(node_count, slot);
@@ -121,7 +121,7 @@ struct BaseNodeImpl
   }
 
   // Inserts a new key
-  void insert(ham_u32_t slot, const ham_key_t *key) {
+  void insert(int slot, const ham_key_t *key) {
     size_t node_count = m_node->get_count();
 
     // make space for 1 additional element.
@@ -178,7 +178,7 @@ struct BaseNodeImpl
   }
 
   // Prints a slot to stdout (for debugging)
-  void print(ham_u32_t slot) {
+  void print(int slot) {
     std::stringstream ss;
     ss << "   ";
     m_keys.print(slot, ss);
@@ -188,12 +188,12 @@ struct BaseNodeImpl
   }
 
   // Returns the record id
-  ham_u64_t get_record_id(ham_u32_t slot) const {
+  ham_u64_t get_record_id(int slot) const {
     return (m_records.get_record_id(slot));
   }
 
   // Sets the record id
-  void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+  void set_record_id(int slot, ham_u64_t ptr) {
     m_records.set_record_id(slot, ptr);
   }
 

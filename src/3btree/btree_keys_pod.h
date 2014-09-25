@@ -101,7 +101,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(ham_u32_t slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) const {
       dest->size = sizeof(T);
       if (deep_copy == false) {
@@ -175,19 +175,19 @@ class PodKeyList : public BaseKeyList
     }
 
     // Erases the extended part of a key; nothing to do here
-    void erase_data(ham_u32_t slot) {
+    void erase_data(int slot) {
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
-    void erase_slot(size_t node_count, ham_u32_t slot) {
-      if (slot < node_count - 1)
+    void erase_slot(size_t node_count, int slot) {
+      if (slot < (int)node_count - 1)
         memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(T) * (node_count - slot - 1));
     }
 
     // Inserts a key
-    void insert(size_t node_count, ham_u32_t slot, const ham_key_t *key) {
-      if (node_count > slot)
+    void insert(size_t node_count, int slot, const ham_key_t *key) {
+      if (node_count > (size_t)slot)
         memmove(&m_data[slot + 1], &m_data[slot],
                         sizeof(T) * (node_count - slot));
       set_key_data(slot, key->data, key->size);
@@ -215,29 +215,29 @@ class PodKeyList : public BaseKeyList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) const {
+    void print(int slot, std::stringstream &out) const {
       out << m_data[slot];
     }
 
     // Returns the size of a key
-    ham_u32_t get_key_size(ham_u32_t slot) const {
+    ham_u32_t get_key_size(int slot) const {
       return (sizeof(T));
     }
 
     // Returns a pointer to the key's data
-    ham_u8_t *get_key_data(ham_u32_t slot) {
+    ham_u8_t *get_key_data(int slot) {
       return ((ham_u8_t *)&m_data[slot]);
     }
 
   private:
     // Returns a pointer to the key's data (const flavour)
-    ham_u8_t *get_key_data(ham_u32_t slot) const {
+    ham_u8_t *get_key_data(int slot) const {
       return ((ham_u8_t *)&m_data[slot]);
     }
 
     // Overwrites an existing key; the |size| of the new data HAS to be
     // identical with the key size specified when the database was created!
-    void set_key_data(ham_u32_t slot, const void *ptr, size_t size) {
+    void set_key_data(int slot, const void *ptr, size_t size) {
       ham_assert(size == sizeof(T));
       m_data[slot] = *(T *)ptr;
     }

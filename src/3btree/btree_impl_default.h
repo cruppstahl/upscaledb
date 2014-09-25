@@ -191,7 +191,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Returns the full record and stores it in |dest|
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(int slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) {
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count());
@@ -200,7 +200,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_record_t *record,
+    void set_record(int slot, ham_record_t *record,
                     ham_u32_t duplicate_index, ham_u32_t flags,
                     ham_u32_t *new_duplicate_index) {
       P::set_record(slot, record, duplicate_index, flags, new_duplicate_index);
@@ -210,7 +210,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Erases the record
-    void erase_record(ham_u32_t slot, int duplicate_index,
+    void erase_record(int slot, int duplicate_index,
                     bool all_duplicates) {
       P::erase_record(slot, duplicate_index, all_duplicates);
 #ifdef HAM_DEBUG
@@ -219,7 +219,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Erases a key
-    void erase(ham_u32_t slot) {
+    void erase(int slot) {
       P::erase(slot);
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count() - 1);
@@ -227,7 +227,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Inserts a new key
-    void insert(ham_u32_t slot, const ham_key_t *key) {
+    void insert(int slot, const ham_key_t *key) {
       P::insert(slot, key);
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count() + 1);

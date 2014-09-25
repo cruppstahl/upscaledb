@@ -62,7 +62,7 @@ class BtreeEraseAction
       if (m_cursor) {
         if (m_cursor->get_state() == BtreeCursor::kStateCoupled) {
           Page *coupled_page;
-          ham_u32_t coupled_index;
+          int coupled_index;
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
 
           BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
@@ -235,7 +235,7 @@ class BtreeEraseAction
           else if (btcur != m_cursor
                   && (cur->get_state() & BtreeCursor::kStateCoupled)) {
             Page *coupled_page;
-            ham_u32_t coupled_slot;
+            int coupled_slot;
             cur->get_coupled_key(&coupled_page, &coupled_slot);
             if (coupled_page == page && coupled_slot > (ham_u32_t)slot)
               cur->uncouple_from_page();

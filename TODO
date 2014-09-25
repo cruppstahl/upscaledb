@@ -302,10 +302,10 @@ o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         about the arena handling
 
 o refactoring: the btree "slot" should be plain integer instead of ham_u32_t
-    o rebase hamsterdb-pro
 
 o ZINT32: if compression/decompression works in-place then do not
     use the ByteArray!
+    o rebase hamsterdb-pro
 
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc

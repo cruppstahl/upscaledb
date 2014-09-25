@@ -91,19 +91,19 @@ class InternalRecordList : public BaseRecordList
 
     // Returns the record counter of a key; this implementation does not
     // support duplicates, therefore the record count is always 1
-    ham_u32_t get_record_count(ham_u32_t slot) const {
+    int get_record_count(int slot) const {
       return (1);
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(ham_u32_t slot,
+    ham_u64_t get_record_size(int slot,
                     ham_u32_t duplicate_index = 0) const {
       return (sizeof(ham_u64_t));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(ham_u32_t slot, ByteArray *arena, ham_record_t *record,
+    void get_record(int slot, ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
@@ -122,7 +122,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(ham_u32_t slot, ham_u32_t duplicate_index,
+    void set_record(int slot, ham_u32_t duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_assert(record->size == sizeof(ham_u64_t));
@@ -130,21 +130,21 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(ham_u32_t slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, ham_u32_t duplicate_index = 0,
                     bool all_duplicates = true) {
       m_data[slot] = 0;
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase_slot(size_t node_count, ham_u32_t slot) {
-      if (slot < node_count - 1)
+    void erase_slot(size_t node_count, int slot) {
+      if (slot < (int)node_count - 1)
         memmove(&m_data[slot], &m_data[slot + 1],
                       sizeof(ham_u64_t) * (node_count - slot - 1));
     }
 
     // Creates space for one additional record
-    void insert_slot(size_t node_count, ham_u32_t slot) {
-      if (slot < node_count) {
+    void insert_slot(size_t node_count, int slot) {
+      if (slot < (int)node_count) {
         memmove(&m_data[slot + 1], &m_data[slot],
                        sizeof(ham_u64_t) * (node_count - slot));
       }
@@ -159,12 +159,12 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Sets the record id
-    void set_record_id(ham_u32_t slot, ham_u64_t ptr) {
+    void set_record_id(int slot, ham_u64_t ptr) {
       m_data[slot] = ptr;
     }
 
     // Returns the record id
-    ham_u64_t get_record_id(ham_u32_t slot,
+    ham_u64_t get_record_id(int slot,
                     ham_u32_t duplicate_index = 0) const {
       return (m_data[slot]);
     }
@@ -184,7 +184,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(ham_u32_t slot, std::stringstream &out) const {
+    void print(int slot, std::stringstream &out) const {
       out << "(" << get_record_id(slot) << " bytes)";
     }
 
