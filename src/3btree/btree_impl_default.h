@@ -240,8 +240,11 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     bool requires_split(const ham_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
-      if (node_count == 0)
+      if (node_count == 0) {
+        P::m_records.vacuumize(node_count, true);
+        P::m_keys.vacuumize(node_count, true);
         return (false);
+      }
 
       bool keys_require_split = P::m_keys.requires_split(node_count, key);
       bool records_require_split = P::m_records.requires_split(node_count);
@@ -421,13 +424,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // Retrieve the minimum sizes that both lists require to store their
       // data
+      size_t old_key_range_size = load_range_size();
       size_t key_range_size, record_range_size;
       size_t required_key_range, required_record_range;
-      required_key_range = P::m_keys.get_required_range_size(node_count);
-      required_record_range = P::m_records.get_required_range_size(node_count);
-
-      // TODO make sure that the new size is large enough for the
-      // next insert operation! - simply increase the required sizes for 1 item
+      required_key_range = P::m_keys.get_required_range_size(node_count)
+                                + P::m_keys.get_full_key_size(key);
+      required_record_range = P::m_records.get_required_range_size(node_count)
+                                + P::m_records.get_full_record_size();
 
       size_t usable_page_size = get_usable_page_size();
       size_t remainder = usable_page_size
@@ -452,10 +455,23 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // there is enough room for a new item
       if (key_range_size > usable_page_size
           || record_range_size > usable_page_size
-          || key_range_size == load_range_size()
+          || key_range_size == old_key_range_size
           || key_range_size < required_key_range
           || record_range_size < required_record_range
           || key_range_size + record_range_size > usable_page_size)
+        return (false);
+
+      // Try to get a clue about the capacity of the lists; this will help
+      // those lists with an UpfrontIndex to better arrange their layout
+      size_t capacity_hint = 0;
+      if (KeyList::kHasSequentialData)
+        capacity_hint = key_range_size / P::m_keys.get_full_key_size();
+      else if (RecordList::kHasSequentialData)
+        capacity_hint = record_range_size / P::m_records.get_full_record_size();
+
+      // sanity check: make sure that the new capacity would be big
+      // enough for all the keys
+      if (capacity_hint > 0 && capacity_hint < node_count)
         return (false);
 
       // Get a pointer to the data area and persist the new range size
@@ -467,16 +483,20 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // Now update the lists. If the KeyList grows then start with resizing
       // the RecordList, otherwise the moved KeyList will overwrite the
       // beginning of the RecordList.
-      if (key_range_size > load_range_size()) {
+      if (key_range_size > old_key_range_size) {
         P::m_records.change_range_size(node_count, p + key_range_size,
-                        usable_page_size - key_range_size);
-        P::m_keys.change_range_size(node_count, p, key_range_size);
+                        usable_page_size - key_range_size,
+                        capacity_hint);
+        P::m_keys.change_range_size(node_count, p, key_range_size,
+                        capacity_hint);
       }
       // And vice versa if the RecordList grows
       else {
-        P::m_keys.change_range_size(node_count, p, key_range_size);
+        P::m_keys.change_range_size(node_count, p, key_range_size,
+                        capacity_hint);
         P::m_records.change_range_size(node_count, p + key_range_size,
-                        usable_page_size - key_range_size);
+                        usable_page_size - key_range_size,
+                        capacity_hint);
       }
       
       // make sure that the page is flushed to disk

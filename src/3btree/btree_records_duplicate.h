@@ -56,6 +56,7 @@
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_node.h"
 #include "3btree/btree_index.h"
+#include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
@@ -498,7 +499,7 @@ class DuplicateTable
 //
 // Common functions for duplicate record lists
 //
-class DuplicateRecordList
+class DuplicateRecordList : public BaseRecordList
 {
   protected:
     // for caching external duplicate tables
@@ -556,6 +557,7 @@ class DuplicateRecordList
     void open(ham_u8_t *ptr, size_t range_size, size_t node_count) {
       m_data = ptr;
       m_index.open(m_data, range_size);
+      m_range_size = range_size;
     }
 
     // Returns a duplicate table; uses a cache to speed up access
@@ -601,7 +603,8 @@ class DuplicateRecordList
                     ham_u32_t dstart) {
       // make sure that the other node has sufficient capacity in its
       // UpfrontIndex
-      dest.m_index.change_range_size(other_node_count, 0, 0, node_count);
+      dest.m_index.change_range_size(other_node_count, 0, 0,
+                      m_index.get_capacity());
 
       ham_u32_t doffset;
       for (size_t i = 0; i < node_count - sstart; i++) {
@@ -629,16 +632,6 @@ class DuplicateRecordList
       if (force)
         m_index.increase_vacuumize_counter(1);
       m_index.vacuumize(node_count);
-    }
-
-    // Change the capacity; the capacity will be reduced, growing is not
-    // implemented. Which means that the data area must be copied; the offsets
-    // do not have to be changed.
-    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
-            size_t new_range_size) {
-      m_index.change_range_size(node_count, new_data_ptr, new_range_size,
-                node_count + 1); // TODO ok like this? how much should we grow?
-      m_data = new_data_ptr;
     }
 
   protected:
@@ -699,6 +692,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     void create(ham_u8_t *data, size_t range_size) {
       m_data = data;
       m_index.create(m_data, range_size, range_size / get_full_record_size());
+      m_range_size = range_size;
     }
 
     // Calculates the required size for a range with the specified |capacity|
@@ -980,6 +974,30 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
 
       m_index.check_integrity(node_count);
+    }
+
+    // Change the capacity; the capacity will be reduced, growing is not
+    // implemented. Which means that the data area must be copied; the offsets
+    // do not have to be changed.
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+                size_t new_range_size, size_t capacity_hint) {
+      // no capacity given? then try to find a good default one
+      if (capacity_hint == 0) {
+        capacity_hint = m_index.get_capacity();
+        if (new_range_size > m_range_size) {
+          int diff = (new_range_size - m_range_size) / get_full_record_size();
+          if (diff == 0)
+            diff = 1;
+          capacity_hint += diff;
+        }
+        else if (new_range_size < m_range_size && capacity_hint > node_count)
+          capacity_hint -= (capacity_hint - node_count) / 2;
+      }
+
+      m_index.change_range_size(node_count, new_data_ptr, new_range_size,
+                capacity_hint);
+      m_data = new_data_ptr;
+      m_range_size = new_range_size;
     }
 
     // Returns true if there's not enough space for another record
@@ -1442,6 +1460,30 @@ write_record:
       }
 
       m_index.check_integrity(node_count);
+    }
+
+    // Change the capacity; the capacity will be reduced, growing is not
+    // implemented. Which means that the data area must be copied; the offsets
+    // do not have to be changed.
+    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+                size_t new_range_size, size_t capacity_hint) {
+      // no capacity given? then try to find a good default one
+      if (capacity_hint == 0) {
+        capacity_hint = m_index.get_capacity();
+        if (new_range_size > m_range_size) {
+          int diff = (new_range_size - m_range_size) / get_full_record_size();
+          if (diff == 0)
+            diff = 1;
+          capacity_hint += diff;
+        }
+        else if (new_range_size < m_range_size && capacity_hint > node_count)
+          capacity_hint -= (capacity_hint - node_count) / 2;
+      }
+
+      m_index.change_range_size(node_count, new_data_ptr, new_range_size,
+                capacity_hint);
+      m_data = new_data_ptr;
+      m_range_size = new_range_size;
     }
 
     // Returns true if there's not enough space for another record

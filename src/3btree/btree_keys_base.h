@@ -34,30 +34,28 @@
 
 namespace hamsterdb {
 
-class BaseKeyList
+struct BaseKeyList
 {
-  public:
-    BaseKeyList()
-      : m_range_size(0) {
-    }
+  BaseKeyList()
+    : m_range_size(0) {
+  }
 
-    // Prepares the page for a flush to disk; compressed KeyLists can overwrite
-    // this to serialize their data
-    void prepare_flush(size_t node_count) {
-    }
+  // Prepares the page for a flush to disk; compressed KeyLists can overwrite
+  // this to serialize their data
+  void prepare_flush(size_t node_count) {
+  }
 
-    // Checks the integrity of this node. Throws an exception if there is a
-    // violation.
-    void check_integrity(ham_u32_t count, bool quick = false) const {
-    }
+  // Checks the integrity of this node. Throws an exception if there is a
+  // violation.
+  void check_integrity(ham_u32_t count, bool quick = false) const {
+  }
 
-    // Rearranges the list
-    void vacuumize(ham_u32_t node_count, bool force) const {
-    }
+  // Rearranges the list
+  void vacuumize(ham_u32_t node_count, bool force) const {
+  }
 
-  protected:
-    // The size of the range (in bytes)
-    size_t m_range_size;
+  // The size of the range (in bytes)
+  size_t m_range_size;
 };
 
 } // namespace hamsterdb

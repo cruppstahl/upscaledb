@@ -126,6 +126,9 @@ class UpfrontIndex
     enum {
       // for freelist_count, next_offset, capacity
       kPayloadOffset = 12,
+    
+      // minimum capacity of the index
+      kMinimumCapacity = 16
     };
 
     // Constructor; creates an empty index which needs to be initialized
@@ -168,6 +171,9 @@ class UpfrontIndex
         new_data_ptr = m_data;
       if (!new_range_size)
         new_range_size = m_range_size;
+
+      if (new_capacity < kMinimumCapacity)
+        new_capacity = kMinimumCapacity;
 
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
@@ -582,9 +588,9 @@ class UpfrontIndex
         invalidate_next_offset();
     }
 
-    // Returns the capacity; required for tests
-    size_t test_get_capacity() const {
-      return (get_capacity());
+    // Returns the capacity
+    size_t get_capacity() const {
+      return (*(ham_u32_t *)(m_data + 8));
     }
 
   private:
@@ -657,11 +663,6 @@ class UpfrontIndex
     // Sets the offset of the unused space at the end of the page
     void set_next_offset(ham_u32_t next_offset) {
       *(ham_u32_t *)(m_data + 4) = next_offset;
-    }
-
-    // Returns the capacity
-    size_t get_capacity() const {
-      return (*(ham_u32_t *)(m_data + 8));
     }
 
     // Sets the capacity (number of slots)
@@ -894,14 +895,15 @@ class VariableLengthKeyList : public BaseKeyList
     void copy_to(ham_u32_t sstart, size_t node_count,
                     VariableLengthKeyList &dest, size_t other_node_count,
                     ham_u32_t dstart) {
-      ham_assert(node_count - sstart > 0);
+      size_t to_copy = node_count - sstart;
+      ham_assert(to_copy > 0);
 
       // make sure that the other node has sufficient capacity in its
       // UpfrontIndex
-      dest.m_index.change_range_size(other_node_count, 0, 0, node_count);
+      dest.m_index.change_range_size(other_node_count, 0, 0,
+                      m_index.get_capacity());
 
-      size_t i = 0;
-      for (; i < node_count - sstart; i++) {
+      for (size_t i = 0; i < to_copy; i++) {
         size_t size = get_key_size(sstart + i);
 
         ham_u8_t *p = m_index.get_chunk_data_by_offset(
@@ -982,11 +984,22 @@ class VariableLengthKeyList : public BaseKeyList
     // Change the range size; the capacity will be adjusted, the data is
     // copied as necessary
     void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
-            size_t new_range_size) {
+            size_t new_range_size, size_t capacity_hint) {
+      // no capacity given? then try to find a good default one
+      if (capacity_hint == 0) {
+        capacity_hint = m_index.get_capacity();
+        if (new_range_size > m_range_size) {
+          int diff = (new_range_size - m_range_size) / get_full_key_size();
+          if (diff == 0)
+            diff = 1;
+          capacity_hint += diff;
+        }
+        else if (new_range_size < m_range_size && capacity_hint > node_count)
+          capacity_hint -= (capacity_hint - node_count) / 2;
+      }
+
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
-                        node_count + 1); // TODO +1 is bogus - only increase
-                                         // if new capacity is required! (but
-                                         // we don't know that here)
+                        capacity_hint);
       m_data = new_data_ptr;
       m_range_size = new_range_size;
     }

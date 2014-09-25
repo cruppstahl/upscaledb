@@ -208,7 +208,7 @@ class PodKeyList : public BaseKeyList
 
     // Change the range size; just copy the data from one place to the other
     void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
-            size_t new_range_size) {
+            size_t new_range_size, size_t capacity_hint) {
       memmove(new_data_ptr, m_data, node_count * sizeof(T));
       m_data = (T *)new_data_ptr;
       m_range_size = new_range_size;

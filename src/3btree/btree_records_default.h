@@ -267,8 +267,10 @@ class DefaultRecordList : public BaseRecordList
     // Change the capacity; for PAX layouts this just means copying the
     // data from one place to the other
     void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
-            size_t new_range_size) {
-      size_t new_capacity = new_range_size / get_full_record_size();
+            size_t new_range_size, size_t capacity_hint) {
+      size_t new_capacity = capacity_hint
+                              ? capacity_hint
+                              : new_range_size / get_full_record_size();
       // shift "to the right"? then first shift key data, otherwise
       // the flags might overwrite the data
       if (new_data_ptr > m_flags) {

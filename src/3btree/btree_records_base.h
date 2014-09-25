@@ -34,25 +34,23 @@
 
 namespace hamsterdb {
 
-class BaseRecordList
+struct BaseRecordList
 {
-  public:
-    BaseRecordList()
-      : m_range_size(0) {
-    }
+  BaseRecordList()
+    : m_range_size(0) {
+  }
 
-    // Checks the integrity of this node. Throws an exception if there is a
-    // violation.
-    void check_integrity(ham_u32_t count, bool quick = false) const {
-    }
+  // Checks the integrity of this node. Throws an exception if there is a
+  // violation.
+  void check_integrity(ham_u32_t count, bool quick = false) const {
+  }
 
-    // Rearranges the list
-    void vacuumize(ham_u32_t node_count, bool force) const {
-    }
+  // Rearranges the list
+  void vacuumize(ham_u32_t node_count, bool force) const {
+  }
 
-  protected:
-    // The size of the range (in bytes)
-    size_t m_range_size;
+  // The size of the range (in bytes)
+  size_t m_range_size;
 };
 
 } // namespace hamsterdb
