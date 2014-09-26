@@ -3120,3 +3120,67 @@ TEST_CASE("Cursor-dupes/duplicatePositionTxnTest", "")
   f.duplicatePositionBtreeTest();
 }
 
+TEST_CASE("Cursor/issue41", "")
+{
+  ham_env_t *env;
+  ham_db_t *db;
+  ham_txn_t *txn;
+  ham_cursor_t *cw; // writing cursor
+  ham_cursor_t *cr; // reading cursor
+
+  REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS, 0664, 0));
+  REQUIRE(0 == ham_env_create_db(env, &db, 13, 0, 0));
+
+  for (ham_u64_t i = 1; i <= 6; i++) {
+    REQUIRE(0 == ham_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cw, db, txn, 0));
+    if (i > 1) {
+      ham_key_t k = {0};
+      ham_record_t r = {0};
+      REQUIRE(0 == ham_cursor_create(&cr, db, 0, 0));
+      REQUIRE(0 == ham_cursor_move(cr, &k, &r, HAM_CURSOR_LAST));
+      REQUIRE(*(ham_u64_t *)k.data == i - 1);
+      REQUIRE(*(ham_u64_t *)r.data == i - 1);
+      REQUIRE(0 == ham_cursor_close(cr));
+    }
+    ham_key_t key = {0};
+    key.data = &i;
+    key.size = sizeof(i);
+    ham_record_t record = {0};
+    record.data = &i;
+    record.size = sizeof(i);
+    REQUIRE(0 == ham_cursor_insert(cw, &key, &record, 0));
+    REQUIRE(0 == ham_cursor_close(cw));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+  }
+
+  REQUIRE(0 == ham_cursor_create(&cr, db, 0, 0));
+
+  // 6,6
+  ham_key_t k = {0};
+  ham_record_t r = {0};
+  REQUIRE(0 == ham_cursor_move(cr, &k, &r, HAM_CURSOR_LAST));
+  REQUIRE(*(ham_u64_t *)k.data == 6);
+  REQUIRE(*(ham_u64_t *)r.data == 6);
+
+  // Now the read cursor is asked to find(key,record,HAM_FIND_LT_MATCH)
+  // with key = 6. The result is key=5 and record=5 (ok)
+  REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_LT_MATCH));
+  REQUIRE(*(ham_u64_t *)k.data == 5);
+  REQUIRE(*(ham_u64_t *)r.data == 5);
+
+  // Now repeat the step backward in time: find(key,record,HAM_FIND_LT_MATCH)
+  // with key=5. The result is key=4 and record = 4 (ok)
+  REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_LT_MATCH));
+  REQUIRE(*(ham_u64_t *)k.data == 4);
+  REQUIRE(*(ham_u64_t *)r.data == 4);
+
+  // Now ask for the step forward in time: find(key,record,HAM_FIND_GT_MATCH)
+  // with key=4. The result is key=4 and record=6 (?????)
+  REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_GT_MATCH));
+  REQUIRE(*(ham_u64_t *)k.data == 5);
+  REQUIRE(*(ham_u64_t *)r.data == 5);
+
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}

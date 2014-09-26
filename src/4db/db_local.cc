@@ -1408,6 +1408,12 @@ bail:
   if (st)
     return (st);
 
+  /* approximate matching? then also copy the key */
+  if (ham_key_get_intflags(key) & BtreeKey::kApproximate) {
+    if (cursor->is_coupled_to_txnop())
+      cursor->get_txn_cursor()->copy_coupled_key(key);
+  }
+
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
   cursor->set_lastop(Cursor::kLookupOrInsert);
