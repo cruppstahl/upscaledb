@@ -237,7 +237,7 @@ class BtreeEraseAction
             Page *coupled_page;
             int coupled_slot;
             cur->get_coupled_key(&coupled_page, &coupled_slot);
-            if (coupled_page == page && coupled_slot > (ham_u32_t)slot)
+            if (coupled_page == page && coupled_slot > slot)
               cur->uncouple_from_page();
           }
           btcur = next;

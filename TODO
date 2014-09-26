@@ -281,7 +281,7 @@ o refactoring: rewrite capacity calculations (again...)
                 (additional space / item size, but at least 1)
             x what about shrinking? if capacity >> node_count then reduce
                 the capacity
-    o List:requires_split should no longer vacuumize
+    x List:requires_split should no longer vacuumize
         x lists should rearrange themselves internally for the new key
             -> pass capacity + required data to vacuumize()
         x still no success? then call rearrange() in the caller
@@ -291,12 +291,25 @@ o refactoring: rewrite capacity calculations (again...)
             x varlen keys, pax records - ok
             x pax keys, duplicates - ok
             x varlen keys, duplicates - ok
-    o fix ./ham_bench --stop-ops=500000 --seed=1 --metrics=all --duplicate=last
+    x fix ./ham_bench --stop-ops=500000 --seed=1 --metrics=all --duplicate=last
         x it throws assertions in 2.1.8, and HEAD fails as well
-        o add to monster test
+        x add to monster test
 
     x re-enable journal.cpp:1296
-    o run performance tests
+    o fix performance regressions
+        o things to check to improve performance
+            o rearrange requires sorting and many memmoves - very expensive
+            o vacuumize should not adjust the capacity; this should be
+                a separate operation. reason: vacuumize is called very
+                often i.e. before splits/merges, and should not change the
+                capacity then
+            o initial capacity could be taken from the node_count of previous
+                pages (save when splitting)
+            o avoid frequent back-and-forth with the capacity, esp. when
+                the range is only changed a little bit and if the free
+                data area of the list is >> get_full_*_size()
+        o run performance tests
+    x move UpfrontIndex into its own file
 
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in

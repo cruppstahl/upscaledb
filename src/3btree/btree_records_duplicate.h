@@ -56,6 +56,7 @@
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_node.h"
 #include "3btree/btree_index.h"
+#include "3btree/upfront_index.h"
 #include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
