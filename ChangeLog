@@ -1,3 +1,7 @@
+Sep 22, 2014 - chris ---------------------------------------------------
+o Fixed an assert when resizing lists with an UpfrontIndex (nodes with keys
+	of variable lengths or duplicate records)
+
 Sep 18, 2014 - chris ---------------------------------------------------
 o Major rewrite of the recovery logic; increased test coverage
 o Added new parameter HAM_PARAM_JOURNAL_SWITCH_THRESHOLD to control

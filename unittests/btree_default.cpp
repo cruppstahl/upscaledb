@@ -267,6 +267,8 @@ struct BtreeDefaultFixture {
       key = makeKey(*it, buffer);
       rec.data = key.data;
       rec.size = key.size;
+      if (*it == 7917)
+        printf("hit\n");
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec,
                               m_duplicates ? HAM_DUPLICATE : 0));
 

@@ -285,7 +285,15 @@ o refactoring: rewrite capacity calculations (again...)
         x lists should rearrange themselves internally for the new key
             -> pass capacity + required data to vacuumize()
         x still no success? then call rearrange() in the caller
-        o unittests are currently failing
+        x unittests are currently failing
+        x test for filesize regressions against 2.1.8 w/ ham_bench
+            x pax keys, pax records - ok
+            x varlen keys, pax records - ok
+            x pax keys, duplicates - ok
+            x varlen keys, duplicates - ok
+    o fix ./ham_bench --stop-ops=500000 --seed=1 --metrics=all --duplicate=last
+        x it throws assertions in 2.1.8, and HEAD fails as well
+        o add to monster test
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in
         btree_node_proxy.h.
@@ -293,11 +301,17 @@ o refactoring: rewrite capacity calculations (again...)
             --use-berkeleydb=true --fullcheck=find ../testfiles/2/ext_050.tst
 
     x re-enable journal.cpp:1296
-    o for splits: use a separate error code instead of HAM_LIMITS_REACHED
     o run performance tests
     o run monster tests
     o increase file format version
     o add to README!
+
+o see mail from Michael Moellney: cursor is not advancing properly when
+    it's at the end of the database
+    o reproduce w/ a sample
+    o fix
+    o add a unittest
+    o add fix to master branch
 
 o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
     o linear search 

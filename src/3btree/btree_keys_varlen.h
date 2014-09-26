@@ -172,9 +172,6 @@ class UpfrontIndex
       if (!new_range_size)
         new_range_size = m_range_size;
 
-      if (new_capacity < kMinimumCapacity)
-        new_capacity = kMinimumCapacity;
-
       size_t freelist_count = get_freelist_count();
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
@@ -182,7 +179,7 @@ class UpfrontIndex
                             + old_capacity * get_full_index_size()];
       ham_u8_t *dst = &new_data_ptr[kPayloadOffset
                             + new_capacity * get_full_index_size()];
-      //ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
+      ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
       // shift "to the right"? Then first move the data and afterwards
       // the index
       if (dst > src) {
@@ -191,17 +188,18 @@ class UpfrontIndex
                 kPayloadOffset + new_capacity * get_full_index_size());
       }
       // vice versa otherwise
-      else if (dst < src) {
+      else if (dst <= src) {
         if (new_data_ptr != m_data)
           memmove(new_data_ptr, m_data,
                   kPayloadOffset + new_capacity * get_full_index_size());
         memmove(dst, src, used_data_size);
       }
+
       m_data = new_data_ptr;
       m_range_size = new_range_size;
       set_capacity(new_capacity);
-      set_next_offset(used_data_size);
       set_freelist_count(freelist_count);
+      set_next_offset(used_data_size); // has dependency to get_freelist_count()
     }
 
     // Calculates the required size for a range
@@ -603,16 +601,6 @@ class UpfrontIndex
       return (*(ham_u32_t *)(m_data + 8));
     }
 
-  private:
-    friend class UpfrontIndexFixture;
-
-    // Resets the page
-    void clear() {
-      set_freelist_count(0);
-      set_next_offset(0);
-      m_vacuumize_counter = 0;
-    }
-
     // Returns the offset of the unused space at the end of the page
     ham_u32_t get_next_offset(size_t node_count) {
       ham_u32_t ret = *(ham_u32_t *)(m_data + 4);
@@ -621,6 +609,16 @@ class UpfrontIndex
         set_next_offset(ret);
       }
       return (ret);
+    }
+
+  private:
+    friend class UpfrontIndexFixture;
+
+    // Resets the page
+    void clear() {
+      set_freelist_count(0);
+      set_next_offset(0);
+      m_vacuumize_counter = 0;
     }
 
     // Returns the offset of the unused space at the end of the page
@@ -991,13 +989,8 @@ class VariableLengthKeyList : public BaseKeyList
             size_t new_range_size, size_t capacity_hint) {
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
-        capacity_hint = m_index.get_capacity();
-        if (new_range_size > m_range_size) {
-          int diff = (new_range_size - m_range_size) / get_full_key_size();
-          capacity_hint += diff;
-        }
-        else if (new_range_size < m_range_size && capacity_hint > node_count)
-          capacity_hint -= (capacity_hint - node_count) / 2;
+        capacity_hint = (new_range_size - m_index.get_next_offset(node_count)
+                - get_full_key_size()) / m_index.get_full_index_size();
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }

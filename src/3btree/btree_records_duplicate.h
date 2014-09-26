@@ -983,15 +983,10 @@ class DuplicateInlineRecordList : public DuplicateRecordList
                 size_t new_range_size, size_t capacity_hint) {
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
-        capacity_hint = m_index.get_capacity();
-        if (new_range_size > m_range_size) {
-          int diff = (new_range_size - m_range_size) / get_full_record_size();
-          capacity_hint += diff;
+        capacity_hint = (new_range_size - m_index.get_next_offset(node_count)
+                - get_full_record_size()) / m_index.get_full_index_size();
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
-        }
-        else if (new_range_size < m_range_size && capacity_hint > node_count)
-          capacity_hint -= (capacity_hint - node_count) / 2;
       }
 
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
@@ -1464,13 +1459,8 @@ write_record:
                 size_t new_range_size, size_t capacity_hint) {
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
-        capacity_hint = m_index.get_capacity();
-        if (new_range_size > m_range_size) {
-          int diff = (new_range_size - m_range_size) / get_full_record_size();
-          capacity_hint += diff;
-        }
-        else if (new_range_size < m_range_size && capacity_hint > node_count)
-          capacity_hint -= (capacity_hint - node_count) / 2;
+        capacity_hint = (new_range_size - m_index.get_next_offset(node_count)
+                - get_full_record_size()) / m_index.get_full_index_size();
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }
