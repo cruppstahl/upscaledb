@@ -36,6 +36,11 @@ namespace hamsterdb {
 
 struct BaseKeyList
 {
+  enum {
+      // This KeyList cannot reduce its capacity in order to release storage
+      kCanReduceCapacity = 0
+  };
+
   BaseKeyList()
     : m_range_size(0) {
   }

@@ -298,30 +298,31 @@ o refactoring: rewrite capacity calculations (again...)
     x re-enable journal.cpp:1296
     o fix performance regressions
         o things to check to improve performance
-            o initial capacity could be taken from the node_count of previous
+            x initial capacity could be taken from the node_count of previous
                 pages (save when splitting)
-            o rearrange requires sorting and many memmoves - very expensive
-            o vacuumize should not adjust the capacity; this should be
+            x rearrange requires sorting and many memmoves - very expensive
+            x vacuumize should not adjust the capacity; this should be
                 a separate operation. reason: vacuumize is called very
                 often i.e. before splits/merges, and should not change the
                 capacity then
-            o avoid frequent back-and-forth with the capacity, esp. when
-                the range is only changed a little bit and if the free
-                data area of the list is >> get_full_*_size()
+            x reducing the capacity means that rearrange is not required,
+                a memmove is enough
+                current stats:
+                    2.1.8   821.9m    31.7m BtreeIndex::insert
+                    2.1.9   826.1mm   31.5m BtreeIndex::insert
+            o only adjust capacity when required; currently it's not adjusted
+                at all (call it in UpfrontIndex::vacuumize, if
+                capacity >> node_count)
+            o only vacuumize if we can gain enough space for the new key/record
         o run performance tests
     x move UpfrontIndex into its own file
 
-    ./ham_bench --seed=12345 --stop-ops=50000 --recsize-fixed=0  --metrics=all
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --key=binary
---keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40 --quiet
---metrics=all
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --key=binary
---keysize-fixed --duplicate=last --quiet --metrics=all
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --key=binary --keysize=128
---keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40 --quiet
---metrics=all
-    ./ham_bench --seed=1380279291 --stop-ops=1000000 --key=binary --keysize=128
---keysize-fixed --duplicate=last --quiet --metrics=all
+    o the following tests fail
+        o --seed=12345 --stop-ops=50000 --recsize-fixed=0  --metrics=all
+        o --seed=1380279291 --key=binary --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
+        o --seed=1380279291 --key=binary --keysize-fixed --duplicate=last
+        o --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
+        o --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last
     
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in

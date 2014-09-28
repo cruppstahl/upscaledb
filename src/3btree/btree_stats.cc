@@ -38,6 +38,7 @@ BtreeStatistics::BtreeStatistics()
   memset(&m_last_leaf_pages[0], 0, sizeof(m_last_leaf_pages));
   memset(&m_last_leaf_count[0], 0, sizeof(m_last_leaf_count));
   memset(&m_keylist_range_size[0], 0, sizeof(m_keylist_range_size));
+  memset(&m_keylist_capacities[0], 0, sizeof(m_keylist_capacities));
 }
 
 void

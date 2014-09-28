@@ -94,7 +94,10 @@ class VariableLengthKeyList : public BaseKeyList
       kHasSequentialData = 0,
 
       // A flag whether this KeyList supports the scan() call
-      kSupportsBlockScans = 0
+      kSupportsBlockScans = 0,
+
+      // This KeyList can reduce its capacity in order to release storage
+      kCanReduceCapacity = 1
     };
 
     // Constructor
@@ -353,7 +356,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
-      if (node_count < m_index.get_capacity() || force)
+      if (force)
         m_index.increase_vacuumize_counter(1);
       m_index.maybe_vacuumize(node_count);
     }

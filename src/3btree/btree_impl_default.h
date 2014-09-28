@@ -270,12 +270,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       if (!keys_require_split && !records_require_split)
         return (false);
 
-      // not successful? make sure that both lists are vacuumized
-      if (keys_require_split)
-        P::m_records.vacuumize(node_count, false);
-      if (records_require_split)
-        P::m_keys.vacuumize(node_count, false);
-
       // now adjust the ranges and the capacity
       if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
@@ -292,6 +286,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       BtreeIndex *bi = P::m_page->get_db()->get_btree_index();
       bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
                       load_range_size());
+      bi->get_statistics()->set_keylist_capacities(P::m_node->is_leaf(),
+                      node_count);
       return (true);
     }
 
@@ -434,6 +430,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // Retrieve the minimum sizes that both lists require to store their
       // data
+      size_t capacity_hint;
       size_t old_key_range_size = load_range_size();
       size_t key_range_size, record_range_size;
       size_t required_key_range, required_record_range;
@@ -471,18 +468,17 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
           || key_range_size + record_range_size > usable_page_size)
         return (false);
 
-      // Try to get a clue about the capacity of the lists; this will help
-      // those lists with an UpfrontIndex to better arrange their layout
-      size_t capacity_hint = 0;
-      if (KeyList::kHasSequentialData)
-        capacity_hint = key_range_size / P::m_keys.get_full_key_size();
-      else if (RecordList::kHasSequentialData)
-        capacity_hint = record_range_size / P::m_records.get_full_record_size();
+      capacity_hint = get_capacity_hint(key_range_size, record_range_size);
 
       // sanity check: make sure that the new capacity would be big
       // enough for all the keys
       if (capacity_hint > 0 && capacity_hint < node_count)
         return (false);
+
+      if (capacity_hint == 0) {
+        BtreeStatistics *bstats = P::m_page->get_db()->get_btree_index()->get_statistics();
+        capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
+      }
 
       // Get a pointer to the data area and persist the new range size
       // of the KeyList
@@ -517,6 +513,16 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // -> change to an assert, then return true
       return (!P::m_records.requires_split(node_count)
                 && !P::m_keys.requires_split(node_count, key));
+    }
+
+    // Try to get a clue about the capacity of the lists; this will help
+    // those lists with an UpfrontIndex to better arrange their layout
+    size_t get_capacity_hint(size_t key_range_size, size_t record_range_size) {
+      if (KeyList::kHasSequentialData)
+        return (key_range_size / P::m_keys.get_full_key_size());
+      if (RecordList::kHasSequentialData)
+        return (record_range_size / P::m_records.get_full_record_size());
+      return (0);
     }
 
     // Implementation of the find method; uses a linear search if possible

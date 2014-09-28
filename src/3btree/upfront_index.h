@@ -232,7 +232,7 @@ class UpfrontIndex
     // operation was successful, otherwise false 
     bool maybe_vacuumize(size_t node_count) {
       if (m_vacuumize_counter > 0 || get_freelist_count() > 0) {
-        vacuumize(node_count, true);
+        vacuumize(node_count);
         return (true);
       }
       return (false);
@@ -463,7 +463,7 @@ class UpfrontIndex
     // Merges all chunks from the |other| index to this index
     void merge_from(UpfrontIndex *other, size_t node_count,
                     size_t other_node_count) {
-      vacuumize(node_count, false);
+      vacuumize(node_count);
       
       for (size_t i = 0; i < other_node_count; i++) {
         insert_slot(i + node_count, i + node_count);
@@ -491,11 +491,22 @@ class UpfrontIndex
                       + offset]);
     }
 
+    // Reduces the capacity of the UpfrontIndex, if required
+    void reduce_capacity(size_t node_count) {
+      size_t old_capacity = get_capacity();
+      if (node_count > 0
+          && old_capacity > node_count + 4) {
+        size_t new_capacity = old_capacity - (old_capacity - node_count) / 2;
+        if (new_capacity != old_capacity)
+          change_range_size(node_count, m_data, m_range_size, new_capacity);
+      }
+    }
+
     // Re-arranges the node: moves all keys sequentially to the beginning
     // of the key space, removes the whole freelist.
     //
     // This call is extremely expensive! Try to avoid it as much as possible.
-    void vacuumize(size_t node_count, bool adjust_capacity) {
+    void vacuumize(size_t node_count) {
       if (m_vacuumize_counter == 0) {
         if (get_freelist_count() > 0) {
           set_freelist_count(0);
@@ -507,14 +518,6 @@ class UpfrontIndex
       // get rid of the freelist - this node is now completely rewritten,
       // and the freelist would just complicate things
       set_freelist_count(0);
-
-      // reduce the capacity, if required
-      if (node_count > 0
-          && adjust_capacity
-          && get_capacity() > node_count + 4) {
-        size_t new_capacity = get_capacity() - (get_capacity() - node_count) / 2;
-        change_range_size(node_count, m_data, m_range_size, new_capacity);
-      }
 
       // make a copy of all indices (excluding the freelist)
       bool requires_sort = false;

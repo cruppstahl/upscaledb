@@ -115,7 +115,7 @@ class BtreeStatistics {
     // Resets the statistics for a single page
     void reset_page(Page *page);
 
-    // Also keep track of the KeyList range size
+    // Keep track of the KeyList range size
     void set_keylist_range_size(bool leaf, size_t size) {
       m_keylist_range_size[(int)leaf] = size;
     }
@@ -123,6 +123,16 @@ class BtreeStatistics {
     // Retrieves the KeyList range size
     size_t get_keylist_range_size(bool leaf) const {
       return (m_keylist_range_size[(int)leaf]);
+    }
+
+    // Keep track of the KeyList capacities
+    void set_keylist_capacities(bool leaf, size_t capacity) {
+      m_keylist_capacities[(int)leaf] = capacity;
+    }
+
+    // Retrieves the KeyList capacities size
+    size_t get_keylist_capacities(bool leaf) const {
+      return (m_keylist_capacities[(int)leaf]);
     }
 
   private:
@@ -140,6 +150,9 @@ class BtreeStatistics {
 
     // the range size of the KeyList
     size_t m_keylist_range_size[2];
+
+    // the capacities of the KeyList
+    size_t m_keylist_capacities[2];
 };
 
 } // namespace hamsterdb
