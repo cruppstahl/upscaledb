@@ -296,8 +296,8 @@ o refactoring: rewrite capacity calculations (again...)
         x add to monster test
 
     x re-enable journal.cpp:1296
-    o fix performance regressions
-        o things to check to improve performance
+    x fix performance regressions
+        x things to check to improve performance
             x initial capacity could be taken from the node_count of previous
                 pages (save when splitting)
             x rearrange requires sorting and many memmoves - very expensive
@@ -310,11 +310,6 @@ o refactoring: rewrite capacity calculations (again...)
                 current stats:
                     2.1.8   821.9m    31.7m BtreeIndex::insert
                     2.1.9   826.1mm   31.5m BtreeIndex::insert
-            o only adjust capacity when required; currently it's not adjusted
-                at all (call it in UpfrontIndex::vacuumize, if
-                capacity >> node_count)
-            o only vacuumize if we can gain enough space for the new key/record
-        o run performance tests
     x move UpfrontIndex into its own file
 
     o the following tests fail
@@ -330,9 +325,16 @@ o refactoring: rewrite capacity calculations (again...)
         However, if the call in btree_insert is removed, some tests fail, i.e.
             --use-berkeleydb=true --fullcheck=find ../testfiles/2/ext_050.tst
 
+    o run performance tests
     o run monster tests
     o increase file format version
     o add to README!
+
+o when running ./ham_bench (without any parameters) then the debug version
+    has a maximum insert latency > 1 sec (sometimes > 2 sec).
+    o is this also the case with the release build?
+    o when --verbose: add warning message if an operation is > 1 sec
+    o try to figure out if it's a reproducable outlier, and fix it
 
 o see mail from Michael Moellney: cursor is not advancing properly when
     it's at the end of the database

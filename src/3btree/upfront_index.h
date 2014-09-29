@@ -507,7 +507,7 @@ class UpfrontIndex
     //
     // This call is extremely expensive! Try to avoid it as much as possible.
     void vacuumize(size_t node_count) {
-      if (m_vacuumize_counter == 0) {
+      if (m_vacuumize_counter < 10) {
         if (get_freelist_count() > 0) {
           set_freelist_count(0);
           invalidate_next_offset();
