@@ -150,7 +150,15 @@ class UpfrontIndex
                             + old_capacity * get_full_index_size()];
       ham_u8_t *dst = &new_data_ptr[kPayloadOffset
                             + new_capacity * get_full_index_size()];
+
+      // if old range == new range then leave
+      if (m_range_size == new_range_size
+            && old_capacity == new_capacity 
+            && m_data == new_data_ptr )
+        return;
+
       ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
+
       // shift "to the right"? Then first move the data and afterwards
       // the index
       if (dst > src) {
@@ -176,7 +184,7 @@ class UpfrontIndex
     // Calculates the required size for a range
     size_t get_required_range_size(size_t node_count) const {
       return (UpfrontIndex::kPayloadOffset
-                    + node_count * get_full_index_size()
+                    + get_capacity() * get_full_index_size()
                     + get_next_offset(node_count));
     }
 

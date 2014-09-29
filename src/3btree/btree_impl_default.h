@@ -370,22 +370,22 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // no data so far? then come up with a good default
         if (key_range_size == 0) {
-          // calculate the sizes of the KeyList and RecordList
-          double ratio = (double)P::m_keys.get_full_key_size() /
-                              (double)P::m_records.get_full_record_size();
-          if (ratio == 1.)
-            key_range_size = usable_page_size / 2;
-          else if (ratio > 1) {
-            ratio = (double)P::m_records.get_full_record_size() /
-                        (double)P::m_keys.get_full_key_size();
-            record_range_size = (double)usable_page_size * ratio;
-            key_range_size = usable_page_size - record_range_size;
+          // no records? then assign the full range to the KeyList
+          if (P::m_records.get_full_record_size() == 0) {
+            key_range_size = usable_page_size;
           }
-          else // ratio < 1
-            key_range_size = (double)usable_page_size * ratio;
+          // Otherwise split the range between both lists
+          else {
+            size_t capacity = usable_page_size
+                    / (P::m_keys.get_full_key_size(0) +
+                                  P::m_records.get_full_record_size());
+            key_range_size = capacity * P::m_keys.get_full_key_size(0);
+          }
         }
 
         record_range_size = usable_page_size - key_range_size;
+
+        ham_assert(key_range_size + record_range_size <= usable_page_size);
 
         // persist the key range size
         store_range_size(key_range_size);
@@ -434,29 +434,39 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       size_t old_key_range_size = load_range_size();
       size_t key_range_size, record_range_size;
       size_t required_key_range, required_record_range;
+      size_t usable_page_size = get_usable_page_size();
       required_key_range = P::m_keys.get_required_range_size(node_count)
                                 + P::m_keys.get_full_key_size(key);
       required_record_range = P::m_records.get_required_range_size(node_count)
                                 + P::m_records.get_full_record_size();
 
-      size_t usable_page_size = get_usable_page_size();
-      size_t remainder = usable_page_size
-                            - (required_key_range + required_record_range); 
+      ham_u8_t *p = P::m_node->get_data();
+      p += sizeof(ham_u32_t);
 
-      // Now split the remainder between both lists, according to the
-      // ratio of a single item
-      double ratio = (double)P::m_keys.get_full_key_size() /
-                          (double)P::m_records.get_full_record_size();
-      if (ratio == 1.)
-        key_range_size = required_key_range + remainder / 2;
-      else if (ratio > 1) {
-        ratio = (double)P::m_records.get_full_record_size() /
-                    (double)P::m_keys.get_full_key_size();
-        key_range_size = required_key_range + (double)remainder * ratio;
+      // no records? then there's no way to change the ranges. but maybe we
+      // can increase the capacity
+      if (required_record_range == 0) {
+        if (required_key_range > usable_page_size)
+          return (false);
+        P::m_keys.change_range_size(node_count, p, usable_page_size,
+                        node_count + 5);
+        return (!P::m_keys.requires_split(node_count, key));
       }
-      else // ratio < 1
-        key_range_size = required_key_range + (double)remainder * ratio;
+
+      ssize_t remainder = usable_page_size
+                            - (required_key_range + required_record_range); 
+      if (remainder < 0)
+        return (false);
+
+      // Now split the remainder between both lists
+      size_t additional_capacity = remainder
+              / (P::m_keys.get_full_key_size(0) +
+                              P::m_records.get_full_record_size());
+      key_range_size = required_key_range + additional_capacity
+              * P::m_keys.get_full_key_size(0);
       record_range_size = usable_page_size - key_range_size;
+
+      ham_assert(key_range_size + record_range_size <= usable_page_size);
 
       // Check if the required record space is large enough, and make sure
       // there is enough room for a new item
@@ -483,8 +493,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // Get a pointer to the data area and persist the new range size
       // of the KeyList
       store_range_size(key_range_size);
-      ham_u8_t *p = P::m_node->get_data();
-      p += sizeof(ham_u32_t);
 
       // Now update the lists. If the KeyList grows then start with resizing
       // the RecordList, otherwise the moved KeyList will overwrite the
@@ -520,7 +528,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     size_t get_capacity_hint(size_t key_range_size, size_t record_range_size) {
       if (KeyList::kHasSequentialData)
         return (key_range_size / P::m_keys.get_full_key_size());
-      if (RecordList::kHasSequentialData)
+      if (RecordList::kHasSequentialData && P::m_records.get_full_record_size())
         return (record_range_size / P::m_records.get_full_record_size());
       return (0);
     }

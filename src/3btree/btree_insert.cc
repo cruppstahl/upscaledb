@@ -194,6 +194,15 @@ class BtreeInsertAction
       // now walk down the tree
       while (1) {
         if (split_required(node)) {
+          if (node->is_leaf()
+              && !(m_flags & HAM_OVERWRITE)
+              && !(m_flags & HAM_DUPLICATE)) {
+            int cmp;
+            int slot = node->find_child(m_key, 0, &cmp);
+            if (slot >= 0 && cmp == 0)
+              return (HAM_DUPLICATE_KEY);
+          }
+
           page = split_page(page, parent, m_key);
           node = m_btree->get_node_from_page(page);
         }

@@ -631,7 +631,7 @@ class DuplicateRecordList : public BaseRecordList
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
       if (force)
-        m_index.increase_vacuumize_counter(1);
+        m_index.increase_vacuumize_counter(100);
       m_index.maybe_vacuumize(node_count);
     }
 

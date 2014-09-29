@@ -357,7 +357,7 @@ class VariableLengthKeyList : public BaseKeyList
     // Rearranges the list
     void vacuumize(size_t node_count, bool force) {
       if (force)
-        m_index.increase_vacuumize_counter(1);
+        m_index.increase_vacuumize_counter(100);
       m_index.maybe_vacuumize(node_count);
     }
 
@@ -372,6 +372,13 @@ class VariableLengthKeyList : public BaseKeyList
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }
+
+      // if there's not enough space for the new capacity then try to reduce
+      // the capacity
+      if (m_index.get_next_offset(node_count) + get_full_key_size(0)
+                      + capacity_hint * m_index.get_full_index_size()
+                > new_range_size)
+        capacity_hint = node_count + 1;
 
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
                         capacity_hint);

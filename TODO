@@ -312,12 +312,16 @@ o refactoring: rewrite capacity calculations (again...)
                     2.1.9   826.1mm   31.5m BtreeIndex::insert
     x move UpfrontIndex into its own file
 
-    o the following tests fail
-        o --seed=12345 --stop-ops=50000 --recsize-fixed=0  --metrics=all
-        o --seed=1380279291 --key=binary --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
-        o --seed=1380279291 --key=binary --keysize-fixed --duplicate=last
-        o --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
-        o --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last
+    x the following tests fail
+        x --seed=12345 --stop-ops=50000 --recsize-fixed=1
+            x fix the crash
+            x file size increased by 100%!!
+        x --seed=12345 --stop-ops=50000 --recsize-fixed=0
+            x fix the crash
+            x file size increased by 100%!!
+        x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
+        x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last
+        x --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
     
     o currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in
