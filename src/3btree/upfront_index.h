@@ -143,7 +143,11 @@ class UpfrontIndex
       if (!new_range_size)
         new_range_size = m_range_size;
 
-      size_t freelist_count = get_freelist_count();
+      // get rid of the freelist and collect the garbage
+      if (get_freelist_count() > 0)
+        vacuumize(node_count);
+      ham_assert(get_freelist_count() == 0);
+
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
       ham_u8_t *src = &m_data[kPayloadOffset
@@ -177,7 +181,7 @@ class UpfrontIndex
       m_data = new_data_ptr;
       m_range_size = new_range_size;
       set_capacity(new_capacity);
-      set_freelist_count(freelist_count);
+      set_freelist_count(0);
       set_next_offset(used_data_size); // has dependency to get_freelist_count()
     }
 

@@ -59,6 +59,49 @@ struct BaseKeyList
   void vacuumize(ham_u32_t node_count, bool force) const {
   }
 
+  // Performs a linear search in a given range between |start| and
+  // |start + length|
+  template<typename T, typename Cmp>
+  int linear_search(T *data, size_t start, size_t length, T key,
+                  Cmp &comparator, int *pcmp) {
+    size_t c = start;
+    size_t end = start + length;
+
+#undef COMPARE
+#define COMPARE(c)      if (key <= data[c]) {                           \
+                          if (key < data[c]) {                          \
+                            if (c == 0)                                 \
+                              *pcmp = -1; /* key < data[0] */           \
+                            else                                        \
+                              *pcmp = +1; /* key > data[c - 1] */       \
+                            return ((c) - 1);                           \
+                          }                                             \
+                          *pcmp = 0;                                    \
+                          return (c);                                   \
+                        }
+
+    while (c + 8 < end) {
+      COMPARE(c)
+      COMPARE(c + 1)
+      COMPARE(c + 2)
+      COMPARE(c + 3)
+      COMPARE(c + 4)
+      COMPARE(c + 5)
+      COMPARE(c + 6)
+      COMPARE(c + 7)
+      c += 8;
+    }
+
+    while (c < end) {
+      COMPARE(c)
+      c++;
+    }
+
+    /* the new key is > the last key in the page */
+    *pcmp = 1;
+    return (start + length - 1);
+  }
+
   // The size of the range (in bytes)
   size_t m_range_size;
 };

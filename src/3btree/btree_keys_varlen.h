@@ -197,7 +197,7 @@ class VariableLengthKeyList : public BaseKeyList
     // |start + length|. Not implemented - callers must not use linear
     // search with this KeyList.
     template<typename Cmp>
-    int linear_search(ham_u32_t start, ham_u32_t count, ham_key_t *hkey,
+    int linear_search(size_t start, size_t length, ham_key_t *hkey,
                     Cmp &comparator, int *pcmp) {
       ham_assert(!"shouldn't be here");
       throw Exception(HAM_INTERNAL_ERROR);
@@ -263,11 +263,19 @@ class VariableLengthKeyList : public BaseKeyList
     // Returns true if the |key| no longer fits into the node and a split
     // is required. Makes sure that there is ALWAYS enough headroom
     // for an extended key!
+    //
+    // If there's no key specified then always assume the worst case and
+    // pretend that the key has the maximum length
     bool requires_split(size_t node_count, const ham_key_t *key) {
-      size_t required = key->size + 1;
-      // add 1 byte for flags
-      if (key->size > m_extkey_threshold || key->size < 8 + 1)
-        required = 8 + 1;
+      size_t required;
+      if (key) {
+        required = key->size + 1;
+        // add 1 byte for flags
+        if (key->size > m_extkey_threshold || key->size < 8 + 1)
+          required = 8 + 1;
+      }
+      else
+        required = m_extkey_threshold + 1;
       return (m_index.requires_split(node_count, required));
     }
 

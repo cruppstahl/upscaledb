@@ -132,10 +132,10 @@ class BinaryKeyList : public BaseKeyList
     // Performs a linear search in a given range between |start| and
     // |start + length|
     template<typename Cmp>
-    int linear_search(ham_u32_t start, ham_u32_t count, ham_key_t *key,
+    int linear_search(size_t start, size_t length, ham_key_t *key,
                     Cmp &comparator, int *pcmp) {
       ham_u8_t *begin = &m_data[start * m_key_size];
-      ham_u8_t *end = &m_data[(start + count) * m_key_size];
+      ham_u8_t *end = &m_data[(start + length) * m_key_size];
       ham_u8_t *current = begin;
 
       int c = start;
@@ -163,12 +163,12 @@ class BinaryKeyList : public BaseKeyList
 
       /* the new key is > the last key in the page */
       *pcmp = 1;
-      return (start + count - 1);
+      return (start + length - 1);
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
-      (*visitor)(&m_data[start * m_key_size], count);
+    void scan(ScanVisitor *visitor, ham_u32_t start, size_t length) {
+      (*visitor)(&m_data[start * m_key_size], length);
     }
 
     // Erases the extended part of a key; nothing to do here

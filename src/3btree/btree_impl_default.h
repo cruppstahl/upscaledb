@@ -490,6 +490,9 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
       }
 
+      if (capacity_hint < node_count)
+        capacity_hint = node_count + 1;
+
       // Get a pointer to the data area and persist the new range size
       // of the KeyList
       store_range_size(key_range_size);

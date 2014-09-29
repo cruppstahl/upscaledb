@@ -138,7 +138,7 @@ class BtreeInsertAction
        */
       if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
               || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
-              || split_required(node))
+              || node->requires_split(m_key))
         return (insert());
 
       /*
@@ -178,10 +178,6 @@ class BtreeInsertAction
       return (insert());
     }
 
-    bool split_required(BtreeNodeProxy *node) {
-      return (node->requires_split(m_key));
-    }
-
     ham_status_t insert() {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
@@ -195,13 +191,13 @@ class BtreeInsertAction
       while (1) {
         // check internal nodes for overflow, and split if necessary.
         // leaf nodes are checked in BtreeNodeProxy::insert.
-        if (!node->is_leaf() && split_required(node)) {
+        if (node->is_leaf())
+          break;
+
+        if (node->requires_split()) {
           page = split_page(page, parent, m_key);
           node = m_btree->get_node_from_page(page);
         }
-
-        if (node->is_leaf())
-          break;
 
         parent = page;
         page = m_btree->find_child(page, m_key);

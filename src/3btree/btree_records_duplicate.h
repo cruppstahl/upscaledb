@@ -990,6 +990,13 @@ class DuplicateInlineRecordList : public DuplicateRecordList
           capacity_hint = node_count + 1;
       }
 
+      // if there's not enough space for the new capacity then try to reduce
+      // the capacity
+      if (m_index.get_next_offset(node_count) + get_full_record_size()
+                      + capacity_hint * m_index.get_full_index_size()
+                > new_range_size)
+        capacity_hint = node_count + 1;
+
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
                 capacity_hint);
       m_data = new_data_ptr;
@@ -1465,6 +1472,13 @@ write_record:
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }
+
+      // if there's not enough space for the new capacity then try to reduce
+      // the capacity
+      if (m_index.get_next_offset(node_count) + get_full_record_size()
+                      + capacity_hint * m_index.get_full_index_size()
+                > new_range_size)
+        capacity_hint = node_count + 1;
 
       m_index.change_range_size(node_count, new_data_ptr, new_range_size,
                 capacity_hint);

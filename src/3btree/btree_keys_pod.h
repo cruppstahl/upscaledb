@@ -127,51 +127,16 @@ class PodKeyList : public BaseKeyList
     // Performs a linear search in a given range between |start| and
     // |start + length|
     template<typename Cmp>
-    int linear_search(ham_u32_t start, ham_u32_t count, ham_key_t *hkey,
-                    Cmp &comparator, int *pcmp) {
+    int linear_search(size_t start, size_t length, ham_key_t *hkey,
+                    Cmp &cmp, int *pcmp) {
       T key = *(T *)hkey->data;
-
-      ham_u32_t c = start;
-      ham_u32_t end = start + count;
-
-#undef COMPARE
-#define COMPARE(c)      if (key <= m_data[c]) {                         \
-                          if (key < m_data[c]) {                        \
-                            if (c == 0)                                 \
-                              *pcmp = -1; /* key < m_data[0] */         \
-                            else                                        \
-                              *pcmp = +1; /* key > m_data[c - 1] */     \
-                            return ((c) - 1);                           \
-                          }                                             \
-                          *pcmp = 0;                                    \
-                          return (c);                                   \
-                        }
-
-      while (c + 8 < end) {
-        COMPARE(c)
-        COMPARE(c + 1)
-        COMPARE(c + 2)
-        COMPARE(c + 3)
-        COMPARE(c + 4)
-        COMPARE(c + 5)
-        COMPARE(c + 6)
-        COMPARE(c + 7)
-        c += 8;
-      }
-
-      while (c < end) {
-        COMPARE(c)
-        c++;
-      }
-
-      /* the new key is > the last key in the page */
-      *pcmp = 1;
-      return (start + count - 1);
+      return (BaseKeyList::linear_search(m_data, start, length, key,
+                              cmp, pcmp));
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t count) {
-      (*visitor)(&m_data[start], count);
+    void scan(ScanVisitor *visitor, ham_u32_t start, size_t length) {
+      (*visitor)(&m_data[start], length);
     }
 
     // Erases the extended part of a key; nothing to do here

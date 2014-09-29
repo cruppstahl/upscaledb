@@ -20,6 +20,7 @@ x release sparsemap library w/ documentation and sample/tests
 o update the webpage (free for non-profits, cheap for startups, add crc32)
 o exception safe code
 o lots of refactoring
+o update file format (compress record IDs, UpfrontIndex, ...)
 o delta updates
 
 x PRO: 
@@ -312,7 +313,7 @@ o refactoring: rewrite capacity calculations (again...)
                     2.1.9   826.1mm   31.5m BtreeIndex::insert
     x move UpfrontIndex into its own file
 
-    o the following tests fail
+    x the following tests fail
         x --seed=12345 --stop-ops=50000 --recsize-fixed=1
             x fix the crash
             x file size increased by 100%!!
@@ -322,7 +323,7 @@ o refactoring: rewrite capacity calculations (again...)
         x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
         x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last
         x --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
-        o --use-berkeleydb=true --reopen=true --use-cursors --duplicate=first ../testfiles/1/41.tst
+        x --use-berkeleydb=true --reopen=true --use-cursors --duplicate=first ../testfiles/1/41.tst
     
     x currently, requires_split() is called twice for
         leaf nodes: in btree_insert.cc (were it should not be called), and in
@@ -335,6 +336,12 @@ o refactoring: rewrite capacity calculations (again...)
     o increase file format version
     o add to README!
 
+o ZINT32: rebase hamsterdb-pro
+    x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
+        -> linear search 
+    o calculate precise range size by looking at the deltas!
+    o then rebase hamsterdb-pro
+
 o when running ./ham_bench (without any parameters) then the debug version
     has a maximum insert latency > 1 sec (sometimes > 2 sec).
     -> caused by purging caches; whenever the cache is purged, at least
@@ -342,7 +349,7 @@ o when running ./ham_bench (without any parameters) then the debug version
     -> a quick test without limit improved performance a lot, but there was
         one outlier with 1.2 seconds
     o run perftest without that limit
-    o or try other limits (5, 10)
+    o or try other limits (2, 5, 10)
     o at least fix the comment/variable name
 
 o see mail from Michael Moellney: cursor is not advancing properly when
@@ -354,14 +361,9 @@ o see mail from Michael Moellney: cursor is not advancing properly when
     o add a unittest
     o add fix to master branch
 
-o ZINT32: rebase hamsterdb-pro
-    o refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
-        -> linear search 
-    o btree_keys_base should implement get_key(), because it's basically all
-        about the arena handling
-
 o refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
+    o rebase to v2
     o 2config/env_config.h: a struct with the run-time configuration of
         the environment
         o created in hamsterdb.cc/ham_env_create/ham_env_open and passed
@@ -417,10 +419,6 @@ x refactoring: once more check if we can unify the PaxLayout and
     the DefaultLayout (or move more code to the base class!)
     - no, not required. Stripping the library will reduce the size.
 
-o The C# PInvoke for ham_cursor_find is missing the Record structure
-    - also accept flags in ham_db_find and ham_cursor_find for approx.
-        matching, and copy the key!
-
 o erlang fixes are required
     o 2 tests are failing
     o quickcheck-ci.com
@@ -452,6 +450,9 @@ o refactoring: when the file format is changed then...
     o rebase hamsterdb-pro
 
 o windows cleanups
+    o The C# PInvoke for ham_cursor_find is missing the Record structure
+        - also accept flags in ham_db_find and ham_cursor_find for approx.
+            matching, and copy the key!
     o install VS2008 on the new harddisk
     o install VS2010 on the new harddisk
     o build release lib/dll with /PDBSTRIPPED (reduces file size?),
