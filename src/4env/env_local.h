@@ -52,7 +52,7 @@ class LocalTransaction;
 class LocalEnvironment : public Environment
 {
   public:
-    LocalEnvironment();
+    LocalEnvironment(EnvironmentConfiguration &config);
 
     // Returns the Device object
     Device *get_device() {
@@ -96,7 +96,7 @@ class LocalEnvironment : public Environment
 
     // Returns the page_size as specified in ham_env_create
     ham_u32_t get_page_size() const {
-      return (m_page_size);
+      return (m_config.page_size_bytes);
     }
 
     // Returns the size of the usable persistent payload of a page
@@ -117,37 +117,6 @@ class LocalEnvironment : public Environment
     // Get the private data of the specified database stored at index |i|;
     // interpretation of the data is up to the Btree.
     PBtreeHeader *get_btree_descriptor(int i);
-
-    // Returns the logfile directory
-    const std::string &get_log_directory() {
-      return (m_log_directory);
-    }
-
-    // Sets the logfile directory 
-    void set_log_directory(const std::string &dir) {
-      m_log_directory = dir;
-    }
-
-    // Enables AES encryption
-    void enable_encryption(const ham_u8_t *key) {
-      m_encryption_enabled = true;
-      ::memcpy(m_encryption_key, key, sizeof(m_encryption_key));
-    }
-
-    // Returns true if encryption is enabled
-    bool is_encryption_enabled() const {
-      return (m_encryption_enabled);
-    }
-
-    // Returns the AES encryption key
-    const ham_u8_t *get_encryption_key() const {
-      return (m_encryption_key);
-    }
-
-    // Set threshold for switching journal files
-    void set_journal_switch_threshold(ham_u32_t journal_switch_threshold) {
-      m_journal_switch_threshold = journal_switch_threshold;
-    }
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
@@ -176,12 +145,12 @@ class LocalEnvironment : public Environment
     virtual ham_status_t flush(ham_u32_t flags);
 
     // Creates a new database in the environment (ham_env_create_db)
-    virtual ham_status_t create_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param);
+    virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
 
     // Opens an existing database in the environment (ham_env_open_db)
-    virtual ham_status_t open_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param);
+    virtual ham_status_t open_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
@@ -214,21 +183,6 @@ class LocalEnvironment : public Environment
 
     // The logical journal
     ScopedPtr<Journal> m_journal;
-
-    // The directory with the log file and journal files
-    std::string m_log_directory;
-
-    // True if AES encryption is enabled
-    bool m_encryption_enabled;
-
-    // The AES encryption key
-    ham_u8_t m_encryption_key[16];
-
-    // The page_size which was specified when the env was created
-    size_t m_page_size;
-
-    // Journal switch threshold
-    ham_u32_t m_journal_switch_threshold;
 };
 
 } // namespace hamsterdb

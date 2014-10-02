@@ -146,7 +146,7 @@ struct JournalFixture {
 
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->get_filename();
+    std::string oldfilename = m_lenv->get_config().filename;
     m_lenv->test_set_filename("/::asdf");
     REQUIRE_CATCH(j->create(), HAM_IO_ERROR);
     m_lenv->test_set_filename(oldfilename);
@@ -156,7 +156,7 @@ struct JournalFixture {
 
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->get_filename();
+    std::string oldfilename = m_lenv->get_config().filename;
     m_lenv->test_set_filename("xxx$$test");
     REQUIRE_CATCH(j->open(), HAM_FILE_NOT_FOUND);
 

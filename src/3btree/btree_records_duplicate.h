@@ -685,8 +685,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
   public:
     // Constructor
     DuplicateInlineRecordList(LocalDatabase *db, PBtreeNode *node)
-      : DuplicateRecordList(db, node, false, db->get_record_size()),
-        m_record_size(db->get_record_size()) {
+      : DuplicateRecordList(db, node, false, db->get_config().record_size),
+        m_record_size(db->get_config().record_size) {
     }
 
     // Creates a new RecordList starting at |data|

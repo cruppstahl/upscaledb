@@ -28,6 +28,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/byte_array.h"
+#include "2config/db_config.h"
 #include "4env/env.h"
 
 #ifndef HAM_ROOT_H
@@ -54,11 +55,7 @@ class Database
 {
   public:
     // Constructor
-    Database(Environment *env, ham_u16_t name, ham_u32_t flags);
-
-    // Virtual destructor; can be overwritten by base-classes
-    virtual ~Database() {
-    }
+    Database(Environment *env, DatabaseConfiguration &config);
 
     // Returns the Environment pointer
     Environment *get_env() {
@@ -69,19 +66,19 @@ class Database
     // the Environment
     ham_u32_t get_rt_flags(bool raw = false) {
       if (raw)
-        return (m_rt_flags);
+        return (m_config.flags);
       else
-        return (m_env->get_flags() | m_rt_flags);
+        return (m_env->get_flags() | m_config.flags);
     }
 
     // Returns the database name
     ham_u16_t get_name() const {
-      return (m_name);
+      return (m_config.db_name);
     }
 
     // Sets the database name
     void set_name(ham_u16_t name) {
-      m_name = name;
+      m_config.db_name = name;
     }
 
     // Returns Database parameters (ham_db_get_parameters)
@@ -205,8 +202,8 @@ class Database
     // the current Environment
     Environment *m_env;
 
-    // the Database name
-    ham_u16_t m_name;
+    // the configuration settings
+    DatabaseConfiguration m_config;
 
     // the last error code
     ham_status_t m_error;
@@ -216,10 +213,6 @@ class Database
 
     // linked list of all cursors
     Cursor *m_cursor_list;
-
-    // The database flags - a combination of the persistent flags
-    // and runtime flags
-    ham_u32_t m_rt_flags;
 
     // This is where key->data points to when returning a
     // key to the user; used if Transactions are disabled

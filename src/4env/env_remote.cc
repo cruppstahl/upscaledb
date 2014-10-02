@@ -33,8 +33,8 @@
 
 namespace hamsterdb {
 
-RemoteEnvironment::RemoteEnvironment()
-  : Environment(), m_remote_handle(0), m_buffer(1024 * 4), m_timeout(0)
+RemoteEnvironment::RemoteEnvironment(EnvironmentConfiguration config)
+  : Environment(config), m_remote_handle(0), m_buffer(1024 * 4)
 {
 }
 
@@ -130,7 +130,7 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  m_socket.connect(hostname.c_str(), port, m_timeout);
+  m_socket.connect(hostname.c_str(), port, m_config.remote_timeout_sec);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -141,7 +141,6 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
 
   ham_status_t st = reply->connect_reply().status();
   if (st == 0) {
-    m_filename = url;
     set_flags(flags | reply->connect_reply().env_flags());
     m_remote_handle = reply->connect_reply().env_handle();
 
@@ -293,15 +292,15 @@ RemoteEnvironment::flush(ham_u32_t flags)
 }
 
 ham_status_t
-RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
+RemoteEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
         const ham_parameter_t *param)
 {
   const ham_parameter_t *p;
 
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
   request.mutable_env_create_db_request()->set_env_handle(m_remote_handle);
-  request.mutable_env_create_db_request()->set_dbname(dbname);
-  request.mutable_env_create_db_request()->set_flags(flags);
+  request.mutable_env_create_db_request()->set_dbname(config.db_name);
+  request.mutable_env_create_db_request()->set_flags(config.flags);
 
   p = param;
   if (p) {
@@ -319,8 +318,8 @@ RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
   if (st)
     return (st);
 
-  RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
-          reply->env_create_db_reply().db_flags());
+  config.flags = reply->env_create_db_reply().db_flags();
+  RemoteDatabase *rdb = new RemoteDatabase(this, config);
 
   rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
   *pdb = rdb;
@@ -329,25 +328,25 @@ RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  get_database_map()[dbname] = *pdb;
+  get_database_map()[config.db_name] = *pdb;
 
   return (0);
 }
 
 ham_status_t
-RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
+RemoteEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
         const ham_parameter_t *param)
 {
   const ham_parameter_t *p;
 
   /* make sure that this database is not yet open */
-  if (get_database_map().find(dbname) !=  get_database_map().end())
+  if (get_database_map().find(config.db_name) !=  get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
   request.mutable_env_open_db_request()->set_env_handle(m_remote_handle);
-  request.mutable_env_open_db_request()->set_dbname(dbname);
-  request.mutable_env_open_db_request()->set_flags(flags);
+  request.mutable_env_open_db_request()->set_dbname(config.db_name);
+  request.mutable_env_open_db_request()->set_flags(config.flags);
 
   p = param;
   if (p) {
@@ -365,14 +364,14 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
   if (st)
     return (st);
 
-  RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
-          reply->env_open_db_reply().db_flags());
+  config.flags = reply->env_open_db_reply().db_flags();
+  RemoteDatabase *rdb = new RemoteDatabase(this, config);
   rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
   *pdb = rdb;
 
   // on success: store the open database in the environment's list of
   // opened databases
-  get_database_map()[dbname] = *pdb;
+  get_database_map()[config.db_name] = *pdb;
 
   return (0);
 }

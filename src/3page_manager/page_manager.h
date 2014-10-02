@@ -82,9 +82,6 @@ class PageManager {
     // The cache size is specified in bytes!
     PageManager(LocalEnvironment *env, ham_u64_t cache_size);
 
-    // Destructor
-    ~PageManager();
-
     // Loads the state from a blob
     void load_state(ham_u64_t blobid);
 
@@ -137,11 +134,6 @@ class PageManager {
 
     // Flushes all pages of a database
     void close_database(LocalDatabase *db);
-
-    // Returns the cache's capacity
-    ham_u64_t get_cache_capacity() const {
-      return (m_cache.get_capacity());
-    }
 
     // Adds a page (or many pages) to the freelist; will not do anything
     // if the Environment is in-memory.

@@ -30,7 +30,8 @@
 #include "1base/byte_array.h"
 #include "1base/version.h"
 #include "1mem/mem.h"
-#include "1os/os.h"
+#include "2config/db_config.h"
+#include "2config/env_config.h"
 #include "2page/page.h"
 #ifdef HAM_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
@@ -56,7 +57,7 @@ using namespace hamsterdb;
 
 /* return true if the filename is for a local file */
 static bool
-__filename_is_local(const char *filename)
+filename_is_local(const char *filename)
 {
   return (!filename || strstr(filename, "ham://") != filename);
 }
@@ -317,14 +318,9 @@ ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
-  ham_u32_t page_size = HAM_DEFAULT_PAGE_SIZE;
-  ham_u64_t cache_size = 0;
-  ham_u64_t file_size_limit = 0xffffffffffffffff;
-  ham_u16_t max_databases = 0;
-  ham_u32_t timeout = 0;
-  ham_u32_t journal_switch_threshold = 0;
-  std::string logdir;
-  ham_u8_t *encryption_key = 0;
+  EnvironmentConfiguration config;
+  config.filename = filename ? filename : "";
+  config.file_mode = mode;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -371,32 +367,40 @@ ham_env_create(ham_env_t **henv, const char *filename,
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
       case HAM_PARAM_CACHE_SIZE:
-        cache_size = param->value;
-        if (flags & HAM_IN_MEMORY && cache_size != 0) {
+        if (flags & HAM_IN_MEMORY && param->value != 0) {
           ham_trace(("combination of HAM_IN_MEMORY and cache size != 0 "
                 "not allowed"));
           return (HAM_INV_PARAMETER);
         }
+        /* don't allow cache limits with unlimited cache */
+        if (flags & HAM_CACHE_UNLIMITED && param->value != 0) {
+          ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
+                "not allowed"));
+          return (HAM_INV_PARAMETER);
+        }
+        if (param->value > 0)
+          config.cache_size_bytes = param->value;
         break;
       case HAM_PARAM_PAGE_SIZE:
         if (param->value != 1024 && param->value % 2048 != 0) {
           ham_trace(("invalid page size - must be 1024 or a multiple of 2048"));
           return (HAM_INV_PAGESIZE);
         }
-        page_size = (ham_u32_t)param->value;
+        if (param->value > 0)
+          config.page_size_bytes = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
-          file_size_limit = param->value;
+          config.file_size_limit_bytes = param->value;
         break;
       case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
-        journal_switch_threshold = (ham_u32_t)param->value;
+        config.journal_switch_threshold = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
-        logdir = (const char *)param->value;
+        config.log_filename = (const char *)param->value;
         break;
       case HAM_PARAM_NETWORK_TIMEOUT_SEC:
-        timeout = (ham_u32_t)param->value;
+        config.remote_timeout_sec = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
@@ -408,53 +412,33 @@ ham_env_create(ham_env_t **henv, const char *filename,
     }
   }
 
-  /* don't allow cache limits with unlimited cache */
-  if (flags & HAM_CACHE_UNLIMITED && cache_size != 0) {
-    ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
-          "not allowed"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  if (cache_size == 0)
-    cache_size = HAM_DEFAULT_CACHE_SIZE;
-  if (page_size == 0)
-    page_size = HAM_DEFAULT_PAGE_SIZE;
-
-  if (!filename && !(flags & HAM_IN_MEMORY)) {
+  if (config.filename.empty() && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));
     return (HAM_INV_PARAMETER);
   }
+
+  config.flags = flags;
 
   /*
    * make sure that max_databases actually fit in a header
    * page!
    * leave at least 128 bytes for other header data
    */
-  max_databases = page_size - sizeof(PEnvironmentHeader) - 128;
-  max_databases /= sizeof(PBtreeHeader);
+  config.max_databases = config.page_size_bytes
+          - sizeof(PEnvironmentHeader) - 128;
+  config.max_databases /= sizeof(PBtreeHeader);
 
   ham_status_t st = 0;
   Environment *env = 0;
   try {
-    if (__filename_is_local(filename)) {
-      LocalEnvironment *lenv = new LocalEnvironment();
-      env = lenv;
-      if (logdir.size())
-        lenv->set_log_directory(logdir);
-      if (encryption_key)
-        lenv->enable_encryption(encryption_key);
-      if (journal_switch_threshold)
-        lenv->set_journal_switch_threshold(journal_switch_threshold);
+    if (filename_is_local(config.filename.c_str())) {
+      env = new LocalEnvironment(config);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
-      (void)timeout; // suppress compiler warning
       return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
-      RemoteEnvironment *renv = new RemoteEnvironment();
-      if (timeout)
-        renv->set_timeout(timeout);
-      env = renv;
+      env = new RemoteEnvironment(config);
 #endif
     }
 
@@ -463,8 +447,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->create(filename, flags, mode, page_size,
-                    cache_size, max_databases, file_size_limit);
+    st = env->create(config.filename.c_str(), config.flags, config.file_mode,
+                    config.page_size_bytes, config.cache_size_bytes,
+                    config.max_databases, config.file_size_limit_bytes);
 
     /* flush the environment to make sure that the header page is written
      * to disk */
@@ -491,11 +476,12 @@ ham_env_create(ham_env_t **henv, const char *filename,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
+ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
         ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
+  DatabaseConfiguration config;
 
   if (!hdb) {
     ham_trace(("parameter 'db' must not be NULL"));
@@ -508,16 +494,19 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
   *hdb = 0;
 
-  if (!dbname || (dbname >= 0xf000)) {
+  if (!db_name || (db_name >= 0xf000)) {
     ham_trace(("invalid database name"));
     return (HAM_INV_PARAMETER);
   }
+
+  config.db_name = db_name;
+  config.flags = flags;
 
   try {
     ScopedLock lock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st = env->create_db((Database **)hdb, dbname, flags, param);
+    st = env->create_db((Database **)hdb, config, param);
 
     /* flush the environment to make sure that the header page is written
      * to disk */
@@ -539,11 +528,12 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
+ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
         ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
+  DatabaseConfiguration config;
 
   if (!hdb) {
     ham_trace(("parameter 'db' must not be NULL"));
@@ -556,11 +546,11 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
 
   *hdb = 0;
 
-  if (!dbname) {
-    ham_trace(("parameter 'dbname' must not be 0"));
+  if (!db_name) {
+    ham_trace(("parameter 'db_name' must not be 0"));
     return (HAM_INV_PARAMETER);
   }
-  if (dbname >= 0xf000) {
+  if (db_name >= 0xf000) {
     ham_trace(("database name must be lower than 0xf000"));
     return (HAM_INV_PARAMETER);
   }
@@ -569,13 +559,16 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t dbname,
     return (HAM_INV_PARAMETER);
   }
 
+  config.flags = flags;
+  config.db_name = db_name;
+
   try {
     ScopedLock lock;
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st = env->open_db((Database **)hdb, dbname, flags, param);
+    st = env->open_db((Database **)hdb, config, param);
   }
   catch (Exception &ex) {
     st = ex.code;
@@ -596,11 +589,8 @@ ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
             const ham_parameter_t *param)
 {
-  ham_u64_t cache_size = 0;
-  ham_u64_t file_size_limit = 0xffffffffffffffff;
-  ham_u32_t timeout = 0;
-  std::string logdir;
-  ham_u8_t *encryption_key = 0;
+  EnvironmentConfiguration config;
+  config.filename = filename ? filename : "";
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -637,7 +627,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   if (flags & HAM_AUTO_RECOVERY)
     flags |= HAM_ENABLE_RECOVERY;
 
-  if (!filename && !(flags & HAM_IN_MEMORY)) {
+  if (config.filename.empty() && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));
     return (HAM_INV_PARAMETER);
   }
@@ -649,17 +639,24 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         ham_trace(("Journal compression is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
       case HAM_PARAM_CACHE_SIZE:
-        cache_size = param->value;
+        /* don't allow cache limits with unlimited cache */
+        if (flags & HAM_CACHE_UNLIMITED && param->value != 0) {
+          ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
+                "not allowed"));
+          return (HAM_INV_PARAMETER);
+        }
+        if (param->value > 0)
+          config.cache_size_bytes = param->value;
         break;
       case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
-          file_size_limit = param->value;
+          config.file_size_limit_bytes = param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
-        logdir = (const char *)param->value;
+        config.log_filename = (const char *)param->value;
         break;
       case HAM_PARAM_NETWORK_TIMEOUT_SEC:
-        timeout = (ham_u32_t)param->value;
+        config.remote_timeout_sec = (ham_u32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
@@ -671,37 +668,20 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     }
   }
 
-  /* don't allow cache limits with unlimited cache */
-  if (flags & HAM_CACHE_UNLIMITED && cache_size != 0) {
-    ham_trace(("combination of HAM_CACHE_UNLIMITED and cache size != 0 "
-          "not allowed"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  if (cache_size == 0)
-    cache_size = HAM_DEFAULT_CACHE_SIZE;
+  config.flags = flags;
 
   ham_status_t st = 0;
   Environment *env = 0;
 
   try {
-    if (__filename_is_local(filename)) {
-      LocalEnvironment *lenv = new LocalEnvironment();
-      env = lenv;
-      if (logdir.size())
-        lenv->set_log_directory(logdir);
-      if (encryption_key)
-        lenv->enable_encryption(encryption_key);
+    if (filename_is_local(config.filename.c_str())) {
+      env = new LocalEnvironment(config);
     }
     else {
 #ifndef HAM_ENABLE_REMOTE
-      (void)timeout; // suppress compiler warning
       return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
-      RemoteEnvironment *renv = new RemoteEnvironment();
-      if (timeout)
-        renv->set_timeout(timeout);
-      env = renv;
+      env = new RemoteEnvironment(config);
 #endif
     }
 
@@ -710,7 +690,8 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->open(filename, flags, cache_size, file_size_limit);
+    st = env->open(config.filename.c_str(), config.flags,
+                    config.cache_size_bytes, config.file_size_limit_bytes);
   }
   catch (Exception &ex) {
     st = ex.code;

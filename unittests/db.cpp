@@ -155,7 +155,9 @@ struct DbFixture {
 
     REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page(0);
-    LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
+    DatabaseConfiguration config;
+    config.db_name = 1;
+    LocalDatabase db((LocalEnvironment *)m_env, config);
 
     page.set_address(1000);
     page.set_db(&db);

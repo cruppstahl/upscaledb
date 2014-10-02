@@ -26,9 +26,8 @@
 
 namespace hamsterdb {
 
-Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
-  : m_env(env), m_name(name), m_error(0), m_context(0), m_cursor_list(0),
-    m_rt_flags(flags)
+Database::Database(Environment *env, DatabaseConfiguration &config)
+  : m_env(env), m_config(config), m_error(0), m_context(0), m_cursor_list(0)
 {
 }
 
@@ -119,7 +118,7 @@ Database::close(ham_u32_t flags)
     return (set_error(st));
 
   // remove from the Environment's list
-  m_env->get_database_map().erase(m_name);
+  m_env->get_database_map().erase(m_config.db_name);
 
   m_env = 0;
   return (0);

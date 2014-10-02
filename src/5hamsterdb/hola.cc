@@ -166,7 +166,7 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   result->u.result_u64 = 0;
   result->type = HAM_TYPE_UINT64;
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
@@ -186,7 +186,8 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
-      visitor.reset(new CountIfScanVisitorBinary(db->get_key_size(), pred));
+      visitor.reset(new CountIfScanVisitorBinary(db->get_config().key_size,
+                              pred));
       break;
     default:
       ham_assert(!"shouldn't be here");
@@ -261,7 +262,7 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
   result->u.result_u64 = 0;
   result->type = HAM_TYPE_UINT64;
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
       break;
@@ -281,7 +282,8 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
       visitor.reset(new CountIfScanVisitor<double>(pred));
       break;
     case HAM_TYPE_BINARY:
-      visitor.reset(new CountIfScanVisitorBinary(db->get_key_size(), pred));
+      visitor.reset(new CountIfScanVisitorBinary(db->get_config().key_size,
+                              pred));
       break;
     default:
       ham_assert(!"shouldn't be here");
@@ -361,7 +363,7 @@ hola_average(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
   std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
       visitor.reset(new AverageScanVisitor<ham_u8_t, ham_u64_t>());
@@ -477,7 +479,7 @@ hola_average_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
       visitor.reset(new AverageIfScanVisitor<ham_u8_t, ham_u64_t>(pred));
@@ -573,7 +575,7 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
     return (HAM_INV_PARAMETER);
   }
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
       visitor.reset(new SumScanVisitor<ham_u8_t, ham_u64_t>());
@@ -681,7 +683,7 @@ hola_sum_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   std::auto_ptr<ScanVisitor> visitor;
   result->u.result_u64 = 0;
 
-  switch (db->get_key_type()) {
+  switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
       visitor.reset(new SumIfScanVisitor<ham_u8_t, ham_u64_t>(pred));

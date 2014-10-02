@@ -63,7 +63,7 @@ class InlineRecordList : public BaseRecordList
 
     // Constructor
     InlineRecordList(LocalDatabase *db, PBtreeNode *node)
-      : m_db(db), m_record_size(db->get_record_size()), m_data(0) {
+      : m_db(db), m_record_size(db->get_config().record_size), m_data(0) {
       ham_assert(m_record_size != HAM_RECORD_SIZE_UNLIMITED);
     }
 

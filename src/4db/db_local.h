@@ -54,8 +54,13 @@ class LocalDatabase : public Database {
     };
 
     // Constructor
-    LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
-      : Database(env, name, flags), m_recno(0), m_cmp_func(0) {
+    LocalDatabase(Environment *env, DatabaseConfiguration &config)
+      : Database(env, config), m_recno(0), m_cmp_func(0) {
+    }
+
+    // Returns the configuration object
+    const DatabaseConfiguration &get_config() const {
+      return (m_config);
     }
 
     // Returns the btree index
@@ -73,12 +78,11 @@ class LocalDatabase : public Database {
       return ((LocalEnvironment *)m_env);
     }
 
+    // Creates a new Database
+    virtual ham_status_t create(ham_u16_t descriptor);
+
     // Opens an existing Database
     virtual ham_status_t open(ham_u16_t descriptor);
-
-    // Creates a new Database
-    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t key_type,
-                        ham_u16_t key_size, ham_u32_t rec_size);
 
     // Erases this Database
     void erase_me();
@@ -159,7 +163,7 @@ class LocalDatabase : public Database {
 
     // Sets the default comparison function (ham_db_set_compare_func)
     ham_status_t set_compare_func(ham_compare_func_t f) {
-      if (get_key_type() != HAM_TYPE_CUSTOM) {
+      if (m_config.key_type != HAM_TYPE_CUSTOM) {
         ham_trace(("ham_set_compare_func only allowed for HAM_TYPE_CUSTOM "
                         "databases!"));
         return (HAM_INV_PARAMETER);
@@ -167,16 +171,6 @@ class LocalDatabase : public Database {
       m_cmp_func = f;
       return (0);
     }
-
-    // Returns the key type (set with HAM_PARAM_KEY_TYPE)
-    ham_u16_t get_key_type();
-
-    // Returns the key size of the btree
-    ham_u16_t get_key_size();
-
-    // Returns the record size specified by the user (or
-    // HAM_RECORD_SIZE_UNLIMITED if none was specified)
-    ham_u32_t get_record_size();
 
     // Flushes a TransactionOperation to the btree
     ham_status_t flush_txn_operation(LocalTransaction *txn,

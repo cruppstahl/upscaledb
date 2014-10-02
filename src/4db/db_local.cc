@@ -514,8 +514,12 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
 
+  m_config.key_type = desc->get_key_type();
+  m_config.key_size = desc->get_key_size();
+
   /* create the BtreeIndex */
-  m_btree_index.reset(new BtreeIndex(this, descriptor, flags | desc->get_flags(),
+  m_btree_index.reset(new BtreeIndex(this, descriptor,
+                            flags | desc->get_flags(),
                             desc->get_key_type(), desc->get_key_size()));
 
   ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
@@ -534,7 +538,11 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   /* merge the non-persistent database flag with the persistent flags from
    * the btree index */
-  m_rt_flags = get_rt_flags(true) | m_btree_index->get_flags();
+  m_config.flags = get_rt_flags(true) | m_btree_index->get_flags();
+  m_config.key_size = m_btree_index->get_key_size();
+  m_config.key_type = m_btree_index->get_key_type();
+  m_config.record_size = m_btree_index->get_record_size();
+
 
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
@@ -553,8 +561,7 @@ LocalDatabase::open(ham_u16_t descriptor)
 }
 
 ham_status_t
-LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
-                        ham_u16_t key_size, ham_u32_t rec_size)
+LocalDatabase::create(ham_u16_t descriptor)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
@@ -566,26 +573,26 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
-  switch (key_type) {
+  switch (m_config.key_type) {
     case HAM_TYPE_UINT8:
-      key_size = 1;
+      m_config.key_size = 1;
       break;
     case HAM_TYPE_UINT16:
-      key_size = 2;
+      m_config.key_size = 2;
       break;
     case HAM_TYPE_REAL32:
     case HAM_TYPE_UINT32:
-      key_size = 4;
+      m_config.key_size = 4;
       break;
     case HAM_TYPE_REAL64:
     case HAM_TYPE_UINT64:
-      key_size = 8;
+      m_config.key_size = 8;
       break;
   }
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
-  if (key_size != HAM_KEY_SIZE_UNLIMITED) {
-    if (get_local_env()->get_page_size() / (key_size + 8) < 10) {
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED) {
+    if (get_local_env()->get_page_size() / (m_config.key_size + 8) < 10) {
       ham_trace(("key size too large; either increase page_size or decrease "
                 "key size"));
       return (HAM_INV_KEY_SIZE);
@@ -597,21 +604,23 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t key_type,
   // if records are <= 8 bytes OR if we can fit at least 500 keys AND
   // records into the leaf then store the records in the leaf;
   // otherwise they're allocated as a blob
-  if (rec_size != HAM_RECORD_SIZE_UNLIMITED) {
-    if (rec_size <= 8
-        || (rec_size <= kInlineRecordThreshold
-          && get_local_env()->get_page_size() / (key_size + rec_size) > 500)) {
+  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED) {
+    if (m_config.record_size <= 8
+        || (m_config.record_size <= kInlineRecordThreshold
+          && get_local_env()->get_page_size()
+            / (m_config.key_size + m_config.record_size) > 500)) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
-      m_rt_flags |= HAM_FORCE_RECORDS_INLINE;
+      m_config.flags |= HAM_FORCE_RECORDS_INLINE;
     }
   }
 
   // create the btree
   m_btree_index.reset(new BtreeIndex(this, descriptor, persistent_flags,
-                        key_type, key_size));
+                        m_config.key_type, m_config.key_size));
 
   /* initialize the btree */
-  m_btree_index->create(key_type, key_size, rec_size);
+  m_btree_index->create(m_config.key_type, m_config.key_size,
+                  m_config.record_size);
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));
@@ -631,13 +640,13 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_KEY_SIZE:
-        p->value = (ham_u64_t)get_key_size();
+        p->value = m_config.key_size;
         break;
       case HAM_PARAM_KEY_TYPE:
-        p->value = (ham_u64_t)get_key_type();
+        p->value = m_config.key_type;
         break;
       case HAM_PARAM_RECORD_SIZE:
-        p->value = (ham_u64_t)get_record_size();
+        p->value = m_config.record_size;
         break;
       case HAM_PARAM_FLAGS:
         p->value = (ham_u64_t)get_rt_flags();
@@ -836,22 +845,22 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != 0 && key->size != get_key_size()) {
+    if (key->size != 0 && key->size != m_config.key_size) {
       ham_trace(("invalid record number key size (%u instead of 0 or %u)",
-            key->size, get_key_size()));
+            key->size, m_config.key_size));
       return (HAM_INV_KEY_SIZE);
     }
   }
-  else if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
-      && key->size != get_key_size()) {
+  else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
-          key->size, get_key_size()));
+          key->size, m_config.key_size));
     return (HAM_INV_KEY_SIZE);
   }
-  if (get_record_size() != HAM_RECORD_SIZE_UNLIMITED
-      && record->size != get_record_size()) {
+  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
+      && record->size != m_config.record_size) {
     ham_trace(("invalid record size (%u instead of %u)",
-          record->size, get_record_size()));
+          record->size, m_config.record_size));
     return (HAM_INV_RECORD_SIZE);
   }
 
@@ -947,10 +956,10 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, ham_u32_t flags)
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   ham_u64_t recno = 0;
 
-  if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
-      && key->size != get_key_size()) {
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
-          key->size, get_key_size()));
+          key->size, m_config.key_size));
     return (HAM_INV_KEY_SIZE);
   }
 
@@ -1008,10 +1017,10 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
 
   ham_u64_t recno = 0;
 
-  if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
-      && key->size != get_key_size()) {
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
-          key->size, get_key_size()));
+          key->size, m_config.key_size));
     return (HAM_INV_KEY_SIZE);
   }
 
@@ -1078,22 +1087,22 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             : &txn->get_key_arena();
 
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != 0 && key->size != get_key_size()) {
+    if (key->size != 0 && key->size != m_config.key_size) {
       ham_trace(("invalid record number key size (%u instead of 0 or %u)",
-            key->size, get_key_size()));
+            key->size, m_config.key_size));
       return (HAM_INV_KEY_SIZE);
     }
   }
-  else if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
-      && key->size != get_key_size()) {
+  else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
-          key->size, get_key_size()));
+          key->size, m_config.key_size));
     return (HAM_INV_KEY_SIZE);
   }
-  if (get_record_size() != HAM_RECORD_SIZE_UNLIMITED
-      && record->size != get_record_size()) {
+  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
+      && record->size != m_config.record_size) {
     ham_trace(("invalid record size (%u instead of %u)",
-          record->size, get_record_size()));
+          record->size, m_config.record_size));
     return (HAM_INV_RECORD_SIZE);
   }
 
@@ -1278,10 +1287,10 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 {
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
-  if (get_key_size() != HAM_KEY_SIZE_UNLIMITED
-      && key->size != get_key_size()) {
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
-          key->size, get_key_size()));
+          key->size, m_config.key_size));
     return (HAM_INV_KEY_SIZE);
   }
 
@@ -1642,24 +1651,6 @@ LocalDatabase::close_impl(ham_u32_t flags)
   get_local_env()->get_page_manager()->close_database(this);
 
   return (0);
-}
-
-ham_u16_t
-LocalDatabase::get_key_size()
-{
-  return (get_btree_index()->get_key_size());
-}
-
-ham_u16_t
-LocalDatabase::get_key_type()
-{
-  return (get_btree_index()->get_key_type());
-}
-
-ham_u32_t
-LocalDatabase::get_record_size()
-{
-  return (get_btree_index()->get_record_size());
 }
 
 void 

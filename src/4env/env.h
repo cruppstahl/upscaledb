@@ -33,6 +33,8 @@
 #include "1base/error.h"
 #include "1base/mutex.h"
 #include "1base/scoped_ptr.h"
+#include "2config/db_config.h"
+#include "2config/env_config.h"
 #include "4txn/txn.h"
 
 #ifndef HAM_ROOT_H
@@ -62,37 +64,29 @@ class Environment
     typedef std::map<ham_u16_t, Database *> DatabaseMap;
 
     // Constructor
-    Environment()
-      : m_file_mode(0644), m_context(0), m_flags(0) {
+    Environment(EnvironmentConfiguration &config)
+      : m_config(config), m_context(0) {
     }
-
-    // Virtual destructor can be overwritten in derived classes
-    virtual ~Environment() { }
 
     // Returns the flags which were set when creating/opening the Environment
     ham_u32_t get_flags() const {
-      return (m_flags);
+      return (m_config.flags);
     }
 
     // Sets the flags
+    // TODO not required
     void set_flags(ham_u32_t flags) {
-      m_flags = flags;
+      m_config.flags = flags;
     }
 
-    // Returns the filename of the Environment; can be empty (i.e.
-    // for an in-memory environment)
-    const std::string &get_filename() {
-      return (m_filename);
+    // Returns the Environment's configuration
+    const EnvironmentConfiguration &get_config() const {
+      return (m_config);
     }
 
     // Sets the filename of the Environment; only for testing!
     void test_set_filename(const std::string &filename) {
-      m_filename = filename;
-    }
-
-    // Returns the unix file mode
-    ham_u32_t get_file_mode() const {
-      return (m_file_mode);
+      m_config.filename = filename;
     }
 
     // Returns the user-provided context pointer (ham_env_get_context_data)
@@ -142,12 +136,12 @@ class Environment
     virtual ham_status_t flush(ham_u32_t flags) = 0;
 
     // Creates a new database in the environment (ham_env_create_db)
-    virtual ham_status_t create_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param) = 0;
+    virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param) = 0;
 
     // Opens an existing database in the environment (ham_env_open_db)
-    virtual ham_status_t open_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param) = 0;
+    virtual ham_status_t open_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param) = 0;
 
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags) = 0;
@@ -167,11 +161,8 @@ class Environment
     // A mutex to serialize access to this Environment
     Mutex m_mutex;
 
-    // The filename/url of this environment
-    std::string m_filename;
-
-    // The file access 'mode' parameter of ham_env_create */
-    ham_u32_t m_file_mode;
+    // The Environment's configuration
+    EnvironmentConfiguration m_config;
 
     // The Transaction manager; can be 0
     ScopedPtr<TransactionManager> m_txn_manager;
@@ -182,10 +173,6 @@ class Environment
 
     // A map of all opened Databases
     DatabaseMap m_database_map;
-
-    // The Environment flags - a combination of the persistent flags
-    // and runtime flags
-    ham_u32_t m_flags;
 };
 
 } // namespace hamsterdb

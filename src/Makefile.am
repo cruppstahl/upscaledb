@@ -32,6 +32,8 @@ libhamsterdb_la_SOURCES = \
 	1os/os.cc \
 	1os/os_posix.cc \
 	1rb/rb.h \
+	2config/db_config.h \
+	2config/env_config.h \
 	2page/page.cc \
 	2page/page.h \
 	2device/device.h \

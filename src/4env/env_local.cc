@@ -49,9 +49,8 @@ LocalEnvironment::get_btree_descriptor(int i)
   return (d + i);
 }
 
-LocalEnvironment::LocalEnvironment()
-  : Environment(), m_changeset(this), m_encryption_enabled(false),
-    m_page_size(0), m_journal_switch_threshold(0)
+LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
+  : Environment(config), m_changeset(this)
 {
 }
 
@@ -63,11 +62,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   if (flags & HAM_IN_MEMORY)
     flags |= HAM_DISABLE_RECLAIM_INTERNAL;
   set_flags(flags);
-
-  if (filename)
-    m_filename = filename;
-  m_file_mode = mode;
-  m_page_size = page_size;
 
   /* initialize the device if it does not yet exist */
   m_blob_manager.reset(BlobManagerFactory::create(this, flags));
@@ -84,8 +78,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* allocate the header page */
   {
     Page *page = new Page(this->get_device());
-    page->allocate(Page::kTypeHeader, m_page_size);
-    memset(page->get_data(), 0, m_page_size);
+    page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
+    memset(page->get_data(), 0, m_config.page_size_bytes);
     page->set_type(Page::kTypeHeader);
     m_header->set_header_page(page);
 
@@ -93,7 +87,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     m_header->set_magic('H', 'A', 'M', '\0');
     m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
             HAM_FILE_VERSION);
-    m_header->set_page_size(m_page_size);
+    m_header->set_page_size(m_config.page_size_bytes);
     m_header->set_max_databases(max_databases);
 
     page->set_dirty(true);
@@ -109,8 +103,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   if (get_flags() & HAM_ENABLE_RECOVERY) {
     m_journal.reset(new Journal(this));
     m_journal->create();
-    if (m_journal_switch_threshold)
-      m_journal->set_switch_threshold(m_journal_switch_threshold);
+    if (m_config.journal_switch_threshold)
+      m_journal->set_switch_threshold(m_config.journal_switch_threshold);
   }
 
   /* flush the header page - this will write through disk if logging is
@@ -132,8 +126,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   m_blob_manager.reset(BlobManagerFactory::create(this, flags));
   m_device.reset(DeviceFactory::create(flags, 0, file_size_limit));
 
-  if (filename)
-    m_filename = filename;
   set_flags(flags);
 
   /* open the file */
@@ -175,8 +167,8 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
      */
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
-    m_page_size = m_header->get_page_size();
-    m_device->set_page_size(m_page_size);
+    m_config.page_size_bytes = m_header->get_page_size();
+    m_device->set_page_size(m_config.page_size_bytes);
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -313,7 +305,9 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 
   /* temporarily load the database */
   LocalDatabase *db;
-  ham_status_t st = open_db((Database **)&db, name, 0, 0);
+  DatabaseConfiguration config;
+  config.db_name = name;
+  ham_status_t st = open_db((Database **)&db, config, 0);
   if (st)
     return (st);
 
@@ -473,10 +467,10 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_CACHE_SIZE:
-        p->value = get_page_manager()->get_cache_capacity();
+        p->value = m_config.cache_size_bytes;
         break;
       case HAM_PARAM_PAGE_SIZE:
-        p->value = m_page_size;
+        p->value = m_config.page_size_bytes;
         break;
       case HAM_PARAM_MAX_DATABASES:
         p->value = m_header->get_max_databases();
@@ -485,17 +479,17 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
         p->value = get_flags();
         break;
       case HAM_PARAM_FILEMODE:
-        p->value = get_file_mode();
+        p->value = m_config.file_mode;
         break;
       case HAM_PARAM_FILENAME:
-        if (get_filename().size())
-          p->value = (ham_u64_t)(PTR_TO_U64(get_filename().c_str()));
+        if (m_config.filename.size())
+          p->value = (ham_u64_t)(PTR_TO_U64(m_config.filename.c_str()));
         else
           p->value = 0;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
-        if (get_log_directory().size())
-          p->value = (ham_u64_t)(PTR_TO_U64(get_log_directory().c_str()));
+        if (m_config.log_filename.size())
+          p->value = (ham_u64_t)(PTR_TO_U64(m_config.log_filename.c_str()));
         else
           p->value = 0;
         break;
@@ -539,15 +533,9 @@ LocalEnvironment::flush(ham_u32_t flags)
 }
 
 ham_status_t
-LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
-            ham_u32_t flags, const ham_parameter_t *param)
+LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
+            const ham_parameter_t *param)
 {
-  ham_u16_t key_type = HAM_TYPE_BINARY;
-  ham_u32_t key_size = HAM_KEY_SIZE_UNLIMITED;
-  ham_u32_t rec_size = HAM_RECORD_SIZE_UNLIMITED;
-  ham_u16_t dbi;
-  std::string logdir;
-
   *pdb = 0;
 
   if (get_flags() & HAM_READ_ONLY) {
@@ -565,7 +553,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
           ham_trace(("Key compression is only available in hamsterdb pro"));
           return (HAM_NOT_IMPLEMENTED);
         case HAM_PARAM_KEY_TYPE:
-          key_type = (ham_u16_t)param->value;
+          config.key_type = (ham_u16_t)param->value;
           break;
         case HAM_PARAM_KEY_SIZE:
           if (param->value != 0) {
@@ -573,18 +561,19 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
               ham_trace(("invalid key size %u - must be < 0xffff"));
               return (HAM_INV_KEY_SIZE);
             }
-            key_size = (ham_u16_t)param->value;
-            if (flags & HAM_RECORD_NUMBER) {
-              if (key_size > 0 && key_size < sizeof(ham_u64_t)) {
+            if (config.flags & HAM_RECORD_NUMBER) {
+              if (param->value > 0 && param->value < sizeof(ham_u64_t)) {
                 ham_trace(("invalid key size %u - must be 8 for "
-                           "HAM_RECORD_NUMBER databases", (unsigned)key_size));
+                           "HAM_RECORD_NUMBER databases",
+                           (unsigned)param->value));
                 return (HAM_INV_KEY_SIZE);
               }
             }
+            config.key_size = (ham_u16_t)param->value;
           }
           break;
         case HAM_PARAM_RECORD_SIZE:
-          rec_size = (ham_u32_t)param->value;
+          config.record_size = (ham_u32_t)param->value;
           break;
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
@@ -593,40 +582,42 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     }
   }
 
-  if (key_type == HAM_TYPE_UINT8
-        || key_type == HAM_TYPE_UINT16
-        || key_type == HAM_TYPE_UINT32
-        || key_type == HAM_TYPE_REAL32
-        || key_type == HAM_TYPE_REAL64) {
-    if (flags & HAM_RECORD_NUMBER) {
+  if (config.key_type == HAM_TYPE_UINT8
+        || config.key_type == HAM_TYPE_UINT16
+        || config.key_type == HAM_TYPE_UINT32
+        || config.key_type == HAM_TYPE_REAL32
+        || config.key_type == HAM_TYPE_REAL64) {
+    if (config.flags & HAM_RECORD_NUMBER) {
       ham_trace(("HAM_RECORD_NUMBER not allowed in combination with "
                       "fixed length type"));
       return (HAM_INV_PARAMETER);
     }
   }
 
-  if (flags & HAM_RECORD_NUMBER)
-    key_type = HAM_TYPE_UINT64;
+  if (config.flags & HAM_RECORD_NUMBER)
+    config.key_type = HAM_TYPE_UINT64;
 
   ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_FLUSH_WHEN_COMMITTED
                     | HAM_ENABLE_DUPLICATE_KEYS
                     | HAM_RECORD_NUMBER;
-  if (flags & ~mask) {
-    ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
+  if (config.flags & ~mask) {
+    ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
     return (HAM_INV_PARAMETER);
   }
 
   /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
+  LocalDatabase *db = new LocalDatabase(this, config);
 
   /* check if this database name is unique */
   ham_assert(m_header->get_max_databases() > 0);
+
+  ham_u16_t dbi;
   for (ham_u32_t i = 0; i < m_header->get_max_databases(); i++) {
     ham_u16_t name = get_btree_descriptor(i)->get_dbname();
     if (!name)
       continue;
-    if (name == dbname) {
+    if (name == config.db_name) {
       delete db;
       return (HAM_DATABASE_ALREADY_EXISTS);
     }
@@ -637,7 +628,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
     ham_u16_t name = get_btree_descriptor(dbi)->get_dbname();
     if (!name) {
-      get_btree_descriptor(dbi)->set_dbname(dbname);
+      get_btree_descriptor(dbi)->set_dbname(config.db_name);
       break;
     }
   }
@@ -653,7 +644,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 #endif
 
   /* initialize the Database */
-  ham_status_t st = db->create(dbi, key_type, key_size, rec_size);
+  ham_status_t st = db->create(dbi);
   if (st) {
     delete db;
     return (st);
@@ -669,7 +660,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  get_database_map()[dbname] = db;
+  get_database_map()[config.db_name] = db;
 
   *pdb = db;
   
@@ -677,18 +668,16 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 }
 
 ham_status_t
-LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
-                ham_u32_t flags, const ham_parameter_t *param)
+LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
+                const ham_parameter_t *param)
 {
-  ham_u16_t dbi;
-
   *pdb = 0;
 
   ham_u32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_FLUSH_WHEN_COMMITTED
                     | HAM_READ_ONLY;
-  if (flags & ~mask) {
-    ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
+  if (config.flags & ~mask) {
+    ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
     return (HAM_INV_PARAMETER);
   }
 
@@ -709,22 +698,23 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
   }
 
   /* make sure that this database is not yet open */
-  if (get_database_map().find(dbname) != get_database_map().end())
+  if (get_database_map().find(config.db_name) != get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
   /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
+  LocalDatabase *db = new LocalDatabase(this, config);
 
   ham_assert(get_device());
   ham_assert(0 != m_header->get_header_page());
   ham_assert(m_header->get_max_databases() > 0);
 
   /* search for a database with this name */
+  ham_u16_t dbi;
   for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
     ham_u16_t name = get_btree_descriptor(dbi)->get_dbname();
     if (!name)
       continue;
-    if (dbname == name)
+    if (config.db_name == name)
       break;
   }
 
@@ -745,7 +735,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  get_database_map()[dbname] = db;
+  get_database_map()[config.db_name] = db;
 
   *pdb = db;
 
@@ -768,8 +758,8 @@ LocalEnvironment::recover(ham_u32_t flags)
 
   try {
     m_journal->open();
-    if (m_journal_switch_threshold)
-      m_journal->set_switch_threshold(m_journal_switch_threshold);
+    if (m_config.journal_switch_threshold)
+      m_journal->set_switch_threshold(m_config.journal_switch_threshold);
   }
   catch (Exception &ex) {
     if (ex.code == HAM_FILE_NOT_FOUND) {

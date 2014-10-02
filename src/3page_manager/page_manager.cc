@@ -42,10 +42,6 @@ PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
 {
 }
 
-PageManager::~PageManager()
-{
-}
-
 void
 PageManager::load_state(ham_u64_t pageid)
 {

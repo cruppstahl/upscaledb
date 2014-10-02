@@ -331,10 +331,14 @@ o refactoring: rewrite capacity calculations (again...)
         However, if the call in btree_insert is removed, some tests fail, i.e.
             --use-berkeleydb=true --fullcheck=find ../testfiles/2/ext_050.tst
 
+    x run monster tests
+    x increase file format version
     o run performance tests
-    o run monster tests
-    o increase file format version
     o add to README!
+
+. "make dist" should write the current git commit and the build date to
+    a file; this should be printed by ham_bench and the tools
+    o ham_bench: print this prior to the monster tests/performance tests
 
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
@@ -371,14 +375,14 @@ o see mail from Michael Moellney: cursor is not advancing properly when
     o add a unittest
     o add fix to master branch
 
-o refactoring: it would be nicer if the ham_paramter_t lists are passed to
+x refactoring: it would be nicer if the ham_paramter_t lists are passed to
     the Environment implementation and do not have to be parsed in hamsterdb.cc
-    o rebase to v2
-    o 2config/env_config.h: a struct with the run-time configuration of
+    x rebase to v2
+    x 2config/env_config.h: a struct with the run-time configuration of
         the environment
-        o created in hamsterdb.cc/ham_env_create/ham_env_open and passed
+        x created in hamsterdb.cc/ham_env_create/ham_env_open and passed
             to all objects that are created
-        o a State struct (no methods!) for
+        x a State struct (no methods!) for
             - the ham_parameter_t list
             - the parameters from ham_env_open and ham_env_create
             (without any dependencies!)
@@ -387,20 +391,14 @@ o refactoring: it would be nicer if the ham_paramter_t lists are passed to
             - remote timeout
             - encryption settings
             - page size
-        o gets initialized with data from the header page
-            o and with the parameters and the parameter list
-        o can only be retrieved as const ref for the whole structure
-    o 2config/db_config.h: a struct with the run-time configuration of
+        x gets initialized with data from the header page
+            x and with the parameters and the parameter list
+        x can only be retrieved as const ref for the whole structure
+    x 2config/db_config.h: a struct with the run-time configuration of
         the database
-        o proceed as described above
+        x proceed as described above
             - db name
             - db flags
-    o These classes initialize themselves with the parameters supplied by
-        the user, and call all other modules (device, cache...) with this
-        structure as the parameter for initialization
-        - these classes do no longer have to use the env to access runtime
-            flags or parameters
-    o rebase hamsterdb-pro
 
 o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
     pages

@@ -44,8 +44,8 @@ class RemoteEnvironment;
 class RemoteDatabase : public Database
 {
   public:
-    RemoteDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
-      : Database(env, name, flags), m_remote_handle(0) {
+    RemoteDatabase(Environment *env, DatabaseConfiguration config)
+      : Database(env, config), m_remote_handle(0) {
     }
 
     // Returns the RemoteEnvironment instance

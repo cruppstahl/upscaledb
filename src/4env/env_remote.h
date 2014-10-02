@@ -48,12 +48,7 @@ class RemoteEnvironment : public Environment
 {
   public:
     // Constructor
-    RemoteEnvironment();
-
-    // Sets the timeout (in seconds)
-    void set_timeout(ham_u32_t seconds) {
-      m_timeout = seconds;
-    }
+    RemoteEnvironment(EnvironmentConfiguration config);
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
@@ -82,12 +77,12 @@ class RemoteEnvironment : public Environment
     virtual ham_status_t flush(ham_u32_t flags);
 
     // Creates a new database in the environment (ham_env_create_db)
-    virtual ham_status_t create_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param);
+    virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
 
     // Opens an existing database in the environment (ham_env_open_db)
-    virtual ham_status_t open_db(Database **db, ham_u16_t dbname,
-                    ham_u32_t flags, const ham_parameter_t *param);
+    virtual ham_status_t open_db(Database **db, DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
     virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
@@ -117,9 +112,6 @@ class RemoteEnvironment : public Environment
 
     // a buffer to avoid frequent memory allocations
     ByteArray m_buffer;
-
-    // the timeout (in seconds)
-    ham_u32_t m_timeout;
 };
 
 } // namespace hamsterdb

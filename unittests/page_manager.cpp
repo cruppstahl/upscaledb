@@ -103,7 +103,7 @@ struct PageManagerFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
 
-    REQUIRE(102400ull == lenv->get_page_manager()->get_cache_capacity());
+    REQUIRE(102400ull == lenv->get_config().cache_size_bytes);
   }
 
   void setCacheSizeEnvOpen(ham_u64_t size) {
@@ -120,7 +120,7 @@ struct PageManagerFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
 
-    REQUIRE(size == lenv->get_page_manager()->get_cache_capacity());
+    REQUIRE(size == lenv->get_config().cache_size_bytes);
   }
 
   void cachePutGet() {
