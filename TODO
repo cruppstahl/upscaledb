@@ -340,6 +340,16 @@ o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
     o calculate precise range size by looking at the deltas!
+        o if a key is deleted: 
+            compressed_size -= delta[slot]
+            compressed_size -= delta[slot + 1]
+            // remove key[slot]
+            compressed_size += delta[slot]
+        o if a key is inserted: 
+            compressed_size -= delta[slot]
+            // insert key
+            compressed_size += delta[slot]
+            compressed_size += delta[slot + 1]
     o then rebase hamsterdb-pro
 
 o when running ./ham_bench (without any parameters) then the debug version
