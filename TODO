@@ -423,19 +423,24 @@ o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
 
 o when the file format is changed then...
+    x internal node layout: store page IDs div pagesize to get smaller
+        integers (will be compressed better)
     o improve node layout compression (when the file format changes)
         x flags are not required at all if fixed length record size > 8
             (and record size is too large for inline records)
             -> set m_flags to null if they don't exist -> avoids a new member
+        x UpfrontIndex: use bit packing to compress slot/offset pairs?
+            -> no, would be difficult to gain something; big efforts
         o compress the flags for the DefaultRecordList (4 bit per item)
             -> are 4 bit sufficient if compression is enabled? - yes!
-        o Default Layout: can compress the flags for the Duplicate*RecordList?
-        o UpfrontIndex: use bit packing to compress slot/offset pairs?
-        . DuplicateTable: also compress the flags
-    o internal node layout: store page IDs div pagesize to get smaller
-        integers (will be compressed better)
+            o update get_required_range_size()
+            o erase_slot() needs to use a loop
+            o insert_slot() needs to use a loop
+            o update all other usages of m_flags
     o add to monster testsuite
     o rebase hamsterdb-pro
+
+o refactoring: use "int duplicate_index" instead of ham_u32_t
 
 o erlang fixes are required
     o 2 tests are failing

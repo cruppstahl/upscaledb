@@ -21,7 +21,13 @@
  * therefore this |InternalRecordList| is optimized for 64bit IDs
  * (and is implemented as a ham_u64_t[] array).
  *
- * @exception_safe: unknown
+ * For file-based databases the page IDs are stored modulo page size, which
+ * results in smaller IDs. Small IDs can be compressed more efficiently
+ * (-> hamsterdb pro).
+ *
+ * In-memory based databases just store the raw pointers. 
+ *
+ * @exception_safe: nothrow
  * @thread_safe: unknown
  */
 
@@ -65,6 +71,9 @@ class InternalRecordList : public BaseRecordList
     // Constructor
     InternalRecordList(LocalDatabase *db, PBtreeNode *node)
       : m_db(db), m_data(0) {
+      m_page_size = m_db->get_local_env()->get_config().page_size_bytes;
+      m_store_raw_id = (m_db->get_local_env()->get_config().flags
+                            & HAM_IN_MEMORY) == HAM_IN_MEMORY;
     }
 
     // Sets the data pointer
@@ -96,8 +105,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0) const {
       return (sizeof(ham_u64_t));
     }
 
@@ -160,14 +168,15 @@ class InternalRecordList : public BaseRecordList
 
     // Sets the record id
     void set_record_id(int slot, ham_u64_t value) {
-      m_data[slot] = value;
+      ham_assert(m_store_raw_id ? 1 : value % m_page_size == 0);
+      m_data[slot] = m_store_raw_id ? value : value / m_page_size;
     }
 
     // Returns the record id
     ham_u64_t get_record_id(int slot,
                     ham_u32_t duplicate_index = 0) const {
       ham_assert(duplicate_index == 0);
-      return (m_data[slot]);
+      return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
     }
 
     // Returns true if there's not enough space for another record
@@ -197,6 +206,12 @@ class InternalRecordList : public BaseRecordList
 
     // The record data is an array of page IDs
     ham_u64_t *m_data;
+
+    // The page size
+    size_t m_page_size;
+
+    // Store page ID % page size or the raw page ID?
+    bool m_store_raw_id;
 };
 
 } // namespace PaxLayout

@@ -95,10 +95,6 @@ class DuplicateTable
         m_inline_records(inline_records), m_table_id(0) {
     }
 
-    // Destructor; deletes all blobs if running in-memory
-    ~DuplicateTable() {
-    }
-
     // Allocates and fills the table; returns the new table id.
     // Can allocate empty tables (required for testing purposes).
     // The initial capacity of the table is twice the current
@@ -144,7 +140,7 @@ class DuplicateTable
 
       ham_u8_t *precord_flags;
       ham_u8_t *p = get_record_data(duplicate_index, &precord_flags);
-      ham_u8_t flags = *(precord_flags);
+      ham_u8_t flags = *precord_flags;
 
       if (flags & BtreeRecord::kBlobSizeTiny)
         return (p[sizeof(ham_u64_t) - 1]);

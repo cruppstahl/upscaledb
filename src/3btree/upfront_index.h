@@ -90,7 +90,7 @@ class UpfrontIndex
 {
     enum {
       // width of the 'size' field
-      kSizeofSize = 1 // sizeof(ham_u16_t)
+      kSizeofSize = 1 // 1 byte - max chunk size is 255
     };
 
   public:
@@ -230,8 +230,8 @@ class UpfrontIndex
     // Sets the size of a chunk (does NOT actually resize the chunk!)
     void set_chunk_size(int slot, ham_u16_t size) {
       ham_assert(size <= 255);
-      m_data[kPayloadOffset + get_full_index_size() * slot
-                                + m_sizeof_offset] = (ham_u8_t)size;
+      m_data[kPayloadOffset + get_full_index_size() * slot + m_sizeof_offset]
+              = (ham_u8_t)size;
     }
 
     // Increases the "vacuumize-counter", which is an indicator whether
