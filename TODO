@@ -293,6 +293,16 @@ x refactoring: can we get rid of ham_record_t::_intflags and
     the next ABI change
     -> yes, just remove them. they are no longer used.
 
+x refactoring: improve hola performance
+    x improve performance for hola-sum (profile!)
+        http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
+        s1 = a1 + b1
+        s2 = a2 + b2
+        s3 = a3 + b3
+        s4 = a4 + b4
+        return s1 + s2 + s3 + s4
+    x run leveldb benchmark for comparison
+
 o refactoring: rewrite capacity calculations (again...)
     x rename copy_to() to move_to() -- no!
     x get_full_record_size() and get_full_key_size() should return size_t,
@@ -411,17 +421,6 @@ o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
 
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
-
-o refactoring: improve hola performance
-    o get rid of the virtual inheritance for hola workers
-    o improve performance for hola-sum (profile!)
-        http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
-        s1 = a1 + b1
-        s2 = a2 + b2
-        s3 = a3 + b3
-        s4 = a4 + b4
-        return s1 + s2 + s3 + s4
-    o run leveldb benchmark for comparison
 
 o erlang fixes are required
     o 2 tests are failing

@@ -1,4 +1,5 @@
 Oct 06, 2014 - chris ---------------------------------------------------
+o Minor performance improvements for hola_sum
 o ABI change: removed deprecated fields from ham_record_t
 
 Sep 22, 2014 - chris ---------------------------------------------------

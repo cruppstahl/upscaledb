@@ -540,8 +540,25 @@ struct SumScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_array, size_t key_count) {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
+    const int kMax = 8;
+    ham_u64_t sums[kMax] = {0};
+    for (; p + kMax < end; p += kMax) {
+#if defined __GNUC__
+      __builtin_prefetch(((char *)p) + kMax * sizeof(PodType));
+#endif
+      sums[0] += p[0];
+      sums[1] += p[1];
+      sums[2] += p[2];
+      sums[3] += p[3];
+      sums[4] += p[4];
+      sums[5] += p[5];
+      sums[6] += p[6];
+      sums[7] += p[7];
+    }
     for (; p < end; p++)
       m_sum += *p;
+    for (int i = 0; i < kMax; i++)
+      m_sum += sums[i];
   }
 
   // Assigns the result to |result|
