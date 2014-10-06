@@ -279,7 +279,7 @@ class BtreeIndex
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
     ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                    ham_u32_t duplicate_index, ham_u32_t flags);
+                    int duplicate_index, ham_u32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node
     void visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes);

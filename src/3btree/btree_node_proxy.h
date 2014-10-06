@@ -193,7 +193,7 @@ class BtreeNodeProxy
     // correctly, as well as HAM_DIRECT_ACCESS.
     virtual void get_record(int slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
-                    ham_u32_t duplicate_index = 0) = 0;
+                    int duplicate_index = 0) = 0;
 
     // High-level function to set a new record
     //
@@ -203,7 +203,7 @@ class BtreeNodeProxy
     //
     // a previously existing blob will be deleted if necessary
     virtual void set_record(int slot, ham_record_t *record,
-                    ham_u32_t duplicate_index, ham_u32_t flags,
+                    int duplicate_index, ham_u32_t flags,
                     ham_u32_t *new_duplicate_index) = 0;
 
     // Removes the record (or the duplicate of it, if |duplicate_index| is > 0).
@@ -444,13 +444,13 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // correctly, as well as HAM_DIRECT_ACCESS.
     virtual void get_record(int slot, ByteArray *arena,
                     ham_record_t *record, ham_u32_t flags,
-                    ham_u32_t duplicate_index = 0) {
+                    int duplicate_index = 0) {
       ham_assert(slot < (int)get_count());
       m_impl.get_record(slot, arena, record, flags, duplicate_index);
     }
 
     virtual void set_record(int slot, ham_record_t *record,
-                    ham_u32_t duplicate_index, ham_u32_t flags,
+                    int duplicate_index, ham_u32_t flags,
                     ham_u32_t *new_duplicate_index) {
       m_impl.set_record(slot, record, duplicate_index, flags,
                       new_duplicate_index);

@@ -149,7 +149,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   ham_u32_t erase_flags;
 
   // which duplicate to erase
-  ham_u32_t duplicate;
+  int duplicate;
 
   // the key data
   //

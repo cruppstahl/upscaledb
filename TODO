@@ -440,7 +440,9 @@ o when the file format is changed then...
     o add to monster testsuite
     o rebase hamsterdb-pro
 
-o refactoring: use "int duplicate_index" instead of ham_u32_t
+x refactoring: use "int duplicate_index" instead of ham_u32_t
+
+o refactoring: use "int" for record counters
 
 o erlang fixes are required
     o 2 tests are failing

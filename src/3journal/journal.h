@@ -188,7 +188,7 @@ class Journal
 
     // Appends a journal entry for ham_erase/kEntryTypeErase
     void append_erase(Database *db, LocalTransaction *txn,
-                    ham_key_t *key, ham_u32_t duplicate_index, ham_u32_t flags,
+                    ham_key_t *key, int duplicate_index, ham_u32_t flags,
                     ham_u64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset

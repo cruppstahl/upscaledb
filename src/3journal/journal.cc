@@ -235,7 +235,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
 void
 Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
-                ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
+                int duplicate_index, ham_u32_t flags, ham_u64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -250,7 +250,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   entry.followup_size = size;
   erase.key_size = key->size;
   erase.erase_flags = flags;
-  erase.duplicate = dupe;
+  erase.duplicate = duplicate_index;
 
   int idx;
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {

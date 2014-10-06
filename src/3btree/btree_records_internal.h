@@ -105,14 +105,14 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0) const {
+    ham_u64_t get_record_size(int slot, int duplicate_index = 0) const {
       return (sizeof(ham_u64_t));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) const {
+                    ham_u32_t flags, int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
@@ -130,7 +130,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(int slot, ham_u32_t duplicate_index,
+    void set_record(int slot, int duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_assert(record->size == sizeof(ham_u64_t));
@@ -138,7 +138,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(int slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, int duplicate_index = 0,
                     bool all_duplicates = true) {
       m_data[slot] = 0;
     }
@@ -174,7 +174,7 @@ class InternalRecordList : public BaseRecordList
 
     // Returns the record id
     ham_u64_t get_record_id(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+                    int duplicate_index = 0) const {
       ham_assert(duplicate_index == 0);
       return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
     }

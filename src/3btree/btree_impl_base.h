@@ -78,14 +78,14 @@ struct BaseNodeImpl
 
   // Returns the full record and stores it in |dest|
   void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                  ham_u32_t flags, ham_u32_t duplicate_index) {
+                  ham_u32_t flags, int duplicate_index) {
     // copy the record data
     m_records.get_record(slot, arena, record, flags, duplicate_index);
   }
 
   // Updates the record of a key
   void set_record(int slot, ham_record_t *record,
-                  ham_u32_t duplicate_index, ham_u32_t flags,
+                  int duplicate_index, ham_u32_t flags,
                   ham_u32_t *new_duplicate_index) {
     // automatically overwrite an existing key unless this is a
     // duplicate operation

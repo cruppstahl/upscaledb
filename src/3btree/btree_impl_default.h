@@ -192,7 +192,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns the full record and stores it in |dest|
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) {
+                    ham_u32_t flags, int duplicate_index) {
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count());
 #endif
@@ -201,7 +201,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Updates the record of a key
     void set_record(int slot, ham_record_t *record,
-                    ham_u32_t duplicate_index, ham_u32_t flags,
+                    int duplicate_index, ham_u32_t flags,
                     ham_u32_t *new_duplicate_index) {
       P::set_record(slot, record, duplicate_index, flags, new_duplicate_index);
 #ifdef HAM_DEBUG

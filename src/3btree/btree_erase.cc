@@ -44,7 +44,7 @@ class BtreeEraseAction
 {
   public:
     BtreeEraseAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, ham_u32_t duplicate_index = 0, ham_u32_t flags = 0)
+        ham_key_t *key, int duplicate_index = 0, ham_u32_t flags = 0)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_duplicate_index(duplicate_index), m_flags(flags) {
       if (cursor) {
@@ -189,7 +189,7 @@ class BtreeEraseAction
         Cursor *cursors = db->get_cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
-        ham_u32_t duplicate_index =
+        int duplicate_index =
                 m_cursor
                     ? m_cursor->get_duplicate_index()
                     : m_duplicate_index;
@@ -316,7 +316,7 @@ class BtreeEraseAction
 
 ham_status_t
 BtreeIndex::erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                ham_u32_t duplicate, ham_u32_t flags)
+                int duplicate, ham_u32_t flags)
 {
   BtreeEraseAction bea(this, txn, cursor, key, duplicate, flags);
   return (bea.run());

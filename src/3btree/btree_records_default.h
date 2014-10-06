@@ -119,7 +119,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Returns the record size
     ham_u64_t get_record_size(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+                    int duplicate_index = 0) const {
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));
 
@@ -131,7 +131,7 @@ class DefaultRecordList : public BaseRecordList
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) const {
+                    ham_u32_t flags, int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
@@ -165,7 +165,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(int slot, ham_u32_t duplicate_index,
+    void set_record(int slot, int duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u64_t ptr = get_record_id(slot);
@@ -224,7 +224,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(int slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, int duplicate_index = 0,
                     bool all_duplicates = true) {
       if (is_record_inline(slot)) {
         remove_inline_record(slot);
@@ -275,7 +275,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record id
-    ham_u64_t get_record_id(int slot, ham_u32_t duplicate_index = 0) const {
+    ham_u64_t get_record_id(int slot, int duplicate_index = 0) const {
       return (m_data[slot]);
     }
 
@@ -355,7 +355,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record flags of a given |slot|
-    ham_u8_t get_record_flags(int slot, ham_u32_t duplicate_index = 0)
+    ham_u8_t get_record_flags(int slot, int duplicate_index = 0)
                     const {
       return (m_flags ? m_flags[slot] : 0);
     }

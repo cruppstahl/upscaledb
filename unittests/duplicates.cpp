@@ -1400,7 +1400,7 @@ struct DuplicateFixture {
             ham_cursor_move(c, 0, &rec, 0));
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
-      REQUIRE((ham_u32_t)(i >= 1 ? 1 : 0) ==
+      REQUIRE((i >= 1 ? 1 : 0) ==
             ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
       REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
@@ -1437,7 +1437,7 @@ struct DuplicateFixture {
             ham_cursor_move(c, 0, &rec, 0));
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
-      REQUIRE((ham_u32_t)(i <= 1 ? 0 : i - 1) ==
+      REQUIRE((i <= 1 ? 0 : i - 1) ==
             ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
       REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));

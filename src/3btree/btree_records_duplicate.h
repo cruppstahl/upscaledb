@@ -132,8 +132,8 @@ class DuplicateTable
     }
 
     // Returns the record size of a duplicate
-    ham_u32_t get_record_size(ham_u32_t duplicate_index) {
-      ham_assert(duplicate_index < get_record_count());
+    ham_u32_t get_record_size(int duplicate_index) {
+      ham_assert(duplicate_index < (int)get_record_count());
       if (m_inline_records)
         return (m_record_size);
       ham_assert(m_store_flags == true);
@@ -158,8 +158,8 @@ class DuplicateTable
     // be 0 or |HAM_DIRECT_ACCESS|, |HAM_PARTIAL|. These are the default
     // flags of ham_db_find et al.
     void get_record(ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) {
-      ham_assert(duplicate_index < get_record_count());
+                    ham_u32_t flags, int duplicate_index) {
+      ham_assert(duplicate_index < (int)get_record_count());
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       ham_u8_t *precord_flags;
@@ -232,7 +232,7 @@ class DuplicateTable
     // Updates the record of a key. Analog to the set_record() method
     // of the NodeLayout class. Returns the new table id and the
     // new duplicate index, if |new_duplicate_index| is not null.
-    ham_u64_t set_record(ham_u32_t duplicate_index, ham_record_t *record,
+    ham_u64_t set_record(int duplicate_index, ham_record_t *record,
                     ham_u32_t flags, ham_u32_t *new_duplicate_index) {
       BlobManager *blob_manager = m_db->get_local_env()->get_blob_manager();
 
@@ -275,7 +275,7 @@ class DuplicateTable
         if (flags & HAM_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
           flags |= HAM_DUPLICATE_INSERT_FIRST;
         else if (flags & HAM_DUPLICATE_INSERT_AFTER) {
-          if (duplicate_index == count)
+          if (duplicate_index == (int)count)
             flags |= HAM_DUPLICATE_INSERT_LAST;
           else {
             flags |= HAM_DUPLICATE_INSERT_BEFORE;
@@ -345,7 +345,7 @@ class DuplicateTable
     // |all_duplicates| is true or if the last element of the table is
     // deleted then the table itself will also be deleted. Returns 0
     // if this is the case, otherwise returns the table id.
-    ham_u64_t erase_record(ham_u32_t duplicate_index, bool all_duplicates) {
+    ham_u64_t erase_record(int duplicate_index, bool all_duplicates) {
       ham_u32_t count = get_record_count();
 
       if (count == 1 && duplicate_index == 0)
@@ -372,7 +372,7 @@ class DuplicateTable
         return (0);
       }
 
-      ham_assert(count > 0 && duplicate_index < count);
+      ham_assert(count > 0 && duplicate_index < (int)count);
 
       ham_u8_t *record_flags;
       ham_u8_t *lhs = get_record_data(duplicate_index, &record_flags);
@@ -382,7 +382,7 @@ class DuplicateTable
         *(ham_u64_t *)lhs = 0;
       }
 
-      if (duplicate_index < count - 1) {
+      if (duplicate_index < (int)count - 1) {
         lhs = get_raw_record_data(duplicate_index);
         ham_u8_t *rhs = lhs + get_record_width();
         memmove(lhs, rhs, get_record_width() * (count - duplicate_index - 1));
@@ -436,7 +436,7 @@ class DuplicateTable
     }
 
     // Returns a pointer to the record data (including flags)
-    ham_u8_t *get_raw_record_data(ham_u32_t duplicate_index) {
+    ham_u8_t *get_raw_record_data(int duplicate_index) {
       if (m_inline_records)
         return ((ham_u8_t *)m_table.get_ptr()
                               + 8
@@ -448,7 +448,7 @@ class DuplicateTable
     }
 
     // Returns a pointer to the record data, and the flags
-    ham_u8_t *get_record_data(ham_u32_t duplicate_index,
+    ham_u8_t *get_record_data(int duplicate_index,
                     ham_u8_t **pflags = 0) {
       ham_u8_t *p = get_raw_record_data(duplicate_index);
       if (m_store_flags) {
@@ -714,14 +714,14 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns the size of a record; the size is always constant
-    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0)
+    ham_u64_t get_record_size(int slot, int duplicate_index = 0)
                     const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) {
+                    ham_u32_t flags, int duplicate_index) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
@@ -736,7 +736,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         throw Exception(HAM_INV_PARAMETER);
       }
 
-      ham_assert(duplicate_index < get_inline_record_count(slot));
+      ham_assert(duplicate_index < (int)get_inline_record_count(slot));
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       // the record is always stored inline
@@ -754,7 +754,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Adds or overwrites a record
-    void set_record(int slot, ham_u32_t duplicate_index,
+    void set_record(int slot, int duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u32_t chunk_offset = m_index.get_absolute_chunk_offset(slot);
@@ -870,7 +870,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       if (flags & HAM_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
         flags |= HAM_DUPLICATE_INSERT_FIRST;
       else if (flags & HAM_DUPLICATE_INSERT_AFTER) {
-        if (duplicate_index == record_count)
+        if (duplicate_index == (int)record_count)
           flags |= HAM_DUPLICATE_INSERT_LAST;
         else {
           flags |= HAM_DUPLICATE_INSERT_BEFORE;
@@ -906,7 +906,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Erases a record's blob (does not remove the slot!)
-    void erase_record(int slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, int duplicate_index = 0,
                     bool all_duplicates = false) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
@@ -939,7 +939,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         set_inline_record_count(slot, 0);
       }
       else {
-        if (duplicate_index < count - 1)
+        if (duplicate_index < (int)count - 1)
           memmove(get_record_data(duplicate_index),
                       get_record_data(duplicate_index + 1), 
                       m_record_size * (count - duplicate_index - 1));
@@ -949,7 +949,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
 
     // Returns a 64bit record id from a record
     ham_u64_t get_record_id(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+                    int duplicate_index = 0) const {
       return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
@@ -1030,14 +1030,14 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns a pointer to the record data
-    ham_u8_t *get_record_data(int slot, ham_u32_t duplicate_index = 0) {
+    ham_u8_t *get_record_data(int slot, int duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
     const ham_u8_t *get_record_data(int slot,
-                        ham_u32_t duplicate_index = 0) const {
+                        int duplicate_index = 0) const {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
     }
@@ -1098,7 +1098,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     }
 
     // Returns the size of a record
-    ham_u64_t get_record_size(int slot, ham_u32_t duplicate_index = 0) {
+    ham_u64_t get_record_size(int slot, int duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
@@ -1121,7 +1121,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) {
+                    ham_u32_t flags, int duplicate_index) {
       // forward to duplicate table?
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
@@ -1130,7 +1130,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         return;
       }
 
-      ham_assert(duplicate_index < get_inline_record_count(slot));
+      ham_assert(duplicate_index < (int)get_inline_record_count(slot));
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       ham_u8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
@@ -1184,7 +1184,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     }
 
     // Updates the record of a key
-    void set_record(int slot, ham_u32_t duplicate_index,
+    void set_record(int slot, int duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_u32_t chunk_offset = m_index.get_absolute_chunk_offset(slot);
@@ -1310,7 +1310,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       if (flags & HAM_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
         flags |= HAM_DUPLICATE_INSERT_FIRST;
       else if (flags & HAM_DUPLICATE_INSERT_AFTER) {
-        if (duplicate_index == record_count)
+        if (duplicate_index == (int)record_count)
           flags |= HAM_DUPLICATE_INSERT_LAST;
         else {
           flags |= HAM_DUPLICATE_INSERT_BEFORE;
@@ -1370,7 +1370,7 @@ write_record:
     }
 
     // Erases a record
-    void erase_record(int slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, int duplicate_index = 0,
                     bool all_duplicates = false) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
 
@@ -1424,7 +1424,7 @@ write_record:
                           *(ham_u64_t *)(p + 1));
           *(ham_u64_t *)(p + 1) = 0;
         }
-        if (duplicate_index < count - 1)
+        if (duplicate_index < (int)count - 1)
           memmove(&m_data[offset + 1 + 9 * duplicate_index],
                   &m_data[offset + 1 + 9 * (duplicate_index + 1)],
                   9 * (count - duplicate_index - 1));
@@ -1434,7 +1434,7 @@ write_record:
 
     // Returns a record id
     ham_u64_t get_record_id(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+                    int duplicate_index = 0) const {
       return (*(ham_u64_t *)get_record_data(slot, duplicate_index));
     }
 
@@ -1513,14 +1513,14 @@ write_record:
     }
 
     // Returns a pointer to the record data (const flavour)
-    ham_u8_t *get_record_data(int slot, ham_u32_t duplicate_index = 0) {
+    ham_u8_t *get_record_data(int slot, int duplicate_index = 0) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
     const ham_u8_t *get_record_data(int slot,
-                        ham_u32_t duplicate_index = 0) const {
+                        int duplicate_index = 0) const {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);
     }

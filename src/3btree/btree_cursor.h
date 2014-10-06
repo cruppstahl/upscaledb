@@ -126,18 +126,18 @@ class BtreeCursor
     // Couples the cursor to a key directly in a page. Also sets the
     // duplicate index.
     void couple_to_page(Page *page, ham_u32_t index,
-                    ham_u32_t duplicate_index) {
+                    int duplicate_index) {
       couple_to_page(page, index);
       m_duplicate_index = duplicate_index;
     }
 
     // Returns the duplicate index that this cursor points to.
-    ham_u32_t get_duplicate_index() const {
+    int get_duplicate_index() const {
       return (m_duplicate_index);
     }
 
     // Sets the duplicate key we're pointing to
-    void set_duplicate_index(ham_u32_t duplicate_index) {
+    void set_duplicate_index(int duplicate_index) {
       m_duplicate_index = duplicate_index;
     }
 

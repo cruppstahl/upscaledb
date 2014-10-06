@@ -96,14 +96,14 @@ class InlineRecordList : public BaseRecordList
 
     // Returns the record size
     ham_u64_t get_record_size(int slot,
-                    ham_u32_t duplicate_index = 0) const {
+                    int duplicate_index = 0) const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, ham_u32_t duplicate_index) const {
+                    ham_u32_t flags, int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       if (flags & HAM_PARTIAL) {
@@ -129,7 +129,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(int slot, ham_u32_t duplicate_index,
+    void set_record(int slot, int duplicate_index,
                 ham_record_t *record, ham_u32_t flags,
                 ham_u32_t *new_duplicate_index = 0) {
       ham_assert(record->size == m_record_size);
@@ -139,7 +139,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(int slot, ham_u32_t duplicate_index = 0,
+    void erase_record(int slot, int duplicate_index = 0,
                     bool all_duplicates = true) {
       if (m_record_size)
         memset(&m_data[m_record_size * slot], 0, m_record_size);
@@ -172,7 +172,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns the record id. Not required for fixed length leaf nodes
-    ham_u64_t get_record_id(int slot, ham_u32_t duplicate_index = 0)
+    ham_u64_t get_record_id(int slot, int duplicate_index = 0)
                     const {
       ham_assert(!"shouldn't be here");
       return (0);

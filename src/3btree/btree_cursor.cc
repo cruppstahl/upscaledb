@@ -297,7 +297,7 @@ BtreeCursor::couple()
    * is automatically coupled. Since |find()| overwrites and modifies
    * the cursor's state, keep a backup and restore it afterwards.
    */
-  ham_u32_t duplicate_index = m_duplicate_index;
+  int duplicate_index = m_duplicate_index;
   ByteArray uncoupled_arena = m_uncoupled_arena;
   ham_key_t uncoupled_key = m_uncoupled_key;
   m_uncoupled_arena = ByteArray();
