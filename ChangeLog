@@ -1,3 +1,6 @@
+Oct 06, 2014 - chris ---------------------------------------------------
+o ABI change: removed deprecated fields from ham_record_t
+
 Sep 22, 2014 - chris ---------------------------------------------------
 o Fixed an assert when resizing lists with an UpfrontIndex (nodes with keys
 	of variable lengths or duplicate records)

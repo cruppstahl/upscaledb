@@ -249,6 +249,50 @@ x ZINT32: add varbyte compression
         -> yes; high initial capacity and no shrinking
     x check if some changes need to be ported back to the apl version
 
+x refactoring: it would be nicer if the ham_paramter_t lists are passed to
+    the Environment implementation and do not have to be parsed in hamsterdb.cc
+    x rebase to v2
+    x 2config/env_config.h: a struct with the run-time configuration of
+        the environment
+        x created in hamsterdb.cc/ham_env_create/ham_env_open and passed
+            to all objects that are created
+        x a State struct (no methods!) for
+            - the ham_parameter_t list
+            - the parameters from ham_env_open and ham_env_create
+            (without any dependencies!)
+            - log directory
+            - remote address
+            - remote timeout
+            - encryption settings
+            - page size
+        x gets initialized with data from the header page
+            x and with the parameters and the parameter list
+        x can only be retrieved as const ref for the whole structure
+    x 2config/db_config.h: a struct with the run-time configuration of
+        the database
+        x proceed as described above
+            - db name
+            - db flags
+
+x when running ./ham_bench (without any parameters) then the debug version
+    has a maximum insert latency > 1 sec (sometimes > 2 sec).
+    -> caused by purging caches; whenever the cache is purged, at least
+        20 pages (PageManager::kPurgeAtLeast) are purged
+    -> a quick test without limit improved performance a lot, but there was
+        one outlier with 1.2 seconds
+    x run perftest without that limit
+    x or try other limits (2, 5, 10) -> does not improve
+    x at least fix the comment/variable name
+
+x refactoring: once more check if we can unify the PaxLayout and
+    the DefaultLayout (or move more code to the base class!)
+    - no, not required. Stripping the library will reduce the size.
+
+x refactoring: can we get rid of ham_record_t::_intflags and
+    ham_record_t::_rid? at least deprecate them, then remove them with
+    the next ABI change
+    -> yes, just remove them. they are no longer used.
+
 o refactoring: rewrite capacity calculations (again...)
     x rename copy_to() to move_to() -- no!
     x get_full_record_size() and get_full_key_size() should return size_t,
@@ -336,10 +380,6 @@ o refactoring: rewrite capacity calculations (again...)
     o run performance tests
     o add to README!
 
-. "make dist" should write the current git commit and the build date to
-    a file; this should be printed by ham_bench and the tools
-    o ham_bench: print this prior to the monster tests/performance tests
-
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -356,16 +396,6 @@ o ZINT32: rebase hamsterdb-pro
             compressed_size += delta[slot + 1]
     o then rebase hamsterdb-pro
 
-o when running ./ham_bench (without any parameters) then the debug version
-    has a maximum insert latency > 1 sec (sometimes > 2 sec).
-    -> caused by purging caches; whenever the cache is purged, at least
-        20 pages (PageManager::kPurgeAtLeast) are purged
-    -> a quick test without limit improved performance a lot, but there was
-        one outlier with 1.2 seconds
-    o run perftest without that limit
-    o or try other limits (2, 5, 10)
-    o at least fix the comment/variable name
-
 o see mail from Michael Moellney: cursor is not advancing properly when
     it's at the end of the database
     o reproduce w/ a sample
@@ -374,31 +404,6 @@ o see mail from Michael Moellney: cursor is not advancing properly when
     o fix
     o add a unittest
     o add fix to master branch
-
-x refactoring: it would be nicer if the ham_paramter_t lists are passed to
-    the Environment implementation and do not have to be parsed in hamsterdb.cc
-    x rebase to v2
-    x 2config/env_config.h: a struct with the run-time configuration of
-        the environment
-        x created in hamsterdb.cc/ham_env_create/ham_env_open and passed
-            to all objects that are created
-        x a State struct (no methods!) for
-            - the ham_parameter_t list
-            - the parameters from ham_env_open and ham_env_create
-            (without any dependencies!)
-            - log directory
-            - remote address
-            - remote timeout
-            - encryption settings
-            - page size
-        x gets initialized with data from the header page
-            x and with the parameters and the parameter list
-        x can only be retrieved as const ref for the whole structure
-    x 2config/db_config.h: a struct with the run-time configuration of
-        the database
-        x proceed as described above
-            - db name
-            - db flags
 
 o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
     pages
@@ -418,15 +423,6 @@ o refactoring: improve hola performance
         return s1 + s2 + s3 + s4
     o run leveldb benchmark for comparison
 
-. refactoring: If KeyList implementation would be identical to RecordList
-    implementation then the RecordList could also store variable records
-    (with an UpfrontIndex and "extended keys"), and more data could be stored
-    in the node itself
-
-x refactoring: once more check if we can unify the PaxLayout and
-    the DefaultLayout (or move more code to the base class!)
-    - no, not required. Stripping the library will reduce the size.
-
 o erlang fixes are required
     o 2 tests are failing
     o quickcheck-ci.com
@@ -437,12 +433,7 @@ o erlang fixes are required
         specific duplicate, or to fetch a specific duplicate.
     o QuickCheck: create a new property for testing recnos, with lots of deletes
 
-o refactoring: can we get rid of ham_record_t::_intflags and
-    ham_record_t::_rid? at least deprecate them, then remove them with
-    the next ABI change
-    -> yes, just remove them. they are no longer used.
-
-o refactoring: when the file format is changed then...
+o when the file format is changed then...
     o improve node layout compression (when the file format changes)
         o flags are not required at all if fixed length record size > 8
             (and record size is too large for inline records)
@@ -471,6 +462,10 @@ o windows cleanups
     o C# unittests sporadically fail b/c a handle is closed multiple times
     o automate the build process
     o ... and the packaging
+
+. "make dist" should write the current git commit and the build date to
+    a file; this should be printed by ham_bench and the tools
+    o ham_bench: print this prior to the monster tests/performance tests
 
 . delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node

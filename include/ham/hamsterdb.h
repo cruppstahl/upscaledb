@@ -191,12 +191,6 @@ typedef struct {
   /** Size for partial reading/writing; see @ref HAM_PARTIAL */
   ham_u32_t partial_size;
 
-  /** For internal use */
-  ham_u32_t __intflags;
-
-  /** For internal use */
-  ham_u64_t __rid;
-
 } ham_record_t;
 
 /** Flag for @ref ham_record_t (only really useful in combination with
