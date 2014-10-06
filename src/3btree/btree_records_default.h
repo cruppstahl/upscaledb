@@ -70,27 +70,44 @@ class DefaultRecordList : public BaseRecordList
     // Sets the data pointer; required for initialization
     void create(ham_u8_t *data, size_t range_size) {
       size_t capacity = range_size / get_full_record_size();
-      m_flags = data;
-      m_data = (ham_u64_t *)&data[capacity];
       m_range_size = range_size;
+
+      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+        m_flags = data;
+        m_data = (ham_u64_t *)&data[capacity];
+      }
+      else {
+        m_flags = 0;
+        m_data = (ham_u64_t *)data;
+      }
     }
 
     // Opens an existing RecordList
     void open(ham_u8_t *data, size_t range_size, size_t node_count) {
       size_t capacity = range_size / get_full_record_size();
-      m_flags = data;
-      m_data = (ham_u64_t *)&data[capacity];
       m_range_size = range_size;
+
+      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+        m_flags = data;
+        m_data = (ham_u64_t *)&data[capacity];
+      }
+      else {
+        m_flags = 0;
+        m_data = (ham_u64_t *)data;
+      }
     }
 
     // Calculates the required size for a range
     size_t get_required_range_size(size_t node_count) {
-      return (node_count * (sizeof(ham_u64_t) + 1));
+      return (node_count * get_full_record_size());
     }
 
     // Returns the actual record size including overhead
     size_t get_full_record_size() const {
-      return (sizeof(ham_u64_t) + 1);
+      return (sizeof(ham_u64_t) +
+                  (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED
+                    ? 1
+                    : 0));
     }
 
     // Returns the record counter of a key
@@ -223,7 +240,8 @@ class DefaultRecordList : public BaseRecordList
     // Erases a whole slot by shifting all larger records to the "left"
     void erase_slot(size_t node_count, int slot) {
       if (slot < (int)node_count - 1) {
-        memmove(&m_flags[slot], &m_flags[slot + 1], node_count - slot - 1);
+        if (m_flags)
+          memmove(&m_flags[slot], &m_flags[slot + 1], node_count - slot - 1);
         memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(ham_u64_t) * (node_count - slot - 1));
       }
@@ -232,18 +250,21 @@ class DefaultRecordList : public BaseRecordList
     // Creates space for one additional record
     void insert_slot(size_t node_count, int slot) {
       if (slot < (int)node_count) {
-        memmove(&m_flags[slot + 1], &m_flags[slot], node_count - slot);
+        if (m_flags)
+          memmove(&m_flags[slot + 1], &m_flags[slot], node_count - slot);
         memmove(&m_data[slot + 1], &m_data[slot],
                        sizeof(ham_u64_t) * (node_count - slot));
       }
-      m_flags[slot] = 0;
+      if (m_flags)
+        m_flags[slot] = 0;
       m_data[slot] = 0;
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
     void copy_to(ham_u32_t sstart, size_t node_count, DefaultRecordList &dest,
                     size_t other_count, ham_u32_t dstart) {
-      memcpy(&dest.m_flags[dstart], &m_flags[sstart], (node_count - sstart));
+      if (m_flags)
+        memcpy(&dest.m_flags[dstart], &m_flags[sstart], (node_count - sstart));
       memcpy(&dest.m_data[dstart], &m_data[sstart],
                       sizeof(ham_u64_t) * (node_count - sstart));
     }
@@ -254,8 +275,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record id
-    ham_u64_t get_record_id(int slot, ham_u32_t duplicate_index = 0)
-                    const {
+    ham_u64_t get_record_id(int slot, ham_u32_t duplicate_index = 0) const {
       return (m_data[slot]);
     }
 
@@ -273,18 +293,30 @@ class DefaultRecordList : public BaseRecordList
                               : new_range_size / get_full_record_size();
       // shift "to the right"? then first shift key data, otherwise
       // the flags might overwrite the data
-      if (new_data_ptr > m_flags) {
-        memmove(&new_data_ptr[new_capacity], m_data,
-                node_count * sizeof(ham_u64_t));
-        memmove(new_data_ptr, m_flags, node_count);
+      if (m_flags == 0) {
+        memmove(new_data_ptr, m_data, node_count * sizeof(ham_u64_t));
       }
       else {
-        memmove(new_data_ptr, m_flags, node_count);
-        memmove(&new_data_ptr[new_capacity], m_data,
-                node_count * sizeof(ham_u64_t));
+        if (new_data_ptr > m_flags) {
+          memmove(&new_data_ptr[new_capacity], m_data,
+                  node_count * sizeof(ham_u64_t));
+          memmove(new_data_ptr, m_flags, node_count);
+        }
+        else {
+          memmove(new_data_ptr, m_flags, node_count);
+          memmove(&new_data_ptr[new_capacity], m_data,
+                  node_count * sizeof(ham_u64_t));
+        }
       }
-      m_flags = new_data_ptr;
-      m_data = (ham_u64_t *)&new_data_ptr[new_capacity];
+
+      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+        m_flags = new_data_ptr;
+        m_data = (ham_u64_t *)&new_data_ptr[new_capacity];
+      }
+      else {
+        m_flags = 0;
+        m_data = (ham_u64_t *)new_data_ptr;
+      }
       m_range_size = new_range_size;
     }
 
@@ -325,11 +357,12 @@ class DefaultRecordList : public BaseRecordList
     // Returns the record flags of a given |slot|
     ham_u8_t get_record_flags(int slot, ham_u32_t duplicate_index = 0)
                     const {
-      return (m_flags[slot]);
+      return (m_flags ? m_flags[slot] : 0);
     }
 
     // Sets the record flags of a given |slot|
     void set_record_flags(int slot, ham_u8_t flags) {
+      ham_assert(m_flags != 0);
       m_flags[slot] = flags;
     }
 

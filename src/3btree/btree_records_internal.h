@@ -148,7 +148,7 @@ class InternalRecordList : public BaseRecordList
         memmove(&m_data[slot + 1], &m_data[slot],
                        sizeof(ham_u64_t) * (node_count - slot));
       }
-      memset(&m_data[slot], 0, sizeof(ham_u64_t));
+      m_data[slot] = 0;
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
@@ -159,13 +159,14 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Sets the record id
-    void set_record_id(int slot, ham_u64_t ptr) {
-      m_data[slot] = ptr;
+    void set_record_id(int slot, ham_u64_t value) {
+      m_data[slot] = value;
     }
 
     // Returns the record id
     ham_u64_t get_record_id(int slot,
                     ham_u32_t duplicate_index = 0) const {
+      ham_assert(duplicate_index == 0);
       return (m_data[slot]);
     }
 
@@ -178,8 +179,10 @@ class InternalRecordList : public BaseRecordList
     // data from one place to the other
     void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
                 size_t new_range_size, size_t capacity_hint) {
-      memmove(new_data_ptr, m_data, node_count * sizeof(ham_u64_t));
-      m_data = (ham_u64_t *)new_data_ptr;
+      if ((ham_u64_t *)new_data_ptr != m_data) {
+        memmove(new_data_ptr, m_data, node_count * sizeof(ham_u64_t));
+        m_data = (ham_u64_t *)new_data_ptr;
+      }
       m_range_size = new_range_size;
     }
 
