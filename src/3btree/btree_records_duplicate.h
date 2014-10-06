@@ -126,14 +126,14 @@ class DuplicateTable
     }
 
     // Returns the number of duplicates in that table
-    ham_u32_t get_record_count() const {
+    int get_record_count() const {
       ham_assert(m_table.get_size() > 4);
-      return (*(ham_u32_t *)m_table.get_ptr());
+      return ((int) *(ham_u32_t *)m_table.get_ptr());
     }
 
     // Returns the record size of a duplicate
     ham_u32_t get_record_size(int duplicate_index) {
-      ham_assert(duplicate_index < (int)get_record_count());
+      ham_assert(duplicate_index < get_record_count());
       if (m_inline_records)
         return (m_record_size);
       ham_assert(m_store_flags == true);
@@ -159,7 +159,7 @@ class DuplicateTable
     // flags of ham_db_find et al.
     void get_record(ByteArray *arena, ham_record_t *record,
                     ham_u32_t flags, int duplicate_index) {
-      ham_assert(duplicate_index < (int)get_record_count());
+      ham_assert(duplicate_index < get_record_count());
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       ham_u8_t *precord_flags;
@@ -263,10 +263,10 @@ class DuplicateTable
       // If the key is not overwritten but inserted or appended: create a
       // "gap" in the table
       else {
-        ham_u32_t count = get_record_count();
+        int record_count = get_record_count();
 
         // check for overflow
-        if (unlikely(count == 0xffffffff)) {
+        if (unlikely(record_count == std::numeric_limits<int>::max())) {
           ham_log(("Duplicate table overflow"));
           throw Exception(HAM_LIMITS_REACHED);
         }
@@ -275,7 +275,7 @@ class DuplicateTable
         if (flags & HAM_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
           flags |= HAM_DUPLICATE_INSERT_FIRST;
         else if (flags & HAM_DUPLICATE_INSERT_AFTER) {
-          if (duplicate_index == (int)count)
+          if (duplicate_index == record_count)
             flags |= HAM_DUPLICATE_INSERT_LAST;
           else {
             flags |= HAM_DUPLICATE_INSERT_BEFORE;
@@ -284,26 +284,27 @@ class DuplicateTable
         }
 
         // resize the table, if necessary
-        if (unlikely(count == get_record_capacity()))
+        if (unlikely(record_count == get_record_capacity()))
           grow_duplicate_table();
 
         // handle overwrites or inserts/appends
         if (flags & HAM_DUPLICATE_INSERT_FIRST) {
-          if (count) {
+          if (record_count) {
             ham_u8_t *ptr = get_raw_record_data(0);
-            memmove(ptr + get_record_width(), ptr, count * get_record_width());
+            memmove(ptr + get_record_width(), ptr,
+                            record_count * get_record_width());
           }
           duplicate_index = 0;
         }
         else if (flags & HAM_DUPLICATE_INSERT_BEFORE) {
           ham_u8_t *ptr = get_raw_record_data(duplicate_index);
           memmove(ptr + get_record_width(), ptr,
-                      (count - duplicate_index) * get_record_width());
+                      (record_count - duplicate_index) * get_record_width());
         }
         else // HAM_DUPLICATE_INSERT_LAST
-          duplicate_index = count;
+          duplicate_index = record_count;
 
-        set_record_count(count + 1);
+        set_record_count(record_count + 1);
       }
 
       ham_u8_t *record_flags = 0;
@@ -346,14 +347,14 @@ class DuplicateTable
     // deleted then the table itself will also be deleted. Returns 0
     // if this is the case, otherwise returns the table id.
     ham_u64_t erase_record(int duplicate_index, bool all_duplicates) {
-      ham_u32_t count = get_record_count();
+      int record_count = get_record_count();
 
-      if (count == 1 && duplicate_index == 0)
+      if (record_count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
       if (all_duplicates) {
         if (m_store_flags && !m_inline_records) {
-          for (ham_u32_t i = 0; i < count; i++) {
+          for (int i = 0; i < record_count; i++) {
             ham_u8_t *record_flags;
             ham_u8_t *p = get_record_data(i, &record_flags);
             if (is_record_inline(*record_flags))
@@ -372,7 +373,7 @@ class DuplicateTable
         return (0);
       }
 
-      ham_assert(count > 0 && duplicate_index < (int)count);
+      ham_assert(record_count > 0 && duplicate_index < record_count);
 
       ham_u8_t *record_flags;
       ham_u8_t *lhs = get_record_data(duplicate_index, &record_flags);
@@ -382,14 +383,15 @@ class DuplicateTable
         *(ham_u64_t *)lhs = 0;
       }
 
-      if (duplicate_index < (int)count - 1) {
+      if (duplicate_index < record_count - 1) {
         lhs = get_raw_record_data(duplicate_index);
         ham_u8_t *rhs = lhs + get_record_width();
-        memmove(lhs, rhs, get_record_width() * (count - duplicate_index - 1));
+        memmove(lhs, rhs, get_record_width()
+                        * (record_count - duplicate_index - 1));
       }
 
       // adjust the counter
-      set_record_count(count - 1);
+      set_record_count(record_count - 1);
 
       // write the duplicate table to disk and return the table-id
       return (flush_duplicate_table());
@@ -397,15 +399,15 @@ class DuplicateTable
 
     // Returns the maximum capacity of elements in a duplicate table
     // This method could be private, but it's required by the unittests
-    ham_u32_t get_record_capacity() const {
+    int get_record_capacity() const {
       ham_assert(m_table.get_size() >= 8);
-      return (*(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4));
+      return ((int) *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4));
     }
 
   private:
     // Doubles the capacity of the ByteArray which backs the table
     void grow_duplicate_table() {
-      ham_u32_t capacity = get_record_capacity();
+      int capacity = get_record_capacity();
       if (capacity == 0)
         capacity = 8;
       m_table.resize(8 + (capacity * 2) * get_record_width());
@@ -463,14 +465,14 @@ class DuplicateTable
     }
 
     // Sets the number of used elements in a duplicate table
-    void set_record_count(ham_u32_t count) {
-      *(ham_u32_t *)m_table.get_ptr() = count;
+    void set_record_count(int record_count) {
+      *(ham_u32_t *)m_table.get_ptr() = (ham_u32_t)record_count;
     }
 
     // Sets the maximum capacity of elements in a duplicate table
-    void set_record_capacity(ham_u32_t capacity) {
+    void set_record_capacity(int capacity) {
       ham_assert(m_table.get_size() >= 8);
-      *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4) = capacity;
+      *(ham_u32_t *)((ham_u8_t *)m_table.get_ptr() + 4) = (ham_u32_t)capacity;
     }
 
     // The database
@@ -703,11 +705,11 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns the number of duplicates for a slot
-    ham_u32_t get_record_count(int slot) {
+    int get_record_count(int slot) {
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
-        return (dt->get_record_count());
+        return ((int)dt->get_record_count());
       }
       
       return (m_data[offset] & 0x7f);
@@ -1091,7 +1093,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       ham_u32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
         DuplicateTable *dt = get_duplicate_table(get_record_id(slot));
-        return (dt->get_record_count());
+        return ((int) dt->get_record_count());
       }
       
       return (m_data[offset] & 0x7f);

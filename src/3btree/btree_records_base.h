@@ -17,7 +17,7 @@
 /*
  * Base class for RecordLists
  *
- * @exception_safe: unknown
+ * @exception_safe: nothrow
  * @thread_safe: unknown
  */
 

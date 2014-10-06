@@ -303,7 +303,7 @@ x refactoring: improve hola performance
         return s1 + s2 + s3 + s4
     x run leveldb benchmark for comparison
 
-o refactoring: rewrite capacity calculations (again...)
+x refactoring: rewrite capacity calculations (again...)
     x rename copy_to() to move_to() -- no!
     x get_full_record_size() and get_full_key_size() should return size_t,
         not double
@@ -387,36 +387,39 @@ o refactoring: rewrite capacity calculations (again...)
 
     x run monster tests
     x increase file format version
-    o run performance tests
-    o add to README!
+    x run performance tests
+
+x see mail from Michael Moellney: cursor is not advancing properly when
+    it's at the end of the database
+    x reproduce w/ a sample
+        The current unittest has a different behaviour; it fails when looking up
+        keys with the cursor because the (approx.) key was not copied back
+    x fix
 
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
-    o calculate precise range size by looking at the deltas!
-        o if a key is deleted: 
-            compressed_size -= delta[slot]
-            compressed_size -= delta[slot + 1]
-            // remove key[slot]
-            compressed_size += delta[slot]
-        o if a key is inserted: 
-            compressed_size -= delta[slot]
-            // insert key
-            compressed_size += delta[slot]
-            compressed_size += delta[slot + 1]
     o then rebase hamsterdb-pro
-
-o see mail from Michael Moellney: cursor is not advancing properly when
-    it's at the end of the database
-    o reproduce w/ a sample
-        The current unittest has a different behaviour; it fails when looking up
-        keys with the cursor because the (approx.) key was not copied back
-    o fix
-    o add a unittest
-    o add fix to master branch
+    o start working on compressed data!
+        x read the relevant sections of the DB2 paper once more
+        o get rid of the compressors; they're no longer required
+        o get rid of BtreeNodeProxy::prepare_flush()
+        o the keys are split in blocks which are compressed; each block
+            starts with an uncompressed number and a byte for counting the
+            ints in this block
+            -> a block fits in a data cache line
+            -> block is addressed by offset + size
+            -> maybe this index should be persisted, or calculated on the fly?
+            o reorganize blocks if they exceed a size threshold
+            o blocks are searched with binary search
+            o then use linear search/decompression for the block
+            o scan() decompresses a whole block, then calls visitor
+        o insert in-place
+        o erase in-place
+    o add to monster test
 
 o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
-    pages
+    pages. There is no equivalent on Win32.
     o but run performance tests!
 
 o PRO: review AES usage in read_page; if the page is mmapped
@@ -442,7 +445,7 @@ o when the file format is changed then...
 
 x refactoring: use "int duplicate_index" instead of ham_u32_t
 
-o refactoring: use "int" for record counters
+x refactoring: use "int" for record counters
 
 o erlang fixes are required
     o 2 tests are failing
@@ -469,9 +472,11 @@ o windows cleanups
     o automate the build process
     o ... and the packaging
 
-. "make dist" should write the current git commit and the build date to
+o "make dist" should write the current git commit and the build date to
     a file; this should be printed by ham_bench and the tools
     o ham_bench: print this prior to the monster tests/performance tests
+    o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+            move version.h to include/ham
 
 . delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -520,8 +525,9 @@ o windows cleanups
     - implementation class uses template parameters
     - template parameters have logic; implementation class has state
     - state is passed to the logic and can be modified (exception safe)
-    - if this works then do the same for BlobManager
+    - get rid of dependency to env, only to EnvironmentConfiguration
 
+    - if this works then do the same for BlobManager
     - if this works then do the same for PageManager
     - if this works then do the same for EnvironmentHeader
     - if this works then do the same for Journal
@@ -534,6 +540,8 @@ o windows cleanups
     - move implementation to a struct, w/o state
     - struct will be kept separately (if there is any)
     - base class will be abstract
+    - the env will become a "hub" which manages members (i.e. page_manager,
+        device) and forwards the calls to those members 
     - implementation class uses a template parameter and forwards calls
         to the struct; the state is a parameter which is only updated
         if the operation succeeds
@@ -632,6 +640,7 @@ o windows cleanups
         https://github.com/datagrok/m4-bakery
         https://developer.github.com/v3/markdown/
     o come up with the full site structure/contents
+        http://sidekiq.org/pro/
         o include full documentation, one page per API
         o ... and for all languages
         o keep the documentation in the source tree, not in -www?

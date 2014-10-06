@@ -95,8 +95,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(int slot,
-                    int duplicate_index = 0) const {
+    ham_u64_t get_record_size(int slot, int duplicate_index = 0) const {
       return (m_record_size);
     }
 
