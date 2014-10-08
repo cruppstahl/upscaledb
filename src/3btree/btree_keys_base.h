@@ -45,14 +45,13 @@ struct BaseKeyList
     : m_range_size(0) {
   }
 
-  // Prepares the page for a flush to disk; compressed KeyLists can overwrite
-  // this to serialize their data
-  void prepare_flush(size_t node_count) {
+  // Erases the extended part of a key; nothing to do here
+  void erase_data(int slot) const {
   }
 
   // Checks the integrity of this node. Throws an exception if there is a
   // violation.
-  void check_integrity(ham_u32_t count, bool quick = false) const {
+  void check_integrity(ham_u32_t node_count, bool quick = false) const {
   }
 
   // Rearranges the list

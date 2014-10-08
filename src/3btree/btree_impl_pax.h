@@ -196,10 +196,6 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (P::m_node->get_count() >= P::m_estimated_capacity);
     }
 
-    // Prepares the page for a flush to disk. Nothing to do here!
-    void prepare_flush() {
-    }
-
   private:
     void initialize() {
       ham_u32_t usable_nodesize

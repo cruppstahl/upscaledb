@@ -82,13 +82,13 @@ class BtreeNodeProxy
     }
 
     // Returns the number of entries in the BtreeNode
-    ham_u32_t get_count() const {
+    size_t get_count() const {
       return (PBtreeNode::from_page(m_page)->get_count());
     }
 
     // Sets the number of entries in the BtreeNode
-    void set_count(ham_u32_t count) {
-      PBtreeNode::from_page(m_page)->set_count(count);
+    void set_count(size_t count) {
+      PBtreeNode::from_page(m_page)->set_count((ham_u32_t)count);
     }
 
     // Returns true if this btree node is a leaf node
@@ -144,7 +144,7 @@ class BtreeNodeProxy
     virtual void check_integrity() const = 0;
 
     // Iterates all keys, calls the |visitor| on each
-    virtual void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) = 0;
+    virtual void scan(ScanVisitor *visitor, size_t start, bool distinct) = 0;
 
     // Compares the two keys. Returns 0 if both are equal, otherwise -1 (if
     // |lhs| is greater) or +1 (if |rhs| is greater).
@@ -240,11 +240,8 @@ class BtreeNodeProxy
     // Merges all keys from the |other| node to this node
     virtual void merge_from(BtreeNodeProxy *other) = 0;
 
-    // Prepares the page for a flush to disk
-    virtual void prepare_flush() = 0;
-
     // Prints the node to stdout. Only for testing and debugging!
-    virtual void print(ham_u32_t count = 0) = 0;
+    virtual void print(size_t node_count = 0) = 0;
 
     // Returns the class name. Only for testing! Uses the functions exported
     // by abi.h, which are only available on assorted platforms. Other
@@ -378,7 +375,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Iterates all keys, calls the |visitor| on each
-    virtual void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
+    virtual void scan(ScanVisitor *visitor, size_t start, bool distinct) {
       m_impl.scan(visitor, start, distinct);
     }
 
@@ -500,8 +497,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // linked from this page; usually called when the Database is deleted
     // or an In-Memory Database is closed
     virtual void remove_all_entries() {
-      ham_u32_t count = get_count();
-      for (ham_u32_t i = 0; i < count; i++) {
+      size_t node_count = get_count();
+      for (size_t i = 0; i < node_count; i++) {
         m_impl.erase_key(i);
 
         // If we're in the leaf page, delete the associated record. (Only
@@ -538,13 +535,13 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
       m_impl.split(&other->m_impl, pivot);
 
-      ham_u32_t count = get_count();
+      size_t node_count = get_count();
       set_count(pivot);
 
       if (is_leaf())
-        other->set_count(count - pivot);
+        other->set_count(node_count - pivot);
       else
-        other->set_count(count - pivot - 1);
+        other->set_count(node_count - pivot - 1);
     }
 
     // Merges all keys from the |other| node into this node
@@ -558,22 +555,17 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       other->set_count(0);
     }
 
-    // Prepares the page for a flush to disk
-    virtual void prepare_flush() {
-      m_impl.prepare_flush();
-    }
-
     // Prints the node to stdout (for debugging)
-    virtual void print(ham_u32_t count = 0) {
+    virtual void print(size_t node_count = 0) {
       printf("page %llu: %u elements (leaf: %d, left: %llu, right: %llu, "
               "ptr_down: %llu)\n",
-              (unsigned long long)m_page->get_address(), get_count(),
+              (unsigned long long)m_page->get_address(), (unsigned)get_count(),
               is_leaf() ? 1 : 0,
               (unsigned long long)get_left(), (unsigned long long)get_right(),
               (unsigned long long)get_ptr_down());
-      if (!count)
-        count = get_count();
-      for (ham_u32_t i = 0; i < count; i++)
+      if (!node_count)
+        node_count = get_count();
+      for (size_t i = 0; i < node_count; i++)
         m_impl.print(i);
     }
 

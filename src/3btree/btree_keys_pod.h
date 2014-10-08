@@ -139,10 +139,6 @@ class PodKeyList : public BaseKeyList
       (*visitor)(&m_data[start], length);
     }
 
-    // Erases the extended part of a key; nothing to do here
-    void erase_data(int slot) {
-    }
-
     // Erases a whole slot by shifting all larger keys to the "left"
     void erase_slot(size_t node_count, int slot) {
       if (slot < (int)node_count - 1)

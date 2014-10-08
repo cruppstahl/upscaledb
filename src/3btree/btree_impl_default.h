@@ -331,12 +331,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
     }
 
-    // Prepares the page for a flush to disk; compressed KeyLists can use
-    // this to serialize their data
-    void prepare_flush() {
-      P::m_keys.prepare_flush(P::m_node->get_count());
-    }
-
   private:
     // Initializes the node
     void initialize(NodeType *other = 0) {
