@@ -145,7 +145,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase_slot(size_t node_count, int slot) {
+    void erase(size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[m_record_size * slot],
                         &m_data[m_record_size * (slot + 1)],
@@ -153,7 +153,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Creates space for one additional record
-    void insert_slot(size_t node_count, int slot) {
+    void insert(size_t node_count, int slot) {
       if (slot < (int)node_count) {
         memmove(&m_data[m_record_size * (slot + 1)],
                         &m_data[m_record_size * slot],

@@ -140,7 +140,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
-    void erase_slot(size_t node_count, int slot) {
+    void erase(size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(T) * (node_count - slot - 1));

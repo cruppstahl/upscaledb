@@ -396,6 +396,16 @@ x see mail from Michael Moellney: cursor is not advancing properly when
         keys with the cursor because the (approx.) key was not copied back
     x fix
 
+x refactoring: BtreeNodeImpl::print should use a stream object, like the
+    KeyLists and RecordLists, and avoid the printfs
+
+x refactoring: clean up/review BaseKeyList and its members
+    x move check_integrity and vacuumize to Base
+    x is erase_data really required? -> yes
+    x rename to erase_extkey, move to Base class
+
+x refactoring: rename erase_slot to erase
+
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -452,18 +462,6 @@ o ZINT32: rebase hamsterdb-pro
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
-
-x refactoring: BtreeNodeImpl::print should use a stream object, like the
-    KeyLists and RecordLists, and avoid the printfs
-
-o refactoring: clean up/review BaseKeyList and its members
-    x move check_integrity and vacuumize to Base
-    o is erase_data really required? yes, but it looks like it's never
-        called if a normal key is deleted; it's only called during cleanup
-    o rename to erase_extkey, move to Base class
-    o move get_simd_data() to Base class, return 0
-
-o refactoring: rename erase_slot to erase
 
 o refactoring: get_key_size() should return an integer instead of ham_u32_t
 

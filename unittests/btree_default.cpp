@@ -662,8 +662,8 @@ struct DuplicateTableFixture
     DuplicateTable dt((LocalDatabase *)m_db, inline_records, fixed_record_size);
     ham_u64_t table_id = dt.create(record_data, num_records);
     REQUIRE(table_id != 0u);
-    REQUIRE(dt.get_record_count() == num_records);
-    REQUIRE(dt.get_record_capacity() == num_records * 2);
+    REQUIRE(dt.get_record_count() == (int)num_records);
+    REQUIRE(dt.get_record_capacity() == (int)num_records * 2);
 
     ByteArray arena(fixed_record_size != HAM_RECORD_SIZE_UNLIMITED
                         ? fixed_record_size
@@ -857,10 +857,10 @@ struct DuplicateTableFixture
     for (size_t i = 0; i < num_records; i++) {
       dt.erase_record(0, false);
 
-      REQUIRE(dt.get_record_count() == num_records - i - 1);
+      REQUIRE((size_t)dt.get_record_count() == num_records - i - 1);
       model.erase(model.begin());
 
-      for (size_t j = 0; j < num_records - i - 1; j++) {
+      for (size_t j = 0; j < (int)num_records - i - 1; j++) {
         dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
@@ -906,7 +906,7 @@ struct DuplicateTableFixture
     for (size_t i = num_records; i > 0; i--) {
       dt.erase_record(i - 1, false);
 
-      REQUIRE(dt.get_record_count() == i - 1);
+      REQUIRE((size_t)dt.get_record_count() == i - 1);
       model.erase(model.end() - 1);
 
       for (size_t j = 0; j < i - 1; j++) {
@@ -957,7 +957,7 @@ struct DuplicateTableFixture
       size_t position = rand() % (num_records - i);
       dt.erase_record(position, false);
 
-      REQUIRE(dt.get_record_count() == num_records - i - 1);
+      REQUIRE((size_t)dt.get_record_count() == num_records - i - 1);
       model.erase(model.begin() + position);
 
       for (size_t j = 0; j < num_records - i - 1; j++) {
@@ -999,7 +999,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE((size_t)dt.get_record_count() == num_records);
 
     // overwrite
     for (size_t i = 0; i < num_records; i++) {
@@ -1008,7 +1008,7 @@ struct DuplicateTableFixture
       model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record_size]);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE((size_t)dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.get_ptr();
@@ -1047,7 +1047,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record.size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE((size_t)dt.get_record_count() == num_records);
 
     // overwrite
     for (size_t i = 0; i < num_records; i++) {
@@ -1057,7 +1057,7 @@ struct DuplicateTableFixture
       model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record.size]);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE((size_t)dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
     for (size_t i = 0; i < num_records; i++) {
@@ -1592,10 +1592,10 @@ struct UpfrontIndexFixture
     ui.create(&data[0], sizeof(data), 300);
 
     for (size_t i = 0; i < 300; i++) {
-      REQUIRE(ui.can_insert_slot(i) == true);
-      ui.insert_slot(i, i); // position, count
+      REQUIRE(ui.can_insert(i) == true);
+      ui.insert(i, i); // position, count
     }
-    REQUIRE(ui.can_insert_slot(300) == false);
+    REQUIRE(ui.can_insert(300) == false);
   }
 
   void insertSlotTest() {
@@ -1607,10 +1607,10 @@ struct UpfrontIndexFixture
     ui.create(&data[0], sizeof(data), kMax);
 
     for (size_t i = 0; i < kMax; i++) {
-      REQUIRE(ui.can_insert_slot(i) == true);
-      ui.insert_slot(0, i); // position, count
+      REQUIRE(ui.can_insert(i) == true);
+      ui.insert(0, i); // position, count
     }
-    REQUIRE(ui.can_insert_slot(kMax) == false);
+    REQUIRE(ui.can_insert(kMax) == false);
   }
 
   void eraseSlotTest() {
@@ -1622,15 +1622,15 @@ struct UpfrontIndexFixture
     ui.create(&data[0], sizeof(data), kMax);
 
     for (size_t i = 0; i < kMax; i++) {
-      REQUIRE(ui.can_insert_slot(i) == true);
-      ui.insert_slot(i, i); // position, count
+      REQUIRE(ui.can_insert(i) == true);
+      ui.insert(i, i); // position, count
       ui.set_chunk_size(i, i);
       ui.set_chunk_offset(i, i);
     }
-    REQUIRE(ui.can_insert_slot(kMax) == false);
+    REQUIRE(ui.can_insert(kMax) == false);
 
     for (size_t i = 0; i < kMax - 1; i++) {
-      ui.erase_slot(kMax - i, 0);
+      ui.erase(kMax - i, 0);
       REQUIRE(ui.get_freelist_count() == i + 1);
       REQUIRE(ui.get_chunk_size(0) == i + 1);
       REQUIRE(ui.get_chunk_offset(0) == i + 1);
@@ -1640,15 +1640,15 @@ struct UpfrontIndexFixture
 
     // fill again, then erase from behind
     for (size_t i = 0; i < kMax; i++) {
-      REQUIRE(ui.can_insert_slot(i) == true);
-      ui.insert_slot(i, i); // position, count
+      REQUIRE(ui.can_insert(i) == true);
+      ui.insert(i, i); // position, count
       ui.set_chunk_size(i, i);
       ui.set_chunk_offset(i, i);
     }
-    REQUIRE(ui.can_insert_slot(kMax) == false);
+    REQUIRE(ui.can_insert(kMax) == false);
 
     for (size_t i = 0; i < kMax; i++) {
-      ui.erase_slot(kMax - i, kMax - 1 - i);
+      ui.erase(kMax - i, kMax - 1 - i);
       REQUIRE(ui.get_freelist_count() == i + 1);
       for (size_t j = 0; j < kMax; j++) { // also checks freelist
         REQUIRE(ui.get_chunk_size(j) == j);
@@ -1697,7 +1697,7 @@ struct UpfrontIndexFixture
 
     // erase the last slot, allocate it again
     REQUIRE(ui.get_freelist_count() == 0);
-    ui.erase_slot(i, i - 1);
+    ui.erase(i, i - 1);
     REQUIRE(ui.get_freelist_count() == 1);
     REQUIRE(ui.can_allocate_space(i - 1, 64) == true);
     REQUIRE(ui.allocate_space(i - 1, i - 1, 64) > 0);
@@ -1705,7 +1705,7 @@ struct UpfrontIndexFixture
 
     // erase the first slot, allocate it again
     REQUIRE(ui.get_freelist_count() == 0);
-    ui.erase_slot(i, 0);
+    ui.erase(i, 0);
     REQUIRE(ui.get_freelist_count() == 1);
     REQUIRE(ui.can_allocate_space(i - 1, 64) == true);
     REQUIRE(ui.allocate_space(i - 1, i - 1, 64) == 0);

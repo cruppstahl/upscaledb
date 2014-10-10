@@ -144,14 +144,14 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase_slot(size_t node_count, int slot) {
+    void erase(size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[slot], &m_data[slot + 1],
                       sizeof(ham_u64_t) * (node_count - slot - 1));
     }
 
     // Creates space for one additional record
-    void insert_slot(size_t node_count, int slot) {
+    void insert(size_t node_count, int slot) {
       if (slot < (int)node_count) {
         memmove(&m_data[slot + 1], &m_data[slot],
                        sizeof(ham_u64_t) * (node_count - slot));

@@ -213,8 +213,8 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Erases a key's payload. Does NOT remove the chunk from the UpfrontIndex
-    // (see |erase_slot()|).
-    void erase_data(int slot) {
+    // (see |erase()|).
+    void erase_extended_key(int slot) {
       ham_u8_t flags = get_key_flags(slot);
       if (flags & BtreeKey::kExtendedKey) {
         // delete the extended key from the cache
@@ -227,16 +227,16 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Erases a key, including extended blobs
-    void erase_slot(size_t node_count, int slot) {
-      erase_data(slot);
-      m_index.erase_slot(node_count, slot);
+    void erase(size_t node_count, int slot) {
+      erase_extended_key(slot);
+      m_index.erase(node_count, slot);
     }
 
     // Inserts the |key| at the position identified by |slot|.
     // This method cannot fail; there MUST be sufficient free space in the
     // node (otherwise the caller would have split the node).
     void insert(size_t node_count, int slot, const ham_key_t *key) {
-      m_index.insert_slot(node_count, slot);
+      m_index.insert(node_count, slot);
 
       // now there's one additional slot
       node_count++;
@@ -299,7 +299,7 @@ class VariableLengthKeyList : public BaseKeyList
         ham_u8_t flags = *p;
         ham_u8_t *data = p + 1;
 
-        dest.m_index.insert_slot(other_node_count + i, dstart + i);
+        dest.m_index.insert(other_node_count + i, dstart + i);
         // Add 1 byte for key flags
         ham_u32_t offset = dest.m_index.allocate_space(other_node_count + i + 1,
                         dstart + i, size + 1);

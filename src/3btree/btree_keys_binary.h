@@ -172,7 +172,7 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
-    void erase_slot(size_t node_count, int slot) {
+    void erase(size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[slot * m_key_size], &m_data[(slot + 1) * m_key_size],
                       m_key_size * (node_count - slot - 1));

@@ -68,6 +68,11 @@ class Environment
       : m_config(config), m_context(0) {
     }
 
+    // Must provide virtual destructor to avoid undefined behaviour (according
+    // to g++)
+    virtual ~Environment() {
+    }
+
     // Returns the flags which were set when creating/opening the Environment
     ham_u32_t get_flags() const {
       return (m_config.flags);

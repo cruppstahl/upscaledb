@@ -57,6 +57,11 @@ class Database
     // Constructor
     Database(Environment *env, DatabaseConfiguration &config);
 
+    // Must provide virtual destructor to avoid undefined behaviour (according
+    // to g++)
+    virtual ~Database() {
+    }
+
     // Returns the Environment pointer
     Environment *get_env() {
       return (m_env);

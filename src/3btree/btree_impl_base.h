@@ -102,8 +102,8 @@ struct BaseNodeImpl
   }
 
   // Erases the extended part of a key
-  void erase_key(int slot) {
-    m_keys.erase_data(slot);
+  void erase_extended_key(int slot) {
+    m_keys.erase_extended_key(slot);
   }
 
   // Erases the record
@@ -116,8 +116,8 @@ struct BaseNodeImpl
   void erase(int slot) {
     size_t node_count = m_node->get_count();
 
-    m_keys.erase_slot(node_count, slot);
-    m_records.erase_slot(node_count, slot);
+    m_keys.erase(node_count, slot);
+    m_records.erase(node_count, slot);
   }
 
   // Inserts a new key
@@ -127,7 +127,7 @@ struct BaseNodeImpl
     // make space for 1 additional element.
     // only store the key data; flags and record IDs are set by the caller
     m_keys.insert(node_count, slot, key);
-    m_records.insert_slot(node_count, slot);
+    m_records.insert(node_count, slot);
   }
 
   // Splits a node and moves parts of the current node into |other|, starting

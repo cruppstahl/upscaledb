@@ -46,7 +46,7 @@ struct BaseKeyList
   }
 
   // Erases the extended part of a key; nothing to do here
-  void erase_data(int slot) const {
+  void erase_extended_key(int slot) const {
   }
 
   // Checks the integrity of this node. Throws an exception if there is a

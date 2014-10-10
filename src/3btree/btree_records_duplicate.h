@@ -587,13 +587,13 @@ class DuplicateRecordList : public BaseRecordList
 
     // Erases a slot. Only updates the UpfrontIndex; does NOT delete the
     // record blobs!
-    void erase_slot(size_t node_count, int slot) {
-      m_index.erase_slot(node_count, slot);
+    void erase(size_t node_count, int slot) {
+      m_index.erase(node_count, slot);
     }
 
     // Inserts a slot for one additional record
-    void insert_slot(size_t node_count, int slot) {
-      m_index.insert_slot(node_count, slot);
+    void insert(size_t node_count, int slot) {
+      m_index.insert(node_count, slot);
     }
 
     // Copies |count| items from this[sstart] to dest[dstart]
@@ -609,7 +609,7 @@ class DuplicateRecordList : public BaseRecordList
       for (size_t i = 0; i < node_count - sstart; i++) {
         size_t size = m_index.get_chunk_size(sstart + i);
 
-        dest.m_index.insert_slot(other_node_count + i, dstart + i);
+        dest.m_index.insert(other_node_count + i, dstart + i);
         // destination offset
         doffset = dest.m_index.allocate_space(other_node_count + i + 1,
                 dstart + i, size);

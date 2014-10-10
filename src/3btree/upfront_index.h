@@ -252,14 +252,14 @@ class UpfrontIndex
 
     // Returns true if this index has at least one free slot available.
     // |node_count| is the number of used slots (this is managed by the caller)
-    bool can_insert_slot(size_t node_count) {
+    bool can_insert(size_t node_count) {
       return (likely(node_count + get_freelist_count() < get_capacity()));
     }
 
     // Inserts a slot at the position |slot|. |node_count| is the number of
     // used slots (this is managed by the caller)
-    void insert_slot(size_t node_count, int slot) {
-      ham_assert(can_insert_slot(node_count) == true);
+    void insert(size_t node_count, int slot) {
+      ham_assert(can_insert(node_count) == true);
 
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
@@ -275,7 +275,7 @@ class UpfrontIndex
 
     // Erases a slot at the position |slot|
     // |node_count| is the number of used slots (this is managed by the caller)
-    void erase_slot(size_t node_count, int slot) {
+    void erase(size_t node_count, int slot) {
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
 
@@ -390,7 +390,7 @@ class UpfrontIndex
     // Unlike implied by the name, this function will try to re-arrange the
     // node in order for the key to fit in.
     bool requires_split(ham_u32_t node_count, size_t required_size) {
-      return (!can_insert_slot(node_count)
+      return (!can_insert(node_count)
                 || !can_allocate_space(node_count, required_size));
     }
 
@@ -457,7 +457,7 @@ class UpfrontIndex
 
       // now copy key by key
       for (size_t i = pivot; i < node_count; i++) {
-        other->insert_slot(i - pivot, i - pivot);
+        other->insert(i - pivot, i - pivot);
         ham_u32_t size = get_chunk_size(i);
         ham_u32_t offset = other->allocate_space(i - pivot, i - pivot, size);
         memcpy(other->get_chunk_data_by_offset(offset),
@@ -478,7 +478,7 @@ class UpfrontIndex
       vacuumize(node_count);
       
       for (size_t i = 0; i < other_node_count; i++) {
-        insert_slot(i + node_count, i + node_count);
+        insert(i + node_count, i + node_count);
         ham_u32_t size = other->get_chunk_size(i);
         ham_u32_t offset = allocate_space(i + node_count, i + node_count, size);
         memcpy(get_chunk_data_by_offset(offset),

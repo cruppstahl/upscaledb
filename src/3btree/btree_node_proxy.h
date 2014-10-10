@@ -470,9 +470,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       return (m_impl.set_record_id(slot, id));
     }
 
-    // High level function to remove an existing entry. Will call |erase_key|
-    // to clean up (a potential) extended key, and |erase_record| on each
-    // record that is associated with the key.
+    // High level function to remove an existing entry. Will call
+    // |erase_extended_key| to clean up (a potential) extended key,
+    // and |erase_record| on each record that is associated with the key.
     virtual void erase(int slot) {
       ham_assert(slot < (int)get_count());
       m_impl.erase(slot);
@@ -497,7 +497,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void remove_all_entries() {
       size_t node_count = get_count();
       for (size_t i = 0; i < node_count; i++) {
-        m_impl.erase_key(i);
+        m_impl.erase_extended_key(i);
 
         // If we're in the leaf page, delete the associated record. (Only
         // leaf nodes have records; internal nodes have record IDs that
