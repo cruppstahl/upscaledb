@@ -406,6 +406,16 @@ x refactoring: clean up/review BaseKeyList and its members
 
 x refactoring: rename erase_slot to erase
 
+x refactoring: get_key_size() should return a size_t instead of ham_u32_t
+
+x device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
+    pages. There is no equivalent on Win32.
+    x but run performance tests!
+
+x refactoring: use "int duplicate_index" instead of ham_u32_t
+
+x refactoring: use "int" for record counters
+
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -450,24 +460,14 @@ o ZINT32: rebase hamsterdb-pro
             o delegate lookup function to the KeyList
             o blocks are searched with binary search
             o ... then use linear search/decompression for the block
-
     o get rid of the compressors; they're no longer required
-
     o copy relevant changes to base/apl
-
     o cache the last key & slot that was accessed; there should be a lot of
         operations accessing the same slot, maybe this speeds things up
         -> test it first (i.e. with printfs)
-
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
-
-o refactoring: get_key_size() should return an integer instead of ham_u32_t
-
-o device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
-    pages. There is no equivalent on Win32.
-    o but run performance tests!
 
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
@@ -489,10 +489,6 @@ o when the file format is changed then...
             o update all other usages of m_flags
     o add to monster testsuite
     o rebase hamsterdb-pro
-
-x refactoring: use "int duplicate_index" instead of ham_u32_t
-
-x refactoring: use "int" for record counters
 
 o erlang fixes are required
     o 2 tests are failing

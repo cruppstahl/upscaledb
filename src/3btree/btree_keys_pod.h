@@ -180,7 +180,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Returns the size of a key
-    ham_u32_t get_key_size(int slot) const {
+    size_t get_key_size(int slot) const {
       return (sizeof(T));
     }
 

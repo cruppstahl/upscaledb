@@ -214,8 +214,8 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Returns the key size
-    ham_u32_t get_key_size(int slot) const {
-      return ((ham_u32_t)m_key_size);
+    size_t get_key_size(int slot) const {
+      return (m_key_size);
     }
 
     // Returns the pointer to a key's data

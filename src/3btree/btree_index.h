@@ -64,7 +64,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the btree's max. key_size
-    ham_u16_t get_key_size() const {
+    size_t get_key_size() const {
       return (m_key_size);
     }
 
@@ -231,12 +231,12 @@ class BtreeIndex
     }
 
     // Returns the internal key size
-    ham_u16_t get_key_size() const {
+    size_t get_key_size() const {
       return (m_key_size);
     }
 
     // Returns the record size
-    ham_u32_t get_record_size() const {
+    size_t get_record_size() const {
       return (m_rec_size);
     }
 

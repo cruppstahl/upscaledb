@@ -27,6 +27,9 @@
 #if HAVE_WRITEV
 #  include <sys/uio.h>
 #endif
+#if HAVE_MADVICE
+#  include <sys/mman.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -173,10 +176,8 @@ File::munmap(void *buffer, size_t size)
 {
   os_log(("File::munmap: size=%lld", size));
 
-  int r;
-
 #if HAVE_MUNMAP
-  r = ::munmap(buffer, size);
+  int r = ::munmap(buffer, size);
   if (r) {
     ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
     throw Exception(HAM_IO_ERROR);
@@ -184,6 +185,18 @@ File::munmap(void *buffer, size_t size)
 #else
   throw Exception(HAM_NOT_IMPLEMENTED);
 #endif
+}
+
+void
+File::madvice_dontneed(void *buffer, size_t size)
+{
+#if HAVE_MADVICE
+ int r = ::madvice(buffer, size, MADV_DONTNEED);
+  if (r) {
+    ham_log(("madvice failed with status %d (%s)", errno, strerror(errno)));
+    throw Exception(HAM_IO_ERROR);
+  }
+#endif  
 }
 
 void

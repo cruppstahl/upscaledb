@@ -1,3 +1,7 @@
+Oct 10, 2014 - chris ---------------------------------------------------
+o Unused pages are now freed with madvice; minor performance improvements
+	when large files are mmapped
+
 Oct 06, 2014 - chris ---------------------------------------------------
 o Improved record storage and reduced size for fixed length records
 o Minor performance improvements for hola_sum

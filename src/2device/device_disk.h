@@ -188,6 +188,9 @@ class DiskDevice : public Device {
         Memory::release(page->get_data());
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       }
+      else
+        m_file.madvice_dontneed(page->get_data(), m_page_size);
+
       page->set_data(0);
     }
 
