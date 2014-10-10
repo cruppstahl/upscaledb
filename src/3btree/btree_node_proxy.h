@@ -26,11 +26,9 @@
 
 #include <set>
 #include <string.h>
-#include <stdio.h>
-#if HAM_DEBUG
-#  include <sstream>
-#  include <fstream>
-#endif
+#include <iostream>
+#include <sstream>
+#include <fstream>
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/abi.h"
@@ -557,12 +555,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Prints the node to stdout (for debugging)
     virtual void print(size_t node_count = 0) {
-      printf("page %llu: %u elements (leaf: %d, left: %llu, right: %llu, "
-              "ptr_down: %llu)\n",
-              (unsigned long long)m_page->get_address(), (unsigned)get_count(),
-              is_leaf() ? 1 : 0,
-              (unsigned long long)get_left(), (unsigned long long)get_right(),
-              (unsigned long long)get_ptr_down());
+      std::cout << "page " << m_page->get_address() << ": " << get_count()
+          << " elements (leaf: " << (is_leaf() ? 1 : 0) << ", left: "
+          << get_left() << ", right: " << get_right() << ", ptr_down: "
+          << get_ptr_down() << ")" << std::endl;
       if (!node_count)
         node_count = get_count();
       for (size_t i = 0; i < node_count; i++)

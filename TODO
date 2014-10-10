@@ -403,45 +403,57 @@ o ZINT32: rebase hamsterdb-pro
     o start working on compressed data!
         x read the relevant sections of the DB2 paper once more
         x get rid of BtreeNodeProxy::prepare_flush()
-        o get rid of the compressors; they're no longer required
-        o the keys are split in blocks which are compressed; each block
+        -> the keys are split in blocks which are compressed; each block
             starts with the first uncompressed key (others are stored as delta)
             -> a block fits in a data cache line
             -> block is addressed by offset + size
-        o index: 2 byte offset + 1 byte counter
-        o default block size is 64
-        o if block size == maximum size * 2 then split the block in the middle
-            (unless the key is appended, then we can split immediately)
-        o if block size == maximum size / 2 then try to merge with a sibling
-        o first key in a block is uncompressed
-        o insert in-place
-            first try to insert in the current block if there is capacity
-            if not then check if block size exceeds max * 2
-                if yes then split and insert the new key while splitting
-                otherwise make space and insert the key in the current block
-        o blocks are searched with binary search
-        o ... then use linear search/decompression for the block
-        o erase in-place
-            remove the key from the block
-            if block is now empty: remove the block
-            if block is only utilized by 50%: reduce space
-            if left block + right block < 32: merge both blocks
-        o need a custom search function (binary search for the block,
-            linear search keys in a block)
-        o vacuumize() could rearrange the blocks
+        o persist number of blocks and m_used_size
+        -> index: 2 byte offset + 1 byte counter
+        -> default block size is 64
+        o insert keys
+            o insert ascending keys
+                o append to last block
+                o if size is exceeded: attach new block
+                o first key in a block is uncompressed
+            o insert descending keys
+                o prepend to first block
+                o if size is exceeded: prepend new block; block size = 32
+                o first key in a block is uncompressed
+            o insert random keys
+                o lookup block for this key
+                o if block size is exceeded then split the block in the middle;
+                    block size = 32
+                o insert into block
+        o check_integrity: verify that m_used_size is correct
+        o erase keys
+            o erase last key in a block
+                o just decrease the counter
+            o erase first key in a block
+                o make sure that (former) second key is stored uncompressed
+            o if block is empty then delete it (but make sure that one block
+                remains)
+            o if block size < 32 then try to merge with a sibling
+        o implement page splits
+        o vacuumize() could merge blocks, reduce their space
         o scan() decompresses a whole block, then calls visitor
-        o cache block offsets in a skiplist
+        o improve lookups
+            o delegate lookup function to the KeyList
+            o blocks are searched with binary search
+            o ... then use linear search/decompression for the block
+
+    o get rid of the compressors; they're no longer required
 
     o copy relevant changes to base/apl
 
     o cache the last key & slot that was accessed; there should be a lot of
         operations accessing the same slot, maybe this speeds things up
+        -> test it first (i.e. with printfs)
 
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
 
-o refactoring: BtreeNodeImpl::print should use a stream object, like the
+x refactoring: BtreeNodeImpl::print should use a stream object, like the
     KeyLists and RecordLists, and avoid the printfs
 
 o refactoring: clean up/review BaseKeyList and its members
