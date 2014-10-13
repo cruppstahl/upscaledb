@@ -97,19 +97,18 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 }
 
 ham_status_t
-RemoteEnvironment::create(const char *url, ham_u32_t flags,
-        ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
-        ham_u16_t maxdbs, ham_u64_t file_size_limit)
+RemoteEnvironment::create()
 {
   // the 'create' operation is identical to 'open'
-  return (open(url, flags, cache_size, file_size_limit));
+  return (open());
 }
 
 ham_status_t
-RemoteEnvironment::open(const char *url, ham_u32_t flags,
-        ham_u64_t cache_size, ham_u64_t file_size_limit)
+RemoteEnvironment::open()
 {
   m_socket.close();
+
+  const char *url = m_config.filename.c_str();
 
   ham_assert(url != 0);
   ham_assert(::strstr(url, "ham://") == url);
@@ -141,7 +140,7 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
 
   ham_status_t st = reply->connect_reply().status();
   if (st == 0) {
-    set_flags(flags | reply->connect_reply().env_flags());
+    m_config.flags |= reply->connect_reply().env_flags();
     m_remote_handle = reply->connect_reply().env_handle();
 
     if (get_flags() & HAM_ENABLE_TRANSACTIONS)

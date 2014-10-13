@@ -55,22 +55,19 @@ LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
 }
 
 ham_status_t
-LocalEnvironment::create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
-            ham_u16_t max_databases, ham_u64_t file_size_limit)
+LocalEnvironment::create()
 {
-  if (flags & HAM_IN_MEMORY)
-    flags |= HAM_DISABLE_RECLAIM_INTERNAL;
-  set_flags(flags);
+  if (m_config.flags & HAM_IN_MEMORY)
+    m_config.flags |= HAM_DISABLE_RECLAIM_INTERNAL;
 
   /* initialize the device if it does not yet exist */
-  m_blob_manager.reset(BlobManagerFactory::create(this, flags));
-  m_device.reset(DeviceFactory::create(flags, page_size, file_size_limit));
-  if (flags & HAM_ENABLE_TRANSACTIONS)
+  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+  m_device.reset(DeviceFactory::create(m_config));
+  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
 
   /* create the file */
-  m_device->create(filename, flags, mode);
+  m_device->create();
 
   /* create the configuration object */
   m_header.reset(new EnvironmentHeader(m_device.get()));
@@ -88,16 +85,16 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
             HAM_FILE_VERSION);
     m_header->set_page_size(m_config.page_size_bytes);
-    m_header->set_max_databases(max_databases);
+    m_header->set_max_databases(m_config.max_databases);
 
     page->set_dirty(true);
   }
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this,
-                          flags & HAM_CACHE_UNLIMITED
+                          m_config.flags & HAM_CACHE_UNLIMITED
                               ? 0xffffffffffffffffull
-                              : cache_size));
+                              : m_config.cache_size_bytes));
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -116,22 +113,19 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 }
 
 ham_status_t
-LocalEnvironment::open(const char *filename, ham_u32_t flags,
-            ham_u64_t cache_size, ham_u64_t file_size_limit)
+LocalEnvironment::open()
 {
   ham_status_t st = 0;
 
   /* Initialize the device if it does not yet exist. The page size will
    * be filled in later (at this point in time, it's still unknown) */
-  m_blob_manager.reset(BlobManagerFactory::create(this, flags));
-  m_device.reset(DeviceFactory::create(flags, 0, file_size_limit));
-
-  set_flags(flags);
+  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+  m_device.reset(DeviceFactory::create(m_config));
 
   /* open the file */
-  m_device->open(filename, flags);
+  m_device->open();
 
-  if (flags & HAM_ENABLE_TRANSACTIONS)
+  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
 
   /* create the configuration object */
@@ -168,7 +162,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
     m_config.page_size_bytes = m_header->get_page_size();
-    m_device->set_page_size(m_config.page_size_bytes);
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -215,9 +208,9 @@ fail_with_fake_cleansing:
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this,
-                          flags & HAM_CACHE_UNLIMITED
+                          m_config.flags & HAM_CACHE_UNLIMITED
                               ? 0xffffffffffffffffull
-                              : cache_size));
+                              : m_config.cache_size_bytes));
 
   /*
    * open the logfile and check if we need recovery. first open the
@@ -225,7 +218,7 @@ fail_with_fake_cleansing:
    * (logical) journal.
    */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    recover(flags);
+    recover(m_config.flags);
 
   /* load the state of the PageManager */
   if (m_header->get_page_manager_blobid() != 0) {

@@ -309,13 +309,11 @@ File::truncate(ham_u64_t newsize)
 }
 
 void
-File::create(const char *filename, ham_u32_t flags, ham_u32_t mode)
+File::create(const char *filename, ham_u32_t mode)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
-  DWORD access = ((flags & HAM_READ_ONLY)
-          ? GENERIC_READ
-          : (GENERIC_READ | GENERIC_WRITE));
+  DWORD access = GENERIC_READ | GENERIC_WRITE;
   ham_fd_t fd;
 
 #ifdef UNICODE
@@ -365,13 +363,13 @@ File::flush()
 }
 
 void
-File::open(const char *filename, ham_u32_t flags)
+File::open(const char *filename, bool read_only)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
-  DWORD access = ((flags & HAM_READ_ONLY)
+  DWORD access = read_only
           ? GENERIC_READ
-          : (GENERIC_READ | GENERIC_WRITE));
+          : (GENERIC_READ | GENERIC_WRITE);
   DWORD dispo = OPEN_EXISTING;
   DWORD osflags = 0;
   ham_fd_t fd;

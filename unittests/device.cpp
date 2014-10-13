@@ -52,7 +52,7 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
     m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Utils::opath(".test"), 0);
+    m_dev->open();
     REQUIRE(true == m_dev->is_open());
   }
 
@@ -60,11 +60,11 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
      m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Utils::opath(".test"), 0);
+    m_dev->open();
     REQUIRE(true == m_dev->is_open());
     m_dev->close();
     REQUIRE(false == m_dev->is_open());
-    m_dev->open(Utils::opath(".test"), 0);
+    m_dev->open();
     REQUIRE(true == m_dev->is_open());
   }
 
@@ -137,7 +137,8 @@ struct DeviceFixture
     ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
-    m_dev->test_disable_mmap();
+    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
+    cfg.flags |= HAM_DISABLE_MMAP;
 
     REQUIRE(true == m_dev->is_open());
     m_dev->truncate(ps * 10);
@@ -163,7 +164,8 @@ struct DeviceFixture
     Page *pages[2];
     ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
 
-    m_dev->test_disable_mmap();
+    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
+    cfg.flags |= HAM_DISABLE_MMAP;
 
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);

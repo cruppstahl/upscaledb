@@ -30,6 +30,7 @@
 #include "ham/hamsterdb.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "2config/env_config.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -42,31 +43,24 @@ class Page;
 class Device {
   public:
     // Constructor
-    Device(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
-      : m_flags(flags), m_page_size(page_size),
-        m_file_size_limit(file_size_limit) {
+    Device(const EnvironmentConfiguration &config)
+      : m_config(config) {
     }
 
     // virtual destructor
     virtual ~Device() {
     }
 
+    // Returns the Environment's configuration
+    const EnvironmentConfiguration &get_config() const {
+      return (m_config);
+    }
+
     // Create a new device - called in ham_env_create
-    virtual void create(const char *filename, ham_u32_t flags,
-                ham_u32_t mode) = 0;
+    virtual void create() = 0;
 
     // opens an existing device - called in ham_env_open
-    virtual void open(const char *filename, ham_u32_t flags) = 0;
-
-    // sets the page size (used when opening the device)
-    void set_page_size(size_t page_size) {
-      m_page_size = page_size;
-    }
-
-    // returns the page size
-    size_t get_page_size() const {
-      return (m_page_size);
-    }
+    virtual void open() = 0;
 
     // closes the device - called in ham_env_close
     virtual void close() = 0;
@@ -115,20 +109,9 @@ class Device {
     // function will assert that the page is not dirty.
     virtual void free_page(Page *page) = 0;
 
-    // disable memory mapped I/O - used for testing
-    void test_disable_mmap() {
-      m_flags |= HAM_DISABLE_MMAP;
-    }
-
   protected:
-    // the device flags 
-    ham_u32_t m_flags;
-
-    // the page size
-    size_t m_page_size;
-
-    // the file size limit (in bytes)
-    ham_u64_t m_file_size_limit;
+    // the Environment configuration settings
+    const EnvironmentConfiguration &m_config;
 
     friend class DeviceTest;
     friend class InMemoryDeviceTest;

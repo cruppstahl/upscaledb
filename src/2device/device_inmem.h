@@ -39,30 +39,39 @@ namespace hamsterdb {
  * an In-Memory device
  */ 
 class InMemoryDevice : public Device {
+    struct State {
+      // flag whether this device was "opened" or is uninitialized
+      bool is_open;
+
+      // the allocated bytes
+      ham_u64_t allocated_size;
+    };
+
   public:
     // constructor
-    InMemoryDevice(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
-      : Device(flags, page_size, file_size_limit), m_is_open(false),
-        m_file_size(0) {
+    InMemoryDevice(const EnvironmentConfiguration &config)
+      : Device(config) {
+      State state;
+      state.is_open = false;
+      state.allocated_size = 0;
+      std::swap(m_state, state);
     }
 
     // Create a new device
-    virtual void create(const char *filename, ham_u32_t flags, ham_u32_t mode) {
-      m_flags = flags;
-      m_is_open = true;
+    virtual void create() {
+      m_state.is_open = true;
     }
 
     // opens an existing device 
-    virtual void open(const char *filename, ham_u32_t flags) {
+    virtual void open() {
       ham_assert(!"can't open an in-memory-device");
-      m_flags = flags;
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // closes the device 
     virtual void close() {
-      ham_assert(m_is_open);
-      m_is_open = false;
+      ham_assert(m_state.is_open);
+      m_state.is_open = false;
     }
 
     // flushes the device 
@@ -75,7 +84,7 @@ class InMemoryDevice : public Device {
 
     // returns true if the device is open 
     virtual bool is_open() {
-      return (m_is_open);
+      return (m_state.is_open);
     }
 
     // get the current file/storage size 
@@ -121,11 +130,11 @@ class InMemoryDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
     virtual ham_u64_t alloc(size_t size) {
-      if (m_file_size + size > m_file_size_limit)
+      if (m_state.allocated_size + size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
 
       ham_u64_t retval = (ham_u64_t)Memory::allocate<ham_u8_t>(size);
-      m_file_size += size;
+      m_state.allocated_size += size;
       return (retval);
     }
 
@@ -133,7 +142,7 @@ class InMemoryDevice : public Device {
     virtual void alloc_page(Page *page, size_t page_size) {
       ham_assert(page->get_data() == 0);
 
-      if (m_file_size + page_size > m_file_size_limit)
+      if (m_state.allocated_size + page_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
@@ -141,7 +150,7 @@ class InMemoryDevice : public Device {
       page->set_flags(page->get_flags() | Page::kNpersMalloc);
       page->set_address((ham_u64_t)PTR_TO_U64(p));
 
-      m_file_size += page_size;
+      m_state.allocated_size += page_size;
     }
 
     // frees a page on the device; plays counterpoint to @ref alloc_page 
@@ -153,23 +162,19 @@ class InMemoryDevice : public Device {
       Memory::release(page->get_data());
       page->set_data(0);
 
-      ham_assert(m_file_size >= m_page_size);
-      m_file_size -= m_page_size;
+      ham_assert(m_state.allocated_size >= m_config.page_size_bytes);
+      m_state.allocated_size -= m_config.page_size_bytes;
     }
 
     // releases a chunk of memory previously allocated with alloc()
     void release(void *ptr, size_t size) {
       Memory::release(ptr);
-      ham_assert(m_file_size >= size);
-      m_file_size -= size;
+      ham_assert(m_state.allocated_size >= size);
+      m_state.allocated_size -= size;
     }
 
   private:
-    // flag whether this device was "opened" or is uninitialized
-    bool m_is_open;
-
-    // the allocated bytes
-    ham_u64_t m_file_size;
+    State m_state;
 };
 
 } // namespace hamsterdb

@@ -16,7 +16,7 @@
 
 /*
  * A simple wrapper around a file handle. Throws exceptions in
- * case of errors
+ * case of errors. Moves the file handle when copied.
  *
  * @exception_safe: strong
  * @thread_safe: unknown
@@ -63,16 +63,29 @@ class File
       : m_fd(HAM_INVALID_FD) {
     }
 
+    // Copy constructor: moves ownership of the file handle
+    File(File &other)
+      : m_fd(other.m_fd) {
+      other.m_fd = HAM_INVALID_FD;
+    }
+
     // Destructor: closes the file
     ~File() {
       close();
     }
 
+    // Assignment operator: moves ownership of the file handle
+    File &operator=(File &other) {
+      m_fd = other.m_fd;
+      other.m_fd = HAM_INVALID_FD;
+      return (*this);
+    }
+
     // Creates a new file
-    void create(const char *filename, ham_u32_t flags, ham_u32_t mode);
+    void create(const char *filename, ham_u32_t mode);
 
     // Opens an existing file
-    void open(const char *filename, ham_u32_t flags);
+    void open(const char *filename, bool read_only);
 
     // Returns true if the file is open
     bool is_open() const {

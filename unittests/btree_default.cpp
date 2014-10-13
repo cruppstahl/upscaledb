@@ -697,7 +697,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -709,8 +709,8 @@ struct DuplicateTableFixture
     char buffer[1024] = {0};
     record.data = &buffer[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = 0; i < num_records; i++) {
-      *(size_t *)&buffer[0] = i;
+    for (int i = 0; i < num_records; i++) {
+      *(size_t *)&buffer[0] = (size_t)i;
       dt.set_record(i, &record, 0, 0);
     }
 
@@ -720,8 +720,8 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = 0; i < num_records; i++) {
-      *(size_t *)&buffer[0] = i;
+    for (int i = 0; i < num_records; i++) {
+      *(size_t *)&buffer[0] = (size_t)i;
 
       dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
@@ -737,7 +737,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -749,7 +749,7 @@ struct DuplicateTableFixture
     char buffer[1024] = {0};
     record.data = &buffer[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = num_records; i > 0; i--) {
+    for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
       ham_u32_t new_index = 0;
       dt.set_record(0, &record, HAM_DUPLICATE_INSERT_FIRST,
@@ -763,7 +763,7 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = num_records; i > 0; i--) {
+    for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
 
       dt.get_record(&arena, &record, 0, i - 1);
@@ -780,7 +780,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -795,7 +795,7 @@ struct DuplicateTableFixture
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       if (i == 0) {
         dt.set_record(i, &record, HAM_DUPLICATE_INSERT_FIRST, 0);
@@ -814,7 +814,7 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
@@ -830,7 +830,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -843,7 +843,7 @@ struct DuplicateTableFixture
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
@@ -854,13 +854,13 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       dt.erase_record(0, false);
 
       REQUIRE((size_t)dt.get_record_count() == num_records - i - 1);
       model.erase(model.begin());
 
-      for (size_t j = 0; j < (int)num_records - i - 1; j++) {
+      for (int j = 0; j < num_records - i - 1; j++) {
         dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
@@ -878,7 +878,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -891,7 +891,7 @@ struct DuplicateTableFixture
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = num_records; i > 0; i--) {
+    for (int i = num_records; i > 0; i--) {
       *(size_t *)&buf[0] = i;
       dt.set_record(0, &record, HAM_DUPLICATE_INSERT_FIRST, 0);
       model.insert(model.begin(),
@@ -903,13 +903,13 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = num_records; i > 0; i--) {
+    for (int i = num_records; i > 0; i--) {
       dt.erase_record(i - 1, false);
 
       REQUIRE((size_t)dt.get_record_count() == i - 1);
       model.erase(model.end() - 1);
 
-      for (size_t j = 0; j < i - 1; j++) {
+      for (int j = 0; j < i - 1; j++) {
         dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
@@ -927,7 +927,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -942,7 +942,7 @@ struct DuplicateTableFixture
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
@@ -953,14 +953,14 @@ struct DuplicateTableFixture
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = 0; i < num_records; i++) {
-      size_t position = rand() % (num_records - i);
+    for (int i = 0; i < num_records; i++) {
+      int position = rand() % (num_records - i);
       dt.erase_record(position, false);
 
-      REQUIRE((size_t)dt.get_record_count() == num_records - i - 1);
+      REQUIRE(dt.get_record_count() == num_records - i - 1);
       model.erase(model.begin() + position);
 
-      for (size_t j = 0; j < num_records - i - 1; j++) {
+      for (int j = 0; j < num_records - i - 1; j++) {
         dt.get_record(&arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
@@ -978,7 +978,7 @@ struct DuplicateTableFixture
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 100;
+    const int num_records = 100;
 
     // create an empty table
     dt.create(0, 0);
@@ -993,27 +993,27 @@ struct DuplicateTableFixture
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
     record.size = (ham_u32_t)record_size;
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE((size_t)dt.get_record_count() == num_records);
+    REQUIRE(dt.get_record_count() == num_records);
 
     // overwrite
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
       dt.set_record(i, &record, HAM_OVERWRITE, 0);
       model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record_size]);
     }
 
-    REQUIRE((size_t)dt.get_record_count() == num_records);
+    REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.get_ptr();
 
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
@@ -1026,7 +1026,7 @@ struct DuplicateTableFixture
   void insertOverwriteSizesTest() {
     DuplicateTable dt((LocalDatabase *)m_db, false, HAM_RECORD_SIZE_UNLIMITED);
 
-    const size_t num_records = 1000;
+    const int num_records = 1000;
 
     // create an empty table
     dt.create(0, 0);
@@ -1040,27 +1040,27 @@ struct DuplicateTableFixture
     ham_record_t record = {0};
     ham_u8_t buf[1024] = {0};
     record.data = &buf[0];
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       record.size = (ham_u32_t)(i % 15);
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record.size]));
     }
 
-    REQUIRE((size_t)dt.get_record_count() == num_records);
+    REQUIRE(dt.get_record_count() == num_records);
 
     // overwrite
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
       record.size = (ham_u32_t)((i + 1) % 15);
       dt.set_record(i, &record, HAM_OVERWRITE, 0);
       model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record.size]);
     }
 
-    REQUIRE((size_t)dt.get_record_count() == num_records);
+    REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    for (size_t i = 0; i < num_records; i++) {
+    for (int i = 0; i < num_records; i++) {
       record.data = arena.get_ptr();
       *(size_t *)&buf[0] = i + 1000;
       dt.get_record(&arena, &record, 0, i);
@@ -1075,22 +1075,22 @@ struct DuplicateTableFixture
 
 TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 {
-  const size_t num_records = 100;
+  const int num_records = 100;
   ham_u64_t    inline_data_8[num_records];
   size_t       record_sizes_8[num_records];
-  for (size_t i = 0; i < num_records; i++) {
+  for (int i = 0; i < num_records; i++) {
     record_sizes_8[i] = 8;
     inline_data_8[i] = (ham_u64_t)i;
   }
 
   ham_u8_t     default_data_0[num_records * 9] = {0};
   size_t       record_sizes_0[num_records] = {0};
-  for (size_t i = 0; i < num_records; i++)
+  for (int i = 0; i < num_records; i++)
     default_data_0[i * 9] = BtreeRecord::kBlobSizeEmpty; // flags
 
   ham_u8_t     default_data_4[num_records * 9] = {0};
   size_t       record_sizes_4[num_records] = {0};
-  for (size_t i = 0; i < num_records; i++) {
+  for (int i = 0; i < num_records; i++) {
     record_sizes_4[i] = 4;
     default_data_4[i * 9] = BtreeRecord::kBlobSizeTiny; // flags
     default_data_4[i * 9 + 1 + 7] = (ham_u8_t)4; // inline size
@@ -1098,14 +1098,14 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
   }
 
   ham_u8_t     default_data_8[num_records * 9] = {0};
-  for (size_t i = 0; i < num_records; i++) {
+  for (int i = 0; i < num_records; i++) {
     default_data_8[i * 9] = BtreeRecord::kBlobSizeSmall; // flags
     *(ham_u64_t *)&default_data_8[i * 9 + 1] = (ham_u64_t)i;
   }
 
   ham_u8_t     default_data_16[num_records * 9] = {0};
   size_t       record_sizes_16[num_records] = {0};
-  for (size_t i = 0; i < num_records; i++) {
+  for (int i = 0; i < num_records; i++) {
     record_sizes_16[i] = 16;
   }
 
@@ -1155,7 +1155,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       ham_record_t record = {0};
       record.data = &buffer[0];
       record.size = 16;
-      for (size_t i = 0; i < num_records; i++) {
+      for (int i = 0; i < num_records; i++) {
         ham_u64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
         *(ham_u64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
@@ -1177,7 +1177,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       ham_record_t record = {0};
       record.data = &buffer[0];
       record.size = 16;
-      for (size_t i = 0; i < num_records; i++) {
+      for (int i = 0; i < num_records; i++) {
         ham_u64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
         *(ham_u64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }

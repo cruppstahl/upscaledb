@@ -50,9 +50,10 @@ Page::~Page()
 void
 Page::allocate(ham_u32_t type, ham_u32_t flags)
 {
-  m_device->alloc_page(this, m_device->get_page_size());
+  size_t page_size = m_device->get_config().page_size_bytes;
+  m_device->alloc_page(this, page_size);
   if (flags & kInitializeWithZeroes)
-    memset(get_raw_payload(), 0, m_device->get_page_size());
+    memset(get_raw_payload(), 0, page_size);
   if (type)
     set_type(type);
 }
@@ -60,7 +61,7 @@ Page::allocate(ham_u32_t type, ham_u32_t flags)
 void
 Page::fetch(ham_u64_t address)
 {
-  m_device->read_page(this, address, m_device->get_page_size());
+  m_device->read_page(this, address, m_device->get_config().page_size_bytes);
   set_address(address);
 }
 

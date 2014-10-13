@@ -305,13 +305,12 @@ File::truncate(ham_u64_t newsize)
 }
 
 void
-File::create(const char *filename, ham_u32_t flags, ham_u32_t mode)
+File::create(const char *filename, ham_u32_t mode)
 {
   int osflags = O_CREAT | O_RDWR | O_TRUNC;
 #if HAVE_O_NOATIME
-  flags |= O_NOATIME;
+  osflags |= O_NOATIME;
 #endif
-  (void)flags;
 
   ham_fd_t fd = ::open(filename, osflags, mode ? mode : 0644);
   if (fd < 0) {
@@ -347,11 +346,11 @@ File::flush()
 }
 
 void
-File::open(const char *filename, ham_u32_t flags)
+File::open(const char *filename, bool read_only)
 {
   int osflags = 0;
 
-  if (flags & HAM_READ_ONLY)
+  if (read_only)
     osflags |= O_RDONLY;
   else
     osflags |= O_RDWR;

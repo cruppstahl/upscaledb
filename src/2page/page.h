@@ -46,16 +46,16 @@ class LocalDatabase;
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
-  ham_u32_t _flags;
+  ham_u32_t flags;
 
   // reserved
-  ham_u32_t _reserved;
+  ham_u32_t reserved;
 
   // the lsn of the last operation
-  ham_u64_t _lsn;
+  ham_u64_t lsn;
 
   // the persistent data blob
-  ham_u8_t _payload[1];
+  ham_u8_t payload[1];
 
 } HAM_PACK_2 PPageHeader;
 
@@ -72,10 +72,10 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
  */
 typedef HAM_PACK_0 union HAM_PACK_1 PPageData {
   // the persistent header
-  struct PPageHeader _s;
+  struct PPageHeader header;
 
   // a char pointer to the allocated storage on disk
-  ham_u8_t _p[1];
+  ham_u8_t payload[1];
 
 } HAM_PACK_2 PPageData;
 
@@ -216,22 +216,22 @@ class Page {
 
     // Returns the page's type (kType*)
     ham_u32_t get_type() const {
-      return (m_data->_s._flags);
+      return (m_data->header.flags);
     }
 
     // Sets the page's type (kType*)
     void set_type(ham_u32_t type) {
-      m_data->_s._flags = type;
+      m_data->header.flags = type;
     }
 
     // Returns the lsn of the last modification
     ham_u64_t get_lsn() const {
-      return (m_data->_s._lsn);
+      return (m_data->header.lsn);
     }
 
     // Sets the lsn of the last modification
     void set_lsn(ham_u64_t lsn) {
-      m_data->_s._lsn = lsn;
+      m_data->header.lsn = lsn;
     }
 
     // Sets the pointer to the persistent data
@@ -246,22 +246,22 @@ class Page {
 
     // Returns the persistent payload (after the header!)
     ham_u8_t *get_payload() {
-      return (m_data->_s._payload);
+      return (m_data->header.payload);
     }
     
     // Returns the persistent payload (after the header!)
     const ham_u8_t *get_payload() const {
-      return (m_data->_s._payload);
+      return (m_data->header.payload);
     }
 
     // Returns the persistent payload (including the header!)
     ham_u8_t *get_raw_payload() {
-      return (m_data->_p);
+      return (m_data->payload);
     }
 
     // Returns the persistent payload (including the header!)
     const ham_u8_t *get_raw_payload() const {
-      return (m_data->_p);
+      return (m_data->payload);
     }
 
     // Allocates a new page from the device

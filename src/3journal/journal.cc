@@ -57,7 +57,7 @@ Journal::create()
   // create the two files
   for (int i = 0; i < 2; i++) {
     std::string path = get_path(i);
-    m_files[i].create(path.c_str(), 0, 0644);
+    m_files[i].create(path.c_str(), 0644);
   }
 }
 
@@ -67,7 +67,7 @@ Journal::open()
   // open the two files
   try {
     std::string path = get_path(0);
-    m_files[0].open(path.c_str(), 0);
+    m_files[0].open(path.c_str(), false);
     path = get_path(1);
     m_files[1].open(path.c_str(), 0);
   }

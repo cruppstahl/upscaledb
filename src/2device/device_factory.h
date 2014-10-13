@@ -27,6 +27,7 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "2config/env_config.h"
 #include "2device/device_disk.h"
 #include "2device/device_inmem.h"
 
@@ -38,12 +39,11 @@ namespace hamsterdb {
 
 struct DeviceFactory {
   // creates a new Device instance depending on the flags
-  static Device *create(ham_u32_t flags, size_t page_size,
-                  ham_u64_t file_size_limit) {
-    if (flags & HAM_IN_MEMORY)
-      return (new InMemoryDevice(flags, page_size, file_size_limit));
+  static Device *create(const EnvironmentConfiguration &config) {
+    if (config.flags & HAM_IN_MEMORY)
+      return (new InMemoryDevice(config));
     else
-      return (new DiskDevice(flags, page_size, file_size_limit));
+      return (new DiskDevice(config));
   }
 };
 

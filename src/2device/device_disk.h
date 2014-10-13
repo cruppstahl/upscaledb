@@ -15,9 +15,11 @@
  */
 
 /*
- * Device-implementation for disk-based files
+ * Device-implementation for disk-based files. Exception safety is "strong"
+ * for most operations, but currently it's possible that the Page is modified
+ * if DiskDevice::read_page fails in the middle.
  *
- * @exception_safe: basic
+ * @exception_safe: basic/strong
  * @thread_safe: no
  */
 
@@ -42,95 +44,122 @@ namespace hamsterdb {
  * a File-based device
  */
 class DiskDevice : public Device {
+    struct State {
+      // the database file
+      File file;
+
+      // pointer to the the mmapped data
+      ham_u8_t *mmapptr;
+
+      // the size of mmapptr as used in mmap
+      ham_u64_t mapped_size;
+
+      // the (cached) size of the file
+      ham_u64_t file_size;
+    };
+
   public:
-    DiskDevice(ham_u32_t flags, size_t page_size, ham_u64_t file_size_limit)
-      : Device(flags, page_size, file_size_limit), m_mmapptr(0),
-        m_mapped_size(0), m_file_size() {
+    DiskDevice(const EnvironmentConfiguration &config)
+      : Device(config) {
+      State state;
+      state.mmapptr = 0;
+      state.mapped_size = 0;
+      state.file_size = 0;
+      std::swap(m_state, state);
     }
 
     // Create a new device
-    virtual void create(const char *filename, ham_u32_t flags, ham_u32_t mode) {
-      m_file.create(filename, flags, mode);
-      m_flags = flags;
+    virtual void create() {
+      File file;
+      file.create(m_config.filename.c_str(), m_config.file_mode);
+      m_state.file = file;
     }
 
     // opens an existing device
     //
     // tries to map the file; if it fails then continue with read/write 
-    virtual void open(const char *filename, ham_u32_t flags) {
-      m_file.open(filename, flags);
-      m_flags = flags;
+    virtual void open() {
+      bool read_only = (m_config.flags & HAM_READ_ONLY) != 0;
+
+      State state = m_state;
+      state.file.open(m_config.filename.c_str(), read_only);
 
       // the file size which backs the mapped ptr
-      m_file_size = m_file.get_file_size();
+      state.file_size = state.file.get_file_size();
 
-      if (m_flags & HAM_DISABLE_MMAP)
+      if (m_config.flags & HAM_DISABLE_MMAP) {
+        std::swap(m_state, state);
         return;
+      }
 
       // make sure we do not exceed the "real" size of the file, otherwise
       // we crash when accessing memory which exceeds the mapping (at least
       // on Win32)
       size_t granularity = File::get_granularity();
-      if (m_file_size == 0 || m_file_size % granularity)
+      if (state.file_size == 0 || state.file_size % granularity) {
+        std::swap(m_state, state);
         return;
+      }
 
-      m_mapped_size = m_file_size;
-
-      m_file.mmap(0, m_mapped_size, (flags & HAM_READ_ONLY) != 0, &m_mmapptr);
+      state.mapped_size = state.file_size;
+      state.file.mmap(0, state.mapped_size, read_only, &state.mmapptr);
+      std::swap(m_state, state);
     }
 
     // closes the device
     virtual void close() {
-      if (m_mmapptr)
-        m_file.munmap(m_mmapptr, m_mapped_size);
+      State state = m_state;
+      if (state.mmapptr)
+        state.file.munmap(state.mmapptr, state.mapped_size);
+      state.file.close();
 
-      m_file.close();
+      std::swap(m_state, state);
     }
 
     // flushes the device
     virtual void flush() {
-      m_file.flush();
+      m_state.file.flush();
     }
 
     // truncate/resize the device
     virtual void truncate(ham_u64_t new_file_size) {
-      if (new_file_size > m_file_size_limit)
+      if (new_file_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
-      m_file.truncate(new_file_size);
-      m_file_size = new_file_size;
+      m_state.file.truncate(new_file_size);
+      m_state.file_size = new_file_size;
     }
 
     // returns true if the device is open
     virtual bool is_open() {
-      return (m_file.is_open());
+      return (m_state.file.is_open());
     }
 
     // get the current file/storage size
     virtual ham_u64_t get_file_size() {
-      ham_assert(m_file_size == m_file.get_file_size());
-      return (m_file_size);
+      ham_assert(m_state.file_size == m_state.file.get_file_size());
+      return (m_state.file_size);
     }
 
     // seek to a position in a file
     virtual void seek(ham_u64_t offset, int whence) {
-      m_file.seek(offset, whence);
+      m_state.file.seek(offset, whence);
     }
 
     // tell the position in a file
     virtual ham_u64_t tell() {
-      return (m_file.tell());
+      return (m_state.file.tell());
     }
 
     // reads from the device; this function does NOT use mmap
     virtual void read(ham_u64_t offset, void *buffer, size_t len) {
-      m_file.pread(offset, buffer, len);
+      m_state.file.pread(offset, buffer, len);
     }
 
     // writes to the device; this function does not use mmap,
     // and is responsible for writing the data is run through the file
     // filters
     virtual void write(ham_u64_t offset, void *buffer, size_t len) {
-      m_file.pwrite(offset, buffer, len);
+      m_state.file.pwrite(offset, buffer, len);
     }
 
     // reads a page from the device; this function CAN return a
@@ -138,34 +167,40 @@ class DiskDevice : public Device {
     virtual void read_page(Page *page, ham_u64_t address, size_t page_size) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
-      if (address < m_mapped_size && m_mmapptr != 0) {
+      if (address < m_state.mapped_size && m_state.mmapptr != 0) {
         // ok, this page is mapped. If the Page object has a memory buffer
         // then free it; afterwards return a pointer into the mapped memory
         Memory::release(page->get_data());
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
-        page->set_data((PPageData *)&m_mmapptr[address]);
+        // the following line will not throw a C++ exception, but can
+        // raise a signal. If that's the case then we don't catch it because
+        // something is seriously wrong and proper recovery is not possible.
+        page->set_data((PPageData *)&m_state.mmapptr[address]);
         return;
       }
 
       // this page is not in the mapped area; allocate a buffer
       if (page->get_data() == 0) {
+        // note that |p| will not leak if file.pread() throws; |p| is stored
+        // in the |page| object and will be cleaned up by the caller in
+        // case of an exception.
         ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
         page->set_data((PPageData *)p);
         page->set_flags(page->get_flags() | Page::kNpersMalloc);
       }
 
-      m_file.pread(address, page->get_data(), page_size);
+      m_state.file.pread(address, page->get_data(), page_size);
     }
 
     // writes a page to the device
     virtual void write_page(Page *page) {
-      write(page->get_address(), page->get_data(), m_page_size);
+      write(page->get_address(), page->get_data(), m_config.page_size_bytes);
     }
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual ham_u64_t alloc(size_t len) {
-      ham_u64_t address = get_file_size();
+      ham_u64_t address = m_state.file_size;
       truncate(address + len);
       return (address);
     }
@@ -173,14 +208,14 @@ class DiskDevice : public Device {
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page, size_t page_size) {
-      ham_u64_t pos = get_file_size();
+      ham_u64_t address = m_state.file_size;
 
-      truncate(pos + page_size);
-      page->set_address(pos);
-      read_page(page, pos, page_size);
+      truncate(address + page_size);
+      page->set_address(address);
+      read_page(page, address, page_size);
     }
 
-    // Frees a page on the device; plays counterpoint to |ref alloc_page|
+    // Frees a page on the device; plays counterpoint to |alloc_page|
     virtual void free_page(Page *page) {
       ham_assert(page->get_data() != 0);
 
@@ -189,23 +224,14 @@ class DiskDevice : public Device {
         page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       }
       else
-        m_file.madvice_dontneed(page->get_data(), m_page_size);
+        m_state.file.madvice_dontneed(page->get_data(),
+                        m_config.page_size_bytes);
 
       page->set_data(0);
     }
 
   private:
-    // the database file
-    File m_file;
-
-    // pointer to the the mmapped data
-    ham_u8_t *m_mmapptr;
-
-    // the size of m_mmapptr as used in mmap
-    ham_u64_t m_mapped_size;
-
-    // the (cached) size of the file
-    ham_u64_t m_file_size;
+    State m_state;
 };
 
 } // namespace hamsterdb

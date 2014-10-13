@@ -563,20 +563,23 @@ o "make dist" should write the current git commit and the build date to
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-. refactoring: make device stateless and avoid inheritance
-    - virtual abstract base class
-    - implementation class uses template parameters
-    - template parameters have logic; implementation class has state
-    - state is passed to the logic and can be modified (exception safe)
-    - get rid of dependency to env, only to EnvironmentConfiguration
+x refactoring: make device stateless and exception safe
+    x File must allow copying (= move w/o close)
+    x virtual abstract base class
+    x get rid of dependency to env, only to EnvironmentConfiguration
+    x get rid of m_flags, it's not required (only to disable mmap)
+    x move class state to a struct
+    x modify state with an atomic swap
+    x if all Os-calls are atomic then thread-safety should be "strong"!
 
+. refactoring: make page stateless and exception safe
+
+    - if this works then do the same for Changeset
+    - if this works then do the same for Journal
     - if this works then do the same for BlobManager
     - if this works then do the same for PageManager
     - if this works then do the same for EnvironmentHeader
-    - if this works then do the same for Journal
-    - if this works then do the same for Page
     - if this works then do the same for Compressor
-    - if this works then do the same for Changeset
     - if this works then do the same for Btree
 
 . refactoring: get rid of inheritance for env

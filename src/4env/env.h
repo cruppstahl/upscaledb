@@ -78,12 +78,6 @@ class Environment
       return (m_config.flags);
     }
 
-    // Sets the flags
-    // TODO not required
-    void set_flags(ham_u32_t flags) {
-      m_config.flags = flags;
-    }
-
     // Returns the Environment's configuration
     const EnvironmentConfiguration &get_config() const {
       return (m_config);
@@ -115,13 +109,10 @@ class Environment
     }
 
     // Creates a new Environment (ham_env_create)
-    virtual ham_status_t create(const char *filename, ham_u32_t flags,
-                    ham_u32_t mode, size_t page_size, ham_u64_t cache_size,
-                    ham_u16_t maxdbs, ham_u64_t file_size_limit) = 0;
+    virtual ham_status_t create() = 0;
 
     // Opens a new Environment (ham_env_open)
-    virtual ham_status_t open(const char *filename, ham_u32_t flags,
-                    ham_u64_t cache_size, ham_u64_t file_size_limit) = 0;
+    virtual ham_status_t open() = 0;
 
     // Renames a database in the Environment (ham_env_rename_db)
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,

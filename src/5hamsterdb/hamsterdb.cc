@@ -447,9 +447,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->create(config.filename.c_str(), config.flags, config.file_mode,
-                    config.page_size_bytes, config.cache_size_bytes,
-                    config.max_databases, config.file_size_limit_bytes);
+    st = env->create();
 
     /* flush the environment to make sure that the header page is written
      * to disk */
@@ -690,8 +688,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #endif
 
     /* and finish the initialization of the Environment */
-    st = env->open(config.filename.c_str(), config.flags,
-                    config.cache_size_bytes, config.file_size_limit_bytes);
+    st = env->open();
   }
   catch (Exception &ex) {
     st = ex.code;
