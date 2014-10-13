@@ -85,7 +85,7 @@ struct DeviceFixture
     page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
-    m_dev->alloc_page(&page, ((LocalEnvironment *)m_env)->get_page_size());
+    m_dev->alloc_page(&page);
     REQUIRE(page.get_data());
     m_dev->free_page(&page);
   }
@@ -108,7 +108,7 @@ struct DeviceFixture
     m_dev->truncate(ps * 10);
     for (i = 0; i < 10; i++) {
       pages[i]->set_address(i * ps);
-      m_dev->read_page(pages[i], i * ps, ps);
+      m_dev->read_page(pages[i], i * ps);
     }
     for (i = 0; i < 10; i++) {
       memset(pages[i]->get_raw_payload(), i, ps);
@@ -120,7 +120,7 @@ struct DeviceFixture
       memset(temp, i, ps);
       m_dev->free_page(pages[i]);
 
-      m_dev->read_page(pages[i], i * ps, ps);
+      m_dev->read_page(pages[i], i * ps);
       buffer = (ham_u8_t *)pages[i]->get_payload();
       REQUIRE(0 == memcmp(buffer, temp, ps - Page::kSizeofPersistentHeader));
     }
@@ -172,7 +172,7 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       pages[i] = new Page(((LocalEnvironment *)m_env)->get_device());
       pages[i]->set_address(ps * i);
-      m_dev->read_page(pages[i], ps * i, ps);
+      m_dev->read_page(pages[i], ps * i);
     }
     for (i = 0; i < 2; i++) {
       REQUIRE(pages[i]->is_allocated());
@@ -187,7 +187,7 @@ struct DeviceFixture
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->get_device())));
       pages[i]->set_address(ps * i);
-      m_dev->read_page(pages[i], ps * i, ps);
+      m_dev->read_page(pages[i], ps * i);
       REQUIRE(0 == memcmp(pages[i]->get_payload(), temp,
                               ps - Page::kSizeofPersistentHeader));
       delete pages[i];

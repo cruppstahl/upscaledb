@@ -69,6 +69,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_keys_pod.h \
 	3btree/btree_node.h \
 	3btree/btree_node_proxy.h \
+	3btree/btree_records_base.h \
 	3btree/btree_records_default.h \
 	3btree/btree_records_inline.h \
 	3btree/btree_records_internal.h \

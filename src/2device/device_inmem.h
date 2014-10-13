@@ -118,7 +118,7 @@ class InMemoryDevice : public Device {
     }
 
     // reads a page from the device 
-    virtual void read_page(Page *page, ham_u64_t address, size_t page_size) {
+    virtual void read_page(Page *page, ham_u64_t address) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -139,9 +139,10 @@ class InMemoryDevice : public Device {
     }
 
     // allocate storage for a page from this device 
-    virtual void alloc_page(Page *page, size_t page_size) {
+    virtual void alloc_page(Page *page) {
       ham_assert(page->get_data() == 0);
 
+      size_t page_size = m_config.page_size_bytes;
       if (m_state.allocated_size + page_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
 

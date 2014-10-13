@@ -135,7 +135,7 @@ struct JournalFixture {
   void createCloseTest() {
     Journal *j = disconnect_and_create_new_journal();
 
-    REQUIRE((ham_u64_t)1 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)1 == j->m_lsn);
     /* TODO make sure that the two files exist and
      * contain only the header */
 
@@ -196,7 +196,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)2 == j->m_lsn);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -212,7 +212,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)2 == j->m_lsn);
     REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
@@ -221,7 +221,7 @@ struct JournalFixture {
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
     REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
@@ -241,7 +241,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)2 == j->m_lsn);
     REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
@@ -252,7 +252,7 @@ struct JournalFixture {
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
     j->transaction_flushed((LocalTransaction *)txn);
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
     REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
     REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
@@ -275,7 +275,7 @@ struct JournalFixture {
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn);
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -315,7 +315,7 @@ struct JournalFixture {
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn);
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -351,7 +351,7 @@ struct JournalFixture {
 
     ham_u64_t lsn = m_lenv->get_incremented_lsn();
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -383,18 +383,18 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)2 == j->m_lsn);
 
     j->clear();
     REQUIRE(true == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)2 == j->m_lsn);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
 
     j->close();
     j->open();
-    REQUIRE((ham_u64_t)3 == j->test_get_lsn());
+    REQUIRE((ham_u64_t)3 == j->m_lsn);
   }
 
   void iterateOverEmptyLogTest() {
@@ -413,12 +413,12 @@ struct JournalFixture {
   void iterateOverLogOneEntryTest() {
     ham_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(1ull == j->test_get_lsn());
+    REQUIRE(1ull == j->m_lsn);
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((LocalTransaction *)txn, 0, j->test_get_lsn());
+    j->append_txn_begin((LocalTransaction *)txn, 0, j->m_lsn);
     j->close(true);
     j->open();
-    REQUIRE(2ull == j->test_get_lsn());
+    REQUIRE(2ull == j->m_lsn);
 
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
@@ -618,7 +618,7 @@ struct JournalFixture {
     /* verify the lsn */
     //Journal *j = m_lenv->get_journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
-    // REQUIRE(12ull == j->test_get_lsn());
+    // REQUIRE(12ull == j->m_lsn);
     REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->get_txn_manager()))->test_get_txn_id());
 
     /* create another transaction and make sure that the transaction

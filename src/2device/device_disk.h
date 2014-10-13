@@ -162,9 +162,17 @@ class DiskDevice : public Device {
       m_state.file.pwrite(offset, buffer, len);
     }
 
+    // allocate storage from this device; this function
+    // will *NOT* return mmapped memory
+    virtual ham_u64_t alloc(size_t len) {
+      ham_u64_t address = m_state.file_size;
+      truncate(address + len);
+      return (address);
+    }
+
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
-    virtual void read_page(Page *page, ham_u64_t address, size_t page_size) {
+    virtual void read_page(Page *page, ham_u64_t address) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (address < m_state.mapped_size && m_state.mmapptr != 0) {
@@ -183,11 +191,11 @@ class DiskDevice : public Device {
         // note that |p| will not leak if file.pread() throws; |p| is stored
         // in the |page| object and will be cleaned up by the caller in
         // case of an exception.
-        ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
+        ham_u8_t *p = Memory::allocate<ham_u8_t>(m_config.page_size_bytes);
         page->assign_allocated_buffer(p, address);
       }
 
-      m_state.file.pread(address, page->get_data(), page_size);
+      m_state.file.pread(address, page->get_data(), m_config.page_size_bytes);
     }
 
     // writes a page to the device
@@ -195,22 +203,14 @@ class DiskDevice : public Device {
       write(page->get_address(), page->get_data(), m_config.page_size_bytes);
     }
 
-    // allocate storage from this device; this function
-    // will *NOT* return mmapped memory
-    virtual ham_u64_t alloc(size_t len) {
-      ham_u64_t address = m_state.file_size;
-      truncate(address + len);
-      return (address);
-    }
-
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
-    virtual void alloc_page(Page *page, size_t page_size) {
+    virtual void alloc_page(Page *page) {
       ham_u64_t address = m_state.file_size;
 
-      truncate(address + page_size);
+      truncate(address + m_config.page_size_bytes);
       page->set_address(address);
-      read_page(page, address, page_size);
+      read_page(page, address);
     }
 
     // Frees a page on the device; plays counterpoint to |alloc_page|

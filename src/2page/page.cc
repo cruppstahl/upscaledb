@@ -38,22 +38,25 @@ Page::~Page()
 {
   ham_assert(m_cursor_list == 0);
 
-  if (m_data != 0)
-    m_device->free_page(this);
-
   if (m_node_proxy) {
     delete m_node_proxy;
     m_node_proxy = 0;
   }
+
+  if (m_data != 0)
+    m_device->free_page(this);
 }
 
 void
 Page::allocate(ham_u32_t type, ham_u32_t flags)
 {
-  size_t page_size = m_device->get_config().page_size_bytes;
-  m_device->alloc_page(this, page_size);
-  if (flags & kInitializeWithZeroes)
+  m_device->alloc_page(this);
+
+  if (flags & kInitializeWithZeroes) {
+    size_t page_size = m_device->get_config().page_size_bytes;
     memset(get_raw_payload(), 0, page_size);
+  }
+
   if (type)
     set_type(type);
 }
@@ -61,7 +64,7 @@ Page::allocate(ham_u32_t type, ham_u32_t flags)
 void
 Page::fetch(ham_u64_t address)
 {
-  m_device->read_page(this, address, m_device->get_config().page_size_bytes);
+  m_device->read_page(this, address);
   set_address(address);
 }
 

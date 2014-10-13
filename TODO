@@ -416,6 +416,17 @@ x refactoring: use "int duplicate_index" instead of ham_u32_t
 
 x refactoring: use "int" for record counters
 
+x refactoring: make device stateless and exception safe
+    x File must allow copying (= move w/o close)
+    x virtual abstract base class
+    x get rid of dependency to env, only to EnvironmentConfiguration
+    x get rid of m_flags, it's not required (only to disable mmap)
+    x move class state to a struct
+    x modify state with an atomic swap
+    x if all Os-calls are atomic then thread-safety should be "strong"!
+
+x refactoring: make page stateless and exception safe
+
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -427,29 +438,36 @@ o ZINT32: rebase hamsterdb-pro
             starts with the first uncompressed key (others are stored as delta)
             -> a block fits in a data cache line
             -> block is addressed by offset + size
-        o persist number of blocks and m_used_size
+        x persist number of blocks and m_used_size
         -> index: 2 byte offset + 1 byte counter
         -> default block size is 64
+        -> there should be three configuration settings:
+            1. threshold when to merge blocks
+            2. threshold when to split blocks
+            3. initial block size
+            4. threshold when to reduce blocks (changes all block offsets)
         o insert keys
-            o insert ascending keys
-                o append to last block
-                o if size is exceeded: attach new block
-                o first key in a block is uncompressed
-            o insert descending keys
-                o prepend to first block
-                o if size is exceeded: prepend new block; block size = 32
-                o first key in a block is uncompressed
+            x insert ascending keys
+                x append to last block
+                x if size is exceeded: attach new block
+                x first key in a block is uncompressed
+            x insert descending keys
+                x prepend to first block
+                x if size is exceeded: prepend new block; block size = 32
+                x first key in a block is uncompressed
             o insert random keys
-                o lookup block for this key
-                o if block size is exceeded then split the block in the middle;
-                    block size = 32
-                o insert into block
+                x lookup block for this key
+                x insert into block
+                o increase block size if key does not fit
+                o if block size is exceeded then split the block in the middle
         o check_integrity: verify that m_used_size is correct
         o erase keys
             o erase last key in a block
                 o just decrease the counter
             o erase first key in a block
                 o make sure that (former) second key is stored uncompressed
+            o erase first in the middle
+                -> reorganize this block, then adjust counter/size
             o if block is empty then delete it (but make sure that one block
                 remains)
             o if block size < 32 then try to merge with a sibling
@@ -468,6 +486,12 @@ o ZINT32: rebase hamsterdb-pro
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
+
+o refactoring: "insert" should not be based on slot number. it should *return*
+    the slot (for the RecordList), but only perform on the new key
+    -> this is faster for zint32
+
+o refactoring: node_count should be an int
 
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
@@ -490,16 +514,6 @@ o when the file format is changed then...
     o add to monster testsuite
     o rebase hamsterdb-pro
 
-o erlang fixes are required
-    o 2 tests are failing
-    o quickcheck-ci.com
-    o look into Thomas' mail
-    o QuickCheck: create a new property for testing duplicates; the key is
-        always the same. The number of duplicate keys is tracked and
-        periodically checked with the API. A cursor can be used to remove a
-        specific duplicate, or to fetch a specific duplicate.
-    o QuickCheck: create a new property for testing recnos, with lots of deletes
-
 o windows cleanups
     o The C# PInvoke for ham_cursor_find is missing the Record structure
         - also accept flags in ham_db_find and ham_cursor_find for approx.
@@ -520,6 +534,8 @@ o "make dist" should write the current git commit and the build date to
     o ham_bench: print this prior to the monster tests/performance tests
     o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
             move version.h to include/ham
+
+o erlang: 1 test is failing
 
 . delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -563,19 +579,8 @@ o "make dist" should write the current git commit and the build date to
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
-x refactoring: make device stateless and exception safe
-    x File must allow copying (= move w/o close)
-    x virtual abstract base class
-    x get rid of dependency to env, only to EnvironmentConfiguration
-    x get rid of m_flags, it's not required (only to disable mmap)
-    x move class state to a struct
-    x modify state with an atomic swap
-    x if all Os-calls are atomic then thread-safety should be "strong"!
-
-. refactoring: make page stateless and exception safe
-
+. refactoring: make journal stateless and exception safe
     - if this works then do the same for Changeset
-    - if this works then do the same for Journal
     - if this works then do the same for BlobManager
     - if this works then do the same for PageManager
     - if this works then do the same for EnvironmentHeader
@@ -667,48 +672,6 @@ x refactoring: make device stateless and exception safe
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
-. release-v2.pl: valgrind takes sooo long. should we use clang's
-    AddressSanitizer instead? or both?
-
-. hola - next steps
-    o support java api
-    o support .net api
-    o support erlang api
-    o lua-functions as callbacks - then remote marshalling will work
-    o PRO: compile callbacks with clang remotely
-    o add remote support where it makes sense (only for PRO?)
-
-. architecture for a new webpage
-    o pick an awesome design
-        i.e. similar to http://foundationdb.com, http://laravel.com,
-        http://rethinkdb.com, http://www.orientechnologies.com
-    o use make/m4/markdown to generate static pages:
-        https://github.com/datagrok/m4-bakery
-        https://developer.github.com/v3/markdown/
-    o come up with the full site structure/contents
-        http://sidekiq.org/pro/
-        o include full documentation, one page per API
-        o ... and for all languages
-        o keep the documentation in the source tree, not in -www?
-    o documentation comments are hosted on disqus
-    o blog comments are hosted on disqus, articles are also written in markup
-
-    o static pages will be served with nginx, using url rewrites
-    o dynamic pages are created with a micro-framework (silex?)
-    o Makefile can "scp -r" everything to the servers (staging or production)
-
-    . client area with (low priority)
-        o authentication
-        o collection of files
-        o analytics (who downloads what and when?)
-    . admin area with (even lower priority)
-        o authentication
-        o customer database
-        o implementing business processes
-        o sending out release emails
-        o importing new releases
-        o etc
-
 . look into spark, mongodb and mariadb integration
     -> like MapReduce, Spark requires an InputFormat class; templates are 
         available here:
@@ -723,9 +686,24 @@ x refactoring: make device stateless and exception safe
         efforts/gains (will do the same for mysql, R and mongodb later); this
         task is not about writing code!
 
+------------- hamsterdb-erlang 2.1.9 ---------------------------------
+
+o upgrade to hamsterdb-2.1.9
+
+o improve erlang integration
+    o quickcheck-ci.com
+    o look into Thomas' mail
+    o QuickCheck: create a new property for testing duplicates; the key is
+        always the same. The number of duplicate keys is tracked and
+        periodically checked with the API. A cursor can be used to remove a
+        specific duplicate, or to fetch a specific duplicate.
+
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
 o PRO: rebase to vanilla 2.1.9
+
+o PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied
 
 o PRO: find an efficient compression method for RecordLists, more precisely for
     - default record lists (incl. flags, record IDs)
@@ -768,10 +746,6 @@ o PRO: prefix compression for variable-length keys
     o key search: jumps from full key to full key; in between, there's a
         linear search for the key
 
-o PRO: compress the varkey index (slot size/offset)?
-    ==> come up with a good scheme
-    -> for APL
-
 o PRO: bulk updates
     - require delta updates
     - give users API to allocate memory for keys/records
@@ -793,6 +767,48 @@ o PRO: bulk updates
     o also for python
 
 ------------- hamsterdb 2.1.9 ---------------------------------------
+
+. release-v2.pl: valgrind takes sooo long. should we use clang's
+    AddressSanitizer instead? or both?
+
+. hola - next steps
+    o support java api
+    o support .net api
+    o support erlang api
+    o lua-functions as callbacks - then remote marshalling will work
+    o PRO: compile callbacks with clang remotely
+    o add remote support where it makes sense (only for PRO?)
+
+. architecture for a new webpage
+    o pick an awesome design
+        i.e. similar to http://foundationdb.com, http://laravel.com,
+        http://rethinkdb.com, http://www.orientechnologies.com
+    o use make/m4/markdown to generate static pages:
+        https://github.com/datagrok/m4-bakery
+        https://developer.github.com/v3/markdown/
+    o come up with the full site structure/contents
+        http://sidekiq.org/pro/
+        o include full documentation, one page per API
+        o ... and for all languages
+        o keep the documentation in the source tree, not in -www?
+    o documentation comments are hosted on disqus
+    o blog comments are hosted on disqus, articles are also written in markup
+
+    o static pages will be served with nginx, using url rewrites
+    o dynamic pages are created with a micro-framework (silex?)
+    o Makefile can "scp -r" everything to the servers (staging or production)
+
+    . client area with (low priority)
+        o authentication
+        o collection of files
+        o analytics (who downloads what and when?)
+    . admin area with (even lower priority)
+        o authentication
+        o customer database
+        o implementing business processes
+        o sending out release emails
+        o importing new releases
+        o etc
 
 . hola: use sum-prefix-trees to precalculate partial sums/results?
     they could be stored in a btree, and used to dynamically recalculate

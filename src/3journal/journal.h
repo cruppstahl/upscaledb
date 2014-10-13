@@ -229,12 +229,6 @@ class Journal
       m_threshold = threshold ? threshold : kSwitchTxnThreshold;
     }
 
-    // Returns the previous lsn; only for testing!
-    // TODO really required? JournalFixture is a friend!
-    ham_u64_t test_get_lsn() {
-      return (m_lsn);
-    }
-
   private:
     friend struct JournalFixture;
 
