@@ -184,24 +184,50 @@ class Page {
       m_address = address;
     }
 
-    // Returns the non-persistent page flags
-    ham_u32_t get_flags() const {
-      return (m_flags);
-    }
-
-    // Sets the non-persistent page flags
-    void set_flags(ham_u32_t flags) {
-      m_flags = flags;
-    }
-
     // Returns true if this page is dirty (and needs to be flushed to disk)
     bool is_dirty() const {
-      return (m_dirty);
+      return (m_is_dirty);
     }
 
     // Sets this page dirty/not dirty
     void set_dirty(bool dirty) {
-      m_dirty = dirty;
+      m_is_dirty = dirty;
+    }
+
+    // Returns true if the page's buffer was allocated with malloc
+    bool is_allocated() const {
+      return (m_is_allocated);
+    }
+
+    // Returns true if the page has no persistent header
+    bool is_without_header() const {
+      return (m_is_without_header);
+    }
+
+    // Sets a flag whether the page has no persistent header
+    void set_without_header(bool without_header) {
+      m_is_without_header = without_header;
+    }
+
+    // Assign a buffer which was allocated with malloc()
+    void assign_allocated_buffer(void *buffer, ham_u64_t address) {
+      m_data = (PPageData *)buffer;
+      m_is_allocated = true;
+      m_address = address;
+    }
+
+    // Assign a buffer from mmapped storage
+    void assign_mapped_buffer(void *buffer, ham_u64_t address) {
+      m_data = (PPageData *)buffer;
+      m_is_allocated = false;
+      m_address = address;
+    }
+
+    // Free resources associated with the buffer
+    void free_buffer() {
+      if (m_is_allocated)
+        Memory::release(m_data);
+      m_data = 0;
     }
 
     // Returns the linked list of coupled cursors (can be NULL)
@@ -275,60 +301,60 @@ class Page {
     void flush();
 
     // Returns true if this page is in a linked list
-    bool is_in_list(Page *list_head, int which) {
-      if (get_next(which) != 0)
+    bool is_in_list(Page *list_head, int list) {
+      if (get_next(list) != 0)
         return (true);
-      if (get_previous(which) != 0)
+      if (get_previous(list) != 0)
         return (true);
       return (list_head == this);
     }
 
     // Inserts this page at the beginning of a list and returns the
     // new head of the list
-    Page *list_insert(Page *list_head, int which) {
-      set_next(which, 0);
-      set_previous(which, 0);
+    Page *list_insert(Page *list_head, int list) {
+      set_next(list, 0);
+      set_previous(list, 0);
 
       if (!list_head)
         return (this);
 
-      set_next(which, list_head);
-      list_head->set_previous(which, this);
+      set_next(list, list_head);
+      list_head->set_previous(list, this);
       return (this);
     }
 
     // Removes this page from a list and returns the new head of the list
-    Page *list_remove(Page *list_head, int which) {
+    Page *list_remove(Page *list_head, int list) {
       Page *n, *p;
 
       if (this == list_head) {
-        n = get_next(which);
+        n = get_next(list);
         if (n)
-          n->set_previous(which, 0);
-        set_next(which, 0);
-        set_previous(which, 0);
+          n->set_previous(list, 0);
+        set_next(list, 0);
+        set_previous(list, 0);
         return (n);
       }
 
-      n = get_next(which);
-      p = get_previous(which);
+      n = get_next(list);
+      p = get_previous(list);
       if (p)
-        p->set_next(which, n);
+        p->set_next(list, n);
       if (n)
-        n->set_previous(which, p);
-      set_next(which, 0);
-      set_previous(which, 0);
+        n->set_previous(list, p);
+      set_next(list, 0);
+      set_previous(list, 0);
       return (list_head);
     }
 
     // Returns the next page in a linked list
-    Page *get_next(int which) {
-      return (m_next[which]);
+    Page *get_next(int list) {
+      return (m_next[list]);
     }
 
     // Returns the previous page of a linked list
-    Page *get_previous(int which) {
-      return (m_prev[which]);
+    Page *get_previous(int list) {
+      return (m_prev[list]);
     }
 
     // Returns the cached BtreeNodeProxy
@@ -343,13 +369,13 @@ class Page {
 
   private:
     // Sets the previous page of a linked list
-    void set_previous(int which, Page *other) {
-      m_prev[which] = other;
+    void set_previous(int list, Page *other) {
+      m_prev[list] = other;
     }
 
     // Sets the next page in a linked list
-    void set_next(int which, Page *other) {
-      m_next[which] = other;
+    void set_next(int list, Page *other) {
+      m_next[list] = other;
     }
 
     // the Device for allocating storage
@@ -361,11 +387,15 @@ class Page {
     // address of this page
     ham_u64_t m_address;
 
-    // non-persistent flags
-    ham_u32_t m_flags;
+    // Page buffer was allocated with malloc() (if not then it was mapped
+    // with mmap)
+    bool m_is_allocated;
+
+    // Page does not have a persistent header
+    bool m_is_without_header;
 
     // is this page dirty and needs to be flushed to disk?
-    bool m_dirty;
+    bool m_is_dirty;
 
     // linked list of all cursors which point to that page
     BtreeCursor *m_cursor_list;

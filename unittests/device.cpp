@@ -175,7 +175,7 @@ struct DeviceFixture
       m_dev->read_page(pages[i], ps * i, ps);
     }
     for (i = 0; i < 2; i++) {
-      REQUIRE((pages[i]->get_flags() & Page::kNpersMalloc) != 0);
+      REQUIRE(pages[i]->is_allocated());
       memset(pages[i]->get_payload(), i + 1,
                       ps - Page::kSizeofPersistentHeader);
       m_dev->write_page(pages[i]);

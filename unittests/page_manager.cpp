@@ -132,7 +132,7 @@ struct PageManagerFixture {
     Page *page = new Page(lenv->get_device());
     page->set_address(0x123ull);
     page->set_data(&pers);
-    page->set_flags(Page::kNpersNoHeader);
+    page->set_without_header(true);
 
     lenv->get_page_manager()->store_page(page);
     REQUIRE(page == lenv->get_page_manager()->fetch_page(0x123ull));
@@ -151,7 +151,7 @@ struct PageManagerFixture {
     Page *page = new Page(lenv->get_device());
     page->set_address(0x123ull);
     page->set_data(&pers);
-    page->set_flags(Page::kNpersNoHeader);
+    page->set_without_header(true);
 
     lenv->get_page_manager()->store_page(page);
     REQUIRE(page == lenv->get_page_manager()->fetch_page(0x123ull));
@@ -170,7 +170,7 @@ struct PageManagerFixture {
     for (int i = 0; i < 20; i++) {
       page[i] = new Page(lenv->get_device());
       memset(&pers[i], 0, sizeof(pers[i]));
-      page[i]->set_flags(Page::kNpersNoHeader);
+      page[i]->set_without_header(true);
       page[i]->set_address(i + 1);
       page[i]->set_data(&pers[i]);
       lenv->get_page_manager()->store_page(page[i]);
@@ -202,9 +202,8 @@ struct PageManagerFixture {
 
     for (unsigned int i = 0; i < 15; i++) {
       Page *p = new Page(lenv->get_device());
-      p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
-      p->set_address(i + 1);
-      p->set_data(&pers);
+      p->set_without_header(true);
+      p->assign_allocated_buffer(&pers, i + 1);
       v.push_back(p);
       lenv->get_page_manager()->store_page(p);
       REQUIRE(false == lenv->get_page_manager()->cache_is_full());
@@ -212,9 +211,8 @@ struct PageManagerFixture {
 
     for (unsigned int i = 0; i < 5; i++) {
       Page *p = new Page(lenv->get_device());
-      p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
-      p->set_address(i + 15 + 1);
-      p->set_data(&pers);
+      p->set_without_header(true);
+      p->assign_allocated_buffer(&pers, i + 15 + 1);
       v.push_back(p);
       lenv->get_page_manager()->store_page(p);
       REQUIRE(true == lenv->get_page_manager()->cache_is_full());

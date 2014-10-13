@@ -103,7 +103,7 @@ Changeset::flush(ham_u64_t lsn)
     if (p->is_header()) {
       append(m_indices, m_indices_size, m_indices_capacity, p);
     }
-    else if (p->get_flags() & Page::kNpersNoHeader) {
+    else if (p->is_without_header()) {
       append(m_blobs, m_blobs_size, m_blobs_capacity, p);
     }
     else {
@@ -171,7 +171,7 @@ Changeset::flush(ham_u64_t lsn)
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
   while (p) {
-    if (!(p->get_flags() & Page::kNpersNoHeader))
+    if (p->is_without_header() == false)
       p->set_lsn(lsn);
     m_env->get_page_manager()->flush_page(p);
     p = p->get_next(Page::kListChangeset);

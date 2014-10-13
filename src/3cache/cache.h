@@ -121,7 +121,7 @@ class Cache
       m_totallist = page->list_insert(m_totallist, Page::kListCache);
 
       m_cur_elements++;
-      if (page->get_flags() & Page::kNpersMalloc)
+      if (page->is_allocated())
         m_alloc_elements++;
 
       /*
@@ -166,7 +166,7 @@ class Cache
       /* decrease the number of cached elements */
       if (removed) {
         m_cur_elements--;
-        if (page->get_flags() & Page::kNpersMalloc)
+        if (page->is_allocated())
           m_alloc_elements--;
       }
     }
@@ -250,7 +250,7 @@ class Cache
     // memory instead of an mmapped pointer; page must not be in use (= in
     // a changeset) and not have cursors attached
     bool can_purge_page(Page *page) {
-      if ((page->get_flags() & Page::kNpersMalloc) == 0)
+      if (page->is_allocated() == false)
         return (false);
       if (m_env->get_changeset().contains(page))
         return (false);

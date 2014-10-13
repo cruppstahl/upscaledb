@@ -263,7 +263,7 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   if (page) {
     ham_assert(page->get_data());
     if (flags & kNoHeader)
-      page->set_flags(page->get_flags() | Page::kNpersNoHeader);
+      page->set_without_header(true);
     /* store the page in the changeset if recovery is enabled */
     if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().add_page(page);
@@ -288,7 +288,7 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
   store_page(page);
 
   if (flags & kNoHeader)
-    page->set_flags(page->get_flags() | Page::kNpersNoHeader);
+    page->set_without_header(true);
 
   /* store the page in the changeset */
   if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -406,12 +406,12 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
           if (i == 0) {
             page = fetch_page(db, it->first);
             page->set_type(Page::kTypeBlob);
-            page->set_flags(page->get_flags() & ~Page::kNpersNoHeader);
+            page->set_without_header(false);
           }
           else {
             Page *p = fetch_page(db, it->first + (i * page_size));
             p->set_type(Page::kTypeBlob);
-            p->set_flags(p->get_flags() | Page::kNpersNoHeader);
+            p->set_without_header(true);
           }
         }
         if (it->second > num_pages) {
@@ -435,7 +435,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
       page = alloc_page(db, Page::kTypeBlob, flags);
     else {
       Page *p = alloc_page(db, Page::kTypeBlob, flags);
-      p->set_flags(p->get_flags() | Page::kNpersNoHeader);
+      p->set_without_header(true);
     }
   }
 
@@ -520,7 +520,7 @@ db_close_callback(Page *page, LocalEnvironment *env,
 
     // TODO is this really necessary?? i don't think so
     if (page->get_data() &&
-        (!(page->get_flags() & Page::kNpersNoHeader)) &&
+        !page->is_without_header() &&
           (page->get_type() == Page::kTypeBroot ||
             page->get_type() == Page::kTypeBindex)) {
       BtreeCursor::uncouple_all_cursors(page);

@@ -170,12 +170,11 @@ class DiskDevice : public Device {
       if (address < m_state.mapped_size && m_state.mmapptr != 0) {
         // ok, this page is mapped. If the Page object has a memory buffer
         // then free it; afterwards return a pointer into the mapped memory
-        Memory::release(page->get_data());
-        page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
+        page->free_buffer();
         // the following line will not throw a C++ exception, but can
         // raise a signal. If that's the case then we don't catch it because
         // something is seriously wrong and proper recovery is not possible.
-        page->set_data((PPageData *)&m_state.mmapptr[address]);
+        page->assign_mapped_buffer(&m_state.mmapptr[address], address);
         return;
       }
 
@@ -185,8 +184,7 @@ class DiskDevice : public Device {
         // in the |page| object and will be cleaned up by the caller in
         // case of an exception.
         ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
-        page->set_data((PPageData *)p);
-        page->set_flags(page->get_flags() | Page::kNpersMalloc);
+        page->assign_allocated_buffer(p, address);
       }
 
       m_state.file.pread(address, page->get_data(), page_size);
@@ -219,15 +217,11 @@ class DiskDevice : public Device {
     virtual void free_page(Page *page) {
       ham_assert(page->get_data() != 0);
 
-      if (page->get_flags() & Page::kNpersMalloc) {
-        Memory::release(page->get_data());
-        page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
-      }
-      else
+      if (page->is_allocated())
         m_state.file.madvice_dontneed(page->get_data(),
                         m_config.page_size_bytes);
 
-      page->set_data(0);
+      page->free_buffer();
     }
 
   private:

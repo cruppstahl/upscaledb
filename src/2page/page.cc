@@ -27,8 +27,8 @@
 namespace hamsterdb {
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_address(0), m_flags(0), m_dirty(false),
-    m_cursor_list(0), m_node_proxy(0), m_data(0)
+  : m_device(device), m_db(db), m_address(0), m_is_without_header(false),
+    m_is_dirty(false), m_cursor_list(0), m_node_proxy(0), m_data(0)
 {
   memset(&m_prev[0], 0, sizeof(m_prev));
   memset(&m_next[0], 0, sizeof(m_next));

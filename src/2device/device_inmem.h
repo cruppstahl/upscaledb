@@ -146,21 +146,14 @@ class InMemoryDevice : public Device {
         throw Exception(HAM_LIMITS_REACHED);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
-      page->set_data((PPageData *)p);
-      page->set_flags(page->get_flags() | Page::kNpersMalloc);
-      page->set_address((ham_u64_t)PTR_TO_U64(p));
+      page->assign_allocated_buffer(p, (ham_u64_t)PTR_TO_U64(p));
 
       m_state.allocated_size += page_size;
     }
 
     // frees a page on the device; plays counterpoint to @ref alloc_page 
     virtual void free_page(Page *page) {
-      ham_assert(page->get_data() != 0);
-      ham_assert(page->get_flags() & Page::kNpersMalloc);
-
-      page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
-      Memory::release(page->get_data());
-      page->set_data(0);
+      page->free_buffer();
 
       ham_assert(m_state.allocated_size >= m_config.page_size_bytes);
       m_state.allocated_size -= m_config.page_size_bytes;

@@ -150,7 +150,7 @@ struct DbFixture {
     REQUIRE(sizeof(PBtreeHeader) == 24);
     REQUIRE(sizeof(PPageData) == 17);
     PPageData p;
-    REQUIRE(sizeof(p._s) == 17);
+    REQUIRE(sizeof(p.header) == 17);
     REQUIRE(Page::kSizeofPersistentHeader == 16);
 
     REQUIRE(PBtreeNode::get_entry_offset() == 32);

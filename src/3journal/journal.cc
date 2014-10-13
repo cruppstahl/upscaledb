@@ -626,7 +626,7 @@ Journal::recover_changeset()
       // only overwrite the page data if the page's last modification
       // is OLDER than the changeset!
       bool skip = false;
-      if ((page->get_flags() & Page::kNpersNoHeader) == 0) {
+      if (page->is_without_header() == false) {
         if (page->get_lsn() > entry.lsn) {
           skip = true;
           start_lsn = page->get_lsn();
