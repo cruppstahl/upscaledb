@@ -17,11 +17,11 @@ to scale with the number of cores.
 high-level plan for 2.1.9 ..................................................
 x new file system structure
 x release sparsemap library w/ documentation and sample/tests
-o update the webpage (free for non-profits, cheap for startups, add crc32)
-o exception safe code
-o lots of refactoring
+x update the webpage (free for non-profits, cheap for startups, add crc32)
+x exception safe code
+x lots of refactoring
 o update file format (compress record IDs, UpfrontIndex, ...)
-o delta updates
+. delta updates
 
 x PRO: 
     x fix bug as reported from Ole (mail from 26.)
@@ -35,10 +35,9 @@ x PRO: use a bitmap index for recnos
 
 x PRO: make the release
 
-o PRO: webpage changes
+x PRO: webpage changes
     x add CRC32 to pro documentation, feature matrix
-    o give away for free to non-profits
-    o also add a startup program? or make it cheaper???
+    x change pricing
 
 -------------------------------------------------------------
 
@@ -431,6 +430,7 @@ o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
     x then rebase hamsterdb-pro
+    x get rid of the compressors; they're no longer required
     o start working on compressed data!
         x read the relevant sections of the DB2 paper once more
         x get rid of BtreeNodeProxy::prepare_flush()
@@ -446,7 +446,7 @@ o ZINT32: rebase hamsterdb-pro
             2. threshold when to split blocks
             3. initial block size
             4. threshold when to reduce blocks (changes all block offsets)
-        o insert keys
+        x insert keys
             x insert ascending keys
                 x append to last block
                 x if size is exceeded: attach new block
@@ -455,46 +455,56 @@ o ZINT32: rebase hamsterdb-pro
                 x prepend to first block
                 x if size is exceeded: prepend new block; block size = 32
                 x first key in a block is uncompressed
-            o insert random keys
+            x insert random keys
                 x lookup block for this key
                 x insert into block
-                o increase block size if key does not fit
-                o if block size is exceeded then split the block in the middle
-        o check_integrity: verify that m_used_size is correct
-        o erase keys
-            o erase last key in a block
-                o just decrease the counter
-            o erase first key in a block
-                o make sure that (former) second key is stored uncompressed
-            o erase first in the middle
+                x increase block size if key does not fit
+                x if block size is exceeded then split the block in the middle
+        x check_integrity
+            x verify that get_used_size() is correct
+            x verify that total key count is correct
+            x call check_integrity() before and after each write-operation
+        x erase keys
+            x erase last key in a block: simply decrease the counter
+            x erase first key in a block: make sure that the (former) second
+                key is stored uncompressed
+            x erase in the middle
                 -> reorganize this block, then adjust counter/size
-            o if block is empty then delete it (but make sure that one block
+            x if block is empty then delete it (but make sure that one block
                 remains)
-            o if block size < 32 then try to merge with a sibling
         o implement page splits
-        o vacuumize() could merge blocks, reduce their space
+        o vacuumize() merges blocks, reduces their space (-> adjust offsets!)
         o scan() decompresses a whole block, then calls visitor
-        o improve lookups
-            o delegate lookup function to the KeyList
-            o blocks are searched with binary search
-            o ... then use linear search/decompression for the block
-    o get rid of the compressors; they're no longer required
+    o need to support larger block offsets for pages > 16kb
     o copy relevant changes to base/apl
-    o cache the last key & slot that was accessed; there should be a lot of
-        operations accessing the same slot, maybe this speeds things up
-        -> test it first (i.e. with printfs)
+    o improve lookups
+        o delegate lookup function to the KeyList
+        o blocks are searched with binary search
+        o ... then use linear search/decompression for the block
+        o ... then get rid of get_simd_data(), it's no longer required
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
+    . cache the last key & slot that was accessed; there should be a lot of
+        operations accessing the same slot, maybe this speeds things up
+        -> test it first (i.e. with printfs)
 
-o refactoring: "insert" should not be based on slot number. it should *return*
-    the slot (for the RecordList), but only perform on the new key
-    -> this is faster for zint32
+o refactoring: make KeyList::copy_to() parameters int instead of ham_u32_t
+
+o refactoring: does BaseKeyList::check_integrity() really require the
+    |quick| parameter?
+    o also rename |ham_u32_t count| to |size_t node_count|
+
+o refactoring: "insert" should not be based on slot number
+    o it should *return* the slot (for the RecordList), but no longer use
+        the slot as a parameter -> this is faster for zint32
+    o same for erase
 
 o refactoring: node_count should be an int
 
-o PRO: review AES usage in read_page; if the page is mmapped
-    then decryption is not applied
+o refactoring: switch to stdint-supplied types instead of own definitions
+    o but leave ham_* types in the public header files
+    o see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
 
 o when the file format is changed then...
     x internal node layout: store page IDs div pagesize to get smaller
@@ -701,6 +711,9 @@ o improve erlang integration
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
 o PRO: rebase to vanilla 2.1.9
+
+o PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied
 
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
