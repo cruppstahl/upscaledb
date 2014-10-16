@@ -1086,14 +1086,10 @@ Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
 ham_u64_t
 Cursor::get_record_size(Transaction *txn)
 {
-  if (txn) {
-    if (is_coupled_to_txnop())
-      return (get_txn_cursor()->get_record_size());
-    else
-      return (get_btree_cursor()->get_record_size());
-  }
-
-  return (get_btree_cursor()->get_record_size());
+  if (is_coupled_to_txnop())
+    return (get_txn_cursor()->get_record_size());
+  else
+    return (get_btree_cursor()->get_record_size());
 }
 
 ham_status_t

@@ -163,8 +163,8 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count, InlineRecordList &dest,
-                    size_t other_count, ham_u32_t dstart) {
+    void copy_to(int sstart, size_t node_count, InlineRecordList &dest,
+                    size_t other_count, int dstart) {
       memcpy(&dest.m_data[m_record_size * dstart],
                       &m_data[m_record_size * sstart],
                       m_record_size * (node_count - sstart));

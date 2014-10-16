@@ -78,7 +78,6 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // Sets the number of entries in a BtreeNode
     void set_count(ham_u32_t count) {
-      ham_assert((int)count >= 0);
       m_count = count;
     }
 

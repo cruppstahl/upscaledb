@@ -1,3 +1,6 @@
+Oct 14, 2014 - chris ---------------------------------------------------
+o Fixed a failing test from the erlang package
+
 Oct 10, 2014 - chris ---------------------------------------------------
 o Unused pages are now freed with madvice; minor performance improvements
 	when large files are mmapped

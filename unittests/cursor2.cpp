@@ -3184,3 +3184,53 @@ TEST_CASE("Cursor/issue41", "")
 
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
+
+// this was a failing test from the erlang package
+TEST_CASE("Cursor/erlangTest", "")
+{
+  ham_env_t *env;
+  ham_db_t *db;
+  ham_cursor_t *cursor;
+
+  REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS, 0664, 0));
+  REQUIRE(0 == ham_env_create_db(env, &db, 13, 0, 0));
+  REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+  ham_key_t key = ham_make_key((void *)"foo1", 4);
+  ham_record_t record = ham_make_record((void *)"value1", 6);
+  REQUIRE(0 == ham_cursor_insert(cursor, &key, &record, 0));
+  key.data = (void *)"foo2";
+  record.data = (void *)"value2";
+  REQUIRE(0 == ham_cursor_insert(cursor, &key, &record, 0));
+  key.data = (void *)"foo3";
+  record.data = (void *)"value3";
+  REQUIRE(0 == ham_cursor_insert(cursor, &key, &record, 0));
+  key.data = (void *)"foo4";
+  record.data = (void *)"value4";
+  REQUIRE(0 == ham_cursor_insert(cursor, &key, &record, 0));
+  key.data = (void *)"foo5";
+  record.data = (void *)"value5";
+  REQUIRE(0 == ham_cursor_insert(cursor, &key, &record, 0));
+
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+  REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_LAST));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+  REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+
+  REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
+  ham_u64_t size = 0;
+  REQUIRE(0 == ham_cursor_get_record_size(cursor, &size));
+  REQUIRE(size == 6ull);
+
+  REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+}

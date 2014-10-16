@@ -597,9 +597,9 @@ class DuplicateRecordList : public BaseRecordList
     }
 
     // Copies |count| items from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count,
+    void copy_to(int sstart, size_t node_count,
                     DuplicateRecordList &dest, size_t other_node_count,
-                    ham_u32_t dstart) {
+                    int dstart) {
       // make sure that the other node has sufficient capacity in its
       // UpfrontIndex
       dest.m_index.change_range_size(other_node_count, 0, 0,
@@ -932,8 +932,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
 
       // there's only one record left which is erased?
-      ham_u32_t count = get_inline_record_count(slot);
-      if (count == 1 && duplicate_index == 0)
+      size_t node_count = get_inline_record_count(slot);
+      if (node_count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
       // erase all duplicates?
@@ -941,11 +941,11 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         set_inline_record_count(slot, 0);
       }
       else {
-        if (duplicate_index < (int)count - 1)
+        if (duplicate_index < (int)node_count - 1)
           memmove(get_record_data(duplicate_index),
                       get_record_data(duplicate_index + 1), 
-                      m_record_size * (count - duplicate_index - 1));
-        set_inline_record_count(slot, count - 1);
+                      m_record_size * (node_count - duplicate_index - 1));
+        set_inline_record_count(slot, node_count - 1);
       }
     }
 
@@ -1447,7 +1447,7 @@ write_record:
 
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
-    void check_integrity(ham_u32_t node_count, bool quick = false) const {
+    void check_integrity(size_t node_count) const {
       for (size_t i = 0; i < node_count; i++) {
         ham_u32_t offset = m_index.get_absolute_chunk_offset(i);
         if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {

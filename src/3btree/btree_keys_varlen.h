@@ -280,9 +280,9 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count,
+    void copy_to(int sstart, size_t node_count,
                     VariableLengthKeyList &dest, size_t other_node_count,
-                    ham_u32_t dstart) {
+                    int dstart) {
       size_t to_copy = node_count - sstart;
       ham_assert(to_copy > 0);
 
@@ -315,16 +315,14 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
-    void check_integrity(size_t node_count, bool quick = false) const {
+    void check_integrity(size_t node_count) const {
       ByteArray arena;
 
       // verify that the offsets and sizes are not overlapping
       m_index.check_integrity(node_count);
-      if (quick)
-        return;
 
       // make sure that extkeys are handled correctly
-      for (ham_u32_t i = 0; i < node_count; i++) {
+      for (size_t i = 0; i < node_count; i++) {
         if (get_key_size(i) > m_extkey_threshold
             && !(get_key_flags(i) & BtreeKey::kExtendedKey)) {
           ham_log(("key size %d, but key is not extended", get_key_size(i)));

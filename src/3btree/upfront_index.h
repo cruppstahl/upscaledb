@@ -333,7 +333,7 @@ class UpfrontIndex
     }
 
     // Allocates space for a |slot| and returns the offset of that chunk
-    ham_u32_t allocate_space(ham_u32_t node_count, int slot,
+    ham_u32_t allocate_space(size_t node_count, int slot,
                     size_t num_bytes) {
       ham_assert(can_allocate_space(node_count, num_bytes));
 
@@ -389,13 +389,13 @@ class UpfrontIndex
     // Returns true if |key| cannot be inserted because a split is required.
     // Unlike implied by the name, this function will try to re-arrange the
     // node in order for the key to fit in.
-    bool requires_split(ham_u32_t node_count, size_t required_size) {
+    bool requires_split(size_t node_count, size_t required_size) {
       return (!can_insert(node_count)
                 || !can_allocate_space(node_count, required_size));
     }
 
     // Verifies that there are no overlapping chunks
-    void check_integrity(ham_u32_t node_count) const {
+    void check_integrity(size_t node_count) const {
       typedef std::pair<ham_u32_t, ham_u32_t> Range;
       //typedef std::vector<Range> RangeVec;
       ham_u32_t total_count = node_count + get_freelist_count();
@@ -452,7 +452,7 @@ class UpfrontIndex
     // Splits an index and moves all chunks starting from position |pivot|
     // to the other index.
     // The other index *must* be empty!
-    void split(UpfrontIndex *other, size_t node_count, size_t pivot) {
+    void split(UpfrontIndex *other, size_t node_count, int pivot) {
       other->clear();
 
       // now copy key by key
@@ -506,8 +506,7 @@ class UpfrontIndex
     // Reduces the capacity of the UpfrontIndex, if required
     void reduce_capacity(size_t node_count) {
       size_t old_capacity = get_capacity();
-      if (node_count > 0
-          && old_capacity > node_count + 4) {
+      if (node_count > 0 && old_capacity > node_count + 4) {
         size_t new_capacity = old_capacity - (old_capacity - node_count) / 2;
         if (new_capacity != old_capacity)
           change_range_size(node_count, m_data, m_range_size, new_capacity);
@@ -534,7 +533,7 @@ class UpfrontIndex
       // make a copy of all indices (excluding the freelist)
       bool requires_sort = false;
 	  SortHelper *s = (SortHelper *)::alloca(node_count * sizeof(SortHelper));
-      for (ham_u32_t i = 0; i < node_count; i++) {
+      for (size_t i = 0; i < node_count; i++) {
         s[i].slot = i;
         s[i].offset = get_chunk_offset(i);
         if (i > 0 && s[i].offset < s[i - 1].offset)
@@ -550,7 +549,7 @@ class UpfrontIndex
       // key data or between the keys
       ham_u32_t next_offset = 0;
       ham_u32_t start = kPayloadOffset + get_capacity() * get_full_index_size();
-      for (ham_u32_t i = 0; i < node_count; i++) {
+      for (size_t i = 0; i < node_count; i++) {
         ham_u32_t offset = s[i].offset;
         int slot = s[i].slot;
         ham_u32_t size = get_chunk_size(slot);

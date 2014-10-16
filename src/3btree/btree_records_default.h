@@ -261,8 +261,8 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count, DefaultRecordList &dest,
-                    size_t other_count, ham_u32_t dstart) {
+    void copy_to(int sstart, size_t node_count, DefaultRecordList &dest,
+                    size_t other_count, int dstart) {
       if (m_flags)
         memcpy(&dest.m_flags[dstart], &m_flags[sstart], (node_count - sstart));
       memcpy(&dest.m_data[dstart], &m_data[sstart],

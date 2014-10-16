@@ -192,8 +192,8 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count, BinaryKeyList &dest,
-                    size_t other_count, ham_u32_t dstart) {
+    void copy_to(int sstart, size_t node_count, BinaryKeyList &dest,
+                    size_t other_count, int dstart) {
       memcpy(&dest.m_data[dstart * m_key_size], &m_data[sstart * m_key_size],
                       m_key_size * (node_count - sstart));
     }

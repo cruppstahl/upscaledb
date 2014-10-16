@@ -1474,9 +1474,6 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
-
   if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
 

@@ -857,7 +857,7 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       dt.erase_record(0, false);
 
-      REQUIRE((size_t)dt.get_record_count() == num_records - i - 1);
+      REQUIRE(dt.get_record_count() == num_records - i - 1);
       model.erase(model.begin());
 
       for (int j = 0; j < num_records - i - 1; j++) {
@@ -906,7 +906,7 @@ struct DuplicateTableFixture
     for (int i = num_records; i > 0; i--) {
       dt.erase_record(i - 1, false);
 
-      REQUIRE((size_t)dt.get_record_count() == i - 1);
+      REQUIRE(dt.get_record_count() == i - 1);
       model.erase(model.end() - 1);
 
       for (int j = 0; j < i - 1; j++) {

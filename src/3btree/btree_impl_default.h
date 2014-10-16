@@ -595,8 +595,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Checks the integrity of the key- and record-ranges. Throws an exception
     // if there's a problem.
     void check_index_integrity(size_t node_count) const {
-      P::m_keys.check_integrity(node_count, true);
-      P::m_records.check_integrity(node_count, true);
+      P::m_keys.check_integrity(node_count);
+      P::m_records.check_integrity(node_count);
     }
 
     // Returns the usable page size that can be used for actually

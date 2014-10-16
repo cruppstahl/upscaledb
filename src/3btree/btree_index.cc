@@ -380,15 +380,15 @@ class CalcKeysVisitor : public BtreeVisitor {
     }
 
     virtual void operator()(BtreeNodeProxy *node) {
-      ham_u32_t count = node->get_count();
+      size_t node_count = node->get_count();
 
       if (m_distinct
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
-        m_count += count;
+        m_count += node_count;
         return;
       }
 
-      for (ham_u32_t i = 0; i < count; i++)
+      for (size_t i = 0; i < node_count; i++)
         m_count += node->get_record_count(i);
     }
 

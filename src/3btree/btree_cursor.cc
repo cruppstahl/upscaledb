@@ -281,7 +281,7 @@ BtreeCursor::get_record_size()
   if (m_state == kStateUncoupled)
     couple();
   else if (m_state != kStateCoupled)
-    return (HAM_CURSOR_IS_NIL);
+    throw Exception(HAM_CURSOR_IS_NIL);
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
   return (node->get_record_size(m_coupled_index, m_duplicate_index));

@@ -155,8 +155,8 @@ class PodKeyList : public BaseKeyList
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count, PodKeyList<T> &dest,
-                    size_t other_count, ham_u32_t dstart) {
+    void copy_to(int sstart, size_t node_count, PodKeyList<T> &dest,
+                    size_t other_count, int dstart) {
       memcpy(&dest.m_data[dstart], &m_data[sstart],
                       sizeof(T) * (node_count - sstart));
     }

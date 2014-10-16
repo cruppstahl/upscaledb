@@ -51,11 +51,11 @@ struct BaseKeyList
 
   // Checks the integrity of this node. Throws an exception if there is a
   // violation.
-  void check_integrity(ham_u32_t node_count, bool quick = false) const {
+  void check_integrity(size_t node_count) const {
   }
 
   // Rearranges the list
-  void vacuumize(ham_u32_t node_count, bool force) const {
+  void vacuumize(size_t node_count, bool force) const {
   }
 
   // Performs a linear search in a given range between |start| and

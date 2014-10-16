@@ -426,6 +426,29 @@ x refactoring: make device stateless and exception safe
 
 x refactoring: make page stateless and exception safe
 
+x refactoring: make KeyList::copy_to() parameters int instead of ham_u32_t
+
+x refactoring: does BaseKeyList::check_integrity() really require the
+    |quick| parameter?
+    x also rename |ham_u32_t count| to |size_t node_count|
+
+x erlang: 1 test is failing
+
+x when the file format is changed then...
+    x internal node layout: store page IDs div pagesize to get smaller
+        integers (will be compressed better)
+    x improve node layout compression (when the file format changes)
+        x flags are not required at all if fixed length record size > 8
+            (and record size is too large for inline records)
+            -> set m_flags to null if they don't exist -> avoids a new member
+        x UpfrontIndex: use bit packing to compress slot/offset pairs?
+            -> no, would be difficult to gain something; big efforts
+        x compress the flags for the DefaultRecordList (4 bit per item)
+            -> are 4 bit sufficient if compression is enabled? - yes!
+            -> even 2 would be sufficient. But erase and insert would require
+                one memcopy and O(N) shifts; will hurt performance
+            -> look for a better solution for PRO
+
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -475,6 +498,9 @@ o ZINT32: rebase hamsterdb-pro
         o implement page splits
         o vacuumize() merges blocks, reduces their space (-> adjust offsets!)
         o scan() decompresses a whole block, then calls visitor
+        o move "fast-forward" code into its own function
+    x check_integrity: make sure that block's used size does not exceed its
+        allocated size
     o need to support larger block offsets for pages > 16kb
     o copy relevant changes to base/apl
     o improve lookups
@@ -488,143 +514,60 @@ o ZINT32: rebase hamsterdb-pro
     . cache the last key & slot that was accessed; there should be a lot of
         operations accessing the same slot, maybe this speeds things up
         -> test it first (i.e. with printfs)
+    o should the uncompressed uint32 be stored in the index? then there would
+        be more cache locality when performing a linear search through the
+        index
 
-o refactoring: make KeyList::copy_to() parameters int instead of ham_u32_t
+    o refactoring: "insert" should not be based on slot number
+        o it should *return* the slot (for the RecordList), but no longer use
+            the slot as a parameter -> this is faster for zint32
+        o same for erase
 
-o refactoring: does BaseKeyList::check_integrity() really require the
-    |quick| parameter?
-    o also rename |ham_u32_t count| to |size_t node_count|
+    o refactoring: when checking if a leaf page must be split, then first
+        check the RecordList. If it does not require a split then
+        call KeyList::insert(), and let it throw an exception if the space
+        is not sufficient.
+        -> then avoid the 5 byte-buffer in the Zint32-KeyList
 
-o refactoring: "insert" should not be based on slot number
-    o it should *return* the slot (for the RecordList), but no longer use
-        the slot as a parameter -> this is faster for zint32
-    o same for erase
+    o run benchmark with different block sizes, growth factors etc
 
-o refactoring: node_count should be an int
+o windows cleanups
+    o install VS2008 on the new harddisk
+    o install VS2010 on the new harddisk
+    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
+        or figure out why the file size is so big
+    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+        or end up in wrong directories
+    o The C# PInvoke for ham_cursor_find is missing the Record structure
+        - also accept flags in ham_db_find and ham_cursor_find for approx.
+            matching, and copy the key!
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+        o also look at Sandeep's mail regarding a crash
+    o automate the build process
+    o ... and the packaging
 
 o refactoring: switch to stdint-supplied types instead of own definitions
     o but leave ham_* types in the public header files
     o see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
 
-o when the file format is changed then...
-    x internal node layout: store page IDs div pagesize to get smaller
-        integers (will be compressed better)
-    o improve node layout compression (when the file format changes)
-        x flags are not required at all if fixed length record size > 8
-            (and record size is too large for inline records)
-            -> set m_flags to null if they don't exist -> avoids a new member
-        x UpfrontIndex: use bit packing to compress slot/offset pairs?
-            -> no, would be difficult to gain something; big efforts
-        o compress the flags for the DefaultRecordList (4 bit per item)
-            -> are 4 bit sufficient if compression is enabled? - yes!
-            o update get_required_range_size()
-            o erase_slot() needs to use a loop
-            o insert_slot() needs to use a loop
-            o update all other usages of m_flags
-    o add to monster testsuite
-    o rebase hamsterdb-pro
-
-o windows cleanups
-    o The C# PInvoke for ham_cursor_find is missing the Record structure
-        - also accept flags in ham_db_find and ham_cursor_find for approx.
-            matching, and copy the key!
-    o install VS2008 on the new harddisk
-    o install VS2010 on the new harddisk
-    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
-        or figure out why the file size is so big
-    o need win32 python project (or wait till someone needs it?)
-    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
-        or end up in wrong directories
-    o C# unittests sporadically fail b/c a handle is closed multiple times
-    o automate the build process
-    o ... and the packaging
-
-o "make dist" should write the current git commit and the build date to
+. "make dist" should write the current git commit and the build date to
     a file; this should be printed by ham_bench and the tools
     o ham_bench: print this prior to the monster tests/performance tests
     o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
             move version.h to include/ham
-
-o erlang: 1 test is failing
-
-. delta updates managed in the BtreeNode
-    the operations are attached to the node, but as soon as the node
-    is accessed for a lookup or a scan, or immediately before the node
-    is flushed, the deltas are merged into the node. So far this does not
-    sound too efficient, but the bulk updates in combination with the
-    key compression (i.e. for prefix compression) will benefit a lot.
-
-    Also, they are really required for concurrency and to allow multiple
-    writers in parallel.
-
-    x perform a benchmark/profiling: random inserts vs. ascending inserts;
-        the difference should be caused by memcopy/memmove (is it?)
-        x PAX
-            -> absolutely worth the effort, about 60% are spent in memmove
-        x Default
-            -> also worth the effort, about 15% are spent in memmove
-
-    o need a flag to disable DeltaUpdates
-        o add flag to ham_bench
-    o rename TransactionOperation to DeltaUpdate, decouple code from txn
-    o totally transparent to the caller, handled in the proxy
-    o only add deltas to leaf nodes; internal nodes have too many read
-        operations and would anyway require immediate flushes
-    o DeltaUpdate objects from a txn-flush should directly go down to
-        the node (detach from txn, attach to node)
-    o should the the insert + set_record operations be combined into a
-        single call? this has the additional advantage that the overhead
-        of calling set_record will disappear
-    o merge delta updates when reading and flushing
-        o however, for simple lookup calls (no duplicates) the DUs can
-            be traversed, too 
-    o requires_split() must take delta updates into account
-    o make the merge algorithm as efficient as possible
-        o sort deltas by key
-        o first execute all 'erase' either against other deltas or against
-            the node
-        o then merge the remaining inserts
-        o this needs lots of tests
-    o now run tests: should every update be stored as a DeltaUpdate? If not
-        then disable them by default, unless Transactions are used (and unless
-        bulk updates are used)
-
-. refactoring: make journal stateless and exception safe
-    - if this works then do the same for Changeset
-    - if this works then do the same for BlobManager
-    - if this works then do the same for PageManager
-    - if this works then do the same for EnvironmentHeader
-    - if this works then do the same for Compressor
-    - if this works then do the same for Btree
-
-. refactoring: get rid of inheritance for env
-    - move implementation to a struct, w/o state
-    - struct will be kept separately (if there is any)
-    - base class will be abstract
-    - the env will become a "hub" which manages members (i.e. page_manager,
-        device) and forwards the calls to those members 
-    - implementation class uses a template parameter and forwards calls
-        to the struct; the state is a parameter which is only updated
-        if the operation succeeds
-    - if this pattern works then also apply it for Database,
-        Transaction, Cursor
-
-. refactoring: improve the code separation of cursor and txn_cursor, i.e.
-    in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-    -> clean up the whole Cursor stuff
-
-. refactoring: clean up the whole Database code; it's too much and too
-    complex
+    o also generate the ChangeLog from the git commits?
 
 . documentation rewrite
     o use github wiki
         o remove old cruft
+    o then create the initial repository:
+        https://github.com/blog/699-making-github-more-open-git-backed-wikis
 
     /introduction
     /evaluate & benchmark
     /faq (merge w/ performance)
     /tutorial
+        ... (existing stuff)
     /pro
     /c, c++
         overview (description, status)
@@ -657,6 +600,34 @@ o erlang: 1 test is failing
         api functions (one file per function)
         samples
     o look for a technical writer to review the files
+
+. refactoring: make journal stateless and exception safe
+    - if this works then do the same for Changeset
+    - if this works then do the same for BlobManager
+    - if this works then do the same for PageManager
+    - if this works then do the same for EnvironmentHeader
+    - if this works then do the same for Compressor
+    - if this works then do the same for Btree
+
+. refactoring: get rid of inheritance for env
+    - move implementation to a struct, w/o state
+    - struct will be kept separately (if there is any)
+    - base class will be abstract
+    - the env will become a "hub" which manages members (i.e. page_manager,
+        device) and forwards the calls to those members 
+    - implementation class uses a template parameter and forwards calls
+        to the struct; the state is a parameter which is only updated
+        if the operation succeeds
+    - if this pattern works then also apply it for Database,
+        Transaction, Cursor
+
+. refactoring: improve the code separation of cursor and txn_cursor, i.e.
+    in db_local::cursor_get_record_size (wtf - is_null(0)?)
+    etc
+    -> clean up the whole Cursor stuff
+
+. refactoring: clean up the whole Database code; it's too much and too
+    complex
 
 . use cache-oblivious b-tree layout
     ===> a much simpler approach would be to reserve "X" bytes when creating
@@ -715,24 +686,18 @@ o PRO: rebase to vanilla 2.1.9
 o PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied
 
-o PRO: review AES usage in read_page; if the page is mmapped
-    then decryption is not applied
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    msb is 1 -> 7 bit record ID (should be sufficient)
+    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
+    o requires index structure for addressing every N'th record
 
-o PRO: find an efficient compression method for RecordLists, more precisely for
-    - default record lists (incl. flags, record IDs)
-    - internal record lists (page IDs)
-    - duplicate record lists (incl. flags, record IDs)
-    The compression method should allow fast binary search.
-    The page IDs should be modulo page-size (makes numbers smaller)
+o PRO: find an efficient compression method for InternalRecordList
+    x The page IDs should be modulo page-size (makes numbers smaller) - done
 
-    o GroupedVarints should be parameterized and work for 32bit and 64bit
-        numbers and a variety of capacities
-    https://github.com/stuhood/gvi/blob/master/src/main/java/net/hoodidge/gvi/GroupVarInt.java
-    http://www.oschina.net/code/snippet_12_5083
-    http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html
-    -> the concept will be similar to prefix compression
-    -> can we come up with a schema that allows compression AND
-        fast random access?
+    o Use bitpacking in variable-length groups, but always for 32 (16? 64?)
+        record IDs; the bits for each ID are variable
+    o Use small index which stores offset + bit width for each group
+    o Use this index for binary search
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -829,6 +794,49 @@ o PRO: bulk updates
     https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
+
+o delta updates managed in the BtreeNode
+    the operations are attached to the node, but as soon as the node
+    is accessed for a lookup or a scan, or immediately before the node
+    is flushed, the deltas are merged into the node. So far this does not
+    sound too efficient, but the bulk updates in combination with the
+    key compression (i.e. for prefix compression) will benefit a lot.
+
+    Also, they are really required for concurrency and to allow multiple
+    writers in parallel.
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o need a flag to disable DeltaUpdates
+        o add flag to ham_bench
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
+    o make the merge algorithm as efficient as possible
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
 
 o the bucket for concurrency TODOs
     this are the requirements:

@@ -386,15 +386,15 @@ class BtreeInsertAction
       bool exists = false;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      ham_u32_t count = node->get_count();
+      size_t node_count = node->get_count();
 
       int slot;
-      if (count == 0)
+      if (node_count == 0)
         slot = 0;
       else if (force_prepend)
         slot = 0;
       else if (force_append)
-        slot = count;
+        slot = node_count;
       else {
         int cmp;
         slot = node->find_child(key, 0, &cmp);
@@ -448,7 +448,7 @@ class BtreeInsertAction
       // key does not exist and has to be inserted or appended
       else {
         // uncouple the cursors
-        if ((int)count > slot)
+        if ((int)node_count > slot)
           BtreeCursor::uncouple_all_cursors(page, slot);
 
         // Finally insert the key. This will throw an exception if the

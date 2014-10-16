@@ -109,14 +109,14 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
                     int *pcmp) {
-      ham_u32_t count = P::m_node->get_count();
-      ham_assert(count > 0);
+      size_t node_count = P::m_node->get_count();
+      ham_assert(node_count > 0);
 
       // Run a binary search, but fall back to linear search as soon as
       // the remaining range is too small
       int threshold = P::m_keys.get_linear_search_threshold();
-      int i, l = 0, r = count;
-      int last = count + 1;
+      int i, l = 0, r = node_count;
+      int last = node_count + 1;
       int cmp = -1;
 
       /* repeat till we found the key or the remaining range is so small that
@@ -128,7 +128,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         if (i == last) {
           ham_assert(i >= 0);
-          ham_assert(i < (int)count);
+          ham_assert(i < (int)node_count);
           *pcmp = 1;
           if (precord_id)
             *precord_id = P::get_record_id(i);
@@ -192,7 +192,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(const ham_key_t *key, bool vacuumize = false) const {
+    bool requires_split(const ham_key_t *key) const {
       return (P::m_node->get_count() >= P::m_estimated_capacity);
     }
 

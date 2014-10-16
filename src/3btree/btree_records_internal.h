@@ -160,8 +160,8 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(ham_u32_t sstart, size_t node_count, InternalRecordList &dest,
-                    size_t other_count, ham_u32_t dstart) {
+    void copy_to(int sstart, size_t node_count, InternalRecordList &dest,
+                    size_t other_count, int dstart) {
       memcpy(&dest.m_data[dstart], &m_data[sstart],
                       sizeof(ham_u64_t) * (node_count - sstart));
     }
