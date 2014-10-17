@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef HAM_TOOLS_COMMON_H
+#define HAM_TOOLS_COMMON_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +31,6 @@ print_banner(const char *program_name);
 } // extern "C"
 #endif
 
-#endif /* COMMON_H */
+#endif /* HAM_TOOLS_COMMON_H */
 
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef MISC_HPP__
-#define MISC_HPP__
+#ifndef HAM_BENCH_MISC_HPP
+#define HAM_BENCH_MISC_HPP
 
 #include <stdio.h>
 
@@ -23,4 +23,4 @@
 #define LOG_TRACE(x)    do { printf("[info] "); printf x; } while (0)
 #define LOG_ERROR(x)    do { printf("[error] "); printf x; } while (0)
 
-#endif /* MISC_HPP__ */
+#endif /* HAM_BENCH_MISC_HPP */

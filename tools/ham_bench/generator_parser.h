@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef PARSER_GENERATOR_H
-#define PARSER_GENERATOR_H
+#ifndef HAM_BENCH_PARSER_GENERATOR_H
+#define HAM_BENCH_PARSER_GENERATOR_H
 
 #include <iostream>
 #include <fstream>
@@ -151,5 +151,4 @@ class ParserGenerator : public ::Generator
     std::vector<std::string> m_tokens;
 };
 
-#endif /* PARSER_GENERATOR_H */
-
+#endif /* HAM_BENCH_PARSER_GENERATOR_H */

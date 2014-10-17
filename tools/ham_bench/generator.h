@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GENERATOR_H
-#define GENERATOR_H
+#ifndef HAM_BENCH_GENERATOR_H
+#define HAM_BENCH_GENERATOR_H
 
 #include "database.h"
 #include "graph.h"
@@ -128,5 +128,4 @@ class Generator
     uint32_t m_opspersec[4];
 };
 
-#endif /* GENERATOR_H */
-
+#endif /* HAM_BENCH_GENERATOR_H */

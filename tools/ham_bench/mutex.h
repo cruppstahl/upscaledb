@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef HAM_MUTEX_H
-#define HAM_MUTEX_H
+#ifndef HAM_BENCH_MUTEX_H
+#define HAM_BENCH_MUTEX_H
 
 #include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>
@@ -42,4 +42,4 @@ class Mutex : public boost::mutex {
 #endif
 };
 
-#endif /* HAM_MUTEX_H */
+#endif /* HAM_BENCH_MUTEX_H */

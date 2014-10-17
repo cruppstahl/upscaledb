@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef RUNTIME_GENERATOR_H
-#define RUNTIME_GENERATOR_H
+#ifndef HAM_BENCH_RUNTIME_GENERATOR_H
+#define HAM_BENCH_RUNTIME_GENERATOR_H
 
 #include <iostream>
 #include <fstream>
@@ -165,5 +165,4 @@ class RuntimeGenerator : public ::Generator
     bool m_erase_only;
 };
 
-#endif /* RUNTIME_GENERATOR_H */
-
+#endif /* HAM_BENCH_RUNTIME_GENERATOR_H */

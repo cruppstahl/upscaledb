@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef HAM_TOOLS_CONFIG_H
+#define HAM_TOOLS_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,5 +73,5 @@ config_clear_table(config_table_t *params);
 } // extern "C"
 #endif
 
-#endif /* CONFIG_H */
+#endif /* HAM_TOOLS_CONFIG_H */
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef HAM_BENCH_CONFIGURATION_H
+#define HAM_BENCH_CONFIGURATION_H
 
 #include <string>
 #include <cstdio>
@@ -286,4 +286,4 @@ struct Configuration
   bool record_number;
 };
 
-#endif /* CONFIGURATION_H */
+#endif /* HAM_BENCH_CONFIGURATION_H */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef BERKELEYDB_H
-#define BERKELEYDB_H
+#ifndef HAM_BENCH_BERKELEYDB_H
+#define HAM_BENCH_BERKELEYDB_H
 
 #ifdef HAM_WITH_BERKELEYDB
 
@@ -94,4 +94,4 @@ class BerkeleyDatabase : public Database
 
 #endif // HAM_WITH_BERKELEYDB
 
-#endif /* BERKELEYDB_H */
+#endif /* HAM_BENCH_BERKELEYDB_H */

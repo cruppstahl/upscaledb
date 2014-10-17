@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef HAM_BENCH_TIMER_H
+#define HAM_BENCH_TIMER_H
 
 #include <boost/chrono.hpp>
 #include <iostream>
@@ -45,5 +45,4 @@ class Timer
     }
 };
 
-#endif // TIMER_H
-
+#endif // HAM_BENCH_TIMER_H

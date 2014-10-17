@@ -454,7 +454,7 @@ o ZINT32: rebase hamsterdb-pro
         -> linear search 
     x then rebase hamsterdb-pro
     x get rid of the compressors; they're no longer required
-    o start working on compressed data!
+    x start working on compressed data!
         x read the relevant sections of the DB2 paper once more
         x get rid of BtreeNodeProxy::prepare_flush()
         -> the keys are split in blocks which are compressed; each block
@@ -495,39 +495,51 @@ o ZINT32: rebase hamsterdb-pro
                 -> reorganize this block, then adjust counter/size
             x if block is empty then delete it (but make sure that one block
                 remains)
-        o implement page splits
-        o vacuumize() merges blocks, reduces their space (-> adjust offsets!)
-        o scan() decompresses a whole block, then calls visitor
-        o move "fast-forward" code into its own function
+        x move "fast-forward" code into its own function
+        x implement page splits
+        x should block sizes really be aligned to 16 byte? -> yes, otherwise
+            simd problems happen?? not sure yet
+        x vacuumize() merges blocks, reduces their space (-> adjust offsets!)
     x check_integrity: make sure that block's used size does not exceed its
         allocated size
-    o need to support larger block offsets for pages > 16kb
-    o copy relevant changes to base/apl
-    o improve lookups
-        o delegate lookup function to the KeyList
-        o blocks are searched with binary search
-        o ... then use linear search/decompression for the block
-        o ... then get rid of get_simd_data(), it's no longer required
     x review usage of compressed keys (zlib, snappy etc) - we should not cache
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
-    . cache the last key & slot that was accessed; there should be a lot of
-        operations accessing the same slot, maybe this speeds things up
-        -> test it first (i.e. with printfs)
-    o should the uncompressed uint32 be stored in the index? then there would
-        be more cache locality when performing a linear search through the
-        index
 
-    o refactoring: "insert" should not be based on slot number
-        o it should *return* the slot (for the RecordList), but no longer use
-            the slot as a parameter -> this is faster for zint32
-        o same for erase
+    o store plain block size, not multiples of a factor; blocks can then grow
+        in small steps instead of aligned sizes, and less space is wasted
+
+    o store the uncompressed uint32 in the index, not in the block.
+        this improves cache locality when performing a linear search, and it
+        reduces some complexity
+
+    o scan() decompresses a whole block, then calls visitor
+    o need to support larger block offsets for pages > 16kb
+    o copy relevant changes to base/apl
 
     o refactoring: when checking if a leaf page must be split, then first
         check the RecordList. If it does not require a split then
         call KeyList::insert(), and let it throw an exception if the space
         is not sufficient.
-        -> then avoid the 5 byte-buffer in the Zint32-KeyList
+        o also do this for internal nodes: "simulate" an insert of a
+            default key. The insert will abort before actually writing data.
+        o this will also work for RecordLists!
+
+    o refactoring: "insert" should not be based on slot number
+        o it should *return* the slot (for the RecordList), but no longer use
+            the slot as a parameter -> this is faster for zint32
+        o same for erase
+        o same for find
+
+    o improve lookups
+        o delegate lookup function to the KeyList
+        o blocks are searched with binary search
+        o ... then use linear search/decompression for the block
+        o ... then get rid of get_simd_data(), it's no longer required
+
+    o refactoring: do not automatically vacuumize prior to a merge or after
+        a split; rather perform it in copy_to(), and only when necessary
+        o rename copy_to() to move_to()
 
     o run benchmark with different block sizes, growth factors etc
 
