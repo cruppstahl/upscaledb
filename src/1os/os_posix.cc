@@ -95,7 +95,7 @@ enable_largefile(int fd)
 }
 
 static void
-os_read(ham_fd_t fd, ham_u8_t *buffer, size_t len)
+os_read(ham_fd_t fd, uint8_t *buffer, size_t len)
 {
   os_log(("os_read: fd=%d, size=%lld", fd, len));
 
@@ -151,7 +151,7 @@ File::get_granularity()
 }
 
 void
-File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
+File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
   os_log(("File::mmap: fd=%d, position=%lld, size=%lld", m_fd, position, size));
 
@@ -160,7 +160,7 @@ File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
     prot |= PROT_WRITE;
 
 #if HAVE_MMAP
-  *buffer = (ham_u8_t *)::mmap(0, size, prot, MAP_PRIVATE, m_fd, position);
+  *buffer = (uint8_t *)::mmap(0, size, prot, MAP_PRIVATE, m_fd, position);
   if (*buffer == (void *)-1) {
     *buffer = 0;
     ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
@@ -200,7 +200,7 @@ File::madvice_dontneed(void *buffer, size_t size)
 }
 
 void
-File::pread(ham_u64_t addr, void *buffer, size_t len)
+File::pread(uint64_t addr, void *buffer, size_t len)
 {
 #if HAVE_PREAD
   os_log(("File::pread: fd=%d, address=%lld, size=%lld", m_fd, addr,
@@ -210,7 +210,7 @@ File::pread(ham_u64_t addr, void *buffer, size_t len)
   size_t total = 0;
 
   while (total < len) {
-    r = ::pread(m_fd, (ham_u8_t *)buffer + total, len - total,
+    r = ::pread(m_fd, (uint8_t *)buffer + total, len - total,
                     addr + total);
     if (r < 0) {
       ham_log(("File::pread failed with status %u (%s)", errno,
@@ -228,12 +228,12 @@ File::pread(ham_u64_t addr, void *buffer, size_t len)
   }
 #else
   File::seek(addr, kSeekSet);
-  os_read(m_fd, (ham_u8_t *)buffer, len);
+  os_read(m_fd, (uint8_t *)buffer, len);
 #endif
 }
 
 void
-File::pwrite(ham_u64_t addr, const void *buffer, size_t len)
+File::pwrite(uint64_t addr, const void *buffer, size_t len)
 {
   os_log(("File::pwrite: fd=%d, address=%lld, size=%lld", m_fd, addr, len));
 
@@ -270,34 +270,34 @@ File::write(const void *buffer, size_t len)
 }
 
 void
-File::seek(ham_u64_t offset, int whence)
+File::seek(uint64_t offset, int whence)
 {
   os_log(("File::seek: fd=%d, offset=%lld, whence=%d", m_fd, offset, whence));
   if (lseek(m_fd, offset, whence) < 0)
     throw Exception(HAM_IO_ERROR);
 }
 
-ham_u64_t
+uint64_t
 File::tell()
 {
-  ham_u64_t offset = lseek(m_fd, 0, SEEK_CUR);
+  uint64_t offset = lseek(m_fd, 0, SEEK_CUR);
   os_log(("File::tell: fd=%d, offset=%lld", m_fd, offset));
-  if (offset == (ham_u64_t) - 1)
+  if (offset == (uint64_t) - 1)
     throw Exception(HAM_IO_ERROR);
   return (offset);
 }
 
-ham_u64_t
+uint64_t
 File::get_file_size()
 {
   seek(0, kSeekEnd);
-  ham_u64_t size = tell();
+  uint64_t size = tell();
   os_log(("File::get_file_size: fd=%d, size=%lld", m_fd, size));
   return (size);
 }
 
 void
-File::truncate(ham_u64_t newsize)
+File::truncate(uint64_t newsize)
 {
   os_log(("File::truncate: fd=%d, size=%lld", m_fd, newsize));
   if (ftruncate(m_fd, newsize))
@@ -305,7 +305,7 @@ File::truncate(ham_u64_t newsize)
 }
 
 void
-File::create(const char *filename, ham_u32_t mode)
+File::create(const char *filename, uint32_t mode)
 {
   int osflags = O_CREAT | O_RDWR | O_TRUNC;
 #if HAVE_O_NOATIME
@@ -393,7 +393,7 @@ File::close()
 }
 
 void
-Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
+Socket::connect(const char *hostname, uint16_t port, uint32_t timeout_sec)
 {
   ham_socket_t s = ::socket(AF_INET, SOCK_STREAM, 0);
   if (s < 0) {
@@ -436,13 +436,13 @@ Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 }
 
 void
-Socket::send(const ham_u8_t *data, size_t len)
+Socket::send(const uint8_t *data, size_t len)
 {
   os_write(m_socket, data, len);
 }
 
 void
-Socket::recv(ham_u8_t *data, size_t len)
+Socket::recv(uint8_t *data, size_t len)
 {
   os_read(m_socket, data, len);
 }

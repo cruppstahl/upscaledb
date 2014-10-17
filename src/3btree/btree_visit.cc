@@ -52,7 +52,7 @@ class BtreeVisitAction
       // go down to the leaf
       while (page) {
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        ham_u64_t ptr_down = node->get_ptr_down();
+        uint64_t ptr_down = node->get_ptr_down();
 
         // visit internal nodes as well?
         if (ptr_down != 0 && m_visit_internal_nodes) {
@@ -61,7 +61,7 @@ class BtreeVisitAction
             m_visitor(node);
 
             // load the right sibling
-            ham_u64_t right = node->get_right();
+            uint64_t right = node->get_right();
             if (right)
               page = env->get_page_manager()->fetch_page(db, right);
             else
@@ -81,7 +81,7 @@ class BtreeVisitAction
       // now visit all leaf nodes
       while (page) {
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        ham_u64_t right = node->get_right();
+        uint64_t right = node->get_right();
 
         m_visitor(node);
 

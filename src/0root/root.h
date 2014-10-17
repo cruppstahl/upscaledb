@@ -88,8 +88,8 @@
 // a macro to cast pointers to u64 and vice versa to avoid compiler
 // warnings if the sizes of ptr and u64 are not equal
 #if defined(HAM_32BIT) && (!defined(_MSC_VER))
-#   define U64_TO_PTR(p)  (ham_u8_t *)(int)p
-#   define PTR_TO_U64(p)  (ham_u64_t)(int)p
+#   define U64_TO_PTR(p)  (uint8_t *)(int)p
+#   define PTR_TO_U64(p)  (uint64_t)(int)p
 #else
 #   define U64_TO_PTR(p)  p
 #   define PTR_TO_U64(p)  p

@@ -36,7 +36,7 @@ extern "C" {
  */
 typedef struct {
   /** The server port */
-  ham_u16_t port;
+  uint16_t port;
 
   /* Path of the access log, or NULL if no log should be written 
    * - currently NOT USED! */

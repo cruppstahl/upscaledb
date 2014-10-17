@@ -93,7 +93,7 @@ class BtreeCursor
     void clone(BtreeCursor *other);
 
     // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
-    ham_u32_t get_state() const {
+    uint32_t get_state() const {
       return (m_state);
     }
 
@@ -125,7 +125,7 @@ class BtreeCursor
 
     // Couples the cursor to a key directly in a page. Also sets the
     // duplicate index.
-    void couple_to_page(Page *page, ham_u32_t index,
+    void couple_to_page(Page *page, uint32_t index,
                     int duplicate_index) {
       couple_to_page(page, index);
       m_duplicate_index = duplicate_index;
@@ -156,25 +156,25 @@ class BtreeCursor
 
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
-    ham_status_t find(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+    ham_status_t find(ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Inserts a key/record pair with a cursor
-    ham_status_t insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+    ham_status_t insert(ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Erases the key from the index; afterwards, the cursor points to NIL
-    ham_status_t erase(ham_u32_t flags);
+    ham_status_t erase(uint32_t flags);
 
     // Moves the cursor to the first, last, next or previous element
-    ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+    ham_status_t move(ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Returns the number of records of the referenced key
-    int get_record_count(ham_u32_t flags);
+    int get_record_count(uint32_t flags);
 
     // Overwrite the record of this cursor
-    void overwrite(ham_record_t *record, ham_u32_t flags);
+    void overwrite(ham_record_t *record, uint32_t flags);
 
     // retrieves the record size of the current record
-    ham_u64_t get_record_size();
+    uint64_t get_record_size();
 
     // Closes the cursor
     void close() {
@@ -188,7 +188,7 @@ class BtreeCursor
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
     // links the Cursor with |page| (and vice versa).
-    void couple_to_page(Page *page, ham_u32_t index);
+    void couple_to_page(Page *page, uint32_t index);
 
     // Removes this cursor from a page
     void remove_cursor_from_page(Page *page);
@@ -199,16 +199,16 @@ class BtreeCursor
     void couple();
 
     // move cursor to the very first key
-    ham_status_t move_first(ham_u32_t flags);
+    ham_status_t move_first(uint32_t flags);
 
     // move cursor to the very last key
-    ham_status_t move_last(ham_u32_t flags);
+    ham_status_t move_last(uint32_t flags);
 
     // move cursor to the next key
-    ham_status_t move_next(ham_u32_t flags);
+    ham_status_t move_next(uint32_t flags);
 
     // move cursor to the previous key
-    ham_status_t move_previous(ham_u32_t flags);
+    ham_status_t move_previous(uint32_t flags);
 
     // the parent cursor
     Cursor *m_parent;

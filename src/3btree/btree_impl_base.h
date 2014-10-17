@@ -67,7 +67,7 @@ struct BaseNodeImpl
   }
 
   // Returns the record size of a key or one of its duplicates
-  ham_u64_t get_record_size(int slot, int duplicate_index) {
+  uint64_t get_record_size(int slot, int duplicate_index) {
     return (m_records.get_record_size(slot, duplicate_index));
   }
 
@@ -78,15 +78,15 @@ struct BaseNodeImpl
 
   // Returns the full record and stores it in |dest|
   void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                  ham_u32_t flags, int duplicate_index) {
+                  uint32_t flags, int duplicate_index) {
     // copy the record data
     m_records.get_record(slot, arena, record, flags, duplicate_index);
   }
 
   // Updates the record of a key
   void set_record(int slot, ham_record_t *record,
-                  int duplicate_index, ham_u32_t flags,
-                  ham_u32_t *new_duplicate_index) {
+                  int duplicate_index, uint32_t flags,
+                  uint32_t *new_duplicate_index) {
     // automatically overwrite an existing key unless this is a
     // duplicate operation
     if ((flags & (HAM_DUPLICATE
@@ -188,12 +188,12 @@ struct BaseNodeImpl
   }
 
   // Returns the record id
-  ham_u64_t get_record_id(int slot) const {
+  uint64_t get_record_id(int slot) const {
     return (m_records.get_record_id(slot));
   }
 
   // Sets the record id
-  void set_record_id(int slot, ham_u64_t ptr) {
+  void set_record_id(int slot, uint64_t ptr) {
     m_records.set_record_id(slot, ptr);
   }
 

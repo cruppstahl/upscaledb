@@ -62,7 +62,7 @@ struct DupeCacheFixture {
 
     DupeCacheLine *e = c.get_first_element();
     for (int i = 0; i < 20; i++) {
-      REQUIRE((ham_u64_t)i == e->get_btree_dupe_idx());
+      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
     }
   }
@@ -80,7 +80,7 @@ struct DupeCacheFixture {
 
     DupeCacheLine *e = c.get_first_element();
     for (int i = 19, j = 0; i >= 0; i--, j++) {
-      REQUIRE((ham_u64_t)i == e->get_btree_dupe_idx());
+      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
     }
   }
@@ -98,7 +98,7 @@ struct DupeCacheFixture {
 
     DupeCacheLine *e = c.get_first_element();
     for (int i = 0; i < 20; i++) {
-      REQUIRE((ham_u64_t)i == e->get_btree_dupe_idx());
+      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
     }
   }
@@ -119,26 +119,26 @@ struct DupeCacheFixture {
     REQUIRE(20u == c.get_count());
 
     DupeCacheLine *e = c.get_first_element();
-    REQUIRE((ham_u64_t)3 ==  e[ 0].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)7 ==  e[ 1].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)11 == e[ 2].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)15 == e[ 3].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)19 == e[ 4].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)18 == e[ 5].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)17 == e[ 6].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)16 == e[ 7].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)14 == e[ 8].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)13 == e[ 9].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)12 == e[10].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)10 == e[11].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)9 ==  e[12].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)8 ==  e[13].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)6 ==  e[14].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)5 ==  e[15].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)4 ==  e[16].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)2 ==  e[17].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)1 ==  e[18].get_btree_dupe_idx());
-    REQUIRE((ham_u64_t)0 ==  e[19].get_btree_dupe_idx());
+    REQUIRE((uint64_t)3 ==  e[ 0].get_btree_dupe_idx());
+    REQUIRE((uint64_t)7 ==  e[ 1].get_btree_dupe_idx());
+    REQUIRE((uint64_t)11 == e[ 2].get_btree_dupe_idx());
+    REQUIRE((uint64_t)15 == e[ 3].get_btree_dupe_idx());
+    REQUIRE((uint64_t)19 == e[ 4].get_btree_dupe_idx());
+    REQUIRE((uint64_t)18 == e[ 5].get_btree_dupe_idx());
+    REQUIRE((uint64_t)17 == e[ 6].get_btree_dupe_idx());
+    REQUIRE((uint64_t)16 == e[ 7].get_btree_dupe_idx());
+    REQUIRE((uint64_t)14 == e[ 8].get_btree_dupe_idx());
+    REQUIRE((uint64_t)13 == e[ 9].get_btree_dupe_idx());
+    REQUIRE((uint64_t)12 == e[10].get_btree_dupe_idx());
+    REQUIRE((uint64_t)10 == e[11].get_btree_dupe_idx());
+    REQUIRE((uint64_t)9 ==  e[12].get_btree_dupe_idx());
+    REQUIRE((uint64_t)8 ==  e[13].get_btree_dupe_idx());
+    REQUIRE((uint64_t)6 ==  e[14].get_btree_dupe_idx());
+    REQUIRE((uint64_t)5 ==  e[15].get_btree_dupe_idx());
+    REQUIRE((uint64_t)4 ==  e[16].get_btree_dupe_idx());
+    REQUIRE((uint64_t)2 ==  e[17].get_btree_dupe_idx());
+    REQUIRE((uint64_t)1 ==  e[18].get_btree_dupe_idx());
+    REQUIRE((uint64_t)0 ==  e[19].get_btree_dupe_idx());
   }
 
   void eraseAtBeginningTest() {
@@ -158,7 +158,7 @@ struct DupeCacheFixture {
       c.erase(0);
       REQUIRE((unsigned)i == c.get_count());
       for (int j = 0; j < i; j++) {
-        REQUIRE((ham_u64_t)(s + j) == e->get_btree_dupe_idx());
+        REQUIRE((uint64_t)(s + j) == e->get_btree_dupe_idx());
         e++;
       }
       s++;
@@ -182,7 +182,7 @@ struct DupeCacheFixture {
       DupeCacheLine *e = c.get_first_element();
       c.erase(c.get_count() - 1);
       for (int j = 0; j < 20 - i; j++) {
-        REQUIRE((ham_u64_t)j == e->get_btree_dupe_idx());
+        REQUIRE((uint64_t)j == e->get_btree_dupe_idx());
         e++;
       }
     }
@@ -296,7 +296,7 @@ struct DupeCursorFixture {
   }
 
   ham_status_t insertBtree(const char *key, const char *rec,
-            ham_u32_t flags = 0) {
+            uint32_t flags = 0) {
     ham_key_t k = {0};
     k.data = (void *)key;
     k.size = strlen(key) + 1;
@@ -316,7 +316,7 @@ struct DupeCursorFixture {
     return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
-  ham_status_t move(const char *key, const char *rec, ham_u32_t flags,
+  ham_status_t move(const char *key, const char *rec, uint32_t flags,
         ham_cursor_t *cursor = 0) {
     ham_key_t k = {0};
     ham_record_t r = {0};
@@ -362,7 +362,7 @@ struct DupeCursorFixture {
   }
 
   ham_status_t insertTxn(const char *key, const char *rec,
-            ham_u32_t flags = 0) {
+            uint32_t flags = 0) {
     ham_key_t k = {0};
     k.data = (void *)key;
     k.size = strlen(key) + 1;
@@ -2131,8 +2131,8 @@ struct DupeCursorFixture {
     REQUIRE(HAM_KEY_NOT_FOUND == move(0, 0, HAM_CURSOR_NEXT));
   }
 
-  ham_u32_t count(const char *key, ham_status_t st = 0) {
-    ham_u32_t c = 0;
+  uint32_t count(const char *key, ham_status_t st = 0) {
+    uint32_t c = 0;
 
     ham_key_t k = {0};
     k.data = (void *)key;
@@ -2264,7 +2264,7 @@ struct DupeCursorFixture {
 
     REQUIRE(0 ==
           ham_cursor_erase(m_cursor, 0));
-    ham_u32_t c;
+    uint32_t c;
     REQUIRE(HAM_CURSOR_IS_NIL ==
           ham_cursor_get_duplicate_count(m_cursor, &c, 0));
   }
@@ -2549,7 +2549,7 @@ struct DupeCursorFixture {
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
 
-    ham_u32_t position = 0;
+    uint32_t position = 0;
     REQUIRE(0 == insertBtree("33333", "aaaaa"));
     REQUIRE(0 == insertBtree("33333", "aaaab", HAM_DUPLICATE));
     REQUIRE(0 == insertBtree("33333", "aaaac", HAM_DUPLICATE));
@@ -2570,7 +2570,7 @@ struct DupeCursorFixture {
   }
 
   void duplicatePositionTxnTest() {
-    ham_u32_t position = 0;
+    uint32_t position = 0;
     REQUIRE(0 == insertBtree("k1", "1"));
     REQUIRE(0 == insertTxn  ("k1", "2", HAM_DUPLICATE));
     REQUIRE(0 == insertBtree("k1", "3", HAM_DUPLICATE));
@@ -3132,7 +3132,7 @@ TEST_CASE("Cursor/issue41", "")
                 HAM_ENABLE_TRANSACTIONS, 0664, 0));
   REQUIRE(0 == ham_env_create_db(env, &db, 13, 0, 0));
 
-  for (ham_u64_t i = 1; i <= 6; i++) {
+  for (uint64_t i = 1; i <= 6; i++) {
     REQUIRE(0 == ham_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == ham_cursor_create(&cw, db, txn, 0));
     if (i > 1) {
@@ -3140,8 +3140,8 @@ TEST_CASE("Cursor/issue41", "")
       ham_record_t r = {0};
       REQUIRE(0 == ham_cursor_create(&cr, db, 0, 0));
       REQUIRE(0 == ham_cursor_move(cr, &k, &r, HAM_CURSOR_LAST));
-      REQUIRE(*(ham_u64_t *)k.data == i - 1);
-      REQUIRE(*(ham_u64_t *)r.data == i - 1);
+      REQUIRE(*(uint64_t *)k.data == i - 1);
+      REQUIRE(*(uint64_t *)r.data == i - 1);
       REQUIRE(0 == ham_cursor_close(cr));
     }
     ham_key_t key = {0};
@@ -3161,26 +3161,26 @@ TEST_CASE("Cursor/issue41", "")
   ham_key_t k = {0};
   ham_record_t r = {0};
   REQUIRE(0 == ham_cursor_move(cr, &k, &r, HAM_CURSOR_LAST));
-  REQUIRE(*(ham_u64_t *)k.data == 6);
-  REQUIRE(*(ham_u64_t *)r.data == 6);
+  REQUIRE(*(uint64_t *)k.data == 6);
+  REQUIRE(*(uint64_t *)r.data == 6);
 
   // Now the read cursor is asked to find(key,record,HAM_FIND_LT_MATCH)
   // with key = 6. The result is key=5 and record=5 (ok)
   REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_LT_MATCH));
-  REQUIRE(*(ham_u64_t *)k.data == 5);
-  REQUIRE(*(ham_u64_t *)r.data == 5);
+  REQUIRE(*(uint64_t *)k.data == 5);
+  REQUIRE(*(uint64_t *)r.data == 5);
 
   // Now repeat the step backward in time: find(key,record,HAM_FIND_LT_MATCH)
   // with key=5. The result is key=4 and record = 4 (ok)
   REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_LT_MATCH));
-  REQUIRE(*(ham_u64_t *)k.data == 4);
-  REQUIRE(*(ham_u64_t *)r.data == 4);
+  REQUIRE(*(uint64_t *)k.data == 4);
+  REQUIRE(*(uint64_t *)r.data == 4);
 
   // Now ask for the step forward in time: find(key,record,HAM_FIND_GT_MATCH)
   // with key=4. The result is key=4 and record=6 (?????)
   REQUIRE(0 == ham_cursor_find(cr, &k, &r, HAM_FIND_GT_MATCH));
-  REQUIRE(*(ham_u64_t *)k.data == 5);
-  REQUIRE(*(ham_u64_t *)r.data == 5);
+  REQUIRE(*(uint64_t *)k.data == 5);
+  REQUIRE(*(uint64_t *)r.data == 5);
 
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
@@ -3228,7 +3228,7 @@ TEST_CASE("Cursor/erlangTest", "")
   REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
 
   REQUIRE(0 == ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
-  ham_u64_t size = 0;
+  uint64_t size = 0;
   REQUIRE(0 == ham_cursor_get_record_size(cursor, &size));
   REQUIRE(size == 6ull);
 

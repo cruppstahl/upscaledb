@@ -32,7 +32,7 @@
 namespace hamsterdb {
 
 RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
-                ham_u32_t flags)
+                uint32_t flags)
   : Transaction(env, name, flags), m_remote_handle(0)
 {
   RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
@@ -42,7 +42,7 @@ RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
   request.txn_begin_request.env_handle = renv->get_remote_handle();
   request.txn_begin_request.flags = flags;
   if (name) {
-    request.txn_begin_request.name.value = (ham_u8_t *)name;
+    request.txn_begin_request.name.value = (uint8_t *)name;
     request.txn_begin_request.name.size = strlen(name) + 1;
   }
 
@@ -61,7 +61,7 @@ RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
 }
 
 void
-RemoteTransaction::commit(ham_u32_t flags)
+RemoteTransaction::commit(uint32_t flags)
 {
   RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
 
@@ -83,7 +83,7 @@ RemoteTransaction::commit(ham_u32_t flags)
 }
 
 void
-RemoteTransaction::abort(ham_u32_t flags)
+RemoteTransaction::abort(uint32_t flags)
 {
   RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
 
@@ -101,7 +101,7 @@ RemoteTransaction::abort(ham_u32_t flags)
 }
 
 Transaction *
-RemoteTransactionManager::begin(const char *name, ham_u32_t flags)
+RemoteTransactionManager::begin(const char *name, uint32_t flags)
 {
   Transaction *txn = new RemoteTransaction(m_env, name, flags);
 
@@ -110,7 +110,7 @@ RemoteTransactionManager::begin(const char *name, ham_u32_t flags)
 }
 
 void 
-RemoteTransactionManager::commit(Transaction *txn, ham_u32_t flags)
+RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
 {
   txn->commit(flags);
 
@@ -119,7 +119,7 @@ RemoteTransactionManager::commit(Transaction *txn, ham_u32_t flags)
 }
 
 void 
-RemoteTransactionManager::abort(Transaction *txn, ham_u32_t flags)
+RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
 {
   txn->abort(flags);
 

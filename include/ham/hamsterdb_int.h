@@ -70,7 +70,7 @@ extern "C" {
  * @return @ref HAM_INTEGRITY_VIOLATED if the Database is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *db, ham_u32_t flags);
+ham_db_check_integrity(ham_db_t *db, uint32_t flags);
 
 /** Flag for ham_db_check_integrity */
 #define HAM_PRINT_GRAPH             1
@@ -131,90 +131,90 @@ ham_cursor_get_database(ham_cursor_t *cursor);
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
-  ham_u16_t version;
+  uint16_t version;
 
   // number of total allocations for the whole lifetime of the process
-  ham_u64_t mem_total_allocations;
+  uint64_t mem_total_allocations;
 
   // currently active allocations for the whole process
-  ham_u64_t mem_current_allocations;
+  uint64_t mem_current_allocations;
 
   // current amount of memory allocated and tracked by the process
   // (excludes memory used by the kernel or not allocated with
   // malloc/free)
-  ham_u64_t mem_current_usage;
+  uint64_t mem_current_usage;
 
   // peak usage of memory (for the whole process)
-  ham_u64_t mem_peak_usage;
+  uint64_t mem_peak_usage;
 
   // the heap size of this process
-  ham_u64_t mem_heap_size;
+  uint64_t mem_heap_size;
 
   // amount of pages fetched from disk
-  ham_u64_t page_count_fetched;
+  uint64_t page_count_fetched;
 
   // amount of pages written to disk
-  ham_u64_t page_count_flushed;
+  uint64_t page_count_flushed;
 
   // number of index pages in this Environment
-  ham_u64_t page_count_type_index;
+  uint64_t page_count_type_index;
 
   // number of blob pages in this Environment
-  ham_u64_t page_count_type_blob;
+  uint64_t page_count_type_blob;
 
   // number of page-manager pages in this Environment
-  ham_u64_t page_count_type_page_manager;
+  uint64_t page_count_type_page_manager;
 
   // number of successful freelist hits
-  ham_u64_t freelist_hits;
+  uint64_t freelist_hits;
 
   // number of freelist misses
-  ham_u64_t freelist_misses;
+  uint64_t freelist_misses;
 
   // number of successful cache hits
-  ham_u64_t cache_hits;
+  uint64_t cache_hits;
 
   // number of cache misses
-  ham_u64_t cache_misses;
+  uint64_t cache_misses;
 
   // number of blobs allocated
-  ham_u64_t blob_total_allocated;
+  uint64_t blob_total_allocated;
 
   // number of blobs read
-  ham_u64_t blob_total_read;
+  uint64_t blob_total_read;
 
   // (global) number of btree page splits
-  ham_u64_t btree_smo_split;
+  uint64_t btree_smo_split;
 
   // (global) number of btree page merges
-  ham_u64_t btree_smo_merge;
+  uint64_t btree_smo_merge;
 
   // (global) number of extended keys
-  ham_u64_t extended_keys;
+  uint64_t extended_keys;
 
   // (global) number of extended duplicate tables
-  ham_u64_t extended_duptables;
+  uint64_t extended_duptables;
 
   // number of bytes that the log/journal flushes to disk
-  ham_u64_t journal_bytes_flushed;
+  uint64_t journal_bytes_flushed;
 
   // PRO: log/journal bytes before compression
-  ham_u64_t journal_bytes_before_compression;
+  uint64_t journal_bytes_before_compression;
 
   // PRO: log/journal bytes after compression
-  ham_u64_t journal_bytes_after_compression;
+  uint64_t journal_bytes_after_compression;
 
   // PRO: record bytes before compression
-  ham_u64_t record_bytes_before_compression;
+  uint64_t record_bytes_before_compression;
 
   // PRO: record bytes after compression
-  ham_u64_t record_bytes_after_compression;
+  uint64_t record_bytes_after_compression;
 
   // PRO: key bytes before compression
-  ham_u64_t key_bytes_before_compression;
+  uint64_t key_bytes_before_compression;
 
   // PRO: key bytes after compression
-  ham_u64_t key_bytes_after_compression;
+  uint64_t key_bytes_after_compression;
 
   // PRO: set to the max. SIMD lane width (0 if SIMD is not available)
   int simd_lane_width;
@@ -246,7 +246,7 @@ ham_is_pro();
  * license of the commercial closed-source "hamsterdb pro";
  * returns 0 otherwise
  */
-HAM_EXPORT ham_u32_t HAM_CALLCONV
+HAM_EXPORT uint32_t HAM_CALLCONV
 ham_is_pro_evaluation();
 
 /**

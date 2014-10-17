@@ -39,19 +39,19 @@ namespace hamsterdb {
 
 struct Globals {
   // for counting extended keys
-  static ham_u64_t ms_extended_keys;
+  static uint64_t ms_extended_keys;
 
   // for counting extended duplicate tables
-  static ham_u64_t ms_extended_duptables;
+  static uint64_t ms_extended_duptables;
 
   // Move every key > threshold to a blob. For testing purposes.
   // TODO currently gets assigned at runtime
-  static ham_u32_t ms_extended_threshold;
+  static uint32_t ms_extended_threshold;
 
   // Create duplicate table if amount of duplicates > threshold. For testing
   // purposes.
   // TODO currently gets assigned at runtime
-  static ham_u32_t ms_duplicate_threshold;
+  static uint32_t ms_duplicate_threshold;
 
   // linear search threshold for the PAX layout
   static int ms_linear_threshold;
@@ -75,10 +75,10 @@ struct Globals {
   static ham_errhandler_fun ms_error_handler;
 
   // PRO: Tracking key bytes before compression
-  static ham_u64_t ms_bytes_before_compression;
+  static uint64_t ms_bytes_before_compression;
 
   // PRO: Tracking key bytes after compression
-  static ham_u64_t ms_bytes_after_compression;
+  static uint64_t ms_bytes_after_compression;
 
   // PRO: enable/disable SIMD
   static bool ms_is_simd_enabled;

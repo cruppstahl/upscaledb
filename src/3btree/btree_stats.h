@@ -50,13 +50,13 @@ class BtreeStatistics {
 
     struct FindHints {
       // the original flags of ham_find
-      ham_u32_t original_flags;
+      uint32_t original_flags;
 
       // the modified flags
-      ham_u32_t flags;
+      uint32_t flags;
 
       // page/btree leaf to check first
-      ham_u64_t leaf_page_addr;
+      uint64_t leaf_page_addr;
 
       // check specified btree leaf node page first
       bool try_fast_track;
@@ -64,19 +64,19 @@ class BtreeStatistics {
 
     struct InsertHints {
       // the original flags of ham_insert
-      ham_u32_t original_flags;
+      uint32_t original_flags;
 
       // the modified flags
-      ham_u32_t flags;
+      uint32_t flags;
 
       // page/btree leaf to check first
-      ham_u64_t leaf_page_addr;
+      uint64_t leaf_page_addr;
 
       // the processed leaf page
       Page *processed_leaf_page;
 
       // the slot in that page
-      ham_u16_t processed_slot;
+      uint16_t processed_slot;
 
       // count the number of appends
       size_t append_count;
@@ -89,10 +89,10 @@ class BtreeStatistics {
     BtreeStatistics();
 
     // Returns the btree hints for ham_find
-    FindHints get_find_hints(ham_u32_t flags);
+    FindHints get_find_hints(uint32_t flags);
 
     // Returns the btree hints for insert
-    InsertHints get_insert_hints(ham_u32_t flags);
+    InsertHints get_insert_hints(uint32_t flags);
 
     // Reports that a ham_find/ham_cusor_find succeeded
     void find_succeeded(Page *page);
@@ -101,7 +101,7 @@ class BtreeStatistics {
     void find_failed();
 
     // Reports that a ham_insert/ham_cursor_insert succeeded
-    void insert_succeeded(Page *page, ham_u16_t slot);
+    void insert_succeeded(Page *page, uint16_t slot);
 
     // Reports that a ham_insert/ham_cursor_insert failed
     void insert_failed();
@@ -137,7 +137,7 @@ class BtreeStatistics {
 
   private:
     // last leaf page for find/insert/erase
-    ham_u64_t m_last_leaf_pages[kOperationMax];
+    uint64_t m_last_leaf_pages[kOperationMax];
 
     // count of how often this leaf page was used
     size_t m_last_leaf_count[kOperationMax];

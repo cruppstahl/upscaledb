@@ -40,8 +40,8 @@ struct LogEntry {
     : lsn(0), txn_id(0), type(0), dbname(0) {
   }
 
-  LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u32_t _type,
-        ham_u16_t _dbname, const char *_name = "")
+  LogEntry(uint64_t _lsn, uint64_t _txn_id, uint32_t _type,
+        uint16_t _dbname, const char *_name = "")
     : lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
     if (_name)
       name = _name;
@@ -52,15 +52,15 @@ struct LogEntry {
     return (lsn < other.lsn);
   }
 
-  ham_u64_t lsn;
-  ham_u64_t txn_id;
-  ham_u32_t type;
-  ham_u16_t dbname;
+  uint64_t lsn;
+  uint64_t txn_id;
+  uint32_t type;
+  uint16_t dbname;
   std::string name;
 };
 
 struct InsertLogEntry : public LogEntry {
-  InsertLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname,
+  InsertLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
         ham_key_t *_key, ham_record_t *_record)
     : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key), record(_record) {
@@ -71,7 +71,7 @@ struct InsertLogEntry : public LogEntry {
 };
 
 struct EraseLogEntry : public LogEntry {
-  EraseLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname,
+  EraseLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
         ham_key_t *_key)
     : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key) {
@@ -135,7 +135,7 @@ struct JournalFixture {
   void createCloseTest() {
     Journal *j = disconnect_and_create_new_journal();
 
-    REQUIRE((ham_u64_t)1 == j->m_lsn);
+    REQUIRE((uint64_t)1 == j->m_lsn);
     /* TODO make sure that the two files exist and
      * contain only the header */
 
@@ -179,24 +179,24 @@ struct JournalFixture {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(true == j->is_empty());
 
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, "name", 0, 0));
 
-    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint32_t)1 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
     j->flush_buffer(0);
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)2 == j->m_lsn);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -212,20 +212,20 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->m_lsn);
-    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint32_t)1 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
-    ham_u64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint32_t)0 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)1 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -241,22 +241,22 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->m_lsn);
-    REQUIRE((ham_u32_t)1 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint32_t)1 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
-    ham_u64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_txn_commit((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
     j->transaction_flushed((LocalTransaction *)txn);
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[0]);
-    REQUIRE((ham_u32_t)1 == j->m_closed_txn[0]);
-    REQUIRE((ham_u32_t)0 == j->m_open_txn[1]);
-    REQUIRE((ham_u32_t)0 == j->m_closed_txn[1]);
+    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint32_t)0 == j->m_open_txn[0]);
+    REQUIRE((uint32_t)1 == j->m_closed_txn[0]);
+    REQUIRE((uint32_t)0 == j->m_open_txn[1]);
+    REQUIRE((uint32_t)0 == j->m_closed_txn[1]);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -272,10 +272,10 @@ struct JournalFixture {
     rec.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn);
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -286,7 +286,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((ham_u64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)2 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
     REQUIRE(5 == ins->key_size);
     REQUIRE(5u == ins->record_size);
@@ -312,10 +312,10 @@ struct JournalFixture {
     rec.partial_offset = 10;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn);
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -326,7 +326,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((ham_u64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)2 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
     REQUIRE(auxbuffer.get_size() == sizeof(PJournalEntryInsert) - 1
                                     + ins->key_size + ins->record_partial_size);
@@ -349,9 +349,9 @@ struct JournalFixture {
     key.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)3 == j->m_lsn);
     j->close(true);
     j->open();
 
@@ -362,7 +362,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the erase
-    REQUIRE((ham_u64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)2 == entry.lsn);
     PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.get_ptr();
     REQUIRE(5 == er->key_size);
     REQUIRE(0u == er->erase_flags);
@@ -383,18 +383,18 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)2 == j->m_lsn);
 
     j->clear();
     REQUIRE(true == j->is_empty());
-    REQUIRE((ham_u64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)2 == j->m_lsn);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)3 == j->m_lsn);
 
     j->close();
     j->open();
-    REQUIRE((ham_u64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)3 == j->m_lsn);
   }
 
   void iterateOverEmptyLogTest() {
@@ -406,7 +406,7 @@ struct JournalFixture {
     PJournalEntry entry;
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer);
-    REQUIRE((ham_u64_t)0 == entry.lsn);
+    REQUIRE((uint64_t)0 == entry.lsn);
     REQUIRE(0 == auxbuffer.get_size());
   }
 
@@ -426,11 +426,11 @@ struct JournalFixture {
     PJournalEntry entry;
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer);
-    REQUIRE((ham_u64_t)1 == entry.lsn);
-    REQUIRE((ham_u64_t)1 == ((Transaction *)txn)->get_id());
-    REQUIRE((ham_u64_t)1 == entry.txn_id);
+    REQUIRE((uint64_t)1 == entry.lsn);
+    REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
+    REQUIRE((uint64_t)1 == entry.txn_id);
     REQUIRE(0 == auxbuffer.get_size());
-    REQUIRE((ham_u32_t)Journal::kEntryTypeTxnBegin == entry.type);
+    REQUIRE((uint32_t)Journal::kEntryTypeTxnBegin == entry.type);
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -571,7 +571,7 @@ struct JournalFixture {
   }
 
   void verifyJournalIsEmpty() {
-    ham_u64_t size;
+    uint64_t size;
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->get_journal();
     REQUIRE(j);
@@ -588,7 +588,7 @@ struct JournalFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-      REQUIRE((ham_u64_t)(i + 1) == ((Transaction *)txn)->get_id());
+      REQUIRE((uint64_t)(i + 1) == ((Transaction *)txn)->get_id());
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
@@ -635,7 +635,7 @@ struct JournalFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     Journal *j = new Journal(m_lenv);
-    ham_u64_t lsn = 2;
+    uint64_t lsn = 2;
 
     /* create a couple of transaction which insert a key, and commit
      * them */
@@ -692,7 +692,7 @@ struct JournalFixture {
     unsigned p = 0;
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t lsn = 2;
+    uint64_t lsn = 2;
 
     /* create a couple of transaction which insert a key, but do not
      * commit them! */
@@ -830,7 +830,7 @@ struct JournalFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     Journal *j = m_lenv->get_journal();
-    ham_u64_t lsn = 2;
+    uint64_t lsn = 2;
 
     /* create two transactions which insert a key, but only flush the
      * first; instead, manually append the "commit" of the second
@@ -907,7 +907,7 @@ struct JournalFixture {
     unsigned p = 0;
     ham_key_t key = {0};
     ham_record_t rec = {0};
-    ham_u64_t lsn = 2;
+    uint64_t lsn = 2;
 
     /* create two transactions with many keys that are inserted */
     for (int i = 0; i < 2; i++) {
@@ -971,7 +971,7 @@ struct JournalFixture {
     unsigned p = 0;
     ham_key_t key = {0};
     ham_record_t rec = {0};
-    ham_u64_t lsn = 2;
+    uint64_t lsn = 2;
 
     /* create a transaction with many keys that are inserted, mostly
      * duplicates */
@@ -1024,7 +1024,7 @@ struct JournalFixture {
 
     /* now verify that the committed transaction was re-played from
      * the journal; the database must be empty */
-    ham_u64_t keycount;
+    uint64_t keycount;
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
@@ -1292,7 +1292,7 @@ struct JournalFixture {
     /* make sure that the changesets is corrupt by truncating the file */
     File f;
     f.open(".test.bak1", 0);
-    ham_u64_t file_size = f.get_file_size();
+    uint64_t file_size = f.get_file_size();
     REQUIRE(file_size == 0x913cul);
     f.truncate(file_size - 60);
     f.close();

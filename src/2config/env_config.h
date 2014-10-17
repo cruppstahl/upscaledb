@@ -46,13 +46,13 @@ struct EnvironmentConfiguration
     : flags(0), file_mode(0644), max_databases(0),
       page_size_bytes(HAM_DEFAULT_PAGE_SIZE),
       cache_size_bytes(HAM_DEFAULT_CACHE_SIZE),
-      file_size_limit_bytes(std::numeric_limits<ham_u64_t>::max()), 
+      file_size_limit_bytes(std::numeric_limits<uint64_t>::max()), 
       remote_timeout_sec(0), journal_compressor(0),
       is_encryption_enabled(false), journal_switch_threshold(0) {
   }
 
   // the environment's flags
-  ham_u32_t flags;
+  uint32_t flags;
 
   // the file mode
   int file_mode;
@@ -85,7 +85,7 @@ struct EnvironmentConfiguration
   bool is_encryption_enabled;
 
   // the AES encryption key
-  ham_u8_t encryption_key[16];
+  uint8_t encryption_key[16];
 
   // threshold for switching journal files
   size_t journal_switch_threshold;

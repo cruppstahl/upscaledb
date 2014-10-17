@@ -123,9 +123,9 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_get_parameters(env, params));
 
     REQUIRE((unsigned)HAM_DEFAULT_CACHE_SIZE == params[0].value);
-    REQUIRE((ham_u64_t)(1024 * 16) == params[1].value);
-    REQUIRE((ham_u64_t)676 == params[2].value);
-    REQUIRE((ham_u64_t)(HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY)
+    REQUIRE((uint64_t)(1024 * 16) == params[1].value);
+    REQUIRE((uint64_t)676 == params[2].value);
+    REQUIRE((uint64_t)(HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY)
            == params[3].value);
     REQUIRE(0644ull == params[4].value);
     REQUIRE(0 == strcmp("test.db", (char *)params[5].value));
@@ -135,8 +135,8 @@ struct RemoteFixture {
 
   void getDatabaseNamesTest() {
     ham_env_t *env;
-    ham_u16_t names[15];
-    ham_u32_t max_names = 15;
+    uint16_t names[15];
+    uint32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -165,8 +165,8 @@ struct RemoteFixture {
 
   void renameDbTest() {
     ham_env_t *env;
-    ham_u16_t names[15];
-    ham_u32_t max_names = 15;
+    uint16_t names[15];
+    uint32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -239,8 +239,8 @@ struct RemoteFixture {
 
   void eraseDbTest() {
     ham_env_t *env;
-    ham_u16_t names[15];
-    ham_u32_t max_names = 15;
+    uint16_t names[15];
+    uint32_t max_names = 15;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -280,7 +280,7 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_db_get_parameters(db, params));
 
-    REQUIRE((ham_u64_t)(HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY)
+    REQUIRE((uint64_t)(HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY)
            == params[0].value);
 
     REQUIRE(0 == ham_db_close(db, 0));
@@ -331,7 +331,7 @@ struct RemoteFixture {
   }
 
   void getKeyCountTest() {
-    ham_u64_t keycount;
+    uint64_t keycount;
     ham_db_t *db;
     ham_env_t *env;
 
@@ -350,7 +350,7 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -382,7 +382,7 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
 
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
@@ -461,12 +461,12 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(8 == key.size);
-    REQUIRE(1ull == *(ham_u64_t *)key.data);
+    REQUIRE(1ull == *(uint64_t *)key.data);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(8 == key.size);
-    REQUIRE(2ull == *(ham_u64_t *)key.data);
+    REQUIRE(2ull == *(uint64_t *)key.data);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -477,7 +477,7 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -514,7 +514,7 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
     char buf[1024];
     memset(&buf[0], 0, sizeof(buf));
 
@@ -555,8 +555,8 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
-    ham_u64_t recno;
+    uint64_t keycount;
+    uint64_t recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
@@ -570,7 +570,7 @@ struct RemoteFixture {
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(8 == key.size);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(1ull == recno);
 
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec2, 0));
@@ -581,14 +581,14 @@ struct RemoteFixture {
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(3ull == recno);
 
     REQUIRE(0 == ham_db_erase(db, 0, &key, 0));
@@ -608,7 +608,7 @@ struct RemoteFixture {
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -705,12 +705,12 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(8 == key.size);
-    REQUIRE(1ull == *(ham_u64_t *)key.data);
+    REQUIRE(1ull == *(uint64_t *)key.data);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(8 == key.size);
-    REQUIRE(2ull == *(ham_u64_t *)key.data);
+    REQUIRE(2ull == *(uint64_t *)key.data);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -722,7 +722,7 @@ struct RemoteFixture {
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -766,8 +766,8 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
-    ham_u64_t recno;
+    uint64_t keycount;
+    uint64_t recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
@@ -784,7 +784,7 @@ struct RemoteFixture {
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(8 == key.size);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(1ull == recno);
 
     REQUIRE(0 == ham_cursor_find(cursor, &key, &rec2, 0));
@@ -795,14 +795,14 @@ struct RemoteFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
-    recno = *(ham_u64_t *)key.data;
+    recno = *(uint64_t *)key.data;
     REQUIRE(3ull == recno);
 
     REQUIRE(0 == ham_cursor_erase(cursor, 0));
@@ -820,7 +820,7 @@ struct RemoteFixture {
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_u64_t keycount;
+    uint64_t keycount;
     char buf[1024];
 
     key.data = (void *)"hello world";
@@ -864,9 +864,9 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     rec.data = (void *)data;
-    rec.size = (ham_u32_t)::strlen(data)+1;
+    rec.size = (uint32_t)::strlen(data)+1;
     key.data = (void *)k;
-    key.size = (ham_u16_t)(k ? ::strlen(k)+1 : 0);
+    key.size = (uint16_t)(k ? ::strlen(k)+1 : 0);
 
     REQUIRE(0 ==
           ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
@@ -875,7 +875,7 @@ struct RemoteFixture {
   void cursorGetDuplicateCountTest() {
     ham_db_t *db;
     ham_env_t *env;
-    ham_u32_t count;
+    uint32_t count;
     ham_cursor_t *c;
     ham_txn_t *txn;
 
@@ -892,22 +892,22 @@ struct RemoteFixture {
         ham_cursor_get_duplicate_count(c, 0, 0));
     REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_u32_t)0 == count);
+    REQUIRE((uint32_t)0 == count);
 
     insertData(c, 0, "1111111111");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_u32_t)1 == count);
+    REQUIRE((uint32_t)1 == count);
 
     insertData(c, 0, "2222222222");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_u32_t)2 == count);
+    REQUIRE((uint32_t)2 == count);
 
     insertData(c, 0, "3333333333");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_u32_t)3 == count);
+    REQUIRE((uint32_t)3 == count);
 
     REQUIRE(0 == ham_cursor_erase(c, 0));
     REQUIRE(HAM_CURSOR_IS_NIL ==
@@ -919,7 +919,7 @@ struct RemoteFixture {
         ham_cursor_find(c, &key, 0, 0));
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    REQUIRE((ham_u32_t)2 == count);
+    REQUIRE((uint32_t)2 == count);
 
     REQUIRE(0 == ham_cursor_close(c));
     REQUIRE(0 == ham_txn_abort(txn, 0));
@@ -931,7 +931,7 @@ struct RemoteFixture {
     ham_env_t *env;
     ham_cursor_t *c;
     ham_txn_t *txn;
-    ham_u32_t position = 0;
+    uint32_t position = 0;
 
     REQUIRE(0 ==
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -942,22 +942,22 @@ struct RemoteFixture {
 
     REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_get_duplicate_position(c, &position));
-    REQUIRE((ham_u32_t)0 == position);
+    REQUIRE((uint32_t)0 == position);
 
     insertData(c, "p", "1111111111");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
-    REQUIRE((ham_u32_t)0 == position);
+    REQUIRE((uint32_t)0 == position);
 
     insertData(c, "p", "2222222222");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
-    REQUIRE((ham_u32_t)1 == position);
+    REQUIRE((uint32_t)1 == position);
 
     insertData(c, "p", "3333333333");
     REQUIRE(0 ==
         ham_cursor_get_duplicate_position(c, &position));
-    REQUIRE((ham_u32_t)2 == position);
+    REQUIRE((uint32_t)2 == position);
 
     REQUIRE(0 == ham_cursor_erase(c, 0));
     REQUIRE(HAM_CURSOR_IS_NIL ==

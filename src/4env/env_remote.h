@@ -57,21 +57,21 @@ class RemoteEnvironment : public Environment
     virtual ham_status_t open();
 
     // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
-                    ham_u32_t flags);
+    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
+                    uint32_t flags);
 
     // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t erase_db(ham_u16_t name, ham_u32_t flags);
+    virtual ham_status_t erase_db(uint16_t name, uint32_t flags);
 
     // Returns all database names (ham_env_get_database_names)
-    virtual ham_status_t get_database_names(ham_u16_t *names,
-                    ham_u32_t *count);
+    virtual ham_status_t get_database_names(uint16_t *names,
+                    uint32_t *count);
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     // Flushes the environment and its databases to disk (ham_env_flush)
-    virtual ham_status_t flush(ham_u32_t flags);
+    virtual ham_status_t flush(uint32_t flags);
 
     // Creates a new database in the environment (ham_env_create_db)
     virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
@@ -82,10 +82,10 @@ class RemoteEnvironment : public Environment
                     const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
-    virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
+    virtual Transaction *txn_begin(const char *name, uint32_t flags);
 
     // Closes the Environment (ham_env_close)
-    virtual ham_status_t close(ham_u32_t flags);
+    virtual ham_status_t close(uint32_t flags);
 
     // Sends |request| to the remote server and blocks till the reply
     // was fully received; returns the reply structure
@@ -96,13 +96,13 @@ class RemoteEnvironment : public Environment
     void perform_request(SerializedWrapper *request, SerializedWrapper *reply);
 
     // Returns the remote handle
-    ham_u64_t get_remote_handle() const {
+    uint64_t get_remote_handle() const {
       return (m_remote_handle);
     }
 
   private:
     // the remote handle
-    ham_u64_t m_remote_handle;
+    uint64_t m_remote_handle;
 
     // the socket
     Socket m_socket;

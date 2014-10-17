@@ -102,7 +102,7 @@ BtreeCursor::clone(BtreeCursor *other)
 }
 
 void
-BtreeCursor::overwrite(ham_record_t *record, ham_u32_t flags)
+BtreeCursor::overwrite(ham_record_t *record, uint32_t flags)
 {
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -119,7 +119,7 @@ BtreeCursor::overwrite(ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+BtreeCursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
   LocalDatabase *db = m_parent->get_db();
@@ -172,7 +172,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::find(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+BtreeCursor::find(ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   Transaction *txn = m_parent->get_txn();
 
@@ -184,7 +184,7 @@ BtreeCursor::find(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+BtreeCursor::insert(ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   Transaction *txn = m_parent->get_txn();
 
@@ -196,7 +196,7 @@ BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::erase(ham_u32_t flags)
+BtreeCursor::erase(uint32_t flags)
 {
   Transaction *txn = m_parent->get_txn();
 
@@ -262,7 +262,7 @@ BtreeCursor::move_to_next_page()
 }
 
 int
-BtreeCursor::get_record_count(ham_u32_t flags)
+BtreeCursor::get_record_count(uint32_t flags)
 {
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -274,7 +274,7 @@ BtreeCursor::get_record_count(ham_u32_t flags)
   return (node->get_record_count(m_coupled_index));
 }
 
-ham_u64_t
+uint64_t
 BtreeCursor::get_record_size()
 {
   // uncoupled cursor: couple it
@@ -311,7 +311,7 @@ BtreeCursor::couple()
 }
 
 ham_status_t
-BtreeCursor::move_first(ham_u32_t flags)
+BtreeCursor::move_first(uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
   LocalEnvironment *env = db->get_local_env();
@@ -345,7 +345,7 @@ BtreeCursor::move_first(ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::move_next(ham_u32_t flags)
+BtreeCursor::move_next(uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
   LocalEnvironment *env = db->get_local_env();
@@ -400,7 +400,7 @@ BtreeCursor::move_next(ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::move_previous(ham_u32_t flags)
+BtreeCursor::move_previous(uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
   LocalEnvironment *env = db->get_local_env();
@@ -458,7 +458,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
 }
 
 ham_status_t
-BtreeCursor::move_last(ham_u32_t flags)
+BtreeCursor::move_last(uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
   LocalEnvironment *env = db->get_local_env();
@@ -503,7 +503,7 @@ BtreeCursor::move_last(ham_u32_t flags)
 }
 
 void
-BtreeCursor::couple_to_page(Page *page, ham_u32_t index)
+BtreeCursor::couple_to_page(Page *page, uint32_t index)
 {
   ham_assert(page != 0);
 

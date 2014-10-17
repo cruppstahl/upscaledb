@@ -34,11 +34,11 @@ main(int argc, char **argv) {
   ham_db_t *db;             /* hamsterdb database object */
   ham_cursor_t *cursor;     /* a database cursor */
   char line[1024 * 4];      /* a buffer for reading lines */
-  ham_u32_t lineno = 0;     /* the current line number */
+  uint32_t lineno = 0;     /* the current line number */
   ham_key_t key;
   ham_record_t record;
   ham_parameter_t params[] = {  /* we insert 4 byte records only */
-    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, 0}
   };
 
@@ -76,7 +76,7 @@ main(int argc, char **argv) {
      */
     while ((p = strtok(start, " \t\r\n"))) {
       key.data = p;
-      key.size = (ham_u32_t)strlen(p) + 1; /* also store the terminating
+      key.size = (uint32_t)strlen(p) + 1; /* also store the terminating
                                              * 0-byte */
       record.data = &lineno;
       record.size = sizeof(lineno);

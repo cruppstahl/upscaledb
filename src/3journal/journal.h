@@ -145,7 +145,7 @@ class Journal
       int fdstart;
 
       // the offset in the file of the NEXT entry
-      ham_u64_t offset;
+      uint64_t offset;
     };
 
     // Constructor
@@ -163,7 +163,7 @@ class Journal
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        ham_u64_t size = m_files[i].get_file_size();
+        uint64_t size = m_files[i].get_file_size();
         if (size > 0)
           return (false);
       }
@@ -173,30 +173,30 @@ class Journal
 
     // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
     void append_txn_begin(LocalTransaction *txn, const char *name,
-                    ham_u64_t lsn);
+                    uint64_t lsn);
 
     // Appends a journal entry for ham_txn_abort/kEntryTypeTxnAbort
-    void append_txn_abort(LocalTransaction *txn, ham_u64_t lsn);
+    void append_txn_abort(LocalTransaction *txn, uint64_t lsn);
 
     // Appends a journal entry for ham_txn_commit/kEntryTypeTxnCommit
-    void append_txn_commit(LocalTransaction *txn, ham_u64_t lsn);
+    void append_txn_commit(LocalTransaction *txn, uint64_t lsn);
 
     // Appends a journal entry for ham_insert/kEntryTypeInsert
     void append_insert(Database *db, LocalTransaction *txn,
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags,
-                    ham_u64_t lsn);
+                    ham_key_t *key, ham_record_t *record, uint32_t flags,
+                    uint64_t lsn);
 
     // Appends a journal entry for ham_erase/kEntryTypeErase
     void append_erase(Database *db, LocalTransaction *txn,
-                    ham_key_t *key, int duplicate_index, ham_u32_t flags,
-                    ham_u64_t lsn);
+                    ham_key_t *key, int duplicate_index, uint32_t flags,
+                    uint64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
-    void append_changeset(Page **bucket1, ham_u32_t bucket1_size,
-                    Page **bucket2, ham_u32_t bucket2_size,
-                    Page **bucket3, ham_u32_t bucket3_size,
-                    Page **bucket4, ham_u32_t bucket4_size,
-                    ham_u32_t lsn);
+    void append_changeset(Page **bucket1, uint32_t bucket1_size,
+                    Page **bucket2, uint32_t bucket2_size,
+                    Page **bucket3, uint32_t bucket3_size,
+                    Page **bucket4, uint32_t bucket4_size,
+                    uint32_t lsn);
 
     // Adjusts the transaction counters; called whenever |txn| is flushed.
     void transaction_flushed(LocalTransaction *txn);
@@ -215,7 +215,7 @@ class Journal
     void recover();
 
     // Returns the next lsn
-    ham_u64_t get_incremented_lsn() {
+    uint64_t get_incremented_lsn() {
       return (m_lsn++);
     }
 
@@ -235,18 +235,18 @@ class Journal
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression
     // was enabled)
-    ham_u32_t append_changeset_page(Page *page, ham_u32_t page_size);
+    uint32_t append_changeset_page(Page *page, uint32_t page_size);
 
     // Recovers (re-applies) the physical changelog; returns the lsn of the
     // Changelog
-    ham_u64_t recover_changeset();
+    uint64_t recover_changeset();
 
     // Scans a file for the newest changeset. Returns the lsn of this
     // changeset, and the position (offset) in the file
-    ham_u64_t scan_for_newest_changeset(File *file, ham_u64_t *position);
+    uint64_t scan_for_newest_changeset(File *file, uint64_t *position);
 
     // Recovers the logical journal
-    void recover_journal(ham_u64_t start_lsn);
+    void recover_journal(uint64_t start_lsn);
 
     // Switches the log file if necessary; returns the new log descriptor in the
     // transaction
@@ -318,7 +318,7 @@ class Journal
     LocalEnvironment *m_env;
 
     // The index of the file descriptor we are currently writing to (0 or 1)
-    ham_u32_t m_current_fd;
+    uint32_t m_current_fd;
 
     // The two file descriptors
     File m_files[2];
@@ -333,10 +333,10 @@ class Journal
     size_t m_closed_txn[2];
 
     // The last used lsn
-    ham_u64_t m_lsn;
+    uint64_t m_lsn;
 
     // The lsn of the previous checkpoint
-    ham_u64_t m_last_cp_lsn;
+    uint64_t m_last_cp_lsn;
 
     // When having more than these Transactions in one file, we
     // swap the files
@@ -346,7 +346,7 @@ class Journal
     bool m_disable_logging;
 
     // Counting the flushed bytes (for ham_env_get_metrics)
-    ham_u64_t m_count_bytes_flushed;
+    uint64_t m_count_bytes_flushed;
 };
 
 #include "1base/packstop.h"

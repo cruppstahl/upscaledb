@@ -55,7 +55,7 @@ struct BtreeKey
   // Note: these flags should NOT overlap with the persisted flags above!
   //
   // As these flags NEVER will be persisted, they should be located outside
-  // the range of a ham_u16_t, i.e. outside the mask 0x0000ffff.
+  // the range of a uint16_t, i.e. outside the mask 0x0000ffff.
   enum {
     // Actual key is lower than the requested key
     kLower               = 0x00010000,

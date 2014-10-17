@@ -25,9 +25,9 @@
 struct BtreeEraseFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  ham_u32_t m_flags;
+  uint32_t m_flags;
 
-  BtreeEraseFixture(ham_u32_t flags = 0)
+  BtreeEraseFixture(uint32_t flags = 0)
     : m_db(0), m_env(0), m_flags(flags) {
     os::unlink(Utils::opath(".test"));
     REQUIRE(0 ==

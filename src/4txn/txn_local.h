@@ -70,7 +70,7 @@ class TransactionOperation
     };
 
     // Returns the flags
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
@@ -80,17 +80,17 @@ class TransactionOperation
     }
 
     // Returns the original flags of ham_insert/ham_cursor_insert/ham_erase...
-    ham_u32_t get_orig_flags() const {
+    uint32_t get_orig_flags() const {
       return (m_orig_flags);
     }
 
     // Returns the referenced duplicate id
-    ham_u32_t get_referenced_dupe() const {
+    uint32_t get_referenced_dupe() const {
       return (m_referenced_dupe);
     }
 
     // Sets the referenced duplicate id
-    void set_referenced_dupe(ham_u32_t id) {
+    void set_referenced_dupe(uint32_t id) {
       m_referenced_dupe = id;
     }
 
@@ -105,7 +105,7 @@ class TransactionOperation
     }
 
     // Returns the lsn of this operation
-    ham_u64_t get_lsn() const {
+    uint64_t get_lsn() const {
       return (m_lsn);
     }
 
@@ -157,7 +157,7 @@ class TransactionOperation
 
     // Initialization
     void initialize(LocalTransaction *txn, TransactionNode *node,
-                    ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
+                    uint32_t flags, uint32_t orig_flags, uint64_t lsn,
                     ham_key_t *key, ham_record_t *record);
 
     // Destructor
@@ -192,20 +192,20 @@ class TransactionOperation
     TransactionNode *m_node;
 
     // flags and type of this operation; defined in this file
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // the original flags of this operation, used when calling
     // ham_cursor_insert, ham_insert, ham_erase etc
-    ham_u32_t m_orig_flags;
+    uint32_t m_orig_flags;
 
     // the referenced duplicate id (if neccessary) - used if this is
     // i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
     // with a DUPLICATE_AFTER/BEFORE flag
     // this is 1-based (like dupecache-index, which is also 1-based)
-    ham_u32_t m_referenced_dupe;
+    uint32_t m_referenced_dupe;
 
     // the log serial number (lsn) of this operation
-    ham_u64_t m_lsn;
+    uint64_t m_lsn;
 
     // a linked list of cursors which are attached to this operation
     TransactionCursor *m_cursor_list;
@@ -229,7 +229,7 @@ class TransactionOperation
     ham_record_t m_record;
 
     // Storage for record->data. This saves us one memory allocation.
-    ham_u8_t m_data[1];
+    uint8_t m_data[1];
 };
 
 
@@ -299,8 +299,8 @@ class TransactionNode
     }
 
     // Appends an actual operation to this node
-    TransactionOperation *append(LocalTransaction *txn, ham_u32_t orig_flags,
-                ham_u32_t flags, ham_u64_t lsn, ham_key_t *key,
+    TransactionOperation *append(LocalTransaction *txn, uint32_t orig_flags,
+                uint32_t flags, uint64_t lsn, ham_key_t *key,
                 ham_record_t *record);
 
     // red-black tree stub, required for rb.h
@@ -354,7 +354,7 @@ class TransactionIndex
     // Returns an opnode for an optree; if a node with this
     // key already exists then the existing node is returned, otherwise NULL.
     // |flags| can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH etc
-    TransactionNode *get(ham_key_t *key, ham_u32_t flags);
+    TransactionNode *get(ham_key_t *key, uint32_t flags);
 
     // Returns the first (= "smallest") node of the tree, or NULL if the
     // tree is empty
@@ -365,7 +365,7 @@ class TransactionIndex
     TransactionNode *get_last();
 
     // Returns the key count of this index
-    ham_u64_t count(LocalTransaction *txn, bool distinct);
+    uint64_t count(LocalTransaction *txn, bool distinct);
 
  // private: //TODO re-enable this; currently disabled because rb.h needs it
     // the Database for all operations in this tree
@@ -385,17 +385,17 @@ class LocalTransaction : public Transaction
   public:
     // Constructor; "begins" the Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
-    LocalTransaction(LocalEnvironment *env, const char *name, ham_u32_t flags);
+    LocalTransaction(LocalEnvironment *env, const char *name, uint32_t flags);
 
     // Destructor; frees all TransactionOperation structures associated
     // with this Transaction
     virtual ~LocalTransaction();
 
     // Commits the Transaction
-    void commit(ham_u32_t flags = 0);
+    void commit(uint32_t flags = 0);
 
     // Aborts the Transaction
-    void abort(ham_u32_t flags = 0);
+    void abort(uint32_t flags = 0);
 
     // Returns the first (or 'oldest') TransactionOperation of this Transaction
     TransactionOperation *get_oldest_op() const {
@@ -493,32 +493,32 @@ class LocalTransactionManager : public TransactionManager
     LocalTransactionManager(Environment *env);
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, ham_u32_t flags);
+    virtual Transaction *begin(const char *name, uint32_t flags);
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void commit(Transaction *txn, ham_u32_t flags = 0);
+    virtual void commit(Transaction *txn, uint32_t flags = 0);
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void abort(Transaction *txn, ham_u32_t flags = 0);
+    virtual void abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns();
 
     // Increments the global transaction ID and returns the new value. 
-    ham_u64_t get_incremented_txn_id() {
+    uint64_t get_incremented_txn_id() {
       return (++m_txn_id);
     }
 
     // Returns the current transaction ID; only for testing!
-    ham_u64_t test_get_txn_id() const {
+    uint64_t test_get_txn_id() const {
       return (m_txn_id);
     }
 
     // Sets the current transaction ID; used by the Journal to
     // reset the original txn id during recovery.
-    void set_txn_id(ham_u64_t id) {
+    void set_txn_id(uint64_t id) {
       m_txn_id = id;
     }
 
@@ -528,14 +528,14 @@ class LocalTransactionManager : public TransactionManager
     // is used.
     //
     // TODO completely remove the lsn from the journal
-    ham_u64_t get_incremented_lsn() {
+    uint64_t get_incremented_lsn() {
       return (++m_lsn);
     }
 
   private:
     // Flushes a single committed Transaction; returns the lsn of the
     // last operation in this transaction
-    ham_u64_t flush_txn(LocalTransaction *txn);
+    uint64_t flush_txn(LocalTransaction *txn);
 
     // Casts m_env to a LocalEnvironment
     LocalEnvironment *get_local_env() {
@@ -547,10 +547,10 @@ class LocalTransactionManager : public TransactionManager
     void maybe_flush_committed_txns();
 
     // The current transaction ID
-    ham_u64_t m_txn_id;
+    uint64_t m_txn_id;
 
     // The current lsn
-    ham_u64_t m_lsn;
+    uint64_t m_lsn;
 
     // Number of Transactions waiting to be flushed
     int m_queued_txn_for_flush;

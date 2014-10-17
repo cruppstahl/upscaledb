@@ -50,61 +50,61 @@ HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
     }
 
     // Returns the number of pages which are all managed by this header
-    ham_u32_t get_num_pages() const {
+    uint32_t get_num_pages() const {
       return (m_num_pages);
     }
 
     // Sets the number of pages which are all managed by this header
-    void set_num_pages(ham_u32_t num_pages) {
+    void set_num_pages(uint32_t num_pages) {
       m_num_pages = num_pages;
     }
 
     // Returns the "free bytes" counter
-    ham_u32_t get_free_bytes() const {
+    uint32_t get_free_bytes() const {
       return (m_free_bytes);
     }
 
     // Sets the "free bytes" counter
-    void set_free_bytes(ham_u32_t free_bytes) {
+    void set_free_bytes(uint32_t free_bytes) {
       m_free_bytes = free_bytes;
     }
 
     // Returns the total number of freelist entries
-    ham_u8_t get_freelist_entries() const {
+    uint8_t get_freelist_entries() const {
       return (32);
     }
 
     // Returns the offset of freelist entry |i|
-    ham_u32_t get_freelist_offset(ham_u32_t i) const {
+    uint32_t get_freelist_offset(uint32_t i) const {
       return (m_freelist[i].offset);
     }
 
     // Sets the offset of freelist entry |i|
-    void set_freelist_offset(ham_u32_t i, ham_u32_t offset) {
+    void set_freelist_offset(uint32_t i, uint32_t offset) {
       m_freelist[i].offset = offset;
     }
 
     // Returns the size of freelist entry |i|
-    ham_u32_t get_freelist_size(ham_u32_t i) const {
+    uint32_t get_freelist_size(uint32_t i) const {
       return (m_freelist[i].size);
     }
 
     // Sets the size of freelist entry |i|
-    void set_freelist_size(ham_u32_t i, ham_u32_t size) {
+    void set_freelist_size(uint32_t i, uint32_t size) {
       m_freelist[i].size = size;
     }
 
   private:
     // Number of "regular" pages for this blob; used for blobs exceeding
     // a page size
-    ham_u32_t m_num_pages;
+    uint32_t m_num_pages;
 
     // Number of free bytes in this page
-    ham_u32_t m_free_bytes;
+    uint32_t m_free_bytes;
 
     struct FreelistEntry {
-      ham_u32_t offset;
-      ham_u32_t size;
+      uint32_t offset;
+      uint32_t size;
     };
 
     // The freelist - offset/size pairs in this page
@@ -132,29 +132,29 @@ class DiskBlobManager : public BlobManager
   protected:
     // allocate/create a blob
     // returns the blob-id (the start address of the blob header)
-    virtual ham_u64_t do_allocate(LocalDatabase *db, ham_record_t *record,
-                    ham_u32_t flags);
+    virtual uint64_t do_allocate(LocalDatabase *db, ham_record_t *record,
+                    uint32_t flags);
 
     // reads a blob and stores the data in |record|. The pointer |record.data|
     // is backed by the |arena|, unless |HAM_RECORD_USER_ALLOC| is set.
     // flags: either 0 or HAM_DIRECT_ACCESS
-    virtual void do_read(LocalDatabase *db, ham_u64_t blobid,
-                    ham_record_t *record, ham_u32_t flags,
+    virtual void do_read(LocalDatabase *db, uint64_t blobid,
+                    ham_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    virtual ham_u64_t do_get_blob_size(LocalDatabase *db, ham_u64_t blobid);
+    virtual uint64_t do_get_blob_size(LocalDatabase *db, uint64_t blobid);
 
     // overwrite an existing blob
     //
     // will return an error if the blob does not exist
     // returns the blob-id (the start address of the blob header) in |blobid|
-    virtual ham_u64_t do_overwrite(LocalDatabase *db, ham_u64_t old_blobid,
-                    ham_record_t *record, ham_u32_t flags);
+    virtual uint64_t do_overwrite(LocalDatabase *db, uint64_t old_blobid,
+                    ham_record_t *record, uint32_t flags);
 
     // delete an existing blob
-    virtual void do_erase(LocalDatabase *db, ham_u64_t blobid,
-                    Page *page = 0, ham_u32_t flags = 0);
+    virtual void do_erase(LocalDatabase *db, uint64_t blobid,
+                    Page *page = 0, uint32_t flags = 0);
 
   private:
     friend class DuplicateManager;
@@ -164,23 +164,23 @@ class DiskBlobManager : public BlobManager
     //
     // The chunks are assumed to be stored in sequential order, adjacent
     // to each other, i.e. as one long data strip.
-    void write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
-                    ham_u8_t **chunk_data, ham_u32_t *chunk_size,
-                    ham_u32_t chunks);
+    void write_chunks(LocalDatabase *db, Page *page, uint64_t addr,
+                    uint8_t **chunk_data, uint32_t *chunk_size,
+                    uint32_t chunks);
 
     // same as above, but for reading chunks from the file
-    void read_chunk(Page *page, Page **fpage, ham_u64_t addr,
-                    LocalDatabase *db, ham_u8_t *data, ham_u32_t size,
+    void read_chunk(Page *page, Page **fpage, uint64_t addr,
+                    LocalDatabase *db, uint8_t *data, uint32_t size,
                     bool fetch_read_only);
 
     // adds a free chunk to the freelist
-    void add_to_freelist(PBlobPageHeader *header, ham_u32_t offset,
-                    ham_u32_t size);
+    void add_to_freelist(PBlobPageHeader *header, uint32_t offset,
+                    uint32_t size);
 
     // searches the freelist for a free chunk; if available, returns |true|
     // and stores the offset in |poffset|.
-    bool alloc_from_freelist(PBlobPageHeader *header, ham_u32_t size,
-                    ham_u64_t *poffset);
+    bool alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
+                    uint64_t *poffset);
 
     // verifies the integrity of the freelist
     bool check_integrity(PBlobPageHeader *header) const;

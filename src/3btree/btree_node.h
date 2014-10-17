@@ -57,52 +57,52 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
     // Returns the offset (in bytes) of the member |m_data|
-    static ham_u32_t get_entry_offset() {
+    static uint32_t get_entry_offset() {
       return (sizeof(PBtreeNode) - 1);
     }
 
     // Returns the flags of the btree node (|kLeafNode|)
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
     // Sets the flags of the btree node (|kLeafNode|)
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       m_flags = flags;
     }
 
     // Returns the number of entries in a BtreeNode
-    ham_u32_t get_count() const {
+    uint32_t get_count() const {
       return (m_count);
     }
 
     // Sets the number of entries in a BtreeNode
-    void set_count(ham_u32_t count) {
+    void set_count(uint32_t count) {
       m_count = count;
     }
 
     // Returns the address of the left sibling of this node
-    ham_u64_t get_left() const {
+    uint64_t get_left() const {
       return (m_left);
     }
 
     // Sets the address of the left sibling of this node
-    void set_left(ham_u64_t left) {
+    void set_left(uint64_t left) {
       m_left = left;
     }
 
     // Returns the address of the right sibling of this node
-    ham_u64_t get_right() const {
+    uint64_t get_right() const {
       return (m_right);
     }
 
     // Sets the address of the right sibling of this node
-    void set_right(ham_u64_t right) {
+    void set_right(uint64_t right) {
       m_right = right;
     }
 
     // Returns the ptr_down of this node
-    ham_u64_t get_ptr_down() const {
+    uint64_t get_ptr_down() const {
       return (m_ptr_down);
     }
 
@@ -112,38 +112,38 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
     // Sets the ptr_down of this node
-    void set_ptr_down(ham_u64_t ptr_down) {
+    void set_ptr_down(uint64_t ptr_down) {
       m_ptr_down = ptr_down;
     }
 
     // Returns a pointer to the key data
-    ham_u8_t *get_data() {
+    uint8_t *get_data() {
       return (&m_data[0]);
     }
 
-    const ham_u8_t *get_data() const {
+    const uint8_t *get_data() const {
       return (&m_data[0]);
     }
 
   private:
     // flags of this node
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // number of used entries in the node
-    ham_u32_t m_count;
+    uint32_t m_count;
   
     // address of left sibling
-    ham_u64_t m_left;
+    uint64_t m_left;
 
     // address of right sibling
-    ham_u64_t m_right;
+    uint64_t m_right;
 
     // address of child node whose items are smaller than all items
     // in this node
-    ham_u64_t m_ptr_down;
+    uint64_t m_ptr_down;
 
     // the entries of this node
-    ham_u8_t m_data[1];
+    uint8_t m_data[1];
 
 } HAM_PACK_2;
 

@@ -188,7 +188,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_key_size,
 }
 
 static void
-dump_database(ham_db_t *db, ham_u16_t dbname, int max_key_size,
+dump_database(ham_db_t *db, uint16_t dbname, int max_key_size,
         int rec_fmt, int max_rec_size)
 {
   ham_cursor_t *cursor;
@@ -239,8 +239,8 @@ main(int argc, char **argv) {
   int rec = FMT_BINARY, key_size = 16, rec_size = 16;
   unsigned short dbname = 0xffff;
 
-  ham_u16_t names[1024];
-  ham_u32_t i, names_count = 1024;
+  uint16_t names[1024];
+  uint32_t i, names_count = 1024;
   ham_status_t st;
   ham_env_t *env;
   ham_db_t *db;

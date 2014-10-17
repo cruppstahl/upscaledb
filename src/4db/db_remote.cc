@@ -94,7 +94,7 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-RemoteDatabase::check_integrity(ham_u32_t flags)
+RemoteDatabase::check_integrity(uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -112,7 +112,7 @@ RemoteDatabase::check_integrity(ham_u32_t flags)
 
 void
 RemoteDatabase::count(Transaction *htxn, bool distinct,
-              ham_u64_t *keycount)
+              uint64_t *keycount)
 {
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
@@ -139,7 +139,7 @@ RemoteDatabase::count(Transaction *htxn, bool distinct,
 
 ham_status_t
 RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
@@ -152,9 +152,9 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     /* allocate memory for the key */
     if (!key->data) {
-      arena->resize(sizeof(ham_u64_t));
+      arena->resize(sizeof(uint64_t));
       key->data = arena->get_ptr();
-      key->size = sizeof(ham_u64_t);
+      key->size = sizeof(uint64_t);
     }
   }
 
@@ -167,7 +167,7 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
     request.db_insert_request.has_key = true;
     request.db_insert_request.key.has_data = true;
     request.db_insert_request.key.data.size = key->size;
-    request.db_insert_request.key.data.value = (ham_u8_t *)key->data;
+    request.db_insert_request.key.data.value = (uint8_t *)key->data;
     request.db_insert_request.key.flags = key->flags;
     request.db_insert_request.key.intflags = key->_flags;
   }
@@ -175,7 +175,7 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
     request.db_insert_request.has_record = true;
     request.db_insert_request.record.has_data = true;
     request.db_insert_request.record.data.size = record->size;
-    request.db_insert_request.record.data.value = (ham_u8_t *)record->data;
+    request.db_insert_request.record.data.value = (uint8_t *)record->data;
     request.db_insert_request.record.flags = record->flags;
     request.db_insert_request.record.partial_size = record->partial_size;
     request.db_insert_request.record.partial_offset = record->partial_offset;
@@ -190,11 +190,11 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
 
   /* recno: the key was modified! */
   if (st == 0 && reply.db_insert_reply.has_key) {
-    if (reply.db_insert_reply.key.data.size == sizeof(ham_u64_t)) {
+    if (reply.db_insert_reply.key.data.size == sizeof(uint64_t)) {
       ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(ham_u64_t));
+      ham_assert(key->size == sizeof(uint64_t));
       memcpy(key->data, reply.db_insert_reply.key.data.value,
-                sizeof(ham_u64_t));
+                sizeof(uint64_t));
     }
   }
 
@@ -203,7 +203,7 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
 
 ham_status_t
 RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
-            ham_u32_t flags)
+            uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
@@ -215,7 +215,7 @@ RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
   request.db_erase_request.flags = flags;
   request.db_erase_request.key.has_data = true;
   request.db_erase_request.key.data.size = key->size;
-  request.db_erase_request.key.data.value = (ham_u8_t *)key->data;
+  request.db_erase_request.key.data.value = (uint8_t *)key->data;
   request.db_erase_request.key.flags = key->flags;
   request.db_erase_request.key.intflags = key->_flags;
 
@@ -229,7 +229,7 @@ RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
 
 ham_status_t
 RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
-              ham_record_t *record, ham_u32_t flags)
+              ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
@@ -241,14 +241,14 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
   request.db_find_request.flags = flags;
   request.db_find_request.key.has_data = true;
   request.db_find_request.key.data.size = key->size;
-  request.db_find_request.key.data.value = (ham_u8_t *)key->data;
+  request.db_find_request.key.data.value = (uint8_t *)key->data;
   request.db_find_request.key.flags = key->flags;
   request.db_find_request.key.intflags = key->_flags;
   if (record) {
     request.db_find_request.has_record = true;
     request.db_find_request.record.has_data = true;
     request.db_find_request.record.data.size = record->size;
-    request.db_find_request.record.data.value = (ham_u8_t *)record->data;
+    request.db_find_request.record.data.value = (uint8_t *)record->data;
     request.db_find_request.record.flags = record->flags;
     request.db_find_request.record.partial_size = record->partial_size;
     request.db_find_request.record.partial_offset = record->partial_offset;
@@ -271,7 +271,7 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
     if (reply.db_find_reply.has_key) {
       ham_assert(key);
       key->_flags = reply.db_find_reply.key.intflags;
-      key->size = (ham_u16_t)reply.db_find_reply.key.data.size;
+      key->size = (uint16_t)reply.db_find_reply.key.data.size;
       if (!(key->flags & HAM_KEY_USER_ALLOC)) {
         key_arena->resize(key->size);
         key->data = key_arena->get_ptr();
@@ -293,7 +293,7 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
 }
 
 Cursor *
-RemoteDatabase::cursor_create_impl(Transaction *htxn, ham_u32_t flags)
+RemoteDatabase::cursor_create_impl(Transaction *htxn, uint32_t flags)
 {
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
@@ -338,7 +338,7 @@ RemoteDatabase::cursor_clone_impl(Cursor *src)
 
 ham_status_t
 RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
   bool send_key = true;
@@ -354,9 +354,9 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 
     /* allocate memory for the key */
     if (!key->data) {
-      arena->resize(sizeof(ham_u64_t));
+      arena->resize(sizeof(uint64_t));
       key->data = arena->get_ptr();
-      key->size = sizeof(ham_u64_t);
+      key->size = sizeof(uint64_t);
     }
   }
 
@@ -368,7 +368,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     request.cursor_insert_request.has_key = true;
     request.cursor_insert_request.key.has_data = true;
     request.cursor_insert_request.key.data.size = key->size;
-    request.cursor_insert_request.key.data.value = (ham_u8_t *)key->data;
+    request.cursor_insert_request.key.data.value = (uint8_t *)key->data;
     request.cursor_insert_request.key.flags = key->flags;
     request.cursor_insert_request.key.intflags = key->_flags;
   }
@@ -376,7 +376,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     request.cursor_insert_request.has_record = true;
     request.cursor_insert_request.record.has_data = true;
     request.cursor_insert_request.record.data.size = record->size;
-    request.cursor_insert_request.record.data.value = (ham_u8_t *)record->data;
+    request.cursor_insert_request.record.data.value = (uint8_t *)record->data;
     request.cursor_insert_request.record.flags = record->flags;
     request.cursor_insert_request.record.partial_size = record->partial_size;
     request.cursor_insert_request.record.partial_offset = record->partial_offset;
@@ -391,11 +391,11 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 
   /* recno: the key was modified! */
   if (st == 0 && reply.cursor_insert_reply.has_key) {
-    if (reply.cursor_insert_reply.key.data.size == sizeof(ham_u64_t)) {
+    if (reply.cursor_insert_reply.key.data.size == sizeof(uint64_t)) {
       ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(ham_u64_t));
+      ham_assert(key->size == sizeof(uint64_t));
       memcpy(key->data, reply.cursor_insert_reply.key.data.value,
-                      sizeof(ham_u64_t));
+                      sizeof(uint64_t));
     }
   }
 
@@ -403,7 +403,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
+RemoteDatabase::cursor_erase(Cursor *cursor, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorEraseRequest;
@@ -418,7 +418,7 @@ RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 
 ham_status_t
 RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
-              ham_record_t *record, ham_u32_t flags)
+              ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -429,7 +429,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   if (key->size > 0) {
     request.cursor_find_request.key.has_data = true;
     request.cursor_find_request.key.data.size = key->size;
-    request.cursor_find_request.key.data.value = (ham_u8_t *)key->data;
+    request.cursor_find_request.key.data.value = (uint8_t *)key->data;
   }
   request.cursor_find_request.key.flags = key->flags;
   request.cursor_find_request.key.intflags = key->_flags;
@@ -438,7 +438,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     if (record->size > 0) {
       request.cursor_find_request.record.has_data = true;
       request.cursor_find_request.record.data.size = record->size;
-      request.cursor_find_request.record.data.value = (ham_u8_t *)record->data;
+      request.cursor_find_request.record.data.value = (uint8_t *)record->data;
     }
     request.cursor_find_request.record.flags = record->flags;
     request.cursor_find_request.record.partial_size = record->partial_size;
@@ -478,7 +478,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
 
 ham_status_t
 RemoteDatabase::cursor_get_record_count(Cursor *cursor,
-                ham_u32_t *count, ham_u32_t flags)
+                uint32_t *count, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -499,7 +499,7 @@ RemoteDatabase::cursor_get_record_count(Cursor *cursor,
   return (st);
 }
 
-ham_u32_t
+uint32_t
 RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor)
 {
   RemoteEnvironment *env = get_remote_env();
@@ -521,7 +521,7 @@ RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor)
 }
 
 ham_status_t
-RemoteDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
+RemoteDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *size)
 {
   (void)cursor;
   (void)size;
@@ -531,7 +531,7 @@ RemoteDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 
 ham_status_t
 RemoteDatabase::cursor_overwrite(Cursor *cursor,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -543,7 +543,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
   if (record->size > 0) {
     request.cursor_overwrite_request.record.has_data = true;
     request.cursor_overwrite_request.record.data.size = record->size;
-    request.cursor_overwrite_request.record.data.value = (ham_u8_t *)record->data;
+    request.cursor_overwrite_request.record.data.value = (uint8_t *)record->data;
   }
   request.cursor_overwrite_request.record.flags = record->flags;
   request.cursor_overwrite_request.record.partial_size = record->partial_size;
@@ -558,7 +558,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
 
 ham_status_t
 RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -592,7 +592,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   if (reply->cursor_move_reply().has_key()) {
     ham_assert(key);
     key->_flags = reply->cursor_move_reply().key().intflags();
-    key->size = (ham_u16_t)reply->cursor_move_reply().key().data().size();
+    key->size = (uint16_t)reply->cursor_move_reply().key().data().size();
     if (!(key->flags & HAM_KEY_USER_ALLOC)) {
       key_arena->resize(key->size);
       key->data = key_arena->get_ptr();
@@ -630,7 +630,7 @@ RemoteDatabase::cursor_close_impl(Cursor *cursor)
 }
 
 ham_status_t
-RemoteDatabase::close_impl(ham_u32_t flags)
+RemoteDatabase::close_impl(uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 

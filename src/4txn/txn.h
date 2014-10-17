@@ -91,7 +91,7 @@ class Transaction
   public:
     // Constructor; "begins" the Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
-    Transaction(Environment *env, const char *name, ham_u32_t flags)
+    Transaction(Environment *env, const char *name, uint32_t flags)
       : m_id(0), m_env(env), m_flags(flags), m_next(0), m_cursor_refcount(0) {
         if (name)
           m_name = name;
@@ -101,10 +101,10 @@ class Transaction
     virtual ~Transaction() { }
 
     // Commits the Transaction
-    virtual void commit(ham_u32_t flags = 0) = 0;
+    virtual void commit(uint32_t flags = 0) = 0;
 
     // Aborts the Transaction
-    virtual void abort(ham_u32_t flags = 0) = 0;
+    virtual void abort(uint32_t flags = 0) = 0;
 
     // Returns true if the Transaction was aborted
     bool is_aborted() const {
@@ -117,7 +117,7 @@ class Transaction
     }
 
     // Returns the unique id of this Transaction
-    ham_u64_t get_id() const {
+    uint64_t get_id() const {
       return (m_id);
     }
 
@@ -132,12 +132,12 @@ class Transaction
     }
 
     // Returns the flags
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
     // Returns the cursor refcount (numbers of Cursors using this Transaction)
-    ham_u32_t get_cursor_refcount() const {
+    uint32_t get_cursor_refcount() const {
       return (m_cursor_refcount);
     }
 
@@ -178,13 +178,13 @@ class Transaction
 
   protected:
     // the id of this Transaction
-    ham_u64_t m_id;
+    uint64_t m_id;
 
     // the Environment pointer
     Environment *m_env;
 
     // flags for this Transaction
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // the Transaction name
     std::string m_name;
@@ -193,7 +193,7 @@ class Transaction
     Transaction *m_next;
 
     // reference counter for cursors (number of cursors attached to this txn)
-    ham_u32_t m_cursor_refcount;
+    uint32_t m_cursor_refcount;
 
     // this is where key->data points to when returning a key to the user
     ByteArray m_key_arena;
@@ -206,7 +206,7 @@ class Transaction
 
     // Sets the unique id of this Transaction; the journal needs this to patch
     // in the id when recovering a Transaction 
-    void set_id(ham_u64_t id) {
+    void set_id(uint64_t id) {
       m_id = id;
     }
 };
@@ -231,15 +231,15 @@ class TransactionManager
     virtual ~TransactionManager() { }
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, ham_u32_t flags) = 0;
+    virtual Transaction *begin(const char *name, uint32_t flags) = 0;
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void commit(Transaction *txn, ham_u32_t flags = 0) = 0;
+    virtual void commit(Transaction *txn, uint32_t flags = 0) = 0;
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void abort(Transaction *txn, ham_u32_t flags = 0) = 0;
+    virtual void abort(Transaction *txn, uint32_t flags = 0) = 0;
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns() = 0;

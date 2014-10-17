@@ -546,9 +546,8 @@ o windows cleanups
     o automate the build process
     o ... and the packaging
 
-o refactoring: switch to stdint-supplied types instead of own definitions
-    o but leave ham_* types in the public header files
-    o see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
+x refactoring: switch to stdint-supplied types instead of own definitions
+    x see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
 
 . "make dist" should write the current git commit and the build date to
     a file; this should be printed by ham_bench and the tools

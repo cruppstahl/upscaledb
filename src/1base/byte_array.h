@@ -50,7 +50,7 @@ class ByteArray
       resize(size);
     }
 
-    ByteArray(size_t size, ham_u8_t fill_byte)
+    ByteArray(size_t size, uint8_t fill_byte)
       : m_ptr(0), m_size(0), m_own(true) {
       resize(size);
       if (m_ptr)
@@ -62,7 +62,7 @@ class ByteArray
     }
 
     void append(const void *ptr, size_t size) {
-      ham_u32_t oldsize = m_size;
+      uint32_t oldsize = m_size;
       char *p = (char *)resize(m_size + size);
       ::memcpy(p + oldsize, ptr, size);
     }
@@ -73,8 +73,8 @@ class ByteArray
       m_size = size;
     }
 
-    void overwrite(ham_u32_t position, const void *ptr, size_t size) {
-      ::memcpy(((ham_u8_t *)m_ptr) + position, ptr, size);
+    void overwrite(uint32_t position, const void *ptr, size_t size) {
+      ::memcpy(((uint8_t *)m_ptr) + position, ptr, size);
     }
 
     void *resize(size_t size) {
@@ -85,7 +85,7 @@ class ByteArray
       return (m_ptr);
     }
 
-    void *resize(size_t size, ham_u8_t fill_byte) {
+    void *resize(size_t size, uint8_t fill_byte) {
       resize(size);
       if (m_ptr)
         memset(m_ptr, fill_byte, size);

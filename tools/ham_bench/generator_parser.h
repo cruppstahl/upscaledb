@@ -142,7 +142,7 @@ class ParserGenerator : public ::Generator
     Timer<boost::chrono::system_clock> m_start;
 
     // size of the m_data_ptr array
-    ham_u32_t m_data_size;
+    uint32_t m_data_size;
 
     // cached pointer for record data
     void *m_data_ptr;

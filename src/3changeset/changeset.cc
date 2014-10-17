@@ -47,7 +47,7 @@ Changeset::add_page(Page *page)
 }
 
 Page *
-Changeset::get_page(ham_u64_t pageid)
+Changeset::get_page(uint64_t pageid)
 {
   Page *page = m_head;
 
@@ -77,9 +77,9 @@ Changeset::clear()
   b[bs++] = p;
 
 void
-Changeset::flush(ham_u64_t lsn)
+Changeset::flush(uint64_t lsn)
 {
-  ham_u32_t page_count = 0;
+  uint32_t page_count = 0;
   Page *n, *p = m_head;
   if (!p)
     return;

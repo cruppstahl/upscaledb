@@ -33,7 +33,7 @@
 
 namespace hamsterdb {
 
-PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
+PageManager::PageManager(LocalEnvironment *env, uint64_t cache_size)
   : m_env(env), m_cache(env, cache_size), m_needs_flush(false),
     m_state_page(0), m_last_blob_page(0), m_last_blob_page_id(0),
     m_page_count_fetched(0), m_page_count_flushed(0), m_page_count_index(0),
@@ -43,7 +43,7 @@ PageManager::PageManager(LocalEnvironment *env, ham_u64_t cache_size)
 }
 
 void
-PageManager::load_state(ham_u64_t pageid)
+PageManager::load_state(uint64_t pageid)
 {
   if (m_state_page)
     delete m_state_page;
@@ -54,28 +54,28 @@ PageManager::load_state(ham_u64_t pageid)
   m_free_pages.clear();
 
   Page *page = m_state_page;
-  ham_u32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->get_page_size();
 
   // the first page stores the page ID of the last blob
-  m_last_blob_page_id = *(ham_u64_t *)page->get_payload();
+  m_last_blob_page_id = *(uint64_t *)page->get_payload();
 
   while (1) {
     ham_assert(page->get_type() == Page::kTypePageManager);
-    ham_u8_t *p = page->get_payload();
+    uint8_t *p = page->get_payload();
     // skip m_last_blob_page_id?
     if (page == m_state_page)
-      p += sizeof(ham_u64_t);
+      p += sizeof(uint64_t);
 
     // get the overflow address
-    ham_u64_t overflow = *(ham_u64_t *)p;
+    uint64_t overflow = *(uint64_t *)p;
     p += 8;
 
     // get the number of stored elements
-    ham_u32_t counter = *(ham_u32_t *)p;
+    uint32_t counter = *(uint32_t *)p;
     p += 4;
 
     // now read all pages
-    for (ham_u32_t i = 0; i < counter; i++) {
+    for (uint32_t i = 0; i < counter; i++) {
       // 4 bits page_counter, 4 bits for number of following bytes
       int page_counter = (*p & 0xf0) >> 4;
       int num_bytes = *p & 0x0f;
@@ -83,7 +83,7 @@ PageManager::load_state(ham_u64_t pageid)
       ham_assert(num_bytes <= 8);
       p += 1;
 
-      ham_u64_t id = Pickle::decode_u64(num_bytes, p);
+      uint64_t id = Pickle::decode_u64(num_bytes, p);
       p += num_bytes;
 
       m_free_pages[id * page_size] = page_counter;
@@ -97,7 +97,7 @@ PageManager::load_state(ham_u64_t pageid)
   }
 }
 
-ham_u64_t
+uint64_t
 PageManager::store_state()
 {
   // no modifications? then simply return the old blobid
@@ -116,7 +116,7 @@ PageManager::store_state()
     m_state_page->allocate(Page::kTypePageManager, Page::kInitializeWithZeroes);
   }
 
-  ham_u32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->get_page_size();
 
   /* store the page in the changeset if recovery is enabled */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -127,16 +127,16 @@ PageManager::store_state()
   // make sure that the page is logged
   page->set_dirty(true);
 
-  ham_u8_t *p = m_state_page->get_payload();
+  uint8_t *p = m_state_page->get_payload();
 
   // store page-ID of the last allocated blob
-  *(ham_u64_t *)p = m_last_blob_page_id;
-  p += sizeof(ham_u64_t);
+  *(uint64_t *)p = m_last_blob_page_id;
+  p += sizeof(uint64_t);
 
   // reset the overflow pointer and the counter
   // TODO here we lose a whole chain of overflow pointers if there was such
   // a chain. We only save the first. That's not critical but also not nice.
-  ham_u64_t next_pageid = *(ham_u64_t *)p;
+  uint64_t next_pageid = *(uint64_t *)p;
   if (next_pageid) {
     m_free_pages[next_pageid] = 1;
     ham_assert(next_pageid % page_size == 0);
@@ -145,9 +145,9 @@ PageManager::store_state()
   // No freelist entries? then we're done. Make sure that there's no
   // overflow pointer or other garbage in the page!
   if (m_free_pages.empty()) {
-    *(ham_u64_t *)p = 0;
-    p += sizeof(ham_u64_t);
-    *(ham_u32_t *)p = 0;
+    *(uint64_t *)p = 0;
+    p += sizeof(uint64_t);
+    *(uint32_t *)p = 0;
     return (m_state_page->get_address());
   }
 
@@ -157,11 +157,11 @@ PageManager::store_state()
     p = page->get_payload();
     // skip m_last_blob_page_id?
     if (page == m_state_page)
-      p += sizeof(ham_u64_t);
+      p += sizeof(uint64_t);
     p += 8;   // leave room for the pointer to the next page
     p += 4;   // leave room for the counter
 
-    ham_u32_t counter = 0;
+    uint32_t counter = 0;
 
     while (it != m_free_pages.end()) {
       // 9 bytes is the maximum amount of storage that we will need for a
@@ -171,10 +171,10 @@ PageManager::store_state()
 
       // ... and check if the next entry (and the following) are directly
       // next to the current page
-      ham_u32_t page_counter = 1;
-      ham_u64_t base = it->first;
+      uint32_t page_counter = 1;
+      uint64_t base = it->first;
       ham_assert(base % page_size == 0);
-      ham_u64_t current = it->first;
+      uint64_t current = it->first;
 
       // move to the next entry
       it++;
@@ -204,13 +204,13 @@ PageManager::store_state()
 
     p = page->get_payload();
     if (page == m_state_page) // skip m_last_blob_page_id?
-      p += sizeof(ham_u64_t);
-    ham_u64_t next_pageid = *(ham_u64_t *)p;
-    *(ham_u64_t *)p = 0;
+      p += sizeof(uint64_t);
+    uint64_t next_pageid = *(uint64_t *)p;
+    *(uint64_t *)p = 0;
     p += 8;  // overflow page
 
     // now store the counter
-    *(ham_u32_t *)p = counter;
+    *(uint32_t *)p = counter;
 
     // are we done? if not then continue with the next page
     if (it != m_free_pages.end()) {
@@ -220,13 +220,13 @@ PageManager::store_state()
         // patch the overflow pointer in the old (current) page
         p = page->get_payload();
         if (page == m_state_page) // skip m_last_blob_page_id?
-          p += sizeof(ham_u64_t);
-        *(ham_u64_t *)p = new_page->get_address();
+          p += sizeof(uint64_t);
+        *(uint64_t *)p = new_page->get_address();
 
         // reset the overflow pointer in the new page
         page = new_page;
         p = page->get_payload();
-        *(ham_u64_t *)p = 0;
+        *(uint64_t *)p = 0;
       }
       else
         page = fetch_page(0, next_pageid);
@@ -253,8 +253,8 @@ PageManager::get_metrics(ham_env_metrics_t *metrics) const
 }
 
 Page *
-PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
-                ham_u32_t flags)
+PageManager::fetch_page(LocalDatabase *db, uint64_t address,
+                uint32_t flags)
 {
   Page *page = 0;
 
@@ -300,11 +300,11 @@ PageManager::fetch_page(LocalDatabase *db, ham_u64_t address,
 }
 
 Page *
-PageManager::alloc_page(LocalDatabase *db, ham_u32_t page_type, ham_u32_t flags)
+PageManager::alloc_page(LocalDatabase *db, uint32_t page_type, uint32_t flags)
 {
-  ham_u64_t address = 0;
+  uint64_t address = 0;
   Page *page = 0;
-  ham_u32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->get_page_size();
   bool allocated = false;
 
   /* first check the internal list for a free page */
@@ -395,7 +395,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
     return (alloc_page(db, Page::kTypeBlob));
 
   Page *page = 0;
-  ham_u32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->get_page_size();
 
   // Now check the freelist
   if (!m_free_pages.empty()) {
@@ -429,7 +429,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
   //
   // disable "store state": the PageManager otherwise could alloc overflow
   // pages in the middle of our blob sequence.
-  ham_u32_t flags = kIgnoreFreelist | kDisableStoreState;
+  uint32_t flags = kIgnoreFreelist | kDisableStoreState;
   for (size_t i = 0; i < num_pages; i++) {
     if (page == 0)
       page = alloc_page(db, Page::kTypeBlob, flags);
@@ -447,7 +447,7 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
 
 static bool
 flush_all_pages_callback(Page *page, LocalEnvironment *env,
-        LocalDatabase *db, ham_u32_t flags)
+        LocalDatabase *db, uint32_t flags)
 {
   env->get_page_manager()->flush_page(page);
 
@@ -502,10 +502,10 @@ PageManager::purge_cache()
   //
   // By default this is capped to |kPurgeAtLeast| pages to avoid I/O spikes.
   // In benchmarks this has proven to be a good limit.
-  ham_u32_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
+  uint32_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
   if (max_pages == 0)
     max_pages = 1;
-  ham_u32_t limit = m_cache.get_current_elements() - max_pages;
+  uint32_t limit = m_cache.get_current_elements() - max_pages;
   if (limit < kPurgeAtLeast)
     limit = kPurgeAtLeast;
   m_cache.purge(purge_callback, this, limit);
@@ -513,7 +513,7 @@ PageManager::purge_cache()
 
 static bool
 db_close_callback(Page *page, LocalEnvironment *env,
-        LocalDatabase *db, ham_u32_t flags)
+        LocalDatabase *db, uint32_t flags)
 {
   if (page->get_db() == db && page->get_address() != 0) {
     env->get_page_manager()->flush_page(page);
@@ -552,8 +552,8 @@ PageManager::reclaim_space()
   }
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
   bool do_truncate = false;
-  ham_u64_t file_size = m_env->get_device()->get_file_size();
-  ham_u32_t page_size = m_env->get_page_size();
+  uint64_t file_size = m_env->get_device()->get_file_size();
+  uint32_t page_size = m_env->get_page_size();
 
   while (m_free_pages.size() > 1) {
     FreeMap::iterator fit = m_free_pages.find(file_size - page_size);

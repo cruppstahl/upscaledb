@@ -100,14 +100,14 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Compares two keys using the supplied comparator
     template<typename Cmp>
-    int compare(const ham_key_t *lhs, ham_u32_t rhs, Cmp &cmp) {
+    int compare(const ham_key_t *lhs, uint32_t rhs, Cmp &cmp) {
       return (cmp(lhs->data, lhs->size, P::m_keys.get_key_data(rhs),
                               P::m_keys.get_key_size(rhs)));
     }
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
+    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
                     int *pcmp) {
       size_t node_count = P::m_node->get_count();
       ham_assert(node_count > 0);
@@ -187,7 +187,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
+    void scan(ScanVisitor *visitor, uint32_t start, bool distinct) {
       P::m_keys.scan(visitor, start, P::m_node->get_count() - start);
     }
 
@@ -198,14 +198,14 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
   private:
     void initialize() {
-      ham_u32_t usable_nodesize
+      uint32_t usable_nodesize
               = P::m_page->get_db()->get_local_env()->get_usable_page_size()
                     - PBtreeNode::get_entry_offset();
       size_t ks = P::m_keys.get_full_key_size();
       size_t rs = P::m_records.get_full_record_size();
       size_t capacity = usable_nodesize / (ks + rs);
 
-      ham_u8_t *p = P::m_node->get_data();
+      uint8_t *p = P::m_node->get_data();
       if (P::m_node->get_count() == 0) {
         P::m_keys.create(&p[0], capacity * ks);
         P::m_records.create(&p[capacity * ks], capacity * rs);

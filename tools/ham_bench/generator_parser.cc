@@ -347,23 +347,23 @@ ParserGenerator::generate_key(const char *keydata, char *buffer) const
     case Configuration::kKeyString:
     case Configuration::kKeyCustom:
       key.data = (void *)keydata;
-      key.size = (ham_u16_t)strlen(keydata);
+      key.size = (uint16_t)strlen(keydata);
       break;
     case Configuration::kKeyUint8:
-      *(ham_u16_t *)buffer = (ham_u8_t)strtoul(keydata, 0, 0);
+      *(uint16_t *)buffer = (uint8_t)strtoul(keydata, 0, 0);
       key.size = 1;
       break;
     case Configuration::kKeyUint16:
-      *(ham_u16_t *)buffer = (ham_u16_t)strtoul(keydata, 0, 0);
-      key.size = sizeof(ham_u16_t);
+      *(uint16_t *)buffer = (uint16_t)strtoul(keydata, 0, 0);
+      key.size = sizeof(uint16_t);
       break;
     case Configuration::kKeyUint32:
-      *(ham_u32_t *)buffer = (ham_u32_t)strtoul(keydata, 0, 0);
-      key.size = sizeof(ham_u32_t);
+      *(uint32_t *)buffer = (uint32_t)strtoul(keydata, 0, 0);
+      key.size = sizeof(uint32_t);
       break;
     case Configuration::kKeyUint64:
-      *(ham_u64_t *)buffer = (ham_u64_t)strtoul(keydata, 0, 0);
-      key.size = sizeof(ham_u64_t);
+      *(uint64_t *)buffer = (uint64_t)strtoul(keydata, 0, 0);
+      key.size = sizeof(uint64_t);
       break;
     default:
       assert(!"shouldn't be here");
@@ -377,7 +377,7 @@ ParserGenerator::generate_record(const char *recdata)
   ham_record_t rec = {0};
 
   /* allocate and initialize data */
-  ham_u32_t data_size = (ham_u32_t)strtoul(recdata, 0, 0);
+  uint32_t data_size = (uint32_t)strtoul(recdata, 0, 0);
 
   if (data_size) {
     if (data_size > m_data_size) {
@@ -387,7 +387,7 @@ ParserGenerator::generate_record(const char *recdata)
     /* always start with a random number - otherwise berkeleydb fails
      * too often when duplicate keys are inserted with duplicate
      * records */
-    for (ham_u32_t i = 0; i < data_size; i++)
+    for (uint32_t i = 0; i < data_size; i++)
       ((char *)m_data_ptr)[i] = (m_cur_line + i) & 0xff;
     if (data_size >= sizeof(unsigned))
       *(unsigned *)m_data_ptr = m_cur_line;

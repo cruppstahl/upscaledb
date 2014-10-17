@@ -6,4 +6,5 @@ include_HEADERS=hamsterdb.h \
     hamsterdb_srv.h \
     hamsterdb_ola.h \
     types.h \
+    msstdint.h \
     hamsterdb.hpp

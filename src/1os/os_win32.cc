@@ -36,7 +36,7 @@
 namespace hamsterdb {
 
 static const char *
-DisplayError(char* buf, ham_u32_t buflen, DWORD errorcode)
+DisplayError(char* buf, uint32_t buflen, DWORD errorcode)
 {
   size_t len;
 
@@ -98,7 +98,7 @@ File::get_granularity()
 }
 
 void
-File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
+File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
   ham_status_t st;
   DWORD protect = (readonly ? PAGE_READONLY : PAGE_WRITECOPY);
@@ -116,7 +116,7 @@ File::mmap(ham_u64_t position, size_t size, bool readonly, ham_u8_t **buffer)
     throw Exception(HAM_IO_ERROR);
   }
 
-  *buffer = (ham_u8_t *)MapViewOfFile(m_mmaph, access, i.HighPart, i.LowPart,
+  *buffer = (uint8_t *)MapViewOfFile(m_mmaph, access, i.HighPart, i.LowPart,
                                 (SIZE_T)size);
   if (!*buffer) {
     char buf[256];
@@ -157,7 +157,7 @@ File::munmap(void *buffer, size_t size)
 }
 
 void
-File::pread(ham_u64_t addr, void *buffer, size_t len)
+File::pread(uint64_t addr, void *buffer, size_t len)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
@@ -186,7 +186,7 @@ File::pread(ham_u64_t addr, void *buffer, size_t len)
 }
 
 void
-File::pwrite(ham_u64_t addr, const void *buffer, size_t len)
+File::pwrite(uint64_t addr, const void *buffer, size_t len)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
@@ -237,7 +237,7 @@ File::write(const void *buffer, size_t len)
 #endif
 
 void
-File::seek(ham_u64_t offset, int whence)
+File::seek(uint64_t offset, int whence)
 {
   DWORD st;
   LARGE_INTEGER i;
@@ -253,7 +253,7 @@ File::seek(ham_u64_t offset, int whence)
   }
 }
 
-ham_u64_t
+uint64_t
 File::tell()
 {
   DWORD st;
@@ -269,14 +269,14 @@ File::tell()
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((ham_u64_t)i.QuadPart);
+  return ((uint64_t)i.QuadPart);
 }
 
 #ifndef INVALID_FILE_SIZE
 #   define INVALID_FILE_SIZE   ((DWORD)-1)
 #endif
 
-ham_u64_t
+uint64_t
 File::get_file_size()
 {
   ham_status_t st;
@@ -291,11 +291,11 @@ File::get_file_size()
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((ham_u64_t)i.QuadPart);
+  return ((uint64_t)i.QuadPart);
 }
 
 void
-File::truncate(ham_u64_t newsize)
+File::truncate(uint64_t newsize)
 {
   File::seek(newsize, kSeekSet);
 
@@ -309,7 +309,7 @@ File::truncate(ham_u64_t newsize)
 }
 
 void
-File::create(const char *filename, ham_u32_t mode)
+File::create(const char *filename, uint32_t mode)
 {
   ham_status_t st;
   DWORD share = 0; /* 1.1.0: default behaviour is exclusive locking */
@@ -425,7 +425,7 @@ File::close()
 }
 
 void
-Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
+Socket::connect(const char *hostname, uint16_t port, uint32_t timeout_sec)
 {
   WORD sockVersion = MAKEWORD(1, 1);
   WSADATA wsaData;
@@ -473,7 +473,7 @@ Socket::connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec)
 }
 
 void
-Socket::send(const ham_u8_t *data, size_t len)
+Socket::send(const uint8_t *data, size_t len)
 {
   size_t sent = 0;
   char buf[256];
@@ -492,7 +492,7 @@ Socket::send(const ham_u8_t *data, size_t len)
 }
 
 void
-Socket::recv(ham_u8_t *data, size_t len)
+Socket::recv(uint8_t *data, size_t len)
 {
   size_t read = 0;
   char buf[256];

@@ -47,7 +47,7 @@ class LocalEnvironment;
 
 class PageManager {
     // The freelist maps page-id to number of free pages (usually 1)
-    typedef std::map<ham_u64_t, size_t> FreeMap;
+    typedef std::map<uint64_t, size_t> FreeMap;
 
   public:
     // Flags for PageManager::alloc_page()
@@ -80,13 +80,13 @@ class PageManager {
     // Default constructor
     //
     // The cache size is specified in bytes!
-    PageManager(LocalEnvironment *env, ham_u64_t cache_size);
+    PageManager(LocalEnvironment *env, uint64_t cache_size);
 
     // Loads the state from a blob
-    void load_state(ham_u64_t blobid);
+    void load_state(uint64_t blobid);
 
     // Stores the state to a blob; returns the blobid
-    ham_u64_t store_state();
+    uint64_t store_state();
 
     // Fills in the current metrics for the PageManager, the Cache and the
     // Freelist
@@ -97,15 +97,15 @@ class PageManager {
     // @param db The Database which fetches this page
     // @param address The page's address
     // @param flags bitwise OR'd: kOnlyFromCache, kReadOnly
-    Page *fetch_page(LocalDatabase *db, ham_u64_t address, ham_u32_t flags = 0);
+    Page *fetch_page(LocalDatabase *db, uint64_t address, uint32_t flags = 0);
 
     // Allocates a new page
     //
     // @param db The Database which allocates this page
     // @param page_type One of Page::TYPE_* in page.h
     // @param flags kClearWithZero
-    Page *alloc_page(LocalDatabase *db, ham_u32_t page_type,
-                    ham_u32_t flags = 0);
+    Page *alloc_page(LocalDatabase *db, uint32_t page_type,
+                    uint32_t flags = 0);
 
     // Allocates multiple adjacent pages
     //
@@ -164,7 +164,7 @@ class PageManager {
 
     // Returns true if a page is free. Ignores multi-pages; only for
     // testing and integrity checks
-    bool is_page_free(ham_u64_t pageid) {
+    bool is_page_free(uint64_t pageid) {
       FreeMap::iterator it = m_free_pages.find(pageid);
       return (it != m_free_pages.end());
     }
@@ -175,7 +175,7 @@ class PageManager {
     friend struct LogHighLevelFixture;
 
     // Fetches a page from the list
-    Page *fetch_page(ham_u64_t id) {
+    Page *fetch_page(uint64_t id) {
       return (m_cache.get_page(id));
     }
 
@@ -197,7 +197,7 @@ class PageManager {
     /* if recovery is enabled then immediately write the modified blob */
     void maybe_store_state(bool force = false) {
       if (force || (m_env->get_flags() & HAM_ENABLE_RECOVERY)) {
-        ham_u64_t new_blobid = store_state();
+        uint64_t new_blobid = store_state();
         if (new_blobid != m_env->get_header()->get_page_manager_blobid()) {
           m_env->get_header()->set_page_manager_blobid(new_blobid);
           m_env->get_header()->get_header_page()->set_dirty(true);
@@ -209,11 +209,11 @@ class PageManager {
     }
 
     // Encodes |n| to |p|; returns the number of required bytes
-    int encode(ham_u8_t *p, ham_u64_t n);
+    int encode(uint8_t *p, uint64_t n);
 
     // Decodes a number of |n| bytes stored in |p| and returns
     // the decoded number
-    ham_u64_t decode(size_t n, ham_u8_t *p);
+    uint64_t decode(size_t n, uint8_t *p);
 
     // callback for purging pages
     static void purge_callback(Page *page, PageManager *pm);
@@ -238,34 +238,34 @@ class PageManager {
     Page *m_last_blob_page;
 
     // Page where to add more blobs - if |m_last_blob_page| was flushed
-    ham_u64_t m_last_blob_page_id;
+    uint64_t m_last_blob_page_id;
 
     // tracks number of fetched pages
-    ham_u64_t m_page_count_fetched;
+    uint64_t m_page_count_fetched;
 
     // tracks number of flushed pages
-    ham_u64_t m_page_count_flushed;
+    uint64_t m_page_count_flushed;
 
     // tracks number of index pages
-    ham_u64_t m_page_count_index;
+    uint64_t m_page_count_index;
 
     // tracks number of blob pages
-    ham_u64_t m_page_count_blob;
+    uint64_t m_page_count_blob;
 
     // tracks number of page manager pages
-    ham_u64_t m_page_count_page_manager;
+    uint64_t m_page_count_page_manager;
 
     // tracks number of cache hits
-    ham_u64_t m_cache_hits;
+    uint64_t m_cache_hits;
 
     // tracks number of cache misses
-    ham_u64_t m_cache_misses;
+    uint64_t m_cache_misses;
 
     // number of successful freelist hits
-    ham_u64_t m_freelist_hits;
+    uint64_t m_freelist_hits;
 
     // number of freelist misses
-    ham_u64_t m_freelist_misses;
+    uint64_t m_freelist_misses;
 };
 
 } // namespace hamsterdb

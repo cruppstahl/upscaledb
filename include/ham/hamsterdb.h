@@ -177,19 +177,19 @@ typedef struct ham_cursor_t ham_cursor_t;
  */
 typedef struct {
   /** The size of the record data, in bytes */
-  ham_u32_t size;
+  uint32_t size;
 
   /** Pointer to the record data */
   void *data;
 
   /** The record flags; see @ref HAM_RECORD_USER_ALLOC */
-  ham_u32_t flags;
+  uint32_t flags;
 
   /** Offset for partial reading/writing; see @ref HAM_PARTIAL */
-  ham_u32_t partial_offset;
+  uint32_t partial_offset;
 
   /** Size for partial reading/writing; see @ref HAM_PARTIAL */
-  ham_u32_t partial_size;
+  uint32_t partial_size;
 
 } ham_record_t;
 
@@ -234,16 +234,16 @@ typedef struct {
  */
 typedef struct {
   /** The size of the key, in bytes */
-  ham_u16_t size;
+  uint16_t size;
 
   /** The data of the key */
   void *data;
 
   /** The key flags; see @ref HAM_KEY_USER_ALLOC */
-  ham_u32_t flags;
+  uint32_t flags;
 
   /** For internal use */
-  ham_u32_t _flags;
+  uint32_t _flags;
 
 } ham_key_t;
 
@@ -279,10 +279,10 @@ typedef struct {
  */
 typedef struct {
   /** The name of the parameter; all HAM_PARAM_*-constants */
-  ham_u32_t name;
+  uint32_t name;
 
   /** The value of the parameter. */
-  ham_u64_t value;
+  uint64_t value;
 
 } ham_parameter_t;
 
@@ -466,8 +466,8 @@ ham_strerror(ham_status_t status);
  * @param revision If not NULL, will return the revision version number
  */
 HAM_EXPORT void HAM_CALLCONV
-ham_get_version(ham_u32_t *major, ham_u32_t *minor,
-            ham_u32_t *revision);
+ham_get_version(uint32_t *major, uint32_t *minor,
+            uint32_t *revision);
 
 /**
  * @}
@@ -591,7 +591,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **env, const char *filename,
-            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
+            uint32_t flags, uint32_t mode, const ham_parameter_t *param);
 
 /**
  * Opens an existing Database Environment
@@ -681,7 +681,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t **env, const char *filename,
-            ham_u32_t flags, const ham_parameter_t *param);
+            uint32_t flags, const ham_parameter_t *param);
 
 /**
  * Retrieve the current value for a given Environment setting
@@ -700,7 +700,7 @@ ham_env_open(ham_env_t **env, const char *filename,
  *        was specified when creating this Database
  *    <li>HAM_PARAM_FILENAME</li> returns the filename (the @a value
  *        of this parameter is a const char * pointer casted to a
- *        ham_u64_t variable)
+ *        uint64_t variable)
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *        and the journal files. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_JOURNAL_COMPRESSION</li> Returns the
@@ -844,7 +844,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *env, ham_db_t **db,
-            ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
+            uint16_t name, uint32_t flags, const ham_parameter_t *params);
 
 /**
  * Opens a Database in a Database Environment
@@ -884,7 +884,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *env, ham_db_t **db,
-            ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
+            uint16_t name, uint32_t flags, const ham_parameter_t *params);
 
 /**
  * Renames a Database in an Environment.
@@ -911,8 +911,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t **db,
  *        correctly (i.e. not yet opened or created)
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
-            ham_u16_t newname, ham_u32_t flags);
+ham_env_rename_db(ham_env_t *env, uint16_t oldname,
+            uint16_t newname, uint32_t flags);
 
 /**
  * Deletes a Database from an Environment
@@ -933,7 +933,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
  *        still open
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
+ham_env_erase_db(ham_env_t *env, uint16_t name, uint32_t flags);
 
 /**
  * Flushes the Environment
@@ -951,7 +951,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_flush(ham_env_t *env, ham_u32_t flags);
+ham_env_flush(ham_env_t *env, uint32_t flags);
 
 /* internal use only - don't lock mutex */
 #define HAM_DONT_LOCK        0xf0000000
@@ -979,8 +979,8 @@ ham_env_flush(ham_env_t *env, ham_u32_t flags);
  *      all Database names
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
-            ham_u32_t *count);
+ham_env_get_database_names(ham_env_t *env, uint16_t *names,
+            uint32_t *count);
 
 /**
  * Closes the Database Environment
@@ -1020,7 +1020,7 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
  * @return @ref HAM_INV_PARAMETER if @a env is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_close(ham_env_t *env, ham_u32_t flags);
+ham_env_close(ham_env_t *env, uint32_t flags);
 
 /**
  * @}
@@ -1071,7 +1071,7 @@ typedef struct ham_txn_t ham_txn_t;
  */
 HAM_EXPORT ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_env_t *env, const char *name,
-            void *reserved, ham_u32_t flags);
+            void *reserved, uint32_t flags);
 
 /** Flag for @ref ham_txn_begin */
 #define HAM_TXN_READ_ONLY                     1
@@ -1106,7 +1106,7 @@ ham_txn_get_name(ham_txn_t *txn);
  *      Transaction
  */
 HAM_EXPORT ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
+ham_txn_commit(ham_txn_t *txn, uint32_t flags);
 
 /**
  * Aborts a Transaction
@@ -1127,7 +1127,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
  *      Transaction
  */
 HAM_EXPORT ham_status_t
-ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
+ham_txn_abort(ham_txn_t *txn, uint32_t flags);
 
 /**
  * @}
@@ -1238,8 +1238,8 @@ ham_db_get_error(ham_db_t *db);
  * is larger than @a rhs.
  */
 typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
-                  const ham_u8_t *lhs, ham_u32_t lhs_length,
-                  const ham_u8_t *rhs, ham_u32_t rhs_length);
+                  const uint8_t *lhs, uint32_t lhs_length,
+                  const uint8_t *rhs, uint32_t rhs_length);
 
 /**
  * Sets the comparison function
@@ -1390,7 +1390,7 @@ ham_db_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+            ham_record_t *record, uint32_t flags);
 
 /**
  * Inserts a Database item
@@ -1474,7 +1474,7 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+            ham_record_t *record, uint32_t flags);
 
 /**
  * Flag for @ref ham_db_insert and @ref ham_cursor_insert
@@ -1569,7 +1569,7 @@ ham_db_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, uint32_t flags);
 
 /* internal flag for ham_db_erase() - do not use */
 #define HAM_ERASE_ALL_DUPLICATES                1
@@ -1596,8 +1596,8 @@ ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
  *     @a flags contains an invalid flag set
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_u64_t *keycount);
+ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, uint32_t flags,
+            uint64_t *keycount);
 
 /**
  * Retrieve the current value for a given Database setting
@@ -1684,10 +1684,10 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_PARAM_FILE_SIZE_LIMIT       0x00000109
 
 /** Value for unlimited record sizes */
-#define HAM_RECORD_SIZE_UNLIMITED       ((ham_u32_t)-1)
+#define HAM_RECORD_SIZE_UNLIMITED       ((uint32_t)-1)
 
 /** Value for unlimited key sizes */
-#define HAM_KEY_SIZE_UNLIMITED          ((ham_u16_t)-1)
+#define HAM_KEY_SIZE_UNLIMITED          ((uint16_t)-1)
 
 /** Retrieves the Database/Environment flags as were specified at the time of
  * @ref ham_env_create/@ref ham_env_open invocation. */
@@ -1699,7 +1699,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * Return a <code>const char *</code> pointer to the current
- * Environment/Database file name in the @ref ham_u64_t value
+ * Environment/Database file name in the @ref uint64_t value
  * member, when the Database is actually stored on disc.
  *
  * In-memory Databases will return a NULL (0) pointer instead.
@@ -1837,7 +1837,7 @@ ham_key_get_approximate_match_type(ham_key_t *key);
  *    currently active Transaction
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_close(ham_db_t *db, ham_u32_t flags);
+ham_db_close(ham_db_t *db, uint32_t flags);
 
 /** Flag for @ref ham_db_close, @ref ham_env_close */
 #define HAM_AUTO_CLEANUP                1
@@ -1890,7 +1890,7 @@ ham_db_close(ham_db_t *db, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_cursor_t **cursor, ham_db_t *db, ham_txn_t *txn,
-            ham_u32_t flags);
+            uint32_t flags);
 
 /**
  * Clones a Database Cursor
@@ -2030,7 +2030,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+            ham_record_t *record, uint32_t flags);
 
 /** Flag for @ref ham_cursor_move */
 #define HAM_CURSOR_FIRST                0x0001
@@ -2070,7 +2070,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
-            ham_u32_t flags);
+            uint32_t flags);
 
 /**
  * Searches with a key and points the Cursor to the key found, retrieves
@@ -2226,7 +2226,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+            ham_record_t *record, uint32_t flags);
 
 /**
  * Cursor 'find' flag: return an exact match (default).
@@ -2408,7 +2408,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+            ham_record_t *record, uint32_t flags);
 
 /**
  * Erases the current key
@@ -2432,7 +2432,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  *        Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
+ham_cursor_erase(ham_cursor_t *cursor, uint32_t flags);
 
 /**
  * Returns the number of duplicate keys
@@ -2453,7 +2453,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
-            ham_u32_t *count, ham_u32_t flags);
+            uint32_t *count, uint32_t flags);
 
 /**
  * Returns the current cursor position in the duplicate list
@@ -2470,7 +2470,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
-            ham_u32_t *position);
+            uint32_t *position);
 
 /**
  * Returns the record size of the current key
@@ -2485,7 +2485,7 @@ ham_cursor_get_duplicate_position(ham_cursor_t *cursor,
  * @return @ref HAM_INV_PARAMETER if @a cursor or @a size is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_get_record_size(ham_cursor_t *cursor, ham_u64_t *size);
+ham_cursor_get_record_size(ham_cursor_t *cursor, uint64_t *size);
 
 /**
  * Closes a Database Cursor

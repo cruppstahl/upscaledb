@@ -46,7 +46,7 @@ TEST_CASE("OsTest/openReadOnlyClose",
 
   File f;
   f.open("Makefile.am", true);
-  REQUIRE_CATCH(f.pwrite(0, p, (ham_u32_t)strlen(p)), HAM_IO_ERROR);
+  REQUIRE_CATCH(f.pwrite(0, p, (uint32_t)strlen(p)), HAM_IO_ERROR);
 }
 
 TEST_CASE("OsTest/negativeOpenTest",
@@ -123,9 +123,9 @@ TEST_CASE("OsTest/mmapTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  ham_u32_t ps = File::get_granularity();
-  ham_u8_t *p1, *p2;
-  p1 = (ham_u8_t *)malloc(ps);
+  uint32_t ps = File::get_granularity();
+  uint8_t *p1, *p2;
+  p1 = (uint8_t *)malloc(ps);
 
   f.create(Utils::opath(".test"), 0664);
   for (int i = 0; i < 10; i++) {
@@ -145,9 +145,9 @@ TEST_CASE("OsTest/mmapAbortTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  ham_u32_t ps = File::get_granularity();
-  ham_u8_t *page, *mapped;
-  page = (ham_u8_t *)malloc(ps);
+  uint32_t ps = File::get_granularity();
+  uint8_t *page, *mapped;
+  page = (uint8_t *)malloc(ps);
 
   f.create(Utils::opath(".test"), 0664);
   memset(page, 0x13, ps);
@@ -172,9 +172,9 @@ TEST_CASE("OsTest/mmapReadOnlyTest",
 {
   int i;
   File f;
-  ham_u32_t ps = File::get_granularity();
-  ham_u8_t *p1, *p2;
-  p1 = (ham_u8_t *)malloc(ps);
+  uint32_t ps = File::get_granularity();
+  uint8_t *p1, *p2;
+  p1 = (uint8_t *)malloc(ps);
 
   f.create(Utils::opath(".test"), 0664);
   for (i = 0; i < 10; i++) {
@@ -197,17 +197,17 @@ TEST_CASE("OsTest/multipleMmapTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  ham_u32_t ps = File::get_granularity();
-  ham_u8_t *p1, *p2;
-  ham_u64_t addr = 0, size;
+  uint32_t ps = File::get_granularity();
+  uint8_t *p1, *p2;
+  uint64_t addr = 0, size;
 
   f.create(Utils::opath(".test"), 0664);
   for (int i = 0; i < 5; i++) {
     size = ps * (i + 1);
 
-    p1 = (ham_u8_t *)malloc((size_t)size);
+    p1 = (uint8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    f.pwrite(addr, p1, (ham_u32_t)size);
+    f.pwrite(addr, p1, (uint32_t)size);
     free(p1);
     addr += size;
   }
@@ -216,11 +216,11 @@ TEST_CASE("OsTest/multipleMmapTest",
   for (int i = 0; i < 5; i++) {
     size = ps * (i + 1);
 
-    p1 = (ham_u8_t *)malloc((size_t)size);
+    p1 = (uint8_t *)malloc((size_t)size);
     memset(p1, i, (size_t)size);
-    f.mmap(addr, (ham_u32_t)size, 0, &p2);
+    f.mmap(addr, (uint32_t)size, 0, &p2);
     REQUIRE(0 == memcmp(p1, p2, (size_t)size));
-    f.munmap(p2, (ham_u32_t)size);
+    f.munmap(p2, (uint32_t)size);
     free(p1);
     addr += size;
   }
@@ -230,7 +230,7 @@ TEST_CASE("OsTest/negativeMmapTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  ham_u8_t *page;
+  uint8_t *page;
 
   f.create(Utils::opath(".test"), 0664);
   // bad address && page size! - i don't know why this succeeds
@@ -247,7 +247,7 @@ TEST_CASE("OsTest/seekTellTest",
   f.create(Utils::opath(".test"), 0664);
   for (int i = 0; i < 10; i++) {
     f.seek(i, File::kSeekSet);
-    REQUIRE((ham_u64_t)i == f.tell());
+    REQUIRE((uint64_t)i == f.tell());
   }
 }
 
@@ -258,14 +258,14 @@ TEST_CASE("OsTest/truncateTest",
   f.create(Utils::opath(".test"), 0664);
   for (int i = 0; i < 10; i++) {
     f.truncate(i * 128);
-    REQUIRE((ham_u64_t)(i * 128) == f.get_file_size());
+    REQUIRE((uint64_t)(i * 128) == f.get_file_size());
   }
 }
 
 TEST_CASE("OsTest/largefileTest",
            "Tests the operating system functions in os*")
 {
-  ham_u8_t kb[1024] = {0};
+  uint8_t kb[1024] = {0};
 
   File f;
   f.create(Utils::opath(".test"), 0664);
@@ -275,7 +275,7 @@ TEST_CASE("OsTest/largefileTest",
 
   f.open(Utils::opath(".test"), false);
   f.seek(0, File::kSeekEnd);
-  REQUIRE(f.tell() == (ham_u64_t)1024 * 1024 * 4);
+  REQUIRE(f.tell() == (uint64_t)1024 * 1024 * 4);
   f.close();
 }
 

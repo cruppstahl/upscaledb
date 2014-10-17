@@ -22,8 +22,8 @@
 
 static int
 my_compare_func(ham_db_t *db,
-    const ham_u8_t *lhs, ham_u32_t lhs_length,
-    const ham_u8_t *rhs, ham_u32_t rhs_length) {
+    const uint8_t *lhs, uint32_t lhs_length,
+    const uint8_t *rhs, uint32_t rhs_length) {
   (void)db;
   (void)lhs;
   (void)rhs;
@@ -39,22 +39,22 @@ TEST_CASE("CppApi/keyTest", "")
   hamsterdb::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
 
   REQUIRE((void *)0 == k1.get_data());
-  REQUIRE((ham_u16_t)0 == k1.get_size());
-  REQUIRE((ham_u32_t)0 == k1.get_flags());
+  REQUIRE((uint16_t)0 == k1.get_size());
+  REQUIRE((uint32_t)0 == k1.get_flags());
 
   REQUIRE(p == k2.get_data());
-  REQUIRE((ham_u16_t)4 == k2.get_size());
-  REQUIRE((ham_u32_t)HAM_KEY_USER_ALLOC == k2.get_flags());
+  REQUIRE((uint16_t)4 == k2.get_size());
+  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k2.get_flags());
 
   k1 = k2;
   REQUIRE(p == k1.get_data());
-  REQUIRE((ham_u16_t)4 == k1.get_size());
-  REQUIRE((ham_u32_t)HAM_KEY_USER_ALLOC == k1.get_flags());
+  REQUIRE((uint16_t)4 == k1.get_size());
+  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k1.get_flags());
 
   hamsterdb::key k3(k1);
   REQUIRE(p == k3.get_data());
-  REQUIRE((ham_u16_t)4 == k3.get_size());
-  REQUIRE((ham_u32_t)HAM_KEY_USER_ALLOC == k3.get_flags());
+  REQUIRE((uint16_t)4 == k3.get_size());
+  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k3.get_flags());
 
   int i = 3;
   hamsterdb::key k4;
@@ -66,8 +66,8 @@ TEST_CASE("CppApi/keyTest", "")
   k1.set_size(2);
   k1.set_flags(0);
   REQUIRE(q == k1.get_data());
-  REQUIRE((ham_u16_t)2 == k1.get_size());
-  REQUIRE((ham_u32_t)0 == k1.get_flags());
+  REQUIRE((uint16_t)2 == k1.get_size());
+  REQUIRE((uint32_t)0 == k1.get_flags());
 }
 
 TEST_CASE("CppApi/recordTest", "")
@@ -77,29 +77,29 @@ TEST_CASE("CppApi/recordTest", "")
   hamsterdb::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
 
   REQUIRE((void *)0 == r1.get_data());
-  REQUIRE((ham_u32_t)0 == r1.get_size());
-  REQUIRE((ham_u32_t)0 == r1.get_flags());
+  REQUIRE((uint32_t)0 == r1.get_size());
+  REQUIRE((uint32_t)0 == r1.get_flags());
 
   REQUIRE(p == r2.get_data());
-  REQUIRE((ham_u32_t)4 == r2.get_size());
-  REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r2.get_flags());
+  REQUIRE((uint32_t)4 == r2.get_size());
+  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r2.get_flags());
 
   r1=r2;
   REQUIRE(p == r1.get_data());
-  REQUIRE((ham_u32_t)4 == r1.get_size());
-  REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r1.get_flags());
+  REQUIRE((uint32_t)4 == r1.get_size());
+  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r1.get_flags());
 
   hamsterdb::record r3(r1);
   REQUIRE(p == r3.get_data());
-  REQUIRE((ham_u32_t)4 == r3.get_size());
-  REQUIRE((ham_u32_t)HAM_RECORD_USER_ALLOC == r3.get_flags());
+  REQUIRE((uint32_t)4 == r3.get_size());
+  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r3.get_flags());
 
   r1.set_data(q);
   r1.set_size(2);
   r1.set_flags(0);
   REQUIRE(q == r1.get_data());
-  REQUIRE((ham_u32_t)2 == r1.get_size());
-  REQUIRE((ham_u32_t)0 == r1.get_flags());
+  REQUIRE((uint32_t)2 == r1.get_size());
+  REQUIRE((uint32_t)0 == r1.get_flags());
 }
 
 TEST_CASE("CppApi/staticFunctionsTest", "")
@@ -288,7 +288,7 @@ TEST_CASE("CppApi/cursorTest", "")
   }
 
   c.find(&k);
-  REQUIRE((ham_u32_t)1 == c.get_duplicate_count());
+  REQUIRE((uint32_t)1 == c.get_duplicate_count());
 
   c.erase();
   try {
@@ -347,17 +347,17 @@ TEST_CASE("CppApi/envDestructorTest", "")
 TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
 {
   hamsterdb::env env;
-  std::vector<ham_u16_t> v;
+  std::vector<uint16_t> v;
 
   env.create(Utils::opath(".test"));
 
   v = env.get_database_names();
-  REQUIRE((ham_u32_t)0 == (ham_u32_t)v.size());
+  REQUIRE((uint32_t)0 == (uint32_t)v.size());
 
   hamsterdb::db db1 = env.create_db(1);
   v = env.get_database_names();
-  REQUIRE((ham_u32_t)1 == (ham_u32_t)v.size());
-  REQUIRE((ham_u16_t)1 == v[0]);
+  REQUIRE((uint32_t)1 == (uint32_t)v.size());
+  REQUIRE((uint16_t)1 == v[0]);
   env.close();
 }
 

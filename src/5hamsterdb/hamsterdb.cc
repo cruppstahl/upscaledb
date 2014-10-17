@@ -64,7 +64,7 @@ filename_is_local(const char *filename)
 
 ham_status_t
 ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
-            void *, ham_u32_t flags)
+            void *, uint32_t flags)
 {
   Transaction **txn = (Transaction **)htxn;
 
@@ -122,7 +122,7 @@ ham_txn_get_name(ham_txn_t *htxn)
 }
 
 ham_status_t
-ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
+ham_txn_commit(ham_txn_t *htxn, uint32_t flags)
 {
   Transaction *txn = (Transaction *)htxn;
   if (!txn) {
@@ -146,7 +146,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
+ham_txn_abort(ham_txn_t *htxn, uint32_t flags)
 {
   Transaction *txn = (Transaction *)htxn;
   if (!txn) {
@@ -303,8 +303,8 @@ __prepare_record(ham_record_t *record)
 }
 
 void HAM_CALLCONV
-ham_get_version(ham_u32_t *major, ham_u32_t *minor,
-        ham_u32_t *revision)
+ham_get_version(uint32_t *major, uint32_t *minor,
+        uint32_t *revision)
 {
   if (major)
     *major = HAM_VERSION_MAJ;
@@ -316,7 +316,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
 
 ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
+        uint32_t flags, uint32_t mode, const ham_parameter_t *param)
 {
   EnvironmentConfiguration config;
   config.filename = filename ? filename : "";
@@ -387,20 +387,20 @@ ham_env_create(ham_env_t **henv, const char *filename,
           return (HAM_INV_PAGESIZE);
         }
         if (param->value > 0)
-          config.page_size_bytes = (ham_u32_t)param->value;
+          config.page_size_bytes = (uint32_t)param->value;
         break;
       case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
           config.file_size_limit_bytes = param->value;
         break;
       case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
-        config.journal_switch_threshold = (ham_u32_t)param->value;
+        config.journal_switch_threshold = (uint32_t)param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         config.log_filename = (const char *)param->value;
         break;
       case HAM_PARAM_NETWORK_TIMEOUT_SEC:
-        config.remote_timeout_sec = (ham_u32_t)param->value;
+        config.remote_timeout_sec = (uint32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
@@ -474,8 +474,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
-        ham_u32_t flags, const ham_parameter_t *param)
+ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
+        uint32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
@@ -526,8 +526,8 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
-        ham_u32_t flags, const ham_parameter_t *param)
+ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
+        uint32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
@@ -584,7 +584,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, ham_u16_t db_name,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
+ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
             const ham_parameter_t *param)
 {
   EnvironmentConfiguration config;
@@ -654,7 +654,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         config.log_filename = (const char *)param->value;
         break;
       case HAM_PARAM_NETWORK_TIMEOUT_SEC:
-        config.remote_timeout_sec = (ham_u32_t)param->value;
+        config.remote_timeout_sec = (uint32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
@@ -710,8 +710,8 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname, ham_u16_t newname,
-            ham_u32_t flags)
+ham_env_rename_db(ham_env_t *henv, uint16_t oldname, uint16_t newname,
+            uint32_t flags)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -748,7 +748,7 @@ ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname, ham_u16_t newname,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_erase_db(ham_env_t *henv, ham_u16_t name, ham_u32_t flags)
+ham_env_erase_db(ham_env_t *henv, uint16_t name, uint32_t flags)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -773,7 +773,7 @@ ham_env_erase_db(ham_env_t *henv, ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_u32_t *count)
+ham_env_get_database_names(ham_env_t *henv, uint16_t *names, uint32_t *count)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -827,7 +827,7 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_flush(ham_env_t *henv, ham_u32_t flags)
+ham_env_flush(ham_env_t *henv, uint32_t flags)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -852,7 +852,7 @@ ham_env_flush(ham_env_t *henv, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_close(ham_env_t *henv, ham_u32_t flags)
+ham_env_close(ham_env_t *henv, uint32_t flags)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
@@ -982,7 +982,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 
 ham_status_t HAM_CALLCONV
 ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+        ham_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1041,7 +1041,7 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 
     /* record number: make sure that we have a valid key structure */
     if ((db->get_rt_flags() & HAM_RECORD_NUMBER)
-        && (key->size != sizeof(ham_u64_t) || !key->data)) {
+        && (key->size != sizeof(uint64_t) || !key->data)) {
       ham_trace(("key->size must be 8, key->data must not be NULL"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
@@ -1069,7 +1069,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
 
 ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1123,7 +1123,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
             "transactions"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags & HAM_PARTIAL) && (record->size <= sizeof(ham_u64_t))) {
+    if ((flags & HAM_PARTIAL) && (record->size <= sizeof(uint64_t))) {
       ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
             "<= 8"));
       return (db->set_error(HAM_INV_PARAMETER));
@@ -1155,14 +1155,14 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     /* allocate temp. storage for a recno key */
     if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
       if (flags & HAM_OVERWRITE) {
-        if (key->size != sizeof(ham_u64_t) || !key->data) {
+        if (key->size != sizeof(uint64_t) || !key->data) {
           ham_trace(("key->size must be 8, key->data must not be NULL"));
           return (db->set_error(HAM_INV_PARAMETER));
         }
       }
       else {
         if (key->flags & HAM_KEY_USER_ALLOC) {
-          if (!key->data || key->size != sizeof(ham_u64_t)) {
+          if (!key->data || key->size != sizeof(uint64_t)) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (db->set_error(HAM_INV_PARAMETER));
           }
@@ -1184,7 +1184,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
+ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1236,7 +1236,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_db_check_integrity(ham_db_t *hdb, ham_u32_t flags)
+ham_db_check_integrity(ham_db_t *hdb, uint32_t flags)
 {
   Database *db = (Database *)hdb;
 
@@ -1265,7 +1265,7 @@ ham_db_check_integrity(ham_db_t *hdb, ham_u32_t flags)
  * 'non-essential' element of the process fails.
  */
 ham_status_t HAM_CALLCONV
-ham_db_close(ham_db_t *hdb, ham_u32_t flags)
+ham_db_close(ham_db_t *hdb, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   ham_status_t st = HAM_SUCCESS;
@@ -1299,7 +1299,7 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
     if (st)
       return (db->set_error(st));
 
-    ham_u16_t dbname = db->get_name();
+    uint16_t dbname = db->get_name();
     delete db;
 
     /* in-memory database: make sure that a database with the same name
@@ -1315,7 +1315,7 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
-            ham_u32_t flags)
+            uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1387,7 +1387,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
-        ham_u32_t flags)
+        uint32_t flags)
 {
   Database *db;
 
@@ -1428,7 +1428,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+        ham_record_t *record, uint32_t flags)
 {
   Database *db;
   Environment *env;
@@ -1486,7 +1486,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
-        ham_u32_t flags)
+        uint32_t flags)
 {
   Database *db;
   Environment *env;
@@ -1553,7 +1553,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
-        ham_u32_t flags)
+        uint32_t flags)
 {
   Database *db;
 
@@ -1611,7 +1611,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
             "record size"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags & HAM_PARTIAL) && (record->size <= sizeof(ham_u64_t))) {
+    if ((flags & HAM_PARTIAL) && (record->size <= sizeof(uint64_t))) {
       ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
             "<= 8"));
       return (db->set_error(HAM_INV_PARAMETER));
@@ -1631,14 +1631,14 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     /* allocate temp. storage for a recno key */
     if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
       if (flags & HAM_OVERWRITE) {
-        if (key->size != sizeof(ham_u64_t) || !key->data) {
+        if (key->size != sizeof(uint64_t) || !key->data) {
           ham_trace(("key->size must be 8, key->data must not be NULL"));
           return (db->set_error(HAM_INV_PARAMETER));
         }
       }
       else {
         if (key->flags & HAM_KEY_USER_ALLOC) {
-          if (!key->data || key->size != sizeof(ham_u64_t)) {
+          if (!key->data || key->size != sizeof(uint64_t)) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (db->set_error(HAM_INV_PARAMETER));
           }
@@ -1660,7 +1660,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
+ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
 {
   Database *db;
 
@@ -1697,8 +1697,8 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, ham_u32_t *count,
-                ham_u32_t flags)
+ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
+                uint32_t flags)
 {
   Database *db;
 
@@ -1731,7 +1731,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, ham_u32_t *count,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_position(ham_cursor_t *hcursor,
-            ham_u32_t *position)
+            uint32_t *position)
 {
   Database *db;
 
@@ -1762,7 +1762,7 @@ ham_cursor_get_duplicate_position(ham_cursor_t *hcursor,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_u64_t *size)
+ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
 {
   Database *db;
 
@@ -1887,8 +1887,8 @@ ham_db_get_env(ham_db_t *hdb)
 }
 
 ham_status_t HAM_CALLCONV
-ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
-      ham_u64_t *keycount)
+ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
+      uint64_t *keycount)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1970,7 +1970,7 @@ ham_is_pro()
   return (HAM_FALSE);
 }
 
-ham_u32_t HAM_CALLCONV
+uint32_t HAM_CALLCONV
 ham_is_pro_evaluation()
 {
   return (0);

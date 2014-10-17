@@ -31,7 +31,7 @@ namespace hamsterdb {
 
 struct BlobManagerFactory {
   // creates a new BlobManager instance depending on the flags
-  static BlobManager *create(LocalEnvironment *env, ham_u32_t flags) {
+  static BlobManager *create(LocalEnvironment *env, uint32_t flags) {
     if (flags & HAM_IN_MEMORY)
       return (new InMemoryBlobManager(env));
     else

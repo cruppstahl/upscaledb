@@ -48,11 +48,11 @@ namespace hamsterdb {
 
 template<typename T>
 struct Handle {
-  Handle(ham_u64_t _index, T *_object)
+  Handle(uint64_t _index, T *_object)
     : index(_index), object(_object) {
   }
 
-  ham_u64_t index;
+  uint64_t index;
   T *object;
 };
 
@@ -73,8 +73,8 @@ class ServerContext {
     // allocates a new handle
     // TODO the allocate_handle methods have lots of duplicate code;
     // try to find a generic solution!
-    ham_u64_t allocate_handle(Environment *env) {
-      ham_u64_t c = 0;
+    uint64_t allocate_handle(Environment *env) {
+      uint64_t c = 0;
       for (EnvironmentVector::iterator it = m_environments.begin();
               it != m_environments.end(); it++, c++) {
         if (it->index == 0) {
@@ -92,8 +92,8 @@ class ServerContext {
       return (c);
     }
 
-    ham_u64_t allocate_handle(Database *db) {
-      ham_u64_t c = 0;
+    uint64_t allocate_handle(Database *db) {
+      uint64_t c = 0;
       for (DatabaseVector::iterator it = m_databases.begin();
               it != m_databases.end(); it++, c++) {
         if (it->index == 0) {
@@ -111,8 +111,8 @@ class ServerContext {
       return (c);
     }
 
-    ham_u64_t allocate_handle(Transaction *txn) {
-      ham_u64_t c = 0;
+    uint64_t allocate_handle(Transaction *txn) {
+      uint64_t c = 0;
       for (TransactionVector::iterator it = m_transactions.begin();
               it != m_transactions.end(); it++, c++) {
         if (it->index == 0) {
@@ -130,8 +130,8 @@ class ServerContext {
       return (c);
     }
 
-    ham_u64_t allocate_handle(Cursor *cursor) {
-      ham_u64_t c = 0;
+    uint64_t allocate_handle(Cursor *cursor) {
+      uint64_t c = 0;
       for (CursorVector::iterator it = m_cursors.begin();
               it != m_cursors.end(); it++, c++) {
         if (it->index == 0) {
@@ -149,8 +149,8 @@ class ServerContext {
       return (c);
     }
 
-    void remove_env_handle(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    void remove_env_handle(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       //ham_assert(index < m_environments.size());
       if (index >= m_environments.size())
         return;
@@ -162,8 +162,8 @@ class ServerContext {
       it->object = 0;
     }
 
-    void remove_db_handle(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    void remove_db_handle(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_databases.size());
       if (index >= m_databases.size())
         return;
@@ -175,8 +175,8 @@ class ServerContext {
       it->object = 0;
     }
 
-    void remove_txn_handle(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    void remove_txn_handle(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return;
@@ -188,8 +188,8 @@ class ServerContext {
       it->object = 0;
     }
 
-    void remove_cursor_handle(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    void remove_cursor_handle(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_cursors.size());
       if (index >= m_cursors.size())
         return;
@@ -201,8 +201,8 @@ class ServerContext {
       it->object = 0;
     }
 
-    Environment *get_env(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    Environment *get_env(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_environments.size());
       if (index >= m_environments.size())
         return (0);
@@ -213,8 +213,8 @@ class ServerContext {
       return (it->object);
     }
 
-    Database *get_db(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    Database *get_db(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_databases.size());
       if (index >= m_databases.size())
         return (0);
@@ -225,8 +225,8 @@ class ServerContext {
       return (it->object);
     }
 
-    Transaction *get_txn(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    Transaction *get_txn(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return (0);
@@ -237,8 +237,8 @@ class ServerContext {
       return (it->object);
     }
 
-    Cursor *get_cursor(ham_u64_t handle) {
-      ham_u32_t index = handle & 0xffffffff;
+    Cursor *get_cursor(uint64_t handle) {
+      uint32_t index = handle & 0xffffffff;
       ham_assert(index < m_cursors.size());
       if (index >= m_cursors.size())
         return (0);
@@ -249,7 +249,7 @@ class ServerContext {
       return (it->object);
     }
 
-    Handle<Database> get_db_by_name(ham_u16_t dbname) {
+    Handle<Database> get_db_by_name(uint16_t dbname) {
       for (size_t i = 0; i < m_databases.size(); i++) {
         Database *db = m_databases[i].object;
         if (db && db->get_name() == dbname)
@@ -277,7 +277,7 @@ class ServerContext {
     DatabaseVector m_databases;
     CursorVector m_cursors;
     TransactionVector m_transactions;
-    ham_u64_t m_handle_counter;
+    uint64_t m_handle_counter;
 };
 
 struct ClientContext {

@@ -41,16 +41,16 @@ split_hook()
 struct BtreeDefaultFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  ham_u32_t m_key_size;
-  ham_u32_t m_rec_size;
+  uint32_t m_key_size;
+  uint32_t m_rec_size;
   bool m_duplicates;
 
   typedef std::vector<int> IntVector;
 
   BtreeDefaultFixture(bool duplicates = false,
-                  ham_u16_t key_size = HAM_KEY_SIZE_UNLIMITED,
-                  ham_u32_t rec_size = HAM_RECORD_SIZE_UNLIMITED,
-                  ham_u32_t page_size = 1024 * 16)
+                  uint16_t key_size = HAM_KEY_SIZE_UNLIMITED,
+                  uint32_t rec_size = HAM_RECORD_SIZE_UNLIMITED,
+                  uint32_t page_size = 1024 * 16)
     : m_db(0), m_env(0), m_key_size(key_size), m_rec_size(rec_size),
       m_duplicates(duplicates) {
     os::unlink(Utils::opath(".test"));
@@ -59,7 +59,7 @@ struct BtreeDefaultFixture {
       { 0, 0 }
     };
 
-    ham_u64_t type = key_size == 4 ? HAM_TYPE_UINT32 : HAM_TYPE_BINARY;
+    uint64_t type = key_size == 4 ? HAM_TYPE_UINT32 : HAM_TYPE_BINARY;
     ham_parameter_t p2[] = {
       { HAM_PARAM_KEY_SIZE, key_size },
       { HAM_PARAM_KEY_TYPE, type },
@@ -69,7 +69,7 @@ struct BtreeDefaultFixture {
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
 
-    ham_u32_t flags = 0;
+    uint32_t flags = 0;
     if (duplicates)
       flags |= HAM_ENABLE_DUPLICATES;
 
@@ -228,7 +228,7 @@ struct BtreeDefaultFixture {
 
     ham_cursor_close(cursor);
 
-    ham_u64_t keycount = 1;
+    uint64_t keycount = 1;
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
@@ -639,7 +639,7 @@ struct DuplicateTableFixture
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  DuplicateTableFixture(ham_u32_t env_flags) {
+  DuplicateTableFixture(uint32_t env_flags) {
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"), env_flags, 0644, 0));
 
@@ -657,10 +657,10 @@ struct DuplicateTableFixture
   }
 
   void createReopenTest(bool inline_records, size_t fixed_record_size,
-                  const ham_u8_t *record_data, const size_t *record_sizes,
+                  const uint8_t *record_data, const size_t *record_sizes,
                   size_t num_records) {
     DuplicateTable dt((LocalDatabase *)m_db, inline_records, fixed_record_size);
-    ham_u64_t table_id = dt.create(record_data, num_records);
+    uint64_t table_id = dt.create(record_data, num_records);
     REQUIRE(table_id != 0u);
     REQUIRE(dt.get_record_count() == (int)num_records);
     REQUIRE(dt.get_record_capacity() == (int)num_records * 2);
@@ -671,7 +671,7 @@ struct DuplicateTableFixture
     ham_record_t record = {0};
     record.data = arena.get_ptr();
 
-    const ham_u8_t *p = record_data;
+    const uint8_t *p = record_data;
     for (size_t i = 0; i < num_records; i++) {
       dt.get_record(&arena, &record, 0, i);
       REQUIRE(record.size == record_sizes[i]);
@@ -708,7 +708,7 @@ struct DuplicateTableFixture
     ham_record_t record = {0};
     char buffer[1024] = {0};
     record.data = &buffer[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = (size_t)i;
       dt.set_record(i, &record, 0, 0);
@@ -748,10 +748,10 @@ struct DuplicateTableFixture
     ham_record_t record = {0};
     char buffer[1024] = {0};
     record.data = &buffer[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
-      ham_u32_t new_index = 0;
+      uint32_t new_index = 0;
       dt.set_record(0, &record, HAM_DUPLICATE_INSERT_FIRST,
                       &new_index);
       REQUIRE(new_index == 0);
@@ -788,24 +788,24 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       if (i == 0) {
         dt.set_record(i, &record, HAM_DUPLICATE_INSERT_FIRST, 0);
-        model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+        model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
       }
       else {
         size_t position = rand() % i;
         dt.set_record(position, &record, HAM_DUPLICATE_INSERT_BEFORE, 0);
         model.insert(model.begin() + position,
-                        std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+                        std::vector<uint8_t>(&buf[0], &buf[record_size]));
       }
     }
 
@@ -836,17 +836,17 @@ struct DuplicateTableFixture
     dt.create(0, 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
-      model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+      model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -884,18 +884,18 @@ struct DuplicateTableFixture
     dt.create(0, 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buf[0] = i;
       dt.set_record(0, &record, HAM_DUPLICATE_INSERT_FIRST, 0);
       model.insert(model.begin(),
-                      std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+                      std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -935,17 +935,17 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
-      model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+      model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -986,17 +986,17 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
-    record.size = (ham_u32_t)record_size;
+    record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
-      model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record_size]));
+      model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -1005,7 +1005,7 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
       dt.set_record(i, &record, HAM_OVERWRITE, 0);
-      model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record_size]);
+      model[i] = std::vector<uint8_t>(&buf[0], &buf[record_size]);
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -1034,17 +1034,17 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 0);
 
     // the model stores the records that we inserted
-    std::vector<std::vector<ham_u8_t> > model;
+    std::vector<std::vector<uint8_t> > model;
 
     // fill it
     ham_record_t record = {0};
-    ham_u8_t buf[1024] = {0};
+    uint8_t buf[1024] = {0};
     record.data = &buf[0];
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
-      record.size = (ham_u32_t)(i % 15);
+      record.size = (uint32_t)(i % 15);
       dt.set_record(i, &record, HAM_DUPLICATE_INSERT_LAST, 0);
-      model.push_back(std::vector<ham_u8_t>(&buf[0], &buf[record.size]));
+      model.push_back(std::vector<uint8_t>(&buf[0], &buf[record.size]));
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -1052,9 +1052,9 @@ struct DuplicateTableFixture
     // overwrite
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
-      record.size = (ham_u32_t)((i + 1) % 15);
+      record.size = (uint32_t)((i + 1) % 15);
       dt.set_record(i, &record, HAM_OVERWRITE, 0);
-      model[i] = std::vector<ham_u8_t>(&buf[0], &buf[record.size]);
+      model[i] = std::vector<uint8_t>(&buf[0], &buf[record.size]);
     }
 
     REQUIRE(dt.get_record_count() == num_records);
@@ -1064,7 +1064,7 @@ struct DuplicateTableFixture
       record.data = arena.get_ptr();
       *(size_t *)&buf[0] = i + 1000;
       dt.get_record(&arena, &record, 0, i);
-      REQUIRE(record.size == (ham_u32_t)((i + 1) % 15));
+      REQUIRE(record.size == (uint32_t)((i + 1) % 15));
 	  if (record.size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));
     }
@@ -1076,52 +1076,52 @@ struct DuplicateTableFixture
 TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 {
   const int num_records = 100;
-  ham_u64_t    inline_data_8[num_records];
+  uint64_t    inline_data_8[num_records];
   size_t       record_sizes_8[num_records];
   for (int i = 0; i < num_records; i++) {
     record_sizes_8[i] = 8;
-    inline_data_8[i] = (ham_u64_t)i;
+    inline_data_8[i] = (uint64_t)i;
   }
 
-  ham_u8_t     default_data_0[num_records * 9] = {0};
+  uint8_t     default_data_0[num_records * 9] = {0};
   size_t       record_sizes_0[num_records] = {0};
   for (int i = 0; i < num_records; i++)
     default_data_0[i * 9] = BtreeRecord::kBlobSizeEmpty; // flags
 
-  ham_u8_t     default_data_4[num_records * 9] = {0};
+  uint8_t     default_data_4[num_records * 9] = {0};
   size_t       record_sizes_4[num_records] = {0};
   for (int i = 0; i < num_records; i++) {
     record_sizes_4[i] = 4;
     default_data_4[i * 9] = BtreeRecord::kBlobSizeTiny; // flags
-    default_data_4[i * 9 + 1 + 7] = (ham_u8_t)4; // inline size
-    *(ham_u32_t *)&default_data_4[i * 9 + 1] = (ham_u32_t)i;
+    default_data_4[i * 9 + 1 + 7] = (uint8_t)4; // inline size
+    *(uint32_t *)&default_data_4[i * 9 + 1] = (uint32_t)i;
   }
 
-  ham_u8_t     default_data_8[num_records * 9] = {0};
+  uint8_t     default_data_8[num_records * 9] = {0};
   for (int i = 0; i < num_records; i++) {
     default_data_8[i * 9] = BtreeRecord::kBlobSizeSmall; // flags
-    *(ham_u64_t *)&default_data_8[i * 9 + 1] = (ham_u64_t)i;
+    *(uint64_t *)&default_data_8[i * 9 + 1] = (uint64_t)i;
   }
 
-  ham_u8_t     default_data_16[num_records * 9] = {0};
+  uint8_t     default_data_16[num_records * 9] = {0};
   size_t       record_sizes_16[num_records] = {0};
   for (int i = 0; i < num_records; i++) {
     record_sizes_16[i] = 16;
   }
 
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
       // fixed length records of size 8, inline
-      f.createReopenTest(true, 8, (ham_u8_t *)&inline_data_8[0],
+      f.createReopenTest(true, 8, (uint8_t *)&inline_data_8[0],
                       record_sizes_8, num_records);
     }
 
     {
       DuplicateTableFixture f(env_flags[i]);
       // fixed length records of size 0, inline
-      f.createReopenTest(true, 0, (ham_u8_t *)&inline_data_8[0],
+      f.createReopenTest(true, 0, (uint8_t *)&inline_data_8[0],
                       record_sizes_0, num_records);
     }
 
@@ -1156,8 +1156,8 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        ham_u64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
-        *(ham_u64_t *)&default_data_16[i * 9 + 1] = blob_id;
+        uint64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
+        *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
 
       // variable length records of size 16, not inline
@@ -1178,8 +1178,8 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        ham_u64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
-        *(ham_u64_t *)&default_data_16[i * 9 + 1] = blob_id;
+        uint64_t blob_id = env->get_blob_manager()->allocate(db, &record, 0);
+        *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
 
       // fixed length records of size 16, not inline
@@ -1194,7 +1194,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertAscendingTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1242,7 +1242,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertAscendingTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertDescendingTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1290,7 +1290,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertDescendingTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertRandomTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1338,7 +1338,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertRandomTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertEraseAscendingTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1386,7 +1386,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertEraseAscendingTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertEraseDescendingTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1434,7 +1434,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertEraseDescendingTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertEraseRandomTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1482,7 +1482,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertEraseRandomTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertOverwriteTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     {
       DuplicateTableFixture f(env_flags[i]);
@@ -1530,7 +1530,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertOverwriteTest", "")
 
 TEST_CASE("BtreeDefault/DuplicateTable/insertOverwriteSizesTest", "")
 {
-  ham_u32_t env_flags[] = {0, HAM_IN_MEMORY};
+  uint32_t env_flags[] = {0, HAM_IN_MEMORY};
   for (int i = 0; i < 2; i++) {
     DuplicateTableFixture f(env_flags[i]);
     f.insertOverwriteSizesTest();
@@ -1566,7 +1566,7 @@ struct UpfrontIndexFixture
   }
 
   void createReopenTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
 
     UpfrontIndex ui((LocalDatabase *)m_db);
     REQUIRE(ui.get_full_index_size() == 3);
@@ -1585,7 +1585,7 @@ struct UpfrontIndexFixture
   }
 
   void appendSlotTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
 
     UpfrontIndex ui((LocalDatabase *)m_db);
     REQUIRE(ui.get_full_index_size() == 3);
@@ -1599,7 +1599,7 @@ struct UpfrontIndexFixture
   }
 
   void insertSlotTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
@@ -1614,7 +1614,7 @@ struct UpfrontIndexFixture
   }
 
   void eraseSlotTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
     const size_t kMax = 200;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
@@ -1658,7 +1658,7 @@ struct UpfrontIndexFixture
   }
 
   void allocateTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
@@ -1677,7 +1677,7 @@ struct UpfrontIndexFixture
   }
 
   void allocateFromFreelistTest() {
-    ham_u8_t data[1024 * 16] = {1};
+    uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
@@ -1713,8 +1713,8 @@ struct UpfrontIndexFixture
   }
 
   void splitMergeTest() {
-    ham_u8_t data1[1024 * 16] = {1};
-    ham_u8_t data2[1024 * 16] = {1};
+    uint8_t data1[1024 * 16] = {1};
+    uint8_t data2[1024 * 16] = {1};
     const size_t kMax = 300;
 
     UpfrontIndex ui1((LocalDatabase *)m_db);

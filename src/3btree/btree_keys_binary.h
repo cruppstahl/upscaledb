@@ -18,7 +18,7 @@
  * Fixed length KeyList for binary data
  *
  * This KeyList stores binary keys of fixed length size. It is implemented
- * as a plain C array of type ham_u8_t[]. It has fast random access, i.e.
+ * as a plain C array of type uint8_t[]. It has fast random access, i.e.
  * key #N starts at data[N * keysize].
  *
  * This KeyList cannot be resized.
@@ -62,7 +62,7 @@ namespace PaxLayout {
 class BinaryKeyList : public BaseKeyList
 {
   public:
-    typedef ham_u8_t type;
+    typedef uint8_t type;
 
     enum {
       // A flag whether this KeyList has sequential data
@@ -81,13 +81,13 @@ class BinaryKeyList : public BaseKeyList
 
     // Creates a new KeyList starting at |data|, total size is
     // |range_size| (in bytes)
-    void create(ham_u8_t *data, size_t range_size) {
+    void create(uint8_t *data, size_t range_size) {
       m_data = data;
       m_range_size = range_size;
     }
 
     // Opens an existing KeyList starting at |data|
-    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
+    void open(uint8_t *data, size_t range_size, size_t node_count) {
       m_data = data;
       m_range_size = range_size;
     }
@@ -134,9 +134,9 @@ class BinaryKeyList : public BaseKeyList
     template<typename Cmp>
     int linear_search(size_t start, size_t length, ham_key_t *key,
                     Cmp &comparator, int *pcmp) {
-      ham_u8_t *begin = &m_data[start * m_key_size];
-      ham_u8_t *end = &m_data[(start + length) * m_key_size];
-      ham_u8_t *current = begin;
+      uint8_t *begin = &m_data[start * m_key_size];
+      uint8_t *end = &m_data[(start + length) * m_key_size];
+      uint8_t *current = begin;
 
       int c = start;
 
@@ -167,7 +167,7 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t length) {
+    void scan(ScanVisitor *visitor, uint32_t start, size_t length) {
       (*visitor)(&m_data[start * m_key_size], length);
     }
 
@@ -200,7 +200,7 @@ class BinaryKeyList : public BaseKeyList
 
     // Change the capacity; for PAX layouts this just means copying the
     // data from one place to the other
-    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, uint8_t *new_data_ptr,
             size_t new_range_size, size_t capacity_hint) {
       memmove(new_data_ptr, m_data, node_count * m_key_size);
       m_data = new_data_ptr;
@@ -219,13 +219,13 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Returns the pointer to a key's data
-    ham_u8_t *get_key_data(int slot) {
+    uint8_t *get_key_data(int slot) {
       return (&m_data[slot * m_key_size]);
     }
 
   private:
     // Returns the pointer to a key's data (const flavour)
-    ham_u8_t *get_key_data(int slot) const {
+    uint8_t *get_key_data(int slot) const {
       return (&m_data[slot * m_key_size]);
     }
 
@@ -240,7 +240,7 @@ class BinaryKeyList : public BaseKeyList
     size_t m_key_size;
 
     // Pointer to the actual key data
-    ham_u8_t *m_data;
+    uint8_t *m_data;
 };
 
 } // namespace PaxLayout

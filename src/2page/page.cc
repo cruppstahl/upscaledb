@@ -48,7 +48,7 @@ Page::~Page()
 }
 
 void
-Page::allocate(ham_u32_t type, ham_u32_t flags)
+Page::allocate(uint32_t type, uint32_t flags)
 {
   m_device->alloc_page(this);
 
@@ -62,7 +62,7 @@ Page::allocate(ham_u32_t type, ham_u32_t flags)
 }
 
 void
-Page::fetch(ham_u64_t address)
+Page::fetch(uint64_t address)
 {
   m_device->read_page(this, address);
   set_address(address);

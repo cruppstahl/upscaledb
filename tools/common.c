@@ -24,7 +24,7 @@
 void
 print_banner(const char *program_name)
 {
-  ham_u32_t maj, min, rev;
+  uint32_t maj, min, rev;
   ham_get_version(&maj, &min, &rev);
 
   printf("hamsterdb %s%d.%d.%d - Copyright (C) 2005-2014 "

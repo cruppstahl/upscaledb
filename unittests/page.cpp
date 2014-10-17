@@ -35,7 +35,7 @@ struct PageFixture {
 
   PageFixture(bool inmemorydb = false, bool mmap = true)
     : m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap) {
-    ham_u32_t flags = 0;
+    uint32_t flags = 0;
 
     if (m_inmemory)
       flags |= HAM_IN_MEMORY;
@@ -69,7 +69,7 @@ struct PageFixture {
   void multipleAllocFreeTest() {
     int i;
     Page *page;
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
 
     for (i = 0; i < 10; i++) {
       page = new Page(((LocalEnvironment *)m_env)->get_device());
@@ -84,7 +84,7 @@ struct PageFixture {
 
   void fetchFlushTest() {
     Page *page, *temp;
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
 
     page = new Page(((LocalEnvironment *)m_env)->get_device());
     temp = new Page(((LocalEnvironment *)m_env)->get_device());

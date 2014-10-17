@@ -44,7 +44,7 @@ class BtreeFindAction
 {
   public:
     BtreeFindAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+        ham_key_t *key, ham_record_t *record, uint32_t flags)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags) {
       if (cursor && cursor->get_btree_cursor()->get_parent())
@@ -346,12 +346,12 @@ class BtreeFindAction
     ham_record_t *m_record;
 
     // flags of ham_db_find()
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 };
 
 ham_status_t
 BtreeIndex::find(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   BtreeFindAction bfa(this, txn, cursor, key, record, flags);
   return (bfa.run());

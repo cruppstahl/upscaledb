@@ -95,7 +95,7 @@ TransactionCursor::overwrite(ham_record_t *record)
 
 ham_status_t
 TransactionCursor::move_top_in_node(TransactionNode *node,
-        TransactionOperation *op, bool ignore_conflicts, ham_u32_t flags)
+        TransactionOperation *op, bool ignore_conflicts, uint32_t flags)
 {
   Transaction *optxn = 0;
 
@@ -150,7 +150,7 @@ next:
 }
 
 ham_status_t
-TransactionCursor::move(ham_u32_t flags)
+TransactionCursor::move(uint32_t flags)
 {
   ham_status_t st;
   TransactionNode *node;
@@ -223,7 +223,7 @@ TransactionCursor::move(ham_u32_t flags)
 }
 
 ham_status_t
-TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
+TransactionCursor::find(ham_key_t *key, uint32_t flags)
 {
   TransactionNode *node = 0;
 
@@ -325,7 +325,7 @@ TransactionCursor::copy_coupled_record(ham_record_t *record)
   throw Exception(HAM_CURSOR_IS_NIL);
 }
 
-ham_u64_t
+uint64_t
 TransactionCursor::get_record_size()
 {
   /* coupled cursor? get record from the txn_op structure */
@@ -392,7 +392,7 @@ TransactionCursor::get_db()
 
 ham_status_t
 TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
-                ham_u32_t flags)
+                uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
 

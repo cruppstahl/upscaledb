@@ -111,7 +111,7 @@ namespace hamsterdb {
 class DupeCacheLine
 {
   public:
-    DupeCacheLine(bool use_btree = true, ham_u64_t btree_dupeidx = 0)
+    DupeCacheLine(bool use_btree = true, uint64_t btree_dupeidx = 0)
       : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
       ham_assert(use_btree == true);
     }
@@ -128,13 +128,13 @@ class DupeCacheLine
     }
 
     // Returns the btree duplicate index
-    ham_u64_t get_btree_dupe_idx() {
+    uint64_t get_btree_dupe_idx() {
       ham_assert(m_use_btree == true);
       return (m_btree_dupeidx);
     }
 
     // Sets the btree duplicate index
-    void set_btree_dupe_idx(ham_u64_t idx) {
+    void set_btree_dupe_idx(uint64_t idx) {
       m_use_btree = true;
       m_btree_dupeidx = idx;
       m_op = 0;
@@ -155,7 +155,7 @@ class DupeCacheLine
 
   private:
     // The btree duplicate index (of the original btree dupe table)
-    ham_u64_t m_btree_dupeidx;
+    uint64_t m_btree_dupeidx;
 
     // The txn op structure that we refer to
     TransactionOperation *m_op;
@@ -176,8 +176,8 @@ class DupeCache {
     }
 
     // Returns the number of elements in the cache
-    ham_u32_t get_count() const {
-      return ((ham_u32_t)m_elements.size());
+    uint32_t get_count() const {
+      return ((uint32_t)m_elements.size());
     }
 
     // Returns an element from the cache
@@ -207,7 +207,7 @@ class DupeCache {
     }
 
     // Erases an item
-    void erase(ham_u32_t position) {
+    void erase(uint32_t position) {
       m_elements.erase(m_elements.begin() + position);
     }
 
@@ -254,7 +254,7 @@ class Cursor
 
   public:
     // Constructor; retrieves pointer to db and txn, initializes all members
-    Cursor(LocalDatabase *db, Transaction *txn = 0, ham_u32_t flags = 0);
+    Cursor(LocalDatabase *db, Transaction *txn = 0, uint32_t flags = 0);
 
     // Copy constructor; used for cloning a Cursor
     Cursor(Cursor &other);
@@ -313,21 +313,21 @@ class Cursor
     // On success, the cursor is then set to nil. The Transaction is passed
     // as a separate pointer since it might be a local/temporary Transaction
     // that was created only for this single operation.
-    ham_status_t erase(Transaction *txn, ham_u32_t flags);
+    ham_status_t erase(Transaction *txn, uint32_t flags);
 
     // Retrieves the number of duplicates of the current key
     //
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    int get_record_count(Transaction *txn, ham_u32_t flags);
+    int get_record_count(Transaction *txn, uint32_t flags);
 
     // Retrieves the size of the current record
     //
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    ham_u64_t get_record_size(Transaction *txn);
+    uint64_t get_record_size(Transaction *txn);
 
     // Overwrites the record of the current key
     //
@@ -335,10 +335,10 @@ class Cursor
     // local/temporary Transaction that was created only for this single
     // operation.
     ham_status_t overwrite(Transaction *txn, ham_record_t *record,
-                    ham_u32_t flags);
+                    uint32_t flags);
 
     // Moves a Cursor (ham_cursor_move)
-    ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+    ham_status_t move(ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Closes an existing cursor (ham_cursor_close)
     void close();
@@ -347,7 +347,7 @@ class Cursor
     //
     // The |what| parameter specifies if the dupecache is initialized from
     // btree (kBtree), from txn (kTxn) or both.
-    void update_dupecache(ham_u32_t what);
+    void update_dupecache(uint32_t what);
 
     // Appends the duplicates of the BtreeCursor to the duplicate cache.
     void append_btree_duplicates(BtreeCursor *btc, DupeCache *dc);
@@ -360,7 +360,7 @@ class Cursor
 
     // Couples the cursor to a duplicate in the dupe table
     // dupe_id is a 1 based index!!
-    void couple_to_dupe(ham_u32_t dupe_id);
+    void couple_to_dupe(uint32_t dupe_id);
 
     // Synchronizes txn- and btree-cursor
     //
@@ -371,11 +371,11 @@ class Cursor
     // If both are nil, or both are valid, then nothing happens
     //
     // |equal_key| is set to true if the keys in both cursors are equal.
-    void sync(ham_u32_t flags, bool *equal_keys);
+    void sync(uint32_t flags, bool *equal_keys);
 
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
-    ham_u32_t get_dupecache_count() {
+    uint32_t get_dupecache_count() {
       if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
         return (0);
 
@@ -418,12 +418,12 @@ class Cursor
     }
 
     // Returns the remote Cursor handle
-    ham_u64_t get_remote_handle() {
+    uint64_t get_remote_handle() {
       return (m_remote_handle);
     }
 
     // Returns the remote Cursor handle
-    void set_remote_handle(ham_u64_t handle) {
+    void set_remote_handle(uint64_t handle) {
       m_remote_handle = handle;
     }
 
@@ -438,12 +438,12 @@ class Cursor
     }
 
     // Returns the current index in the dupe cache
-    ham_u32_t get_dupecache_index() const {
+    uint32_t get_dupecache_index() const {
       return (m_dupecache_index);
     }
 
     // Sets the current index in the dupe cache
-    void set_dupecache_index(ham_u32_t index) {
+    void set_dupecache_index(uint32_t index) {
       m_dupecache_index = index;
     }
 
@@ -455,7 +455,7 @@ class Cursor
 
     // Stores the current operation; needed for ham_cursor_move
     // TODO should be private
-    void set_lastop(ham_u32_t lastop) {
+    void set_lastop(uint32_t lastop) {
       m_lastop = lastop;
       m_is_first_use = false;
     }
@@ -489,16 +489,16 @@ class Cursor
     ham_status_t move_previous_dupe();
 
     // Moves cursor to the first key
-    ham_status_t move_first_key(ham_u32_t flags);
+    ham_status_t move_first_key(uint32_t flags);
 
     // Moves cursor to the last key
-    ham_status_t move_last_key(ham_u32_t flags);
+    ham_status_t move_last_key(uint32_t flags);
 
     // Moves cursor to the next key
-    ham_status_t move_next_key(ham_u32_t flags);
+    ham_status_t move_next_key(uint32_t flags);
 
     // Moves cursor to the previous key
-    ham_status_t move_previous_key(ham_u32_t flags);
+    ham_status_t move_previous_key(uint32_t flags);
 
     // Moves cursor to the first key - helper function
     ham_status_t move_first_key_singlestep();
@@ -525,7 +525,7 @@ class Cursor
     BtreeCursor m_btree_cursor;
 
     // The remote database handle
-    ham_u64_t m_remote_handle;
+    uint64_t m_remote_handle;
 
     // Linked list of all Cursors in this Database
     Cursor *m_next, *m_previous;
@@ -537,18 +537,18 @@ class Cursor
 
     /** The current position of the cursor in the cache. This is a
      * 1-based index. 0 means that the cache is not in use. */
-    ham_u32_t m_dupecache_index;
+    uint32_t m_dupecache_index;
 
     // The last operation (insert/find or move); needed for
     // ham_cursor_move. Values can be HAM_CURSOR_NEXT,
     // HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT
-    ham_u32_t m_lastop;
+    uint32_t m_lastop;
 
     // The result of the last compare operation
     int m_last_cmp;
 
     // Cursor flags
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // true if this cursor was never used
     bool m_is_first_use;

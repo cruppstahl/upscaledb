@@ -28,24 +28,24 @@ namespace hamsterdb {
 
 // only select even numbers
 static ham_bool_t
-sum_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+sum_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
-  ham_u32_t *p = (ham_u32_t *)key_data;
+  uint32_t *p = (uint32_t *)key_data;
   return ((*p & 1) == 0);
 }
 
 // only select numbers < 10
 static ham_bool_t
-average_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+average_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
   float *p = (float *)key_data;
   return (*p < 10.f);
 }
 
 static ham_bool_t
-count_if_predicate(const void *key_data, ham_u16_t key_size, void *context)
+count_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
-  ham_u8_t *p = (ham_u8_t *)key_data;
+  uint8_t *p = (uint8_t *)key_data;
   return (*p & 1);
 }
 
@@ -58,7 +58,7 @@ struct HolaFixture {
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
     ham_parameter_t params[] = {
-        {HAM_PARAM_KEY_TYPE, (ham_u64_t)type},
+        {HAM_PARAM_KEY_TYPE, (uint64_t)type},
         {0, 0}
     };
     REQUIRE(0 == ham_env_create(&m_env, ".test",
@@ -86,7 +86,7 @@ struct HolaFixture {
   void sumTest(int count) {
     ham_key_t key = {0};
     ham_record_t record = {0};
-    ham_u32_t sum = 0;
+    uint32_t sum = 0;
 
     ham_txn_t *txn = 0;
     if (m_use_transactions)
@@ -109,7 +109,7 @@ struct HolaFixture {
       ham_txn_abort(txn, 0);
   }
 
-  ham_status_t insertBtree(ham_u32_t key) {
+  ham_status_t insertBtree(uint32_t key) {
     ham_key_t k = {0};
     k.data = &key;
     k.size = sizeof(key);
@@ -119,7 +119,7 @@ struct HolaFixture {
     return (be->insert(0, 0, &k, &r, 0));
   }
 
-  ham_status_t insertTxn(ham_txn_t *txn, ham_u32_t key) {
+  ham_status_t insertTxn(ham_txn_t *txn, uint32_t key) {
     ham_key_t k = {0};
     k.data = &key;
     k.size = sizeof(key);
@@ -135,7 +135,7 @@ struct HolaFixture {
   // btree, txn, btree, txn
   // btree, txn, btree, txn, btree
   void sumMixedTest() {
-    ham_u32_t sum = 0;
+    uint32_t sum = 0;
     ham_txn_t *txn = 0;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -193,7 +193,7 @@ struct HolaFixture {
   // txn, btree, txn, btree
   // txn, btree, txn, btree, txn
   void sumMixedReverseTest() {
-    ham_u32_t sum = 0;
+    uint32_t sum = 0;
     ham_txn_t *txn = 0;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -247,7 +247,7 @@ struct HolaFixture {
   void sumIfTest(int count) {
     ham_key_t key = {0};
     ham_record_t record = {0};
-    ham_u32_t sum = 0;
+    uint32_t sum = 0;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
@@ -320,7 +320,7 @@ struct HolaFixture {
     ham_key_t key = {0};
     ham_record_t record = {0};
     char buffer[200] = {0};
-    ham_u64_t c = 0;
+    uint64_t c = 0;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
@@ -346,7 +346,7 @@ struct HolaFixture {
     ham_key_t key = {0};
     ham_record_t record = {0};
     char buffer[200] = {0};
-    ham_u64_t c = 0;
+    uint64_t c = 0;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {

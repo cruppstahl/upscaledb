@@ -43,27 +43,27 @@ class RemoteTransaction : public Transaction
   public:
     // Constructor; "begins" the Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
-    RemoteTransaction(Environment *env, const char *name, ham_u32_t flags);
+    RemoteTransaction(Environment *env, const char *name, uint32_t flags);
 
     // Commits the Transaction
-    virtual void commit(ham_u32_t flags = 0);
+    virtual void commit(uint32_t flags = 0);
 
     // Aborts the Transaction
-    virtual void abort(ham_u32_t flags = 0);
+    virtual void abort(uint32_t flags = 0);
 
     // Returns the remote Transaction handle
-    ham_u64_t get_remote_handle() const {
+    uint64_t get_remote_handle() const {
       return (m_remote_handle);
     }
 
     // Sets the remote Transaction handle
-    void set_remote_handle(ham_u64_t handle) {
+    void set_remote_handle(uint64_t handle) {
       m_remote_handle = handle;
     }
 
   private:
     // The remote Transaction handle
-    ham_u64_t m_remote_handle;
+    uint64_t m_remote_handle;
 };
 
 
@@ -79,15 +79,15 @@ class RemoteTransactionManager : public TransactionManager
     }
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, ham_u32_t flags);
+    virtual Transaction *begin(const char *name, uint32_t flags);
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void commit(Transaction *txn, ham_u32_t flags = 0);
+    virtual void commit(Transaction *txn, uint32_t flags = 0);
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void abort(Transaction *txn, ham_u32_t flags = 0);
+    virtual void abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns();

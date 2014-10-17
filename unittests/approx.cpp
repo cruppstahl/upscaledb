@@ -63,7 +63,7 @@ struct ApproxFixture {
     return (be->insert((Transaction *)m_txn, 0, &k, &r, 0));
   }
 
-  ham_status_t insertTxn(const char *s, ham_u32_t flags = 0) {
+  ham_status_t insertTxn(const char *s, uint32_t flags = 0) {
     ham_key_t k = {};
     k.data = (void *)s;
     k.size = strlen(s) + 1;
@@ -82,7 +82,7 @@ struct ApproxFixture {
     return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
-  ham_status_t find(ham_u32_t flags, const char *search, const char *expected) {
+  ham_status_t find(uint32_t flags, const char *search, const char *expected) {
     ham_key_t k = {};
     k.data = (void *)search;
     k.size = strlen(search) + 1;

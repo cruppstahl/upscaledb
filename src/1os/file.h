@@ -82,7 +82,7 @@ class File
     }
 
     // Creates a new file
-    void create(const char *filename, ham_u32_t mode);
+    void create(const char *filename, uint32_t mode);
 
     // Opens an existing file
     void open(const char *filename, bool read_only);
@@ -100,8 +100,8 @@ class File
     // mmap is called with MAP_PRIVATE - the allocated buffer
     // is just a copy of the file; writing to the buffer will not alter
     // the file itself.
-    void mmap(ham_u64_t position, size_t size, bool readonly,
-                    ham_u8_t **buffer);
+    void mmap(uint64_t position, size_t size, bool readonly,
+                    uint8_t **buffer);
 
     // Unmaps a buffer
     void munmap(void *buffer, size_t size);
@@ -110,10 +110,10 @@ class File
     void madvice_dontneed(void *buffer, size_t size);
 
     // Positional read from a file
-    void pread(ham_u64_t addr, void *buffer, size_t len);
+    void pread(uint64_t addr, void *buffer, size_t len);
 
     // Positional write to a file
-    void pwrite(ham_u64_t addr, const void *buffer, size_t len);
+    void pwrite(uint64_t addr, const void *buffer, size_t len);
 
     // Write data to a file; uses the current file position
     void write(const void *buffer, size_t len);
@@ -122,16 +122,16 @@ class File
     static size_t get_granularity();
 
     // Seek position in a file
-    void seek(ham_u64_t offset, int whence);
+    void seek(uint64_t offset, int whence);
 
     // Tell the position in a file
-    ham_u64_t tell();
+    uint64_t tell();
 
     // Returns the size of the file
-    ham_u64_t get_file_size();
+    uint64_t get_file_size();
 
     // Truncate/resize the file
-    void truncate(ham_u64_t newsize);
+    void truncate(uint64_t newsize);
 
     // Closes the file descriptor
     void close();

@@ -27,12 +27,12 @@
 using namespace hamsterdb;
 
 struct PartialWriteFixture {
-  ham_u32_t m_page_size;
+  uint32_t m_page_size;
   bool m_inmemory;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialWriteFixture(ham_u32_t page_size = 0, bool inmemory = false)
+  PartialWriteFixture(uint32_t page_size = 0, bool inmemory = false)
     : m_page_size(page_size), m_inmemory(inmemory) {
     setup();
   }
@@ -63,15 +63,15 @@ struct PartialWriteFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void fillBuffer(ham_u8_t *ptr, ham_u32_t offset, ham_u32_t size) {
-    for (ham_u32_t i = 0; i < size; i++)
-      ptr[offset + i] = (ham_u8_t)i;
+  void fillBuffer(uint8_t *ptr, uint32_t offset, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++)
+      ptr[offset + i] = (uint8_t)i;
   }
 
   void simpleInsertTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[50];
+    uint8_t buffer[50];
 
     /* fill the buffer with a pattern */
     fillBuffer(&buffer[0], 0, sizeof(buffer));
@@ -95,7 +95,7 @@ struct PartialWriteFixture {
           unsigned partial_size, unsigned record_size) {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t *buffer = (ham_u8_t *)malloc(record_size);
+    uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
 
@@ -216,17 +216,17 @@ struct PartialWriteFixture {
   }
 
   void insertGapsTestPagesize() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps, ps, ps * 2);
   }
 
   void insertGapsTestPagesize2() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps * 2, ps * 2, ps * 4);
   }
 
   void insertGapsTestPagesize4() {
-    ham_u32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->get_page_size();
     insertGaps(ps * 4, ps * 4, ps * 8);
   }
 };
@@ -245,20 +245,20 @@ struct PartialWriteFixture {
 
 
 struct OverwritePartialWriteFixture : public PartialWriteFixture {
-  OverwritePartialWriteFixture(ham_u32_t page_size, bool inmemory = false)
+  OverwritePartialWriteFixture(uint32_t page_size, bool inmemory = false)
     : PartialWriteFixture(page_size, inmemory) {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
-    for (ham_u32_t i = 0; i < size; i++)
-      ptr[i] = (ham_u8_t)(0xff - i);
+  void fillBufferReverse(uint8_t *ptr, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++)
+      ptr[i] = (uint8_t)(0xff - i);
   }
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t *buffer = (ham_u8_t *)malloc(record_size);
+    uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
 
@@ -307,16 +307,16 @@ struct ShrinkPartialWriteFixture : public PartialWriteFixture {
   ShrinkPartialWriteFixture() {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
-    for (ham_u32_t i = 0; i < size; i++)
-      ptr[i] = (ham_u8_t)(0xff - i);
+  void fillBufferReverse(uint8_t *ptr, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++)
+      ptr[i] = (uint8_t)(0xff - i);
   }
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t *buffer = (ham_u8_t *)malloc(record_size * 2);
+    uint8_t *buffer = (uint8_t *)malloc(record_size * 2);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
 
@@ -562,16 +562,16 @@ struct GrowPartialWriteFixture : public PartialWriteFixture {
   GrowPartialWriteFixture() {
   }
 
-  void fillBufferReverse(ham_u8_t *ptr, ham_u32_t size) {
-    for (ham_u32_t i = 0; i < size; i++)
-      ptr[i] = (ham_u8_t)(0xff - i);
+  void fillBufferReverse(uint8_t *ptr, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++)
+      ptr[i] = (uint8_t)(0xff - i);
   }
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t *buffer = (ham_u8_t *)malloc(record_size);
+    uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
 
@@ -813,14 +813,14 @@ TEST_CASE("Partial-grow/insertGapsTestPagesize4", "")
 }
 
 struct PartialReadFixture {
-  ham_u32_t m_page_size;
+  uint32_t m_page_size;
   bool m_inmemory;
-  ham_u32_t m_find_flags;
+  uint32_t m_find_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  PartialReadFixture(ham_u32_t page_size = 0, bool inmemory = false,
-                  ham_u32_t find_flags = 0)
+  PartialReadFixture(uint32_t page_size = 0, bool inmemory = false,
+                  uint32_t find_flags = 0)
     : m_page_size(page_size), m_inmemory(inmemory), m_find_flags(find_flags) {
     ham_parameter_t params[] = {
       { 0, 0 },
@@ -843,15 +843,15 @@ struct PartialReadFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void fillBuffer(ham_u8_t *ptr, ham_u32_t offset, ham_u32_t size) {
-    for (ham_u32_t i = 0; i < size; i++)
-      ptr[i] = (ham_u8_t)(offset + i);
+  void fillBuffer(uint8_t *ptr, uint32_t offset, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++)
+      ptr[i] = (uint8_t)(offset + i);
   }
 
   void simpleFindTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[50];
+    uint8_t buffer[50];
 
     /* fill the buffer with a pattern */
     fillBuffer(&buffer[0], 0, sizeof(buffer));
@@ -876,7 +876,7 @@ struct PartialReadFixture {
           unsigned record_size) {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t *buffer = (ham_u8_t *)malloc(record_size);
+    uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     /* fill the buffer with a pattern */
     fillBuffer(&buffer[0], 0, record_size);
@@ -985,9 +985,9 @@ struct MiscPartialFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   bool m_inmemory;
-  ham_u32_t m_find_flags;
+  uint32_t m_find_flags;
 
-  MiscPartialFixture(bool inmemory = false, ham_u32_t find_flags = 0)
+  MiscPartialFixture(bool inmemory = false, uint32_t find_flags = 0)
     : m_inmemory(inmemory), m_find_flags(find_flags) {
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"),
@@ -1046,7 +1046,7 @@ struct MiscPartialFixture {
   void invalidInsertParametersTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[500];
+    uint8_t buffer[500];
 
     ham_cursor_t *c;
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
@@ -1084,7 +1084,7 @@ struct MiscPartialFixture {
   void invalidFindParametersTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[500];
+    uint8_t buffer[500];
 
     ham_cursor_t *c;
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
@@ -1110,7 +1110,7 @@ struct MiscPartialFixture {
   void reduceSizeTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[500];
+    uint8_t buffer[500];
 
     ham_cursor_t *c;
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
@@ -1152,7 +1152,7 @@ struct MiscPartialFixture {
   void disabledSmallRecordsTest() {
     ham_key_t key = {0};
     ham_record_t rec = {0};
-    ham_u8_t buffer[8];
+    uint8_t buffer[8];
 
     rec.data = (void *)&buffer[0];
     rec.size = 8;
@@ -1211,7 +1211,7 @@ struct MiscPartialFixture {
 
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[16] = {0};
+    uint8_t buffer[16] = {0};
 
     rec.data = (void *)&buffer[0];
     rec.size = 16;
@@ -1243,7 +1243,7 @@ struct MiscPartialFixture {
   void partialSizeTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[500];
+    uint8_t buffer[500];
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);

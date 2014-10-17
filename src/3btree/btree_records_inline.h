@@ -68,13 +68,13 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Sets the data pointer
-    void create(ham_u8_t *data, size_t range_size) {
-      m_data = (ham_u8_t *)data;
+    void create(uint8_t *data, size_t range_size) {
+      m_data = (uint8_t *)data;
       m_range_size = range_size;
     }
 
     // Opens an existing RecordList
-    void open(ham_u8_t *ptr, size_t range_size, size_t node_count) {
+    void open(uint8_t *ptr, size_t range_size, size_t node_count) {
       m_data = ptr;
       m_range_size = range_size;
     }
@@ -95,14 +95,14 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns the record size
-    ham_u64_t get_record_size(int slot, int duplicate_index = 0) const {
+    uint64_t get_record_size(int slot, int duplicate_index = 0) const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, int duplicate_index) const {
+                    uint32_t flags, int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       if (flags & HAM_PARTIAL) {
@@ -129,8 +129,8 @@ class InlineRecordList : public BaseRecordList
 
     // Updates the record of a key
     void set_record(int slot, int duplicate_index,
-                ham_record_t *record, ham_u32_t flags,
-                ham_u32_t *new_duplicate_index = 0) {
+                ham_record_t *record, uint32_t flags,
+                uint32_t *new_duplicate_index = 0) {
       ham_assert(record->size == m_record_size);
       // it's possible that the records have size 0 - then don't copy anything
       if (m_record_size)
@@ -171,14 +171,14 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns the record id. Not required for fixed length leaf nodes
-    ham_u64_t get_record_id(int slot, int duplicate_index = 0)
+    uint64_t get_record_id(int slot, int duplicate_index = 0)
                     const {
       ham_assert(!"shouldn't be here");
       return (0);
     }
 
     // Sets the record id. Not required for fixed length leaf nodes
-    void set_record_id(int slot, ham_u64_t ptr) {
+    void set_record_id(int slot, uint64_t ptr) {
       ham_assert(!"shouldn't be here");
     }
 
@@ -191,7 +191,7 @@ class InlineRecordList : public BaseRecordList
 
     // Change the capacity; for PAX layouts this just means copying the
     // data from one place to the other
-    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                     size_t new_range_size, size_t capacity_hint) {
       memmove(new_data_ptr, m_data, node_count * m_record_size);
       m_data = new_data_ptr;
@@ -211,7 +211,7 @@ class InlineRecordList : public BaseRecordList
     size_t m_record_size;
 
     // The actual record data
-    ham_u8_t *m_data;
+    uint8_t *m_data;
 };
 
 } // namespace PaxLayout

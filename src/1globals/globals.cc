@@ -25,13 +25,13 @@
 
 namespace hamsterdb {
 
-ham_u64_t Globals::ms_extended_keys;
+uint64_t Globals::ms_extended_keys;
 
-ham_u64_t Globals::ms_extended_duptables;
+uint64_t Globals::ms_extended_duptables;
 
-ham_u32_t Globals::ms_extended_threshold;
+uint32_t Globals::ms_extended_threshold;
 
-ham_u32_t Globals::ms_duplicate_threshold;
+uint32_t Globals::ms_duplicate_threshold;
 
 int Globals::ms_linear_threshold;
 
@@ -50,9 +50,9 @@ void HAM_CALLCONV default_errhandler(int level, const char *message);
 
 ham_errhandler_fun Globals::ms_error_handler = default_errhandler;
 
-ham_u64_t Globals::ms_bytes_before_compression;
+uint64_t Globals::ms_bytes_before_compression;
 
-ham_u64_t Globals::ms_bytes_after_compression;
+uint64_t Globals::ms_bytes_after_compression;
 
 bool Globals::ms_is_simd_enabled = true;
 

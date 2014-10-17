@@ -31,8 +31,8 @@ namespace hamsterdb {
 
 static int HAM_CALLCONV
 my_compare_func(ham_db_t *db,
-      const ham_u8_t *lhs, ham_u32_t lhs_length,
-      const ham_u8_t *rhs, ham_u32_t rhs_length) {
+      const uint8_t *lhs, uint32_t lhs_length,
+      const uint8_t *rhs, uint32_t rhs_length) {
   (void)lhs;
   (void)rhs;
   (void)lhs_length;
@@ -62,14 +62,14 @@ struct HamsterdbFixture {
   }
 
   void versionTest() {
-    ham_u32_t major, minor, revision;
+    uint32_t major, minor, revision;
 
     ham_get_version(0, 0, 0);
     ham_get_version(&major, &minor, &revision);
 
-    REQUIRE((ham_u32_t)HAM_VERSION_MAJ == major);
-    REQUIRE((ham_u32_t)HAM_VERSION_MIN == minor);
-    REQUIRE((ham_u32_t)HAM_VERSION_REV == revision);
+    REQUIRE((uint32_t)HAM_VERSION_MAJ == major);
+    REQUIRE((uint32_t)HAM_VERSION_MIN == minor);
+    REQUIRE((uint32_t)HAM_VERSION_REV == revision);
   };
 
   void openTest() {
@@ -315,9 +315,9 @@ struct HamsterdbFixture {
     rec.flags = HAM_RECORD_USER_ALLOC;
     REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
 
-    REQUIRE((ham_u16_t)0 == key.size);
+    REQUIRE((uint16_t)0 == key.size);
     REQUIRE((void *)0 == key.data);
-    REQUIRE((ham_u32_t)0 == rec.size);
+    REQUIRE((uint32_t)0 == rec.size);
     REQUIRE((void *)0 == rec.data);
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -325,12 +325,12 @@ struct HamsterdbFixture {
 
 
   static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
-                  const ham_u8_t *lhs, ham_u32_t lhs_length,
-                  const ham_u8_t *rhs, ham_u32_t rhs_length)
+                  const uint8_t *lhs, uint32_t lhs_length,
+                  const uint8_t *rhs, uint32_t rhs_length)
   {
-    ham_s32_t *l = (ham_s32_t *)lhs;
-    ham_s32_t *r = (ham_s32_t *)rhs;
-    ham_u32_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
+    int32_t *l = (int32_t *)lhs;
+    int32_t *r = (int32_t *)rhs;
+    uint32_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
 
     ham_assert(lhs);
     ham_assert(rhs);
@@ -357,14 +357,14 @@ struct HamsterdbFixture {
     ham_env_t *env;
     ham_db_t *db;
     struct my_key_t {
-      ham_s32_t val1;
-      ham_u32_t val2;
-      ham_u32_t val3;
-      ham_u32_t val4;
+      int32_t val1;
+      uint32_t val2;
+      uint32_t val3;
+      uint32_t val4;
     };
     struct my_rec_t {
-      ham_s32_t val1;
-      ham_u32_t val2[15];
+      int32_t val1;
+      uint32_t val2[15];
     };
     ham_parameter_t ps[] = {
       { HAM_PARAM_PAGESIZE,  32 * 1024 }, /* UNIX == WIN now */
@@ -645,15 +645,15 @@ struct HamsterdbFixture {
     };
     const int MY_KEY_SIZE = 6554;
     struct my_key_t {
-      ham_u32_t key_val1;
-      ham_u32_t key_surplus[MY_KEY_SIZE/4];
+      uint32_t key_val1;
+      uint32_t key_surplus[MY_KEY_SIZE/4];
     };
     struct my_rec_t {
-      ham_u32_t rec_val1;
+      uint32_t rec_val1;
       char rec_val2[512];
     };
 
-    ham_u32_t keycount = 0;
+    uint32_t keycount = 0;
     REQUIRE(0 ==
         ham_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
     REQUIRE(0 ==
@@ -704,7 +704,7 @@ struct HamsterdbFixture {
     my_rec_t *r = (my_rec_t *)rec.data;
     my_key_t *k = (my_key_t *)key.data;
     REQUIRE((unsigned)r->rec_val1 == (unsigned)1000);
-    REQUIRE((unsigned)k->key_val1 == (ham_u32_t)vals[fill-1]);
+    REQUIRE((unsigned)k->key_val1 == (uint32_t)vals[fill-1]);
 
     ::memset(&rec, 0, sizeof(rec));
     key.data = &my_key;
@@ -715,7 +715,7 @@ struct HamsterdbFixture {
     r = (my_rec_t *)rec.data;
     k = (my_key_t *)key.data;
     REQUIRE(r->rec_val1 == (unsigned)1000);
-    REQUIRE(k->key_val1 == (ham_u32_t)vals[fill-1]);
+    REQUIRE(k->key_val1 == (uint32_t)vals[fill-1]);
     REQUIRE(ham_key_get_approximate_match_type(&key) == 0);
 
     ::memset(&rec, 0, sizeof(rec));
@@ -729,7 +729,7 @@ struct HamsterdbFixture {
     r = (my_rec_t *)rec.data;
     k = (my_key_t *)key.data;
     REQUIRE(r->rec_val1 == (unsigned)1000);
-    REQUIRE(k->key_val1 == (ham_u32_t)vals[fill-1]);
+    REQUIRE(k->key_val1 == (uint32_t)vals[fill-1]);
     REQUIRE(ham_key_get_approximate_match_type(&key) == 1);
 
     ::memset(&rec, 0, sizeof(rec));
@@ -741,7 +741,7 @@ struct HamsterdbFixture {
     r = (my_rec_t *)rec.data;
     k = (my_key_t *)key.data;
     REQUIRE(r->rec_val1 == (unsigned)1000);
-    REQUIRE(k->key_val1 == (ham_u32_t)vals[fill - 1]);
+    REQUIRE(k->key_val1 == (uint32_t)vals[fill - 1]);
     REQUIRE(ham_key_get_approximate_match_type(&key) == -1);
 
     key.data = (void *)&my_key;
@@ -775,7 +775,7 @@ struct HamsterdbFixture {
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
       r = (my_rec_t *)rec.data;
       k = (my_key_t *)key.data;
-      REQUIRE(k->key_val1 == (ham_u32_t)verify_vals1[i]);
+      REQUIRE(k->key_val1 == (uint32_t)verify_vals1[i]);
     }
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
@@ -791,7 +791,7 @@ struct HamsterdbFixture {
       int recval;
     };
     struct search_cat_t {
-      ham_u32_t mode;
+      uint32_t mode;
       const struct search_res_t *cases;
       const char *descr;
     };
@@ -899,9 +899,9 @@ struct HamsterdbFixture {
         k = (my_key_t *)key.data;
         REQUIRE(rv == res[i].rv);
         REQUIRE((r ? r->rec_val1 : 666) ==
-            (ham_u32_t)res[i].recval);
+            (uint32_t)res[i].recval);
         REQUIRE((k ? k->key_val1 : 666) ==
-            (ham_u32_t)res[i].keyval);
+            (uint32_t)res[i].keyval);
         REQUIRE(ham_key_get_approximate_match_type(&key) ==
             res[i].sign);
       }
@@ -933,7 +933,7 @@ struct HamsterdbFixture {
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
       r = (my_rec_t *)rec.data;
       k = (my_key_t *)key.data;
-      REQUIRE(k->key_val1 == (ham_u32_t)verify_vals2[i]);
+      REQUIRE(k->key_val1 == (uint32_t)verify_vals2[i]);
     }
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
@@ -1304,7 +1304,7 @@ struct HamsterdbFixture {
     /* insert a big blob */
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)sizeof(buffer1) == rec.size);
+    REQUIRE((uint32_t)sizeof(buffer1) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
     /* replace with a tiny blob */
@@ -1314,7 +1314,7 @@ struct HamsterdbFixture {
     rec.data = buffer2;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)sizeof(buffer2) == rec.size);
+    REQUIRE((uint32_t)sizeof(buffer2) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
     /* replace with a big blob */
@@ -1324,7 +1324,7 @@ struct HamsterdbFixture {
     rec.data = buffer1;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)sizeof(buffer1) == rec.size);
+    REQUIRE((uint32_t)sizeof(buffer1) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
     /* replace with a NULL blob */
@@ -1334,7 +1334,7 @@ struct HamsterdbFixture {
     rec.data = 0;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)0 == rec.size);
+    REQUIRE((uint32_t)0 == rec.size);
     REQUIRE((void *)0 == rec.data);
 
     /* replace with a tiny blob */
@@ -1344,7 +1344,7 @@ struct HamsterdbFixture {
     rec.data = buffer2;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)sizeof(buffer2) == rec.size);
+    REQUIRE((uint32_t)sizeof(buffer2) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
     /* replace with a NULL blob */
@@ -1354,7 +1354,7 @@ struct HamsterdbFixture {
     rec.data = 0;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u32_t)0 == rec.size);
+    REQUIRE((uint32_t)0 == rec.size);
     REQUIRE(rec.data == (void *)0);
   }
 
@@ -1547,7 +1547,7 @@ struct HamsterdbFixture {
     ham_cursor_t *cursor;
     ham_key_t key;
     ham_record_t rec;
-    ham_u64_t count;
+    uint64_t count;
     ham_parameter_t ps[] = { { HAM_PARAM_PAGESIZE, 1024 * 4 }, { 0, 0 } };
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -1835,7 +1835,7 @@ struct HamsterdbFixture {
   void overwriteLogDirectoryTest() {
     ham_env_t *env;
     ham_parameter_t ps[] = {
-        { HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data" },
+        { HAM_PARAM_LOG_DIRECTORY, (uint64_t)"data" },
         { 0, 0 }
     };
 
@@ -1872,7 +1872,7 @@ struct HamsterdbFixture {
         { HAM_PARAM_RECORD_SIZE, 22 },
         { 0, 0 }
     };
-    ham_u32_t flags = HAM_ENABLE_DUPLICATE_KEYS;
+    uint32_t flags = HAM_ENABLE_DUPLICATE_KEYS;
 
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
@@ -1899,7 +1899,7 @@ struct HamsterdbFixture {
         {0, 0}
     };
     REQUIRE(0 == ham_db_get_parameters(db, query));
-    REQUIRE((ham_u64_t)HAM_TYPE_CUSTOM == query[0].value);
+    REQUIRE((uint64_t)HAM_TYPE_CUSTOM == query[0].value);
     REQUIRE(22u == (unsigned)query[1].value);
 
     REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
@@ -2082,7 +2082,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_db_check_integrity(db, 0));
 
     // only one key must be installed!
-    ham_u64_t keycount = 0;
+    uint64_t keycount = 0;
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(keycount == 1u);
 

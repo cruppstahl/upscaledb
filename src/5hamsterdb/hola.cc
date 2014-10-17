@@ -69,7 +69,7 @@ struct CountIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     if (m_pred->predicate_func(key_data, key_size, m_pred->context))
       m_count++;
@@ -87,11 +87,11 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
-    memcpy(&result->u.result_u64, &m_count, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &m_count, sizeof(uint64_t));
   }
 
   // The counter
-  ham_u64_t m_count;
+  uint64_t m_count;
 
   // The user's predicate
   hola_bool_predicate_t *m_pred;
@@ -106,7 +106,7 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     if (m_pred->predicate_func(key_data, key_size, m_pred->context))
       m_count++;
@@ -115,8 +115,8 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
   // Operates on an array of keys
   virtual void operator()(const void *key_array, size_t key_count) {
     assert(m_key_size != HAM_KEY_SIZE_UNLIMITED);
-    const ham_u8_t *p = (const ham_u8_t *)key_array;
-    const ham_u8_t *end = &p[key_count * m_key_size];
+    const uint8_t *p = (const uint8_t *)key_array;
+    const uint8_t *end = &p[key_count * m_key_size];
     for (; p < end; p += m_key_size) {
       if (m_pred->predicate_func(p, m_key_size, m_pred->context))
         m_count++;
@@ -125,11 +125,11 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
-    memcpy(&result->u.result_u64, &m_count, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &m_count, sizeof(uint64_t));
   }
 
   // The counter
-  ham_u64_t m_count;
+  uint64_t m_count;
 
   // The key size
   size_t m_key_size;
@@ -168,16 +168,16 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
 
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
-      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint8_t>(pred));
       break;
     case HAM_TYPE_UINT16:
-      visitor.reset(new CountIfScanVisitor<ham_u16_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint16_t>(pred));
       break;
     case HAM_TYPE_UINT32:
-      visitor.reset(new CountIfScanVisitor<ham_u32_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint32_t>(pred));
       break;
     case HAM_TYPE_UINT64:
-      visitor.reset(new CountIfScanVisitor<ham_u64_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       visitor.reset(new CountIfScanVisitor<float>(pred));
@@ -264,16 +264,16 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
 
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
-      visitor.reset(new CountIfScanVisitor<ham_u8_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint8_t>(pred));
       break;
     case HAM_TYPE_UINT16:
-      visitor.reset(new CountIfScanVisitor<ham_u16_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint16_t>(pred));
       break;
     case HAM_TYPE_UINT32:
-      visitor.reset(new CountIfScanVisitor<ham_u32_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint32_t>(pred));
       break;
     case HAM_TYPE_UINT64:
-      visitor.reset(new CountIfScanVisitor<ham_u64_t>(pred));
+      visitor.reset(new CountIfScanVisitor<uint64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       visitor.reset(new CountIfScanVisitor<float>(pred));
@@ -311,7 +311,7 @@ struct AverageScanVisitor : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
@@ -331,14 +331,14 @@ struct AverageScanVisitor : public ScanVisitor {
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
     ResultType res = m_sum / m_count;
-    memcpy(&result->u.result_u64, &res, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &res, sizeof(uint64_t));
   }
 
   // The sum of all keys
   ResultType m_sum;
 
   // For counting the keys
-  ham_u64_t m_count;
+  uint64_t m_count;
 };
 
 ham_status_t HAM_CALLCONV
@@ -366,19 +366,19 @@ hola_average(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageScanVisitor<ham_u8_t, ham_u64_t>());
+      visitor.reset(new AverageScanVisitor<uint8_t, uint64_t>());
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageScanVisitor<ham_u16_t, ham_u64_t>());
+      visitor.reset(new AverageScanVisitor<uint16_t, uint64_t>());
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageScanVisitor<ham_u32_t, ham_u64_t>());
+      visitor.reset(new AverageScanVisitor<uint32_t, uint64_t>());
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageScanVisitor<ham_u64_t, ham_u64_t>());
+      visitor.reset(new AverageScanVisitor<uint64_t, uint64_t>());
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
@@ -414,7 +414,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
@@ -439,14 +439,14 @@ struct AverageIfScanVisitor : public ScanVisitor {
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
     ResultType res = m_sum / m_count;
-    memcpy(&result->u.result_u64, &res, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &res, sizeof(uint64_t));
   }
 
   // The sum of all keys
   ResultType m_sum;
 
   // For counting the keys
-  ham_u64_t m_count;
+  uint64_t m_count;
 
   // The user's predicate function
   hola_bool_predicate_t *m_pred;
@@ -482,19 +482,19 @@ hola_average_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageIfScanVisitor<ham_u8_t, ham_u64_t>(pred));
+      visitor.reset(new AverageIfScanVisitor<uint8_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageIfScanVisitor<ham_u16_t, ham_u64_t>(pred));
+      visitor.reset(new AverageIfScanVisitor<uint16_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageIfScanVisitor<ham_u32_t, ham_u64_t>(pred));
+      visitor.reset(new AverageIfScanVisitor<uint32_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new AverageIfScanVisitor<ham_u64_t, ham_u64_t>(pred));
+      visitor.reset(new AverageIfScanVisitor<uint64_t, uint64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
@@ -530,7 +530,7 @@ struct SumScanVisitor : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
     m_sum += *(const PodType *)key_data * duplicate_count;
@@ -541,7 +541,7 @@ struct SumScanVisitor : public ScanVisitor {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     const int kMax = 8;
-    ham_u64_t sums[kMax] = {0};
+    uint64_t sums[kMax] = {0};
     for (; p + kMax < end; p += kMax) {
 #if defined __GNUC__
       __builtin_prefetch(((char *)p) + kMax * sizeof(PodType));
@@ -563,7 +563,7 @@ struct SumScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
-    memcpy(&result->u.result_u64, &m_sum, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &m_sum, sizeof(uint64_t));
   }
 
   // The sum of all keys
@@ -595,19 +595,19 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumScanVisitor<ham_u8_t, ham_u64_t>());
+      visitor.reset(new SumScanVisitor<uint8_t, uint64_t>());
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumScanVisitor<ham_u16_t, ham_u64_t>());
+      visitor.reset(new SumScanVisitor<uint16_t, uint64_t>());
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumScanVisitor<ham_u32_t, ham_u64_t>());
+      visitor.reset(new SumScanVisitor<uint32_t, uint64_t>());
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumScanVisitor<ham_u64_t, ham_u64_t>());
+      visitor.reset(new SumScanVisitor<uint64_t, uint64_t>());
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;
@@ -643,7 +643,7 @@ struct SumIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) {
     ham_assert(key_size == sizeof(PodType));
 
@@ -663,7 +663,7 @@ struct SumIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(hola_result_t *result) {
-    memcpy(&result->u.result_u64, &m_sum, sizeof(ham_u64_t));
+    memcpy(&result->u.result_u64, &m_sum, sizeof(uint64_t));
   }
 
   // The sum of all keys
@@ -703,19 +703,19 @@ hola_sum_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
   switch (db->get_config().key_type) {
     case HAM_TYPE_UINT8:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumIfScanVisitor<ham_u8_t, ham_u64_t>(pred));
+      visitor.reset(new SumIfScanVisitor<uint8_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT16:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumIfScanVisitor<ham_u16_t, ham_u64_t>(pred));
+      visitor.reset(new SumIfScanVisitor<uint16_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT32:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumIfScanVisitor<ham_u32_t, ham_u64_t>(pred));
+      visitor.reset(new SumIfScanVisitor<uint32_t, uint64_t>(pred));
       break;
     case HAM_TYPE_UINT64:
       result->type = HAM_TYPE_UINT64;
-      visitor.reset(new SumIfScanVisitor<ham_u64_t, ham_u64_t>(pred));
+      visitor.reset(new SumIfScanVisitor<uint64_t, uint64_t>(pred));
       break;
     case HAM_TYPE_REAL32:
       result->type = HAM_TYPE_REAL64;

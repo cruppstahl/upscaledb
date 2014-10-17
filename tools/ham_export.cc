@@ -224,7 +224,7 @@ main(int argc, char **argv) {
   unsigned opt;
   char *param, *infilename = 0, *outfilename = 0;
 
-  ham_u32_t maj, min, rev;
+  uint32_t maj, min, rev;
   ham_get_version(&maj, &min, &rev);
 
   getopts_init(argc, argv, "ham_export");
@@ -285,14 +285,14 @@ main(int argc, char **argv) {
   exporter->append_environment(env);
 
   /* get a list of all databases */
-  ham_u16_t names[1024];
-  ham_u32_t names_count = 1024;
+  uint16_t names[1024];
+  uint32_t names_count = 1024;
   st = ham_env_get_database_names(env, names, &names_count);
   if (st != HAM_SUCCESS)
     error("ham_env_get_database_names", st);
 
   /* for each database: print information about the database */
-  for (ham_u32_t i = 0; i < names_count; i++) {
+  for (uint32_t i = 0; i < names_count; i++) {
     st = ham_env_open_db(env, &db, names[i], 0, 0);
     if (st)
       error("ham_env_open_db", st);

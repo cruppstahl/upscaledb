@@ -271,7 +271,7 @@ struct TxnCursorFixture {
   }
 
   ham_status_t insert(ham_txn_t *txn, const char *key, const char *record = 0,
-          ham_u32_t flags = 0) {
+          uint32_t flags = 0) {
     ham_key_t k = {0};
     if (key) {
       k.data = (void *)key;
@@ -286,7 +286,7 @@ struct TxnCursorFixture {
   }
 
   ham_status_t insertCursor(TransactionCursor *cursor, const char *key,
-          const char *record = 0, ham_u32_t flags = 0) {
+          const char *record = 0, uint32_t flags = 0) {
     ham_key_t k = {0};
     if (key) {
       k.data = (void *)key;
@@ -338,7 +338,7 @@ struct TxnCursorFixture {
   }
 
   ham_status_t moveCursor(TransactionCursor *cursor, const char *key,
-          ham_u32_t flags) {
+          uint32_t flags) {
     ham_key_t k = {0};
     ham_status_t st = cursor->move(flags);
     if (st)

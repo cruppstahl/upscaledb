@@ -97,7 +97,7 @@ print_environment(ham_env_t *env) {
     error("ham_env_get_parameters", st);
 
   if (!quiet) {
-    ham_u32_t v1, v2, v3;
+    uint32_t v1, v2, v3;
     ham_get_version(&v1, &v2, &v3);
 
     printf("environment\n");
@@ -112,7 +112,7 @@ print_environment(ham_env_t *env) {
 }
 
 static void
-print_database(ham_db_t *db, ham_u16_t dbname, int full) {
+print_database(ham_db_t *db, uint16_t dbname, int full) {
   ham_cursor_t *cursor;
   ham_key_t key = {0};
   ham_record_t rec = {0};
@@ -248,8 +248,8 @@ main(int argc, char **argv) {
   unsigned short dbname = 0xffff;
   int full = 0;
 
-  ham_u16_t names[1024];
-  ham_u32_t i, names_count = 1024;
+  uint16_t names[1024];
+  uint32_t i, names_count = 1024;
   ham_status_t st;
   ham_env_t *env;
   ham_db_t *db;

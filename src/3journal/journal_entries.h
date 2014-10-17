@@ -51,22 +51,22 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
   }
 
   // the lsn of this entry
-  ham_u64_t lsn;
+  uint64_t lsn;
 
   // the size of the follow-up entry in bytes (may be padded)
-  ham_u64_t followup_size;
+  uint64_t followup_size;
 
   // the transaction id
-  ham_u64_t txn_id;
+  uint64_t txn_id;
 
   // the type of this entry
-  ham_u32_t type;
+  uint32_t type;
 
   // the name of the database which is modified by this entry
-  ham_u16_t dbname;
+  uint16_t dbname;
 
   // a reserved value - reqd for padding
-  ham_u16_t _reserved;
+  uint16_t _reserved;
 } HAM_PACK_2;
 
 #include "1base/packstop.h"
@@ -87,39 +87,39 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   }
 
   // key size
-  ham_u16_t key_size;
+  uint16_t key_size;
 
   // PRO: compressed key size
-  ham_u16_t compressed_key_size;
+  uint16_t compressed_key_size;
 
   // record size
-  ham_u32_t record_size;
+  uint32_t record_size;
 
   // PRO: compressed record size
-  ham_u32_t compressed_record_size;
+  uint32_t compressed_record_size;
 
   // record partial size
-  ham_u32_t record_partial_size;
+  uint32_t record_partial_size;
 
   // record partial offset
-  ham_u32_t record_partial_offset;
+  uint32_t record_partial_offset;
 
   // flags of ham_insert(), ham_cursor_insert()
-  ham_u32_t insert_flags;
+  uint32_t insert_flags;
 
   // data follows here - first |key_size| bytes for the key, then
   // |record_size| bytes for the record (and maybe some padding)
   //
   // PRO: this data can be compressed
-  ham_u8_t data[1];
+  uint8_t data[1];
 
   // Returns a pointer to the key data
-  ham_u8_t *get_key_data() {
+  uint8_t *get_key_data() {
     return (&data[0]);
   }
 
   // Returns a pointer to the record data
-  ham_u8_t *get_record_data() {
+  uint8_t *get_record_data() {
     return (&data[key_size]);
   }
 } HAM_PACK_2;
@@ -140,13 +140,13 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   }
 
   // key size
-  ham_u16_t key_size;
+  uint16_t key_size;
 
   // PRO: compressed key size
-  ham_u16_t compressed_key_size;
+  uint16_t compressed_key_size;
 
   // flags of ham_erase(), ham_cursor_erase()
-  ham_u32_t erase_flags;
+  uint32_t erase_flags;
 
   // which duplicate to erase
   int duplicate;
@@ -154,10 +154,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   // the key data
   //
   // PRO: this data can be compressed
-  ham_u8_t data[1];
+  uint8_t data[1];
 
   // Returns a pointer to the key data
-  ham_u8_t *get_key_data() {
+  uint8_t *get_key_data() {
     return (&data[0]);
   }
 } HAM_PACK_2;
@@ -177,7 +177,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
   }
 
   // number of pages in this changeset
-  ham_u32_t num_pages;
+  uint32_t num_pages;
 } HAM_PACK_2;
 
 #include "1base/packstop.h"
@@ -190,15 +190,15 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
 //
 HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
   // Constructor - sets all fields to 0
-  PJournalEntryPageHeader(ham_u64_t _address = 0)
+  PJournalEntryPageHeader(uint64_t _address = 0)
     : address(_address), compressed_size(0) {
   }
 
   // the page address
-  ham_u64_t address;
+  uint64_t address;
 
   // PRO: the compressed size, if compression is enabled
-  ham_u32_t compressed_size;
+  uint32_t compressed_size;
 } HAM_PACK_2;
 
 #include "1base/packstop.h"

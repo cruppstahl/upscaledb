@@ -44,7 +44,7 @@ class InMemoryDevice : public Device {
       bool is_open;
 
       // the allocated bytes
-      ham_u64_t allocated_size;
+      uint64_t allocated_size;
     };
 
   public:
@@ -79,7 +79,7 @@ class InMemoryDevice : public Device {
     }
 
     // truncate/resize the device 
-    virtual void truncate(ham_u64_t newsize) {
+    virtual void truncate(uint64_t newsize) {
     }
 
     // returns true if the device is open 
@@ -88,37 +88,37 @@ class InMemoryDevice : public Device {
     }
 
     // get the current file/storage size 
-    virtual ham_u64_t get_file_size() {
+    virtual uint64_t get_file_size() {
       ham_assert(!"this operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // seek position in a file 
-    virtual void seek(ham_u64_t offset, int whence) {
+    virtual void seek(uint64_t offset, int whence) {
       ham_assert(!"can't seek in an in-memory-device");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // tell the position in a file 
-    virtual ham_u64_t tell() {
+    virtual uint64_t tell() {
       ham_assert(!"can't tell in an in-memory-device");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // reads from the device; this function does not use mmap 
-    virtual void read(ham_u64_t offset, void *buffer, size_t len) {
+    virtual void read(uint64_t offset, void *buffer, size_t len) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // writes to the device 
-    virtual void write(ham_u64_t offset, void *buffer, size_t len) {
+    virtual void write(uint64_t offset, void *buffer, size_t len) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // reads a page from the device 
-    virtual void read_page(Page *page, ham_u64_t address) {
+    virtual void read_page(Page *page, uint64_t address) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
@@ -129,11 +129,11 @@ class InMemoryDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
-    virtual ham_u64_t alloc(size_t size) {
+    virtual uint64_t alloc(size_t size) {
       if (m_state.allocated_size + size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
 
-      ham_u64_t retval = (ham_u64_t)Memory::allocate<ham_u8_t>(size);
+      uint64_t retval = (uint64_t)Memory::allocate<uint8_t>(size);
       m_state.allocated_size += size;
       return (retval);
     }
@@ -146,8 +146,8 @@ class InMemoryDevice : public Device {
       if (m_state.allocated_size + page_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
 
-      ham_u8_t *p = Memory::allocate<ham_u8_t>(page_size);
-      page->assign_allocated_buffer(p, (ham_u64_t)PTR_TO_U64(p));
+      uint8_t *p = Memory::allocate<uint8_t>(page_size);
+      page->assign_allocated_buffer(p, (uint64_t)PTR_TO_U64(p));
 
       m_state.allocated_size += page_size;
     }

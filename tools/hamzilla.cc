@@ -320,9 +320,9 @@ write_pidfile(const char *pidfile) {
 
 #define COMPARE_FLAG(n)       if (!strcmp(#n, p)) f|=n
 
-ham_u32_t
+uint32_t
 format_flags(char *flagstr) {
-  ham_u32_t f = 0;
+  uint32_t f = 0;
   char *saveptr = 0;
   char *p;
 
@@ -354,7 +354,7 @@ initialize_server(ham_srv_t *srv, config_table_t *params) {
   ham_status_t st;
 
   for (e = 0; e < params->env_count; e++) {
-    ham_u32_t flags = format_flags(params->envs[e].flags);
+    uint32_t flags = format_flags(params->envs[e].flags);
     ham_bool_t created_env = HAM_FALSE;
 
     /* First try to open the Environment */
@@ -389,7 +389,7 @@ initialize_server(ham_srv_t *srv, config_table_t *params) {
       ham_db_t *db;
 
       for (d = 0; d < params->envs[e].db_count; d++) {
-        ham_u32_t flags = format_flags(params->envs[e].dbs[d].flags);
+        uint32_t flags = format_flags(params->envs[e].dbs[d].flags);
 
         hlog(LOG_DBG, "Creating Database %u\n",
             params->envs[e].dbs[d].name);

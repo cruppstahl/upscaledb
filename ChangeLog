@@ -1,3 +1,6 @@
+Oct 15, 2014 - chris ---------------------------------------------------
+o Removed custom ham_* typedefs; now using types from stdint.h
+
 Oct 14, 2014 - chris ---------------------------------------------------
 o Fixed a failing test from the erlang package
 

@@ -72,14 +72,14 @@ main(int argc, char **argv) {
      * and not flexible, but it's good enough for this example.
      */
     while ((p = strtok(start, " \t\r\n"))) {
-      ham_u64_t recno;
+      uint64_t recno;
 
       key.flags = HAM_KEY_USER_ALLOC;
       key.data = &recno;
       key.size = sizeof(recno);
 
       record.data = p;
-      record.size = (ham_u32_t)strlen(p) + 1; /* also store
+      record.size = (uint32_t)strlen(p) + 1; /* also store
                             * terminating 0 */
 
       st = ham_db_insert(db, 0, &key, &record, 0);
@@ -117,7 +117,7 @@ main(int argc, char **argv) {
 
     /* print the record number and the word */
 #ifdef WIN32
-    printf("%I64u: %s\n", *(ham_u64_t *)key.data,
+    printf("%I64u: %s\n", *(uint64_t *)key.data,
         (const char *)record.data);
 #else
     printf("%llu: %s\n", *(unsigned long long *)key.data,

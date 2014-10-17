@@ -143,13 +143,13 @@ class Memory {
 
   private:
     // peak memory usage
-    static ham_u64_t ms_peak_memory;
+    static uint64_t ms_peak_memory;
 
     // total memory allocations
-    static ham_u64_t ms_total_allocations;
+    static uint64_t ms_total_allocations;
 
     // currently active allocations
-    static ham_u64_t ms_current_allocations;
+    static uint64_t ms_current_allocations;
 };
 
 } // namespace hamsterdb

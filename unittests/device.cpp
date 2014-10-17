@@ -70,7 +70,7 @@ struct DeviceFixture
 
   void allocTest() {
     int i;
-    ham_u64_t address;
+    uint64_t address;
 
     REQUIRE(true == m_dev->is_open());
     for (i = 0; i < 10; i++) {
@@ -101,8 +101,8 @@ struct DeviceFixture
     Page *pages[10];
     for (int i = 0; i < 10; i++)
       pages[i] = new Page(m_dev, (LocalDatabase *)m_db);
-    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
-    ham_u8_t *temp = (ham_u8_t *)malloc(ps);
+    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint8_t *temp = (uint8_t *)malloc(ps);
 
     REQUIRE(true == m_dev->is_open());
     m_dev->truncate(ps * 10);
@@ -116,12 +116,12 @@ struct DeviceFixture
     for (i = 0; i < 10; i++)
       m_dev->write_page(pages[i]);
     for (i = 0; i < 10; i++) {
-      ham_u8_t *buffer;
+      uint8_t *buffer;
       memset(temp, i, ps);
       m_dev->free_page(pages[i]);
 
       m_dev->read_page(pages[i], i * ps);
-      buffer = (ham_u8_t *)pages[i]->get_payload();
+      buffer = (uint8_t *)pages[i]->get_payload();
       REQUIRE(0 == memcmp(buffer, temp, ps - Page::kSizeofPersistentHeader));
     }
     for (i = 0; i < 10; i++) {
@@ -133,9 +133,9 @@ struct DeviceFixture
 
   void readWriteTest() {
     int i;
-    ham_u8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
-    ham_u8_t *temp = (ham_u8_t *)malloc(ps);
+    uint8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint8_t *temp = (uint8_t *)malloc(ps);
 
     EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
     cfg.flags |= HAM_DISABLE_MMAP;
@@ -143,7 +143,7 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
     m_dev->truncate(ps * 10);
     for (i = 0; i < 10; i++) {
-      buffer[i] = (ham_u8_t *)malloc(ps);
+      buffer[i] = (uint8_t *)malloc(ps);
       m_dev->read(i * ps, buffer[i], ps);
     }
     for (i = 0; i < 10; i++)
@@ -162,7 +162,7 @@ struct DeviceFixture
   void readWritePageTest() {
     int i;
     Page *pages[2];
-    ham_u32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
 
     EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
     cfg.flags |= HAM_DISABLE_MMAP;

@@ -96,7 +96,7 @@ class BinaryImporter : public Importer {
     virtual void run() {
       while (!feof(m_f)) {
         // read the next message from the stream
-        ham_u32_t size = read_size();
+        uint32_t size = read_size();
         if (!size)
           return;
 
@@ -177,7 +177,7 @@ class BinaryImporter : public Importer {
       else
         m_insert_flags &= ~HAM_DUPLICATE;
 
-      ham_u32_t open_flags = db.flags();
+      uint32_t open_flags = db.flags();
       open_flags &= ~HAM_ENABLE_DUPLICATE_KEYS;
 
       ham_status_t st = ham_env_open_db(m_env, &m_db, db.name(), open_flags, 0);
@@ -209,9 +209,9 @@ class BinaryImporter : public Importer {
         error("ham_db_insert", st);
     }
 
-    ham_u32_t read_size() {
+    uint32_t read_size() {
       int n;
-      ham_u32_t size;
+      uint32_t size;
       n = fread(&size, 1, sizeof(size), m_f);
       if (n == 0)
         return (0);
@@ -225,7 +225,7 @@ class BinaryImporter : public Importer {
 
     char *m_buffer;
     ham_db_t *m_db;
-    ham_u32_t m_insert_flags;
+    uint32_t m_insert_flags;
     size_t m_db_counter;
     size_t m_item_counter;
 };

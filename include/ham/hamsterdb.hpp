@@ -89,7 +89,7 @@ private:
 class key {
   public:
     /** Constructor */
-    key(void *data = 0, ham_u16_t size = 0, ham_u32_t flags = 0) {
+    key(void *data = 0, uint16_t size = 0, uint32_t flags = 0) {
       memset(&m_key, 0, sizeof(m_key));
       m_key.data = data;
       m_key.size = size;
@@ -121,12 +121,12 @@ class key {
     }
 
     /** Returns the size of the key. */
-    ham_u16_t get_size() const {
+    uint16_t get_size() const {
       return (m_key.size);
     }
 
     /** Sets the size of the key. */
-    void set_size(ham_u16_t size) {
+    void set_size(uint16_t size) {
       m_key.size = size;
     }
 
@@ -138,12 +138,12 @@ class key {
     }
 
     /** Returns the flags of the key. */
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_key.flags);
     }
 
     /** Sets the flags of the key. */
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       m_key.flags = flags;
     }
 
@@ -169,7 +169,7 @@ private:
 class record {
   public:
     /** Constructor */
-    record(void *data = 0, ham_u32_t size = 0, ham_u32_t flags = 0) {
+    record(void *data = 0, uint32_t size = 0, uint32_t flags = 0) {
       memset(&m_rec, 0, sizeof(m_rec));
       m_rec.data = data;
       m_rec.size = size;
@@ -198,22 +198,22 @@ class record {
     }
 
     /** Returns the size of the record. */
-    ham_u32_t get_size() const {
+    uint32_t get_size() const {
       return (m_rec.size);
     }
 
     /** Sets the size of the record. */
-    void set_size(ham_u32_t size) {
+    void set_size(uint32_t size) {
       m_rec.size = size;
     }
 
     /** Returns the flags of the record. */
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_rec.flags);
     }
 
     /** Sets the flags of the record. */
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       m_rec.flags = flags;
     }
 
@@ -281,8 +281,8 @@ class db {
     }
 
     /** Retrieves the hamsterdb library version. */
-    static void get_version(ham_u32_t *major, ham_u32_t *minor,
-                  ham_u32_t *revision) {
+    static void get_version(uint32_t *major, uint32_t *minor,
+                  uint32_t *revision) {
       ham_get_version(major, minor, revision);
     }
 
@@ -325,7 +325,7 @@ class db {
     }
 
     /** Finds a record by looking up the key. */
-    record find(txn *t, key *k, ham_u32_t flags = 0) {
+    record find(txn *t, key *k, uint32_t flags = 0) {
       record r;
       ham_status_t st = ham_db_find(m_db,
                 t ? t->get_handle() : 0,
@@ -337,7 +337,7 @@ class db {
     }
 
     /** Finds a record by looking up the key. */
-    record &find(txn *t, key *k, record *r, ham_u32_t flags = 0) {
+    record &find(txn *t, key *k, record *r, uint32_t flags = 0) {
       ham_status_t st = ham_db_find(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
@@ -348,12 +348,12 @@ class db {
     }
 
     /** Finds a record by looking up the key. */
-    record find(key *k, ham_u32_t flags = 0) {
+    record find(key *k, uint32_t flags = 0) {
       return (find(0, k, flags));
     }
 
     /** Inserts a key/record pair. */
-    void insert(txn *t, key *k, record *r, ham_u32_t flags = 0) {
+    void insert(txn *t, key *k, record *r, uint32_t flags = 0) {
       ham_status_t st = ham_db_insert(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
@@ -363,17 +363,17 @@ class db {
     }
 
     /** Inserts a key/record pair. */
-    void insert(key *k, record *r, ham_u32_t flags=0) {
+    void insert(key *k, record *r, uint32_t flags=0) {
       insert(0, k, r, flags);
     }
 
     /** Erases a key/record pair. */
-    void erase(key *k, ham_u32_t flags = 0) {
+    void erase(key *k, uint32_t flags = 0) {
       erase(0, k, flags);
     }
 
     /** Erases a key/record pair. */
-    void erase(txn *t, key *k, ham_u32_t flags = 0) {
+    void erase(txn *t, key *k, uint32_t flags = 0) {
       ham_status_t st = ham_db_erase(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0, flags);
@@ -382,8 +382,8 @@ class db {
     }
 
     /** Returns number of items in the Database. */
-    ham_u64_t get_key_count(ham_txn_t *txn = 0, ham_u32_t flags = 0) {
-      ham_u64_t count = 0;
+    uint64_t get_key_count(ham_txn_t *txn = 0, uint32_t flags = 0) {
+      uint64_t count = 0;
       ham_status_t st = ham_db_get_key_count(m_db, txn, flags, &count);
       if (st)
         throw error(st);
@@ -398,7 +398,7 @@ class db {
     }
 
     /** Closes the Database. */
-    void close(ham_u32_t flags = 0) {
+    void close(uint32_t flags = 0) {
       if (!m_db)
         return;
       // disable auto-cleanup; all objects will be destroyed when 
@@ -436,13 +436,13 @@ protected:
 class cursor {
   public:
     /** Constructor */
-    cursor(db *db = 0, txn *t = 0, ham_u32_t flags = 0)
+    cursor(db *db = 0, txn *t = 0, uint32_t flags = 0)
       : m_cursor(0) {
       create(db, t, flags);
     }
 
     /** Constructor */
-    cursor(txn *t, db *db = 0, ham_u32_t flags = 0)
+    cursor(txn *t, db *db = 0, uint32_t flags = 0)
       : m_cursor(0) {
       create(db, t, flags);
     }
@@ -453,7 +453,7 @@ class cursor {
     }
 
     /** Creates a new Cursor. */
-    void create(db *db, txn *t = 0, ham_u32_t flags = 0) {
+    void create(db *db, txn *t = 0, uint32_t flags = 0) {
       if (m_cursor)
         close();
       if (db) {
@@ -474,7 +474,7 @@ class cursor {
     }
 
     /** Moves the Cursor, and retrieves the key/record of the new position. */
-    void move(key *k, record *r, ham_u32_t flags = 0) {
+    void move(key *k, record *r, uint32_t flags = 0) {
       ham_status_t st = ham_cursor_move(m_cursor, k ? k->get_handle() : 0,
                         r ? r->get_handle() : 0, flags);
       if (st)
@@ -502,7 +502,7 @@ class cursor {
     }
 
     /** Overwrites the current record. */
-    void overwrite(record *r, ham_u32_t flags = 0) {
+    void overwrite(record *r, uint32_t flags = 0) {
       ham_status_t st = ham_cursor_overwrite(m_cursor,
                             r ? r->get_handle() : 0, flags);
       if (st)
@@ -510,7 +510,7 @@ class cursor {
     }
 
     /** Finds a key. */
-    void find(key *k, record *r = 0, ham_u32_t flags = 0) {
+    void find(key *k, record *r = 0, uint32_t flags = 0) {
       ham_status_t st = ham_cursor_find(m_cursor, k->get_handle(),
                         (r ? r->get_handle() : 0), flags);
       if (st)
@@ -518,7 +518,7 @@ class cursor {
     }
 
     /** Inserts a key/record pair. */
-    void insert(key *k, record *r, ham_u32_t flags = 0) {
+    void insert(key *k, record *r, uint32_t flags = 0) {
       ham_status_t st = ham_cursor_insert(m_cursor, k ? k->get_handle() : 0,
                           r ? r->get_handle() : 0, flags);
       if (st)
@@ -526,15 +526,15 @@ class cursor {
     }
 
     /** Erases the current key/record pair. */
-    void erase(ham_u32_t flags = 0) {
+    void erase(uint32_t flags = 0) {
       ham_status_t st = ham_cursor_erase(m_cursor, flags);
       if (st)
         throw error(st);
     }
 
     /** Returns the number of duplicate keys. */
-    ham_u32_t get_duplicate_count(ham_u32_t flags = 0) {
-      ham_u32_t c;
+    uint32_t get_duplicate_count(uint32_t flags = 0) {
+      uint32_t c;
       ham_status_t st = ham_cursor_get_duplicate_count(m_cursor, &c, flags);
       if (st)
         throw error(st);
@@ -542,8 +542,8 @@ class cursor {
     }
 
     /** Returns the size of the current record. */
-    ham_u64_t get_record_size() {
-      ham_u64_t s;
+    uint64_t get_record_size() {
+      uint64_t s;
       ham_status_t st = ham_cursor_get_record_size(m_cursor, &s);
       if (st)
         throw error(st);
@@ -588,15 +588,15 @@ class env {
     }
 
     /** Creates a new Environment. */
-    void create(const char *filename, ham_u32_t flags = 0,
-                ham_u32_t mode = 0644, const ham_parameter_t *param = 0) {
+    void create(const char *filename, uint32_t flags = 0,
+                uint32_t mode = 0644, const ham_parameter_t *param = 0) {
       ham_status_t st = ham_env_create(&m_env, filename, flags, mode, param);
       if (st)
         throw error(st);
     }
 
     /** Opens an existing Environment. */
-    void open(const char *filename, ham_u32_t flags = 0,
+    void open(const char *filename, uint32_t flags = 0,
                 const ham_parameter_t *param = 0) {
       ham_status_t st = ham_env_open(&m_env, filename, flags, param);
       if (st)
@@ -604,14 +604,14 @@ class env {
     }
 
     /** Flushes the Environment to disk. */
-    void flush(ham_u32_t flags = 0) {
+    void flush(uint32_t flags = 0) {
       ham_status_t st = ham_env_flush(m_env, flags);
       if (st)
         throw error(st);
     }
 
     /** Creates a new Database in the Environment. */
-    db create_db(ham_u16_t name, ham_u32_t flags = 0,
+    db create_db(uint16_t name, uint32_t flags = 0,
                 const ham_parameter_t *param = 0) {
       ham_db_t *dbh;
 
@@ -623,7 +623,7 @@ class env {
     }
 
     /** Opens an existing Database in the Environment. */
-    db open_db(ham_u16_t name, ham_u32_t flags = 0,
+    db open_db(uint16_t name, uint32_t flags = 0,
                 const ham_parameter_t *param = 0) {
       ham_db_t *dbh;
 
@@ -635,14 +635,14 @@ class env {
     }
 
     /** Renames an existing Database in the Environment. */
-    void rename_db(ham_u16_t oldname, ham_u16_t newname, ham_u32_t flags = 0) {
+    void rename_db(uint16_t oldname, uint16_t newname, uint32_t flags = 0) {
       ham_status_t st = ham_env_rename_db(m_env, oldname, newname, flags);
       if (st)
         throw error(st);
     }
 
     /** Deletes a Database from the Environment. */
-    void erase_db(ham_u16_t name, ham_u32_t flags = 0) {
+    void erase_db(uint16_t name, uint32_t flags = 0) {
       ham_status_t st = ham_env_erase_db(m_env, name, flags);
       if (st)
         throw error(st);
@@ -659,7 +659,7 @@ class env {
 
 
     /** Closes the Environment. */
-    void close(ham_u32_t flags = 0) {
+    void close(uint32_t flags = 0) {
       if (!m_env)
         return;
       // disable auto-cleanup; all objects will be destroyed when 
@@ -679,10 +679,10 @@ class env {
     }
 
     /** Get all Database names. */
-    std::vector<ham_u16_t> get_database_names() {
-      ham_u32_t count = 32;
+    std::vector<uint16_t> get_database_names() {
+      uint32_t count = 32;
       ham_status_t st;
-      std::vector<ham_u16_t> v(count);
+      std::vector<uint16_t> v(count);
 
       for (;;) {
         st = ham_env_get_database_names(m_env, &v[0], &count);

@@ -69,7 +69,7 @@ class Database
 
     // Returns the runtime-flags - the flags are "mixed" with the flags from
     // the Environment
-    ham_u32_t get_rt_flags(bool raw = false) {
+    uint32_t get_rt_flags(bool raw = false) {
       if (raw)
         return (m_config.flags);
       else
@@ -77,12 +77,12 @@ class Database
     }
 
     // Returns the database name
-    ham_u16_t get_name() const {
+    uint16_t get_name() const {
       return (m_config.db_name);
     }
 
     // Sets the database name
-    void set_name(ham_u16_t name) {
+    void set_name(uint16_t name) {
       m_config.db_name = name;
     }
 
@@ -90,11 +90,11 @@ class Database
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(ham_u32_t flags) = 0;
+    virtual ham_status_t check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
     virtual void count(Transaction *txn, bool distinct,
-                    ham_u64_t *keycount) = 0;
+                    uint64_t *keycount) = 0;
 
     // Scans the whole database, applies a processor function
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
@@ -102,59 +102,59 @@ class Database
 
     // Inserts a key/value pair (ham_db_insert)
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Erase a key/value pair (ham_db_erase)
     virtual ham_status_t erase(Transaction *txn, ham_key_t *key,
-                    ham_u32_t flags) = 0;
+                    uint32_t flags) = 0;
 
     // Lookup of a key/value pair (ham_db_find)
     virtual ham_status_t find(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Creates a cursor (ham_cursor_create)
-    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
+    virtual Cursor *cursor_create(Transaction *txn, uint32_t flags);
 
     // Clones a cursor (ham_cursor_clone)
     virtual Cursor *cursor_clone(Cursor *src);
 
     // Inserts a key with a cursor (ham_cursor_insert)
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Erases the key of a cursor (ham_cursor_erase)
-    virtual ham_status_t cursor_erase(Cursor *cursor, ham_u32_t flags) = 0;
+    virtual ham_status_t cursor_erase(Cursor *cursor, uint32_t flags) = 0;
 
     // Positions the cursor on a key and returns the record (ham_cursor_find)
     virtual ham_status_t cursor_find(Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Returns number of duplicates (ham_cursor_get_record_count)
     // TODO return count instead of status?
     virtual ham_status_t cursor_get_record_count(Cursor *cursor,
-                    ham_u32_t *count, ham_u32_t flags) = 0;
+                    uint32_t *count, uint32_t flags) = 0;
 
     // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    virtual ham_u32_t cursor_get_duplicate_position(Cursor *cursor) = 0;
+    virtual uint32_t cursor_get_duplicate_position(Cursor *cursor) = 0;
 
     // Get current record size (ham_cursor_get_record_size)
     // TODO return size instead of status?
     virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    ham_u64_t *size) = 0;
+                    uint64_t *size) = 0;
 
     // Overwrites the record of a cursor (ham_cursor_overwrite)
     virtual ham_status_t cursor_overwrite(Cursor *cursor,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Moves a cursor, returns key and/or record (ham_cursor_move)
     virtual ham_status_t cursor_move(Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
+                    ham_key_t *key, ham_record_t *record, uint32_t flags) = 0;
 
     // Closes a cursor (ham_cursor_close)
     void cursor_close(Cursor *cursor);
 
     // Closes the Database (ham_db_close)
-    ham_status_t close(ham_u32_t flags);
+    ham_status_t close(uint32_t flags);
 
     // Returns the last error code
     ham_status_t get_error() const {
@@ -193,7 +193,7 @@ class Database
 
   protected:
     // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Transaction *txn, ham_u32_t flags) = 0;
+    virtual Cursor *cursor_create_impl(Transaction *txn, uint32_t flags) = 0;
 
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src) = 0;
@@ -202,7 +202,7 @@ class Database
     virtual void cursor_close_impl(Cursor *c) = 0;
 
     // Closes a database; this is the actual implementation
-    virtual ham_status_t close_impl(ham_u32_t flags) = 0;
+    virtual ham_status_t close_impl(uint32_t flags) = 0;
 
     // the current Environment
     Environment *m_env;

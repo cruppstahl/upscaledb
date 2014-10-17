@@ -35,8 +35,8 @@ int        HamsterDatabase::ms_refcount;
 
 static int 
 compare_keys(ham_db_t *db,
-      const ham_u8_t *lhs_data, ham_u32_t lhs_size, 
-      const ham_u8_t *rhs_data, ham_u32_t rhs_size)
+      const uint8_t *lhs_data, uint32_t lhs_size, 
+      const uint8_t *rhs_data, uint32_t rhs_size)
 {
   (void)db;
 
@@ -70,7 +70,7 @@ ham_status_t
 HamsterDatabase::do_create_env()
 {
   ham_status_t st = 0;
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   ham_parameter_t params[6] = {{0, 0}};
 
   ScopedLock lock(ms_mutex);
@@ -90,7 +90,7 @@ HamsterDatabase::do_create_env()
     p++;
     if (m_config->use_encryption) {
       params[p].name = HAM_PARAM_ENCRYPTION_KEY;
-      params[p].value = (ham_u64_t)"1234567890123456";
+      params[p].value = (uint64_t)"1234567890123456";
       p++;
     }
     if (m_config->journal_compression) {
@@ -135,7 +135,7 @@ HamsterDatabase::do_create_env()
       ham_srv_add_env(ms_srv, ms_remote_env, "/env1.db");
     }
 
-    ham_u32_t flags = 0;
+    uint32_t flags = 0;
     // flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
     st = ham_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
     if (st)
@@ -151,7 +151,7 @@ ham_status_t
 HamsterDatabase::do_open_env()
 {
   ham_status_t st = 0;
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   ham_parameter_t params[6] = {{0, 0}};
 
   ScopedLock lock(ms_mutex);
@@ -169,7 +169,7 @@ HamsterDatabase::do_open_env()
     p++;
     if (m_config->use_encryption) {
       params[p].name = HAM_PARAM_ENCRYPTION_KEY;
-      params[p].value = (ham_u64_t)"1234567890123456";
+      params[p].value = (uint64_t)"1234567890123456";
       p++;
     }
 
@@ -206,7 +206,7 @@ HamsterDatabase::do_open_env()
       ham_srv_add_env(ms_srv, ms_remote_env, "/env1.db");
     }
 
-    ham_u32_t flags = 0;
+    uint32_t flags = 0;
     // flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
     st = ham_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
     if (st)
@@ -328,7 +328,7 @@ HamsterDatabase::do_create_db(int id)
     n++;
   }
 
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
 
   flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
   flags |= m_config->record_number ? HAM_RECORD_NUMBER : 0;
@@ -400,7 +400,7 @@ ham_status_t
 HamsterDatabase::do_insert(Transaction *txn, ham_key_t *key,
                 ham_record_t *record)
 {
-  ham_u32_t flags = m_config->hints;
+  uint32_t flags = m_config->hints;
 
   if (m_config->overwrite)
     flags |= HAM_OVERWRITE;
@@ -429,7 +429,7 @@ HamsterDatabase::do_erase(Transaction *txn, ham_key_t *key)
 ham_status_t
 HamsterDatabase::do_find(Transaction *txn, ham_key_t *key, ham_record_t *record)
 {
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
 
   if (m_config->direct_access && m_config->inmemory)
     flags |= HAM_DIRECT_ACCESS;
@@ -510,7 +510,7 @@ ham_status_t
 HamsterDatabase::do_cursor_insert(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record)
 {
-  ham_u32_t flags = m_config->hints;
+  uint32_t flags = m_config->hints;
 
   if (m_config->overwrite)
     flags |= HAM_OVERWRITE;
@@ -554,7 +554,7 @@ ham_status_t
 HamsterDatabase::do_cursor_get_previous(Cursor *cursor, ham_key_t *key, 
                     ham_record_t *record, bool skip_duplicates)
 {
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
 
   if (m_config->direct_access && m_config->inmemory)
     flags |= HAM_DIRECT_ACCESS;
@@ -570,7 +570,7 @@ ham_status_t
 HamsterDatabase::do_cursor_get_next(Cursor *cursor, ham_key_t *key, 
                     ham_record_t *record, bool skip_duplicates)
 {
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
 
   if (m_config->direct_access && m_config->inmemory)
     flags |= HAM_DIRECT_ACCESS;

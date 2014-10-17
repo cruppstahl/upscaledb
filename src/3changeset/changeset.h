@@ -84,7 +84,7 @@ class Changeset
      * get a page from the changeset
      * returns NULL if the page is not part of the changeset
      */
-    Page *get_page(ham_u64_t pageid);
+    Page *get_page(uint64_t pageid);
 
     /** removes all pages from the changeset */
     void clear();
@@ -95,7 +95,7 @@ class Changeset
      *
      * on success: will clear the changeset and the journal
      */
-    void flush(ham_u64_t lsn = kDummyLsn);
+    void flush(uint64_t lsn = kDummyLsn);
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {

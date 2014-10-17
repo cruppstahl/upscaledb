@@ -61,10 +61,10 @@ struct DbFixture {
         lenv->get_header()->verify_magic('1', '2', '3', '4'));
 
     lenv->get_header()->set_version(1, 2, 3, 4);
-    REQUIRE((ham_u8_t)1 == lenv->get_header()->get_version(0));
-    REQUIRE((ham_u8_t)2 == lenv->get_header()->get_version(1));
-    REQUIRE((ham_u8_t)3 == lenv->get_header()->get_version(2));
-    REQUIRE((ham_u8_t)4 == lenv->get_header()->get_version(3));
+    REQUIRE((uint8_t)1 == lenv->get_header()->get_version(0));
+    REQUIRE((uint8_t)2 == lenv->get_header()->get_version(1));
+    REQUIRE((uint8_t)3 == lenv->get_header()->get_version(2));
+    REQUIRE((uint8_t)4 == lenv->get_header()->get_version(3));
   }
 
   void structureTest() {
@@ -117,8 +117,8 @@ struct DbFixture {
 
   void flushPageTest() {
     Page *page;
-    ham_u64_t address;
-    ham_u8_t *p;
+    uint64_t address;
+    uint8_t *p;
 
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
 
@@ -127,7 +127,7 @@ struct DbFixture {
     REQUIRE(m_dbp == page->get_db());
     p = page->get_payload();
     for (int i = 0; i < 16; i++)
-      p[i] = (ham_u8_t)i;
+      p[i] = (uint8_t)i;
     page->set_dirty(true);
     address = page->get_address();
     page->flush();
@@ -174,11 +174,11 @@ struct DbFixture {
     Page hdrpage(0);
     hdrpage.set_data((PPageData *)&hdrpage_pers);
     Page *hp = &hdrpage;
-    ham_u8_t *pl1 = hp->get_payload();
+    uint8_t *pl1 = hp->get_payload();
     REQUIRE(pl1);
-    REQUIRE((pl1 - (ham_u8_t *)hdrpage.get_data()) == 16);
+    REQUIRE((pl1 - (uint8_t *)hdrpage.get_data()) == 16);
     PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
-    REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 16);
+    REQUIRE(((uint8_t *)hdrptr - (uint8_t *)hdrpage.get_data()) == 16);
     hdrpage.set_data(0);
   }
 

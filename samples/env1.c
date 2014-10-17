@@ -40,15 +40,15 @@ error(const char *foo, ham_status_t st) {
 
 /* A structure for the "customer" database */
 typedef struct {
-  ham_u32_t id;       /* customer id */
+  uint32_t id;       /* customer id */
   char name[32];      /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  ham_u32_t id;            /* order id */
-  ham_u32_t customer_id;   /* customer id */
+  uint32_t id;            /* order id */
+  uint32_t customer_id;   /* customer id */
   char assignee[32];       /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;

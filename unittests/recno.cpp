@@ -26,11 +26,11 @@
 namespace hamsterdb {
 
 struct RecordNumberFixture {
-  ham_u32_t m_flags;
+  uint32_t m_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-  RecordNumberFixture(ham_u32_t flags = 0)
+  RecordNumberFixture(uint32_t flags = 0)
     : m_flags(flags) {
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0));
@@ -67,7 +67,7 @@ struct RecordNumberFixture {
   void createInsertCloseReopenTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -78,7 +78,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     key.flags = HAM_KEY_USER_ALLOC;
@@ -105,7 +105,7 @@ struct RecordNumberFixture {
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
   }
 
@@ -114,7 +114,7 @@ struct RecordNumberFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_cursor_t *cursor;
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -128,7 +128,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -137,7 +137,7 @@ struct RecordNumberFixture {
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -146,7 +146,7 @@ struct RecordNumberFixture {
   void createInsertCloseTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -157,14 +157,14 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
   }
 
   void createInsertManyCloseTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -175,7 +175,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 500; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     key.size = 4;
@@ -198,7 +198,7 @@ struct RecordNumberFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_cursor_t *cursor;
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -211,7 +211,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -220,7 +220,7 @@ struct RecordNumberFixture {
   void createInsertCloseReopenTwiceTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -231,28 +231,28 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     reopen();
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     reopen();
 
     for (int i = 10; i < 15; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
   }
 
   void createInsertCloseReopenTwiceCursorTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value = 1;
+    uint64_t recno, value = 1;
     ham_cursor_t *cursor;
 
     key.flags = HAM_KEY_USER_ALLOC;
@@ -266,7 +266,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -277,7 +277,7 @@ struct RecordNumberFixture {
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -289,7 +289,7 @@ struct RecordNumberFixture {
 
     for (int i = 10; i < 15; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_cursor_close(cursor));
@@ -298,7 +298,7 @@ struct RecordNumberFixture {
   void insertBadKeyTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno;
+    uint64_t recno;
 
     key.flags = 0;
     key.data = &recno;
@@ -313,14 +313,14 @@ struct RecordNumberFixture {
     key.data = 0;
     key.size = 0;
     REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u64_t)1ull == *(ham_u64_t *)key.data);
+    REQUIRE((uint64_t)1ull == *(uint64_t *)key.data);
   }
 
   void insertBadKeyCursorTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_cursor_t *cursor;
-    ham_u64_t recno;
+    uint64_t recno;
 
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
@@ -341,7 +341,7 @@ struct RecordNumberFixture {
     key.data = 0;
     key.size = 0;
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE((ham_u64_t)1ull == *(ham_u64_t *)key.data);
+    REQUIRE((uint64_t)1ull == *(uint64_t *)key.data);
 
     REQUIRE(0 == ham_cursor_close(cursor));
   }
@@ -363,7 +363,7 @@ struct RecordNumberFixture {
   void envTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno;
+    uint64_t recno;
 
     key.data = &recno;
     key.size = sizeof(recno);
@@ -377,20 +377,20 @@ struct RecordNumberFixture {
         ham_env_create_db(m_env, &m_db, 1, HAM_RECORD_NUMBER, 0));
     REQUIRE(0 ==
         ham_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE((ham_u64_t)1ull == *(ham_u64_t *)key.data);
+    REQUIRE((uint64_t)1ull == *(uint64_t *)key.data);
 
     if (!(m_flags & HAM_IN_MEMORY)) {
       reopen();
 
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE((ham_u64_t)2ull == *(ham_u64_t *)key.data);
+      REQUIRE((uint64_t)2ull == *(uint64_t *)key.data);
     }
   }
 
   void overwriteTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value;
+    uint64_t recno, value;
 
     key.data = &recno;
     key.flags = HAM_KEY_USER_ALLOC;
@@ -415,13 +415,13 @@ struct RecordNumberFixture {
     memset(&rec, 0, sizeof(rec));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
 
-    REQUIRE(value == *(ham_u64_t *)rec.data);
+    REQUIRE(value == *(uint64_t *)rec.data);
   }
 
   void overwriteCursorTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno, value;
+    uint64_t recno, value;
     ham_cursor_t *cursor;
 
     REQUIRE(0 ==
@@ -442,7 +442,7 @@ struct RecordNumberFixture {
     memset(&rec, 0, sizeof(rec));
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
 
-    REQUIRE(value == *(ham_u64_t *)rec.data);
+    REQUIRE(value == *(uint64_t *)rec.data);
 
     REQUIRE(0 == ham_cursor_close(cursor));
   }
@@ -450,7 +450,7 @@ struct RecordNumberFixture {
   void eraseLastReopenTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno;
+    uint64_t recno;
 
     key.data = &recno;
     key.flags = HAM_KEY_USER_ALLOC;
@@ -458,7 +458,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
@@ -467,14 +467,14 @@ struct RecordNumberFixture {
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE((ham_u64_t)i == recno);
+      REQUIRE((uint64_t)i == recno);
     }
   }
 
   void uncoupleTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno;
+    uint64_t recno;
     ham_cursor_t *cursor, *c2;
 
     key.flags = HAM_KEY_USER_ALLOC;
@@ -486,7 +486,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
 
     LocalDatabase *db = (LocalDatabase *)m_db;
@@ -499,14 +499,14 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
   }
 
   void splitTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u64_t recno;
+    uint64_t recno;
 
     key.flags = HAM_KEY_USER_ALLOC;
     key.data = &recno;
@@ -514,7 +514,7 @@ struct RecordNumberFixture {
 
     for (int i = 0; i < 4096; i++) {
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(recno == (ham_u64_t)i + 1);
+      REQUIRE(recno == (uint64_t)i + 1);
     }
   }
 };

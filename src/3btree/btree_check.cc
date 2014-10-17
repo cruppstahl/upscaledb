@@ -47,14 +47,14 @@ class BtreeCheckAction
 {
   public:
     // Constructor
-    BtreeCheckAction(BtreeIndex *btree, ham_u32_t flags)
+    BtreeCheckAction(BtreeIndex *btree, uint32_t flags)
       : m_btree(btree), m_flags(flags) {
     }
 
     // This is the main method; it starts the verification.
     void run() {
       Page *page, *parent = 0;
-      ham_u32_t level = 0;
+      uint32_t level = 0;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
@@ -82,7 +82,7 @@ class BtreeCheckAction
       // for each level...
       while (page) {
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        ham_u64_t ptr_down = node->get_ptr_down();
+        uint64_t ptr_down = node->get_ptr_down();
 
         // verify the page and all its siblings
         verify_level(parent, page, level);
@@ -112,7 +112,7 @@ class BtreeCheckAction
   private:
     // Verifies a whole level in the tree - start with "page" and traverse
     // the linked list of all the siblings
-    void verify_level(Page *parent, Page *page, ham_u32_t level) {
+    void verify_level(Page *parent, Page *page, uint32_t level) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       Page *child, *leftsib = 0;
@@ -155,7 +155,7 @@ class BtreeCheckAction
     }
 
     // Verifies a single page
-    void verify_page(Page *parent, Page *leftsib, Page *page, ham_u32_t level) {
+    void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -167,7 +167,7 @@ class BtreeCheckAction
         m_graph << "  \"" << ss.str() << "\" [" << std::endl
                 << "    label = \"";
         m_graph << "<fl>L|<fd>D|";
-        for (ham_u32_t i = 0; i < node->get_count(); i++) {
+        for (uint32_t i = 0; i < node->get_count(); i++) {
           m_graph << "<f" << i << ">" << i << "|";
         }
         m_graph << "<fr>R\"" << std::endl
@@ -192,7 +192,7 @@ class BtreeCheckAction
                 << "  ];" << std::endl;
         // to all children
         if (!node->is_leaf()) {
-          for (ham_u32_t i = 0; i < node->get_count(); i++) {
+          for (uint32_t i = 0; i < node->get_count(); i++) {
             m_graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
                     << node->get_record_id(i) << "\":fd [" << std::endl
                     << "  ];" << std::endl;
@@ -243,8 +243,8 @@ class BtreeCheckAction
       node->check_integrity();
 
       if (node->get_count() > 0) {
-        for (ham_u32_t i = 0; i < node->get_count() - 1; i++) {
-          int cmp = compare_keys(db, page, (ham_u32_t)i, (ham_u32_t)(i + 1));
+        for (uint32_t i = 0; i < node->get_count() - 1; i++) {
+          int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
           if (cmp >= 0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
                     "< item #%d", page->get_address(), i, i + 1));
@@ -262,8 +262,8 @@ class BtreeCheckAction
         }
         m_children.insert(node->get_ptr_down());
 
-        for (ham_u32_t i = 0; i < node->get_count(); i++) {
-          ham_u64_t child_id = node->get_record_id(i);
+        for (uint32_t i = 0; i < node->get_count(); i++) {
+          uint64_t child_id = node->get_record_id(i);
           if (m_children.find(child_id) != m_children.end()) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is not unique", page->get_address(), i));
@@ -294,14 +294,14 @@ class BtreeCheckAction
     BtreeIndex *m_btree;
 
     // The flags as specified when calling ham_db_check_integrity
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // ByteArrays to avoid frequent memory allocations
     ByteArray m_barray1;
     ByteArray m_barray2;
 
     // For checking uniqueness of record IDs on an internal level
-    std::set<ham_u64_t> m_children;
+    std::set<uint64_t> m_children;
 
 #if HAM_DEBUG
     // For printing the graph
@@ -310,7 +310,7 @@ class BtreeCheckAction
 };
 
 void
-BtreeIndex::check_integrity(ham_u32_t flags)
+BtreeIndex::check_integrity(uint32_t flags)
 {
   BtreeCheckAction bta(this, flags);
   bta.run();

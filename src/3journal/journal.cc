@@ -102,7 +102,7 @@ Journal::switch_files_maybe()
 
 void
 Journal::append_txn_begin(LocalTransaction *txn, const char *name,
-                ham_u64_t lsn)
+                uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -121,11 +121,11 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
   int cur = txn->get_log_desc();
 
   if (txn->get_name().size())
-    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry),
+    append_entry(cur, (void *)&entry, (uint32_t)sizeof(entry),
                 (void *)txn->get_name().c_str(),
-                (ham_u32_t)txn->get_name().size() + 1);
+                (uint32_t)txn->get_name().size() + 1);
   else
-    append_entry(cur, (void *)&entry, (ham_u32_t)sizeof(entry));
+    append_entry(cur, (void *)&entry, (uint32_t)sizeof(entry));
   maybe_flush_buffer(cur);
 
   m_open_txn[cur]++;
@@ -137,7 +137,7 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
 }
 
 void
-Journal::append_txn_abort(LocalTransaction *txn, ham_u64_t lsn)
+Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -161,7 +161,7 @@ Journal::append_txn_abort(LocalTransaction *txn, ham_u64_t lsn)
 }
 
 void
-Journal::append_txn_commit(LocalTransaction *txn, ham_u64_t lsn)
+Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -186,15 +186,15 @@ Journal::append_txn_commit(LocalTransaction *txn, ham_u64_t lsn)
 
 void
 Journal::append_insert(Database *db, LocalTransaction *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags,
-                ham_u64_t lsn)
+                ham_key_t *key, ham_record_t *record, uint32_t flags,
+                uint64_t lsn)
 {
   if (m_disable_logging)
     return;
 
   PJournalEntry entry;
   PJournalEntryInsert insert;
-  ham_u32_t size = sizeof(PJournalEntryInsert)
+  uint32_t size = sizeof(PJournalEntryInsert)
                         + key->size
                         + (flags & HAM_PARTIAL
                             ? record->partial_size
@@ -235,14 +235,14 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
 void
 Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
-                int duplicate_index, ham_u32_t flags, ham_u64_t lsn)
+                int duplicate_index, uint32_t flags, uint64_t lsn)
 {
   if (m_disable_logging)
     return;
 
   PJournalEntry entry;
   PJournalEntryErase erase;
-  ham_u32_t size = sizeof(PJournalEntryErase) + key->size - 1;
+  uint32_t size = sizeof(PJournalEntryErase) + key->size - 1;
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
@@ -271,11 +271,11 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 }
 
 void
-Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
-                    Page **bucket2, ham_u32_t bucket2_size,
-                    Page **bucket3, ham_u32_t bucket3_size,
-                    Page **bucket4, ham_u32_t bucket4_size,
-                    ham_u32_t lsn)
+Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
+                    Page **bucket2, uint32_t bucket2_size,
+                    Page **bucket3, uint32_t bucket3_size,
+                    Page **bucket4, uint32_t bucket4_size,
+                    uint32_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -295,20 +295,20 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
   // patched in later.
-  ham_u32_t entry_position = m_buffer[m_current_fd].get_size();
+  uint32_t entry_position = m_buffer[m_current_fd].get_size();
 
   // write the data to the file
   append_entry(m_current_fd, &entry, sizeof(entry),
                 &changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_env->get_page_size();
-  for (ham_u32_t i = 0; i < bucket1_size; i++)
+  for (uint32_t i = 0; i < bucket1_size; i++)
     entry.followup_size += append_changeset_page(bucket1[i], page_size);
-  for (ham_u32_t i = 0; i < bucket2_size; i++)
+  for (uint32_t i = 0; i < bucket2_size; i++)
     entry.followup_size += append_changeset_page(bucket2[i], page_size);
-  for (ham_u32_t i = 0; i < bucket3_size; i++)
+  for (uint32_t i = 0; i < bucket3_size; i++)
     entry.followup_size += append_changeset_page(bucket3[i], page_size);
-  for (ham_u32_t i = 0; i < bucket4_size; i++)
+  for (uint32_t i = 0; i < bucket4_size; i++)
     entry.followup_size += append_changeset_page(bucket4[i], page_size);
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
@@ -329,8 +329,8 @@ Journal::append_changeset(Page **bucket1, ham_u32_t bucket1_size,
   (void)switch_files_maybe();
 }
 
-ham_u32_t
-Journal::append_changeset_page(Page *page, ham_u32_t page_size)
+uint32_t
+Journal::append_changeset_page(Page *page, uint32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
 
@@ -355,7 +355,7 @@ Journal::transaction_flushed(LocalTransaction *txn)
 void
 Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 {
-  ham_u64_t filesize;
+  uint64_t filesize;
 
   auxbuffer->clear();
 
@@ -401,7 +401,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 
     // read auxiliary data if it's available
     if (entry->followup_size) {
-      auxbuffer->resize((ham_u32_t)entry->followup_size);
+      auxbuffer->resize((uint32_t)entry->followup_size);
 
       m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
                       entry->followup_size);
@@ -437,7 +437,7 @@ Journal::close(bool noclear)
 }
 
 static Database *
-recover_get_db(Environment *env, ham_u16_t dbname)
+recover_get_db(Environment *env, uint16_t dbname)
 {
   // first check if the Database is already open
   Environment::DatabaseMap::iterator it = env->get_database_map().find(dbname);
@@ -453,7 +453,7 @@ recover_get_db(Environment *env, ham_u16_t dbname)
 }
 
 static Transaction *
-recover_get_txn(Environment *env, ham_u64_t txn_id)
+recover_get_txn(Environment *env, uint64_t txn_id)
 {
   Transaction *txn = env->get_txn_manager()->get_oldest_txn();
   while (txn) {
@@ -504,14 +504,14 @@ void
 Journal::recover()
 {
   // first re-apply the last changeset
-  ham_u64_t start_lsn = recover_changeset();
+  uint64_t start_lsn = recover_changeset();
   if (start_lsn > m_lsn)
     m_lsn = start_lsn;
 
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
   // recover_changeset()
-  ham_u64_t page_manager_blobid
+  uint64_t page_manager_blobid
           = m_env->get_header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
     m_env->get_page_manager()->load_state(page_manager_blobid);
@@ -524,17 +524,17 @@ Journal::recover()
     recover_journal(start_lsn);
 }
 
-ham_u64_t 
-Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
+uint64_t 
+Journal::scan_for_newest_changeset(File *file, uint64_t *position)
 {
   Iterator it;
   PJournalEntry entry;
   ByteArray buffer;
-  ham_u64_t result = 0;
+  uint64_t result = 0;
 
   // get the next entry
   try {
-    ham_u64_t filesize = file->get_file_size();
+    uint64_t filesize = file->get_file_size();
 
     while (it.offset < filesize) {
       file->pread(it.offset, &entry, sizeof(entry));
@@ -560,13 +560,13 @@ Journal::scan_for_newest_changeset(File *file, ham_u64_t *position)
   return (result);
 }
 
-ham_u64_t 
+uint64_t 
 Journal::recover_changeset()
 {
   // scan through both files, look for the file with the newest changeset
-  ham_u64_t position0, position1, position;
-  ham_u64_t lsn1 = scan_for_newest_changeset(&m_files[0], &position0);
-  ham_u64_t lsn2 = scan_for_newest_changeset(&m_files[1], &position1);
+  uint64_t position0, position1, position;
+  uint64_t lsn1 = scan_for_newest_changeset(&m_files[0], &position0);
+  uint64_t lsn2 = scan_for_newest_changeset(&m_files[1], &position1);
 
   // both files are empty or do not contain a changeset?
   if (lsn1 == 0 && lsn2 == 0)
@@ -577,7 +577,7 @@ Journal::recover_changeset()
   position = lsn1 > lsn2 ? position0 : position1;
 
   PJournalEntry entry;
-  ham_u64_t start_lsn = 0;
+  uint64_t start_lsn = 0;
 
   try {
     m_files[m_current_fd].pread(position, &entry, sizeof(entry));
@@ -589,13 +589,13 @@ Journal::recover_changeset()
     m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
     position += sizeof(changeset);
 
-    ham_u32_t page_size = m_env->get_page_size();
+    uint32_t page_size = m_env->get_page_size();
     ByteArray arena(page_size);
 
-    ham_u64_t file_size = m_env->get_device()->get_file_size();
+    uint64_t file_size = m_env->get_device()->get_file_size();
 
     // for each page in this changeset...
-    for (ham_u32_t i = 0; i < changeset.num_pages; i++) {
+    for (uint32_t i = 0; i < changeset.num_pages; i++) {
       PJournalEntryPageHeader page_header;
       m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
       position += sizeof(page_header);
@@ -656,7 +656,7 @@ Journal::recover_changeset()
 }
 
 void
-Journal::recover_journal(ham_u64_t start_lsn)
+Journal::recover_journal(uint64_t start_lsn)
 {
   ham_status_t st = 0;
   Iterator it;

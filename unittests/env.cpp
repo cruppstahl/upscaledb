@@ -28,9 +28,9 @@
 using namespace hamsterdb;
 
 struct EnvFixture {
-  ham_u32_t m_flags;
+  uint32_t m_flags;
 
-  EnvFixture(ham_u32_t flags = 0)
+  EnvFixture(uint32_t flags = 0)
     : m_flags(flags) {
     os::unlink(Utils::opath(".test"));
   }
@@ -122,9 +122,9 @@ struct EnvFixture {
       ham_env_create(&env, Utils::opath(".test"),
         m_flags, 0664, parameters));
     REQUIRE(0 == ham_env_get_parameters(env, ps));
-    REQUIRE((ham_u64_t)(128 * 1024u) == ps[0].value);
-    REQUIRE((ham_u64_t)(64 * 1024u) == ps[1].value);
-    REQUIRE((ham_u64_t)2724u == ps[2].value);
+    REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
+    REQUIRE((uint64_t)(64 * 1024u) == ps[1].value);
+    REQUIRE((uint64_t)2724u == ps[2].value);
 
     /* close and re-open the ENV */
     if (!(m_flags & HAM_IN_MEMORY)) {
@@ -135,8 +135,8 @@ struct EnvFixture {
     }
 
     REQUIRE(0 == ham_env_get_parameters(env, ps));
-    REQUIRE((ham_u64_t)(128 * 1024u) == ps[0].value);
-    REQUIRE((ham_u64_t)(1024 * 64u) == ps[1].value);
+    REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
+    REQUIRE((uint64_t)(1024 * 64u) == ps[1].value);
     REQUIRE(2724ull == ps[2].value);
 
     /* now create 128 DBs; we said we would, anyway, when creating the
@@ -263,7 +263,7 @@ struct EnvFixture {
     ham_env_t *env;
     ham_db_t *db;
     ham_parameter_t parameters2[] = {
-       { HAM_PARAM_KEYSIZE, (ham_u64_t)64 },
+       { HAM_PARAM_KEYSIZE, (uint64_t)64 },
        { 0, 0ull }
     };
 
@@ -272,7 +272,7 @@ struct EnvFixture {
 
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 333, 0, parameters2));
-    REQUIRE((ham_u16_t)64 == ((LocalDatabase *)db)->get_config().key_size);
+    REQUIRE((uint16_t)64 == ((LocalDatabase *)db)->get_config().key_size);
     REQUIRE(0 == ham_db_close(db, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -383,16 +383,16 @@ struct EnvFixture {
 
     for (i = 0; i < 10; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
       REQUIRE(0 == ham_env_open_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
     }
 
     for (i = 0; i < 10; i++) {
       REQUIRE(0 == ham_env_open_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
     }
 
@@ -409,7 +409,7 @@ struct EnvFixture {
 
     for (i = 0; i < 10; i++)
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
 
     for (i = 0; i < 10; i++)
       REQUIRE(0 == ham_db_close(db[i], 0));
@@ -417,7 +417,7 @@ struct EnvFixture {
     if (!(m_flags & HAM_IN_MEMORY)) {
       for (i = 0; i < 10; i++) {
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
         REQUIRE(0 == ham_db_close(db[i], 0));
       }
     }
@@ -439,7 +439,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -464,7 +464,7 @@ struct EnvFixture {
 
         REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
         REQUIRE(value == *(int *)key.data);
-        REQUIRE((ham_u16_t)sizeof(value) == key.size);
+        REQUIRE((uint16_t)sizeof(value) == key.size);
       }
     }
 
@@ -472,7 +472,7 @@ struct EnvFixture {
       for (i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ham_db_close(db[i], 0));
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
         for (int j = 0; j < MAX_ITEMS; j++) {
           int value = j * (i + 1);
           memset(&key, 0, sizeof(key));
@@ -482,7 +482,7 @@ struct EnvFixture {
 
           REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
           REQUIRE(value == *(int *)key.data);
-          REQUIRE((ham_u16_t)sizeof(value) == key.size);
+          REQUIRE((uint16_t)sizeof(value) == key.size);
         }
       }
     }
@@ -507,7 +507,7 @@ struct EnvFixture {
         ham_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -535,7 +535,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
         REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
+        REQUIRE((uint32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -544,7 +544,7 @@ struct EnvFixture {
       for (i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ham_db_close(db[i], 0));
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
         for (int j = 0; j < MAX_ITEMS; j++) {
           int value = j * (i + 1);
           memset(&key, 0, sizeof(key));
@@ -555,7 +555,7 @@ struct EnvFixture {
           sprintf(buffer, "%08x%08x", j, i + 1);
 
           REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-          REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
+          REQUIRE((uint32_t)sizeof(buffer) == rec.size);
           REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
         }
       }
@@ -580,7 +580,7 @@ struct EnvFixture {
         ham_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -608,7 +608,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
         REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
+        REQUIRE((uint32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -631,7 +631,7 @@ struct EnvFixture {
       for (i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ham_db_close(db[i], 0));
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
         for (int j = 0; j < MAX_ITEMS; j++) {
           int value = j * (i + 1);
           memset(&key, 0, sizeof(key));
@@ -644,7 +644,7 @@ struct EnvFixture {
           if (j & 1) { // must exist
             REQUIRE(0 ==
                 ham_db_find(db[i], 0, &key, &rec, 0));
-            REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
+            REQUIRE((uint32_t)sizeof(buffer) == rec.size);
             REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
           }
           else { // was deleted
@@ -677,7 +677,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
       REQUIRE(0 == ham_cursor_create(&cursor[i], db[i], 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
@@ -685,9 +685,9 @@ struct EnvFixture {
         memset(&rec, 0, sizeof(rec));
         sprintf(buffer, "%08x%08x", j, i+1);
         key.data = buffer;
-        key.size = (ham_u16_t)strlen(buffer) + 1;
+        key.size = (uint16_t)strlen(buffer) + 1;
         rec.data = buffer;
-        rec.size = (ham_u16_t)strlen(buffer) + 1;
+        rec.size = (uint16_t)strlen(buffer) + 1;
 
         REQUIRE(0 == ham_cursor_insert(cursor[i], &key, &rec, 0));
       }
@@ -699,13 +699,13 @@ struct EnvFixture {
 
       REQUIRE(0 == ham_cursor_move(cursor[i], &key, &rec, HAM_CURSOR_FIRST));
       sprintf(buffer, "%08x%08x", 0, i+1);
-      REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
+      REQUIRE((uint32_t)(strlen(buffer) + 1) == rec.size);
       REQUIRE(0 == strcmp(buffer, (char *)rec.data));
 
       for (int j = 1; j < MAX_ITEMS; j++) {
         REQUIRE(0 == ham_cursor_move(cursor[i], &key, &rec, HAM_CURSOR_NEXT));
         sprintf(buffer, "%08x%08x", j, i+1);
-        REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
+        REQUIRE((uint32_t)(strlen(buffer) + 1) == rec.size);
         REQUIRE(0 == strcmp(buffer, (char *)rec.data));
       }
     }
@@ -716,7 +716,7 @@ struct EnvFixture {
         memset(&rec, 0, sizeof(rec));
         sprintf(buffer, "%08x%08x", j, i + 1);
         key.data = buffer;
-        key.size = (ham_u16_t)strlen(buffer) + 1;
+        key.size = (uint16_t)strlen(buffer) + 1;
 
         REQUIRE(0 == ham_cursor_find(cursor[i], &key, 0, 0));
         REQUIRE(0 == ham_cursor_erase(cursor[i], 0));
@@ -728,21 +728,21 @@ struct EnvFixture {
         REQUIRE(0 == ham_cursor_close(cursor[i]));
         REQUIRE(0 == ham_db_close(db[i], 0));
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
         REQUIRE(0 == ham_cursor_create(&cursor[i], db[i], 0, 0));
         for (int j = 0; j < MAX_ITEMS; j++) {
           memset(&key, 0, sizeof(key));
           memset(&rec, 0, sizeof(rec));
           sprintf(buffer, "%08x%08x", j, i + 1);
           key.data = buffer;
-          key.size = (ham_u16_t)strlen(buffer) + 1;
+          key.size = (uint16_t)strlen(buffer) + 1;
 
           if (j & 1) { // must exist
             REQUIRE(0 ==
                 ham_cursor_find(cursor[i], &key, 0, 0));
             REQUIRE(0 ==
                 ham_cursor_move(cursor[i], 0, &rec, 0));
-            REQUIRE((ham_u32_t)(strlen(buffer) + 1) == rec.size);
+            REQUIRE((uint32_t)(strlen(buffer) + 1) == rec.size);
             REQUIRE(0 == strcmp(buffer, (char *)rec.data));
           }
           else { // was deleted
@@ -775,7 +775,7 @@ struct EnvFixture {
         ham_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++)
-      REQUIRE(0 == ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       for (int j = 0; j < MAX_ITEMS; j++) {
@@ -803,7 +803,7 @@ struct EnvFixture {
     for (i = 0; i < MAX_DB; i++) {
       if (!(m_flags & HAM_IN_MEMORY)) {
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i + 1, 0, 0));
+              (uint16_t)i + 1, 0, 0));
       }
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -815,7 +815,7 @@ struct EnvFixture {
         sprintf(buffer, "%08x%08x", j, i+1);
 
 		REQUIRE(0 == ham_db_find(db[i], 0, &key, &rec, 0));
-        REQUIRE((ham_u32_t)sizeof(buffer) == rec.size);
+        REQUIRE((uint32_t)sizeof(buffer) == rec.size);
         REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
       }
     }
@@ -837,7 +837,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++)
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i+1, 0, 0));
+            (uint16_t)i+1, 0, 0));
 
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_rename_db(0, 1, 2, 0));
@@ -856,14 +856,14 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_rename_db(env,
-            (ham_u16_t)i + 1, (ham_u16_t)i + 1000, 0));
+            (uint16_t)i + 1, (uint16_t)i + 1000, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
     }
 
     if (!(m_flags & HAM_IN_MEMORY)) {
       for (i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ham_env_open_db(env, &db[i],
-              (ham_u16_t)i+1000, 0, 0));
+              (uint16_t)i+1000, 0, 0));
       }
 
       for (i = 0; i < MAX_DB; i++)
@@ -884,18 +884,18 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
     }
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_rename_db(env,
-            (ham_u16_t)i + 1, (ham_u16_t)i + 1000, 0));
+            (uint16_t)i + 1, (uint16_t)i + 1000, 0));
     }
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_open_db(env, &db[i],
-            (ham_u16_t)i + 1000, 0, 0));
+            (uint16_t)i + 1000, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
     }
 
@@ -913,25 +913,25 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
     }
 
     REQUIRE(HAM_INV_PARAMETER ==
-            ham_env_erase_db(0, (ham_u16_t)i + 1, 0));
+            ham_env_erase_db(0, (uint16_t)i + 1, 0));
     REQUIRE(HAM_INV_PARAMETER ==
             ham_env_erase_db(env, 0, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(HAM_DATABASE_ALREADY_OPEN ==
-              ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+              ham_env_erase_db(env, (uint16_t)i + 1, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
       if (m_flags & HAM_IN_MEMORY) {
         REQUIRE(HAM_DATABASE_NOT_FOUND ==
-            ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+            ham_env_erase_db(env, (uint16_t)i + 1, 0));
       }
       else {
         REQUIRE(0 ==
-            ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+            ham_env_erase_db(env, (uint16_t)i + 1, 0));
       }
     }
 
@@ -949,15 +949,15 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
     }
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(HAM_DATABASE_NOT_FOUND ==
-              ham_env_erase_db(env, (ham_u16_t)i + 1000, 0));
+              ham_env_erase_db(env, (uint16_t)i + 1000, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
       REQUIRE(HAM_DATABASE_NOT_FOUND ==
-              ham_env_erase_db(env, (ham_u16_t)i + 1000, 0));
+              ham_env_erase_db(env, (uint16_t)i + 1000, 0));
     }
 
     REQUIRE(0 == ham_env_close(env, 0));
@@ -986,7 +986,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 ==
-        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, ps2));
+        ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, ps2));
       for (j = 0; j < MAX_ITEMS; j++) {
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
@@ -1008,14 +1008,14 @@ struct EnvFixture {
       REQUIRE(((m_flags & HAM_IN_MEMORY)
                 ? HAM_DATABASE_NOT_FOUND
                 : 0) ==
-        ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+        ham_env_erase_db(env, (uint16_t)i + 1, 0));
     }
 
     for (i = 0; i < 10; i++) {
       REQUIRE(((m_flags & HAM_IN_MEMORY)
                 ? HAM_INV_PARAMETER
                 : HAM_DATABASE_NOT_FOUND) ==
-        ham_env_open_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+        ham_env_open_db(env, &db[i], (uint16_t)i + 1, 0, 0));
     }
 
     REQUIRE(0 == ham_env_close(env, 0));
@@ -1037,7 +1037,7 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 ==
-        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+        ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
       for (j = 0; j < MAX_ITEMS; j++) {
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
@@ -1059,12 +1059,12 @@ struct EnvFixture {
     REQUIRE(0 == ham_env_open(&env, Utils::opath(".test"), m_flags, 0));
 
     for (i = 0; i < MAX_DB; i++) {
-      REQUIRE(0 == ham_env_erase_db(env, (ham_u16_t)i + 1, 0));
+      REQUIRE(0 == ham_env_erase_db(env, (uint16_t)i + 1, 0));
     }
 
     for (i = 0; i < 10; i++) {
       REQUIRE(HAM_DATABASE_NOT_FOUND ==
-        ham_env_open_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+        ham_env_open_db(env, &db[i], (uint16_t)i + 1, 0, 0));
     }
 
     REQUIRE(0 == ham_env_close(env, 0));
@@ -1081,10 +1081,10 @@ struct EnvFixture {
 
     for (i = 0; i < MAX_DB - 1; i++)
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
 
     REQUIRE(HAM_LIMITS_REACHED ==
-        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1, 0, 0));
+        ham_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
     for (i = 0; i < MAX_DB - 1; i++)
       REQUIRE(0 == ham_db_close(db[i], 0));
@@ -1094,8 +1094,8 @@ struct EnvFixture {
   void getDatabaseNamesTest() {
     ham_env_t *env;
     ham_db_t *db1, *db2, *db3;
-    ham_u16_t names[5];
-    ham_u32_t names_size = 0;
+    uint16_t names[5];
+    uint32_t names_size = 0;
 
     REQUIRE(0 ==
         ham_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
@@ -1110,7 +1110,7 @@ struct EnvFixture {
     names_size = 1;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_u32_t)0 == names_size);
+    REQUIRE((uint32_t)0 == names_size);
 
     REQUIRE(0 ==
         ham_env_create_db(env, &db1, 111, 0, 0));
@@ -1121,8 +1121,8 @@ struct EnvFixture {
     names_size = 1;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_u32_t)1 == names_size);
-    REQUIRE((ham_u16_t)111 == names[0]);
+    REQUIRE((uint32_t)1 == names_size);
+    REQUIRE((uint16_t)111 == names[0]);
 
     REQUIRE(0 ==
         ham_env_create_db(env, &db2, 222, 0, 0));
@@ -1135,10 +1135,10 @@ struct EnvFixture {
     names_size = 5;
     REQUIRE(0 ==
         ham_env_get_database_names(env, names, &names_size));
-    REQUIRE((ham_u32_t)3 == names_size);
-    REQUIRE((ham_u16_t)111 == names[0]);
-    REQUIRE((ham_u16_t)222 == names[1]);
-    REQUIRE((ham_u16_t)333 == names[2]);
+    REQUIRE((uint32_t)3 == names_size);
+    REQUIRE((uint16_t)111 == names[0]);
+    REQUIRE((uint16_t)222 == names[1]);
+    REQUIRE((uint16_t)333 == names[2]);
 
     REQUIRE(0 == ham_db_close(db2, 0));
     if (!(m_flags & HAM_IN_MEMORY)) {
@@ -1146,9 +1146,9 @@ struct EnvFixture {
       names_size = 5;
       REQUIRE(0 ==
           ham_env_get_database_names(env, names, &names_size));
-      REQUIRE((ham_u32_t)2 == names_size);
-      REQUIRE((ham_u16_t)111 == names[0]);
-      REQUIRE((ham_u16_t)333 == names[1]);
+      REQUIRE((uint32_t)2 == names_size);
+      REQUIRE((uint16_t)111 == names[0]);
+      REQUIRE((uint16_t)333 == names[1]);
     }
 
     REQUIRE(0 == ham_db_close(db1, 0));
@@ -1188,7 +1188,7 @@ struct EnvFixture {
 
     for (i = 0; i < 10; i++)
       REQUIRE(0 == ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (uint16_t)i + 1, 0, 0));
 
     for (i = 0; i < 10; i++)
       REQUIRE(0 == ham_db_close(db[i], 0));

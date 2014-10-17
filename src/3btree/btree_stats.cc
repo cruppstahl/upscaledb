@@ -44,7 +44,7 @@ BtreeStatistics::BtreeStatistics()
 void
 BtreeStatistics::find_succeeded(Page *page)
 {
-  ham_u64_t old = m_last_leaf_pages[kOperationFind];
+  uint64_t old = m_last_leaf_pages[kOperationFind];
   if (old != page->get_address()) {
     m_last_leaf_pages[kOperationFind] = 0;
     m_last_leaf_count[kOperationFind] = 0;
@@ -61,9 +61,9 @@ BtreeStatistics::find_failed()
 }
 
 void
-BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
+BtreeStatistics::insert_succeeded(Page *page, uint16_t slot)
 {
-  ham_u64_t old = m_last_leaf_pages[kOperationInsert];
+  uint64_t old = m_last_leaf_pages[kOperationInsert];
   if (old != page->get_address()) {
     m_last_leaf_pages[kOperationInsert] = page->get_address();
     m_last_leaf_count[kOperationInsert] = 0;
@@ -98,7 +98,7 @@ BtreeStatistics::insert_failed()
 void
 BtreeStatistics::erase_succeeded(Page *page)
 {
-  ham_u64_t old = m_last_leaf_pages[kOperationErase];
+  uint64_t old = m_last_leaf_pages[kOperationErase];
   if (old != page->get_address()) {
     m_last_leaf_pages[kOperationErase] = page->get_address();
     m_last_leaf_count[kOperationErase] = 0;
@@ -124,7 +124,7 @@ BtreeStatistics::reset_page(Page *page)
 }
 
 BtreeStatistics::FindHints
-BtreeStatistics::get_find_hints(ham_u32_t flags)
+BtreeStatistics::get_find_hints(uint32_t flags)
 {
   BtreeStatistics::FindHints hints = {flags, flags, 0, false};
 
@@ -138,7 +138,7 @@ BtreeStatistics::get_find_hints(ham_u32_t flags)
 }
 
 BtreeStatistics::InsertHints
-BtreeStatistics::get_insert_hints(ham_u32_t flags)
+BtreeStatistics::get_insert_hints(uint32_t flags)
 {
   InsertHints hints = {flags, flags, 0, 0, 0, 0, 0};
 

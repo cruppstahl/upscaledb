@@ -70,12 +70,12 @@ class BtreeNodeProxy
     }
 
     // Returns the flags of the btree node (|kLeafNode|)
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (PBtreeNode::from_page(m_page)->get_flags());
     }
 
     // Sets the flags of the btree node (|kLeafNode|)
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       PBtreeNode::from_page(m_page)->set_flags(flags);
     }
 
@@ -86,7 +86,7 @@ class BtreeNodeProxy
 
     // Sets the number of entries in the BtreeNode
     void set_count(size_t count) {
-      PBtreeNode::from_page(m_page)->set_count((ham_u32_t)count);
+      PBtreeNode::from_page(m_page)->set_count((uint32_t)count);
     }
 
     // Returns true if this btree node is a leaf node
@@ -95,32 +95,32 @@ class BtreeNodeProxy
     }
 
     // Returns the address of the left sibling of this node
-    ham_u64_t get_left() const {
+    uint64_t get_left() const {
       return (PBtreeNode::from_page(m_page)->get_left());
     }
 
     // Sets the address of the left sibling of this node
-    void set_left(ham_u64_t address) {
+    void set_left(uint64_t address) {
       PBtreeNode::from_page(m_page)->set_left(address);
     }
 
     // Returns the address of the right sibling of this node
-    ham_u64_t get_right() const {
+    uint64_t get_right() const {
       return (PBtreeNode::from_page(m_page)->get_right());
     }
 
     // Sets the address of the right sibling of this node
-    void set_right(ham_u64_t address) {
+    void set_right(uint64_t address) {
       PBtreeNode::from_page(m_page)->set_right(address);
     }
 
     // Returns the ptr_down of this node
-    ham_u64_t get_ptr_down() const {
+    uint64_t get_ptr_down() const {
       return (PBtreeNode::from_page(m_page)->get_ptr_down());
     }
 
     // Sets the ptr_down of this node
-    void set_ptr_down(ham_u64_t address) {
+    void set_ptr_down(uint64_t address) {
       PBtreeNode::from_page(m_page)->set_ptr_down(address);
     }
 
@@ -160,7 +160,7 @@ class BtreeNodeProxy
     // compare operation.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(ham_key_t *key, ham_u64_t *record_id = 0,
+    virtual int find_child(ham_key_t *key, uint64_t *record_id = 0,
                     int *pcmp = 0) = 0;
 
     // Searches the node for the |key|, but will always return -1 if
@@ -176,21 +176,21 @@ class BtreeNodeProxy
     virtual int get_record_count(int slot) = 0;
 
     // Returns the record size of a key or one of its duplicates.
-    virtual ham_u64_t get_record_size(int slot, int duplicate_index) = 0;
+    virtual uint64_t get_record_size(int slot, int duplicate_index) = 0;
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual ham_u64_t get_record_id(int slot) const = 0;
+    virtual uint64_t get_record_id(int slot) const = 0;
 
     // Sets the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual void set_record_id(int slot, ham_u64_t id) = 0;
+    virtual void set_record_id(int slot, uint64_t id) = 0;
 
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
     virtual void get_record(int slot, ByteArray *arena,
-                    ham_record_t *record, ham_u32_t flags,
+                    ham_record_t *record, uint32_t flags,
                     int duplicate_index = 0) = 0;
 
     // High-level function to set a new record
@@ -201,8 +201,8 @@ class BtreeNodeProxy
     //
     // a previously existing blob will be deleted if necessary
     virtual void set_record(int slot, ham_record_t *record,
-                    int duplicate_index, ham_u32_t flags,
-                    ham_u32_t *new_duplicate_index) = 0;
+                    int duplicate_index, uint32_t flags,
+                    uint32_t *new_duplicate_index) = 0;
 
     // Removes the record (or the duplicate of it, if |duplicate_index| is > 0).
     // If |all_duplicates| is set then all duplicates of this key are deleted.
@@ -260,10 +260,10 @@ struct CallbackCompare
     : m_db(db) {
   }
 
-  int operator()(const void *lhs_data, ham_u32_t lhs_size,
-          const void *rhs_data, ham_u32_t rhs_size) const {
-    return (m_db->get_compare_func()((::ham_db_t *)m_db, (ham_u8_t *)lhs_data,
-                            lhs_size, (ham_u8_t *)rhs_data, rhs_size));
+  int operator()(const void *lhs_data, uint32_t lhs_size,
+          const void *rhs_data, uint32_t rhs_size) const {
+    return (m_db->get_compare_func()((::ham_db_t *)m_db, (uint8_t *)lhs_data,
+                            lhs_size, (uint8_t *)rhs_data, rhs_size));
   }
 
   LocalDatabase *m_db;
@@ -280,8 +280,8 @@ struct NumericCompare
   NumericCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_u32_t lhs_size,
-          const void *rhs_data, ham_u32_t rhs_size) const {
+  int operator()(const void *lhs_data, uint32_t lhs_size,
+          const void *rhs_data, uint32_t rhs_size) const {
     ham_assert(lhs_size == rhs_size);
     ham_assert(lhs_size == sizeof(T));
     T l = *(T *)lhs_data;
@@ -299,8 +299,8 @@ struct FixedSizeCompare
   FixedSizeCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_u32_t lhs_size,
-          const void *rhs_data, ham_u32_t rhs_size) const {
+  int operator()(const void *lhs_data, uint32_t lhs_size,
+          const void *rhs_data, uint32_t rhs_size) const {
     ham_assert(lhs_size == rhs_size);
     return (::memcmp(lhs_data, rhs_data, lhs_size));
   }
@@ -316,8 +316,8 @@ struct VariableSizeCompare
   VariableSizeCompare(LocalDatabase *) {
   }
 
-  int operator()(const void *lhs_data, ham_u32_t lhs_size,
-          const void *rhs_data, ham_u32_t rhs_size) const {
+  int operator()(const void *lhs_data, uint32_t lhs_size,
+          const void *rhs_data, uint32_t rhs_size) const {
     if (lhs_size < rhs_size) {
       int m = ::memcmp(lhs_data, rhs_data, lhs_size);
       if (m < 0)
@@ -397,7 +397,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Searches the node for the key and returns the slot of this key.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(ham_key_t *key, ham_u64_t *precord_id = 0,
+    virtual int find_child(ham_key_t *key, uint64_t *precord_id = 0,
                     int *pcmp = 0) {
       int dummy;
       if (get_count() == 0) {
@@ -438,35 +438,35 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
     virtual void get_record(int slot, ByteArray *arena,
-                    ham_record_t *record, ham_u32_t flags,
+                    ham_record_t *record, uint32_t flags,
                     int duplicate_index = 0) {
       ham_assert(slot < (int)get_count());
       m_impl.get_record(slot, arena, record, flags, duplicate_index);
     }
 
     virtual void set_record(int slot, ham_record_t *record,
-                    int duplicate_index, ham_u32_t flags,
-                    ham_u32_t *new_duplicate_index) {
+                    int duplicate_index, uint32_t flags,
+                    uint32_t *new_duplicate_index) {
       m_impl.set_record(slot, record, duplicate_index, flags,
                       new_duplicate_index);
     }
 
     // Returns the record size of a key or one of its duplicates
-    virtual ham_u64_t get_record_size(int slot, int duplicate_index) {
+    virtual uint64_t get_record_size(int slot, int duplicate_index) {
       ham_assert(slot < (int)get_count());
       return (m_impl.get_record_size(slot, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual ham_u64_t get_record_id(int slot) const {
+    virtual uint64_t get_record_id(int slot) const {
       ham_assert(slot < (int)get_count());
       return (m_impl.get_record_id(slot));
     }
 
     // Sets the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual void set_record_id(int slot, ham_u64_t id) {
+    virtual void set_record_id(int slot, uint64_t id) {
       return (m_impl.set_record_id(slot, id));
     }
 

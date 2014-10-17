@@ -67,12 +67,12 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_txn_abort(txn, 0));
   };
 
-  ham_u64_t get_param_value(ham_parameter_t *param, ham_u16_t name) {
+  uint64_t get_param_value(ham_parameter_t *param, uint16_t name) {
     for (; param->name; param++) {
       if (param->name == name)
         return (param->value);
     }
-    return ((ham_u64_t)-1);
+    return ((uint64_t)-1);
   }
 
   void getInitializedEnvParamsTest() {
@@ -99,12 +99,12 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_env_get_parameters(m_env, params));
 
     REQUIRE(get_param_value(params, HAM_PARAM_CACHESIZE)
-                    == (ham_u64_t)(1024 * 32));
+                    == (uint64_t)(1024 * 32));
     REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
-                    == (ham_u64_t)(1024 * 64));
-    REQUIRE((ham_u64_t)HAM_DISABLE_MMAP ==
+                    == (uint64_t)(1024 * 64));
+    REQUIRE((uint64_t)HAM_DISABLE_MMAP ==
         get_param_value(params, HAM_PARAM_FLAGS));
-    REQUIRE((ham_u64_t)0664 ==
+    REQUIRE((uint64_t)0664 ==
         get_param_value(params, HAM_PARAM_FILEMODE));
     REQUIRE(0 == strcmp(Utils::opath(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
@@ -136,13 +136,13 @@ struct APIv110Fixture {
 
     REQUIRE(0 == ham_env_get_parameters(m_env, params));
 
-    REQUIRE((ham_u64_t)HAM_DEFAULT_CACHE_SIZE ==
+    REQUIRE((uint64_t)HAM_DEFAULT_CACHE_SIZE ==
         get_param_value(params, HAM_PARAM_CACHE_SIZE));
     REQUIRE(get_param_value(params, HAM_PARAM_PAGE_SIZE)
-                    == (ham_u64_t)(1024 * 64));
-    REQUIRE((ham_u64_t)HAM_READ_ONLY ==
+                    == (uint64_t)(1024 * 64));
+    REQUIRE((uint64_t)HAM_READ_ONLY ==
         get_param_value(params, HAM_PARAM_FLAGS));
-    REQUIRE((ham_u64_t)0644 ==
+    REQUIRE((uint64_t)0644 ==
         get_param_value(params, HAM_PARAM_FILEMODE));
     REQUIRE(0 == strcmp(Utils::opath(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
@@ -178,7 +178,7 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)1 ==
+    REQUIRE((uint64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     REQUIRE(0u ==
         get_param_value(params, HAM_PARAM_FLAGS));
@@ -218,7 +218,7 @@ struct APIv110Fixture {
     REQUIRE(0 == ham_db_get_parameters(m_db, params));
     REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    REQUIRE((ham_u64_t)1 ==
+    REQUIRE((uint64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     REQUIRE((unsigned)0 ==
         get_param_value(params, HAM_PARAM_FLAGS));

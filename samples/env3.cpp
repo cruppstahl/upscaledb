@@ -37,15 +37,15 @@
 
 /* A structure for the "customer" database */
 typedef struct {
-  ham_u32_t id;         /* customer id; will be the key of the customer table */
+  uint32_t id;         /* customer id; will be the key of the customer table */
   char name[32];        /* customer name */
   /* ... additional information could follow here */
 } customer_t;
 
 /* A structure for the "orders" database */
 typedef struct {
-  ham_u32_t id;         /* order id; will be the key of the order table */
-  ham_u32_t customer_id;/* customer id */
+  uint32_t id;         /* order id; will be the key of the order table */
+  uint32_t customer_id;/* customer id */
   char assignee[32];    /* assigned to whom? */
   /* ... additional information could follow here */
 } order_t;
@@ -99,7 +99,7 @@ run_demo() {
    */
   ham_parameter_t c2o_params[] = {
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 

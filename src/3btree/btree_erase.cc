@@ -44,7 +44,7 @@ class BtreeEraseAction
 {
   public:
     BtreeEraseAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, int duplicate_index = 0, ham_u32_t flags = 0)
+        ham_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_duplicate_index(duplicate_index), m_flags(flags) {
       if (cursor) {
@@ -308,15 +308,15 @@ class BtreeEraseAction
     ham_key_t *m_key;
 
     // id of the duplicate to erase
-    ham_u32_t m_duplicate_index;
+    uint32_t m_duplicate_index;
 
     // flags of ham_db_erase()
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 };
 
 ham_status_t
 BtreeIndex::erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                int duplicate, ham_u32_t flags)
+                int duplicate, uint32_t flags)
 {
   BtreeEraseAction bea(this, txn, cursor, key, duplicate, flags);
   return (bea.run());

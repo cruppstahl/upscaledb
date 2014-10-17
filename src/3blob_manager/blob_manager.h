@@ -54,66 +54,66 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
     }
 
     // Returns a PBlobHeader from a file address
-    static PBlobHeader *from_page(Page *page, ham_u64_t address) {
-      ham_u32_t readstart = (ham_u32_t)(address - page->get_address());
+    static PBlobHeader *from_page(Page *page, uint64_t address) {
+      uint32_t readstart = (uint32_t)(address - page->get_address());
       return (PBlobHeader *)&page->get_raw_payload()[readstart];
     }
 
     // Returns the blob flags
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
     // Sets the blob's flags
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       m_flags = flags;
     }
 
     // Returns the absolute address of the blob
-    ham_u64_t get_self() const {
+    uint64_t get_self() const {
       return (m_blobid);
     }
 
     // Sets the absolute address of the blob
-    void set_self(ham_u64_t id) {
+    void set_self(uint64_t id) {
       m_blobid = id;
     }
 
     // Returns the payload size of the blob
-    ham_u64_t get_size() const {
+    uint64_t get_size() const {
       return (m_size);
     }
 
     // Sets the payload size of the blob
-    void set_size(ham_u64_t size) {
+    void set_size(uint64_t size) {
       m_size = size;
     }
 
     // Returns the allocated size of the blob (includes padding)
-    ham_u64_t get_alloc_size() const {
+    uint64_t get_alloc_size() const {
       return (m_allocated_size);
     }
 
     // Sets the allocated size of a blob (includes padding)
-    void set_alloc_size(ham_u64_t size) {
+    void set_alloc_size(uint64_t size) {
       m_allocated_size = size;
     }
 
   private:
     // Flags; currently only used in hamsterdb-pro to store compression
     // information
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // The blob ID - which is the absolute address/offset of this
     //* structure in the file
-    ham_u64_t m_blobid;
+    uint64_t m_blobid;
 
     // The allocated size of the blob; this is the size, which is used
     // by the blob and it's header and maybe additional padding
-    ham_u64_t m_allocated_size;
+    uint64_t m_allocated_size;
 
     // The "real" size of the blob (excluding the header)
-    ham_u64_t m_size;
+    uint64_t m_size;
 } HAM_PACK_2;
 
 #include "1base/packstop.h"
@@ -150,28 +150,28 @@ class BlobManager
     // header)
     //
     // |flags| can be HAM_PARTIAL, kDisableCompression
-    ham_u64_t allocate(LocalDatabase *db, ham_record_t *record,
-                    ham_u32_t flags);
+    uint64_t allocate(LocalDatabase *db, ham_record_t *record,
+                    uint32_t flags);
 
     // Reads a blob and stores the data in @a record.
     // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    void read(LocalDatabase *db, ham_u64_t blob_id,
-                    ham_record_t *record, ham_u32_t flags,
+    void read(LocalDatabase *db, uint64_t blob_id,
+                    ham_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // Retrieves the size of a blob
-    ham_u64_t get_blob_size(LocalDatabase *db, ham_u64_t blob_id);
+    uint64_t get_blob_size(LocalDatabase *db, uint64_t blob_id);
 
     // Overwrites an existing blob
     //
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
-    ham_u64_t overwrite(LocalDatabase *db, ham_u64_t old_blob_id,
-                    ham_record_t *record, ham_u32_t flags);
+    uint64_t overwrite(LocalDatabase *db, uint64_t old_blob_id,
+                    ham_record_t *record, uint32_t flags);
 
     // Deletes an existing blob
-    void erase(LocalDatabase *db, ham_u64_t blob_id, Page *page = 0,
-                    ham_u32_t flags = 0);
+    void erase(LocalDatabase *db, uint64_t blob_id, Page *page = 0,
+                    uint32_t flags = 0);
 
     // Fills in the current metrics
     void get_metrics(ham_env_metrics_t *metrics) const {
@@ -185,45 +185,45 @@ class BlobManager
     // Allocates/create a new blob.
     // This function returns the blob-id (the start address of the blob
     // header)
-    virtual ham_u64_t do_allocate(LocalDatabase *db, ham_record_t *record,
-                    ham_u32_t flags) = 0;
+    virtual uint64_t do_allocate(LocalDatabase *db, ham_record_t *record,
+                    uint32_t flags) = 0;
 
     // Reads a blob and stores the data in @a record.
     // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    virtual void do_read(LocalDatabase *db, ham_u64_t blob_id,
-                    ham_record_t *record, ham_u32_t flags,
+    virtual void do_read(LocalDatabase *db, uint64_t blob_id,
+                    ham_record_t *record, uint32_t flags,
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
-    virtual ham_u64_t do_get_blob_size(LocalDatabase *db,
-                    ham_u64_t blob_id) = 0;
+    virtual uint64_t do_get_blob_size(LocalDatabase *db,
+                    uint64_t blob_id) = 0;
 
     // Overwrites an existing blob
     //
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
-    virtual ham_u64_t do_overwrite(LocalDatabase *db, ham_u64_t old_blob_id,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+    virtual uint64_t do_overwrite(LocalDatabase *db, uint64_t old_blob_id,
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Deletes an existing blob
-    virtual void do_erase(LocalDatabase *db, ham_u64_t blob_id,
-                    Page *page = 0, ham_u32_t flags = 0) = 0;
+    virtual void do_erase(LocalDatabase *db, uint64_t blob_id,
+                    Page *page = 0, uint32_t flags = 0) = 0;
 
     // The Environment which created this BlobManager
     LocalEnvironment *m_env;
 
     // Usage tracking - number of bytes before compression
-    ham_u64_t m_metric_before_compression;
+    uint64_t m_metric_before_compression;
 
     // Usage tracking - number of bytes after compression
-    ham_u64_t m_metric_after_compression;
+    uint64_t m_metric_after_compression;
 
   private:
     // Usage tracking - number of blobs allocated
-    ham_u64_t m_metric_total_allocated;
+    uint64_t m_metric_total_allocated;
 
     // Usage tracking - number of blobs read
-    ham_u64_t m_metric_total_read;
+    uint64_t m_metric_total_read;
 };
 
 } // namespace hamsterdb

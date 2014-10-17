@@ -18,8 +18,8 @@
  * Fixed length KeyList for built-in data types ("POD types")
  *
  * This is the fastest KeyList available. It stores POD data sequentially
- * in an array, i.e. PodKeyList<ham_u32_t> is simply a plain
- * C array of type ham_u32_t[]. Each key has zero overhead.
+ * in an array, i.e. PodKeyList<uint32_t> is simply a plain
+ * C array of type uint32_t[]. Each key has zero overhead.
  *
  * This KeyList cannot be resized.
  *
@@ -56,7 +56,7 @@ namespace PaxLayout {
 
 //
 // The PodKeyList provides simplified access to a list of keys where each
-// key is of type T (i.e. ham_u32_t).
+// key is of type T (i.e. uint32_t).
 //
 template<typename T>
 class PodKeyList : public BaseKeyList
@@ -79,13 +79,13 @@ class PodKeyList : public BaseKeyList
 
     // Creates a new PodKeyList starting at |ptr|, total size is
     // |range_size| (in bytes)
-    void create(ham_u8_t *data, size_t range_size) {
+    void create(uint8_t *data, size_t range_size) {
       m_data = (T *)data;
       m_range_size = range_size;
     }
 
     // Opens an existing PodKeyList starting at |ptr|
-    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
+    void open(uint8_t *data, size_t range_size, size_t node_count) {
       m_data = (T *)data;
       m_range_size = range_size;
     }
@@ -135,7 +135,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, size_t length) {
+    void scan(ScanVisitor *visitor, uint32_t start, size_t length) {
       (*visitor)(&m_data[start], length);
     }
 
@@ -167,7 +167,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Change the range size; just copy the data from one place to the other
-    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, uint8_t *new_data_ptr,
             size_t new_range_size, size_t capacity_hint) {
       memmove(new_data_ptr, m_data, node_count * sizeof(T));
       m_data = (T *)new_data_ptr;
@@ -185,14 +185,14 @@ class PodKeyList : public BaseKeyList
     }
 
     // Returns a pointer to the key's data
-    ham_u8_t *get_key_data(int slot) {
-      return ((ham_u8_t *)&m_data[slot]);
+    uint8_t *get_key_data(int slot) {
+      return ((uint8_t *)&m_data[slot]);
     }
 
   private:
     // Returns a pointer to the key's data (const flavour)
-    ham_u8_t *get_key_data(int slot) const {
-      return ((ham_u8_t *)&m_data[slot]);
+    uint8_t *get_key_data(int slot) const {
+      return ((uint8_t *)&m_data[slot]);
     }
 
     // Overwrites an existing key; the |size| of the new data HAS to be

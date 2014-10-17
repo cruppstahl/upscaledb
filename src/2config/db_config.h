@@ -46,19 +46,19 @@ struct DatabaseConfiguration
   }
 
   // the database name
-  ham_u16_t db_name;
+  uint16_t db_name;
 
   // the database flags
-  ham_u32_t flags;
+  uint32_t flags;
 
   // the key type
   int key_type;
 
   // the key size (if specified)
-  ham_u32_t key_size;
+  uint32_t key_size;
 
   // the record size (if specified)
-  ham_u64_t record_size;
+  uint64_t record_size;
 
   // the algorithm for key compression
   int key_compressor;

@@ -101,8 +101,8 @@ struct Serialized_Base {
 };
 
 struct SerializedBytes {
-  ham_u8_t *value;
-  ham_u32_t size;
+  uint8_t *value;
+  uint32_t size;
 
   SerializedBytes() {
     clear();
@@ -118,13 +118,13 @@ struct SerializedBytes {
   }
 
   size_t get_size() const {
-    return (sizeof(ham_u32_t) + align(size)); // align to 32bits
+    return (sizeof(uint32_t) + align(size)); // align to 32bits
   }
 
   void serialize(unsigned char **pptr, int *psize) const {
-    *(ham_u32_t *)*pptr = size;
-    *pptr += sizeof(ham_u32_t);
-    *psize -= sizeof(ham_u32_t);
+    *(uint32_t *)*pptr = size;
+    *pptr += sizeof(uint32_t);
+    *psize -= sizeof(uint32_t);
     if (size) {
       memcpy(*pptr, value, size);
       *pptr += align(size); // align to 32bits
@@ -134,9 +134,9 @@ struct SerializedBytes {
   }
 
   void deserialize(unsigned char **pptr, int *psize) {
-    size = *(ham_u32_t *)*pptr;
-    *pptr += sizeof(ham_u32_t);
-    *psize -= sizeof(ham_u32_t);
+    size = *(uint32_t *)*pptr;
+    *pptr += sizeof(uint32_t);
+    *psize -= sizeof(uint32_t);
     if (size) {
       value = *pptr;
       *pptr += align(size); // align to 32bits
@@ -148,15 +148,15 @@ struct SerializedBytes {
   }
 };
 
-typedef Serialized_Base<bool, ham_u32_t> SerializedBool;
-typedef Serialized_Base<ham_u8_t, ham_u32_t> SerializedUint8;
-typedef Serialized_Base<ham_u16_t, ham_u32_t> SerializedUint16;
-typedef Serialized_Base<ham_u32_t, ham_u32_t> SerializedUint32;
-typedef Serialized_Base<ham_s8_t, ham_s32_t> SerializedSint8;
-typedef Serialized_Base<ham_s16_t, ham_s32_t> SerializedSint16;
-typedef Serialized_Base<ham_s32_t, ham_s32_t> SerializedSint32;
-typedef Serialized_Base<ham_u64_t, ham_u64_t> SerializedUint64;
-typedef Serialized_Base<ham_s64_t, ham_s64_t> SerializedSint64;
+typedef Serialized_Base<bool, uint32_t> SerializedBool;
+typedef Serialized_Base<uint8_t, uint32_t> SerializedUint8;
+typedef Serialized_Base<uint16_t, uint32_t> SerializedUint16;
+typedef Serialized_Base<uint32_t, uint32_t> SerializedUint32;
+typedef Serialized_Base<int8_t, int32_t> SerializedSint8;
+typedef Serialized_Base<int16_t, int32_t> SerializedSint16;
+typedef Serialized_Base<int32_t, int32_t> SerializedSint32;
+typedef Serialized_Base<uint64_t, uint64_t> SerializedUint64;
+typedef Serialized_Base<int64_t, int64_t> SerializedSint64;
 
 
 struct SerializedKey {

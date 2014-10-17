@@ -49,13 +49,13 @@ class DiskDevice : public Device {
       File file;
 
       // pointer to the the mmapped data
-      ham_u8_t *mmapptr;
+      uint8_t *mmapptr;
 
       // the size of mmapptr as used in mmap
-      ham_u64_t mapped_size;
+      uint64_t mapped_size;
 
       // the (cached) size of the file
-      ham_u64_t file_size;
+      uint64_t file_size;
     };
 
   public:
@@ -122,7 +122,7 @@ class DiskDevice : public Device {
     }
 
     // truncate/resize the device
-    virtual void truncate(ham_u64_t new_file_size) {
+    virtual void truncate(uint64_t new_file_size) {
       if (new_file_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
       m_state.file.truncate(new_file_size);
@@ -135,44 +135,44 @@ class DiskDevice : public Device {
     }
 
     // get the current file/storage size
-    virtual ham_u64_t get_file_size() {
+    virtual uint64_t get_file_size() {
       ham_assert(m_state.file_size == m_state.file.get_file_size());
       return (m_state.file_size);
     }
 
     // seek to a position in a file
-    virtual void seek(ham_u64_t offset, int whence) {
+    virtual void seek(uint64_t offset, int whence) {
       m_state.file.seek(offset, whence);
     }
 
     // tell the position in a file
-    virtual ham_u64_t tell() {
+    virtual uint64_t tell() {
       return (m_state.file.tell());
     }
 
     // reads from the device; this function does NOT use mmap
-    virtual void read(ham_u64_t offset, void *buffer, size_t len) {
+    virtual void read(uint64_t offset, void *buffer, size_t len) {
       m_state.file.pread(offset, buffer, len);
     }
 
     // writes to the device; this function does not use mmap,
     // and is responsible for writing the data is run through the file
     // filters
-    virtual void write(ham_u64_t offset, void *buffer, size_t len) {
+    virtual void write(uint64_t offset, void *buffer, size_t len) {
       m_state.file.pwrite(offset, buffer, len);
     }
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
-    virtual ham_u64_t alloc(size_t len) {
-      ham_u64_t address = m_state.file_size;
+    virtual uint64_t alloc(size_t len) {
+      uint64_t address = m_state.file_size;
       truncate(address + len);
       return (address);
     }
 
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
-    virtual void read_page(Page *page, ham_u64_t address) {
+    virtual void read_page(Page *page, uint64_t address) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (address < m_state.mapped_size && m_state.mmapptr != 0) {
@@ -191,7 +191,7 @@ class DiskDevice : public Device {
         // note that |p| will not leak if file.pread() throws; |p| is stored
         // in the |page| object and will be cleaned up by the caller in
         // case of an exception.
-        ham_u8_t *p = Memory::allocate<ham_u8_t>(m_config.page_size_bytes);
+        uint8_t *p = Memory::allocate<uint8_t>(m_config.page_size_bytes);
         page->assign_allocated_buffer(p, address);
       }
 
@@ -206,7 +206,7 @@ class DiskDevice : public Device {
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page) {
-      ham_u64_t address = m_state.file_size;
+      uint64_t address = m_state.file_size;
 
       truncate(address + m_config.page_size_bytes);
       page->set_address(address);

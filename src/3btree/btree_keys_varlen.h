@@ -84,10 +84,10 @@ namespace DefLayout {
 class VariableLengthKeyList : public BaseKeyList
 {
     // for caching external keys
-    typedef std::map<ham_u64_t, ByteArray> ExtKeyCache;
+    typedef std::map<uint64_t, ByteArray> ExtKeyCache;
 
   public:
-    typedef ham_u8_t type;
+    typedef uint8_t type;
 
     enum {
       // A flag whether this KeyList has sequential data
@@ -121,14 +121,14 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Creates a new KeyList starting at |ptr|, total size is
     // |range_size| (in bytes)
-    void create(ham_u8_t *data, size_t range_size) {
+    void create(uint8_t *data, size_t range_size) {
       m_data = data;
       m_range_size = range_size;
       m_index.create(m_data, range_size, range_size / get_full_key_size());
     }
 
     // Opens an existing KeyList
-    void open(ham_u8_t *data, size_t range_size, size_t node_count) {
+    void open(uint8_t *data, size_t range_size, size_t node_count) {
       m_data = data;
       m_range_size = range_size;
       m_index.open(m_data, range_size);
@@ -151,7 +151,7 @@ class VariableLengthKeyList : public BaseKeyList
         return (24 + m_index.get_full_index_size() + 1);
       // always make sure to have enough space for an extkey id
       if (key->size < 8 || key->size > m_extkey_threshold)
-        return (sizeof(ham_u64_t) + m_index.get_full_index_size() + 1);
+        return (sizeof(uint64_t) + m_index.get_full_index_size() + 1);
       return (key->size + m_index.get_full_index_size() + 1);
     }
 
@@ -159,8 +159,8 @@ class VariableLengthKeyList : public BaseKeyList
     void get_key(int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
       ham_key_t tmp;
-      ham_u32_t offset = m_index.get_chunk_offset(slot);
-      ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
+      uint32_t offset = m_index.get_chunk_offset(slot);
+      uint8_t *p = m_index.get_chunk_data_by_offset(offset);
 
       if (unlikely(*p & BtreeKey::kExtendedKey)) {
         memset(&tmp, 0, sizeof(tmp));
@@ -207,7 +207,7 @@ class VariableLengthKeyList : public BaseKeyList
     // this KeyList implementation. For variable length keys, the caller
     // must iterate over all keys. The |scan()| interface is only implemented
     // for PAX style layouts.
-    void scan(ScanVisitor *visitor, size_t node_count, ham_u32_t start) {
+    void scan(ScanVisitor *visitor, size_t node_count, uint32_t start) {
       ham_assert(!"shouldn't be here");
       throw Exception(HAM_INTERNAL_ERROR);
     }
@@ -215,14 +215,14 @@ class VariableLengthKeyList : public BaseKeyList
     // Erases a key's payload. Does NOT remove the chunk from the UpfrontIndex
     // (see |erase()|).
     void erase_extended_key(int slot) {
-      ham_u8_t flags = get_key_flags(slot);
+      uint8_t flags = get_key_flags(slot);
       if (flags & BtreeKey::kExtendedKey) {
         // delete the extended key from the cache
         erase_extended_key(get_extended_blob_id(slot));
         // and transform into a key which is non-extended and occupies
         // the same space as before, when it was extended
         set_key_flags(slot, flags & (~BtreeKey::kExtendedKey));
-        set_key_size(slot, sizeof(ham_u64_t));
+        set_key_size(slot, sizeof(uint64_t));
       }
     }
 
@@ -241,19 +241,19 @@ class VariableLengthKeyList : public BaseKeyList
       // now there's one additional slot
       node_count++;
 
-      ham_u32_t key_flags = 0;
+      uint32_t key_flags = 0;
 
       // When inserting the data: always add 1 byte for key flags
       if (key->size <= m_extkey_threshold
             && m_index.can_allocate_space(node_count, key->size + 1)) {
-        ham_u32_t offset = m_index.allocate_space(node_count, slot,
+        uint32_t offset = m_index.allocate_space(node_count, slot,
                         key->size + 1);
-        ham_u8_t *p = m_index.get_chunk_data_by_offset(offset);
+        uint8_t *p = m_index.get_chunk_data_by_offset(offset);
         *p = key_flags;
         memcpy(p + 1, key->data, key->size); // and data
       }
       else {
-        ham_u64_t blob_id = add_extended_key(key);
+        uint64_t blob_id = add_extended_key(key);
         m_index.allocate_space(node_count, slot, 8 + 1);
         set_extended_blob_id(slot, blob_id);
         set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
@@ -294,14 +294,14 @@ class VariableLengthKeyList : public BaseKeyList
       for (size_t i = 0; i < to_copy; i++) {
         size_t size = get_key_size(sstart + i);
 
-        ham_u8_t *p = m_index.get_chunk_data_by_offset(
+        uint8_t *p = m_index.get_chunk_data_by_offset(
                         m_index.get_chunk_offset(sstart + i));
-        ham_u8_t flags = *p;
-        ham_u8_t *data = p + 1;
+        uint8_t flags = *p;
+        uint8_t *data = p + 1;
 
         dest.m_index.insert(other_node_count + i, dstart + i);
         // Add 1 byte for key flags
-        ham_u32_t offset = dest.m_index.allocate_space(other_node_count + i + 1,
+        uint32_t offset = dest.m_index.allocate_space(other_node_count + i + 1,
                         dstart + i, size + 1);
         p = dest.m_index.get_chunk_data_by_offset(offset);
         *p = flags; // sets flags
@@ -330,7 +330,7 @@ class VariableLengthKeyList : public BaseKeyList
         }
 
         if (get_key_flags(i) & BtreeKey::kExtendedKey) {
-          ham_u64_t blobid = get_extended_blob_id(i);
+          uint64_t blobid = get_extended_blob_id(i);
           if (!blobid) {
             ham_log(("integrity check failed: item %u "
                     "is extended, but has no blob", i));
@@ -369,7 +369,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Change the range size; the capacity will be adjusted, the data is
     // copied as necessary
-    void change_range_size(size_t node_count, ham_u8_t *new_data_ptr,
+    void change_range_size(size_t node_count, uint8_t *new_data_ptr,
             size_t new_range_size, size_t capacity_hint) {
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
@@ -407,33 +407,33 @@ class VariableLengthKeyList : public BaseKeyList
 
   private:
     // Returns the flags of a key. Flags are defined in btree_flags.h
-    ham_u8_t get_key_flags(int slot) const {
-      ham_u32_t offset = m_index.get_chunk_offset(slot);
+    uint8_t get_key_flags(int slot) const {
+      uint32_t offset = m_index.get_chunk_offset(slot);
       return (*m_index.get_chunk_data_by_offset(offset));
     }
 
     // Sets the flags of a key. Flags are defined in btree_flags.h
-    void set_key_flags(int slot, ham_u8_t flags) {
-      ham_u32_t offset = m_index.get_chunk_offset(slot);
+    void set_key_flags(int slot, uint8_t flags) {
+      uint32_t offset = m_index.get_chunk_offset(slot);
       *m_index.get_chunk_data_by_offset(offset) = flags;
     }
 
     // Returns the pointer to a key's inline data
-    ham_u8_t *get_key_data(int slot) {
-      ham_u32_t offset = m_index.get_chunk_offset(slot);
+    uint8_t *get_key_data(int slot) {
+      uint32_t offset = m_index.get_chunk_offset(slot);
       return (m_index.get_chunk_data_by_offset(offset) + 1);
     }
 
     // Returns the pointer to a key's inline data (const flavour)
-    ham_u8_t *get_key_data(int slot) const {
-      ham_u32_t offset = m_index.get_chunk_offset(slot);
+    uint8_t *get_key_data(int slot) const {
+      uint32_t offset = m_index.get_chunk_offset(slot);
       return (m_index.get_chunk_data_by_offset(offset) + 1);
     }
 
     // Overwrites the (inline) data of the key
     void set_key_data(int slot, const void *ptr, size_t size) {
       ham_assert(m_index.get_chunk_size(slot) >= size);
-      set_key_size(slot, (ham_u16_t)size);
+      set_key_size(slot, (uint16_t)size);
       memcpy(get_key_data(slot), ptr, size);
     }
 
@@ -449,17 +449,17 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Returns the record address of an extended key overflow area
-    ham_u64_t get_extended_blob_id(int slot) const {
-      return (*(ham_u64_t *)get_key_data(slot));
+    uint64_t get_extended_blob_id(int slot) const {
+      return (*(uint64_t *)get_key_data(slot));
     }
 
     // Sets the record address of an extended key overflow area
-    void set_extended_blob_id(int slot, ham_u64_t blobid) {
-      *(ham_u64_t *)get_key_data(slot) = blobid;
+    void set_extended_blob_id(int slot, uint64_t blobid) {
+      *(uint64_t *)get_key_data(slot) = blobid;
     }
 
     // Erases an extended key from disk and from the cache
-    void erase_extended_key(ham_u64_t blobid) {
+    void erase_extended_key(uint64_t blobid) {
       m_db->get_local_env()->get_blob_manager()->erase(m_db, blobid);
       if (m_extkey_cache) {
         ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
@@ -470,7 +470,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Retrieves the extended key at |blobid| and stores it in |key|; will
     // use the cache.
-    void get_extended_key(ham_u64_t blob_id, ham_key_t *key) {
+    void get_extended_key(uint64_t blob_id, ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
       else {
@@ -493,7 +493,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Allocates an extended key and stores it in the cache
-    ham_u64_t add_extended_key(const ham_key_t *key) {
+    uint64_t add_extended_key(const ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
 
@@ -501,7 +501,7 @@ class VariableLengthKeyList : public BaseKeyList
       rec.data = key->data;
       rec.size = key->size;
 
-      ham_u64_t blob_id = m_db->get_local_env()->get_blob_manager()->allocate(
+      uint64_t blob_id = m_db->get_local_env()->get_blob_manager()->allocate(
                                             m_db, &rec, 0);
       ham_assert(blob_id != 0);
       ham_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
@@ -525,7 +525,7 @@ class VariableLengthKeyList : public BaseKeyList
     UpfrontIndex m_index;
 
     // Pointer to the data of the node 
-    ham_u8_t *m_data;
+    uint8_t *m_data;
 
     // Cache for extended keys
     ScopedPtr<ExtKeyCache> m_extkey_cache;

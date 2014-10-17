@@ -40,7 +40,7 @@ extern "C" {
  */
 typedef struct {
   /** A function pointer; receives a key, returns a bool */
-  ham_bool_t (*predicate_func)(const void *key_data, ham_u16_t key_size,
+  ham_bool_t (*predicate_func)(const void *key_data, uint16_t key_size,
                   void *context);
 
   /** User-supplied context data */
@@ -52,14 +52,14 @@ typedef struct {
 /**
  * A structure which returns the result of an operation.
  *
- * For now, the result is either a @a ham_u64_t counter or a @a double value.
+ * For now, the result is either a @a uint64_t counter or a @a double value.
  * The @a type parameter specifies which one is used; @a type's value is
  * one of @a HAM_TYPE_UINT64 or @a HAM_TYPE_REAL64.
  */
 typedef struct {
   union {
     /** The result as a 64bit unsigned integer */
-    ham_u64_t result_u64;
+    uint64_t result_u64;
 
     /** The result as a 64bit real */
     double result_double;

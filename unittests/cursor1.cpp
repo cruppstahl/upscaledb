@@ -86,7 +86,7 @@ struct BaseCursorFixture {
     }
 
     for (int i = 0; i < MAX; i++) {
-      ham_u64_t size = 0;
+      uint64_t size = 0;
 
       ::memset(&key, 0, sizeof(key));
       REQUIRE(0 ==
@@ -119,7 +119,7 @@ struct BaseCursorFixture {
     }
 
     for (int i = 0; i < MAX; i++) {
-      ham_u64_t size = 0;
+      uint64_t size = 0;
 
       key.data = data;
       key.size = sizeof(data);
@@ -1986,7 +1986,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   ham_status_t insertBtree(const char *key, const char *rec,
-            ham_u32_t flags = 0) {
+            uint32_t flags = 0) {
     ham_key_t k = {0};
     k.data = (void *)key;
     k.size = strlen(key) + 1;
@@ -1999,7 +1999,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   ham_status_t insertTxn(const char *key, const char *rec,
-            ham_u32_t flags = 0, ham_cursor_t *cursor = 0) {
+            uint32_t flags = 0, ham_cursor_t *cursor = 0) {
     ham_key_t k = {0};
     k.data = (void *)key;
     k.size = strlen(key) + 1;
@@ -3447,7 +3447,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(true == cursor_is_nil((Cursor *)m_cursor, 0));
   }
 
-  ham_status_t move(const char *key, const char *rec, ham_u32_t flags,
+  ham_status_t move(const char *key, const char *rec, uint32_t flags,
         ham_cursor_t *cursor = 0) {
     ham_key_t k = {0};
     ham_record_t r = {0};

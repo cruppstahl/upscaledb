@@ -92,16 +92,16 @@ class LocalEnvironment : public Environment
 
     // Increments the lsn and returns the incremented value. If the journal
     // is disabled then a dummy value |1| is returned.
-    ham_u64_t get_incremented_lsn();
+    uint64_t get_incremented_lsn();
 
     // Returns the page_size as specified in ham_env_create
-    ham_u32_t get_page_size() const {
+    uint32_t get_page_size() const {
       return (m_config.page_size_bytes);
     }
 
     // Returns the size of the usable persistent payload of a page
     // (page_size minus the overhead of the page header)
-    ham_u32_t get_usable_page_size() const {
+    uint32_t get_usable_page_size() const {
       return (get_page_size() - Page::kSizeofPersistentHeader);
     }
 
@@ -125,21 +125,21 @@ class LocalEnvironment : public Environment
     virtual ham_status_t open();
 
     // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
-                    ham_u32_t flags);
+    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
+                    uint32_t flags);
 
     // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t erase_db(ham_u16_t name, ham_u32_t flags);
+    virtual ham_status_t erase_db(uint16_t name, uint32_t flags);
 
     // Returns all database names (ham_env_get_database_names)
-    virtual ham_status_t get_database_names(ham_u16_t *names,
-                    ham_u32_t *count);
+    virtual ham_status_t get_database_names(uint16_t *names,
+                    uint32_t *count);
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     // Flushes the environment and its databases to disk (ham_env_flush)
-    virtual ham_status_t flush(ham_u32_t flags);
+    virtual ham_status_t flush(uint32_t flags);
 
     // Creates a new database in the environment (ham_env_create_db)
     virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
@@ -150,17 +150,17 @@ class LocalEnvironment : public Environment
                     const ham_parameter_t *param);
 
     // Begins a new transaction (ham_txn_begin)
-    virtual Transaction *txn_begin(const char *name, ham_u32_t flags);
+    virtual Transaction *txn_begin(const char *name, uint32_t flags);
 
     // Closes the Environment (ham_env_close)
-    virtual ham_status_t close(ham_u32_t flags);
+    virtual ham_status_t close(uint32_t flags);
 
     // Fills in the current metrics
     virtual void get_metrics(ham_env_metrics_t *metrics) const;
 
   private:
     // Runs the recovery process
-    void recover(ham_u32_t flags);
+    void recover(uint32_t flags);
 
     // The Environment's header page/configuration
     ScopedPtr<EnvironmentHeader> m_header;

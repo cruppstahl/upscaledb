@@ -61,7 +61,7 @@ class Environment
 {
   public:
     // A map of all opened Databases
-    typedef std::map<ham_u16_t, Database *> DatabaseMap;
+    typedef std::map<uint16_t, Database *> DatabaseMap;
 
     // Constructor
     Environment(EnvironmentConfiguration &config)
@@ -74,7 +74,7 @@ class Environment
     }
 
     // Returns the flags which were set when creating/opening the Environment
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_config.flags);
     }
 
@@ -115,21 +115,21 @@ class Environment
     virtual ham_status_t open() = 0;
 
     // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
-                    ham_u32_t flags) = 0;
+    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
+                    uint32_t flags) = 0;
 
     // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t erase_db(ham_u16_t name, ham_u32_t flags) = 0;
+    virtual ham_status_t erase_db(uint16_t name, uint32_t flags) = 0;
 
     // Returns all database names (ham_env_get_database_names)
-    virtual ham_status_t get_database_names(ham_u16_t *names,
-                    ham_u32_t *count) = 0;
+    virtual ham_status_t get_database_names(uint16_t *names,
+                    uint32_t *count) = 0;
 
     // Returns environment parameters and flags (ham_env_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
     // Flushes the environment and its databases to disk (ham_env_flush)
-    virtual ham_status_t flush(ham_u32_t flags) = 0;
+    virtual ham_status_t flush(uint32_t flags) = 0;
 
     // Creates a new database in the environment (ham_env_create_db)
     virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
@@ -140,10 +140,10 @@ class Environment
                     const ham_parameter_t *param) = 0;
 
     // Begins a new transaction (ham_txn_begin)
-    virtual Transaction *txn_begin(const char *name, ham_u32_t flags) = 0;
+    virtual Transaction *txn_begin(const char *name, uint32_t flags) = 0;
 
     // Closes the Environment (ham_env_close)
-    virtual ham_status_t close(ham_u32_t flags) = 0;
+    virtual ham_status_t close(uint32_t flags) = 0;
 
     // Fills in the current metrics
     virtual void get_metrics(ham_env_metrics_t *metrics) const { };

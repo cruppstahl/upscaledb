@@ -107,16 +107,16 @@ class TransactionCursor
     void copy_coupled_record(ham_record_t *record);
 
     // Moves the cursor to first, last, previous or next
-    ham_status_t move(ham_u32_t flags);
+    ham_status_t move(uint32_t flags);
 
     // Overwrites the record of a cursor
     ham_status_t overwrite(ham_record_t *record);
 
     // Looks up an item, places the cursor
-    ham_status_t find(ham_key_t *key, ham_u32_t flags);
+    ham_status_t find(ham_key_t *key, uint32_t flags);
 
     // Retrieves the record size of the current item
-    ham_u64_t get_record_size();
+    uint64_t get_record_size();
 
     // Erases the current item, then 'nil's the cursor
     ham_status_t erase();
@@ -141,7 +141,7 @@ class TransactionCursor
     // Inserts an item, places the cursor on the new item.
     // This function is only used in the unittests.
     ham_status_t test_insert(ham_key_t *key, ham_record_t *record,
-                    ham_u32_t flags);
+                    uint32_t flags);
 
     // Returns the database pointer
     LocalDatabase *get_db();
@@ -152,7 +152,7 @@ class TransactionCursor
     // Moves the cursor to the first valid Operation in a Node
     ham_status_t move_top_in_node(TransactionNode *node,
                     TransactionOperation *op, bool ignore_conflicts,
-                    ham_u32_t flags);
+                    uint32_t flags);
 
     // The parent cursor
     Cursor *m_parent;

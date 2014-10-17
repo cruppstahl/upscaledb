@@ -32,7 +32,7 @@ Database::Database(Environment *env, DatabaseConfiguration &config)
 }
 
 Cursor *
-Database::cursor_create(Transaction *txn, ham_u32_t flags)
+Database::cursor_create(Transaction *txn, uint32_t flags)
 {
   Cursor *cursor = cursor_create_impl(txn, flags);
 
@@ -99,7 +99,7 @@ Database::cursor_close(Cursor *cursor)
 }
 
 ham_status_t
-Database::close(ham_u32_t flags)
+Database::close(uint32_t flags)
 {
   // auto-cleanup cursors?
   if (flags & HAM_AUTO_CLEANUP) {

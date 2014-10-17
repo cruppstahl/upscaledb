@@ -936,7 +936,7 @@ struct HighLevelTxnFixture {
     ham_txn_t *txn;
     ham_key_t key;
     ham_record_t rec, rec2;
-    ham_u8_t buffer[64];
+    uint8_t buffer[64];
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     ::memset(&rec2, 0, sizeof(rec));
@@ -962,7 +962,7 @@ struct HighLevelTxnFixture {
     ham_txn_t *txn;
     ham_key_t key;
     ham_record_t rec;
-    ham_u8_t buffer[64];
+    uint8_t buffer[64];
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &buffer[0];
@@ -989,9 +989,9 @@ struct HighLevelTxnFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     key.data = (void *)keydata;
-    key.size = (ham_u16_t)strlen(keydata) + 1;
+    key.size = (uint16_t)strlen(keydata) + 1;
     rec.data = (void *)recorddata;
-    rec.size = (ham_u32_t)strlen(recorddata) + 1;
+    rec.size = (uint32_t)strlen(recorddata) + 1;
 
     return (ham_db_insert(m_db, txn, &key, &rec, flags));
   }
@@ -1004,19 +1004,19 @@ struct HighLevelTxnFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     key.data = (void *)keydata;
-    key.size = (ham_u16_t)strlen(keydata) + 1;
+    key.size = (uint16_t)strlen(keydata) + 1;
 
     st = ham_db_find(m_db, txn, &key, &rec, 0);
     if (st)
       return (st);
     REQUIRE(0 == strcmp(recorddata, (char *)rec.data));
-    REQUIRE(rec.size == (ham_u32_t)strlen(recorddata) + 1);
+    REQUIRE(rec.size == (uint32_t)strlen(recorddata) + 1);
     return (0);
   }
 
   void getKeyCountTest() {
     ham_txn_t *txn;
-    ham_u64_t count;
+    uint64_t count;
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"),
@@ -1063,7 +1063,7 @@ struct HighLevelTxnFixture {
 
   void getKeyCountDupesTest() {
     ham_txn_t *txn;
-    ham_u64_t count;
+    uint64_t count;
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"),
@@ -1100,7 +1100,7 @@ struct HighLevelTxnFixture {
 
   void getKeyCountOverwriteTest() {
     ham_txn_t *txn;
-    ham_u64_t count;
+    uint64_t count;
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"),
@@ -1389,7 +1389,7 @@ struct InMemoryTxnFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
     REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
 
-    ham_u64_t keycount;
+    uint64_t keycount;
     REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &keycount));
     REQUIRE(3ull == keycount);
 
@@ -1410,7 +1410,7 @@ struct InMemoryTxnFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
 
-    ham_u64_t rec_size;
+    uint64_t rec_size;
     REQUIRE(0 == ham_cursor_get_record_size(cursor, &rec_size));
     REQUIRE(6ull == rec_size);
 

@@ -33,9 +33,9 @@ struct PageManagerFixture {
   bool m_inmemory;
   Device *m_device;
 
-  PageManagerFixture(bool inmemorydb = false, ham_u32_t cachesize = 0)
+  PageManagerFixture(bool inmemorydb = false, uint32_t cachesize = 0)
       : m_db(0), m_inmemory(inmemorydb), m_device(0) {
-    ham_u32_t flags = 0;
+    uint32_t flags = 0;
 
     if (m_inmemory)
       flags |= HAM_IN_MEMORY;
@@ -106,7 +106,7 @@ struct PageManagerFixture {
     REQUIRE(102400ull == lenv->get_config().cache_size_bytes);
   }
 
-  void setCacheSizeEnvOpen(ham_u64_t size) {
+  void setCacheSizeEnvOpen(uint64_t size) {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     ham_parameter_t param[] = {
@@ -242,7 +242,7 @@ struct PageManagerFixture {
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
-    ham_u32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->get_page_size();
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
@@ -267,7 +267,7 @@ struct PageManagerFixture {
   void reclaimTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
-    ham_u32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->get_page_size();
     Page *page[5] = {0};
 
     // force-flush the state of the PageManager; otherwise it will be
@@ -295,7 +295,7 @@ struct PageManagerFixture {
     }
 
     // verify file size
-    REQUIRE((ham_u64_t)(page_size * 8) == lenv->get_device()->get_file_size());
+    REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->get_file_size());
 
     // reopen the file
     lenv->get_changeset().clear();
@@ -310,21 +310,21 @@ struct PageManagerFixture {
 
     // verify file size
 #ifndef WIN32
-    REQUIRE((ham_u64_t)(page_size * 6) == lenv->get_device()->get_file_size());
+    REQUIRE((uint64_t)(page_size * 6) == lenv->get_device()->get_file_size());
 #endif
   }
 
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
-    ham_u32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->get_page_size();
 
     for (int i = 1; i <= 150; i++)
       pm->m_free_pages[page_size * i] = 1;
 
     // store the state on disk
     pm->m_needs_flush = true;
-    ham_u64_t page_id = pm->store_state();
+    uint64_t page_id = pm->store_state();
 
     pm->flush_all_pages();
     pm->m_free_pages.clear();
@@ -337,18 +337,18 @@ struct PageManagerFixture {
   }
 
   void encodeDecodeTest() {
-    ham_u8_t buffer[32] = {0};
+    uint8_t buffer[32] = {0};
 
     for (int i = 1; i < 10000; i++) {
       int num_bytes = Pickle::encode_u64(&buffer[0], i * 13);
-      REQUIRE(Pickle::decode_u64(num_bytes, &buffer[0]) == (ham_u64_t)i * 13);
+      REQUIRE(Pickle::decode_u64(num_bytes, &buffer[0]) == (uint64_t)i * 13);
     }
   }
 
   void storeBigStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
-    ham_u32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->get_page_size();
 
     pm->m_last_blob_page_id = page_size * 100;
 
@@ -359,7 +359,7 @@ struct PageManagerFixture {
 
     // store the state on disk
     pm->m_needs_flush = true;
-    ham_u64_t page_id = pm->store_state();
+    uint64_t page_id = pm->store_state();
 
     pm->flush_all_pages();
     pm->m_free_pages.clear();
@@ -381,7 +381,7 @@ struct PageManagerFixture {
   void allocMultiBlobs() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
-    ham_u32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->get_page_size();
 
     Page *head = pm->alloc_multiple_blob_pages(0, 10);
     REQUIRE(head != 0);

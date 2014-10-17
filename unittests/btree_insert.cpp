@@ -58,7 +58,7 @@ struct BtreeInsertFixture {
 	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  Page *fetch_page(ham_u64_t address) {
+  Page *fetch_page(uint64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
     PageManager *pm = db->get_local_env()->get_page_manager();
     return (pm->fetch_page(db, address));

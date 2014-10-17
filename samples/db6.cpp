@@ -26,14 +26,14 @@
 
 int
 run_demo() {
-  ham_u32_t i;
+  uint32_t i;
   hamsterdb::env env;          /* hamsterdb environment object */
   hamsterdb::db db;            /* hamsterdb database object */
   hamsterdb::key key;          /* a key */
   hamsterdb::record record;    /* a record */
   ham_parameter_t params[] = { /* parameters for ham_env_create_db */
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
@@ -71,7 +71,7 @@ run_demo() {
     record = db.find(&key);
 
     /* Check if the value is ok */
-    if (*(ham_u32_t *)record.get_data() != i) {
+    if (*(uint32_t *)record.get_data() != i) {
       std::cerr << "db::find() ok, but returned bad value" << std::endl;
       return (-1);
     }

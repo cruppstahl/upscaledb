@@ -54,12 +54,12 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the database name
-    ham_u16_t get_dbname() const {
+    uint16_t get_dbname() const {
       return (m_dbname);
     }
 
     // Sets the database name
-    void set_dbname(ham_u16_t name) {
+    void set_dbname(uint16_t name) {
       m_dbname = name;
     }
 
@@ -69,52 +69,52 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Sets the btree's max. key_size
-    void set_key_size(ham_u16_t key_size) {
+    void set_key_size(uint16_t key_size) {
       m_key_size = key_size;
     }
 
     // Returns the record size (or 0 if none was specified)
-    ham_u32_t get_record_size() const {
+    uint32_t get_record_size() const {
       return (m_rec_size);
     }
 
     // Sets the record size
-    void set_rec_size(ham_u32_t rec_size) {
+    void set_rec_size(uint32_t rec_size) {
       m_rec_size = rec_size;
     }
 
     // Returns the btree's key type
-    ham_u16_t get_key_type() const {
+    uint16_t get_key_type() const {
       return (m_key_type);
     }
 
     // Sets the btree's key type
-    void set_key_type(ham_u16_t key_type) {
+    void set_key_type(uint16_t key_type) {
       m_key_type = key_type;
     }
 
     // Returns the address of the btree's root page.
-    ham_u64_t get_root_address() const {
+    uint64_t get_root_address() const {
       return (m_root_address);
     }
 
     // Sets the address of the btree's root page.
-    void set_root_address(ham_u64_t root_address) {
+    void set_root_address(uint64_t root_address) {
       m_root_address = root_address;
     }
 
     // Returns the btree's flags
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
     // Sets the btree's flags
-    void set_flags(ham_u32_t flags) {
+    void set_flags(uint32_t flags) {
       m_flags = flags;
     }
 
     // PRO: Returns the record compression
-    ham_u8_t get_record_compression() const {
+    uint8_t get_record_compression() const {
       return (m_compression >> 4);
     }
 
@@ -124,7 +124,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // PRO: Returns the key compression
-    ham_u8_t get_key_compression() const {
+    uint8_t get_key_compression() const {
       return (m_compression & 0xf);
     }
 
@@ -135,28 +135,28 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
   private:
     // address of the root-page
-    ham_u64_t m_root_address;
+    uint64_t m_root_address;
 
     // flags for this database
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // The name of the database
-    ham_u16_t m_dbname;
+    uint16_t m_dbname;
 
     // key size used in the pages
-    ham_u16_t m_key_size;
+    uint16_t m_key_size;
 
     // key type
-    ham_u16_t m_key_type;
+    uint16_t m_key_type;
 
     // PRO: for storing key and record compression algorithm */
-    ham_u8_t m_compression;
+    uint8_t m_compression;
 
     // reserved
-    ham_u8_t m_reserved1;
+    uint8_t m_reserved1;
 
     // the record size
-    ham_u32_t m_rec_size;
+    uint32_t m_rec_size;
 
 } HAM_PACK_2;
 
@@ -210,8 +210,8 @@ class BtreeIndex
     };
 
     // Constructor; creates and initializes a new btree
-    BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-                    ham_u32_t key_type, ham_u32_t key_size);
+    BtreeIndex(LocalDatabase *db, uint32_t descriptor, uint32_t flags,
+                    uint32_t key_type, uint32_t key_size);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -241,17 +241,17 @@ class BtreeIndex
     }
 
     // Returns the internal key type
-    ham_u16_t get_key_type() const {
+    uint16_t get_key_type() const {
       return (m_key_type);
     }
 
     // Returns the address of the root page
-    ham_u64_t get_root_address() const {
+    uint64_t get_root_address() const {
       return (m_root_address);
     }
 
     // Returns the btree flags
-    ham_u32_t get_flags() const {
+    uint32_t get_flags() const {
       return (m_flags);
     }
 
@@ -259,7 +259,7 @@ class BtreeIndex
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    void create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size);
+    void create(uint16_t key_type, uint32_t key_size, uint32_t rec_size);
 
     // Opens and initializes the btree
     //
@@ -269,26 +269,26 @@ class BtreeIndex
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Transaction *txn, Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
     ham_status_t insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, ham_u32_t flags);
+                    ham_record_t *record, uint32_t flags);
 
     // Erases a key/record from the index (ham_db_erase).
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
     ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                    int duplicate_index, ham_u32_t flags);
+                    int duplicate_index, uint32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node
     void visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
-    void check_integrity(ham_u32_t flags);
+    void check_integrity(uint32_t flags);
 
     // Counts the keys in the btree
-    ham_u64_t count(bool distinct);
+    uint64_t count(bool distinct);
 
     // Erases all records, overflow areas, extended keys etc from the index;
     // used to avoid memory leaks when closing in-memory Databases and to
@@ -362,7 +362,7 @@ class BtreeIndex
     }
 
     // Sets the address of the root page
-    void set_root_address(ham_u64_t address) {
+    void set_root_address(uint64_t address) {
       m_root_address = address;
       flush_descriptor();
     }
@@ -384,7 +384,7 @@ class BtreeIndex
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    int find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
+    int find_leaf(Page *page, ham_key_t *key, uint32_t flags);
 
     // pointer to the database object
     LocalDatabase *m_db;
@@ -398,34 +398,34 @@ class BtreeIndex
     BtreeIndexTraits *m_internal_traits;
 
     // the key_size of this btree index
-    ham_u16_t m_key_size;
+    uint16_t m_key_size;
 
     // the key_type of this btree index
-    ham_u16_t m_key_type;
+    uint16_t m_key_type;
 
     // the record size (or 0 if none was specified)
-    ham_u32_t m_rec_size;
+    uint32_t m_rec_size;
 
     // the index of the PBtreeHeader in the Environment's header page
-    ham_u32_t m_descriptor_index;
+    uint32_t m_descriptor_index;
 
     // the persistent flags of this btree index
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // address of the root-page
-    ham_u64_t m_root_address;
+    uint64_t m_root_address;
 
     // the btree statistics
     BtreeStatistics m_statistics;
 
     // usage metrics - number of page splits
-    static ham_u64_t ms_btree_smo_split;
+    static uint64_t ms_btree_smo_split;
 
     // usage metrics - number of page merges
-    static ham_u64_t ms_btree_smo_merge;
+    static uint64_t ms_btree_smo_merge;
 
     // usage metrics - number of page shifts
-    static ham_u64_t ms_btree_smo_shift;
+    static uint64_t ms_btree_smo_shift;
 };
 
 } // namespace hamsterdb

@@ -95,44 +95,25 @@ extern "C" {
 #  define HAM_CALLCONV
 #endif
 
-/**
- * typedefs for 32bit operating systems
+/*
+ * Common typedefs. Since stdint.h is not available on older versions of
+ * Microsoft Visual Studio, they get declared here.
+ * http://msinttypes.googlecode.com/svn/trunk/stdint.h
  */
-#ifdef HAM_32BIT
-#  ifdef _MSC_VER
-typedef signed __int64     ham_s64_t;
-typedef unsigned __int64   ham_u64_t;
-#  else
-typedef signed long long   ham_s64_t;
-typedef unsigned long long ham_u64_t;
-#  endif
-typedef signed int         ham_s32_t;
-typedef unsigned int       ham_u32_t;
-typedef signed short       ham_s16_t;
-typedef unsigned short     ham_u16_t;
-typedef signed char        ham_s8_t;
-typedef unsigned char      ham_u8_t;
+#if _MSC_VER
+#  include <ham/msstdint.h>
+#else
+#  include <stdint.h>
 #endif
 
-/**
- * typedefs for 64bit operating systems; on Win64,
- * longs do not always have 64bit!
- */
-#ifdef HAM_64BIT
-#  ifdef _MSC_VER
-typedef signed __int64     ham_s64_t;
-typedef unsigned __int64   ham_u64_t;
-#  else
-typedef signed long        ham_s64_t;
-typedef unsigned long      ham_u64_t;
-#  endif
-typedef signed int         ham_s32_t;
-typedef unsigned int       ham_u32_t;
-typedef signed short       ham_s16_t;
-typedef unsigned short     ham_u16_t;
-typedef signed char        ham_s8_t;
-typedef unsigned char      ham_u8_t;
-#endif
+typedef int64_t     int64_t;
+typedef uint64_t    uint64_t;
+typedef int32_t     int32_t;
+typedef uint32_t    uint32_t;
+typedef int16_t     int16_t;
+typedef uint16_t    uint16_t;
+typedef int8_t      int8_t;
+typedef uint8_t     uint8_t;
 
 /*
  * Undefine macros to avoid macro redefinitions

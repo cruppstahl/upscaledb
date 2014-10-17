@@ -49,18 +49,18 @@ RemoteEnvironment::perform_request(Protocol *request)
     throw Exception(HAM_INTERNAL_ERROR);
   }
 
-  m_socket.send((ham_u8_t *)m_buffer.get_ptr(), m_buffer.get_size());
+  m_socket.send((uint8_t *)m_buffer.get_ptr(), m_buffer.get_size());
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv((ham_u8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv((uint8_t *)m_buffer.get_ptr(), 8);
 
   // no need to check the magic; it's verified in Protocol::unpack
-  ham_u32_t size = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
+  uint32_t size = *(uint32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(size + 8);
-  m_socket.recv((ham_u8_t *)m_buffer.get_ptr() + 8, size);
+  m_socket.recv((uint8_t *)m_buffer.get_ptr() + 8, size);
 
-  return (Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8));
+  return (Protocol::unpack((const uint8_t *)m_buffer.get_ptr(), size + 8));
 }
 
 void
@@ -72,26 +72,26 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   request->magic = HAM_TRANSFER_MAGIC_V2;
   m_buffer.resize(request->size);
 
-  ham_u8_t *ptr = (ham_u8_t *)m_buffer.get_ptr();
+  uint8_t *ptr = (uint8_t *)m_buffer.get_ptr();
   request->serialize(&ptr, &size_left);
   ham_assert(size_left == 0);
 
-  m_socket.send((ham_u8_t *)m_buffer.get_ptr(), request->size);
+  m_socket.send((uint8_t *)m_buffer.get_ptr(), request->size);
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv((ham_u8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv((uint8_t *)m_buffer.get_ptr(), 8);
 
   // now check the magic and receive the remaining data
-  ham_u32_t magic = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 0);
+  uint32_t magic = *(uint32_t *)((char *)m_buffer.get_ptr() + 0);
   if (magic != HAM_TRANSFER_MAGIC_V2)
     throw Exception(HAM_INTERNAL_ERROR);
   // TODO check the magic
-  int size = (int)*(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
+  int size = (int)*(uint32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(size);
-  m_socket.recv((ham_u8_t *)m_buffer.get_ptr() + 8, size - 8);
+  m_socket.recv((uint8_t *)m_buffer.get_ptr() + 8, size - 8);
 
-  ptr = (ham_u8_t *)m_buffer.get_ptr();
+  ptr = (uint8_t *)m_buffer.get_ptr();
   reply->deserialize(&ptr, &size);
   ham_assert(size == 0);
 }
@@ -119,7 +119,7 @@ RemoteEnvironment::open()
                 "`ham://<ip>:<port>`"));
     return (HAM_INV_PARAMETER);
   }
-  ham_u16_t port = (ham_u16_t)atoi(port_str + 1);
+  uint16_t port = (uint16_t)atoi(port_str + 1);
   if (!port) {
     ham_trace(("remote uri includes invalid port - expected "
                 "`ham://<ip>:<port>`"));
@@ -151,8 +151,8 @@ RemoteEnvironment::open()
 }
 
 ham_status_t
-RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
-        ham_u32_t flags)
+RemoteEnvironment::rename_db( uint16_t oldname, uint16_t newname,
+        uint32_t flags)
 {
   Protocol request(Protocol::ENV_RENAME_REQUEST);
   request.mutable_env_rename_request()->set_env_handle(m_remote_handle);
@@ -168,7 +168,7 @@ RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
 }
 
 ham_status_t
-RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
+RemoteEnvironment::erase_db(uint16_t name, uint32_t flags)
 {
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
   request.mutable_env_erase_db_request()->set_env_handle(m_remote_handle);
@@ -183,7 +183,7 @@ RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t
-RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
+RemoteEnvironment::get_database_names(uint16_t *names, uint32_t *count)
 {
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
@@ -198,12 +198,12 @@ RemoteEnvironment::get_database_names(ham_u16_t *names, ham_u32_t *count)
     return (st);
 
   /* copy the retrieved names */
-  ham_u32_t i;
+  uint32_t i;
   for (i = 0;
-      i < (ham_u32_t)reply->env_get_database_names_reply().names_size()
+      i < (uint32_t)reply->env_get_database_names_reply().names_size()
         && i < *count;
       i++) {
-    names[i] = (ham_u16_t)*(reply->mutable_env_get_database_names_reply()->mutable_names()->mutable_data() + i);
+    names[i] = (uint16_t)*(reply->mutable_env_get_database_names_reply()->mutable_names()->mutable_data() + i);
   }
 
   *count = i;
@@ -263,7 +263,7 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
         strncpy(filename, reply->env_get_parameters_reply().filename().c_str(),
               sizeof(filename) - 1);
         filename[sizeof(filename) - 1] = 0;
-        p->value = (ham_u64_t)(&filename[0]);
+        p->value = (uint64_t)(&filename[0]);
       }
       break;
     default:
@@ -277,7 +277,7 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-RemoteEnvironment::flush(ham_u32_t flags)
+RemoteEnvironment::flush(uint32_t flags)
 {
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
@@ -376,7 +376,7 @@ RemoteEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
 }
 
 ham_status_t
-RemoteEnvironment::close(ham_u32_t flags)
+RemoteEnvironment::close(uint32_t flags)
 {
   ham_status_t st = 0;
   (void)flags;
@@ -411,7 +411,7 @@ RemoteEnvironment::close(ham_u32_t flags)
 }
 
 Transaction *
-RemoteEnvironment::txn_begin(const char *name, ham_u32_t flags)
+RemoteEnvironment::txn_begin(const char *name, uint32_t flags)
 {
   return (m_txn_manager->begin(name, flags));
 }

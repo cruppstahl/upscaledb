@@ -88,8 +88,8 @@ main(int argc, char **argv) {
   ham_env_t *env = 0;
   ham_db_t *src_db = 0;
   ham_db_t *dest_db = 0;
-  ham_u16_t src_name;
-  ham_u16_t dest_name;
+  uint16_t src_name;
+  uint16_t dest_name;
   const char *env_path = 0;
 
   /* check and parse the command line parameters */

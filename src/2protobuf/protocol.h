@@ -79,8 +79,8 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Factory function; creates a new Protocol structure from a serialized
      * buffer
      */
-    static Protocol *unpack(const ham_u8_t *buf, ham_u32_t size) {
-      if (*(ham_u32_t *)&buf[0] != HAM_TRANSFER_MAGIC_V1) {
+    static Protocol *unpack(const uint8_t *buf, uint32_t size) {
+      if (*(uint32_t *)&buf[0] != HAM_TRANSFER_MAGIC_V1) {
         ham_trace(("invalid protocol version"));
         return (0);
       }
@@ -97,16 +97,16 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Packs the Protocol structure into a memory buffer and returns
      * a pointer to the buffer and the buffer size
      */
-    bool pack(ham_u8_t **data, ham_u32_t *size) {
-      ham_u32_t packed_size = ByteSize();
+    bool pack(uint8_t **data, uint32_t *size) {
+      uint32_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
-      ham_u8_t *p = Memory::allocate<ham_u8_t>(packed_size + 8);
+      uint8_t *p = Memory::allocate<uint8_t>(packed_size + 8);
       if (!p)
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(ham_u32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
-      *(ham_u32_t *)&p[4] = packed_size;
+      *(uint32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(uint32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
       if (!SerializeToArray(&p[8], packed_size)) {
@@ -123,15 +123,15 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Packs the Protocol structure into a ByteArray
      */
     bool pack(ByteArray *barray) {
-      ham_u32_t packed_size = ByteSize();
+      uint32_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
-      ham_u8_t *p = (ham_u8_t *)barray->resize(packed_size + 8);
+      uint8_t *p = (uint8_t *)barray->resize(packed_size + 8);
       if (!p)
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(ham_u32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
-      *(ham_u32_t *)&p[4] = packed_size;
+      *(uint32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(uint32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
       return (SerializeToArray(&p[8], packed_size));

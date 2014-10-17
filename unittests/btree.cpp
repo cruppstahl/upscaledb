@@ -65,7 +65,7 @@ struct BtreeFixture {
         {0, 0}
     };
     REQUIRE(0 == ham_db_get_parameters(db, query));
-    REQUIRE((ham_u64_t)HAM_TYPE_BINARY == query[0].value);
+    REQUIRE((uint64_t)HAM_TYPE_BINARY == query[0].value);
     REQUIRE(HAM_KEY_SIZE_UNLIMITED == query[1].value);
     REQUIRE(441u == (unsigned)query[2].value);
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
@@ -88,7 +88,7 @@ struct BtreeFixture {
     ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t ps[] = {
-        { HAM_PARAM_KEY_TYPE, (ham_u64_t)type },
+        { HAM_PARAM_KEY_TYPE, (uint64_t)type },
         { 0, 0 },
         { 0, 0 }
     };
@@ -240,7 +240,7 @@ struct BtreeFixture {
     REQUIRE(HAM_FORCE_RECORDS_INLINE == (int)query[4].value);
 
     // now insert a key
-    ham_u32_t k = 33;
+    uint32_t k = 33;
     char buffer[10] = {0};
     ham_key_t key = {0};
     key.data = &k;
@@ -311,7 +311,7 @@ struct BtreeFixture {
 
     // now insert keys till the page is split and a new root is created
     g_split = false;
-    ham_u32_t k = 1;
+    uint32_t k = 1;
     while (!g_split) {
       key.data = &k;
       key.size = sizeof(k);

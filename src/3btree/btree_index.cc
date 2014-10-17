@@ -36,12 +36,12 @@
 
 namespace hamsterdb {
 
-ham_u64_t BtreeIndex::ms_btree_smo_split = 0;
-ham_u64_t BtreeIndex::ms_btree_smo_merge = 0;
-ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
+uint64_t BtreeIndex::ms_btree_smo_split = 0;
+uint64_t BtreeIndex::ms_btree_smo_merge = 0;
+uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 
-BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
-                ham_u32_t key_type, ham_u32_t key_size)
+BtreeIndex::BtreeIndex(LocalDatabase *db, uint32_t descriptor, uint32_t flags,
+                uint32_t key_type, uint32_t key_size)
   : m_db(db), m_key_size(0), m_key_type(key_type), m_rec_size(0),
     m_descriptor_index(descriptor), m_flags(flags), m_root_address(0)
 {
@@ -52,7 +52,7 @@ BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags,
 }
 
 void
-BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
+BtreeIndex::create(uint16_t key_type, uint32_t key_size, uint32_t rec_size)
 {
   ham_assert(key_size != 0);
 
@@ -75,11 +75,11 @@ BtreeIndex::create(ham_u16_t key_type, ham_u32_t key_size, ham_u32_t rec_size)
 void
 BtreeIndex::open()
 {
-  ham_u64_t rootadd;
-  ham_u16_t key_size;
-  ham_u16_t key_type;
-  ham_u32_t flags;
-  ham_u32_t rec_size;
+  uint64_t rootadd;
+  uint16_t key_size;
+  uint16_t key_type;
+  uint32_t flags;
+  uint32_t rec_size;
   PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
   key_size = desc->get_key_size();
@@ -127,7 +127,7 @@ BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
   // page is not empty
   ham_assert(node->get_ptr_down() != 0);
 
-  ham_u64_t record_id;
+  uint64_t record_id;
   int slot = node->find_child(key, &record_id);
 
   if (idxptr)
@@ -138,7 +138,7 @@ BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
 }
 
 int
-BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
+BtreeIndex::find_leaf(Page *page, ham_key_t *key, uint32_t flags)
 {
   /* ensure the approx flag is NOT set by anyone yet */
   ham_key_set_intflags(key, ham_key_get_intflags(key)
@@ -392,17 +392,17 @@ class CalcKeysVisitor : public BtreeVisitor {
         m_count += node->get_record_count(i);
     }
 
-    ham_u64_t get_result() const {
+    uint64_t get_result() const {
       return (m_count);
     }
 
   private:
     LocalDatabase *m_db;
     bool m_distinct;
-    ham_u64_t m_count;
+    uint64_t m_count;
 };
 
-ham_u64_t
+uint64_t
 BtreeIndex::count(bool distinct)
 {
   CalcKeysVisitor visitor(m_db, distinct);

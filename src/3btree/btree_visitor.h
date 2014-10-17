@@ -40,7 +40,7 @@ namespace hamsterdb {
 //
 struct ScanVisitor {
   // Operates on a single key
-  virtual void operator()(const void *key_data, ham_u16_t key_size, 
+  virtual void operator()(const void *key_data, uint16_t key_size, 
                   size_t duplicate_count) = 0;
 
   // Operates on an array of keys

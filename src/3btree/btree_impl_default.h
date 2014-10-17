@@ -139,7 +139,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Compares two keys
     template<typename Cmp>
-    int compare(const ham_key_t *lhs, ham_u32_t rhs, Cmp &cmp) {
+    int compare(const ham_key_t *lhs, uint32_t rhs, Cmp &cmp) {
       ham_key_t tmp = {0};
       P::m_keys.get_key(rhs, &m_arena, &tmp, false);
       return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
@@ -147,7 +147,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_child(ham_key_t *key, Cmp &comparator, ham_u64_t *precord_id,
+    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
                     int *pcmp) {
       int slot = find_impl(key, comparator, pcmp);
       if (precord_id) {
@@ -169,7 +169,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, ham_u32_t start, bool distinct) {
+    void scan(ScanVisitor *visitor, uint32_t start, bool distinct) {
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count());
 #endif
@@ -192,7 +192,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns the full record and stores it in |dest|
     void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    ham_u32_t flags, int duplicate_index) {
+                    uint32_t flags, int duplicate_index) {
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count());
 #endif
@@ -201,8 +201,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Updates the record of a key
     void set_record(int slot, ham_record_t *record,
-                    int duplicate_index, ham_u32_t flags,
-                    ham_u32_t *new_duplicate_index) {
+                    int duplicate_index, uint32_t flags,
+                    uint32_t *new_duplicate_index) {
       P::set_record(slot, record, duplicate_index, flags, new_duplicate_index);
 #ifdef HAM_DEBUG
       check_index_integrity(P::m_node->get_count());
@@ -343,8 +343,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // persist the range size
         store_range_size(key_range_size);
-        ham_u8_t *p = P::m_node->get_data();
-        p += sizeof(ham_u32_t);
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
 
         // create the KeyList and RecordList
         P::m_keys.create(p, key_range_size);
@@ -383,8 +383,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // persist the key range size
         store_range_size(key_range_size);
-        ham_u8_t *p = P::m_node->get_data();
-        p += sizeof(ham_u32_t);
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
 
         // and create the lists
         P::m_keys.create(p, key_range_size);
@@ -397,8 +397,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       else {
         size_t key_range_size = load_range_size();
         size_t record_range_size = usable_page_size - key_range_size;
-        ham_u8_t *p = P::m_node->get_data();
-        p += sizeof(ham_u32_t);
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
 
         P::m_keys.open(p, key_range_size, P::m_node->get_count());
         P::m_records.open(p + key_range_size, record_range_size,
@@ -434,8 +434,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       required_record_range = P::m_records.get_required_range_size(node_count)
                                 + P::m_records.get_full_record_size();
 
-      ham_u8_t *p = P::m_node->get_data();
-      p += sizeof(ham_u32_t);
+      uint8_t *p = P::m_node->get_data();
+      p += sizeof(uint32_t);
 
       // no records? then there's no way to change the ranges. but maybe we
       // can increase the capacity
@@ -605,19 +605,19 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (P::m_page->get_db()->get_local_env()->get_usable_page_size()
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
-                    - sizeof(ham_u32_t));
+                    - sizeof(uint32_t));
     }
 
     // Persists the KeyList's range size
     void store_range_size(size_t key_range_size) {
-      ham_u8_t *p = P::m_node->get_data();
-      *(ham_u32_t *)p = (ham_u32_t)key_range_size;
+      uint8_t *p = P::m_node->get_data();
+      *(uint32_t *)p = (uint32_t)key_range_size;
     }
 
     // Load the stored KeyList's range size
     size_t load_range_size() const {
-      ham_u8_t *p = P::m_node->get_data();
-      return (*(ham_u32_t *)p);
+      uint8_t *p = P::m_node->get_data();
+      return (*(uint32_t *)p);
     }
 
     // A memory arena for various tasks

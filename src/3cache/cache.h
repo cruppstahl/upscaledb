@@ -62,19 +62,19 @@ class Cache
     // the default constructor
     // |capacity_size| is in bytes!
     Cache(LocalEnvironment *env,
-            ham_u64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
+            uint64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
       : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
         m_alloc_elements(0), m_totallist(0), m_totallist_tail(0),
         m_cache_hits(0), m_cache_misses(0) {
       ham_assert(m_capacity > 0);
 
-      for (ham_u32_t i = 0; i < kBucketSize; i++)
+      for (uint32_t i = 0; i < kBucketSize; i++)
         m_buckets.push_back(0);
     }
 
     // Retrieves a page from the cache, also removes the page from the cache
     // and re-inserts it at the front. Returns null if the page was not cached.
-    Page *get_page(ham_u64_t address, ham_u32_t flags = 0) {
+    Page *get_page(uint64_t address, uint32_t flags = 0) {
       size_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
@@ -205,12 +205,12 @@ class Cache
     // the visitor callback returns true if the page should be removed from
     // the cache and deleted
     typedef bool (*VisitCallback)(Page *page, LocalEnvironment *env,
-            LocalDatabase *db, ham_u32_t flags);
+            LocalDatabase *db, uint32_t flags);
 
     // Visits all pages in the "totallist"; this is used by the Environment
     // to flush (and delete) pages
     void visit(VisitCallback cb, LocalEnvironment *env, LocalDatabase *db,
-            ham_u32_t flags) {
+            uint32_t flags) {
       Page *head = m_totallist;
       while (head) {
         Page *next = head->get_next(Page::kListCache);
@@ -224,7 +224,7 @@ class Cache
     }
 
     // Returns the capacity (in bytes)
-    ham_u64_t get_capacity() const {
+    uint64_t get_capacity() const {
       return (m_capacity);
     }
 
@@ -260,7 +260,7 @@ class Cache
     }
 
     // Calculates the hash of a page address
-    size_t calc_hash(ham_u64_t o) const {
+    size_t calc_hash(uint64_t o) const {
       return ((size_t)(o % kBucketSize));
     }
 
@@ -273,7 +273,7 @@ class Cache
     LocalEnvironment *m_env;
 
     // the capacity (in bytes)
-    ham_u64_t m_capacity;
+    uint64_t m_capacity;
 
     // the current number of cached elements
     size_t m_cur_elements;
@@ -293,10 +293,10 @@ class Cache
     std::vector<Page *> m_buckets;
 
     // counts the cache hits
-    ham_u64_t m_cache_hits;
+    uint64_t m_cache_hits;
 
     // counts the cache misses
-    ham_u64_t m_cache_misses;
+    uint64_t m_cache_misses;
 };
 
 } // namespace hamsterdb

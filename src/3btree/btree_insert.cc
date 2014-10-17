@@ -57,7 +57,7 @@ class BtreeInsertAction
 
   public:
     BtreeInsertAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+        ham_key_t *key, ham_record_t *record, uint32_t flags)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags) {
       if (cursor) {
@@ -331,7 +331,7 @@ class BtreeInsertAction
      * sequential access.
      */
     int get_pivot(BtreeNodeProxy *old_node) {
-      ham_u32_t old_count = old_node->get_count();
+      uint32_t old_count = old_node->get_count();
       ham_assert(old_count > 2);
 
       bool pivot_at_end = false;
@@ -380,9 +380,9 @@ class BtreeInsertAction
       return (new_root);
     }
 
-    ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_u64_t rid,
+    ham_status_t insert_in_leaf(Page *page, ham_key_t *key, uint64_t rid,
                 bool force_prepend = false, bool force_append = false) {
-      ham_u32_t new_dupe_id = 0;
+      uint32_t new_dupe_id = 0;
       bool exists = false;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -511,7 +511,7 @@ class BtreeInsertAction
     ham_record_t *m_record;
 
     // flags of ham_db_insert()
-    ham_u32_t m_flags;
+    uint32_t m_flags;
 
     // statistical hints for this operation
     BtreeStatistics::InsertHints m_hints;
@@ -519,7 +519,7 @@ class BtreeInsertAction
 
 ham_status_t
 BtreeIndex::insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   BtreeInsertAction bia(this, txn, cursor, key, record, flags);
   return (bia.run());

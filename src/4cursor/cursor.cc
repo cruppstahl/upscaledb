@@ -32,7 +32,7 @@
 
 using namespace hamsterdb;
 
-Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
+Cursor::Cursor(LocalDatabase *db, Transaction *txn, uint32_t flags)
   : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
     m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
     m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
@@ -62,15 +62,15 @@ Cursor::Cursor(Cursor &other)
 void
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
-  ham_u32_t count = btc->get_record_count(0);
-  for (ham_u32_t i = 0; i < count; i++)
+  uint32_t count = btc->get_record_count(0);
+  for (uint32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 
   m_db->get_local_env()->get_changeset().clear();
 }
 
 void
-Cursor::update_dupecache(ham_u32_t what)
+Cursor::update_dupecache(uint32_t what)
 {
   DupeCache *dc = get_dupecache();
   BtreeCursor *btc = get_btree_cursor();
@@ -122,7 +122,7 @@ Cursor::update_dupecache(ham_u32_t what)
           dc->append(DupeCacheLine(false, op));
         }
         else if (op->get_flags() & TransactionOperation::kInsertOverwrite) {
-          ham_u32_t ref = op->get_referenced_dupe();
+          uint32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
             DupeCacheLine *e = dc->get_first_element();
@@ -136,8 +136,8 @@ Cursor::update_dupecache(ham_u32_t what)
         }
         /* insert a duplicate key */
         else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
-          ham_u32_t of = op->get_orig_flags();
-          ham_u32_t ref = op->get_referenced_dupe() - 1;
+          uint32_t of = op->get_orig_flags();
+          uint32_t ref = op->get_referenced_dupe() - 1;
           DupeCacheLine dcl(false, op);
           if (of & HAM_DUPLICATE_INSERT_FIRST)
             dc->insert(0, dcl);
@@ -155,7 +155,7 @@ Cursor::update_dupecache(ham_u32_t what)
         }
         /* a normal erase will erase ALL duplicate keys */
         else if (op->get_flags() & TransactionOperation::kErase) {
-          ham_u32_t ref = op->get_referenced_dupe();
+          uint32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
             dc->erase(ref - 1);
@@ -178,7 +178,7 @@ Cursor::update_dupecache(ham_u32_t what)
 }
 
 void
-Cursor::couple_to_dupe(ham_u32_t dupe_id)
+Cursor::couple_to_dupe(uint32_t dupe_id)
 {
   TransactionCursor *txnc = get_txn_cursor();
   DupeCache *dc = get_dupecache();
@@ -192,7 +192,7 @@ Cursor::couple_to_dupe(ham_u32_t dupe_id)
   if (e->use_btree()) {
     BtreeCursor *btc = get_btree_cursor();
     couple_to_btree();
-    btc->set_duplicate_index((ham_u32_t)e->get_btree_dupe_idx());
+    btc->set_duplicate_index((uint32_t)e->get_btree_dupe_idx());
   }
   else {
     ham_assert(e->get_txn_op() != 0);
@@ -230,7 +230,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
 }
 
 void
-Cursor::sync(ham_u32_t flags, bool *equal_keys)
+Cursor::sync(uint32_t flags, bool *equal_keys)
 {
   TransactionCursor *txnc = get_txn_cursor();
   if (equal_keys)
@@ -476,7 +476,7 @@ Cursor::move_next_key_singlestep()
 }
 
 ham_status_t
-Cursor::move_next_key(ham_u32_t flags)
+Cursor::move_next_key(uint32_t flags)
 {
   ham_status_t st;
   TransactionCursor *txnc = get_txn_cursor();
@@ -641,7 +641,7 @@ Cursor::move_previous_key_singlestep()
 }
 
 ham_status_t
-Cursor::move_previous_key(ham_u32_t flags)
+Cursor::move_previous_key(uint32_t flags)
 {
   ham_status_t st;
   TransactionCursor *txnc = get_txn_cursor();
@@ -767,7 +767,7 @@ Cursor::move_first_key_singlestep()
 }
 
 ham_status_t
-Cursor::move_first_key(ham_u32_t flags)
+Cursor::move_first_key(uint32_t flags)
 {
   ham_status_t st = 0;
   TransactionCursor *txnc = get_txn_cursor();
@@ -876,7 +876,7 @@ Cursor::move_last_key_singlestep()
 }
 
 ham_status_t
-Cursor::move_last_key(ham_u32_t flags)
+Cursor::move_last_key(uint32_t flags)
 {
   ham_status_t st = 0;
   TransactionCursor *txnc = get_txn_cursor();
@@ -924,7 +924,7 @@ Cursor::move_last_key(ham_u32_t flags)
 }
 
 ham_status_t
-Cursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+Cursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
   bool changed_dir = false;
@@ -1039,7 +1039,7 @@ Cursor::set_to_nil(int what)
 }
 
 ham_status_t
-Cursor::erase(Transaction *txn, ham_u32_t flags)
+Cursor::erase(Transaction *txn, uint32_t flags)
 {
   ham_status_t st;
 
@@ -1063,7 +1063,7 @@ Cursor::erase(Transaction *txn, ham_u32_t flags)
 }
 
 int
-Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
+Cursor::get_record_count(Transaction *txn, uint32_t flags)
 {
   if (txn) {
     if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
@@ -1083,7 +1083,7 @@ Cursor::get_record_count(Transaction *txn, ham_u32_t flags)
   return (get_btree_cursor()->get_record_count(flags));
 }
 
-ham_u64_t
+uint64_t
 Cursor::get_record_size(Transaction *txn)
 {
   if (is_coupled_to_txnop())
@@ -1093,7 +1093,7 @@ Cursor::get_record_size(Transaction *txn)
 }
 
 ham_status_t
-Cursor::overwrite(Transaction *htxn, ham_record_t *record, ham_u32_t flags)
+Cursor::overwrite(Transaction *htxn, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);

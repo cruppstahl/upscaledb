@@ -58,7 +58,7 @@ rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 
 void
 TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
-            ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
+            uint32_t flags, uint32_t orig_flags, uint64_t lsn,
             ham_key_t *key, ham_record_t *record)
 {
   memset(this, 0, sizeof(*this));
@@ -152,8 +152,8 @@ TransactionNode::~TransactionNode()
 }
 
 TransactionOperation *
-TransactionNode::append(LocalTransaction *txn, ham_u32_t orig_flags,
-            ham_u32_t flags, ham_u64_t lsn, ham_key_t *key,
+TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
+            uint32_t flags, uint64_t lsn, ham_key_t *key,
             ham_record_t *record)
 {
   TransactionOperation *op = TransactionFactory::create_operation(txn,
@@ -220,7 +220,7 @@ LocalTransactionManager::LocalTransactionManager(Environment *env)
 }
 
 LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
-        ham_u32_t flags)
+        uint32_t flags)
   : Transaction(env, name, flags), m_log_desc(0), m_oldest_op(0),
     m_newest_op(0), m_op_counter(0), m_accum_data_size(0)
 {
@@ -243,7 +243,7 @@ LocalTransaction::~LocalTransaction()
 }
 
 void
-LocalTransaction::commit(ham_u32_t flags)
+LocalTransaction::commit(uint32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
   if (get_cursor_refcount()) {
@@ -257,7 +257,7 @@ LocalTransaction::commit(ham_u32_t flags)
 }
 
 void
-LocalTransaction::abort(ham_u32_t flags)
+LocalTransaction::abort(uint32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
   if (get_cursor_refcount()) {
@@ -313,7 +313,7 @@ TransactionIndex::~TransactionIndex()
 }
 
 TransactionNode *
-TransactionIndex::get(ham_key_t *key, ham_u32_t flags)
+TransactionIndex::get(ham_key_t *key, uint32_t flags)
 {
   TransactionNode *node = 0;
   int match = 0;
@@ -464,13 +464,13 @@ struct KeyCounter : public TransactionIndex::Visitor
     }
   }
 
-  ham_u64_t counter;
+  uint64_t counter;
   bool distinct;
   LocalTransaction *txn;
   LocalDatabase *db;
 };
 
-ham_u64_t
+uint64_t
 TransactionIndex::count(LocalTransaction *txn, bool distinct)
 {
   KeyCounter k(m_db, txn, distinct);
@@ -479,7 +479,7 @@ TransactionIndex::count(LocalTransaction *txn, bool distinct)
 }
 
 Transaction *
-LocalTransactionManager::begin(const char *name, ham_u32_t flags)
+LocalTransactionManager::begin(const char *name, uint32_t flags)
 {
   Transaction *txn = new LocalTransaction(get_local_env(), name, flags);
 
@@ -490,7 +490,7 @@ LocalTransactionManager::begin(const char *name, ham_u32_t flags)
 }
 
 void 
-LocalTransactionManager::commit(Transaction *htxn, ham_u32_t flags)
+LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
@@ -511,7 +511,7 @@ LocalTransactionManager::commit(Transaction *htxn, ham_u32_t flags)
 }
 
 void 
-LocalTransactionManager::abort(Transaction *htxn, ham_u32_t flags)
+LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
@@ -550,7 +550,7 @@ LocalTransactionManager::flush_committed_txns()
 {
   LocalTransaction *oldest;
   Journal *journal = get_local_env()->get_journal();
-  ham_u64_t highest_lsn = 0;
+  uint64_t highest_lsn = 0;
 
   /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -566,7 +566,7 @@ LocalTransactionManager::flush_committed_txns()
       ham_assert(m_queued_ops_for_flush >= 0);
       m_queued_bytes_for_flush -= oldest->get_accum_data_size();
       ham_assert(m_queued_bytes_for_flush >= 0);
-      ham_u64_t lsn = flush_txn((LocalTransaction *)oldest);
+      uint64_t lsn = flush_txn((LocalTransaction *)oldest);
       if (lsn > highest_lsn)
         highest_lsn = lsn;
 
@@ -597,12 +597,12 @@ LocalTransactionManager::flush_committed_txns()
   ham_assert(get_local_env()->get_changeset().is_empty());
 }
 
-ham_u64_t
+uint64_t
 LocalTransactionManager::flush_txn(LocalTransaction *txn)
 {
   TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;
-  ham_u64_t highest_lsn = 0;
+  uint64_t highest_lsn = 0;
 
   while (op) {
     TransactionNode *node = op->get_node();

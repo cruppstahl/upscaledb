@@ -55,13 +55,13 @@ class Socket
     }
 
     // Connects to a remote host
-    void connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec);
+    void connect(const char *hostname, uint16_t port, uint32_t timeout_sec);
 
     // Sends data to the connected server
-    void send(const ham_u8_t *data, size_t len);
+    void send(const uint8_t *data, size_t len);
 
     // Receives data from the connected server; blocking!
-    void recv(ham_u8_t *data, size_t len);
+    void recv(uint8_t *data, size_t len);
 
     // Closes the connection; no problem if socket was already closed
     void close();

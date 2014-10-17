@@ -35,7 +35,7 @@ error(const char *foo, ham_status_t st) {
 
 int
 main(int argc, char **argv) {
-  ham_u32_t i;
+  uint32_t i;
   ham_status_t st;             /* status variable */
   ham_env_t *env;              /* hamsterdb environment object */
   ham_db_t *db;                /* hamsterdb database object */
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
   ham_record_t record = {0};   /* the structure for a record */
   ham_parameter_t params[] = { /* parameters for ham_env_create_db */
     {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(ham_u32_t)},
+    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 

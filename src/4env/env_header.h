@@ -47,28 +47,28 @@ namespace hamsterdb {
 typedef HAM_PACK_0 struct HAM_PACK_1
 {
   /** magic cookie - always "ham\0" */
-  ham_u8_t  _magic[4];
+  uint8_t  _magic[4];
 
   /** version information - major, minor, rev, file */
-  ham_u8_t  _version[4];
+  uint8_t  _version[4];
 
   /** reserved */
-  ham_u64_t _reserved1;
+  uint64_t _reserved1;
 
   /** size of the page */
-  ham_u32_t _page_size;
+  uint32_t _page_size;
 
   /** maximum number of databases for this environment */
-  ham_u16_t _max_databases;
+  uint16_t _max_databases;
 
   /** PRO: for storing journal compression algorithm */
-  ham_u8_t _journal_compression;
+  uint8_t _journal_compression;
 
   /** reserved */
-  ham_u8_t _reserved3;
+  uint8_t _reserved3;
 
   /** blob id of the PageManager's state */
-  ham_u64_t _pm_state;
+  uint64_t _pm_state;
 
   /*
    * following here:
@@ -94,7 +94,7 @@ class EnvironmentHeader
     }
 
     // Sets the 'magic' field of a file header
-    void set_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
+    void set_magic(uint8_t m1, uint8_t m2, uint8_t m3, uint8_t m4) {
       get_header()->_magic[0] = m1;
       get_header()->_magic[1] = m2;
       get_header()->_magic[2] = m3;
@@ -102,7 +102,7 @@ class EnvironmentHeader
     }
 
     // Returns true if the magic matches
-    bool verify_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
+    bool verify_magic(uint8_t m1, uint8_t m2, uint8_t m3, uint8_t m4) {
       if (get_header()->_magic[0] != m1)
         return (false);
       if (get_header()->_magic[1] != m2)
@@ -116,13 +116,13 @@ class EnvironmentHeader
 
     // Returns byte |i| of the 'version'-header
     // TODO use a logical structure 'Version'
-    ham_u8_t get_version(ham_u32_t idx) {
+    uint8_t get_version(uint32_t idx) {
       return (get_header()->_version[idx]);
     }
 
     // Sets the version of a file header
     // TODO use a logical structure 'Version'
-    void set_version(ham_u8_t a, ham_u8_t b, ham_u8_t c, ham_u8_t d) {
+    void set_version(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
       get_header()->_version[0] = a;
       get_header()->_version[1] = b;
       get_header()->_version[2] = c;
@@ -130,32 +130,32 @@ class EnvironmentHeader
     }
 
     // Returns get the maximum number of databases for this file
-    ham_u16_t get_max_databases() {
+    uint16_t get_max_databases() {
       return (get_header()->_max_databases);
     }
 
     // Sets the maximum number of databases for this file
-    void set_max_databases(ham_u16_t md) {
+    void set_max_databases(uint16_t md) {
       get_header()->_max_databases = md;
     }
 
     // Returns the page size from the header page
-    ham_u32_t get_page_size() {
+    uint32_t get_page_size() {
       return (get_header()->_page_size);
     }
 
     // Sets the page size in the header page
-    void set_page_size(ham_u32_t ps) {
+    void set_page_size(uint32_t ps) {
       get_header()->_page_size = ps;
     }
 
     // Returns the PageManager's blob id
-    ham_u64_t get_page_manager_blobid() {
+    uint64_t get_page_manager_blobid() {
       return (get_header()->_pm_state);
     }
 
     // Sets the page size in the header page
-    void set_page_manager_blobid(ham_u64_t blobid) {
+    void set_page_manager_blobid(uint64_t blobid) {
       get_header()->_pm_state = blobid;
     }
 
