@@ -186,7 +186,7 @@ class InlineRecordList : public BaseRecordList
     bool requires_split(size_t node_count) const {
       if (m_range_size == 0)
         return (false);
-      return (node_count * m_record_size >= m_range_size);
+      return ((node_count + 1) * m_record_size >= m_range_size);
     }
 
     // Change the capacity; for PAX layouts this just means copying the

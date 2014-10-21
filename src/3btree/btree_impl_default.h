@@ -456,6 +456,9 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       size_t additional_capacity = remainder
               / (P::m_keys.get_full_key_size(0) +
                               P::m_records.get_full_record_size());
+      if (additional_capacity == 0)
+        return (false);
+
       key_range_size = required_key_range + additional_capacity
               * P::m_keys.get_full_key_size(0);
       record_range_size = usable_page_size - key_range_size;

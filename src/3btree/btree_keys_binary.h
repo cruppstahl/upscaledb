@@ -188,7 +188,7 @@ class BinaryKeyList : public BaseKeyList
 
     // Returns true if the |key| no longer fits into the node
     bool requires_split(size_t node_count, const ham_key_t *key) const {
-      return (node_count * m_key_size >= m_range_size);
+      return ((node_count + 1) * m_key_size >= m_range_size);
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]

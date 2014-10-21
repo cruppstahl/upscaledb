@@ -181,7 +181,7 @@ class InternalRecordList : public BaseRecordList
 
     // Returns true if there's not enough space for another record
     bool requires_split(size_t node_count) const {
-      return (node_count * sizeof(uint64_t) >= m_range_size);
+      return ((node_count + 1) * sizeof(uint64_t) >= m_range_size);
     }
 
     // Change the capacity; for PAX layouts this just means copying the

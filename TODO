@@ -506,6 +506,9 @@ o ZINT32: rebase hamsterdb-pro
         decompressed values because after all we want to reduce RAM usage!
         -> ok, they're not cached
 
+    x fix tests - currently "vacuumize()" destroys the record list
+    o fix tests - currently "copy_to()" destroys the record list
+
     o store plain block size, not multiples of a factor; blocks can then grow
         in small steps instead of aligned sizes, and less space is wasted
 
@@ -542,6 +545,9 @@ o ZINT32: rebase hamsterdb-pro
         o rename copy_to() to move_to()
 
     o run benchmark with different block sizes, growth factors etc
+
+o a few tests are failing
+    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --erase-pct=15 --find-pct=15 --recsize-fixed=0 --recsize=0 --cache=104857600 --duplicate=last --stop-ops=500000 --seed=1413888685
 
 o windows cleanups
     o install VS2008 on the new harddisk
@@ -694,8 +700,9 @@ o improve erlang integration
 
 o PRO: rebase to vanilla 2.1.9
 
-o PRO: review AES usage in read_page; if the page is mmapped
-    then decryption is not applied
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, it's ok. encryption
+    disables mmap
 
 o PRO: look for a better compression for DefaultRecordList, i.e.
     msb is 1 -> 7 bit record ID (should be sufficient)

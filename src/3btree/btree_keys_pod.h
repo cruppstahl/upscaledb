@@ -163,7 +163,7 @@ class PodKeyList : public BaseKeyList
 
     // Returns true if the |key| no longer fits into the node
     bool requires_split(size_t node_count, const ham_key_t *key) const {
-      return (node_count * sizeof(T) >= m_range_size);
+      return ((node_count + 1) * sizeof(T) >= m_range_size);
     }
 
     // Change the range size; just copy the data from one place to the other
