@@ -20,8 +20,8 @@ x release sparsemap library w/ documentation and sample/tests
 x update the webpage (free for non-profits, cheap for startups, add crc32)
 x exception safe code
 x lots of refactoring
-o update file format (compress record IDs, UpfrontIndex, ...)
-. delta updates
+x update file format (compress record IDs, UpfrontIndex, ...)
+o win32 build improvements
 
 x PRO: 
     x fix bug as reported from Ole (mail from 26.)
@@ -38,8 +38,6 @@ x PRO: make the release
 x PRO: webpage changes
     x add CRC32 to pro documentation, feature matrix
     x change pricing
-
--------------------------------------------------------------
 
 x faq: add documentation about library size: strip helps
 
@@ -450,12 +448,51 @@ x when the file format is changed then...
             -> look for a better solution for PRO
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Fixed a regression
 x a few tests are failing
     ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --erase-pct=15 --find-pct=15 --recsize-fixed=0 --recsize=0 --cache=104857600 --duplicate=last --stop-ops=500000 --seed=1413888685
 
 x refactoring: switch to stdint-supplied types instead of own definitions
     x see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
+<<<<<<< HEAD
 =======
+=======
+
+o windows cleanups
+    o install VS2008 on the new harddisk
+    o install VS2010 on the new harddisk
+    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
+        or figure out why the file size is so big
+    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+        or end up in wrong directories
+    o The C# PInvoke for ham_cursor_find is missing the Record structure
+        o also accept flags in ham_db_find and ham_cursor_find for approx.
+            matching, and copy the key!
+        o this needs a unittest
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+        o also look at Sandeep's mail regarding a crash
+    o automate the build process
+    o ... and the packaging
+
+------------- hamsterdb-erlang 2.1.9 ---------------------------------
+
+o upgrade to hamsterdb-2.1.9
+
+o improve erlang integration
+    o quickcheck-ci.com
+    o look into Thomas' mail
+    o QuickCheck: create a new property for testing duplicates; the key is
+        always the same. The number of duplicate keys is tracked and
+        periodically checked with the API. A cursor can be used to remove a
+        specific duplicate, or to fetch a specific duplicate.
+
+------------- hamsterdb pro 2.1.9 ------------------------------------
+
+o PRO: rebase to vanilla 2.1.9
+
+>>>>>>> Fixed a regression
 o ZINT32: rebase hamsterdb-pro
     x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
         -> linear search 
@@ -556,9 +593,11 @@ o ZINT32: rebase hamsterdb-pro
     o run benchmark with different block sizes, growth factors etc
 >>>>>>> Fixed a regression
 
-o a few tests are failing
-    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --erase-pct=15 --find-pct=15 --recsize-fixed=0 --recsize=0 --cache=104857600 --duplicate=last --stop-ops=500000 --seed=1413888685
+o PRO: the switch from binary search to linear search is not good enough,
+    because in 99% there are less keys than required (linear search threshold
+    not reached), and simd search is not performed
 
+<<<<<<< HEAD
 o windows cleanups
     x install VS2008 on the new harddisk
     x install VS2010 on the new harddisk
@@ -616,6 +655,32 @@ o Can we release an early version of zint32?
 
 ------------- hamsterdb 2.1.10 ---------------------------------------
 
+=======
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, everything is ok
+
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    msb is 1 -> 7 bit record ID (should be sufficient)
+    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
+    o requires index structure for addressing every N'th record
+    o could be very similar to zint32 index
+
+o PRO: find an efficient compression method for InternalRecordList
+    x The page IDs should be modulo page-size (makes numbers smaller) - done
+
+    o Use bitpacking in variable-length groups, but always for 32 (16? 64?)
+        record IDs; the bits for each ID are variable
+        -> can cause ripple effect...
+    o Use small index which stores offset + bit width for each group
+    o Use this index for binary search by slot number
+
+------------- hamsterdb 2.1.10 ---------------------------------------
+
+o refactoring: when requires_split() is called in combination with insert()
+    then let the UpfrontIndex create a new index slot if the capacity is
+    reached, but the range still has enough size for the slot and the payload
+
+>>>>>>> Fixed a regression
 o "make dist" should write the current git commit and the build date to
     a file; this should be printed by ham_bench and the tools
     o ham_bench: print this prior to the monster tests/performance tests
@@ -702,6 +767,7 @@ o refactoring: clean up the whole Database code; it's too much and too
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
 
+<<<<<<< HEAD
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_ALLOCATE_STORAGE_BYTES
     o support in ham_bench
@@ -729,6 +795,75 @@ o bulk updates/batched updates
 
 o look into dynomite, spark, mongodb and mariadb integration
     https://github.com/Netflix/dynomite
+=======
+o delta updates managed in the BtreeNode
+    the operations are attached to the node, but as soon as the node
+    is accessed for a lookup or a scan, or immediately before the node
+    is flushed, the deltas are merged into the node. So far this does not
+    sound too efficient, but the bulk updates in combination with the
+    key compression (i.e. for prefix compression) will benefit a lot.
+
+    Also, they are really required for concurrency and to allow multiple
+    writers in parallel.
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o need a flag to disable DeltaUpdates
+        o add flag to ham_bench
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
+    o make the merge algorithm as efficient as possible
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
+o use cache-oblivious b-tree layout
+    ===> a much simpler approach would be to reserve "X" bytes when creating
+        the environment (and then map the whole range)
+        this would include storage for the blobs AND we would not have to mess
+        around with the mapping
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+        (but what about the blobs??)
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
+
+o look into spark, mongodb and mariadb integration
+>>>>>>> Fixed a regression
     -> like MapReduce, Spark requires an InputFormat class; templates are 
         available here:
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
@@ -795,6 +930,7 @@ o PRO: the switch from binary search to linear search is not good enough,
     because in 99% there are less keys than required (linear search threshold
     not reached), and simd search is not performed
 
+<<<<<<< HEAD
 x PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied - no, everything is ok
 >>>>>>> More fixes related to use of stdint.h
@@ -825,6 +961,9 @@ o PRO: find an efficient compression method for InternalRecordList
     x The page IDs should be modulo page-size (makes numbers smaller) - done
 
 o PRO: use compression also for duplicate records
+=======
+------------- hamsterdb pro 2.1.10 ------------------------------------
+>>>>>>> Fixed a regression
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -887,6 +1026,7 @@ o PRO: prefix compression for variable-length keys
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
+<<<<<<< HEAD
 . use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
     o see roadmap document for more information
@@ -949,6 +1089,8 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
+=======
+>>>>>>> Fixed a regression
 
 o the bucket for concurrency TODOs
     this are the requirements:
