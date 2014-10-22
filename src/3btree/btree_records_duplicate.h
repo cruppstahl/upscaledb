@@ -992,6 +992,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       // the capacity
       if (m_index.get_next_offset(node_count) + get_full_record_size()
                       + capacity_hint * m_index.get_full_index_size()
+                      + UpfrontIndex::kPayloadOffset
                 > new_range_size)
         capacity_hint = node_count + 1;
 
@@ -1475,6 +1476,7 @@ write_record:
       // the capacity
       if (m_index.get_next_offset(node_count) + get_full_record_size()
                       + capacity_hint * m_index.get_full_index_size()
+                      + UpfrontIndex::kPayloadOffset
                 > new_range_size)
         capacity_hint = node_count + 1;
 

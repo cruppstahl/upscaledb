@@ -383,6 +383,7 @@ class VariableLengthKeyList : public BaseKeyList
       // the capacity
       if (m_index.get_next_offset(node_count) + get_full_key_size(0)
                       + capacity_hint * m_index.get_full_index_size()
+                      + UpfrontIndex::kPayloadOffset
                 > new_range_size)
         capacity_hint = node_count + 1;
 
