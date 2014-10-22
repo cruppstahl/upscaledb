@@ -253,16 +253,6 @@ class PodKeyList : public BaseKeyList
       return ((uint8_t *)&m_data[slot]);
     }
 
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (sizeof(T) >= 2 && sizeof(T) <= 8);
-    }
-
-    // Returns the pointer to the key's inline data - for SIMD calculations
-    uint8_t *get_simd_data() {
-      return (get_key_data(0));
-    }
-
   private:
     // Returns a pointer to the key's data (const flavour)
     uint8_t *get_key_data(int slot) const {

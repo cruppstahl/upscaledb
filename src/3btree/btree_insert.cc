@@ -144,7 +144,7 @@ class BtreeInsertAction : public BtreeUpdateAction
           /* key is at the end */
           if (cmp_hi > 0) {
             ham_assert(node->get_right() == 0);
-            force_append = true;
+            flags |= PBtreeNode::kInsertAppend;
           }
         }
 
@@ -153,7 +153,7 @@ class BtreeInsertAction : public BtreeUpdateAction
           /* key is at the start of page */
           if (cmp_lo < 0) {
             ham_assert(node->get_left() == 0);
-            force_prepend = true;
+            flags |= PBtreeNode::kInsertPrepend;
           }
         }
       }

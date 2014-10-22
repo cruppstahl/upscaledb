@@ -30,6 +30,7 @@ Please visit the webpage for additional documentation.
 2. Changes
 
 New Features
+<<<<<<< HEAD
 * Added Cursor.TryFind to hamsterdb-dotnet
 	(thanks, mjmckp <matthew.j.m.peacock@gmail.com>)
 * The page cache eviction was moved to a background thread
@@ -62,6 +63,8 @@ Other Changes
 * Deprecated HAM_RECORD_NUMBER (use HAM_RECORD_NUMBER64 instead);
 	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
 * Implemented ham_cursor_get_record_size() for remote access
+=======
+>>>>>>> 74a01dc... Adding varbyte compression for uint32 keys
 
 Bugfixes
 
