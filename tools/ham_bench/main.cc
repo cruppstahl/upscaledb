@@ -447,8 +447,10 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
+  if (!strcmp(param, "zint32_varbyte"))
+    return (HAM_COMPRESSOR_UINT32_VARBYTE);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo'\n", param);
+                  "'snappy', 'lzf', 'lzo', 'zint32_varbyte'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
@@ -893,7 +895,9 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
 
   // print key compression ratio
-  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->key_compression
+      && !strcmp(name, "hamsterdb")
+      && conf->key_compression != HAM_COMPRESSOR_UINT32_VARBYTE) {
     float ratio;
     if (metrics->hamster_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;
