@@ -22,8 +22,6 @@
 #include "3rdparty/catch/catch.hpp"
 #include "3rdparty/simdcomp/include/simdcomp.h"
 
-#include "1os/os.h"
-
 #include "utils.h"
 #include "os.hpp"
 
@@ -320,6 +318,7 @@ TEST_CASE("BlockIndex/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
+<<<<<<< HEAD
 TEST_CASE("Zint32/invalidPagesizeTest", "")
 {
   ham_parameter_t p1[] = {
@@ -340,6 +339,12 @@ TEST_CASE("Zint32/invalidPagesizeTest", "")
   ham_env_close(env, 0);
 }
 
+=======
+>>>>>>> a3bdef5... Adding stream vbyte-compression for uint32 keys
+=======
+#endif
+
+>>>>>>> c528002... Adding MaskedVbyte compression algorithm (wip)
 } // namespace hamsterdb
 
 #endif // HAM_ENABLE_COMPRESSION

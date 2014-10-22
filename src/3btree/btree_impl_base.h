@@ -209,31 +209,12 @@ class BaseNodeImpl
       return (slot);
     }
 
-#ifdef HAM_ENABLE_SIMD
-    // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
-    template<typename Cmp>
-    int find_exact(ham_key_t *key, Cmp &comparator) {
-      if (m_keys.has_simd_support()
-              && os_get_simd_lane_width() > 1) {
-        size_t node_count = m_node->get_count();
-        return (find_simd_sse<typename KeyList::type>(
-                            (typename KeyList::type *)m_keys.get_simd_data(),
-                            node_count, key));
-      }
-
-      int cmp;
-      int r = find_exact_impl(key, comparator, &cmp);
-      return (cmp ? -1 : r);
-    }
-#else // !HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
     int find(Context *context, ham_key_t *key, Cmp &comparator) {
       return (find_impl(context, key, comparator));
     }
-#endif // HAM_ENABLE_SIMD
 
     // Splits a node and moves parts of the current node into |other|, starting
     // at the |pivot| slot

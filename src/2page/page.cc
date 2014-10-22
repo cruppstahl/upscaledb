@@ -80,6 +80,7 @@ Page::flush(Device *device, PersistedData *page_data)
                       (uint32_t)page_data->address,
                       &page_data->raw_data->header.crc32);
     }
+
     device->write(page_data->address, page_data->raw_data, page_data->size);
     page_data->is_dirty = false;
     ms_page_count_flushed++;

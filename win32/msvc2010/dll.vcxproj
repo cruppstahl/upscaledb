@@ -89,12 +89,17 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_SNAPPY_H;HAVE_ZLIB_H;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 =======
       <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_SIMD;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+      <AdditionalIncludeDirectories>../..;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAM_ENABLE_SIMD;HAVE_SNAPPY_H;HAVE_ZLIB_H;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -135,10 +140,20 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib</AdditionalDependencies>
+<<<<<<< HEAD
       <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+=======
+=======
+      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+>>>>>>> Adding varbyte compression for uint32 keys
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
+>>>>>>> Adding varbyte compression for uint32 keys
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -154,10 +169,14 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;HAM_ENABLE_SIMD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 =======
       <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <MinimalRebuild>true</MinimalRebuild>
@@ -211,10 +230,20 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib</AdditionalDependencies>
+<<<<<<< HEAD
       <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+=======
+=======
+      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+>>>>>>> Adding varbyte compression for uint32 keys
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
+>>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -226,10 +255,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 =======
       <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -281,10 +314,20 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib</AdditionalDependencies>
+<<<<<<< HEAD
       <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+=======
+=======
+      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+>>>>>>> Adding varbyte compression for uint32 keys
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
+>>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x86</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -301,10 +344,14 @@
     </Midl>
     <ClCompile>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 =======
       <AdditionalIncludeDirectories>../..;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>../..;../../src;../../include;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION;HAM_ENABLE_COMPRESSION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -355,10 +402,20 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib</AdditionalDependencies>
+<<<<<<< HEAD
       <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+<<<<<<< HEAD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+=======
+=======
+      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+>>>>>>> Adding varbyte compression for uint32 keys
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
+>>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -476,11 +533,14 @@
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
+<<<<<<< HEAD
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdbitpacking.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdcomputil.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdintegratedbitpacking.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\varintdecode.cc" />
     <ClCompile Include="..\..\3rdparty\streamvbyte\streamvbyte.cc" />
+=======
+>>>>>>> 7819f81... Adding varbyte compression for uint32 keys
     <ClCompile Include="..\..\src\1base\error.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />

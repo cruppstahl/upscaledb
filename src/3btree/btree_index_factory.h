@@ -293,6 +293,57 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
+          else if (key_compression == HAM_COMPRESSOR_UINT32_SIMDCOMP) {
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdCompKeyList,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdCompKeyList,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == HAM_COMPRESSOR_UINT32_GROUPVARINT) {
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::GroupVarintKeyList,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::GroupVarintKeyList,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == HAM_COMPRESSOR_UINT32_STREAMVBYTE) {
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
           else { // no key compression
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl

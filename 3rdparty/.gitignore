@@ -1,3 +1,17 @@
 Makefile
 Makefile.in
 streamvbyte/.gitignore
+simdcomp/.gitignore
+simdcomp/CHANGELOG
+simdcomp/LICENSE
+simdcomp/Makefile.am
+simdcomp/README.md
+simdcomp/example.c
+simdcomp/go/
+simdcomp/include/
+simdcomp/makefile.vc
+simdcomp/package.json
+simdcomp/simdcomp.def
+simdcomp/src/simdbitpacking.c
+simdcomp/src/simdcomputil.c
+simdcomp/src/simdintegratedbitpacking.c
