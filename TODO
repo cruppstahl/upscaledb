@@ -523,33 +523,35 @@ o ZINT32: rebase hamsterdb-pro
         this improves cache locality when performing a linear search, and it
         reduces some complexity
 
-    o scan() decompresses a whole block, then calls visitor
-    o need to support larger block offsets for pages > 16kb
-    o copy relevant changes to base/apl
-
-    o refactoring: when checking if a leaf page must be split, then first
-        check the RecordList. If it does not require a split then
-        call KeyList::insert(), and let it throw an exception if the space
-        is not sufficient.
-        o also do this for internal nodes: "simulate" an insert of a
-            default key. The insert will abort before actually writing data.
-        o this will also work for RecordLists!
-
-    o refactoring: "insert" should not be based on slot number
-        o it should *return* the slot (for the RecordList), but no longer use
-            the slot as a parameter -> this is faster for zint32
-        o same for erase
-        o same for find
-
     o improve lookups
         o delegate lookup function to the KeyList
         o blocks are searched with binary search
         o ... then use linear search/decompression for the block
         o ... then get rid of get_simd_data(), it's no longer required
 
+    o refactoring: "insert" should not be based on slot number
+        o it should *return* the slot (for the RecordList), but no longer use
+            the slot as a parameter -> this is faster for zint32
+        o same for erase
+        o same for find (already the case, i think)
+
+    o refactoring: when checking if a leaf page must be split, then first
+        check the RecordList. If it does not require a split then
+        call KeyList::insert(), and let it throw an exception if the space
+        is not sufficient (before it modifies any data).
+        o add "bool simulate" as parameter to insert() for KeyList
+                and RecordList
+        o also do this for internal nodes: "simulate" an insert of a
+            default key. The insert will abort before actually writing data.
+        o this will also work for RecordLists!
+
     o refactoring: do not automatically vacuumize prior to a merge or after
         a split; rather perform it in copy_to(), and only when necessary
         o rename copy_to() to move_to()
+
+    o scan() decompresses a whole block, then calls visitor
+    o need to support larger block offsets for pages > 16kb
+    o copy relevant changes to base/apl
 
     o run benchmark with different block sizes, growth factors etc
 >>>>>>> Fixed a regression
@@ -990,12 +992,21 @@ o Next steps towards concurrency: flush caches asynchronously,
     o or have a separate thread perform purges, flushes with libuv
     o ... and prefetches (when opening a database with HAM_PREFETCH_INDEX)
 
+<<<<<<< HEAD
 o Next steps towards concurrency; target is having one writer per db, but
         multiple readers
     o move flushing of transactions into background
     o move cache purging into background
     o background operations should be disabled with flags
     o perform excessive testing
+=======
+o PRO: the switch from binary search to linear search is not good enough,
+    because in 99% there are less keys than required (linear search threshold
+    not reached), and simd search is not performed
+
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, everything is ok
+>>>>>>> More fixes related to use of stdint.h
 
 
 
