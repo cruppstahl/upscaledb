@@ -59,8 +59,8 @@ sub print_stdlib
   print "  }\n";
   print "};\n\n";
   print "struct $p" . "Bytes {\n";
-  print "  ham_u8_t *value;\n";
-  print "  ham_u32_t size;\n\n";
+  print "  uint8_t *value;\n";
+  print "  uint32_t size;\n\n";
   print "  $p" . "Bytes() {\n";
   print "    clear();\n";
   print "  }\n\n";
@@ -72,12 +72,12 @@ sub print_stdlib
   print "    value = 0; size = 0;\n";
   print "  }\n\n";
   print "  size_t get_size() const {\n";
-  print "    return (sizeof(ham_u32_t) + align(size)); // align to 32bits\n";
+  print "    return (sizeof(uint32_t) + align(size)); // align to 32bits\n";
   print "  }\n\n";
   print "  void serialize(unsigned char **pptr, int *psize) const {\n";
-  print "    *(ham_u32_t *)*pptr = size;\n";
-  print "    *pptr += sizeof(ham_u32_t);\n";
-  print "    *psize -= sizeof(ham_u32_t);\n";
+  print "    *(uint32_t *)*pptr = size;\n";
+  print "    *pptr += sizeof(uint32_t);\n";
+  print "    *psize -= sizeof(uint32_t);\n";
   print "    if (size) {\n";
   print "      memcpy(*pptr, value, size);\n";
   print "      *pptr += align(size); // align to 32bits\n";
@@ -86,9 +86,9 @@ sub print_stdlib
   print "    }\n";
   print "  }\n\n";
   print "  void deserialize(unsigned char **pptr, int *psize) {\n";
-  print "    size = *(ham_u32_t *)*pptr;\n";
-  print "    *pptr += sizeof(ham_u32_t);\n";
-  print "    *psize -= sizeof(ham_u32_t);\n";
+  print "    size = *(uint32_t *)*pptr;\n";
+  print "    *pptr += sizeof(uint32_t);\n";
+  print "    *psize -= sizeof(uint32_t);\n";
   print "    if (size) {\n";
   print "      value = *pptr;\n";
   print "      *pptr += align(size); // align to 32bits\n";
@@ -99,15 +99,15 @@ sub print_stdlib
   print "      value = 0;\n";
   print "  }\n";
   print "};\n\n";
-  print "typedef $p" . "_Base<bool, ham_u32_t> $p" . "Bool;\n";
-  print "typedef $p" . "_Base<ham_u8_t, ham_u32_t> $p" . "Uint8;\n";
-  print "typedef $p" . "_Base<ham_u16_t, ham_u32_t> $p" . "Uint16;\n";
-  print "typedef $p" . "_Base<ham_u32_t, ham_u32_t> $p" . "Uint32;\n";
-  print "typedef $p" . "_Base<ham_s8_t, ham_s32_t> $p" . "Sint8;\n";
-  print "typedef $p" . "_Base<ham_s16_t, ham_s32_t> $p" . "Sint16;\n";
-  print "typedef $p" . "_Base<ham_s32_t, ham_s32_t> $p" . "Sint32;\n";
-  print "typedef $p" . "_Base<ham_u64_t, ham_u64_t> $p" . "Uint64;\n";
-  print "typedef $p" . "_Base<ham_s64_t, ham_s64_t> $p" . "Sint64;\n";
+  print "typedef $p" . "_Base<bool, uint32_t> $p" . "Bool;\n";
+  print "typedef $p" . "_Base<uint8_t, uint32_t> $p" . "Uint8;\n";
+  print "typedef $p" . "_Base<uint16_t, uint32_t> $p" . "Uint16;\n";
+  print "typedef $p" . "_Base<uint32_t, uint32_t> $p" . "Uint32;\n";
+  print "typedef $p" . "_Base<int8_t, int32_t> $p" . "Sint8;\n";
+  print "typedef $p" . "_Base<int16_t, int32_t> $p" . "Sint16;\n";
+  print "typedef $p" . "_Base<int32_t, int32_t> $p" . "Sint32;\n";
+  print "typedef $p" . "_Base<uint64_t, uint64_t> $p" . "Uint64;\n";
+  print "typedef $p" . "_Base<int64_t, int64_t> $p" . "Sint64;\n";
   print "\n\n";
 }
 

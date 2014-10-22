@@ -42,7 +42,7 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
     ham_db_t *db;
-    ham_u32_t flags;
+    uint32_t flags;
     PyObject *comparecb;
     PyObject *cursorlist;
     PyObject *err_type, *err_value, *err_traceback;
@@ -127,7 +127,7 @@ parse_parameters(PyObject *extargs, ham_parameter_t *params)
     // a few parameters are passed as a string
     params[i].name = name;
     if (name == HAM_PARAM_LOG_DIRECTORY || name == HAM_PARAM_ENCRYPTION_KEY)
-      params[i].value = (ham_u64_t)PyBytes_AsString(v);
+      params[i].value = (uint64_t)PyBytes_AsString(v);
     else
       params[i].value = PyInt_AsLong(v);
     if (PyErr_Occurred())
@@ -142,8 +142,8 @@ env_create(HamEnvironment *self, PyObject *args)
 {
   ham_status_t st;
   const char *filename = 0;
-  ham_u32_t mode = 0;
-  ham_u32_t flags = 0;
+  uint32_t mode = 0;
+  uint32_t flags = 0;
   PyObject *extargs = 0;
   ham_parameter_t params[64]; /* should be enough */
 
@@ -168,7 +168,7 @@ env_open(HamEnvironment *self, PyObject *args)
 {
   ham_status_t st;
   const char *filename = 0;
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   PyObject *extargs = 0;
   ham_parameter_t params[64]; /* should be enough */
 
@@ -213,7 +213,7 @@ env_create_db(HamEnvironment *self, PyObject *args)
 {
   ham_status_t st;
   int name = 0;
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   PyObject *extargs = 0;
   ham_parameter_t params[64]; /* should be enough */
 
@@ -230,7 +230,7 @@ env_create_db(HamEnvironment *self, PyObject *args)
   if (!db)
     return (0);
 
-  st = ham_env_create_db(self->env, &db->db, (ham_u16_t)name, flags,
+  st = ham_env_create_db(self->env, &db->db, (uint16_t)name, flags,
                   extargs ? params : 0);
   if (st) {
     db_dealloc(db);
@@ -258,7 +258,7 @@ env_open_db(HamEnvironment *self, PyObject *args)
 {
   ham_status_t st;
   int name = 0;
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   PyObject *extargs = 0;
   ham_parameter_t params[64]; /* should be enough */
 
@@ -277,7 +277,7 @@ env_open_db(HamEnvironment *self, PyObject *args)
 
   ham_set_context_data(db->db, db);
 
-  st = ham_env_open_db(self->env, &db->db, (ham_u16_t)name, flags,
+  st = ham_env_open_db(self->env, &db->db, (uint16_t)name, flags,
                   extargs ? params : 0);
   if (st) {
     db_dealloc(db);
@@ -289,7 +289,7 @@ env_open_db(HamEnvironment *self, PyObject *args)
     {0, 0}
   };
   ham_db_get_parameters(db->db, &flag_params[0]);
-  db->flags = (ham_u32_t)flag_params[0].value;
+  db->flags = (uint32_t)flag_params[0].value;
 
   /* add the new database to the environment */
   if (!self->dblist) {
@@ -307,13 +307,13 @@ env_open_db(HamEnvironment *self, PyObject *args)
 static PyObject *
 env_rename_db(HamEnvironment *self, PyObject *args)
 {
-  ham_u32_t oldname = 0, newname = 0;
+  uint32_t oldname = 0, newname = 0;
 
   if (!PyArg_ParseTuple(args, "ii|:rename_db", &oldname, &newname))
     return (0);
 
   ham_status_t st = ham_env_rename_db(self->env,
-                  (ham_u16_t)oldname, (ham_u16_t)newname, 0);
+                  (uint16_t)oldname, (uint16_t)newname, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -322,12 +322,12 @@ env_rename_db(HamEnvironment *self, PyObject *args)
 static PyObject *
 env_erase_db(HamEnvironment *self, PyObject *args)
 {
-  ham_u32_t name = 0;
+  uint32_t name = 0;
 
   if (!PyArg_ParseTuple(args, "i|:erase_db", &name))
     return (0);
 
-  ham_status_t st = ham_env_erase_db(self->env, (ham_u16_t)name, 0);
+  ham_status_t st = ham_env_erase_db(self->env, (uint16_t)name, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -348,8 +348,8 @@ env_flush(HamEnvironment *self, PyObject *args)
 static PyObject *
 env_get_database_names(HamEnvironment *self, PyObject *args)
 {
-  ham_u16_t names[1024];
-  ham_u32_t count = 1024;
+  uint16_t names[1024];
+  uint32_t count = 1024;
 
   if (!PyArg_ParseTuple(args, ":get_database_names"))
     return (0);
@@ -362,7 +362,7 @@ env_get_database_names(HamEnvironment *self, PyObject *args)
   if (!ret)
     return (0);
 
-  for (ham_u32_t i = 0; i < count; i++) {
+  for (uint32_t i = 0; i < count; i++) {
     PyObject *io = PyInt_FromLong(names[i]);
     if (!PyTuple_SET_ITEM(ret, i, io))
       return (0);
@@ -375,7 +375,7 @@ db_find(HamDatabase *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  ham_u64_t recno;
+  uint64_t recno;
   HamTransaction *txn = 0;
 
   /* recno: first object is an integer */
@@ -445,7 +445,7 @@ db_insert(HamDatabase *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
   HamTransaction *txn = 0;
 
   /* recno: ignore the second object */
@@ -482,7 +482,7 @@ static PyObject *
 db_erase(HamDatabase *self, PyObject *args)
 {
   ham_key_t key = {0};
-  ham_u64_t recno;
+  uint64_t recno;
   HamTransaction *txn;
 
   /* recno: first object is an integer */
@@ -517,8 +517,8 @@ db_erase(HamDatabase *self, PyObject *args)
 
 static int
 compare_func(ham_db_t *db,
-                const ham_u8_t *lhs, ham_u32_t lhs_length,
-                const ham_u8_t *rhs, ham_u32_t rhs_length)
+                const uint8_t *lhs, uint32_t lhs_length,
+                const uint8_t *rhs, uint32_t rhs_length)
 {
   PyObject *arglist, *result;
   HamDatabase *self = (HamDatabase *)ham_get_context_data(db, HAM_TRUE);
@@ -792,7 +792,7 @@ static PyObject *
 get_version(PyObject *self, PyObject *args)
 {
   char buffer[64];
-  ham_u32_t major, minor, revision;
+  uint32_t major, minor, revision;
 
   if (!PyArg_ParseTuple(args, ":get_version"))
     return (0);
@@ -1138,7 +1138,7 @@ cursor_insert(HamCursor *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  ham_u32_t flags = 0;
+  uint32_t flags = 0;
 
   /* recno: ignore the first object */
   if (self->db->flags & HAM_RECORD_NUMBER) {
@@ -1162,7 +1162,7 @@ cursor_find(HamCursor *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  ham_u64_t recno;
+  uint64_t recno;
 
   /* recno: first object is an integer */
   if (self->db->flags & HAM_RECORD_NUMBER) {
@@ -1197,7 +1197,7 @@ cursor_erase(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_move_to(HamCursor *self, PyObject *args)
 {
-  ham_u32_t flags;
+  uint32_t flags;
 
   if (!PyArg_ParseTuple(args, "i:move_to", &flags))
     return (0);
@@ -1223,7 +1223,7 @@ cursor_get_key(HamCursor *self, PyObject *args)
 
   /* recno: return int, otherwise string */
   if (db->flags & HAM_RECORD_NUMBER) {
-    ham_u64_t recno = *(ham_u64_t *)key.data;
+    uint64_t recno = *(uint64_t *)key.data;
     return (Py_BuildValue("i", (int)recno));
   }
   return (Py_BuildValue("s#", key.data, key.size));
@@ -1261,7 +1261,7 @@ cursor_overwrite(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_get_duplicate_count(HamCursor *self, PyObject *args)
 {
-  ham_u32_t count = 0;
+  uint32_t count = 0;
 
   if (!PyArg_ParseTuple(args, ":get_duplicate_count"))
       return (0);
@@ -1276,7 +1276,7 @@ cursor_get_duplicate_count(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_get_duplicate_position(HamCursor *self, PyObject *args)
 {
-  ham_u32_t position = 0;
+  uint32_t position = 0;
 
   if (!PyArg_ParseTuple(args, ":get_duplicate_position"))
       return (0);
@@ -1291,7 +1291,7 @@ cursor_get_duplicate_position(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_get_record_size(HamCursor *self, PyObject *args)
 {
-  ham_u64_t size = 0;
+  uint64_t size = 0;
 
   if (!PyArg_ParseTuple(args, ":get_record_size"))
       return (0);
@@ -1300,7 +1300,7 @@ cursor_get_record_size(HamCursor *self, PyObject *args)
   if (st)
     THROW(st);
 
-  return (Py_BuildValue("i", (ham_u32_t)size));
+  return (Py_BuildValue("i", (uint32_t)size));
 }
 
 static PyObject *

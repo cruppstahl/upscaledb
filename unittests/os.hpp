@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef OS_HPP__
-#define OS_HPP__
+#ifndef OS_HPP
+#define OS_HPP
 
 #ifdef WIN32
 #   include <windows.h>
@@ -39,7 +39,7 @@ class os
 {
 protected:
 #ifdef WIN32
-  static const char *DisplayError(char* buf, ham_u32_t buflen, DWORD errorcode)
+  static const char *DisplayError(char* buf, uint32_t buflen, DWORD errorcode)
   {
     buf[0] = 0;
     FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
@@ -125,4 +125,4 @@ public:
   }
 };
 
-#endif /* OS_HPP__ */
+#endif /* OS_HPP */
