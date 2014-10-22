@@ -134,20 +134,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       check_index_integrity(context, node_count);
     }
 
-    // Searches the node for the key and returns the slot of this key
-    template<typename Cmp>
-    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
-                    int *pcmp) {
-      int slot = find_impl(key, comparator, pcmp);
-      if (precord_id) {
-        if (slot == -1)
-          *precord_id = P::m_node->get_ptr_down();
-        else
-          *precord_id = P::m_records.get_record_id(slot);
-      }
-      return (slot);
-    }
-
     // Iterates all keys, calls the |visitor| on each
     void scan(Context *context, ScanVisitor *visitor, uint32_t start,
                     bool distinct) {

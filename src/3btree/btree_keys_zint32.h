@@ -397,6 +397,10 @@ class Zint32KeyList : public BaseKeyList
       // |src_position_in_block| is > 0 - copy the current block, then
       // fall through
       else {
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Adding unittests for zint32 compression
         if (dsti->key_count > 0) {
           uint32_t data[kMaxKeysPerBlock];
           uncompress_block(srci, data);
@@ -425,6 +429,12 @@ class Zint32KeyList : public BaseKeyList
         else {
           copy_blocks(srci, dest, dsti);
         }
+<<<<<<< HEAD
+=======
+        copy_blocks(srci, dest, dsti);
+>>>>>>> More fixes for deleting zint32-keys
+=======
+>>>>>>> Adding unittests for zint32 compression
         index = srci + 1;
         copied_blocks++;
       }
@@ -432,9 +442,22 @@ class Zint32KeyList : public BaseKeyList
       // now copy the remaining blocks
       // TODO it would be faster to introduce add_many_blocks()
       // instead of invoking add_block() several times
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
       // TODO each block has a minimum size of 16 - even if the current block
       // is much smaller
       // TODO it would be better if small blocks would be merged!
+=======
+      int copied_blocks = 0;
+>>>>>>> Saved 2 bytes in the index
+=======
+>>>>>>> More fixes for deleting zint32-keys
+=======
+      // TODO each block has a minimum size of 16 - even if the current block
+      // is much smaller
+      // TODO it would be better if small blocks would be merged!
+>>>>>>> Adding unittests for zint32 compression
       Index *endi = get_block_index(get_block_count()); 
       for (; index < endi; index++, copied_blocks++) {
         dsti = dest.add_block(dest.get_block_count(), index->block_size);
@@ -451,13 +474,29 @@ class Zint32KeyList : public BaseKeyList
       set_block_count(get_block_count() - copied_blocks);
 
       reset_used_size();
+<<<<<<< HEAD
 
       // we need at least ONE empty block, otherwise a few functions will bail
       if (get_block_count() == 0) {
         initialize();
       }
+=======
+>>>>>>> Adding unittests for zint32 compression
 
+<<<<<<< HEAD
       ham_assert(dest.check_integrity(other_count + (node_count - sstart)));
+=======
+      // we need at least ONE empty block, otherwise a few functions will bail
+      if (get_block_count() == 0) {
+        initialize();
+      }
+
+<<<<<<< HEAD
+      ham_assert(dest.check_integrity(node_count - sstart));
+>>>>>>> More fixes for deleting zint32-keys
+=======
+      ham_assert(dest.check_integrity(other_count + (node_count - sstart)));
+>>>>>>> Adding unittests for zint32 compression
       ham_assert(check_integrity(sstart));
     }
 
@@ -485,8 +524,16 @@ class Zint32KeyList : public BaseKeyList
       size_t total_keys = 0;
       int used_size = 0;
       for (; index < end; index++) {
+<<<<<<< HEAD
+<<<<<<< HEAD
         if (index->key_count == 1)
           ham_assert(index->used_size == 0);
+=======
+>>>>>>> More fixes for deleting zint32-keys
+=======
+        if (index->key_count == 1)
+          ham_assert(index->used_size == 0);
+>>>>>>> Adding unittests for zint32 compression
         if (node_count > 0)
           ham_assert(index->key_count > 0);
         total_keys += index->key_count;
@@ -563,6 +610,10 @@ class Zint32KeyList : public BaseKeyList
       add_block(0);
     }
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Adding unittests for zint32 compression
     // Calculates the used size and updates the stored value
     void reset_used_size() {
       Index *index = get_block_index(0);
@@ -586,6 +637,11 @@ class Zint32KeyList : public BaseKeyList
       }
     }
 
+<<<<<<< HEAD
+=======
+>>>>>>> More fixes for deleting zint32-keys
+=======
+>>>>>>> Adding unittests for zint32 compression
     // Finds a key; returns a pointer to its compressed location.
     // Returns the compare result in |*pcmp| and the slot of the |key| in
     // |*pslot|.
@@ -751,16 +807,35 @@ class Zint32KeyList : public BaseKeyList
                                 + 8)
         do_reset_used_size = true;
 
+      bool do_reset_used_size = false;
+      // is this the last block? then re-calculate the |used_size|, because
+      // there may be other unused blocks at the end
+      if (get_used_size() == index->offset
+                                + index->block_size
+                                + get_block_count() * sizeof(Index)
+                                + 8)
+        do_reset_used_size = true;
+
       // shift all indices (and the payload data) to the left
       ::memmove(index, index + 1, get_used_size()
                     - sizeof(Index) * (index - get_block_index(0) + 1));
       set_block_count(get_block_count() - 1);
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Adding unittests for zint32 compression
       if (do_reset_used_size) {
         reset_used_size();
       }
       else {
         set_used_size(get_used_size() - sizeof(Index));
       }
+<<<<<<< HEAD
+=======
+      set_used_size(get_used_size() - (sizeof(Index) + block_size));
+>>>>>>> More fixes for deleting zint32-keys
+=======
+>>>>>>> Adding unittests for zint32 compression
     }
 
     // Splits a block; returns the index where the new |key| will be inserted
@@ -972,6 +1047,14 @@ class Zint32KeyList : public BaseKeyList
         // replace the first key with the second key (uncompressed)
         index->value = first + second;
         // shift all remaining deltas to the left
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        ::memmove(start, p, index->used_size);
+        index->used_size -= p - start;
+>>>>>>> More fixes for deleting zint32-keys
+=======
+>>>>>>> Adding unittests for zint32 compression
         index->key_count--;
         if (index->key_count == 1)
           index->used_size = 0;
