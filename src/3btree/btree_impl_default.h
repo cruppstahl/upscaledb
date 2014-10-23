@@ -137,37 +137,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       check_index_integrity(node_count);
     }
 
-    // Compares two keys
-    template<typename Cmp>
-    int compare(const ham_key_t *lhs, uint32_t rhs, Cmp &cmp) {
-      ham_key_t tmp = {0};
-      P::m_keys.get_key(rhs, &m_arena, &tmp, false);
-      return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
-    }
-
-    // Searches the node for the key and returns the slot of this key
-    template<typename Cmp>
-    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
-                    int *pcmp) {
-      int slot = find_impl(key, comparator, pcmp);
-      if (precord_id) {
-        if (slot == -1)
-          *precord_id = P::m_node->get_ptr_down();
-        else
-          *precord_id = P::m_records.get_record_id(slot);
-      }
-      return (slot);
-    }
-
-    // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
-    template<typename Cmp>
-    int find_exact(ham_key_t *key, Cmp &comparator) {
-      int cmp;
-      int r = find_impl(key, comparator, &cmp);
-      return (cmp ? -1 : r);
-    }
-
     // Iterates all keys, calls the |visitor| on each
     void scan(ScanVisitor *visitor, uint32_t start, bool distinct) {
 #ifdef HAM_DEBUG
@@ -181,11 +150,12 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       }
 
       // otherwise iterate over the keys, call visitor for each key
-      size_t node_count = P::m_node->get_count() - start;
       ham_key_t key = {0};
+      ByteArray arena;
+      size_t node_count = P::m_node->get_count() - start;
 
       for (size_t i = start; i < node_count; i++) {
-        P::m_keys.get_key(i, &m_arena, &key, false);
+        P::m_keys.get_key(i, &arena, &key, false);
         (*visitor)(key.data, key.size, distinct ? 1 : P::get_record_count(i));
       }
     }
@@ -533,68 +503,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return (0);
     }
 
-    // Implementation of the find method; uses a linear search if possible
-    template<typename Cmp>
-    int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
-      size_t node_count = P::m_node->get_count();
-      ham_assert(node_count > 0);
-
-#ifdef HAM_DEBUG
-      check_index_integrity(node_count);
-#endif
-
-      int i, l = 0, r = (int)node_count;
-      int last = (int)node_count + 1;
-      int cmp = -1;
-
-      // Run a binary search, but fall back to linear search as soon as
-      // the remaining range is too small. Sets threshold to 0 if linear
-      // search is disabled for this KeyList.
-      int threshold = P::m_keys.get_linear_search_threshold();
-
-      /* repeat till we found the key or the remaining range is so small that
-       * we rather perform a linear search (which is faster for small ranges) */
-      while (r - l > threshold) {
-        /* get the median item; if it's identical with the "last" item,
-         * we've found the slot */
-        i = (l + r) / 2;
-
-        if (i == last) {
-          ham_assert(i >= 0);
-          ham_assert(i < (int)node_count);
-          *pcmp = 1;
-          return (i);
-        }
-
-        /* compare it against the key */
-        cmp = compare(key, i, comparator);
-
-        /* found it? */
-        if (cmp == 0) {
-          *pcmp = cmp;
-          return (i);
-        }
-        /* if the key is bigger than the item: search "to the left" */
-        else if (cmp < 0) {
-          if (r == 0) {
-            ham_assert(i == 0);
-            *pcmp = cmp;
-            return (-1);
-          }
-          r = i;
-        }
-        /* otherwise search "to the right" */
-        else {
-          last = i;
-          l = i;
-        }
-      }
-
-      // still here? then perform a linear search for the remaining range
-      ham_assert(r - l <= threshold);
-      return (P::m_keys.linear_search(l, r - l, key, comparator, pcmp));
-    }
-
     // Checks the integrity of the key- and record-ranges. Throws an exception
     // if there's a problem.
     void check_index_integrity(size_t node_count) const {
@@ -622,9 +530,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       uint8_t *p = P::m_node->get_data();
       return (*(uint32_t *)p);
     }
-
-    // A memory arena for various tasks
-    ByteArray m_arena;
 };
 
 } // namespace hamsterdb

@@ -406,6 +406,17 @@ class VariableLengthKeyList : public BaseKeyList
       out << (const char *)tmp.data;
     }
 
+    // Returns the pointer to a key's inline data (const flavour)
+    uint8_t *get_key_data(int slot) const {
+      uint32_t offset = m_index.get_chunk_offset(slot);
+      return (m_index.get_chunk_data_by_offset(offset) + 1);
+    }
+
+    // Returns the size of a key
+    size_t get_key_size(int slot) const {
+      return (m_index.get_chunk_size(slot) - 1);
+    }
+
   private:
     // Returns the flags of a key. Flags are defined in btree_flags.h
     uint8_t get_key_flags(int slot) const {
@@ -419,28 +430,11 @@ class VariableLengthKeyList : public BaseKeyList
       *m_index.get_chunk_data_by_offset(offset) = flags;
     }
 
-    // Returns the pointer to a key's inline data
-    uint8_t *get_key_data(int slot) {
-      uint32_t offset = m_index.get_chunk_offset(slot);
-      return (m_index.get_chunk_data_by_offset(offset) + 1);
-    }
-
-    // Returns the pointer to a key's inline data (const flavour)
-    uint8_t *get_key_data(int slot) const {
-      uint32_t offset = m_index.get_chunk_offset(slot);
-      return (m_index.get_chunk_data_by_offset(offset) + 1);
-    }
-
     // Overwrites the (inline) data of the key
     void set_key_data(int slot, const void *ptr, size_t size) {
       ham_assert(m_index.get_chunk_size(slot) >= size);
       set_key_size(slot, (uint16_t)size);
       memcpy(get_key_data(slot), ptr, size);
-    }
-
-    // Returns the size of a key
-    size_t get_key_size(int slot) const {
-      return (m_index.get_chunk_size(slot) - 1);
     }
 
     // Sets the size of a key

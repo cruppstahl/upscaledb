@@ -130,6 +130,101 @@ struct BaseNodeImpl
     m_records.insert(node_count, slot);
   }
 
+  // Compares two keys using the supplied comparator
+  template<typename Cmp>
+  int compare(const ham_key_t *lhs, uint32_t rhs, Cmp &cmp) {
+    if (KeyList::kHasSequentialData) {
+      return (cmp(lhs->data, lhs->size, m_keys.get_key_data(rhs),
+                              m_keys.get_key_size(rhs)));
+    }
+    else {
+      ham_key_t tmp = {0};
+      m_keys.get_key(rhs, &m_arena, &tmp, false);
+      return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
+    }
+  }
+
+  // Searches the node for the key and returns the slot of this key
+  template<typename Cmp>
+  int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
+                  int *pcmp) {
+    int slot = find_impl(key, comparator, pcmp);
+    if (precord_id) {
+      if (slot == -1)
+        *precord_id = m_node->get_ptr_down();
+      else
+        *precord_id = m_records.get_record_id(slot);
+    }
+    return (slot);
+  }
+
+  // Searches the node for the key and returns the slot of this key
+  // - only for exact matches!
+  template<typename Cmp>
+  int find_exact(ham_key_t *key, Cmp &comparator) {
+    int cmp;
+    int r = find_impl(key, comparator, &cmp);
+    return (cmp ? -1 : r);
+  }
+
+  // Implementation of the find method; uses a linear search if possible
+  template<typename Cmp>
+  int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    size_t node_count = m_node->get_count();
+    ham_assert(node_count > 0);
+
+    int i, l = 0, r = (int)node_count;
+    int last = node_count + 1;
+    int cmp = -1;
+
+    // Run a binary search, but fall back to linear search as soon as
+    // the remaining range is too small. Sets threshold to 0 if linear
+    // search is disabled for this KeyList.
+    int threshold = m_keys.get_linear_search_threshold();
+
+    /* repeat till we found the key or the remaining range is so small that
+     * we rather perform a linear search (which is faster for small ranges) */
+    while (r - l > threshold) {
+      /* get the median item; if it's identical with the "last" item,
+       * we've found the slot */
+      i = (l + r) / 2;
+
+      if (i == last) {
+        ham_assert(i >= 0);
+        ham_assert(i < (int)node_count);
+        *pcmp = 1;
+        return (i);
+      }
+
+      /* compare it against the key */
+      cmp = compare(key, i, comparator);
+
+      /* found it? */
+      if (cmp == 0) {
+        *pcmp = cmp;
+        return (i);
+      }
+      /* if the key is bigger than the item: search "to the left" */
+      else if (cmp < 0) {
+        if (r == 0) {
+          ham_assert(i == 0);
+          *pcmp = cmp;
+          return (-1);
+        }
+        r = i;
+      }
+      /* otherwise search "to the right" */
+      else {
+        last = i;
+        l = i;
+      }
+    }
+
+    // still here? then perform a linear search for the remaining range
+    ham_assert(r - l <= threshold);
+    return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
+  }
+
   // Splits a node and moves parts of the current node into |other|, starting
   // at the |pivot| slot
   void split(BaseNodeImpl<KeyList, RecordList> *other, int pivot) {
@@ -212,6 +307,9 @@ struct BaseNodeImpl
 
   // for accessing the records
   RecordList m_records;
+
+  // A memory arena for various tasks
+  ByteArray m_arena;
 };
 
 } // namespace hamsterdb

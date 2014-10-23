@@ -490,6 +490,9 @@ o improve erlang integration
 
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, everything is ok
+
 o PRO: rebase to vanilla 2.1.9
 
 >>>>>>> Fixed a regression
@@ -551,7 +554,13 @@ o ZINT32: rebase hamsterdb-pro
         -> ok, they're not cached
 
     x fix tests - currently "vacuumize()" destroys the record list
-    o fix tests - currently "copy_to()" destroys the record list
+    x fix tests - currently "copy_to()" destroys the record list
+
+    o improve lookups
+        x delegate lookup function to the KeyList
+        o blocks are searched with linear search
+        o ... then use linear search/decompression for the block
+        o ... then get rid of get_simd_data(), it's no longer required (really?)
 
     o store plain block size, not multiples of a factor; blocks can then grow
         in small steps instead of aligned sizes, and less space is wasted
@@ -559,12 +568,6 @@ o ZINT32: rebase hamsterdb-pro
     o store the uncompressed uint32 in the index, not in the block.
         this improves cache locality when performing a linear search, and it
         reduces some complexity
-
-    o improve lookups
-        o delegate lookup function to the KeyList
-        o blocks are searched with binary search
-        o ... then use linear search/decompression for the block
-        o ... then get rid of get_simd_data(), it's no longer required
 
     o refactoring: "insert" should not be based on slot number
         o it should *return* the slot (for the RecordList), but no longer use
@@ -597,6 +600,7 @@ o PRO: the switch from binary search to linear search is not good enough,
     because in 99% there are less keys than required (linear search threshold
     not reached), and simd search is not performed
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o windows cleanups
     x install VS2008 on the new harddisk
@@ -659,6 +663,8 @@ o Can we release an early version of zint32?
 x PRO: review AES usage in read_page; if the page is mmapped
     then decryption is not applied - no, everything is ok
 
+=======
+>>>>>>> Moved lookup routines from BtreeNodeImpl to KeyList
 o PRO: look for a better compression for DefaultRecordList, i.e.
     msb is 1 -> 7 bit record ID (should be sufficient)
     msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
