@@ -7,6 +7,7 @@ x a finished TODO item
 
 ==============================================================================
 
+<<<<<<< HEAD
 ------------- hamsterdb-erlang 2.1.9 ---------------------------------
 
 x upgrade to hamsterdb-2.1.9
@@ -51,10 +52,637 @@ o PRO: look for a better compression for DefaultRecordList, i.e.
 ------------- hamsterdb 2.1.10 ---------------------------------------
 
 o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+=======
+high-level plan for 2.1.9 ..................................................
+x new file system structure
+x release sparsemap library w/ documentation and sample/tests
+x update the webpage (free for non-profits, cheap for startups, add crc32)
+x exception safe code
+x lots of refactoring
+x update file format (compress record IDs, UpfrontIndex, ...)
+o win32 build improvements
+
+x PRO: 
+    x fix bug as reported from Ole (mail from 26.)
+    x also fix segfault during recovery
+    x create new unittest from his sample
+
+x PRO: use a bitmap index for recnos
+    - nah...
+    x but move the sparsemap library to github, as a seperate project
+    x also write an accompanying blog post or documentation
+
+x PRO: make the release
+
+x PRO: webpage changes
+    x add CRC32 to pro documentation, feature matrix
+    x change pricing
+
+x faq: add documentation about library size: strip helps
+
+x refactoring: split files
+    x root0: add pragmas from btree_impl_default.h, undef min/max
+    x create a template for the header files
+    x document the source code structure
+
+    x for each file, perform the following changes:
+        x #34: header guards/macros should not clash with reserved identifiers
+            (no leading/trailing underscores)
+        x adapt to template.h, template.cc
+        x make sure that the layers are respected (do not include n+1!)
+        x classes without private or protected members should become structs
+
+    x 0root/root.h - very first header file (only one!)
+    x 1base/error.h, pack*, util, mutex, version, abi, pickle
+    x 1globals/
+    x 1errorinducer/
+    x 1mem/
+    x 1os/
+    x 1rb/
+    x 2page/
+    x 2device/
+    x 2protoserde/
+    x 2protobuf/
+    x 3changeset/
+    x 3cache/
+    x 3blob_manager/
+    x 3journal/
+    x 3page_manager/
+    x 3btree/btree*
+    x 4db/...
+    x 4txn/...
+    x 4env/...
+    x 4cursor/...
+    x 5server/...
+    x 5hamsterdb/hamsterdb.cc, hola.cc
+    x also cleanup unittests
+
+x java still has license.java - remove!
+    x also check dotnet!
+
+x refactoring: split unittests/cursor.cpp - it does not compile on smaller VMs
+
+x refactoring: #37 - hamzilla.c/running should be sig_atomic_t
+    -> transform to c++ code
+
+x can we add a generic macro like this:
+    #define ham_make_key(PTR, SIZE)   { SIZE, PTR, 0, 0}
+    which can be used as an initializer:
+    ham_key_t key = ham_make_key("hello", 5);
+    x same for records
+    x use in samples
+    x document in header file
+
+x refactoring: get_linear_search_threshold returns size_t, but is
+    then used as (signed) int; some return 0, others -1
+    right now the code works but is cheesy. return (int)0 to disable.
+
+x ham_bench/config.h: use iostream instead of printf to avoid compiler
+    warnings on 32bit linux
+
+x review exception safety
+    http://exceptionsafecode.com/
+    - consistently use smart_pointers to manage allocated resources!
+        use boost::scoped_ptr (from <boost/scoped_ptr.hpp>)
+    - introduce on_scope_exit macro
+        can use BOOST_SCOPE_EXIT:
+        http://www.boost.org/doc/libs/1_56_0/libs/scope_exit/doc/html/scope_exit/tutorial.html
+    - consistently force use of RAII
+    - every destructor has to clean up but MOST NOT THROW!
+    - support std::swap
+        http://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Non-throwing_swap
+    - manage state like a resource
+        Each state is moved to a separate struct (ClassNameState). The class
+        itself can return the struct as "const", and it has (in best case)
+        a single method which performs write-access.
+        Try to make the State-struct exception safe, whenever members
+        are retrieved or overwritten.
+    - use "critical line" for strong guarantees and defer commits till
+        success is guaranteed
+        -> this relates to the use of std::swap
+    - every state has to be restored in case of an exception
+    - document every rewritten class with an annotation ("@exception_safe yes")
+        -> define rules
+        @exception_safe [yes|no|unknown|nothrow]
+        @thread_safe [no|unknown|atomic|blocking]
+    x document the rules (coding guidelines)
+    x document the annotations
+    x add annotations to *each* file
+
+x refactoring: split os.h in file.h and socket.h
+    and upgrade File to "strong" exception safety
+
+x refactoring: upgrade "device" to strong exception safety
+
+x refactoring: upgrade "page" to strong exception safety
+    x see TODOs in page.cc
+
+x refactoring: improve layering
+    x improve layer separation of device (remove dependency to env)
+    x improve layer separation of page (remove dependency to env)
+    x can we move cache to layer 2 or 3?
+
+x refactoring: clean up the close() code of the LocalEnvironment (and also
+    of the LocalDatabase). distinguish two cases:
+    - a close() called by ham_env_close/ham_db_close
+        performs logic that can fail; must not be exception safe
+    - a close() called in the destructor
+        do not perform any logic besides cleaning up; must NOT THROW!
+        actually there shouldn't be a need to do anything if scoped_ptr
+        is used consistently
+    x use smart_ptr for all members of the LocalDatabase
+        (m_txn_index, m_btree_index)
+        x then make sure that the tests run again
+    x ... and for the RemoteEnvironment (if required) - not required
+    x ... and for the LocalEnvironment
+        (m_header, m_blob_manager, m_page_manager, m_journal)
+
+x see mail from Michael Möllney: journal files are not truncated if
+    temporary transactions are used
+    ./ham_bench --use-transactions=1 --key=uint64 --distribution=ascending --recsize=10241024
+    x fix the bug
+    x check Michael's mail - is an enum large enough for big values?
+    x investigate why this was not discovered with the recovery.pl script
+        x add larger records
+        x check error inducer when flushing the changeset, not when
+            filling it! this is critical. right now many of the INDUCE
+            invocations are ignored!
+        x still not reproducible - wtf? make sure that the inducer in
+            journal.h is triggered - it is
+        x also, the bugfix was reverted to make sure that it's covered
+            by the tests
+    x what are the possible states during recovery?
+        invariant: a changeset flushes all committed transactions.
+        in other word: after a changeset was flushed, only active
+            transactions remain.
+        x last changeset is valid, gets applied, no newer transactions
+            x add a test
+        x last changeset is valid, gets applied, but newer transactions must be
+            recreated
+            x add a test
+        x last changeset is valid, but after it's applied an existing txn
+            is committed:
+            t1 = txn_begin
+            insert(t1)
+            for (i : [0..64))
+                t2 = txn_begin
+                insert(t2)
+                txn_commit(t2)
+            # changeset flush happens here
+            insert(t1)
+            txn_commit(t1)
+            -> changeset is never flushed! why?? because txn's can only be
+                flushed if the oldest txn is committed. not the case here!
+        x last changeset is invalid (right now the journal is re-applied
+            from the beginning, but this would cause duplicate keys to be
+            added twice) -> need to scan the file from the beginning and
+            get the header of the last changeset (incl. lsn)
+            x add a test (just truncate a few bytes)
+            x also run manual tests as described in the original bug report
+    x what if the recovery recreates pending transactions and then flushes
+        them, and there's a problem during flush? these flushes are not covered
+        by the journal and errors cannot be recovered from.
+        x add a test
+    x remove the journal trailer, it's no longer required
+    x remove the journal header structure, it is not required (but always
+        add a magic at the beginning of an entry)
+    x do we really need to store the lsn in the page? - yes, it helps a bit
+    x verify documentation in journal.h
+    x make the threshold parameter configurable
+
+x a test currently fails:
+    --seed=1411263229 --use-cursors --duplicate=first --use-berkeleydb
+../testfiles/2/ext_061.tst
+
+x ZINT32: move code changes to a branch of hamsterdb-pro
+
+x ZINT32: implement a NULL-compressor; it needs to keep track of
+    the "compressed" size and whether a split is required
+    x persist the number of compressed values, then use it to resize the
+        ByteArray
+    x check_integrity checks compressed size (+ overhead!) vs full_range_size
+    x then run tests against berkeleydb
+
+x refactoring: the btree "slot" should be plain integer instead of ham_u32_t
+
+x ZINT32: add varbyte compression
+    x make sure that the code runs "as is"
+    x decode-function needs number of encoded keys (do not persist it in
+        the compressor!)
+    x but maybe the compressor needs to keep track of the used storage,
+        esp. after decoding
+    x move check_integrity into the compressor class (parameter is node_count,
+        range_size)
+        -> calculate the "real" size
+    x the split is currently based on "simulated" results; if a split is
+        required then a "real" compression should be performed to figure out
+        how much space is left (if any)
+        x requires a change in the interface
+            (requires_split(size_t available_size))
+    x fix the tests
+    x right now files compressed with varbyte are as large as uncompressed
+        files - but why? is it because the keyrange currently cannot shrink?
+        -> yes; high initial capacity and no shrinking
+    x check if some changes need to be ported back to the apl version
+
+x refactoring: it would be nicer if the ham_paramter_t lists are passed to
+    the Environment implementation and do not have to be parsed in hamsterdb.cc
+    x rebase to v2
+    x 2config/env_config.h: a struct with the run-time configuration of
+        the environment
+        x created in hamsterdb.cc/ham_env_create/ham_env_open and passed
+            to all objects that are created
+        x a State struct (no methods!) for
+            - the ham_parameter_t list
+            - the parameters from ham_env_open and ham_env_create
+            (without any dependencies!)
+            - log directory
+            - remote address
+            - remote timeout
+            - encryption settings
+            - page size
+        x gets initialized with data from the header page
+            x and with the parameters and the parameter list
+        x can only be retrieved as const ref for the whole structure
+    x 2config/db_config.h: a struct with the run-time configuration of
+        the database
+        x proceed as described above
+            - db name
+            - db flags
+
+x when running ./ham_bench (without any parameters) then the debug version
+    has a maximum insert latency > 1 sec (sometimes > 2 sec).
+    -> caused by purging caches; whenever the cache is purged, at least
+        20 pages (PageManager::kPurgeAtLeast) are purged
+    -> a quick test without limit improved performance a lot, but there was
+        one outlier with 1.2 seconds
+    x run perftest without that limit
+    x or try other limits (2, 5, 10) -> does not improve
+    x at least fix the comment/variable name
+
+x refactoring: once more check if we can unify the PaxLayout and
+    the DefaultLayout (or move more code to the base class!)
+    - no, not required. Stripping the library will reduce the size.
+
+x refactoring: can we get rid of ham_record_t::_intflags and
+    ham_record_t::_rid? at least deprecate them, then remove them with
+    the next ABI change
+    -> yes, just remove them. they are no longer used.
+
+x refactoring: improve hola performance
+    x improve performance for hola-sum (profile!)
+        http://sites.utexas.edu/jdm4372/2010/11/09/optimizing-amd-opteron-memory-bandwidth-part-3-single-thread-read-only/
+        s1 = a1 + b1
+        s2 = a2 + b2
+        s3 = a3 + b3
+        s4 = a4 + b4
+        return s1 + s2 + s3 + s4
+    x run leveldb benchmark for comparison
+
+x refactoring: rewrite capacity calculations (again...)
+    x rename copy_to() to move_to() -- no!
+    x get_full_record_size() and get_full_key_size() should return size_t,
+        not double
+    x do not persist capacity, only the range size
+        x if a KeyList requires the capacity then it can store it internally
+        x Instead of calculating an initial capacity, simply divide the
+            ranges in the same ratio as the initial key/record sizes; i.e.
+            if key size is 5, record size is 1, then the KeyList should be 5
+            times larger than the RecordList.
+        x exception is the PAX layout - no need to do any changes
+        x remove KeyList::get_range_size() (or move the function to
+            BaseKeyList, but don't persist it)
+        x remove RecordList::get_range_size() (or move the function to
+            BaseRecordList, but don't persist it)
+    x for compressed lists it's not possible to efficiently shrink (reduce
+        capacity) because it does not know it's final size. Right now there's
+        a hack: Zint32KeyList returns a key size of 1 byte (instead of 4), and
+        therefore mostly grows and rarely shrinks. But that's hackish.
+        -> instead of calculating the required capacity rather ask for the
+            minimum capacity for the current set of keys
+        -> then add the K:R ratio as described above
+    x require_split should return the number of bytes required; then adjust
+        the K:R ratio
+        x also make sure that at least 1 item fits into the adjusted space
+        x increase the capacity of the UpfrontIndex only when required
+            (currently it is always increased whenever a new range is assigned)
+            x maybe pass a "capacity hint"? take it from the other list if
+                it kHasSequentialKeys
+            x if not then use a sane default value
+                (additional space / item size, but at least 1)
+            x what about shrinking? if capacity >> node_count then reduce
+                the capacity
+    x List:requires_split should no longer vacuumize
+        x lists should rearrange themselves internally for the new key
+            -> pass capacity + required data to vacuumize()
+        x still no success? then call rearrange() in the caller
+        x unittests are currently failing
+        x test for filesize regressions against 2.1.8 w/ ham_bench
+            x pax keys, pax records - ok
+            x varlen keys, pax records - ok
+            x pax keys, duplicates - ok
+            x varlen keys, duplicates - ok
+    x fix ./ham_bench --stop-ops=500000 --seed=1 --metrics=all --duplicate=last
+        x it throws assertions in 2.1.8, and HEAD fails as well
+        x add to monster test
+
+    x re-enable journal.cpp:1296
+    x fix performance regressions
+        x things to check to improve performance
+            x initial capacity could be taken from the node_count of previous
+                pages (save when splitting)
+            x rearrange requires sorting and many memmoves - very expensive
+            x vacuumize should not adjust the capacity; this should be
+                a separate operation. reason: vacuumize is called very
+                often i.e. before splits/merges, and should not change the
+                capacity then
+            x reducing the capacity means that rearrange is not required,
+                a memmove is enough
+                current stats:
+                    2.1.8   821.9m    31.7m BtreeIndex::insert
+                    2.1.9   826.1mm   31.5m BtreeIndex::insert
+    x move UpfrontIndex into its own file
+
+    x the following tests fail
+        x --seed=12345 --stop-ops=50000 --recsize-fixed=1
+            x fix the crash
+            x file size increased by 100%!!
+        x --seed=12345 --stop-ops=50000 --recsize-fixed=0
+            x fix the crash
+            x file size increased by 100%!!
+        x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
+        x --seed=1380279291 --key=binary --keysize-fixed --duplicate=last
+        x --seed=1380279291 --key=binary --keysize=128 --keysize-fixed --duplicate=last --erase-pct=25 --find-pct=40
+        x --use-berkeleydb=true --reopen=true --use-cursors --duplicate=first ../testfiles/1/41.tst
+    
+    x currently, requires_split() is called twice for
+        leaf nodes: in btree_insert.cc (were it should not be called), and in
+        btree_node_proxy.h.
+        However, if the call in btree_insert is removed, some tests fail, i.e.
+            --use-berkeleydb=true --fullcheck=find ../testfiles/2/ext_050.tst
+
+    x run monster tests
+    x increase file format version
+    x run performance tests
+
+x see mail from Michael Moellney: cursor is not advancing properly when
+    it's at the end of the database
+    x reproduce w/ a sample
+        The current unittest has a different behaviour; it fails when looking up
+        keys with the cursor because the (approx.) key was not copied back
+    x fix
+
+x refactoring: BtreeNodeImpl::print should use a stream object, like the
+    KeyLists and RecordLists, and avoid the printfs
+
+x refactoring: clean up/review BaseKeyList and its members
+    x move check_integrity and vacuumize to Base
+    x is erase_data really required? -> yes
+    x rename to erase_extkey, move to Base class
+
+x refactoring: rename erase_slot to erase
+
+x refactoring: get_key_size() should return a size_t instead of ham_u32_t
+
+x device: use madvise(address, length, MADV_DONTNEED); when freeing mmapped
+    pages. There is no equivalent on Win32.
+    x but run performance tests!
+
+x refactoring: use "int duplicate_index" instead of ham_u32_t
+
+x refactoring: use "int" for record counters
+
+x refactoring: make device stateless and exception safe
+    x File must allow copying (= move w/o close)
+    x virtual abstract base class
+    x get rid of dependency to env, only to EnvironmentConfiguration
+    x get rid of m_flags, it's not required (only to disable mmap)
+    x move class state to a struct
+    x modify state with an atomic swap
+    x if all Os-calls are atomic then thread-safety should be "strong"!
+
+x refactoring: make page stateless and exception safe
+
+x refactoring: make KeyList::copy_to() parameters int instead of ham_u32_t
+
+x refactoring: does BaseKeyList::check_integrity() really require the
+    |quick| parameter?
+    x also rename |ham_u32_t count| to |size_t node_count|
+
+x erlang: 1 test is failing
+
+x when the file format is changed then...
+    x internal node layout: store page IDs div pagesize to get smaller
+        integers (will be compressed better)
+    x improve node layout compression (when the file format changes)
+        x flags are not required at all if fixed length record size > 8
+            (and record size is too large for inline records)
+            -> set m_flags to null if they don't exist -> avoids a new member
+        x UpfrontIndex: use bit packing to compress slot/offset pairs?
+            -> no, would be difficult to gain something; big efforts
+        x compress the flags for the DefaultRecordList (4 bit per item)
+            -> are 4 bit sufficient if compression is enabled? - yes!
+            -> even 2 would be sufficient. But erase and insert would require
+                one memcopy and O(N) shifts; will hurt performance
+            -> look for a better solution for PRO
+
+x a few tests are failing
+    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --erase-pct=15 --find-pct=15 --recsize-fixed=0 --recsize=0 --cache=104857600 --duplicate=last --stop-ops=500000 --seed=1413888685
+
+x refactoring: switch to stdint-supplied types instead of own definitions
+    x see here for msvc: http://msinttypes.googlecode.com/svn/trunk/stdint.h
+
+o windows cleanups
+    o install VS2008 on the new harddisk
+    o install VS2010 on the new harddisk
+    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
+        or figure out why the file size is so big
+    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+        or end up in wrong directories
+    o The C# PInvoke for ham_cursor_find is missing the Record structure
+        o also accept flags in ham_db_find and ham_cursor_find for approx.
+            matching, and copy the key!
+        o this needs a unittest
+    o C# unittests sporadically fail b/c a handle is closed multiple times
+        o also look at Sandeep's mail regarding a crash
+    o automate the build process
+    o ... and the packaging
+
+------------- hamsterdb-erlang 2.1.9 ---------------------------------
+
+o upgrade to hamsterdb-2.1.9
+
+o improve erlang integration
+    o quickcheck-ci.com
+    o look into Thomas' mail
+    o QuickCheck: create a new property for testing duplicates; the key is
+        always the same. The number of duplicate keys is tracked and
+        periodically checked with the API. A cursor can be used to remove a
+        specific duplicate, or to fetch a specific duplicate.
+
+------------- hamsterdb pro 2.1.9 ------------------------------------
+
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, everything is ok
+
+o PRO: rebase to vanilla 2.1.9
+
+o ZINT32: rebase hamsterdb-pro
+    x refactoring: PodKeyList<ham_u32_t> has duplicate code with Zint32-list
+        -> linear search 
+    x then rebase hamsterdb-pro
+    x get rid of the compressors; they're no longer required
+    x start working on compressed data!
+        x read the relevant sections of the DB2 paper once more
+        x get rid of BtreeNodeProxy::prepare_flush()
+        -> the keys are split in blocks which are compressed; each block
+            starts with the first uncompressed key (others are stored as delta)
+            -> a block fits in a data cache line
+            -> block is addressed by offset + size
+        x persist number of blocks and m_used_size
+        -> index: 2 byte offset + 1 byte counter
+        -> default block size is 64
+        -> there should be three configuration settings:
+            1. threshold when to merge blocks
+            2. threshold when to split blocks
+            3. initial block size
+            4. threshold when to reduce blocks (changes all block offsets)
+        x insert keys
+            x insert ascending keys
+                x append to last block
+                x if size is exceeded: attach new block
+                x first key in a block is uncompressed
+            x insert descending keys
+                x prepend to first block
+                x if size is exceeded: prepend new block; block size = 32
+                x first key in a block is uncompressed
+            x insert random keys
+                x lookup block for this key
+                x insert into block
+                x increase block size if key does not fit
+                x if block size is exceeded then split the block in the middle
+        x check_integrity
+            x verify that get_used_size() is correct
+            x verify that total key count is correct
+            x call check_integrity() before and after each write-operation
+        x erase keys
+            x erase last key in a block: simply decrease the counter
+            x erase first key in a block: make sure that the (former) second
+                key is stored uncompressed
+            x erase in the middle
+                -> reorganize this block, then adjust counter/size
+            x if block is empty then delete it (but make sure that one block
+                remains)
+        x move "fast-forward" code into its own function
+        x implement page splits
+        x should block sizes really be aligned to 16 byte? -> yes, otherwise
+            simd problems happen?? not sure yet
+        x vacuumize() merges blocks, reduces their space (-> adjust offsets!)
+    x check_integrity: make sure that block's used size does not exceed its
+        allocated size
+    x review usage of compressed keys (zlib, snappy etc) - we should not cache
+        decompressed values because after all we want to reduce RAM usage!
+        -> ok, they're not cached
+
+    x fix tests - currently "vacuumize()" destroys the record list
+    x fix tests - currently "copy_to()" destroys the record list
+
+    x store plain block size, not multiples of a factor; blocks can then grow
+        in small steps instead of aligned sizes, and less space is wasted
+        x grow in smaller steps
+        x vacuumize: reduce to actually used size
+        x split: grow as needed
+
+    x split index block if key_count is maxxed out
+
+    x store the uncompressed uint32 in the index, not in the block.
+        this improves cache locality when performing a linear search, and it
+        reduces some complexity
+
+    ./ham_bench --key=uint32 --key-compression=zint32_varbyte --recsize=3 --use-berkeleydb=true --seed=1414134350
+    hamsterdb filesize                       16809984
+    berkleydb filesize                       29462528
+
+    ./ham_bench --key=uint32 --key-compression=zint32_varbyte --recsize=3 --use-berkeleydb=true --seed=1414134350 --distribution=ascending
+    hamsterdb filesize                       10452992
+    berkleydb filesize                       20377600
+
+    o improve lookups
+        o delegate lookup function to the KeyList
+        o zint32: use linear search/decompression for the block
+        o pro: get rid of get_simd_data(), it's no longer required (?)
+        o pro: get rid of the "type" typedef
+
+    o refactoring: "insert" should not be based on slot number
+        o it should *return* the slot (for the RecordList), but no longer use
+            the slot as a parameter -> this is faster for zint32
+        o same for erase
+        o same for find (already the case, i think)
+            -> return the key during the lookup, not with get_key(slot)
+        o wherelse is get_key() called?
+
+    o refactoring: when checking if a leaf page must be split, then first
+        check the RecordList. If it does not require a split then
+        call KeyList::insert(), and let it throw an exception if the space
+        is not sufficient (before it modifies any data).
+        o add "bool simulate" as parameter to insert() for KeyList
+                and RecordList
+        o also do this for internal nodes: "simulate" an insert of a
+            default key. The insert will abort before actually writing data.
+        o this will also work for RecordLists!
+
+    o refactoring: do not automatically vacuumize prior to a merge or after
+        a split; rather perform it in copy_to(), and only when necessary
+        o rename copy_to() to move_to()
+
+    o make sure that appending keys is an extra-fast code path
+    o scan() decompresses a whole block, then calls visitor
+    o need to support larger block offsets for pages > 16kb
+    o copy relevant changes to base/apl
+
+    o run benchmark with different block sizes, growth factors etc
+
+o PRO: the switch from binary search to linear search is not good enough,
+    because in 99% there are less keys than required (linear search threshold
+    not reached), and simd search is not performed
+
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    msb is 1 -> 7 bit record ID (should be sufficient)
+    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
+    o requires index structure for addressing every N'th record
+    o could be very similar to zint32 index
+
+o PRO: find an efficient compression method for InternalRecordList
+    x The page IDs should be modulo page-size (makes numbers smaller) - done
+
+    o Use bitpacking in variable-length groups, but always for 32 (16? 64?)
+        record IDs; the bits for each ID are variable
+        -> can cause ripple effect...
+    o Use small index which stores offset + bit width for each group
+    o Use this index for binary search by slot number
+
+------------- hamsterdb 2.1.10 ---------------------------------------
+
+o rename node_count to key_count
+
+o refactoring: when requires_split() is called in combination with insert()
+    then let the UpfrontIndex create a new index slot if the capacity is
+    reached, but the range still has enough size for the slot and the payload
+
+o "make dist" should write the current git commit and the build date to
+    a file; this should be printed by ham_bench and the tools
+    o ham_bench: print this prior to the monster tests/performance tests
+    o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+>>>>>>> Moved insert-related code to BtreeNodeImpl
             move version.h to include/ham
 
 o documentation rewrite
+<<<<<<< HEAD
     o use github wiki, remove old cruft
+=======
+    o use github wiki
+        o remove old cruft
+>>>>>>> Moved insert-related code to BtreeNodeImpl
     o then create the initial repository:
         https://github.com/blog/699-making-github-more-open-git-backed-wikis
 
@@ -127,6 +755,7 @@ o refactoring: clean up the whole Database code; it's too much and too
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
 
+<<<<<<< HEAD
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
     o support in ham_bench
@@ -154,6 +783,75 @@ o bulk updates/batched updates
 
 o look into dynomite, spark, mongodb and mariadb integration
     https://github.com/Netflix/dynomite
+=======
+o delta updates managed in the BtreeNode
+    the operations are attached to the node, but as soon as the node
+    is accessed for a lookup or a scan, or immediately before the node
+    is flushed, the deltas are merged into the node. So far this does not
+    sound too efficient, but the bulk updates in combination with the
+    key compression (i.e. for prefix compression) will benefit a lot.
+
+    Also, they are really required for concurrency and to allow multiple
+    writers in parallel.
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o need a flag to disable DeltaUpdates
+        o add flag to ham_bench
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
+    o make the merge algorithm as efficient as possible
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
+o use cache-oblivious b-tree layout
+    ===> a much simpler approach would be to reserve "X" bytes when creating
+        the environment (and then map the whole range)
+        this would include storage for the blobs AND we would not have to mess
+        around with the mapping
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+        (but what about the blobs??)
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
+
+o look into spark, mongodb and mariadb integration
+>>>>>>> Moved insert-related code to BtreeNodeImpl
     -> like MapReduce, Spark requires an InputFormat class; templates are 
         available here:
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
@@ -215,6 +913,7 @@ o Next steps towards concurrency; target is having one writer per db, but
     o background operations should be disabled with flags
     o perform excessive testing
 
+<<<<<<< HEAD
 
 
 
@@ -241,6 +940,9 @@ o PRO: find an efficient compression method for InternalRecordList
     x The page IDs should be modulo page-size (makes numbers smaller) - done
 
 o PRO: use compression also for duplicate records
+=======
+------------- hamsterdb pro 2.1.10 ------------------------------------
+>>>>>>> Moved insert-related code to BtreeNodeImpl
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -303,6 +1005,7 @@ o PRO: prefix compression for variable-length keys
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
 
+<<<<<<< HEAD
 o QuickCheck: create a new property for testing duplicates; the key is
     always the same. The number of duplicate keys is tracked and
     periodically checked with the API. A cursor can be used to remove a
@@ -370,6 +1073,8 @@ o delta updates managed in the BtreeNode
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
 
+=======
+>>>>>>> Moved insert-related code to BtreeNodeImpl
 
 o the bucket for concurrency TODOs
     this are the requirements:
@@ -457,7 +1162,7 @@ o "hola" - olap functions that operate directly on the btree data
     o use async operations or futures/promises
     o deprecate ham_db_get_key_count() (tutorial, documentation)
 
-- bloom filter -> PRO
+- bloom filter -> PRO (or cuckoo filter?)
 - concurrency -> PRO
 
 . clean up approx. matching
