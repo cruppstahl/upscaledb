@@ -221,7 +221,7 @@ class BtreeNodeProxy
 
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
-    virtual void insert(int slot, const ham_key_t *key) = 0;
+    virtual PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags) = 0;
 
     // Returns true if a node requires a split to insert a new |key|
     virtual bool requires_split(const ham_key_t *key = 0) = 0;
@@ -509,11 +509,18 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
-    virtual void insert(int slot, const ham_key_t *key) {
-      if (m_impl.requires_split(key))
-        throw Exception(HAM_LIMITS_REACHED);
-      m_impl.insert(slot, key);
-      set_count(get_count() + 1);
+    virtual PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags) {
+      PBtreeNode::InsertResult result = {0, 0};
+      if (m_impl.requires_split(key)) {
+        result.status = HAM_LIMITS_REACHED;
+        return (result);
+      }
+
+      Comparator cmp(m_page->get_db());
+      result = m_impl.insert(key, flags, cmp);
+      if (result.status == HAM_SUCCESS)
+        set_count(get_count() + 1);
+      return (result);
     }
 
     // Returns true if a node requires a split to insert |key|

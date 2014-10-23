@@ -245,8 +245,6 @@ class BtreeInsertAction
       if (!parent)
         parent = allocate_new_root(old_page);
 
-
-
       Page *to_return = 0;
       ByteArray pivot_key_arena;
       ham_key_t pivot_key = {0};
@@ -382,101 +380,78 @@ class BtreeInsertAction
 
     ham_status_t insert_in_leaf(Page *page, ham_key_t *key, uint64_t rid,
                 bool force_prepend = false, bool force_append = false) {
-      uint32_t new_dupe_id = 0;
       bool exists = false;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      size_t node_count = node->get_count();
 
-      int slot;
-      if (node_count == 0)
-        slot = 0;
-      else if (force_prepend)
-        slot = 0;
-      else if (force_append)
-        slot = node_count;
-      else {
-        int cmp;
-        slot = node->find_child(key, 0, &cmp);
+      int flags = 0;
+      if (force_prepend)
+        flags |= PBtreeNode::kInsertPrepend;
+      if (force_append)
+        flags |= PBtreeNode::kInsertAppend;
 
-        /* insert the new key at the beginning? */
-        if (slot == -1)
-          slot = 0;
-        else {
-          /* key exists already */
-          if (cmp == 0) {
-            if (m_hints.flags & HAM_OVERWRITE) {
-              /* key already exists; only overwrite the data */
-              if (!node->is_leaf())
-                return (HAM_SUCCESS);
-            }
-            else if (!(m_hints.flags & HAM_DUPLICATE))
-              return (HAM_DUPLICATE_KEY);
-
-            /* do NOT shift keys up to make room; just overwrite the
-             * current [slot] */
-            exists = true;
+      PBtreeNode::InsertResult result = node->insert(key, flags);
+      switch (result.status) {
+        case HAM_DUPLICATE_KEY:
+          if (m_hints.flags & HAM_OVERWRITE) {
+            /* key already exists; only overwrite the data */
+            if (!node->is_leaf())
+              return (HAM_SUCCESS);
           }
-          else {
-            /*
-             * otherwise, if the new key is > than the slot key: move to
-             * the next slot
-             */
-            if (cmp > 0)
-              slot++;
-          }
-        }
+          else if (!(m_hints.flags & HAM_DUPLICATE))
+            return (HAM_DUPLICATE_KEY);
+          /* do NOT shift keys up to make room; just overwrite the
+           * current [slot] */
+          exists = true;
+          break;
+        case HAM_SUCCESS:
+          break;
+        default:
+          throw Exception(result.status);
       }
 
+      uint32_t new_duplicate_id = 0;
       if (exists) {
         if (node->is_leaf()) {
           // overwrite record blob
-          node->set_record(slot, m_record,
+          node->set_record(result.slot, m_record,
                         m_cursor
                             ? m_cursor->get_duplicate_index()
                             : 0,
-                        m_hints.flags, &new_dupe_id);
+                        m_hints.flags, &new_duplicate_id);
 
           m_hints.processed_leaf_page = page;
-          m_hints.processed_slot = slot;
+          m_hints.processed_slot = result.slot;
         }
         else {
           // overwrite record id
-          node->set_record_id(slot, rid);
+          node->set_record_id(result.slot, rid);
         }
       }
       // key does not exist and has to be inserted or appended
       else {
-        // uncouple the cursors
-        if ((int)node_count > slot)
-          BtreeCursor::uncouple_all_cursors(page, slot);
-
-        // Finally insert the key. This will throw an exception if the
-        // page must be split
-        node->insert(slot, key);
-
         try {
           if (node->is_leaf()) {
             // allocate record id
-            node->set_record(slot, m_record,
+            node->set_record(result.slot, m_record,
                           m_cursor
                               ? m_cursor->get_duplicate_index()
                               : 0,
-                          m_hints.flags, &new_dupe_id);
+                          m_hints.flags, &new_duplicate_id);
 
             m_hints.processed_leaf_page = page;
-            m_hints.processed_slot = slot;
+            m_hints.processed_slot = result.slot;
           }
           else {
             // set the internal record id
-            node->set_record_id(slot, rid);
+            node->set_record_id(result.slot, rid);
           }
         }
         // In case of an error: undo the insert. This happens very rarely but
         // it's possible, i.e. if the BlobManager fails to allocate storage.
         catch (Exception &ex) {
-          if (slot < (int)node->get_count())
-            node->erase(slot);
+          if (result.slot < (int)node->get_count())
+            node->erase(result.slot);
           throw ex;
         }
       }
@@ -489,7 +464,7 @@ class BtreeInsertAction
         m_cursor->get_parent()->set_to_nil(Cursor::kBtree);
 
         ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
-        m_cursor->couple_to_page(page, slot, new_dupe_id);
+        m_cursor->couple_to_page(page, result.slot, new_duplicate_id);
       }
 
       return (0);

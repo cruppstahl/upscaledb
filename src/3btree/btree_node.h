@@ -46,6 +46,23 @@ class PBtreeKeyDefault;
 HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 {
   public:
+    // Result of the insert() operation
+    struct InsertResult {
+      // hamsterdb status code
+      ham_status_t status;
+
+      // the slot of the new (or existing) key
+      int slot;
+    };
+
+    enum {
+      // insert key at the beginning of the page
+      kInsertPrepend = 1,
+
+      // append key to the end of the page
+      kInsertAppend = 2,
+    };
+
     enum {
       // node is a leaf
       kLeafNode = 1

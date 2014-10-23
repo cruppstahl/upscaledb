@@ -65,14 +65,14 @@ struct BtreeKeyFixture {
 
   void insertEmpty(uint32_t flags) {
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    int slot = 0;
     ham_key_t key = {0};
     ham_record_t rec = {0};
 
+    PBtreeNode::InsertResult result = {0, 0};
     if (!flags)
-      node->insert(slot, &key);
+      result = node->insert(&key, 0);
 
-    node->set_record(slot, &rec, 0, flags, 0);
+    node->set_record(result.slot, &rec, 0, flags, 0);
   }
 
   void prepareEmpty() {
@@ -88,29 +88,29 @@ struct BtreeKeyFixture {
   }
 
   void insertTiny(const char *data, uint32_t size, uint32_t flags) {
+    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
     ByteArray arena;
     ham_record_t rec, rec2;
     ham_key_t key = {0};
-    int slot = 0;
 
-    BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
+    PBtreeNode::InsertResult result = {0, 0};
     if (!flags)
-      node->insert(slot, &key);
+      result = node->insert(&key, 0);
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = size;
 
-    node->set_record(slot, &rec, 0, flags, 0);
+    node->set_record(result.slot, &rec, 0, flags, 0);
 
     if (!(flags & HAM_DUPLICATE)) {
-      node->get_record(slot, &arena, &rec2, 0);
+      node->get_record(result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
     else
-      REQUIRE(node->get_record_count(slot) > 1);
+      REQUIRE(node->get_record_count(result.slot) > 1);
   }
 
   void prepareTiny(const char *data, uint32_t size) {
@@ -128,25 +128,25 @@ struct BtreeKeyFixture {
   void insertSmall(const char *data, uint32_t flags) {
     ByteArray arena;
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    int slot = 0;
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
+    PBtreeNode::InsertResult result = {0, 0};
     if (!flags)
-      node->insert(slot, &key);
+      result = node->insert(&key, 0);
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = sizeof(uint64_t);
 
-    node->set_record(slot, &rec, 0, flags, 0);
+    node->set_record(result.slot, &rec, 0, flags, 0);
     if (flags & HAM_DUPLICATE) {
-      REQUIRE(node->get_record_count(slot) > 1);
+      REQUIRE(node->get_record_count(result.slot) > 1);
     }
 
     if (!(flags & HAM_DUPLICATE)) {
-      node->get_record(slot, &arena, &rec2, 0);
+      node->get_record(result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -167,24 +167,24 @@ struct BtreeKeyFixture {
   void insertNormal(const char *data, uint32_t size, uint32_t flags) {
     ByteArray arena;
     BtreeNodeProxy *node = m_dbp->get_btree_index()->get_node_from_page(m_page);
-    int slot = 0;
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
+    PBtreeNode::InsertResult result = {0, 0};
     if (!flags)
-      node->insert(slot, &key);
+      result = node->insert(&key, 0);
 
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
     rec.size = size;
 
-    node->set_record(slot, &rec, 0, flags, 0);
+    node->set_record(result.slot, &rec, 0, flags, 0);
     if (flags & HAM_DUPLICATE)
-      REQUIRE(node->get_record_count(slot) > 1);
+      REQUIRE(node->get_record_count(result.slot) > 1);
 
     if (!(flags & HAM_DUPLICATE)) {
-      node->get_record(slot, &arena, &rec2, 0);
+      node->get_record(result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
@@ -200,6 +200,16 @@ struct BtreeKeyFixture {
 
   void duplicateNormal(const char *data, uint32_t size) {
     insertNormal(data, size, HAM_DUPLICATE);
+  }
+
+  void resetPage() {
+    PageManager *pm = m_dbp->get_local_env()->get_page_manager();
+    pm->add_to_freelist(m_page);
+
+    m_page = pm->alloc_page(m_dbp, Page::kTypeBindex,
+                    PageManager::kClearWithZero);
+    PBtreeNode *node = PBtreeNode::from_page(m_page);
+    node->set_flags(PBtreeNode::kLeafNode);
   }
 
   void setRecordTest() {
@@ -287,90 +297,105 @@ struct BtreeKeyFixture {
     checkDupe(1, 0, 0);
 
     /* insert empty key, then another small duplicate */
+    resetPage();
     prepareEmpty();
     duplicateSmall("12345678");
     checkDupe(0, 0, 0);
     checkDupe(1, "12345678", 8);
 
     /* insert empty key, then another tiny duplicate */
+    resetPage();
     prepareEmpty();
     duplicateTiny("1234", 4);
     checkDupe(0, 0, 0);
     checkDupe(1, "1234", 4);
 
     /* insert empty key, then another normal duplicate */
+    resetPage();
     prepareEmpty();
     duplicateNormal("1234567812345678", 16);
     checkDupe(0, 0, 0);
     checkDupe(1, "1234567812345678", 16);
 
     /* insert tiny key, then another empty duplicate */
+    resetPage();
     prepareTiny("1234", 4);
     duplicateEmpty();
     checkDupe(0, "1234", 4);
     checkDupe(1, 0, 0);
 
     /* insert tiny key, then another small duplicate */
+    resetPage();
     prepareTiny("1234", 4);
     duplicateSmall("12345678");
     checkDupe(0, "1234", 4);
     checkDupe(1, "12345678", 8);
 
     /* insert tiny key, then another tiny duplicate */
+    resetPage();
     prepareTiny("1234", 4);
     duplicateTiny("23456", 5);
     checkDupe(0, "1234", 4);
     checkDupe(1, "23456", 5);
 
     /* insert tiny key, then another normal duplicate */
+    resetPage();
     prepareTiny("1234", 4);
     duplicateNormal("1234567812345678", 16);
     checkDupe(0, "1234", 4);
     checkDupe(1, "1234567812345678", 16);
 
     /* insert small key, then another empty duplicate */
+    resetPage();
     prepareSmall("12341234");
     duplicateEmpty();
     checkDupe(0, "12341234", 8);
     checkDupe(1, 0, 0);
 
     /* insert small key, then another small duplicate */
+    resetPage();
     prepareSmall("xx341234");
     duplicateSmall("12345678");
     checkDupe(0, "xx341234", 8);
     checkDupe(1, "12345678", 8);
 
     /* insert small key, then another tiny duplicate */
+    resetPage();
     prepareSmall("12341234");
     duplicateTiny("1234", 4);
     checkDupe(0, "12341234", 8);
     checkDupe(1, "1234", 4);
 
     /* insert small key, then another normal duplicate */
+    resetPage();
     prepareSmall("12341234");
     duplicateNormal("1234567812345678", 16);
     checkDupe(0, "12341234", 8);
     checkDupe(1, "1234567812345678", 16);
 
     /* insert normal key, then another empty duplicate */
+    resetPage();
     prepareNormal("1234123456785678", 16);
     duplicateEmpty();
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, 0, 0);
 
     /* insert normal key, then another small duplicate */
+    resetPage();
     prepareNormal("1234123456785678", 16);
     duplicateSmall("12345678");
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, "12345678", 8);
 
     /* insert normal key, then another tiny duplicate */
+    resetPage();
     prepareNormal("1234123456785678", 16);
     duplicateTiny("1234", 4);
     checkDupe(0, "1234123456785678", 16);
     checkDupe(1, "1234", 4);
 
     /* insert normal key, then another normal duplicate */
+    resetPage();
     prepareNormal("1234123456785678", 16);
     duplicateNormal("abc4567812345678", 16);
     checkDupe(0, "1234123456785678", 16);
