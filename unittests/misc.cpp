@@ -59,7 +59,7 @@ struct MiscFixture {
 
     ham_key_t key = {0};
 
-    node->insert(0, &key);
+    node->insert(&key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
@@ -81,7 +81,7 @@ struct MiscFixture {
     key.data = (void *)"a";
     key.size = 1;
 
-    node->insert(0, &key);
+    node->insert(&key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
@@ -103,7 +103,7 @@ struct MiscFixture {
     key.data = (void *)"1234567\0";
     key.size = 8;
 
-    node->insert(0, &key);
+    node->insert(&key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
@@ -125,7 +125,7 @@ struct MiscFixture {
     key.data = (void *)"123456781234567\0";
     key.size = 16;
 
-    node->insert(0, &key);
+    node->insert(&key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));

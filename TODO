@@ -557,7 +557,7 @@ o ZINT32: rebase hamsterdb-pro
     x fix tests - currently "copy_to()" destroys the record list
 
     o improve lookups
-        x delegate lookup function to the KeyList
+        o delegate lookup function to the KeyList
         o blocks are searched with linear search
         o ... then use linear search/decompression for the block
         o ... then get rid of get_simd_data(), it's no longer required (really?)
@@ -574,6 +574,8 @@ o ZINT32: rebase hamsterdb-pro
             the slot as a parameter -> this is faster for zint32
         o same for erase
         o same for find (already the case, i think)
+            -> return the key during the lookup, not with get_key(slot)
+        o wherelse is get_key() called?
 
     o refactoring: when checking if a leaf page must be split, then first
         check the RecordList. If it does not require a split then
@@ -681,6 +683,8 @@ o PRO: find an efficient compression method for InternalRecordList
     o Use this index for binary search by slot number
 
 ------------- hamsterdb 2.1.10 ---------------------------------------
+
+o rename node_count to key_count
 
 o refactoring: when requires_split() is called in combination with insert()
     then let the UpfrontIndex create a new index slot if the capacity is
@@ -1393,7 +1397,7 @@ o "hola" - olap functions that operate directly on the btree data
     o use async operations or futures/promises
     o deprecate ham_db_get_key_count() (tutorial, documentation)
 
-- bloom filter -> PRO
+- bloom filter -> PRO (or cuckoo filter?)
 - concurrency -> PRO
 
 . clean up approx. matching

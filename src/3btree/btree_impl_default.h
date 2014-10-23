@@ -196,14 +196,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
     }
 
-    // Inserts a new key
-    void insert(int slot, const ham_key_t *key) {
-      P::insert(slot, key);
-#ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count() + 1);
-#endif
-    }
-
     // Returns true if |key| cannot be inserted because a split is required.
     // This function will try to re-arrange the node in order for the new
     // key to fit in.
