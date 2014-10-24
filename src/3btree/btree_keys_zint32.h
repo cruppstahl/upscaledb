@@ -69,19 +69,15 @@ class Zint32KeyList : public BaseKeyList
       // TODO needs to have more bytes for larger pages!
       uint16_t offset;
 
+      // the total size of this block
+      uint16_t block_size;
+
       // used size of this block
       uint16_t used_size;
 
-      // the size of this block, in multiples of kBlockSizeFactor
-      uint8_t block_size_mul;
-
       // the number of keys in this block
+      // TODO is one byte sufficient?
       uint8_t key_count;
-
-      // helper function which returns the absolute payload size
-      int block_size() const {
-        return (block_size_mul * kBlockSizeFactor);
-      }
     };
 
   public:
@@ -94,9 +90,10 @@ class Zint32KeyList : public BaseKeyList
       // A flag whether this KeyList supports the scan() call
       kSupportsBlockScans = 1,
 
-      kBlockSizeFactor = 32,
       kMaxBlockSize = 64,
-      kInitialBlockSize = 1,
+      kInitialBlockSize = 16,
+      kGrowFactor = 16,
+      kMaxKeysPerBlock = 0xff,
     };
 
     // Constructor
@@ -137,7 +134,8 @@ class Zint32KeyList : public BaseKeyList
       // worst worst case: a block is split
       // TODO this doesn't make sense. Merge requires_split() with insert()
       // then we won't run into this situation
-      return (get_used_size() + kBlockSizeFactor * 4 >= m_range_size);
+      return (get_used_size() + kMaxBlockSize + sizeof(Index) + 16
+                      >= m_range_size);
     }
 
     // Rearranges the list
@@ -169,12 +167,6 @@ class Zint32KeyList : public BaseKeyList
       for (int i = 0; i < block_count; i++) {
         Index *index = get_block_index(s[i].index);
 
-        int block_size_req = index->used_size / kBlockSizeFactor;
-        if (block_size_req == 0
-            || block_size_req * kBlockSizeFactor < index->used_size)
-          block_size_req++;
-        ham_assert(block_size_req <= index->block_size_mul);
-
         if (index->offset != next_offset) {
           // shift block data to the left
           memmove(&block_data[next_offset], &block_data[index->offset],
@@ -183,8 +175,8 @@ class Zint32KeyList : public BaseKeyList
           index->offset = next_offset;
         }
 
-        index->block_size_mul = block_size_req;
-        next_offset += index->block_size();
+        index->block_size = index->used_size;
+        next_offset += index->used_size;
       }
 
       set_used_size((block_data - m_data) + next_offset);
@@ -259,9 +251,10 @@ class Zint32KeyList : public BaseKeyList
         index = find_block_by_slot(slot, &position_in_block);
 
       // if the block is full then grow or split it
-      if (index->used_size + 5 > index->block_size()) {
+      if (index->used_size + 5 > index->block_size) {
         // already reached max. size? then perform a split
-        if (index->block_size() > kMaxBlockSize) {
+        if (index->block_size >= kMaxBlockSize
+             || index->key_count == kMaxKeysPerBlock) {
           if (slot == 0) {
             index = add_block(0);
           }
@@ -366,9 +359,9 @@ class Zint32KeyList : public BaseKeyList
         int dst_position_in_block;
         dsti = dest.find_block_by_slot(dstart, &dst_position_in_block);
 
-        // make sure it has free space TODO
-        dest.grow_block(dsti);
-        dest.grow_block(dsti);
+        // make sure it has free space
+        if (dsti->block_size < srci->block_size)
+          dest.grow_block(dsti, srci->block_size);
 
         // fast-forward to the start position in the destination block
         uint8_t *d;
@@ -429,7 +422,7 @@ class Zint32KeyList : public BaseKeyList
       for (; index < endi; index++, copied_blocks++) {
         // TODO it would be faster to introduce add_many_blocks()
         // instead of invoking add_block() several times
-        dsti = dest.add_block(dest.get_block_count(), index->block_size_mul);
+        dsti = dest.add_block(dest.get_block_count(), index->block_size);
         copy_blocks(index, dest, dsti);
       }
 
@@ -449,8 +442,8 @@ class Zint32KeyList : public BaseKeyList
 
       int used_size = 0;
       for (; index < end; index++) {
-        if (index->offset + index->block_size() > used_size)
-          used_size = index->offset + index->block_size();
+        if (index->offset + index->block_size > used_size)
+          used_size = index->offset + index->block_size;
       }
 
       // add static overhead
@@ -482,15 +475,13 @@ class Zint32KeyList : public BaseKeyList
       int used_size = 0;
       for (; index < end; index++) {
         total_keys += index->key_count;
-        if (used_size < index->offset + index->block_size())
-          used_size = index->offset + index->block_size();
+        if (used_size < index->offset + index->block_size)
+          used_size = index->offset + index->block_size;
 
-        ham_assert(used_size % kBlockSizeFactor == 0);
-
-        if (index->used_size > index->block_size()) {
+        if (index->used_size > index->block_size) {
           ham_trace(("Used block size %d exceeds allocated size %d",
                         (int)index->used_size,
-                        (int)index->block_size()));
+                        (int)index->block_size));
           throw Exception(HAM_INTEGRITY_VIOLATED);
         }
       }
@@ -596,7 +587,7 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Inserts a new block at the specified position
-    Index *add_block(int position, int initial_size_mul = kInitialBlockSize) {
+    Index *add_block(int position, int initial_size = kInitialBlockSize) {
       // shift the whole data to the right to make space for the new block
       // index
       Index *index = get_block_index(position);
@@ -606,19 +597,18 @@ class Zint32KeyList : public BaseKeyList
         ::memmove(dst, index, get_used_size() - (position * sizeof(Index)));
       }
 
-      int initial_size_bytes = initial_size_mul * kBlockSizeFactor;
       set_block_count(get_block_count() + 1);
-      set_used_size(get_used_size() + sizeof(Index) + initial_size_bytes);
+      set_used_size(get_used_size() + sizeof(Index) + initial_size);
 
       // initialize the new block index; the offset is relative to the start
       // of the payload data, and does not include the indices
       index->offset = get_used_size()
                 - 2 * sizeof(uint32_t)
                 - sizeof(Index) * get_block_count()
-                - initial_size_bytes;
-      index->block_size_mul = initial_size_mul;
-      index->used_size = 0;
-      index->key_count = 0;
+                - initial_size;
+      index->block_size = initial_size;
+      index->used_size  = 0;
+      index->key_count  = 0;
       return (index);
     }
 
@@ -649,7 +639,7 @@ class Zint32KeyList : public BaseKeyList
       int i;
       int block = index - get_block_index(0);
       // the new block will have the same size as the old one
-      Index *new_index = add_block(block + 1, index->block_size_mul);
+      Index *new_index = add_block(block + 1, index->block_size);
 
       uint8_t *src = get_block_data(index);
       uint32_t prev = *(uint32_t *)src;
@@ -698,24 +688,24 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Grows a block
-    void grow_block(Index *index) {
+    void grow_block(Index *index, int additional_size = kGrowFactor) {
       // move all other blocks unless the current block is the last one
-      if ((size_t)index->offset + index->block_size()
+      if ((size_t)index->offset + index->block_size
               < get_used_size() - 8 - sizeof(Index) * get_block_count()) {
-        uint8_t *p = get_block_data(index) + index->block_size();
+        uint8_t *p = get_block_data(index) + index->block_size;
         uint8_t *q = &m_data[get_used_size()];
-        ::memmove(p + kBlockSizeFactor, p, q - p);
+        ::memmove(p + additional_size, p, q - p);
 
         // now update the offsets of the other blocks
         Index *next = get_block_index(0);
         Index *end = get_block_index(get_block_count());
         for (; next < end; next++)
           if (next->offset > index->offset)
-            next->offset += kBlockSizeFactor;
+            next->offset += additional_size;
       }
 
-      index->block_size_mul += 1;
-      set_used_size(get_used_size() + kBlockSizeFactor);
+      index->block_size += additional_size;
+      set_used_size(get_used_size() + additional_size);
     }
 
     // Prepends a new key to a block
