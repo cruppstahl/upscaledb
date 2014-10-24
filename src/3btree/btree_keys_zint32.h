@@ -64,6 +64,9 @@ class Zint32KeyList : public BaseKeyList
     // This structure is an "index" entry which describes the location
     // of a variable-length block
     struct Index {
+      // the start value of this block
+      uint32_t value;
+
       // offset of the payload, relative to the beginning of the payloads
       // (past the Index structures)
       // TODO needs to have more bytes for larger pages!
@@ -175,8 +178,12 @@ class Zint32KeyList : public BaseKeyList
           index->offset = next_offset;
         }
 
-        index->block_size = index->used_size;
-        next_offset += index->used_size;
+        if (index->used_size == 0)
+          index->block_size = kInitialBlockSize;
+        else
+          index->block_size = index->used_size;
+
+        next_offset += index->block_size;
       }
 
       set_used_size((block_data - m_data) + next_offset);
@@ -276,9 +283,8 @@ class Zint32KeyList : public BaseKeyList
       // first key in an empty block? then don't store a delta
       if (index->key_count == 0) {
         index->key_count = 1;
-        uint8_t *p = get_block_data(index);
-        *(uint32_t *)p = *(uint32_t *)key->data;
-        index->used_size = sizeof(uint32_t);
+        index->value = *(uint32_t *)key->data;
+        ham_assert(index->used_size == 0);
         ham_assert(check_integrity(node_count + 1));
         return;
       }
@@ -314,7 +320,7 @@ class Zint32KeyList : public BaseKeyList
       // is there just one key left in that block? then reduce the counters
       if (index->key_count == 1) {
         index->key_count = 0;
-        index->used_size = 0;
+        ham_assert(index->used_size == 0);
       }
       // otherwise reduce the block
       else {
@@ -381,15 +387,13 @@ class Zint32KeyList : public BaseKeyList
         // now copy the first key. take into account that the first key of
         // a block is uncompressed.
         if (src_position_in_block == 0) {
-          srckey = *(uint32_t *)s;
-          s += sizeof(uint32_t);
+          srckey = srci->value;
           src_position_in_block = 1;
         }
 
         if (dst_position_in_block == 0) {
-          *(uint32_t *)d = srckey;
+          dsti->value = srckey;
           dstkey = srckey;
-          d += sizeof(uint32_t);
         }
         else {
           d += write_int(d, srckey - dstkey);
@@ -432,7 +436,7 @@ class Zint32KeyList : public BaseKeyList
       uint8_t *pold = (uint8_t *)get_block_index(get_block_count());
       uint8_t *pnew = (uint8_t *)get_block_index(get_block_count()
                                     - copied_blocks);
-      ::memmove(pnew,  pold, pend - pold);
+      ::memmove(pnew, pold, pend - pold);
 
       set_block_count(get_block_count() - copied_blocks);
 
@@ -529,13 +533,12 @@ class Zint32KeyList : public BaseKeyList
   private:
     // Prints all keys of a block to stdout (for debugging)
     void print_block(Index *index) const {
-      uint8_t *p = get_block_data(index);
-      uint32_t key = *(uint32_t *)p;
+      uint32_t key = index->value;
       std::cout << "0: " << key << std::endl;
-      p += sizeof(uint32_t);
 
-      uint32_t delta;
+      uint8_t *p = get_block_data(index);
       for (int i = 1; i < index->key_count; i++) {
+        uint32_t delta;
         p += read_int(p, &delta);
         key += delta;
         std::cout << i << ": " << key << std::endl;
@@ -588,6 +591,8 @@ class Zint32KeyList : public BaseKeyList
 
     // Inserts a new block at the specified position
     Index *add_block(int position, int initial_size = kInitialBlockSize) {
+      ham_assert(initial_size > 0);
+
       // shift the whole data to the right to make space for the new block
       // index
       Index *index = get_block_index(position);
@@ -603,9 +608,9 @@ class Zint32KeyList : public BaseKeyList
       // initialize the new block index; the offset is relative to the start
       // of the payload data, and does not include the indices
       index->offset = get_used_size()
-                - 2 * sizeof(uint32_t)
-                - sizeof(Index) * get_block_count()
-                - initial_size;
+                        - 2 * sizeof(uint32_t)
+                        - sizeof(Index) * get_block_count()
+                        - initial_size;
       index->block_size = initial_size;
       index->used_size  = 0;
       index->key_count  = 0;
@@ -615,6 +620,7 @@ class Zint32KeyList : public BaseKeyList
     // Copies two blocks; assumes that the new block |dst| has been properly
     // allocated
     void copy_blocks(Index *src, Zint32KeyList &dest, Index *dst) {
+      dst->value     = src->value;
       dst->used_size = src->used_size;
       dst->key_count = src->key_count;
 
@@ -642,13 +648,12 @@ class Zint32KeyList : public BaseKeyList
       Index *new_index = add_block(block + 1, index->block_size);
 
       uint8_t *src = get_block_data(index);
-      uint32_t prev = *(uint32_t *)src;
+      uint32_t prev = index->value;
       uint32_t delta;
-      src += sizeof(uint32_t);
 
       // roughly skip half of the data
       // TODO don't loop but use msb to figure out where to split
-      int size = index->used_size / 2 - sizeof(uint32_t);
+      int size = index->used_size / 2;
       for (i = 1; i < index->key_count && size > 0; i++) {
         int delta_size = read_int(src, &delta);
         prev += delta;
@@ -658,13 +663,12 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(i < index->key_count);
 
       // the next delta will be the initial key of the new block
-      uint8_t *dst = get_block_data(new_index);
       src += read_int(src, &delta);
       prev += delta;
-      *(uint32_t *)dst = prev;
-      dst += sizeof(uint32_t);
+      new_index->value = prev;
 
       // now copy the remaining data
+      uint8_t *dst = get_block_data(new_index);
       size = (get_block_data(index) + index->used_size) - src;
       memcpy(dst, src, size);
       dst += size;
@@ -677,7 +681,7 @@ class Zint32KeyList : public BaseKeyList
 
       // now figure out whether the key will be inserted in the old or
       // the new block
-      if (key >= *(uint32_t *)get_block_data(new_index)) {
+      if (key >= new_index->value) {
         *position_in_block -= i;
         return (new_index);
       }
@@ -711,17 +715,18 @@ class Zint32KeyList : public BaseKeyList
     // Prepends a new key to a block
     void prepend_key_to_block(Index *index, uint32_t key) {
       ham_assert(index->key_count > 0);
-      uint8_t *p = get_block_data(index);
 
       // the first key will be replaced with its delta
-      uint32_t delta = *(uint32_t *)p - key;
-      *(uint32_t *)p = key;
-      p += sizeof(uint32_t);
+      uint32_t delta = index->value - key;
+      index->value = key;
 
       int required_space = calculate_delta_size(delta);
 
+      uint8_t *p = get_block_data(index);
+
       // create a gap for the new key and the delta
-      ::memmove(p + required_space, p, index->used_size - sizeof(uint32_t));
+      if (index->used_size > 0)
+        ::memmove(p + required_space, p, index->used_size);
 
       // now write the delta
       write_int(p, delta);
@@ -796,11 +801,10 @@ class Zint32KeyList : public BaseKeyList
 
       // erase the first key?
       if (position == 0) {
-        uint32_t second, first = *(uint32_t *)p;
-        p += sizeof(uint32_t);
+        uint32_t second, first = index->value;
         uint8_t *q = p + read_int(p, &second);
         // replace the first key with the second key (uncompressed)
-        *(uint32_t *)get_block_data(index) = first + second;
+        index->value = first + second;
         // shift all remaining deltas to the left
         ::memmove(p, q, index->used_size - (q - p));
         index->used_size -= q - p;
@@ -810,8 +814,7 @@ class Zint32KeyList : public BaseKeyList
 
       // otherwise fast-forward to the position of the key and remove it;
       // then update the delta of the next key
-      uint32_t key = *(uint32_t *)p;
-      p += sizeof(uint32_t);
+      uint32_t key = index->value;
       uint8_t *q = p;
       for (int i = 1; i < position; i++) {
         uint32_t delta;
@@ -946,8 +949,7 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(index->key_count > 0);
       uint8_t *p = get_block_data(index);
 
-      uint32_t prev = *(uint32_t *)p;
-      p += sizeof(uint32_t);
+      uint32_t prev = index->value;
       for (int i = 1; i <= position_in_block; i++) {
         uint32_t delta;
         p += read_int(p, &delta);
@@ -960,8 +962,7 @@ class Zint32KeyList : public BaseKeyList
     uint8_t *fast_forward(Index *index, int position, uint32_t *pkey) {
       ham_assert(position > 0 && position <= index->key_count);
       uint8_t *p = get_block_data(index);
-      uint32_t key = *(uint32_t *)p;
-      p += sizeof(uint32_t);
+      uint32_t key = index->value;
 
       uint32_t delta;
       for (int i = 1; i < position; i++) {
