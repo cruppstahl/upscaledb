@@ -608,7 +608,7 @@ o ZINT32: rebase hamsterdb-pro
     berkleydb filesize                       20377600
 
     o improve lookups
-        o delegate lookup function to the KeyList
+        x delegate lookup function to the KeyList
         o zint32: use linear search/decompression for the block
         o pro: get rid of get_simd_data(), it's no longer required (?)
         o pro: get rid of the "type" typedef
@@ -616,6 +616,7 @@ o ZINT32: rebase hamsterdb-pro
     o refactoring: "insert" should not be based on slot number
         o it should *return* the slot (for the RecordList), but no longer use
             the slot as a parameter -> this is faster for zint32
+        o should search "inverse", then appending keys will be very fast
         o same for erase
         o same for find (already the case, i think)
             -> return the key during the lookup, not with get_key(slot)
@@ -634,6 +635,7 @@ o ZINT32: rebase hamsterdb-pro
     o refactoring: do not automatically vacuumize prior to a merge or after
         a split; rather perform it in copy_to(), and only when necessary
         o rename copy_to() to move_to()
+        -> really? what's the advantage?
 
     o make sure that appending keys is an extra-fast code path
     o scan() decompresses a whole block, then calls visitor

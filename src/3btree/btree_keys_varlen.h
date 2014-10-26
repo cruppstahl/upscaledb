@@ -87,8 +87,6 @@ class VariableLengthKeyList : public BaseKeyList
     typedef std::map<uint64_t, ByteArray> ExtKeyCache;
 
   public:
-    typedef uint8_t type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 0,
@@ -97,7 +95,10 @@ class VariableLengthKeyList : public BaseKeyList
       kSupportsBlockScans = 0,
 
       // This KeyList can reduce its capacity in order to release storage
-      kCanReduceCapacity = 1
+      kCanReduceCapacity = 1,
+
+      // This KeyList uses binary search
+      kSearchImplementation = kBinarySearch,
     };
 
     // Constructor
@@ -132,11 +133,6 @@ class VariableLengthKeyList : public BaseKeyList
       m_data = data;
       m_range_size = range_size;
       m_index.open(m_data, range_size);
-    }
-
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (false);
     }
 
     // Calculates the required size for a range
@@ -184,23 +180,6 @@ class VariableLengthKeyList : public BaseKeyList
         dest->data = arena->get_ptr();
       }
       memcpy(dest->data, tmp.data, tmp.size);
-    }
-
-    // Returns the threshold when switching from binary search to
-    // linear search. For this layout we do not want to use any linear
-    // search, therefore return -1.
-    size_t get_linear_search_threshold() const {
-      return ((size_t)-1);
-    }
-
-    // Performs a linear search in a given range between |start| and
-    // |start + length|. Not implemented - callers must not use linear
-    // search with this KeyList.
-    template<typename Cmp>
-    int linear_search(size_t start, size_t length, ham_key_t *hkey,
-                    Cmp &comparator, int *pcmp) {
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_INTERNAL_ERROR);
     }
 
     // Iterates all keys, calls the |visitor| on each. Not supported by

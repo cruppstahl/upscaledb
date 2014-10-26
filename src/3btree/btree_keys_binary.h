@@ -62,14 +62,15 @@ namespace PaxLayout {
 class BinaryKeyList : public BaseKeyList
 {
   public:
-    typedef uint8_t type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 1,
 
       // A flag whether this KeyList supports the scan() call
-      kSupportsBlockScans = 1
+      kSupportsBlockScans = 1,
+
+      // This KeyList uses binary search in combination with linear search
+      kSearchImplementation = kBinaryLinear,
     };
 
     // Constructor
@@ -124,9 +125,8 @@ class BinaryKeyList : public BaseKeyList
     // linear search
     size_t get_linear_search_threshold() const {
       if (m_key_size > 32)
-        return (0); // disable linear search for large keys
+        return ((size_t)-1); // disable linear search for large keys
       return (128 / m_key_size);
-
     }
 
     // Performs a linear search in a given range between |start| and

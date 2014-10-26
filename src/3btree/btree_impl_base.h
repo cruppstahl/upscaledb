@@ -34,6 +34,7 @@
 #include "1base/byte_array.h"
 #include "2page/page.h"
 #include "3btree/btree_node.h"
+#include "3btree/btree_keys_base.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -285,9 +286,76 @@ class BaseNodeImpl
     RecordList m_records;
 
   private:
-    // Implementation of the find method; uses a linear search if possible
+    // Implementation of the find method; uses either binary search *only*,
+    // binary search in combination with linear search *or* a custom search
+    // implementation of the KeyList
     template<typename Cmp>
     int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+      switch ((int)KeyList::kSearchImplementation) {
+        case BaseKeyList::kBinaryLinear:
+          return (find_impl_binlin(key, comparator, pcmp));
+        case BaseKeyList::kCustomImplementation:
+          return (m_keys.find(key, comparator, pcmp));
+        default: // BaseKeyList::kBinarySearch
+          return (find_impl_binary(key, comparator, pcmp));
+      }
+    }
+
+    // Binary search
+    template<typename Cmp>
+    int find_impl_binary(ham_key_t *key, Cmp &comparator, int *pcmp) {
+      size_t node_count = m_node->get_count();
+      ham_assert(node_count > 0);
+
+      int i, l = 0, r = (int)node_count;
+      int last = node_count + 1;
+      int cmp = -1;
+
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > 0) {
+        /* get the median item; if it's identical with the "last" item,
+         * we've found the slot */
+        i = (l + r) / 2;
+
+        if (i == last) {
+          ham_assert(i >= 0);
+          ham_assert(i < (int)node_count);
+          *pcmp = 1;
+          return (i);
+        }
+
+        /* compare it against the key */
+        cmp = compare(key, i, comparator);
+
+        /* found it? */
+        if (cmp == 0) {
+          *pcmp = cmp;
+          return (i);
+        }
+        /* if the key is bigger than the item: search "to the left" */
+        else if (cmp < 0) {
+          if (r == 0) {
+            ham_assert(i == 0);
+            *pcmp = cmp;
+            return (-1);
+          }
+          r = i;
+        }
+        /* otherwise search "to the right" */
+        else {
+          last = i;
+          l = i;
+        }
+      }
+
+      *pcmp = cmp;
+      return (-1);
+    }
+
+    // Binary search combined with linear search
+    template<typename Cmp>
+    int find_impl_binlin(ham_key_t *key, Cmp &comparator, int *pcmp) {
       size_t node_count = m_node->get_count();
       ham_assert(node_count > 0);
 

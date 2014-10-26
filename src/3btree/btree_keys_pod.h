@@ -62,14 +62,15 @@ template<typename T>
 class PodKeyList : public BaseKeyList
 {
   public:
-    typedef T type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 1,
 
       // A flag whether this KeyList supports the scan() call
-      kSupportsBlockScans = 1
+      kSupportsBlockScans = 1,
+
+      // This KeyList uses binary search in combination with linear search
+      kSearchImplementation = kBinaryLinear,
     };
 
     // Constructor
@@ -128,10 +129,44 @@ class PodKeyList : public BaseKeyList
     // |start + length|
     template<typename Cmp>
     int linear_search(size_t start, size_t length, ham_key_t *hkey,
-                    Cmp &cmp, int *pcmp) {
+                    Cmp &comparator, int *pcmp) {
       T key = *(T *)hkey->data;
-      return (BaseKeyList::linear_search(m_data, start, length, key,
-                              cmp, pcmp));
+      size_t c = start;
+      size_t end = start + length;
+  
+  #undef COMPARE
+  #define COMPARE(c)      if (key <= m_data[c]) {                         \
+                            if (key < m_data[c]) {                        \
+                              if (c == 0)                                 \
+                                *pcmp = -1; /* key < m_data[0] */         \
+                              else                                        \
+                                *pcmp = +1; /* key > m_data[c - 1] */     \
+                              return ((c) - 1);                           \
+                            }                                             \
+                            *pcmp = 0;                                    \
+                            return (c);                                   \
+                          }
+
+      while (c + 8 < end) {
+        COMPARE(c)
+        COMPARE(c + 1)
+        COMPARE(c + 2)
+        COMPARE(c + 3)
+        COMPARE(c + 4)
+        COMPARE(c + 5)
+        COMPARE(c + 6)
+        COMPARE(c + 7)
+        c += 8;
+      }
+
+      while (c < end) {
+        COMPARE(c)
+        c++;
+      }
+
+      /* the new key is > the last key in the page */
+      *pcmp = 1;
+      return (start + length - 1);
     }
 
     // Iterates all keys, calls the |visitor| on each
