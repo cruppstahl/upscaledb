@@ -14,7 +14,7 @@
 /*
  * Compressed 32bit integer keys
  *
- * @exception_safe: strong
+ * @exception_safe: nothrow
  * @thread_safe: no
  */
 
@@ -224,19 +224,55 @@ class Zint32KeyList : public BaseKeyList
       ::memcpy(dest->data, &m_dummy, sizeof(uint32_t));
     }
 
-    // Returns the threshold when switching from binary search to
-    // linear search; currently not supported
-    size_t get_linear_search_threshold() const {
-      return ((size_t)-1);
-    }
-
-    // Performs a linear search in a given range between |start| and
-    // |start + length|
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
     template<typename Cmp>
-    int linear_search(size_t start, size_t length, ham_key_t *hkey,
-                    Cmp &comparator, int *pcmp) {
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+    int find(size_t node_count, ham_key_t *hkey, Cmp &comparator, int *pcmp) {
+      ham_assert(get_block_count() > 0);
+      Index *index = get_block_index(0);
+      Index *iend = get_block_index(get_block_count());
+
+      int slot = 0;
+      uint32_t key = *(uint32_t *)hkey->data;
+
+      if (key < index->value) {
+        *pcmp = -1;
+        return (-1);
+      }
+
+      // first perform a linear search through the index
+      for (; index < iend - 1; index++) {
+        if (key < (index + 1)->value)
+          break;
+        slot += index->key_count;
+      }
+
+      if (index->value == key) {
+        *pcmp = 0;
+        return (slot);
+      }
+
+      // then search in the compressed blog
+      uint32_t delta, prev = index->value;
+      uint8_t *p = get_block_data(index);
+      uint8_t *end = p + index->used_size;
+      while (p < end) {
+        p += read_int(p, &delta);
+        prev += delta;
+        slot++;
+
+        if (prev >= key) {
+          if (prev == key) {
+            *pcmp = 0;
+            return (slot);
+          }
+          *pcmp = +1;
+          return (slot);
+        }
+      }
+
+      *pcmp = +1;
+      return (slot);
     }
 
     // Inserts a key
