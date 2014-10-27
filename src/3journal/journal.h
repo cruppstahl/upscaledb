@@ -196,7 +196,7 @@ class Journal
                     Page **bucket2, uint32_t bucket2_size,
                     Page **bucket3, uint32_t bucket3_size,
                     Page **bucket4, uint32_t bucket4_size,
-                    uint32_t lsn);
+                    uint64_t lsn);
 
     // Adjusts the transaction counters; called whenever |txn| is flushed.
     void transaction_flushed(LocalTransaction *txn);

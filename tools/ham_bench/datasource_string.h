@@ -184,7 +184,7 @@ class StringZipfianDatasource : public Datasource
   // dann eine NumericZipfianDatasource erzeugen und in diesem binary
   // array entsprechend die daten rauskopieren
   public:
-    StringZipfianDatasource(uint64_t n, size_t size, bool fixed_size,
+    StringZipfianDatasource(size_t n, size_t size, bool fixed_size,
             long seed = 0, double alpha = 0.8)
       : m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
         m_seed(seed) {

@@ -318,10 +318,10 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
     if (alloc_size < old_blob_header.get_alloc_size()) {
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       header->set_free_bytes(header->get_free_bytes()
-                      + (old_blob_header.get_alloc_size() - alloc_size));
+                  + (uint32_t)(old_blob_header.get_alloc_size() - alloc_size));
       add_to_freelist(header,
-                      (old_blobid + alloc_size) - page->get_address(),
-                      old_blob_header.get_alloc_size() - alloc_size);
+                  (uint32_t)(old_blobid + alloc_size) - page->get_address(),
+                  (uint32_t)old_blob_header.get_alloc_size() - alloc_size);
     }
 
     // the old rid is the new rid
@@ -366,7 +366,7 @@ DiskBlobManager::do_erase(LocalDatabase *db, uint64_t blobid, Page *page,
   }
 
   // otherwise move the blob to the freelist
-  add_to_freelist(header, blobid - page->get_address(),
+  add_to_freelist(header, (uint32_t)(blobid - page->get_address()),
                   (uint32_t)blob_header.get_alloc_size());
 }
 
@@ -395,7 +395,7 @@ DiskBlobManager::alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
     // make sure the remaining gap stays in the freelist
     if (header->get_freelist_size(i) > size) {
       *poffset = header->get_freelist_offset(i);
-      header->set_freelist_offset(i, *poffset + size);
+      header->set_freelist_offset(i, (uint32_t)(*poffset + size));
       header->set_freelist_size(i, header->get_freelist_size(i) - size);
       ham_assert(check_integrity(header));
       return (true);

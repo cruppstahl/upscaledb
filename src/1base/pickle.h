@@ -41,7 +41,7 @@ struct Pickle {
    * bytes used */
   static size_t encode_u64(uint8_t *p, uint64_t n) {
     if (n <= 0xf) {
-      *p = n;
+      *p = (uint8_t)n;
       return (1);
     }
     if (n <= 0xff) {

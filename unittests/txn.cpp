@@ -118,7 +118,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->get_txn_index();
-    REQUIRE(tree);
+    REQUIRE(tree != 0);
     tree2 = m_dbp->get_txn_index();
     REQUIRE(tree == tree2);
 
@@ -216,13 +216,13 @@ struct TxnFixture {
     m_dbp->get_txn_index()->store(node);
     op1 = node->append((LocalTransaction *)txn, 
                 0, TransactionOperation::kInsertDuplicate, 55, &key, &rec);
-    REQUIRE(op1);
+    REQUIRE(op1 != 0);
     op2 = node->append((LocalTransaction *)txn,
                 0, TransactionOperation::kErase, 56, &key, &rec);
-    REQUIRE(op2);
+    REQUIRE(op2 != 0);
     op3 = node->append((LocalTransaction *)txn,
                 0, TransactionOperation::kNop, 57, &key, &rec);
-    REQUIRE(op3);
+    REQUIRE(op3 != 0);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }

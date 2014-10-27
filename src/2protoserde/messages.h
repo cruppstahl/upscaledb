@@ -61,6 +61,11 @@ enum {
   kCursorMoveReply
 };
 
+#ifdef WIN32
+#  pragma warning(push)
+#  pragma warning(disable: 4800)
+#endif
+
 template<typename Ex, typename In>
 struct Serialized_Base {
   Ex value;
@@ -69,8 +74,8 @@ struct Serialized_Base {
     clear();
   }
 
-  Serialized_Base(const Ex &t)
-    : value((In)t) {
+  Serialized_Base(const Ex &t) {
+    value = static_cast<In>(t);
   }
 
   operator Ex() {
@@ -99,6 +104,10 @@ struct Serialized_Base {
     assert(*psize >= 0);
   }
 };
+
+#ifdef WIN32
+#  pragma warning(pop)
+#endif
 
 struct SerializedBytes {
   uint8_t *value;

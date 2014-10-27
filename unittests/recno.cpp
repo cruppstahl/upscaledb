@@ -61,7 +61,7 @@ struct RecordNumberFixture {
 
   void createCloseOpenCloseTest() {
     reopen();
-    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_RECORD_NUMBER));
+    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_RECORD_NUMBER) != 0);
   }
 
   void createInsertCloseReopenTest() {
@@ -493,8 +493,8 @@ struct RecordNumberFixture {
     BtreeIndex *be = db->get_btree_index();
     Page *page;
     PageManager *pm = db->get_local_env()->get_page_manager();
-    REQUIRE((page = pm->fetch_page(db, be->get_root_address())));
-    REQUIRE(page);
+    REQUIRE((page = pm->fetch_page(db, be->get_root_address())) != 0);
+    REQUIRE(page != 0);
     BtreeCursor::uncouple_all_cursors(page);
 
     for (int i = 0; i < 5; i++) {

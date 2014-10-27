@@ -68,6 +68,13 @@
 #   define unlikely(x) (x)
 #endif
 
+#ifdef WIN32
+// MSVC: disable warning about use of 'this' in base member initializer list
+#  pragma warning(disable:4355)
+#  define WIN32_MEAN_AND_LEAN
+#  include <windows.h>
+#endif
+
 // some compilers define min and max as macros; this leads to errors
 // when using std::min and std::max
 #ifdef min
@@ -76,13 +83,6 @@
 
 #ifdef max
 #  undef max
-#endif
-
-#ifdef WIN32
-// MSVC: disable warning about use of 'this' in base member initializer list
-#  pragma warning(disable:4355)
-#  define WIN32_MEAN_AND_LEAN
-#  include <windows.h>
 #endif
 
 // a macro to cast pointers to u64 and vice versa to avoid compiler

@@ -275,7 +275,7 @@ struct HolaFixture {
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
-      float f = i;
+      float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
@@ -296,7 +296,7 @@ struct HolaFixture {
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
-      float f = i;
+      float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));

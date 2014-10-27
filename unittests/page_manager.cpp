@@ -62,14 +62,14 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull)));
+    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
     REQUIRE((page = pm->fetch_page(0, 16 * 1024ull,
-                    PageManager::kOnlyFromCache)));
+                    PageManager::kOnlyFromCache)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
-    REQUIRE(page);
+    REQUIRE(page != 0);
   }
 
   void allocPageTest() {
@@ -78,7 +78,7 @@ struct PageManagerFixture {
 
     page = 0;
     REQUIRE((page = pm->alloc_page(0, Page::kTypePageManager,
-                            PageManager::kClearWithZero)));
+                            PageManager::kClearWithZero)) != 0);
     if (m_inmemory == false)
       REQUIRE(page->get_address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
@@ -280,7 +280,7 @@ struct PageManagerFixture {
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
-      REQUIRE((page[i] = pm->alloc_page(0, 0)));
+      REQUIRE((page[i] = pm->alloc_page(0, 0)) != 0);
       REQUIRE(page[i]->get_address() == (3 + i) * page_size);
     }
 

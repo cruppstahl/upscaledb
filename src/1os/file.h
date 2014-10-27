@@ -60,13 +60,14 @@ class File
 
     // Constructor: creates an empty File handle
     File()
-      : m_fd(HAM_INVALID_FD) {
+      : m_fd(HAM_INVALID_FD), m_mmaph(HAM_INVALID_FD) {
     }
 
     // Copy constructor: moves ownership of the file handle
     File(File &other)
-      : m_fd(other.m_fd) {
+      : m_fd(other.m_fd), m_mmaph(other.m_mmaph) {
       other.m_fd = HAM_INVALID_FD;
+	  other.m_mmaph = HAM_INVALID_FD;
     }
 
     // Destructor: closes the file
@@ -125,10 +126,10 @@ class File
     void seek(uint64_t offset, int whence);
 
     // Tell the position in a file
-    uint64_t tell();
+    size_t tell();
 
     // Returns the size of the file
-    uint64_t get_file_size();
+    size_t get_file_size();
 
     // Truncate/resize the file
     void truncate(uint64_t newsize);
@@ -140,10 +141,8 @@ class File
     // The file handle
     ham_fd_t m_fd;
 
-#ifdef HAM_OS_WIN32
     // The mmap handle - required for Win32
     ham_fd_t m_mmaph;
-#endif
 };
 
 } // namespace hamsterdb

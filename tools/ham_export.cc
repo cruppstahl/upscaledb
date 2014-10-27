@@ -139,7 +139,7 @@ class BinaryExporter : public Exporter {
       HamsterTool::Datum d;
       d.set_type(HamsterTool::Datum::DATABASE);
       HamsterTool::Database *pdb = d.mutable_db();
-      pdb->set_name(params[0].value);
+      pdb->set_name((uint32_t)params[0].value);
       pdb->set_flags((int)params[1].value);
       pdb->set_key_size((int)params[2].value);
       pdb->set_key_type((int)params[3].value);

@@ -26,12 +26,11 @@
 
 #include "0root/root.h"
 
-#include "messages.pb.h"
-
 // Always verify that a file of level N does not include headers > N!
 #include "1mem/mem.h"
 #include "1base/error.h"
 #include "1base/byte_array.h"
+#include "2protobuf/messages.pb.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

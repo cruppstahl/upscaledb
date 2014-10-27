@@ -365,7 +365,7 @@ done:
     m_env->get_changeset().add_page(page);
 
   /* store the page in the cache */
-  store_page(page, flags & kDisableStoreState);
+  store_page(page, (flags & kDisableStoreState) != 0);
 
   switch (page_type) {
     case Page::kTypeBindex:
@@ -502,10 +502,10 @@ PageManager::purge_cache()
   //
   // By default this is capped to |kPurgeAtLeast| pages to avoid I/O spikes.
   // In benchmarks this has proven to be a good limit.
-  uint32_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
+  size_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
   if (max_pages == 0)
     max_pages = 1;
-  uint32_t limit = m_cache.get_current_elements() - max_pages;
+  size_t limit = m_cache.get_current_elements() - max_pages;
   if (limit < kPurgeAtLeast)
     limit = kPurgeAtLeast;
   m_cache.purge(purge_callback, this, limit);
@@ -552,7 +552,7 @@ PageManager::reclaim_space()
   }
   ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
   bool do_truncate = false;
-  uint64_t file_size = m_env->get_device()->get_file_size();
+  size_t file_size = m_env->get_device()->get_file_size();
   uint32_t page_size = m_env->get_page_size();
 
   while (m_free_pages.size() > 1) {
@@ -638,4 +638,3 @@ PageManager::close()
 }
 
 } // namespace hamsterdb
-

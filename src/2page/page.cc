@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "config.h"
+#include "0root/root.h"
 
 #include <string.h>
 

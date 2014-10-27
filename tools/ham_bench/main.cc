@@ -37,6 +37,7 @@
 #endif
 #include "metrics.h"
 #include "misc.h"
+
 #include "1globals/globals.h"
 
 #define ARG_HELP                                1
@@ -1337,7 +1338,7 @@ main(int argc, char **argv)
 
   // ALWAYS set the seed!
   if (c.seed == 0)
-    c.seed = ::time(0);
+    c.seed = (long)::time(0);
 
   if (!c.quiet)
     print_banner("ham_bench");

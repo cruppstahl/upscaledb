@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "0root/root.h"
-
 #include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
@@ -23,6 +21,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+
+#include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
@@ -145,15 +145,23 @@ File::munmap(void *buffer, size_t size)
     throw Exception(HAM_IO_ERROR);
   }
 
-  if (!CloseHandle(m_mmaph)) {
-    char buf[256];
-    st = (ham_status_t)GetLastError();
-    ham_log(("CloseHandle failed with OS status %u (%s)", st,
-            DisplayError(buf, sizeof(buf), st)));
-    throw Exception(HAM_IO_ERROR);
+  if (m_mmaph != HAM_INVALID_FD) {
+    if (!CloseHandle(m_mmaph)) {
+      char buf[256];
+      st = (ham_status_t)GetLastError();
+      ham_log(("CloseHandle failed with OS status %u (%s)", st,
+              DisplayError(buf, sizeof(buf), st)));
+      throw Exception(HAM_IO_ERROR);
+    }
   }
 
   m_mmaph = HAM_INVALID_FD;
+}
+
+void
+File::madvice_dontneed(void *buffer, size_t size)
+{
+  // afaik not available on Win32
 }
 
 void
@@ -253,7 +261,7 @@ File::seek(uint64_t offset, int whence)
   }
 }
 
-uint64_t
+size_t
 File::tell()
 {
   DWORD st;
@@ -269,14 +277,14 @@ File::tell()
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((uint64_t)i.QuadPart);
+  return ((size_t)i.QuadPart);
 }
 
 #ifndef INVALID_FILE_SIZE
 #   define INVALID_FILE_SIZE   ((DWORD)-1)
 #endif
 
-uint64_t
+size_t
 File::get_file_size()
 {
   ham_status_t st;
@@ -291,7 +299,7 @@ File::get_file_size()
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((uint64_t)i.QuadPart);
+  return ((size_t)i.QuadPart);
 }
 
 void
@@ -421,6 +429,17 @@ File::close()
       throw Exception(HAM_IO_ERROR);
     }
     m_fd = HAM_INVALID_FD;
+  }
+
+  if (m_mmaph != HAM_INVALID_FD) {
+    if (!CloseHandle((HANDLE)m_mmaph)) {
+      char buf[256];
+      ham_status_t st = (ham_status_t)GetLastError();
+      ham_log(("CloseHandle failed with OS status %u (%s)", st,
+              DisplayError(buf, sizeof(buf), st)));
+      throw Exception(HAM_IO_ERROR);
+    }
+    m_mmaph = HAM_INVALID_FD;
   }
 }
 

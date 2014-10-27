@@ -60,7 +60,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_export", "ham_export.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_bench", "ham_bench.vcxproj", "{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "python_dll", "python_dll\python_dll.vcxproj", "{15337819-B955-4EDB-A7CF-521B411D42C2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoserde", "protoserde.vcxproj", "{10DCD767-FFBE-4096-9258-181D42F899B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -270,12 +270,14 @@ Global
 		{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}.Release|Win32.Build.0 = Release|Win32
 		{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}.Release|x64.ActiveCfg = Release|x64
 		{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}.Release|x64.Build.0 = Release|x64
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Debug|Win32.ActiveCfg = Debug|Win32
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Debug|Win32.Build.0 = Debug|Win32
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Debug|x64.ActiveCfg = Debug|Win32
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Release|Win32.ActiveCfg = Release|Win32
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Release|Win32.Build.0 = Release|Win32
-		{15337819-B955-4EDB-A7CF-521B411D42C2}.Release|x64.ActiveCfg = Release|Win32
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Debug|Win32.Build.0 = Debug|Win32
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Debug|x64.ActiveCfg = Debug|x64
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Debug|x64.Build.0 = Debug|x64
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Release|Win32.ActiveCfg = Release|Win32
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Release|Win32.Build.0 = Release|Win32
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Release|x64.ActiveCfg = Release|x64
+		{10DCD767-FFBE-4096-9258-181D42F899B1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

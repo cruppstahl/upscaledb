@@ -62,7 +62,7 @@ class ByteArray
     }
 
     void append(const void *ptr, size_t size) {
-      uint32_t oldsize = m_size;
+      size_t oldsize = m_size;
       char *p = (char *)resize(m_size + size);
       ::memcpy(p + oldsize, ptr, size);
     }

@@ -1030,6 +1030,7 @@ struct JournalFixture {
   }
 
   void recoverAfterChangesetTest() {
+#ifndef WIN32
     ham_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
@@ -1092,9 +1093,11 @@ struct JournalFixture {
     REQUIRE(st == HAM_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
+#endif
   }
 
   void recoverAfterChangesetAndCommitTest() {
+#ifndef WIN32
     ham_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
@@ -1168,9 +1171,11 @@ struct JournalFixture {
     REQUIRE(st == HAM_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
+#endif
   }
 
   void recoverAfterChangesetAndCommit2Test() {
+#ifndef WIN32
     ham_txn_t *txn;
     ham_txn_t *longtxn;
 
@@ -1245,9 +1250,11 @@ struct JournalFixture {
     REQUIRE(st == HAM_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
+#endif
   }
 
   void recoverWithCorruptChangesetTest() {
+#ifndef WIN32
     ham_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
@@ -1331,9 +1338,11 @@ struct JournalFixture {
     REQUIRE(st == HAM_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
+#endif
   }
 
   void recoverFromRecoveryTest() {
+#ifndef WIN32
     ham_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
@@ -1428,6 +1437,7 @@ struct JournalFixture {
     REQUIRE(st == HAM_KEY_NOT_FOUND);
     REQUIRE(j == 1);
     REQUIRE(0 == ham_cursor_close(cursor));
+#endif
   }
 };
 

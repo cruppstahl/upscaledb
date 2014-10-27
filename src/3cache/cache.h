@@ -224,7 +224,7 @@ class Cache
     }
 
     // Returns the capacity (in bytes)
-    uint64_t get_capacity() const {
+    size_t get_capacity() const {
       return (m_capacity);
     }
 

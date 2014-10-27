@@ -336,7 +336,9 @@ static bool
 __txn_cursor_is_erase(TransactionCursor *txnc)
 {
   TransactionOperation *op = txnc->get_coupled_op();
-  return (op ? (op->get_flags() & TransactionOperation::kErase) : false);
+  return (op
+          ? (op->get_flags() & TransactionOperation::kErase) != 0
+          : false);
 }
 
 int

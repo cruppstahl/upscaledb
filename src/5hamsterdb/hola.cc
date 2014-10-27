@@ -132,7 +132,7 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
   uint64_t m_count;
 
   // The key size
-  size_t m_key_size;
+  uint16_t m_key_size;
 
   // The user's predicate
   hola_bool_predicate_t *m_pred;
@@ -541,7 +541,7 @@ struct SumScanVisitor : public ScanVisitor {
     const PodType *p = (const PodType *)key_array;
     const PodType *end = &p[key_count];
     const int kMax = 8;
-    uint64_t sums[kMax] = {0};
+    ResultType sums[kMax] = {0};
     for (; p + kMax < end; p += kMax) {
 #if defined __GNUC__
       __builtin_prefetch(((char *)p) + kMax * sizeof(PodType));

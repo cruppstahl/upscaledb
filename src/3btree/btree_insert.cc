@@ -349,9 +349,9 @@ class BtreeInsertAction
       if (pivot_at_end || m_hints.append_count > 30)
         pivot = old_count - 2;
       else if (m_hints.append_count > 10)
-        pivot = (old_count / 100.f * 66);
+        pivot = (int)(old_count / 100.f * 66);
       else if (m_hints.prepend_count > 10)
-        pivot = (old_count / 100.f * 33);
+        pivot = (int)(old_count / 100.f * 33);
       else if (m_hints.prepend_count > 30)
         pivot = 2;
       else

@@ -96,7 +96,7 @@ class LocalEnvironment : public Environment
 
     // Returns the page_size as specified in ham_env_create
     uint32_t get_page_size() const {
-      return (m_config.page_size_bytes);
+      return ((uint32_t)m_config.page_size_bytes);
     }
 
     // Returns the size of the usable persistent payload of a page

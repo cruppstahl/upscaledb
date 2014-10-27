@@ -399,15 +399,11 @@ RemoteEnvironment::close(uint32_t flags)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->type() == Protocol::DISCONNECT_REPLY);
+  // ignore the reply
 
-  st = reply->disconnect_reply().status();
-  if (st == 0) {
-    m_socket.close();
-    m_remote_handle = 0;
-  }
-
-  return (st);
+  m_socket.close();
+  m_remote_handle = 0;
+  return (0);
 }
 
 Transaction *

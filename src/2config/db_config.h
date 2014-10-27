@@ -55,10 +55,10 @@ struct DatabaseConfiguration
   int key_type;
 
   // the key size (if specified)
-  uint32_t key_size;
+  size_t key_size;
 
   // the record size (if specified)
-  uint64_t record_size;
+  size_t record_size;
 
   // the algorithm for key compression
   int key_compressor;

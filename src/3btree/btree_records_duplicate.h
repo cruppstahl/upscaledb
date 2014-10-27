@@ -132,7 +132,7 @@ class DuplicateTable
     }
 
     // Returns the record size of a duplicate
-    uint32_t get_record_size(int duplicate_index) {
+    uint64_t get_record_size(int duplicate_index) {
       ham_assert(duplicate_index < get_record_count());
       if (m_inline_records)
         return (m_record_size);
@@ -700,7 +700,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns the actual record size including overhead
-    double get_full_record_size() const {
+    size_t get_full_record_size() const {
       return (1 + m_record_size + m_index.get_full_index_size());
     }
 

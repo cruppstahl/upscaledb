@@ -77,7 +77,7 @@
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -179,17 +179,17 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\protobuf\messages.pb.cc" />
+    <ClCompile Include="..\..\src\2protobuf\messages.pb.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\protobuf\messages.pb.h" />
-    <ClInclude Include="..\..\src\protobuf\protocol.h" />
+    <ClInclude Include="..\..\src\2protobuf\messages.pb.h" />
+    <ClInclude Include="..\..\src\2protobuf\protocol.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\src\protobuf\messages.proto">
+    <CustomBuild Include="..\..\src\2protobuf\messages.proto">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\protobuf\messages.proto --cpp_out=..\..\src\protobuf --proto_path=..\..\src\protobuf</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\hamsterdb-alien\protobuf\msvc2010\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">messages.pb.cc</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">messages.pb.cc</Outputs>
     </CustomBuild>

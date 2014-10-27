@@ -275,7 +275,7 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
                     Page **bucket2, uint32_t bucket2_size,
                     Page **bucket3, uint32_t bucket3_size,
                     Page **bucket4, uint32_t bucket4_size,
-                    uint32_t lsn)
+                    uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -355,7 +355,7 @@ Journal::transaction_flushed(LocalTransaction *txn)
 void
 Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 {
-  uint64_t filesize;
+  size_t filesize;
 
   auxbuffer->clear();
 
@@ -404,11 +404,11 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
       auxbuffer->resize((uint32_t)entry->followup_size);
 
       m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
-                      entry->followup_size);
+                      (size_t)entry->followup_size);
       iter->offset += entry->followup_size;
     }
   }
-  catch (Exception &ex) {
+  catch (Exception &) {
     ham_trace(("failed to read journal entry, aborting recovery"));
     entry->lsn = 0; // this triggers the end of recovery
   }
@@ -592,7 +592,7 @@ Journal::recover_changeset()
     uint32_t page_size = m_env->get_page_size();
     ByteArray arena(page_size);
 
-    uint64_t file_size = m_env->get_device()->get_file_size();
+    size_t file_size = m_env->get_device()->get_file_size();
 
     // for each page in this changeset...
     for (uint32_t i = 0; i < changeset.num_pages; i++) {
@@ -612,7 +612,7 @@ Journal::recover_changeset()
         page->allocate(0);
       }
       else if (page_header.address > file_size) {
-        file_size = page_header.address + page_size;
+        file_size = (size_t)page_header.address + page_size;
         m_env->get_device()->truncate(file_size);
 
         page = new Page(m_env->get_device());
@@ -647,7 +647,7 @@ Journal::recover_changeset()
       delete page;
     }
   }
-  catch (Exception ex) {
+  catch (Exception &) {
     ham_trace(("Exception when applying changeset; skipping changeset"));
     // fall through
   }

@@ -447,7 +447,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (!P::m_keys.requires_split(node_count, key));
       }
 
-      ssize_t remainder = usable_page_size
+      int remainder = usable_page_size
                             - (required_key_range + required_record_range); 
       if (remainder < 0)
         return (false);

@@ -141,7 +141,7 @@ InMemoryBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
             flags);
 
     InMemoryDevice *dev = (InMemoryDevice *)m_env->get_device();
-    dev->release(phdr, phdr->get_alloc_size());
+    dev->release(phdr, (size_t)phdr->get_alloc_size());
     return (new_blobid);
   }
 }

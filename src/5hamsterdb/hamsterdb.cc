@@ -379,7 +379,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
           return (HAM_INV_PARAMETER);
         }
         if (param->value > 0)
-          config.cache_size_bytes = param->value;
+          config.cache_size_bytes = (size_t)param->value;
         break;
       case HAM_PARAM_PAGE_SIZE:
         if (param->value != 1024 && param->value % 2048 != 0) {
@@ -391,7 +391,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
         break;
       case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
-          config.file_size_limit_bytes = param->value;
+          config.file_size_limit_bytes = (size_t)param->value;
         break;
       case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
         config.journal_switch_threshold = (uint32_t)param->value;
@@ -462,7 +462,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     try {
       env->close(HAM_AUTO_CLEANUP);
     }
-    catch (Exception &ex) {
+    catch (Exception &) {
       // ignored
     }
     delete env;
@@ -648,7 +648,7 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
         break;
       case HAM_PARAM_FILE_SIZE_LIMIT:
         if (param->value > 0)
-          config.file_size_limit_bytes = param->value;
+          config.file_size_limit_bytes = (size_t)param->value;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         config.log_filename = (const char *)param->value;
@@ -698,7 +698,7 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
     try {
       env->close(HAM_AUTO_CLEANUP);
     }
-    catch (Exception &ex) {
+    catch (Exception &) {
       // ignored
     }
     delete env;
@@ -1900,7 +1900,7 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
   if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
           flags & (~HAM_SKIP_DUPLICATES)));
-    throw Exception(HAM_INV_PARAMETER);
+    return (HAM_INV_PARAMETER);
   }
   if (!keycount) {
     ham_trace(("parameter 'keycount' must not be NULL"));

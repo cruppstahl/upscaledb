@@ -46,7 +46,7 @@
 
 namespace hamsterdb {
 
-class ScanVisitor;
+struct ScanVisitor;
 
 //
 // A BtreeNodeProxy wraps a PBtreeNode structure and defines the actual

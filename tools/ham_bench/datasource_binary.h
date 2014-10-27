@@ -210,7 +210,7 @@ class BinaryZipfianDatasource : public Datasource
   // dann eine NumericZipfianDatasource erzeugen und in diesem binary
   // array entsprechend die daten rauskopieren
   public:
-    BinaryZipfianDatasource(uint64_t n, size_t size, bool fixed_size,
+    BinaryZipfianDatasource(size_t n, size_t size, bool fixed_size,
             long seed = 0, double alpha = 0.8)
       : m_n(n), m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
         m_seed(seed) {
@@ -222,7 +222,7 @@ class BinaryZipfianDatasource : public Datasource
     virtual void reset() {
       if (m_seed)
         m_rng.seed(m_seed);
-      m_data.resize(m_n * m_size);
+      m_data.resize((size_t)m_n * m_size);
       for (unsigned i = 0; i < (m_n * m_size); i++) {
         do {
           m_data[i] = m_rng() % 0xff;

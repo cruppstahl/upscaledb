@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#define WIN32_LEAN_AND_MEAN
 #include "0root/root.h"
 
 #include <string.h>
@@ -22,8 +22,6 @@
 #ifdef WIN32
 #  include <winsock2.h>
 #endif
-
-#include <uv.h>
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
@@ -34,6 +32,9 @@
 #include "2protoserde/messages.h"
 #include "4env/env.h"
 #include "5server/hamserver.h"
+
+#include <uv.h>
+
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -103,7 +104,11 @@ handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
   if (ErrorInducer::is_active()) {
     if (ErrorInducer::get_instance()->induce(ErrorInducer::kServerConnect)) {
+#ifdef WIN32
+      Sleep(5);
+#else
       sleep(5);
+#endif
       ErrorInducer::activate(false);
     }
   }
@@ -2012,7 +2017,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
       size = *(uint32_t *)(p + 4);
       if (magic == HAM_TRANSFER_MAGIC_V1)
         size += 8;
-      if (size <= nread) {
+      if (size <= (uint32_t)nread) {
         close_client = !dispatch(context->srv, tcp, magic, p, size);
         if (close_client)
           goto bail;

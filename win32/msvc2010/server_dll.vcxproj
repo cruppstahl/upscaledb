@@ -177,7 +177,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\server\hamserver.cc" />
+    <ClCompile Include="..\..\src\5server\hamserver.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="servicemsg.mc" />

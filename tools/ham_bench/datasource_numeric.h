@@ -122,7 +122,7 @@ template<typename T>
 class NumericZipfianDatasource : public Datasource
 {
   public:
-    NumericZipfianDatasource(uint64_t n, long seed = 0, double alpha = 0.8)
+    NumericZipfianDatasource(size_t n, long seed = 0, double alpha = 0.8)
       : m_n(n), m_alpha(alpha), m_u01(m_rng), m_seed(seed) {
       reset();
     }
@@ -140,7 +140,7 @@ class NumericZipfianDatasource : public Datasource
 
       m_values.resize(m_n);
       double sum_prob = 0;
-      for (uint64_t i = 1; i <= m_n; i++) {
+      for (size_t i = 1; i <= m_n; i++) {
         sum_prob = sum_prob + m_c / pow((double) i, m_alpha);
         m_values[i - 1] = sum_prob;
       }
@@ -160,7 +160,7 @@ class NumericZipfianDatasource : public Datasource
         z = m_u01();
 
       // Map z to the value
-      for (uint64_t i = 0; i < m_values.size(); i++) {
+      for (size_t i = 0; i < m_values.size(); i++) {
         if (m_values[i] >= z)
           return ((T)(m_values[i] * m_values.size()));
       }
@@ -170,7 +170,7 @@ class NumericZipfianDatasource : public Datasource
     }
 
   private:
-    uint64_t m_n;
+    size_t m_n;
     double m_alpha;
     double m_c;
     std::vector<double> m_values;
