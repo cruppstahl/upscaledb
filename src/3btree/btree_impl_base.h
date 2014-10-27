@@ -134,7 +134,7 @@ class BaseNodeImpl
         result.slot = node_count;
       else {
         int cmp;
-        result.slot = find_impl(key, comparator, &cmp);
+        result.slot = find_lowerbound_impl(key, comparator, &cmp);
 
         /* insert the new key at the beginning? */
         if (result.slot == -1) {
@@ -180,7 +180,7 @@ class BaseNodeImpl
     template<typename Cmp>
     int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
                     int *pcmp) {
-      int slot = find_impl(key, comparator, pcmp);
+      int slot = find_lowerbound_impl(key, comparator, pcmp);
       if (precord_id) {
         if (slot == -1)
           *precord_id = m_node->get_ptr_down();
@@ -190,35 +190,14 @@ class BaseNodeImpl
       return (slot);
     }
 
-#ifdef HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
     int find_exact(ham_key_t *key, Cmp &comparator) {
-      if (P::m_keys.has_simd_support()
-              && os_get_simd_lane_width() > 1
-              && Globals::ms_is_simd_enabled) {
-        size_t node_count = P::m_node->get_count();
-        return (find_simd_sse<typename KeyList::type>(
-                            (typename KeyList::type *)P::m_keys.get_simd_data(),
-                            count, key));
-      }
-
-      int cmp;
-      int r = find_impl(key, comparator, 0, &cmp);
+      int cmp = 0;
+      int r = find_exact_impl(key, comparator, &cmp);
       return (cmp ? -1 : r);
     }
-#else // !HAM_ENABLE_SIMD
-    // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
-    template<typename Cmp>
-    int find_exact(ham_key_t *key, Cmp &comparator) {
-      int cmp;
-      int r = find_impl(key, comparator, &cmp);
-      return (cmp ? -1 : r);
-    }
-
-#endif // HAM_ENABLE_SIMD
 
     // Splits a node and moves parts of the current node into |other|, starting
     // at the |pivot| slot
@@ -304,16 +283,31 @@ class BaseNodeImpl
     RecordList m_records;
 
   private:
-    // Implementation of the find method; uses either binary search *only*,
-    // binary search in combination with linear search *or* a custom search
-    // implementation of the KeyList
+    // Implementation of the find method for lower-bound matches. If there
+    // is no exact match then the lower bound is returned, and the compare value
+    // is returned in |*pcmp|.
     template<typename Cmp>
-    int find_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_lowerbound_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
       switch ((int)KeyList::kSearchImplementation) {
         case BaseKeyList::kBinaryLinear:
           return (find_impl_binlin(key, comparator, pcmp));
         case BaseKeyList::kCustomImplementation:
-          return (m_keys.find(key, comparator, pcmp));
+          return (m_keys.find(m_node->get_count(), key, comparator, pcmp));
+        default: // BaseKeyList::kBinarySearch
+          return (find_impl_binary(key, comparator, pcmp));
+      }
+    }
+
+    // Implementation of the find method for exact matches. Supports a custom
+    // search implementation in the KeyList (i.e. for SIMD).
+    template<typename Cmp>
+    int find_exact_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+      switch ((int)KeyList::kSearchImplementation) {
+        case BaseKeyList::kBinaryLinear:
+          return (find_impl_binlin(key, comparator, pcmp));
+        case BaseKeyList::kCustomImplementation:
+        case BaseKeyList::kCustomExactImplementation:
+          return (m_keys.find(m_node->get_count(), key, comparator, pcmp));
         default: // BaseKeyList::kBinarySearch
           return (find_impl_binary(key, comparator, pcmp));
       }

@@ -84,14 +84,15 @@ class Zint32KeyList : public BaseKeyList
     };
 
   public:
-    typedef uint32_t type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 0,
 
       // A flag whether this KeyList supports the scan() call
       kSupportsBlockScans = 1,
+
+      // Use a custom search implementation
+      kSearchImplementation = kCustomImplementation,
 
       kMaxBlockSize = 64,
       kInitialBlockSize = 16,
@@ -519,15 +520,15 @@ class Zint32KeyList : public BaseKeyList
       out << value(slot);
     }
 
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (false);
+    // Returns the size of a key
+    size_t get_key_size(int slot) const {
+      return (sizeof(uint32_t));
     }
 
-    // Returns the pointer to the key's inline data - for SIMD calculations
-    uint8_t *get_simd_data() {
-      print_block(0);
-      return (0); // TODO
+    // Returns a pointer to the key's data
+    uint8_t *get_key_data(int slot) {
+      // TODO shouldn't be here
+      return (0);
     }
 
   private:

@@ -46,6 +46,10 @@ struct BaseKeyList
       // This KeyList has a custom search implementation
       kCustomImplementation,
 
+      // This KeyList has a custom search implementation for exact matches
+      // *only*
+      kCustomExactImplementation,
+
       // This KeyList uses binary search (this is the default)
       kBinarySearch,
 
@@ -72,7 +76,7 @@ struct BaseKeyList
 
   // Finds a key
   template<typename Cmp>
-  int find(ham_key_t *key, Cmp &comparator, int *pcmp) {
+  int find(size_t node_count, ham_key_t *key, Cmp &comparator, int *pcmp) {
     ham_assert(!"shouldn't be here");
     return (0);
   }

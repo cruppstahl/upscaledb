@@ -601,6 +601,9 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     }
   }
 
+  if (config.flags & HAM_RECORD_NUMBER)
+    config.key_type = HAM_TYPE_UINT64;
+
   if (config.key_type == HAM_TYPE_UINT8
         || config.key_type == HAM_TYPE_UINT16
         || config.key_type == HAM_TYPE_UINT32
@@ -614,7 +617,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   // Pro: uint32 compression is only allowed for uint32-keys
-  else if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE) {
+  if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE) {
     if (config.key_type != HAM_TYPE_UINT32) {
       ham_trace(("Uint32 compression only allowed for uint32 keys "
                  "(HAM_TYPE_UINT32)"));
@@ -624,7 +627,10 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
 
   // Pro: all heavy-weight compressors are only allowed for
   // variable-length binary keys
-  else if (config.key_compressor != HAM_COMPRESSOR_NONE) {
+  if (config.key_compressor == HAM_COMPRESSOR_LZF
+        || config.key_compressor == HAM_COMPRESSOR_SNAPPY
+        || config.key_compressor == HAM_COMPRESSOR_LZO
+        || config.key_compressor == HAM_COMPRESSOR_ZLIB) {
     if (config.key_type != HAM_TYPE_BINARY
           || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
       ham_trace(("Key compression only allowed for unlimited binary keys "

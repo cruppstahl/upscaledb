@@ -130,7 +130,7 @@ get_sse_threshold<double>()
 
 template<typename T>
 int
-find_simd_sse(T *data, uint32_t count, ham_key_t *hkey)
+find_simd_sse(size_t node_count, T *data, ham_key_t *hkey)
 {
   ham_assert(hkey->size == sizeof(T));
   T key = *(T *)hkey->data;
@@ -138,8 +138,8 @@ find_simd_sse(T *data, uint32_t count, ham_key_t *hkey)
   // Run a binary search, but fall back to linear search as soon as
   // the remaining range is too small
   int threshold = get_sse_threshold<T>();
-  int i, l = 0, r = count;
-  int last = count + 1;
+  int i, l = 0, r = (int)node_count;
+  int last = (int)node_count + 1;
 
   /* repeat till we found the key or the remaining range is so small that
    * we rather perform a linear search (which is faster for small ranges) */
@@ -150,7 +150,7 @@ find_simd_sse(T *data, uint32_t count, ham_key_t *hkey)
 
     if (i == last) {
       ham_assert(i >= 0);
-      ham_assert(i < (int)count);
+      ham_assert(i < (int)node_count);
       return (-1);
     }
 
@@ -181,8 +181,7 @@ find_simd_sse(T *data, uint32_t count, ham_key_t *hkey)
 
 template<>
 inline int
-linear_search_sse<uint16_t>(uint16_t *data, int start, int count,
-                uint16_t key)
+linear_search_sse<uint16_t>(uint16_t *data, int start, int count, uint16_t key)
 {
   __m128i key8 = _mm_set1_epi16(key);
 
@@ -208,8 +207,7 @@ linear_search_sse<uint16_t>(uint16_t *data, int start, int count,
 
 template<>
 inline int
-linear_search_sse<uint32_t>(uint32_t *data, int start, int count,
-                uint32_t key)
+linear_search_sse<uint32_t>(uint32_t *data, int start, int count, uint32_t key)
 {
   __m128i key4 = _mm_set1_epi32(key);
 
@@ -307,8 +305,7 @@ linear_search_sse<double>(double *data, int start, int count, double key)
 
 template<>
 inline int
-linear_search_sse<uint64_t>(uint64_t *data, int start, int count,
-                uint64_t key)
+linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 {
   __m128i key2 = _mm_set1_epi64x(key);
 

@@ -66,8 +66,15 @@ class PodKeyList : public BaseKeyList
       // A flag whether this KeyList supports the scan() call
       kSupportsBlockScans = 1,
 
-      // This KeyList uses binary search in combination with linear search
+      // This KeyList uses a custom SIMD implementation if possible,
+      // otherwise binary search in combination with linear search
+#ifdef HAM_ENABLE_SIMD
+      kSearchImplementation = sizeof(T) >= 2 && sizeof(T) <= 8
+                                ? kCustomExactImplementation
+                                : kBinaryLinear,
+#else
       kSearchImplementation = kBinaryLinear,
+#endif
     };
 
     // Constructor
@@ -166,6 +173,18 @@ class PodKeyList : public BaseKeyList
       return (start + length - 1);
     }
 
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    //
+    // This is the SIMD implementation. If SIMD is disabled then the
+    // BaseKeyList::find method is used.
+    template<typename Cmp>
+    int find(size_t node_count, ham_key_t *key, Cmp &comparator, int *pcmp) {
+      return (find_simd_sse<T>(node_count, &m_data[0], key));
+    }
+#endif
+
     // Iterates all keys, calls the |visitor| on each
     void scan(ScanVisitor *visitor, uint32_t start, size_t length) {
       (*visitor)(&m_data[start], length);
@@ -219,16 +238,6 @@ class PodKeyList : public BaseKeyList
     // Returns a pointer to the key's data
     uint8_t *get_key_data(int slot) {
       return ((uint8_t *)&m_data[slot]);
-    }
-
-    // Has support for SIMD style search?
-    bool has_simd_support() const {
-      return (sizeof(T) >= 2 && sizeof(T) <= 8);
-    }
-
-    // Returns the pointer to the key's inline data - for SIMD calculations
-    uint8_t *get_simd_data() {
-      return (get_key_data(0));
     }
 
   private:
