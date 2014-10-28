@@ -507,7 +507,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags) {
-      PBtreeNode::InsertResult result = {0, 0};
+      PBtreeNode::InsertResult result;
       if (m_impl.requires_split(key)) {
         result.status = HAM_LIMITS_REACHED;
         return (result);

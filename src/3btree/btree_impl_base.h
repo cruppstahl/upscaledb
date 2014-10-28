@@ -120,44 +120,54 @@ class BaseNodeImpl
     }
 
     // Inserts a new key
+    //
+    // Most KeyLists first calculate the slot of the new key, then insert
+    // the key at this slot. Both operations are separate from each other.
+    // However, compressed KeyLists can overwrite this behaviour and
+    // combine both calls into one to save performance. 
     template<typename Cmp>
-    PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags,
+    PBtreeNode::InsertResult insert(const ham_key_t *key, uint32_t flags,
                     Cmp &comparator) {
-      PBtreeNode::InsertResult result = {0, 0};
+      PBtreeNode::InsertResult result;
       size_t node_count = m_node->get_count();
 
-      if (node_count == 0)
-        result.slot = 0;
-      else if (flags & PBtreeNode::kInsertPrepend)
-        result.slot = 0;
-      else if (flags & PBtreeNode::kInsertAppend)
-        result.slot = node_count;
-      else {
-        int cmp;
-        result.slot = find_lowerbound_impl(key, comparator, &cmp);
-
-        /* insert the new key at the beginning? */
-        if (result.slot == -1) {
+      /* KeyLists with a custom insert function don't need a slot; only
+       * calculate the slot for the default insert functions */
+      if (!KeyList::kCustomInsert) {
+        if (node_count == 0)
           result.slot = 0;
-          ham_assert(cmp != 0);
+        else if (flags & PBtreeNode::kInsertPrepend)
+          result.slot = 0;
+        else if (flags & PBtreeNode::kInsertAppend)
+          result.slot = node_count;
+        else {
+          int cmp;
+          result.slot = find_lowerbound_impl(key, comparator, &cmp);
+
+          /* insert the new key at the beginning? */
+          if (result.slot == -1) {
+            result.slot = 0;
+            ham_assert(cmp != 0);
+          }
+          /* key exists already */
+          else if (cmp == 0) {
+            result.status = HAM_DUPLICATE_KEY;
+            return (result);
+          }
+          /* if the new key is > than the slot key: move to the next slot */
+          if (cmp > 0)
+            result.slot++;
         }
-        /* key exists already */
-        else if (cmp == 0) {
-          result.status = HAM_DUPLICATE_KEY;
-          return (result);
-        }
-        /* if the new key is > than the slot key: move to the next slot */
-        if (cmp > 0)
-          result.slot++;
+
+        // uncouple the cursors
+        if ((int)node_count > result.slot)
+          BtreeCursor::uncouple_all_cursors(m_page, result.slot);
       }
 
-      // uncouple the cursors
-      if ((int)node_count > result.slot)
-        BtreeCursor::uncouple_all_cursors(m_page, result.slot);
-
-      // make space for 1 additional element.
-      // only store the key data; flags and record IDs are set by the caller
-      m_keys.insert(node_count, result.slot, key);
+      // now store the key
+      result = m_keys.insert(node_count, key, flags, comparator, result.slot);
+      // and create space for the record (the actual record data is then
+      // inserted by the caller)
       m_records.insert(node_count, result.slot);
       return (result);
     }
@@ -178,7 +188,7 @@ class BaseNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
+    int find_child(const ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
                     int *pcmp) {
       int slot = find_lowerbound_impl(key, comparator, pcmp);
       if (precord_id) {
@@ -287,11 +297,11 @@ class BaseNodeImpl
     // is no exact match then the lower bound is returned, and the compare value
     // is returned in |*pcmp|.
     template<typename Cmp>
-    int find_lowerbound_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_lowerbound_impl(const ham_key_t *key, Cmp &comparator, int *pcmp) {
       switch ((int)KeyList::kSearchImplementation) {
         case BaseKeyList::kBinaryLinear:
           return (find_impl_binlin(key, comparator, pcmp));
-        case BaseKeyList::kCustomImplementation:
+        case BaseKeyList::kCustomSearch:
           return (m_keys.find(m_node->get_count(), key, comparator, pcmp));
         default: // BaseKeyList::kBinarySearch
           return (find_impl_binary(key, comparator, pcmp));
@@ -301,11 +311,11 @@ class BaseNodeImpl
     // Implementation of the find method for exact matches. Supports a custom
     // search implementation in the KeyList (i.e. for SIMD).
     template<typename Cmp>
-    int find_exact_impl(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_exact_impl(const ham_key_t *key, Cmp &comparator, int *pcmp) {
       switch ((int)KeyList::kSearchImplementation) {
         case BaseKeyList::kBinaryLinear:
           return (find_impl_binlin(key, comparator, pcmp));
-        case BaseKeyList::kCustomImplementation:
+        case BaseKeyList::kCustomSearch:
         case BaseKeyList::kCustomExactImplementation:
           return (m_keys.find(m_node->get_count(), key, comparator, pcmp));
         default: // BaseKeyList::kBinarySearch
@@ -315,7 +325,7 @@ class BaseNodeImpl
 
     // Binary search
     template<typename Cmp>
-    int find_impl_binary(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_impl_binary(const ham_key_t *key, Cmp &comparator, int *pcmp) {
       size_t node_count = m_node->get_count();
       ham_assert(node_count > 0);
 
@@ -367,7 +377,7 @@ class BaseNodeImpl
 
     // Binary search combined with linear search
     template<typename Cmp>
-    int find_impl_binlin(ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find_impl_binlin(const ham_key_t *key, Cmp &comparator, int *pcmp) {
       size_t node_count = m_node->get_count();
       ham_assert(node_count > 0);
 

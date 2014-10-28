@@ -45,6 +45,10 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
   public:
     // Result of the insert() operation
     struct InsertResult {
+      InsertResult(ham_status_t _status = 0, int _slot = 0)
+        : status(_status), slot(_slot) {
+      }
+
       // hamsterdb status code
       ham_status_t status;
 

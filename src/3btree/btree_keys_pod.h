@@ -132,7 +132,7 @@ class PodKeyList : public BaseKeyList
     // Performs a linear search in a given range between |start| and
     // |start + length|
     template<typename Cmp>
-    int linear_search(size_t start, size_t length, ham_key_t *hkey,
+    int linear_search(size_t start, size_t length, const ham_key_t *hkey,
                     Cmp &comparator, int *pcmp) {
       T key = *(T *)hkey->data;
       size_t c = start;
@@ -180,7 +180,8 @@ class PodKeyList : public BaseKeyList
     // This is the SIMD implementation. If SIMD is disabled then the
     // BaseKeyList::find method is used.
     template<typename Cmp>
-    int find(size_t node_count, ham_key_t *key, Cmp &comparator, int *pcmp) {
+    int find(size_t node_count, const ham_key_t *key, Cmp &comparator,
+                    int *pcmp) {
       return (find_simd_sse<T>(node_count, &m_data[0], key));
     }
 #endif
@@ -198,11 +199,14 @@ class PodKeyList : public BaseKeyList
     }
 
     // Inserts a key
-    void insert(size_t node_count, int slot, const ham_key_t *key) {
+    template<typename Cmp>
+    PBtreeNode::InsertResult insert(size_t node_count, const ham_key_t *key,
+                    uint32_t flags, Cmp &comparator, int slot) {
       if (node_count > (size_t)slot)
         memmove(&m_data[slot + 1], &m_data[slot],
                         sizeof(T) * (node_count - slot));
       set_key_data(slot, key->data, key->size);
+      return (PBtreeNode::InsertResult(0, slot));
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]

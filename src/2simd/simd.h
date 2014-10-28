@@ -130,7 +130,7 @@ get_sse_threshold<double>()
 
 template<typename T>
 int
-find_simd_sse(size_t node_count, T *data, ham_key_t *hkey)
+find_simd_sse(size_t node_count, T *data, const ham_key_t *hkey)
 {
   ham_assert(hkey->size == sizeof(T));
   T key = *(T *)hkey->data;

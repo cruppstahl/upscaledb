@@ -221,7 +221,9 @@ class VariableLengthKeyList : public BaseKeyList
     // Inserts the |key| at the position identified by |slot|.
     // This method cannot fail; there MUST be sufficient free space in the
     // node (otherwise the caller would have split the node).
-    void insert(size_t node_count, int slot, const ham_key_t *key) {
+    template<typename Cmp>
+    PBtreeNode::InsertResult insert(size_t node_count, const ham_key_t *key,
+                    uint32_t flags, Cmp &comparator, int slot) {
       m_index.insert(node_count, slot);
 
       // now there's one additional slot
@@ -250,6 +252,8 @@ class VariableLengthKeyList : public BaseKeyList
         set_extended_blob_id(slot, blob_id);
         set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
       }
+
+      return (PBtreeNode::InsertResult(0, slot));
     }
 
     // Returns true if the |key| no longer fits into the node and a split

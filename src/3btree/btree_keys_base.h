@@ -44,7 +44,7 @@ struct BaseKeyList
       kBinaryLinear,
 
       // This KeyList has a custom search implementation
-      kCustomImplementation,
+      kCustomSearch,
 
       // This KeyList has a custom search implementation for exact matches
       // *only*
@@ -55,6 +55,9 @@ struct BaseKeyList
 
       // Specifies the search implementation: 
       kSearchImplementation = kBinarySearch,
+
+      // This KeyList does NOT have a custom insert implementation
+      kCustomInsert = 0,
   };
 
   BaseKeyList()
@@ -76,7 +79,8 @@ struct BaseKeyList
 
   // Finds a key
   template<typename Cmp>
-  int find(size_t node_count, ham_key_t *key, Cmp &comparator, int *pcmp) {
+  int find(size_t node_count, const ham_key_t *key, Cmp &comparator,
+                  int *pcmp) {
     ham_assert(!"shouldn't be here");
     return (0);
   }
@@ -90,7 +94,7 @@ struct BaseKeyList
   // Performs a linear search in a given range between |start| and
   // |start + length|. Disabled by default.
   template<typename Cmp>
-  int linear_search(size_t start, size_t length, ham_key_t *hkey,
+  int linear_search(size_t start, size_t length, const ham_key_t *hkey,
                   Cmp &comparator, int *pcmp) {
     ham_assert(!"shouldn't be here");
     throw Exception(HAM_INTERNAL_ERROR);

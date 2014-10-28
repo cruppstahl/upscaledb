@@ -68,7 +68,7 @@ struct BtreeKeyFixture {
     ham_key_t key = {0};
     ham_record_t rec = {0};
 
-    PBtreeNode::InsertResult result = {0, 0};
+    PBtreeNode::InsertResult result;
     if (!flags)
       result = node->insert(&key, 0);
 
@@ -93,7 +93,7 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
-    PBtreeNode::InsertResult result = {0, 0};
+    PBtreeNode::InsertResult result;
     if (!flags)
       result = node->insert(&key, 0);
 
@@ -131,7 +131,7 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
-    PBtreeNode::InsertResult result = {0, 0};
+    PBtreeNode::InsertResult result;
     if (!flags)
       result = node->insert(&key, 0);
 
@@ -170,7 +170,7 @@ struct BtreeKeyFixture {
     ham_record_t rec, rec2;
     ham_key_t key = {0};
 
-    PBtreeNode::InsertResult result = {0, 0};
+    PBtreeNode::InsertResult result;
     if (!flags)
       result = node->insert(&key, 0);
 

@@ -92,7 +92,10 @@ class Zint32KeyList : public BaseKeyList
       kSupportsBlockScans = 1,
 
       // Use a custom search implementation
-      kSearchImplementation = kCustomImplementation,
+      kSearchImplementation = kCustomSearch,
+
+      // Use a custom insert implementation
+      kCustomInsert = 1,
 
       kMaxBlockSize = 64,
       kInitialBlockSize = 16,
@@ -227,114 +230,52 @@ class Zint32KeyList : public BaseKeyList
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
-    int find(size_t node_count, ham_key_t *hkey, Cmp &comparator, int *pcmp) {
+    int find(size_t node_count, const ham_key_t *hkey, Cmp &comparator,
+                    int *pcmp) {
       ham_assert(get_block_count() > 0);
-      Index *index = get_block_index(0);
-      Index *iend = get_block_index(get_block_count());
 
-      int slot = 0;
-      uint32_t key = *(uint32_t *)hkey->data;
-
-      if (key < index->value) {
-        *pcmp = -1;
-        return (-1);
-      }
-
-      // first perform a linear search through the index
-      for (; index < iend - 1; index++) {
-        if (key < (index + 1)->value)
-          break;
-        slot += index->key_count;
-      }
-
-      if (index->value == key) {
-        *pcmp = 0;
-        return (slot);
-      }
-
-      // then search in the compressed blog
-      uint32_t delta, prev = index->value;
-      uint8_t *p = get_block_data(index);
-      uint8_t *end = p + index->used_size;
-      while (p < end) {
-        p += read_int(p, &delta);
-        prev += delta;
-        slot++;
-
-        if (prev >= key) {
-          if (prev == key) {
-            *pcmp = 0;
-            return (slot);
-          }
-          *pcmp = +1;
-          return (slot);
-        }
-      }
-
-      *pcmp = +1;
+      int slot;
+      find_impl(*(uint32_t *)hkey->data, pcmp, &slot);
       return (slot);
     }
 
     // Inserts a key
-    void insert(size_t node_count, int slot, const ham_key_t *key) {
+    template<typename Cmp>
+    PBtreeNode::InsertResult insert(size_t node_count, const ham_key_t *hkey,
+                    uint32_t flags, Cmp &comparator, int slot) {
       ham_assert(check_integrity(node_count));
-      ham_assert(key->size == sizeof(uint32_t));
+      ham_assert(hkey->size == sizeof(uint32_t));
 
-      // find the block
-      int position_in_block;
-      Index *index;
-      if (slot == 0) {
-        index = get_block_index(0);
-        position_in_block = 0;
-      }
-      else if (slot == (int)node_count) {
-        index = get_block_index(get_block_count() - 1);
-        position_in_block = index->key_count;
-      }
-      else
-        index = find_block_by_slot(slot, &position_in_block);
+      // TODO get the slot
+      if (node_count == 0)
+        slot = 0;
+      else if (flags & PBtreeNode::kInsertPrepend)
+        slot = 0;
+      else if (flags & PBtreeNode::kInsertAppend)
+        slot = node_count;
+      else {
+        int cmp;
+        slot = find(node_count, hkey, comparator, &cmp);
 
-      // if the block is full then grow or split it
-      if (index->used_size + 5 > index->block_size) {
-        // already reached max. size? then perform a split
-        if (index->block_size >= kMaxBlockSize
-             || index->key_count == kMaxKeysPerBlock) {
-          if (slot == 0) {
-            index = add_block(0);
-          }
-          else if (position_in_block == index->key_count) {
-            index = add_block(get_block_count());
-            position_in_block = 0;
-          }
-          else {
-            index = split_block(index, *(uint32_t *)key->data,
-                            &position_in_block);
-          }
+        /* insert the new key at the beginning? */
+        if (slot == -1) {
+          slot = 0;
+          ham_assert(cmp != 0);
         }
-        // otherwise grow the block
-        else {
-          grow_block(index);
-        }
+        /* key exists already */
+        else if (cmp == 0)
+          return (PBtreeNode::InsertResult(HAM_DUPLICATE_KEY, slot));
+        /* if the new key is > than the slot key: move to the next slot */
+        if (cmp > 0)
+          slot++;
       }
 
-      // first key in an empty block? then don't store a delta
-      if (index->key_count == 0) {
-        index->key_count = 1;
-        index->value = *(uint32_t *)key->data;
-        ham_assert(index->used_size == 0);
-        ham_assert(check_integrity(node_count + 1));
-        return;
-      }
+      // uncouple the cursors TODO
+      //if ((int)node_count > slot)
+        //BtreeCursor::uncouple_all_cursors(m_page, slot);
 
-      // now prepend, append or insert
-      if (position_in_block == 0)
-        prepend_key_to_block(index, *(uint32_t *)key->data);
-      else if (position_in_block == index->key_count)
-        append_key_to_block(index, *(uint32_t *)key->data);
-      else
-        insert_key_in_block(index, position_in_block, *(uint32_t *)key->data);
-
-      ham_assert(check_integrity(node_count + 1));
+      // now perform the actual insert
+      return (insert_impl(node_count, *(uint32_t *)hkey->data, slot));
     }
 
     // Erases a key
@@ -568,6 +509,130 @@ class Zint32KeyList : public BaseKeyList
     }
 
   private:
+    // Finds a key; returns a pointer to its compressed location
+    uint8_t *find_impl(uint32_t key, int *pcmp, int *pslot) {
+      // first perform a linear search through the index
+      Index *index = find_index(key, pslot);
+
+      if (key < index->value) {
+        ham_assert(*pslot == -1);
+        *pcmp = -1;
+        return (get_block_data(index));
+      }
+
+      if (index->value == key) {
+        *pcmp = 0;
+        return (get_block_data(index));
+      }
+
+      // then search in the compressed blog
+      int slot = 0;
+      uint32_t delta, prev = index->value;
+      uint8_t *p = get_block_data(index);
+      uint8_t *end = p + index->used_size;
+      while (p < end) {
+        p += read_int(p, &delta);
+        prev += delta;
+        slot++;
+
+        if (prev >= key) {
+          *pslot += slot;
+          *pcmp = prev == key
+                    ?  0
+                    : +1;
+          return (p);
+        }
+      }
+
+      *pcmp = +1;
+      *pslot += slot;
+      return (p);
+    }
+
+    // Performs a linear search through the index; returns the index
+    // and the starting slot of this index
+    Index *find_index(uint32_t key, int *pslot) {
+      Index *index = get_block_index(0);
+      Index *iend = get_block_index(get_block_count());
+
+      if (key < index->value) {
+        *pslot = -1;
+        return (index);
+      }
+
+      *pslot = 0;
+
+      for (; index < iend - 1; index++) {
+        if (key < (index + 1)->value)
+          break;
+        *pslot += index->key_count;
+      }
+
+      return (index);
+    }
+
+    // Inserts a key at the specified slot
+    PBtreeNode::InsertResult insert_impl(size_t node_count, uint32_t key,
+                    int slot) {
+      // first perform a linear search through the index
+      Index *index = find_index(key, &slot);
+
+      // find the block
+      int position_in_block;
+      if (slot == 0) {
+        index = get_block_index(0);
+        position_in_block = 0;
+      }
+      else if (slot == (int)node_count) {
+        index = get_block_index(get_block_count() - 1);
+        position_in_block = index->key_count;
+      }
+      else
+        index = find_block_by_slot(slot, &position_in_block);
+
+      // if the block is full then grow or split it
+      if (index->used_size + 5 > index->block_size) {
+        // already reached max. size? then perform a split
+        if (index->block_size >= kMaxBlockSize
+             || index->key_count == kMaxKeysPerBlock) {
+          if (slot == 0) {
+            index = add_block(0);
+          }
+          else if (position_in_block == index->key_count) {
+            index = add_block(get_block_count());
+            position_in_block = 0;
+          }
+          else {
+            index = split_block(index, key, &position_in_block);
+          }
+        }
+        // otherwise grow the block
+        else {
+          grow_block(index);
+        }
+      }
+
+      // first key in an empty block? then don't store a delta
+      if (index->key_count == 0) {
+        index->key_count = 1;
+        index->value = key;
+        ham_assert(index->used_size == 0);
+        ham_assert(check_integrity(node_count + 1));
+        return (PBtreeNode::InsertResult(0, slot));
+      }
+
+      // now prepend, append or insert
+      if (position_in_block == 0)
+        prepend_key_to_block(index, key);
+      else if (position_in_block == index->key_count)
+        append_key_to_block(index, key);
+      else
+        insert_key_in_block(index, position_in_block, key);
+
+      ham_assert(check_integrity(node_count + 1));
+      return (PBtreeNode::InsertResult(0, slot));
+    }
+
     // Prints all keys of a block to stdout (for debugging)
     void print_block(Index *index) const {
       uint32_t key = index->value;
