@@ -246,28 +246,38 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count));
       ham_assert(hkey->size == sizeof(uint32_t));
 
-      // TODO get the slot
-      if (node_count == 0)
-        slot = 0;
-      else if (flags & PBtreeNode::kInsertPrepend)
-        slot = 0;
-      else if (flags & PBtreeNode::kInsertAppend)
-        slot = node_count;
-      else {
-        int cmp;
-        slot = find(node_count, hkey, comparator, &cmp);
+      PBtreeNode::InsertResult result;
 
-        /* insert the new key at the beginning? */
-        if (slot == -1) {
-          slot = 0;
-          ham_assert(cmp != 0);
+      // TODO special code paths for: slot == 0, slot == node_count, 
+      // flags & PBtreeNode::kInsertPrepend, flags & PBtreeNode::kInsertAppend
+
+      // first perform a linear search through the index
+      uint32_t key = *(uint32_t *)hkey->data;
+      Index *index = find_index(key, &result.slot);
+
+      if (result.slot == -1) {
+        result.slot = 0;
+      }
+
+      // if the block is full then grow or split it
+      if (index->used_size + 5 > index->block_size) {
+        // already reached max. size? then perform a split
+        if (index->block_size >= kMaxBlockSize
+             || index->key_count == kMaxKeysPerBlock) {
+          if (flags & PBtreeNode::kInsertPrepend) {
+            index = add_block(0);
+          }
+          else if (flags & PBtreeNode::kInsertAppend) {
+            index = add_block(get_block_count());
+          }
+          else {
+            index = split_block(index, key);
+          }
         }
-        /* key exists already */
-        else if (cmp == 0)
-          return (PBtreeNode::InsertResult(HAM_DUPLICATE_KEY, slot));
-        /* if the new key is > than the slot key: move to the next slot */
-        if (cmp > 0)
-          slot++;
+        // otherwise grow the block
+        else {
+          grow_block(index);
+        }
       }
 
       // uncouple the cursors TODO
@@ -275,7 +285,9 @@ class Zint32KeyList : public BaseKeyList
         //BtreeCursor::uncouple_all_cursors(m_page, slot);
 
       // now perform the actual insert
-      return (insert_impl(node_count, *(uint32_t *)hkey->data, slot));
+      result = insert_impl(index, key, result.slot, flags);
+      ham_assert(check_integrity(node_count + 1));
+      return (result);
     }
 
     // Erases a key
@@ -333,7 +345,7 @@ class Zint32KeyList : public BaseKeyList
         // to that position
         uint8_t *s;
         uint32_t srckey = 0;
-        s = fast_forward(srci, src_position_in_block, &srckey);
+        s = fast_forward_to_position(srci, src_position_in_block, &srckey);
 
         // need to keep a copy of the pointer where we started, so we can later
         // figure out how many bytes were copied
@@ -351,7 +363,7 @@ class Zint32KeyList : public BaseKeyList
         uint8_t *d;
         uint32_t dstkey = 0;
         if (dst_position_in_block > 0) {
-          d = fast_forward(dsti, dst_position_in_block, &dstkey);
+          d = fast_forward_to_position(dsti, dst_position_in_block, &dstkey);
         }
         // otherwise get a pointer to the beginning of the data
         else {
@@ -572,65 +584,29 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Inserts a key at the specified slot
-    PBtreeNode::InsertResult insert_impl(size_t node_count, uint32_t key,
-                    int slot) {
-      // first perform a linear search through the index
-      Index *index = find_index(key, &slot);
-
-      // find the block
-      int position_in_block;
-      if (slot == 0) {
-        index = get_block_index(0);
-        position_in_block = 0;
-      }
-      else if (slot == (int)node_count) {
-        index = get_block_index(get_block_count() - 1);
-        position_in_block = index->key_count;
-      }
-      else
-        index = find_block_by_slot(slot, &position_in_block);
-
-      // if the block is full then grow or split it
-      if (index->used_size + 5 > index->block_size) {
-        // already reached max. size? then perform a split
-        if (index->block_size >= kMaxBlockSize
-             || index->key_count == kMaxKeysPerBlock) {
-          if (slot == 0) {
-            index = add_block(0);
-          }
-          else if (position_in_block == index->key_count) {
-            index = add_block(get_block_count());
-            position_in_block = 0;
-          }
-          else {
-            index = split_block(index, key, &position_in_block);
-          }
-        }
-        // otherwise grow the block
-        else {
-          grow_block(index);
-        }
-      }
-
+    PBtreeNode::InsertResult insert_impl(Index *index, uint32_t key,
+                    int skipped_slots, uint32_t flags) {
       // first key in an empty block? then don't store a delta
       if (index->key_count == 0) {
         index->key_count = 1;
         index->value = key;
         ham_assert(index->used_size == 0);
-        ham_assert(check_integrity(node_count + 1));
-        return (PBtreeNode::InsertResult(0, slot));
+        return (PBtreeNode::InsertResult(0, skipped_slots));
       }
 
       // now prepend, append or insert
-      if (position_in_block == 0)
+      if (flags & PBtreeNode::kInsertPrepend) {
         prepend_key_to_block(index, key);
-      else if (position_in_block == index->key_count)
+      }
+      else if (flags & PBtreeNode::kInsertAppend) {
         append_key_to_block(index, key);
-      else
-        insert_key_in_block(index, position_in_block, key);
+      }
+      else {
+        insert_key_in_block(index, key);
+      }
 
-      ham_assert(check_integrity(node_count + 1));
-      return (PBtreeNode::InsertResult(0, slot));
+      // TODO skipped_slots is no longer correct
+      return (PBtreeNode::InsertResult(0, skipped_slots));
     }
 
     // Prints all keys of a block to stdout (for debugging)
@@ -743,7 +719,7 @@ class Zint32KeyList : public BaseKeyList
 
     // Splits a block; returns the index where the new key will be inserted,
     // |position_in_block| is adjusted
-    Index *split_block(Index *index, uint32_t key, int *position_in_block) {
+    Index *split_block(Index *index, uint32_t key) {
       int i;
       int block = index - get_block_index(0);
       // the new block will have the same size as the old one
@@ -784,11 +760,9 @@ class Zint32KeyList : public BaseKeyList
       // now figure out whether the key will be inserted in the old or
       // the new block
       if (key >= new_index->value) {
-        *position_in_block -= i;
         return (new_index);
       }
       else {
-        // position_in_block is still correct
         return (index);
       }
     }
@@ -843,7 +817,7 @@ class Zint32KeyList : public BaseKeyList
 
       // fast-forward to the end of the keys
       uint32_t prev;
-      uint8_t *p = fast_forward(index, index->key_count, &prev);
+      uint8_t *p = fast_forward_to_position(index, index->key_count, &prev);
               
       // now append the new delta value
       key -= prev;
@@ -854,19 +828,18 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Inserts a new key in a block
-    void insert_key_in_block(Index *index, int position, uint32_t key) {
-      ham_assert(position < index->key_count);
+    void insert_key_in_block(Index *index, uint32_t key) {
       ham_assert(index->key_count > 0);
 
       // fast-forward to the end of the keys
       uint32_t prev;
-      uint8_t *p = fast_forward(index, position, &prev);
+      uint8_t *p = fast_forward_to_key(index, key, &prev);
 
       // we also need to read the next key at |position + 1|, because
       // its delta will change when the new key is inserted
       uint32_t next_key;
       uint8_t *next_p = 0;
-      if (position < index->key_count) {
+      while (prev < key) {
         next_p = p + read_int(p, &next_key);
         next_key += prev;
       }
@@ -1061,7 +1034,8 @@ class Zint32KeyList : public BaseKeyList
     }
     
     // fast-forwards to the specified position in a block
-    uint8_t *fast_forward(Index *index, int position, uint32_t *pkey) {
+    uint8_t *fast_forward_to_position(Index *index, int position,
+                    uint32_t *pkey) {
       ham_assert(position > 0 && position <= index->key_count);
       uint8_t *p = get_block_data(index);
       uint32_t key = index->value;
@@ -1073,6 +1047,22 @@ class Zint32KeyList : public BaseKeyList
       }
 
       *pkey = key;
+      return (p);
+    }
+
+    // fast-forwards to the specified key in a block
+    uint8_t *fast_forward_to_key(Index *index, uint32_t key, uint32_t *pprev) {
+            //TODO hier weiter
+      uint8_t *p = get_block_data(index);
+      uint32_t delta;
+      *pprev = index->value;
+      for (int i = 0; i < index->key_count; i++) {
+        p += read_int(p, &delta);
+        *pprev += delta;
+        if (*pprev >= key)
+          return (p);
+      }
+
       return (p);
     }
 
