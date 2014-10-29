@@ -72,15 +72,14 @@ class Zint32KeyList : public BaseKeyList
       // TODO needs to have more bytes for larger pages!
       uint16_t offset;
 
-      // the total size of this block
-      uint16_t block_size;
+      // the total size of this block; up to 512 bytes
+      unsigned int block_size : 9;
 
-      // used size of this block
-      uint16_t used_size;
+      // used size of this block; up to 512 bytes
+      unsigned int used_size : 9;
 
-      // the number of keys in this block
-      // TODO is one byte sufficient?
-      uint8_t key_count;
+      // the number of keys in this block; up to 512
+      unsigned int key_count : 9;
     };
 
   public:
@@ -97,10 +96,17 @@ class Zint32KeyList : public BaseKeyList
       // Use a custom insert implementation
       kCustomInsert = 1,
 
-      kMaxBlockSize = 64,
+      // Maximum block size, in bytes
+      kMaxBlockSize = 256,
+
+      // The initial block size, when a new block is added
       kInitialBlockSize = 16,
+
+      // If a new block is full then grow it by this factor
       kGrowFactor = 16,
-      kMaxKeysPerBlock = 0xff,
+
+      // Maximum keys per block
+      kMaxKeysPerBlock = 512,
     };
 
     // Constructor
