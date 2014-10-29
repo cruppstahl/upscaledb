@@ -14,7 +14,7 @@
 /*
  * Compressed 32bit integer keys
  *
- * @exception_safe: nothrow
+ * @exception_safe: strong
  * @thread_safe: no
  */
 
@@ -136,13 +136,17 @@ class Zint32KeyList : public BaseKeyList
       return (3);
     }
 
-    // Returns true if the |key| no longer fits into the node
+    // Returns true if the |key| no longer fits into the node.
+    //
+    // This KeyList always returns false because it assumes that the
+    // compressed block has enough capacity for |key|. If that turns out to
+    // be wrong then insert() will throw an Exception and the caller can
+    // split.
+    //
+    // This code path only works for leaf nodes, but the zint32 compression
+    // is anyway disabled for internal nodes.
     bool requires_split(size_t node_count, const ham_key_t *key) const {
-      // worst worst case: a block is split
-      // TODO this doesn't make sense. Merge requires_split() with insert()
-      // then we won't run into this situation
-      return (get_used_size() + kMaxBlockSize + sizeof(Index) + 16
-                      >= m_range_size);
+      return (false);
     }
 
     // Rearranges the list
@@ -150,47 +154,8 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count));
       ham_assert(get_block_count() > 0);
 
-      // make a copy of all indices
-      bool requires_sort = false;
-      int block_count = get_block_count();
-	  SortHelper *s = (SortHelper *)::alloca(block_count * sizeof(SortHelper));
-      for (int i = 0; i < block_count; i++) {
-        s[i].index = i;
-        s[i].offset = get_block_index(i)->offset;
-        if (i > 0 && requires_sort == false && s[i].offset < s[i - 1].offset)
-          requires_sort = true;
-      }
+      vacuumize_impl();
 
-      // sort them by offset; this is a very expensive call. only sort if
-      // it's absolutely necessary!
-      if (requires_sort)
-        std::sort(&s[0], &s[block_count], sort_by_offset);
-
-      // shift all blocks "to the left" and reduce their size as much as
-      // possible
-      uint32_t next_offset = 0;
-      uint8_t *block_data = &m_data[8 + sizeof(Index) * block_count];
-
-      for (int i = 0; i < block_count; i++) {
-        Index *index = get_block_index(s[i].index);
-
-        if (index->offset != next_offset) {
-          // shift block data to the left
-          memmove(&block_data[next_offset], &block_data[index->offset],
-                          index->used_size);
-          // overwrite the offset
-          index->offset = next_offset;
-        }
-
-        if (index->used_size == 0)
-          index->block_size = kInitialBlockSize;
-        else
-          index->block_size = index->used_size;
-
-        next_offset += index->block_size;
-      }
-
-      set_used_size((block_data - m_data) + next_offset);
       ham_assert(check_integrity(node_count));
     }
 
@@ -604,6 +569,8 @@ class Zint32KeyList : public BaseKeyList
 
       // now prepend, append or insert
       if (flags & PBtreeNode::kInsertPrepend) {
+        if (index->value == key)
+          throw Exception(HAM_DUPLICATE_KEY);
         skipped_slots += prepend_key_to_block(index, key);
       }
       else { // if (flags & PBtreeNode::kInsertAppend || flags == 0)
@@ -639,6 +606,7 @@ class Zint32KeyList : public BaseKeyList
 
     // Sets the used size of the range
     void set_used_size(size_t used_size) {
+      ham_assert(used_size <= m_range_size);
       *(uint32_t *)(m_data + 4) = (uint32_t)used_size;
     }
 
@@ -673,6 +641,8 @@ class Zint32KeyList : public BaseKeyList
 
     // Inserts a new block at the specified position
     Index *add_block(int position, int initial_size = kInitialBlockSize) {
+      check_available_size(initial_size + sizeof(Index));
+
       ham_assert(initial_size > 0);
 
       // shift the whole data to the right to make space for the new block
@@ -773,6 +743,8 @@ class Zint32KeyList : public BaseKeyList
 
     // Grows a block
     void grow_block(Index *index, int additional_size = kGrowFactor) {
+      check_available_size(additional_size);
+
       // move all other blocks unless the current block is the last one
       if ((size_t)index->offset + index->block_size
               < get_used_size() - 8 - sizeof(Index) * get_block_count()) {
@@ -790,6 +762,51 @@ class Zint32KeyList : public BaseKeyList
 
       index->block_size += additional_size;
       set_used_size(get_used_size() + additional_size);
+    }
+
+    // Implementation of vacuumize()
+    void vacuumize_impl() {
+      // make a copy of all indices
+      bool requires_sort = false;
+      int block_count = get_block_count();
+	  SortHelper *s = (SortHelper *)::alloca(block_count * sizeof(SortHelper));
+      for (int i = 0; i < block_count; i++) {
+        s[i].index = i;
+        s[i].offset = get_block_index(i)->offset;
+        if (i > 0 && requires_sort == false && s[i].offset < s[i - 1].offset)
+          requires_sort = true;
+      }
+
+      // sort them by offset; this is a very expensive call. only sort if
+      // it's absolutely necessary!
+      if (requires_sort)
+        std::sort(&s[0], &s[block_count], sort_by_offset);
+
+      // shift all blocks "to the left" and reduce their size as much as
+      // possible
+      uint32_t next_offset = 0;
+      uint8_t *block_data = &m_data[8 + sizeof(Index) * block_count];
+
+      for (int i = 0; i < block_count; i++) {
+        Index *index = get_block_index(s[i].index);
+
+        if (index->offset != next_offset) {
+          // shift block data to the left
+          memmove(&block_data[next_offset], &block_data[index->offset],
+                          index->used_size);
+          // overwrite the offset
+          index->offset = next_offset;
+        }
+
+        if (index->used_size == 0)
+          index->block_size = kInitialBlockSize;
+        else
+          index->block_size = index->used_size;
+
+        next_offset += index->block_size;
+      }
+
+      set_used_size((block_data - m_data) + next_offset);
     }
 
     // Prepends a new key to a block
@@ -826,6 +843,9 @@ class Zint32KeyList : public BaseKeyList
       uint32_t prev;
       uint8_t *p = fast_forward_to_key(index, key, &prev, &slot);
 
+      if (key == prev)
+        throw Exception(HAM_DUPLICATE_KEY);
+
       // reached the end of the block? then append the new key
       if (slot == index->key_count) {
         key -= prev;
@@ -839,6 +859,9 @@ class Zint32KeyList : public BaseKeyList
       uint32_t next_key;
       uint8_t *next_p = p + read_int(p, &next_key);
       next_key += prev;
+
+      if (next_key == key)
+        throw Exception(HAM_DUPLICATE_KEY);
 
       // how much additional space is required to store the delta of the
       // new key *and* the updated delta of the next key?
@@ -939,6 +962,7 @@ class Zint32KeyList : public BaseKeyList
 
     // writes |value| to |p|
     int write_int(uint8_t *p, uint32_t value) const {
+      ham_assert(value > 0);
       if (value < (1U << 7)) {
         *p = static_cast<uint8_t>(value | (1U << 7));
         return (1);
@@ -1069,6 +1093,19 @@ class Zint32KeyList : public BaseKeyList
 
       *pslot = index->key_count;
       return (p);
+    }
+
+    // Checks if this range has enough space for additional |additional_size|
+    // bytes. If not then it tries to vacuumize and then checks again.
+    // If that also was not successful then an exception is thrown and a
+    // split is requested.
+    void check_available_size(size_t additional_size) {
+      if (get_used_size() + additional_size <= m_range_size)
+        return;
+
+      vacuumize_impl();
+      if (get_used_size() + additional_size > m_range_size)
+        throw Exception(HAM_LIMITS_REACHED);
     }
 
     // Returns the payload data of a block

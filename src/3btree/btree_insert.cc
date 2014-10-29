@@ -109,8 +109,7 @@ class BtreeInsertAction
       Page *page;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      bool force_append = false;
-      bool force_prepend = false;
+      uint32_t flags = 0;
 
       /*
        * see if we get this btree leaf; if not, revert to regular scan
@@ -139,11 +138,8 @@ class BtreeInsertAction
         return (insert());
 
       /*
-       * if the page is not empty: check if we append the key at the end / start
-       * (depending on force_append/force_prepend),
-       * or if it's actually inserted in the middle (when neither force_append
-       * or force_prepend is specified: that'd be SEQUENTIAL insertion
-       * hinting somewhere in the middle of the total key range.
+       * if the page is not empty: check if we append the key at the end/start
+       * (depending on the flags), or if it's actually inserted in the middle.
        */
       if (node->get_count() != 0) {
         if (m_hints.flags & HAM_HINT_APPEND) {
@@ -151,7 +147,7 @@ class BtreeInsertAction
           /* key is at the end */
           if (cmp_hi > 0) {
             ham_assert(node->get_right() == 0);
-            force_append = true;
+            flags |= PBtreeNode::kInsertAppend;
           }
         }
 
@@ -160,14 +156,18 @@ class BtreeInsertAction
           /* key is at the start of page */
           if (cmp_lo < 0) {
             ham_assert(node->get_left() == 0);
-            force_prepend = true;
+            flags |= PBtreeNode::kInsertPrepend;
           }
         }
       }
 
       /* OK - we're really appending/prepending the new key.  */
-      if (force_append || force_prepend)
-        return (insert_in_leaf(page, m_key, 0, force_prepend, force_append));
+      if (flags != 0) {
+        ham_status_t st = insert_in_leaf(page, m_key, 0, flags);
+        if (st == HAM_LIMITS_REACHED)
+          return (insert());
+        return (st);
+      }
 
       /* otherwise reset the hints because they are no longer valid */
       m_hints.flags &= ~HAM_HINT_APPEND;
@@ -203,16 +203,10 @@ class BtreeInsertAction
 
       // We've reached the leaf; it's still possible that we have to
       // split the page, therefore this case has to be handled
-      ham_status_t st;
-      try {
-        st = insert_in_leaf(page, m_key, 0);
-      }
-      catch (Exception &ex) {
-        if (ex.code == HAM_LIMITS_REACHED) {
-          page = split_page(page, parent, m_key);
-          return (insert_in_leaf(page, m_key, 0));
-        }
-        throw ex;
+      ham_status_t st = insert_in_leaf(page, m_key, 0);
+      if (st == HAM_LIMITS_REACHED) {
+        page = split_page(page, parent, m_key);
+        return (insert_in_leaf(page, m_key, 0));
       }
       return (st);
     }
@@ -376,16 +370,10 @@ class BtreeInsertAction
     }
 
     ham_status_t insert_in_leaf(Page *page, ham_key_t *key, uint64_t rid,
-                bool force_prepend = false, bool force_append = false) {
+                    uint32_t flags = 0) {
       bool exists = false;
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-
-      int flags = 0;
-      if (force_prepend)
-        flags |= PBtreeNode::kInsertPrepend;
-      if (force_append)
-        flags |= PBtreeNode::kInsertAppend;
 
       PBtreeNode::InsertResult result = node->insert(key, flags);
       switch (result.status) {
@@ -404,7 +392,7 @@ class BtreeInsertAction
         case HAM_SUCCESS:
           break;
         default:
-          throw Exception(result.status);
+          return (result.status);
       }
 
       uint32_t new_duplicate_id = 0;

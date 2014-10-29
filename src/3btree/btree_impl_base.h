@@ -256,6 +256,12 @@ class BaseNodeImpl
       }
     }
 
+    // Reorganize this node; re-arranges capacities of KeyList and RecordList
+    // in order to free space and avoid splits
+    bool reorganize(const ham_key_t *key) const {
+      return (false);
+    }
+
     // Prints a slot to stdout (for debugging)
     void print(int slot) {
       std::stringstream ss;

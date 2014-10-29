@@ -514,9 +514,27 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       }
 
       Comparator cmp(m_page->get_db());
-      result = m_impl.insert(key, flags, cmp);
+      try {
+        result = m_impl.insert(key, flags, cmp);
+      }
+      catch (Exception &ex) {
+        result.status = ex.code;
+      }
+
+      // split required? then reorganize the node, try again
+      if (result.status == HAM_LIMITS_REACHED) {
+        try {
+          if (m_impl.reorganize(key))
+            result = m_impl.insert(key, flags, cmp);
+        }
+        catch (Exception &ex) {
+          result.status = ex.code;
+        }
+      }
+
       if (result.status == HAM_SUCCESS)
         set_count(get_count() + 1);
+
       return (result);
     }
 
