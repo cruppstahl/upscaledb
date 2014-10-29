@@ -246,17 +246,18 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count));
       ham_assert(hkey->size == sizeof(uint32_t));
 
-      PBtreeNode::InsertResult result;
+      slot = 0;
 
       // TODO special code paths for: slot == 0, slot == node_count, 
       // flags & PBtreeNode::kInsertPrepend, flags & PBtreeNode::kInsertAppend
 
       // first perform a linear search through the index
       uint32_t key = *(uint32_t *)hkey->data;
-      Index *index = find_index(key, &result.slot);
+      Index *index = find_index(key, &slot);
 
-      if (result.slot == -1) {
-        result.slot = 0;
+      if (slot == -1) {
+        flags |= PBtreeNode::kInsertPrepend;
+        slot = 0;
       }
 
       // if the block is full then grow or split it
@@ -268,10 +269,15 @@ class Zint32KeyList : public BaseKeyList
             index = add_block(0);
           }
           else if (flags & PBtreeNode::kInsertAppend) {
+            slot += index->key_count;
             index = add_block(get_block_count());
           }
           else {
-            index = split_block(index, key);
+            Index *new_index = split_block(index, key);
+            if (index != new_index) {
+              slot += index->key_count;
+              index = new_index;
+            }
           }
         }
         // otherwise grow the block
@@ -285,7 +291,7 @@ class Zint32KeyList : public BaseKeyList
         //BtreeCursor::uncouple_all_cursors(m_page, slot);
 
       // now perform the actual insert
-      result = insert_impl(index, key, result.slot, flags);
+      PBtreeNode::InsertResult result = insert_impl(index, key, slot, flags);
       ham_assert(check_integrity(node_count + 1));
       return (result);
     }
@@ -580,10 +586,12 @@ class Zint32KeyList : public BaseKeyList
         *pslot += index->key_count;
       }
 
+      if (key < index->value) // TODO this is never called but prevents
+        print_block(0); // gcc from removing the print_block method
       return (index);
     }
 
-    // Inserts a key at the specified slot
+    // Inserts a key in the specified block
     PBtreeNode::InsertResult insert_impl(Index *index, uint32_t key,
                     int skipped_slots, uint32_t flags) {
       // first key in an empty block? then don't store a delta
@@ -596,16 +604,12 @@ class Zint32KeyList : public BaseKeyList
 
       // now prepend, append or insert
       if (flags & PBtreeNode::kInsertPrepend) {
-        prepend_key_to_block(index, key);
+        skipped_slots += prepend_key_to_block(index, key);
       }
-      else if (flags & PBtreeNode::kInsertAppend) {
-        append_key_to_block(index, key);
-      }
-      else {
-        insert_key_in_block(index, key);
+      else { // if (flags & PBtreeNode::kInsertAppend || flags == 0)
+        skipped_slots += insert_key_in_block(index, key);
       }
 
-      // TODO skipped_slots is no longer correct
       return (PBtreeNode::InsertResult(0, skipped_slots));
     }
 
@@ -676,8 +680,8 @@ class Zint32KeyList : public BaseKeyList
       Index *index = get_block_index(position);
 
       if (get_block_count() != 0) {
-        Index *dst = get_block_index(position + 1);
-        ::memmove(dst, index, get_used_size() - (position * sizeof(Index)));
+        ::memmove(index + 1, index,
+                        get_used_size() - (position * sizeof(Index)));
       }
 
       set_block_count(get_block_count() + 1);
@@ -789,7 +793,7 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Prepends a new key to a block
-    void prepend_key_to_block(Index *index, uint32_t key) {
+    int prepend_key_to_block(Index *index, uint32_t key) {
       ham_assert(index->key_count > 0);
 
       // the first key will be replaced with its delta
@@ -809,49 +813,39 @@ class Zint32KeyList : public BaseKeyList
 
       index->key_count++;
       index->used_size += required_space;
-    }
 
-    // Appends a new key to a block
-    void append_key_to_block(Index *index, uint32_t key) {
-      ham_assert(index->key_count > 0);
-
-      // fast-forward to the end of the keys
-      uint32_t prev;
-      uint8_t *p = fast_forward_to_position(index, index->key_count, &prev);
-              
-      // now append the new delta value
-      key -= prev;
-      int size = write_int(p, key);
-
-      index->key_count++;
-      index->used_size += size;
+      return (0);
     }
 
     // Inserts a new key in a block
-    void insert_key_in_block(Index *index, uint32_t key) {
+    int insert_key_in_block(Index *index, uint32_t key) {
+      int slot = 0;
       ham_assert(index->key_count > 0);
 
-      // fast-forward to the end of the keys
+      // fast-forward to the position of the new key
       uint32_t prev;
-      uint8_t *p = fast_forward_to_key(index, key, &prev);
+      uint8_t *p = fast_forward_to_key(index, key, &prev, &slot);
 
-      // we also need to read the next key at |position + 1|, because
+      // reached the end of the block? then append the new key
+      if (slot == index->key_count) {
+        key -= prev;
+        index->used_size += write_int(p, key);
+        index->key_count++;
+        return (slot);
+      }
+
+      // otherwise read the next key at |position + 1|, because
       // its delta will change when the new key is inserted
       uint32_t next_key;
-      uint8_t *next_p = 0;
-      while (prev < key) {
-        next_p = p + read_int(p, &next_key);
-        next_key += prev;
-      }
+      uint8_t *next_p = p + read_int(p, &next_key);
+      next_key += prev;
 
       // how much additional space is required to store the delta of the
       // new key *and* the updated delta of the next key?
-      int required_space = calculate_delta_size(key - prev);
-      if (next_p) {
-        required_space += calculate_delta_size(next_key - key);
-        // minus the space that next_key currently occupies
-        required_space -= next_p - p;
-      }
+      int required_space = calculate_delta_size(key - prev)
+                            + calculate_delta_size(next_key - key)
+                            // minus the space that next_key currently occupies
+                            - (int)(next_p - p);
 
       // create a gap large enough for the two deltas
       ::memmove(p + required_space, p, index->used_size
@@ -860,11 +854,12 @@ class Zint32KeyList : public BaseKeyList
       // now insert the new key
       p += write_int(p, key - prev);
       // and the delta of the next key
-      if (next_p)
-        p += write_int(p, next_key - key);
+      p += write_int(p, next_key - key);
 
       index->key_count++;
       index->used_size += required_space;
+
+      return (slot + 1);
     }
 
     // Erases a key from a block
@@ -1051,18 +1046,28 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // fast-forwards to the specified key in a block
-    uint8_t *fast_forward_to_key(Index *index, uint32_t key, uint32_t *pprev) {
-            //TODO hier weiter
-      uint8_t *p = get_block_data(index);
+    uint8_t *fast_forward_to_key(Index *index, uint32_t key, uint32_t *pprev,
+                    int *pslot) {
       uint32_t delta;
+      uint8_t *p = get_block_data(index);
+
       *pprev = index->value;
-      for (int i = 0; i < index->key_count; i++) {
-        p += read_int(p, &delta);
-        *pprev += delta;
-        if (*pprev >= key)
-          return (p);
+      if (key < *pprev) {
+        *pslot = 0;
+        return (p);
       }
 
+      for (int i = 0; i < index->key_count - 1; i++) {
+        uint8_t *next = p + read_int(p, &delta);
+        if (*pprev + delta >= key) {
+          *pslot = i;
+          return (p);
+        }
+        p = next;
+        *pprev += delta;
+      }
+
+      *pslot = index->key_count;
       return (p);
     }
 
