@@ -42,12 +42,12 @@ struct Globals {
   static uint64_t ms_extended_duptables;
 
   // Move every key > threshold to a blob. For testing purposes.
-  // TODO currently gets assigned at runtime
+  // Value is not persisted.
   static uint32_t ms_extended_threshold;
 
   // Create duplicate table if amount of duplicates > threshold. For testing
   // purposes.
-  // TODO currently gets assigned at runtime
+  // Value is not persisted.
   static uint32_t ms_duplicate_threshold;
 
   // linear search threshold for the PAX layout
@@ -76,9 +76,6 @@ struct Globals {
 
   // PRO: Tracking key bytes after compression
   static uint64_t ms_bytes_after_compression;
-
-  // PRO: enable/disable SIMD
-  static bool ms_is_simd_enabled;
 };
 
 } // namespace hamsterdb

@@ -51,7 +51,5 @@ uint64_t Globals::ms_bytes_before_compression;
 
 uint64_t Globals::ms_bytes_after_compression;
 
-bool Globals::ms_is_simd_enabled = true;
-
 } // namespace hamsterdb
 

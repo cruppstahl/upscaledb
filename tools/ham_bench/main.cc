@@ -90,7 +90,6 @@
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
 #define ARG_PAX_LINEAR_THRESHOLD                65
-#define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
 #define ARG_RECORD_NUMBER                       69
@@ -407,12 +406,6 @@ static option_t opts[] = {
     "pax-linear-threshold",
     "Sets the threshold when switching from binary search to linear search",
     GETOPTS_NEED_ARGUMENT },
-  {
-    ARG_PAX_DISABLE_SIMD,
-    0,
-    "pax-disable-simd",
-    "Pro: Enables use of SIMD instructions",
-    0 },
   {
     ARG_READ_ONLY,
     0,
@@ -774,9 +767,6 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
       hamsterdb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
     }
-    else if (opt == ARG_PAX_DISABLE_SIMD) {
-      hamsterdb::Globals::ms_is_simd_enabled = false;
-    }
     else if (opt == ARG_ENABLE_CRC32) {
       c->enable_crc32 = true;
     }
@@ -896,8 +886,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
 
   // print key compression ratio
   if (conf->key_compression
-      && !strcmp(name, "hamsterdb")
-      && conf->key_compression != HAM_COMPRESSOR_UINT32_VARBYTE) {
+      && !strcmp(name, "hamsterdb")) {
     float ratio;
     if (metrics->hamster_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;

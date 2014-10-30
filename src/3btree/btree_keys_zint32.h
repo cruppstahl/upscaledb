@@ -38,7 +38,7 @@ namespace hamsterdb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
-// to avoid naming clashes with btree_impl_default.h
+// to avoid naming clashes with other KeyLists
 //
 namespace Zint32 {
 
@@ -61,6 +61,8 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
 
 class Zint32KeyList : public BaseKeyList
 {
+    typedef uint16_t OffsetType;
+
     // This structure is an "index" entry which describes the location
     // of a variable-length block
     struct Index {
@@ -69,16 +71,15 @@ class Zint32KeyList : public BaseKeyList
 
       // offset of the payload, relative to the beginning of the payloads
       // (past the Index structures)
-      // TODO needs to have more bytes for larger pages!
-      uint16_t offset;
+      OffsetType offset;
 
-      // the total size of this block; up to 512 bytes
+      // the total size of this block; max 511 bytes (kMaxBlockSize)
       unsigned int block_size : 9;
 
-      // used size of this block; up to 512 bytes
+      // used size of this block; max 511 bytes
       unsigned int used_size : 9;
 
-      // the number of keys in this block; up to 512
+      // the number of keys in this block; max 511 (kMaxKeysPerBlock)
       unsigned int key_count : 9;
     };
 
@@ -105,8 +106,8 @@ class Zint32KeyList : public BaseKeyList
       // If a new block is full then grow it by this factor
       kGrowFactor = 16,
 
-      // Maximum keys per block
-      kMaxKeysPerBlock = 512,
+      // Maximum keys per block (9 bits)
+      kMaxKeysPerBlock = 511,
     };
 
     // Constructor
@@ -114,8 +115,8 @@ class Zint32KeyList : public BaseKeyList
       : m_data(0), m_range_size(0) {
     }
 
-    // Creates a new KeyList starting at |ptr|, total size is
-    // |full_range_size_bytes| (in bytes)
+    // Creates a new KeyList starting at |data|, total size is
+    // |range_size_bytes| (in bytes)
     void create(uint8_t *data, size_t range_size) {
       m_data = data;
       m_range_size = range_size;
@@ -126,18 +127,21 @@ class Zint32KeyList : public BaseKeyList
       add_block(0);
     }
 
-    // Opens an existing KeyList
+    // Opens an existing KeyList. Called after a btree node was fetched from
+    // disk.
     void open(uint8_t *data, size_t range_size, size_t node_count) {
       m_data = data;
       m_range_size = range_size;
     }
 
-    // Calculates the required size for a range
+    // Returns the required size for this KeyList. Required to re-arrange
+    // the space between KeyList and RecordList.
     size_t get_required_range_size(size_t node_count) const {
       return (get_used_size());
     }
 
-    // Returns the actual key size including overhead. This is an estimate.
+    // Returns the size or a single key including overhead. This is an estimate,
+    // required to calculate the capacity of a node.
     size_t get_full_key_size(const ham_key_t *key = 0) const {
       return (3);
     }
@@ -155,7 +159,8 @@ class Zint32KeyList : public BaseKeyList
       return (false);
     }
 
-    // Rearranges the list
+    // "Vacuumizes" the KeyList; packs all blocks tightly to reduce the size
+    // that is consumed by this KeyList.
     void vacuumize(size_t node_count, bool force) {
       ham_assert(check_integrity(node_count));
       ham_assert(get_block_count() > 0);
@@ -165,7 +170,8 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count));
     }
 
-    // Change the range size
+    // Change the range size. Called when the range of the btree node is
+    // re-distributed between KeyList and RecordList (to avoid splits).
     void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                     size_t new_range_size, size_t capacity_hint) {
       if (m_data != new_data_ptr) {
@@ -176,11 +182,11 @@ class Zint32KeyList : public BaseKeyList
       m_range_size = new_range_size;
     }
 
-    // Copies a key into |dest|
+    // Returns the key at the given |slot|.
     void get_key(int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
       // uncompress the key value, store it in a member (not in a local
-      // variable!)
+      // variable!), otherwise couldn't return a pointer to it
       m_dummy = value(slot);
 
       dest->size = sizeof(uint32_t);
@@ -199,7 +205,6 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Searches the node for the key and returns the slot of this key
-    // - only for exact matches!
     template<typename Cmp>
     int find(size_t node_count, const ham_key_t *hkey, Cmp &comparator,
                     int *pcmp) {
@@ -217,15 +222,10 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count));
       ham_assert(hkey->size == sizeof(uint32_t));
 
-      slot = 0;
-
-      // TODO special code paths for: slot == 0, slot == node_count, 
-      // flags & PBtreeNode::kInsertPrepend, flags & PBtreeNode::kInsertAppend
-
-      // first perform a linear search through the index
+      // first perform a linear search through the index and get the block
+      // which will contain the new key
       uint32_t key = *(uint32_t *)hkey->data;
       Index *index = find_index(key, &slot);
-
       if (slot == -1) {
         flags |= PBtreeNode::kInsertPrepend;
         slot = 0;
@@ -251,7 +251,6 @@ class Zint32KeyList : public BaseKeyList
             }
           }
         }
-        // otherwise grow the block
         else {
           grow_block(index);
         }
@@ -261,7 +260,7 @@ class Zint32KeyList : public BaseKeyList
       //if ((int)node_count > slot)
         //BtreeCursor::uncouple_all_cursors(m_page, slot);
 
-      // now perform the actual insert
+      // now perform the actual insert into this block
       PBtreeNode::InsertResult result = insert_impl(index, key, slot, flags);
       ham_assert(check_integrity(node_count + 1));
       return (result);
@@ -271,6 +270,7 @@ class Zint32KeyList : public BaseKeyList
     void erase(size_t node_count, int slot) {
       ham_assert(check_integrity(node_count));
 
+      // get the block and the position of the key inside the block
       int position_in_block;
       Index *index;
       if (slot == 0) {
@@ -289,7 +289,8 @@ class Zint32KeyList : public BaseKeyList
         index->key_count = 0;
         ham_assert(index->used_size == 0);
       }
-      // otherwise reduce the block
+      // otherwise remove the key from the block. This does not change
+      // the size of the block!
       else {
         erase_key_from_block(index, position_in_block);
       }
@@ -302,8 +303,8 @@ class Zint32KeyList : public BaseKeyList
       ham_assert(check_integrity(node_count - 1));
     }
 
-    // Copies all keys from this[sstart] to dest[dstart]; this is
-    // for splitting nodes
+    // Copies all keys from this[sstart] to dest[dstart]; this method
+    // is used to split btree nodes.
     void copy_to(int sstart, size_t node_count, Zint32KeyList &dest,
                     size_t other_count, int dstart) {
       ham_assert(check_integrity(node_count));
@@ -410,29 +411,36 @@ class Zint32KeyList : public BaseKeyList
       // now update get_used_size()
       index = get_block_index(0);
       Index *end = get_block_index(get_block_count());
-
       int used_size = 0;
       for (; index < end; index++) {
         if (index->offset + index->block_size > used_size)
           used_size = index->offset + index->block_size;
       }
-
-      // add static overhead
       set_used_size(used_size + 8 + sizeof(Index) * get_block_count());
 
       ham_assert(dest.check_integrity(node_count - sstart));
       ham_assert(check_integrity(sstart));
     }
 
-    // Iterates all keys, calls the |visitor| on each
+    // Scans all keys; used for the hola* APIs.
+    //
+    // This method decompresses each block, and then calls the |visitor|
+    // to process the decompressed keys.
     void scan(ScanVisitor *visitor, uint32_t start, size_t count) {
-      // TODO
-      // int c = get_block_count();
-      // for (int i = 0; i < c; i++) {
-      //     uint32_t data[kMaxBlockLength];
-      //     decompress_block(i, &data[0]);
-      //     (*visitor)(data, get_key_count(i));
-      // }
+      Index *it = get_block_index(0);
+      Index *end = get_block_index(get_block_count());
+      for (; it < end; it++) {
+        uint32_t data[kMaxKeysPerBlock];
+
+        data[0] = it->value;
+        uint8_t *p = get_block_data(it);
+        for (int i = 1; i < it->key_count; i++) {
+          uint32_t delta;
+          p += read_int(p, &delta);
+          data[i] = data[i - 1] + delta;
+        }
+        (*visitor)(data, it->key_count);
+      }
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
@@ -486,23 +494,29 @@ class Zint32KeyList : public BaseKeyList
       out << value(slot);
     }
 
-    // Returns the size of a key
+    // Returns the size of a key; only required to appease the compiler,
+    // but never called
     size_t get_key_size(int slot) const {
+      ham_assert(!"shouldn't be here");
       return (sizeof(uint32_t));
     }
 
-    // Returns a pointer to the key's data
+    // Returns a pointer to the key's data; only required to appease the
+    // compiler, but never called
     uint8_t *get_key_data(int slot) {
-      // TODO shouldn't be here
+      ham_assert(!"shouldn't be here");
       return (0);
     }
 
   private:
-    // Finds a key; returns a pointer to its compressed location
+    // Finds a key; returns a pointer to its compressed location.
+    // Returns the compare result in |*pcmp| and the slot of the |key| in
+    // |*pslot|.
     uint8_t *find_impl(uint32_t key, int *pcmp, int *pslot) {
       // first perform a linear search through the index
       Index *index = find_index(key, pslot);
 
+      // key is the new minimum in this node?
       if (key < index->value) {
         ham_assert(*pslot == -1);
         *pcmp = -1;
@@ -526,9 +540,7 @@ class Zint32KeyList : public BaseKeyList
 
         if (prev >= key) {
           *pslot += slot;
-          *pcmp = prev == key
-                    ?  0
-                    : +1;
+          *pcmp = (prev == key) ? 0 : +1;
           return (p);
         }
       }
@@ -539,7 +551,7 @@ class Zint32KeyList : public BaseKeyList
     }
 
     // Performs a linear search through the index; returns the index
-    // and the starting slot of this index
+    // and the slot of the first key in this block in |*pslot|.
     Index *find_index(uint32_t key, int *pslot) {
       Index *index = get_block_index(0);
       Index *iend = get_block_index(get_block_count());
@@ -557,8 +569,6 @@ class Zint32KeyList : public BaseKeyList
         *pslot += index->key_count;
       }
 
-      if (key < index->value) // TODO this is never called but prevents
-        print_block(0); // gcc from removing the print_block method
       return (index);
     }
 
@@ -574,14 +584,7 @@ class Zint32KeyList : public BaseKeyList
       }
 
       // now prepend, append or insert
-      if (flags & PBtreeNode::kInsertPrepend) {
-        if (index->value == key)
-          throw Exception(HAM_DUPLICATE_KEY);
-        skipped_slots += prepend_key_to_block(index, key);
-      }
-      else { // if (flags & PBtreeNode::kInsertAppend || flags == 0)
-        skipped_slots += insert_key_in_block(index, key);
-      }
+      skipped_slots += insert_key_in_block(index, key, flags);
 
       return (PBtreeNode::InsertResult(0, skipped_slots));
     }
@@ -598,32 +601,6 @@ class Zint32KeyList : public BaseKeyList
         key += delta;
         std::cout << i << ": " << key << std::endl;
       }
-    }
-
-    // Sets the block count
-    void set_block_count(int count) {
-      *(uint32_t *)m_data = (uint32_t)count;
-    }
-
-    // Returns the block count
-    int get_block_count() const {
-      return ((int) *(uint32_t *)m_data);
-    }
-
-    // Sets the used size of the range
-    void set_used_size(size_t used_size) {
-      ham_assert(used_size <= m_range_size);
-      *(uint32_t *)(m_data + 4) = (uint32_t)used_size;
-    }
-
-    // Returns the block count
-    size_t get_used_size() const {
-      return (*(uint32_t *)(m_data + 4));
-    }
-
-    // Returns a pointer to a block index
-    Index *get_block_index(int i) const {
-      return ((Index *)(m_data + 8 + i * sizeof(Index)));
     }
 
     // Returns the index for a block with that slot
@@ -645,7 +622,7 @@ class Zint32KeyList : public BaseKeyList
       return (index - 1);
     }
 
-    // Inserts a new block at the specified position
+    // Inserts a new block at the specified |position|
     Index *add_block(int position, int initial_size = kInitialBlockSize) {
       check_available_size(initial_size + sizeof(Index));
 
@@ -697,8 +674,7 @@ class Zint32KeyList : public BaseKeyList
       set_used_size(get_used_size() - sizeof(Index));
     }
 
-    // Splits a block; returns the index where the new key will be inserted,
-    // |position_in_block| is adjusted
+    // Splits a block; returns the index where the new |key| will be inserted
     Index *split_block(Index *index, uint32_t key) {
       int i;
       int block = index - get_block_index(0);
@@ -747,7 +723,7 @@ class Zint32KeyList : public BaseKeyList
       }
     }
 
-    // Grows a block
+    // Grows a block by |additinal_size| bytes
     void grow_block(Index *index, int additional_size = kGrowFactor) {
       check_available_size(additional_size);
 
@@ -815,47 +791,51 @@ class Zint32KeyList : public BaseKeyList
       set_used_size((block_data - m_data) + next_offset);
     }
 
-    // Prepends a new key to a block
-    int prepend_key_to_block(Index *index, uint32_t key) {
-      ham_assert(index->key_count > 0);
-
-      // the first key will be replaced with its delta
-      uint32_t delta = index->value - key;
-      index->value = key;
-
-      int required_space = calculate_delta_size(delta);
-
-      uint8_t *p = get_block_data(index);
-
-      // create a gap for the new key and the delta
-      if (index->used_size > 0)
-        ::memmove(p + required_space, p, index->used_size);
-
-      // now write the delta
-      write_int(p, delta);
-
-      index->key_count++;
-      index->used_size += required_space;
-
-      return (0);
-    }
-
-    // Inserts a new key in a block
-    int insert_key_in_block(Index *index, uint32_t key) {
+    // Inserts a new |key| in a block. This method has 3 code paths: it can
+    // prepend the key to the block, append it to the block or insert it
+    // in the middle
+    int insert_key_in_block(Index *index, uint32_t key, uint32_t flags) {
       int slot = 0;
       ham_assert(index->key_count > 0);
+
+      // fail if the key already exists
+      if (index->value == key)
+        throw Exception(HAM_DUPLICATE_KEY);
+
+      // Replace the first key with its delta?
+      if (flags & PBtreeNode::kInsertPrepend) {
+        uint32_t delta = index->value - key;
+        index->value = key;
+
+        int required_space = calculate_delta_size(delta);
+        uint8_t *p = get_block_data(index);
+
+        if (index->used_size > 0)
+          ::memmove(p + required_space, p, index->used_size);
+        write_int(p, delta);
+
+        Globals::ms_bytes_before_compression += sizeof(uint32_t);
+        Globals::ms_bytes_after_compression += required_space;
+        index->key_count++;
+        index->used_size += required_space;
+        return (0);
+      }
 
       // fast-forward to the position of the new key
       uint32_t prev;
       uint8_t *p = fast_forward_to_key(index, key, &prev, &slot);
 
+      // again make sure that we don't have a duplicate key
       if (key == prev)
         throw Exception(HAM_DUPLICATE_KEY);
 
       // reached the end of the block? then append the new key
       if (slot == index->key_count) {
         key -= prev;
-        index->used_size += write_int(p, key);
+        int size = write_int(p, key);
+        Globals::ms_bytes_before_compression += sizeof(uint32_t);
+        Globals::ms_bytes_after_compression += size;
+        index->used_size += size;
         index->key_count++;
         return (slot);
       }
@@ -884,6 +864,9 @@ class Zint32KeyList : public BaseKeyList
       p += write_int(p, key - prev);
       // and the delta of the next key
       p += write_int(p, next_key - key);
+
+      Globals::ms_bytes_before_compression += sizeof(uint32_t);
+      Globals::ms_bytes_after_compression += required_space;
 
       index->key_count++;
       index->used_size += required_space;
@@ -942,6 +925,105 @@ class Zint32KeyList : public BaseKeyList
 
       index->used_size -= size;
       index->key_count--;
+    }
+
+    // Returns a decompressed value
+    uint32_t value(int slot) const {
+      int position_in_block;
+      Index *index = find_block_by_slot(slot, &position_in_block);
+
+      if (position_in_block == 0)
+        return (index->value);
+
+      uint32_t key;
+      fast_forward_to_position(index, position_in_block, &key);
+      return (key);
+    }
+    
+    // fast-forwards to the specified position in a block
+    uint8_t *fast_forward_to_position(Index *index, int position,
+                    uint32_t *pkey) const {
+      ham_assert(position > 0 && position <= index->key_count);
+      uint8_t *p = get_block_data(index);
+      uint32_t key = index->value;
+
+      uint32_t delta;
+      for (int i = 1; i < position; i++) {
+        p += read_int(p, &delta);
+        key += delta;
+      }
+
+      *pkey = key;
+      return (p);
+    }
+
+    // fast-forwards to the specified key in a block
+    uint8_t *fast_forward_to_key(Index *index, uint32_t key, uint32_t *pprev,
+                    int *pslot) {
+      uint32_t delta;
+      uint8_t *p = get_block_data(index);
+
+      *pprev = index->value;
+      if (key < *pprev) {
+        *pslot = 0;
+        return (p);
+      }
+
+      for (int i = 0; i < index->key_count - 1; i++) {
+        uint8_t *next = p + read_int(p, &delta);
+        if (*pprev + delta >= key) {
+          *pslot = i;
+          return (p);
+        }
+        p = next;
+        *pprev += delta;
+      }
+
+      *pslot = index->key_count;
+      return (p);
+    }
+
+    // Checks if this range has enough space for additional |additional_size|
+    // bytes. If not then it tries to vacuumize and then checks again.
+    // If that also was not successful then an exception is thrown and the
+    // Btree layer can re-arrange or split the page.
+    void check_available_size(size_t additional_size) {
+      if (get_used_size() + additional_size <= m_range_size)
+        return;
+      vacuumize_impl();
+      if (get_used_size() + additional_size > m_range_size)
+        throw Exception(HAM_LIMITS_REACHED);
+    }
+
+    // Returns the payload data of a block
+    uint8_t *get_block_data(Index *index) const {
+      return (&m_data[8 + index->offset + sizeof(Index) * get_block_count()]);
+    }
+
+    // Sets the block count
+    void set_block_count(int count) {
+      *(uint32_t *)m_data = (uint32_t)count;
+    }
+
+    // Returns the block count
+    int get_block_count() const {
+      return ((int) *(uint32_t *)m_data);
+    }
+
+    // Sets the used size of the range
+    void set_used_size(size_t used_size) {
+      ham_assert(used_size <= m_range_size);
+      *(uint32_t *)(m_data + 4) = (uint32_t)used_size;
+    }
+
+    // Returns the block count
+    size_t get_used_size() const {
+      return (*(uint32_t *)(m_data + 4));
+    }
+
+    // Returns a pointer to a block index
+    Index *get_block_index(int i) const {
+      return ((Index *)(m_data + 8 + i * sizeof(Index)));
     }
 
     // this assumes that there is a value to be read
@@ -1038,85 +1120,6 @@ class Zint32KeyList : public BaseKeyList
     template<uint32_t i>
     uint8_t extract7bitsmaskless(const uint32_t val) const {
       return static_cast<uint8_t>((val >> (7 * i)));
-    }
-
-    // Returns a decompressed value
-    uint32_t value(int slot) const {
-      int position_in_block;
-      Index *index = find_block_by_slot(slot, &position_in_block);
-
-      ham_assert(position_in_block < index->key_count);
-      ham_assert(index->key_count > 0);
-      uint8_t *p = get_block_data(index);
-
-      uint32_t prev = index->value;
-      for (int i = 1; i <= position_in_block; i++) {
-        uint32_t delta;
-        p += read_int(p, &delta);
-        prev += delta;
-      }
-      return (prev);
-    }
-    
-    // fast-forwards to the specified position in a block
-    uint8_t *fast_forward_to_position(Index *index, int position,
-                    uint32_t *pkey) {
-      ham_assert(position > 0 && position <= index->key_count);
-      uint8_t *p = get_block_data(index);
-      uint32_t key = index->value;
-
-      uint32_t delta;
-      for (int i = 1; i < position; i++) {
-        p += read_int(p, &delta);
-        key += delta;
-      }
-
-      *pkey = key;
-      return (p);
-    }
-
-    // fast-forwards to the specified key in a block
-    uint8_t *fast_forward_to_key(Index *index, uint32_t key, uint32_t *pprev,
-                    int *pslot) {
-      uint32_t delta;
-      uint8_t *p = get_block_data(index);
-
-      *pprev = index->value;
-      if (key < *pprev) {
-        *pslot = 0;
-        return (p);
-      }
-
-      for (int i = 0; i < index->key_count - 1; i++) {
-        uint8_t *next = p + read_int(p, &delta);
-        if (*pprev + delta >= key) {
-          *pslot = i;
-          return (p);
-        }
-        p = next;
-        *pprev += delta;
-      }
-
-      *pslot = index->key_count;
-      return (p);
-    }
-
-    // Checks if this range has enough space for additional |additional_size|
-    // bytes. If not then it tries to vacuumize and then checks again.
-    // If that also was not successful then an exception is thrown and a
-    // split is requested.
-    void check_available_size(size_t additional_size) {
-      if (get_used_size() + additional_size <= m_range_size)
-        return;
-
-      vacuumize_impl();
-      if (get_used_size() + additional_size > m_range_size)
-        throw Exception(HAM_LIMITS_REACHED);
-    }
-
-    // Returns the payload data of a block
-    uint8_t *get_block_data(Index *index) const {
-      return (&m_data[8 + index->offset + sizeof(Index) * get_block_count()]);
     }
 
     // The persisted (compressed) data
