@@ -158,11 +158,15 @@ class BaseNodeImpl
           if (cmp > 0)
             result.slot++;
         }
-
-        // uncouple the cursors
-        if ((int)node_count > result.slot)
-          BtreeCursor::uncouple_all_cursors(m_page, result.slot);
       }
+
+      // Uncouple the cursors.
+      //
+      // for custom inserts we have to uncouple all cursors, because the
+      // KeyList doesn't have access to the cursors in the page. In this
+      // case result.slot is 0.
+      if ((int)node_count > result.slot)
+        BtreeCursor::uncouple_all_cursors(m_page, result.slot);
 
       // now store the key
       result = m_keys.insert(node_count, key, flags, comparator, result.slot);

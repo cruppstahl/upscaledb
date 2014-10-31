@@ -65,13 +65,14 @@ class Zint32KeyList : public BaseKeyList
 
     // This structure is an "index" entry which describes the location
     // of a variable-length block
-    struct Index {
+#include "1base/packstart.h"
+    HAM_PACK_0 struct HAM_PACK_1 Index {
+      // offset of the payload, relative to the beginning of the payloads
+      // (starts after the Index structures)
+      OffsetType offset;
+
       // the start value of this block
       uint32_t value;
-
-      // offset of the payload, relative to the beginning of the payloads
-      // (past the Index structures)
-      OffsetType offset;
 
       // the total size of this block; max 511 bytes (kMaxBlockSize)
       unsigned int block_size : 9;
@@ -81,7 +82,8 @@ class Zint32KeyList : public BaseKeyList
 
       // the number of keys in this block; max 511 (kMaxKeysPerBlock)
       unsigned int key_count : 9;
-    };
+    } HAM_PACK_2;
+#include "1base/packstop.h"
 
   public:
     enum {
@@ -256,10 +258,6 @@ class Zint32KeyList : public BaseKeyList
         }
       }
 
-      // uncouple the cursors TODO
-      //if ((int)node_count > slot)
-        //BtreeCursor::uncouple_all_cursors(m_page, slot);
-
       // now perform the actual insert into this block
       PBtreeNode::InsertResult result = insert_impl(index, key, slot, flags);
       ham_assert(check_integrity(node_count + 1));
@@ -389,17 +387,16 @@ class Zint32KeyList : public BaseKeyList
       }
 
       // now copy the remaining blocks
+      // TODO it would be faster to introduce add_many_blocks()
+      // instead of invoking add_block() several times
       int copied_blocks = 0;
       Index *endi = get_block_index(get_block_count()); 
       for (; index < endi; index++, copied_blocks++) {
-        // TODO it would be faster to introduce add_many_blocks()
-        // instead of invoking add_block() several times
         dsti = dest.add_block(dest.get_block_count(), index->block_size);
         copy_blocks(index, dest, dsti);
       }
 
       // remove the copied blocks
-      // TODO use remove_blocks()
       uint8_t *pend = &m_data[get_used_size()];
       uint8_t *pold = (uint8_t *)get_block_index(get_block_count());
       uint8_t *pnew = (uint8_t *)get_block_index(get_block_count()
@@ -676,7 +673,6 @@ class Zint32KeyList : public BaseKeyList
 
     // Splits a block; returns the index where the new |key| will be inserted
     Index *split_block(Index *index, uint32_t key) {
-      int i;
       int block = index - get_block_index(0);
       // the new block will have the same size as the old one
       Index *new_index = add_block(block + 1, index->block_size);
@@ -686,8 +682,8 @@ class Zint32KeyList : public BaseKeyList
       uint32_t delta;
 
       // roughly skip half of the data
-      // TODO don't loop but use msb to figure out where to split
       int size = index->used_size / 2;
+      int i;
       for (i = 1; i < index->key_count && size > 0; i++) {
         int delta_size = read_int(src, &delta);
         prev += delta;
