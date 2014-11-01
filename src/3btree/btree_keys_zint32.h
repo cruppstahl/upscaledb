@@ -321,7 +321,7 @@ class Zint32KeyList : public BaseKeyList
         // to that position
         uint8_t *s;
         uint32_t srckey = 0;
-        s = fast_forward_to_position(srci, src_position_in_block, &srckey);
+        s = fast_forward_to_position(srci, src_position_in_block - 1, &srckey);
 
         // need to keep a copy of the pointer where we started, so we can later
         // figure out how many bytes were copied
@@ -583,6 +583,8 @@ class Zint32KeyList : public BaseKeyList
       // now prepend, append or insert
       skipped_slots += insert_key_in_block(index, key, flags);
 
+      if (skipped_slots > 0xfffffff) // TODO remove this
+        print_block(index);
       return (PBtreeNode::InsertResult(0, skipped_slots));
     }
 
@@ -944,7 +946,7 @@ class Zint32KeyList : public BaseKeyList
       uint32_t key = index->value;
 
       uint32_t delta;
-      for (int i = 1; i < position; i++) {
+      for (int i = 1; i <= position; i++) {
         p += read_int(p, &delta);
         key += delta;
       }
