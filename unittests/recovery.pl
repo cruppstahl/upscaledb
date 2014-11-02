@@ -1,5 +1,7 @@
 
 $max = 100;
+$inducer_start = 2;
+$inducer_stop = 9;
 
 sub check {
   my $status = shift;
@@ -11,7 +13,7 @@ sub check {
 
 sub big_records_test {
   $cmprsn = shift;
-  for ($i = 0; $i <= 7; $i++) {
+  for ($i = $inducer_start; $i < $inducer_stop; $i++) {
     unlink("recovery.db");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
@@ -41,7 +43,7 @@ sub big_records_test {
 
 sub simple_test {
   $cmprsn = shift;
-  for ($i = 0; $i <= 7; $i++) {
+  for ($i = $inducer_start; $i < $inducer_stop; $i++) {
     unlink("recovery.db");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
@@ -71,7 +73,7 @@ sub simple_test {
 
 sub extended_test {
   $cmprsn = shift;
-  for ($i = 0; $i <= 10; $i++) {
+  for ($i = $inducer_start; $i < $inducer_stop; $i++) {
     unlink("recovery.db");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
@@ -101,7 +103,7 @@ sub extended_test {
 
 sub duplicate_test {
   $cmprsn = shift;
-  for ($i = 1; $i <= 7; $i++) {
+  for ($i = $inducer_start; $i < $inducer_stop; $i++) {
     unlink("recovery.db");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");
@@ -128,7 +130,7 @@ sub duplicate_test {
 
 sub extended_duplicate_test {
   $cmprsn = shift;
-  for ($i = 1; $i <= 10; $i++) {
+  for ($i = $inducer_start; $i < $inducer_stop; $i++) {
     unlink("recovery.db");
     unlink("recovery.db.jrn0");
     unlink("recovery.db.jrn1");

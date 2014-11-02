@@ -1,7 +1,7 @@
 
 Summary: hamsterdb Embedded Storage
 Name: hamsterdb
-Version: 2.1.8
+Version: 2.1.9
 Release: 1%{?dist}
 Source0: http://hamsterdb.com/public/dl/%{name}-%{version}.tar.gz
 URL: http://hamsterdb.com

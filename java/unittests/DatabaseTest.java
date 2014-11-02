@@ -76,18 +76,6 @@ public class DatabaseTest extends TestCase {
     }
   }
 
-  private class MyDupeComparator implements DuplicateCompareCallback
-  {
-    public int m_counter;
-
-    public int compare(byte[] lhs, byte[] rhs) {
-      m_counter++;
-      return m_counter; /* need to return different values, or
-                ham_insert thinks we're inserting
-                duplicates */
-    }
-  }
-
   public void testSetComparator() {
     byte[] k = new byte[5];
     byte[] r = new byte[5];

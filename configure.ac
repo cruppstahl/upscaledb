@@ -7,7 +7,7 @@ dnl information
 dnl
 
 dnl Initialize autoconf/automake
-AC_INIT([hamsterdb], [2.1.8], [http://hamsterdb.com])
+AC_INIT([hamsterdb], [2.1.9], [http://hamsterdb.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 AC_CONFIG_MACRO_DIR(m4)
 AC_COPYRIGHT([Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de)])

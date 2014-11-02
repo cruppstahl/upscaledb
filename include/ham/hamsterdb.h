@@ -18,7 +18,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.8
+ * @version 2.1.9
  *
  * @mainpage
  *
@@ -118,7 +118,7 @@ extern "C" {
  *  undefined: hamsterdb 1.x
  *      1: hamsterdb 2.0 - ham_txn_begin() was changed
  *      2: various interface updates for 2.0.6
- *      3: various interface updates for 2.1.8, adding hola_*
+ *      3: various interface updates for 2.1.9, adding hola_*
  */
 #define HAM_API_REVISION        3
 

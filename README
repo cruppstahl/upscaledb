@@ -1,4 +1,4 @@
-hamsterdb 2.1.8                                     Mo 7. Jul 11:02:27 CEST 2014
+hamsterdb 2.1.9                                     Mo 3. Nov 23:06:25 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -10,74 +10,56 @@ Contents:
 hamsterdb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This release has 4 big changes:
+This release fixes several bugs and improved the whole recovery process.
 
-The remote protocol no longer uses Google's protocol buffer but a faster
-homemade serialization protocol. Remote performance was improved.
+Microsoft Visual Studio 2008 is no longer supported. Instead, project
+files for Visual Studio 2013 were added.
 
-A new set of APIs were added which demonstrate the analytical powers of
-hamsterdb: "hola" (hamsterdb on-line analytics) can perform COUNT,
-COUNT DISTINCT, AVERAGE, SUM and other calculations. These routines are directly
-executed in the Btree context and very fast.
+The custom typdef for hamsterdb types (ham_u32_t, ham_u64_t etc) were removed.
+They got replaced by types from stdint.h.
 
-Under the hood, the two Btree layouts were rewritten. The result now allows a
-much more efficient storage of fixed length keys with duplicates, or variable
-length keys without duplicates. Prior to 2.1.8, a less efficient representation
-was used in both cases. This change reduced the file size a lot.
+A new parameter HAM_PARAM_FILE_SIZE_LIMIT was added; it can set a file size
+limit to the Environment (on disk or in memory).
 
-A new Python API was added! A sample is included (see python/samples).
-
-Other changes are:
-
-A new API "ham_cursor_get_duplicate_position" was added to retrieve
-the current position of a cursor in the duplicate list.
-
-The APIs ham_db_get_error was deprecated, ham_get_license was removed.
-
-A regression in 2.1.7 was fixed which created large files under certain
-circumstances. A few other changes were made to decrease the file size.
-
-On Windows, winsock.h is no longer included in order to avoid conflicts with
-winsock2.h.
-
-The database format is no longer endian agnostic but simply uses the host
-endianness. Reason is that i do not have the hardware to test the agnostic
-file format, and therefore the implementation was likely to have bugs anyway.
-
-libuv was updated to version 0.11.22.
-
-The file format of 2.1.8 is not compatible to 2.1.7.
+The file format of 2.1.9 is not compatible to 2.1.8.
 
 2. Changes
 
 New Features
-* Adding the new "hola" API - hamsterdb analytical functions for COUNT,
-	SUM, AVERAGE etc. See ham/hamsterdb_ola.h for the declarations
-* Added new API ham_cursor_get_duplicate_position
-* A new Python API was added
+* Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE_LIMIT
 
 Bugfixes
-* issue #33: upgraded to libuv 0.11.22
-* Fixing a performance regression in 2.1.7 - large fixed-length keys
-	created too many page splits, even if they were stored as extended
-	keys
+* Fixed a failing test from the erlang package
+* Fixed an assert when re-organizing nodes with variable length keys 
+* issue #39: recovery can fail with IO_ERROR if journal file is incomplete;
+	fixed (thanks, Michael Moellney)
+* issue #38: temporary transactions and recovery (w/o transactions)
+	created huge logfiles; fixed (thanks, Michael Moellney)
+* issue #34: some names violated reserved identifiers, fixed (thanks,
+	Markus Elfring)
+* Bugfix: fixed-length records were sometimes not inserted correctly 
+	with HAM_DUPLICATE_INSERT_FIRST
+* Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
+	without HAM_ENABLE_TRANSACTIONS)
 
 Other Changes
-* The database format no longer tries to be endian agnostic; the database
-	is now stored in host endian format. The endian agnostic code was broken
-	anyway, and I had no hardware to test it.
-* ham_db_get_error is now deprecated
-* header files no longer include winsock.h to avoid conflicts with winsock2.h
-	on Windows platforms
-* Both btree layouts have been completely rewritten; PAX KeyLists
-	can now be used in combination with duplicate RecordLists, and variable
-	length KeyLists can now be used in combination with PAX RecordLists
-* Avoiding Btree splits if keys are appended (HAM_HINT_APPEND)
-* The internal communication with the remote server now uses a different
-	protocol which is faster than google's protobuffer
-* PAX layout now uses linear search for small ranges; this improves search
-	performance by 5-10%
-* Removed the ham_get_license API (and serial.h)
+* Removed outdated project files of MSVC2008, added MSVC2013
+* Removed custom ham_* typedefs; now using types from stdint.h
+* Major rewrite of the recovery logic; increased test coverage
+* Added new parameter HAM_PARAM_JOURNAL_SWITCH_THRESHOLD to control
+	the size of the journal files
+* Unused pages are now freed with madvice; performance improvements
+	when large files are mmapped
+* Improved record storage and reduced size for fixed length records
+* Minor performance improvements for hola_sum
+* ABI change: removed deprecated fields from ham_record_t
+* Introduced two new makros to initialize ham_key_t and ham_record_t
+	structures: ham_make_key, ham_make_record
+* The file structure has been completely reorganized. It is described
+	in documentation/source/structure.txt.
+* Splitting unittests/cursor.cpp in two files to avoid out-of-memory
+	errors during compilation on weak VM's
+* hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -86,20 +68,21 @@ To see a list of all changes, look in the file ChangeLog.
 
 4. Features
 
-- PRO: SIMD instructions for lookups (numeric keys w/o duplicates)
+- PRO: SIMD instructions for lookups
 - PRO: transparent AES encryption
+- PRO: transparent CRC32 verification
 - PRO: transparent compression for journal, keys and records using 
     zlib, snappy, lzf or lzo 
 - Very fast sorted B+Tree with variable length keys
 - Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
 - Can run as an in-memory database
-- Supports multiple databases in one file
-- Supports record number databases ("auto-increment")
-- Supports duplicate keys
-- Support for logging and recovery
-- Support for unlimited number of parallel Transactions
-- Support for partial reading/writing of records
-- Support for network access (remote databases) via TCP/Protocol Buffers
+- Multiple databases in one file
+- Record number databases ("auto-increment")
+- Duplicate keys
+- Logging and recovery
+- Unlimited number of parallel Transactions
+- Partial reading/writing of records
+- Network access (remote databases) via TCP/Protocol Buffers
 - Very fast database cursors
 - Configurable page size, cache size, key size etc
 - Runs on Linux, Unices, Microsoft Windows and other architectures
