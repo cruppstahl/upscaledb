@@ -1,0 +1,307 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B82D2DF8-F8B2-4331-86D0-508BBD806507}</ProjectGuid>
+    <RootNamespace>dll</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">out\dll_debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\dll_debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">out\dll_debug_x64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\dll_debug_x64\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">out\dll\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\dll\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\dll_x64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\dll_x64\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hamsterdb-2.1.8</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hamsterdb-2.1.8</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hamsterdb-2.1.8</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hamsterdb-2.1.8</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ProgramDataBaseFileName>$(IntDir)vc80.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="protobuf.vcxproj">
+      <Project>{10dcd767-dfbe-4096-9258-111d4cf899b1}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\ham\hamsterdb.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb.hpp" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_ola.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_srv.h" />
+    <ClInclude Include="..\..\include\ham\types.h" />
+    <ClInclude Include="..\..\src\0root\root.h" />
+    <ClInclude Include="..\..\src\1base\abi.h" />
+    <ClInclude Include="..\..\src\1base\byte_array.h" />
+    <ClInclude Include="..\..\src\1base\error.h" />
+    <ClInclude Include="..\..\src\1base\mutex.h" />
+    <ClInclude Include="..\..\src\1base\packstart.h" />
+    <ClInclude Include="..\..\src\1base\packstop.h" />
+    <ClInclude Include="..\..\src\1base\pickle.h" />
+    <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
+    <ClInclude Include="..\..\src\1base\util.h" />
+    <ClInclude Include="..\..\src\1base\version.h" />
+    <ClInclude Include="..\..\src\1errorinducer\errorinducer.h" />
+    <ClInclude Include="..\..\src\1globals\globals.h" />
+    <ClInclude Include="..\..\src\1mem\mem.h" />
+    <ClInclude Include="..\..\src\1os\file.h" />
+    <ClInclude Include="..\..\src\1os\os.h" />
+    <ClInclude Include="..\..\src\1os\socket.h" />
+    <ClInclude Include="..\..\src\1rb\rb.h" />
+    <ClInclude Include="..\..\src\2config\db_config.h" />
+    <ClInclude Include="..\..\src\2config\env_config.h" />
+    <ClInclude Include="..\..\src\2device\device.h" />
+    <ClInclude Include="..\..\src\2device\device_disk.h" />
+    <ClInclude Include="..\..\src\2device\device_factory.h" />
+    <ClInclude Include="..\..\src\2device\device_inmem.h" />
+    <ClInclude Include="..\..\src\2page\page.h" />
+    <ClInclude Include="..\..\src\3blob_manager\blob_manager.h" />
+    <ClInclude Include="..\..\src\3blob_manager\blob_manager_disk.h" />
+    <ClInclude Include="..\..\src\3blob_manager\blob_manager_factory.h" />
+    <ClInclude Include="..\..\src\3blob_manager\blob_manager_inmem.h" />
+    <ClInclude Include="..\..\src\3btree\btree_cursor.h" />
+    <ClInclude Include="..\..\src\3btree\btree_flags.h" />
+    <ClInclude Include="..\..\src\3btree\btree_impl_base.h" />
+    <ClInclude Include="..\..\src\3btree\btree_impl_default.h" />
+    <ClInclude Include="..\..\src\3btree\btree_impl_pax.h" />
+    <ClInclude Include="..\..\src\3btree\btree_index.h" />
+    <ClInclude Include="..\..\src\3btree\btree_index_factory.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_base.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_binary.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_pod.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_varlen.h" />
+    <ClInclude Include="..\..\src\3btree\btree_node.h" />
+    <ClInclude Include="..\..\src\3btree\btree_node_proxy.h" />
+    <ClInclude Include="..\..\src\3btree\btree_records_base.h" />
+    <ClInclude Include="..\..\src\3btree\btree_records_default.h" />
+    <ClInclude Include="..\..\src\3btree\btree_records_duplicate.h" />
+    <ClInclude Include="..\..\src\3btree\btree_records_inline.h" />
+    <ClInclude Include="..\..\src\3btree\btree_records_internal.h" />
+    <ClInclude Include="..\..\src\3btree\btree_stats.h" />
+    <ClInclude Include="..\..\src\3btree\btree_visitor.h" />
+    <ClInclude Include="..\..\src\3btree\upfront_index.h" />
+    <ClInclude Include="..\..\src\3cache\cache.h" />
+    <ClInclude Include="..\..\src\3changeset\changeset.h" />
+    <ClInclude Include="..\..\src\3journal\journal.h" />
+    <ClInclude Include="..\..\src\3journal\journal_entries.h" />
+    <ClInclude Include="..\..\src\3page_manager\page_manager.h" />
+    <ClInclude Include="..\..\src\4cursor\cursor.h" />
+    <ClInclude Include="..\..\src\4db\db.h" />
+    <ClInclude Include="..\..\src\4db\db_local.h" />
+    <ClInclude Include="..\..\src\4db\db_remote.h" />
+    <ClInclude Include="..\..\src\4env\env.h" />
+    <ClInclude Include="..\..\src\4env\env_header.h" />
+    <ClInclude Include="..\..\src\4env\env_local.h" />
+    <ClInclude Include="..\..\src\4env\env_remote.h" />
+    <ClInclude Include="..\..\src\4txn\txn.h" />
+    <ClInclude Include="..\..\src\4txn\txn_cursor.h" />
+    <ClInclude Include="..\..\src\4txn\txn_factory.h" />
+    <ClInclude Include="..\..\src\4txn\txn_local.h" />
+    <ClInclude Include="..\..\src\4txn\txn_remote.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\1base\error.cc" />
+    <ClCompile Include="..\..\src\1base\util.cc" />
+    <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
+    <ClCompile Include="..\..\src\1globals\globals.cc" />
+    <ClCompile Include="..\..\src\1mem\mem.cc" />
+    <ClCompile Include="..\..\src\1os\os.cc" />
+    <ClCompile Include="..\..\src\1os\os_win32.cc" />
+    <ClCompile Include="..\..\src\2page\page.cc" />
+    <ClCompile Include="..\..\src\3blob_manager\blob_manager.cc" />
+    <ClCompile Include="..\..\src\3blob_manager\blob_manager_disk.cc" />
+    <ClCompile Include="..\..\src\3blob_manager\blob_manager_inmem.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_check.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_cursor.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_erase.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_find.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_index.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_insert.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_stats.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_visit.cc" />
+    <ClCompile Include="..\..\src\3changeset\changeset.cc" />
+    <ClCompile Include="..\..\src\3journal\journal.cc" />
+    <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
+    <ClCompile Include="..\..\src\4cursor\cursor.cc" />
+    <ClCompile Include="..\..\src\4db\db.cc" />
+    <ClCompile Include="..\..\src\4db\db_local.cc" />
+    <ClCompile Include="..\..\src\4db\db_remote.cc" />
+    <ClCompile Include="..\..\src\4env\env_local.cc" />
+    <ClCompile Include="..\..\src\4env\env_remote.cc" />
+    <ClCompile Include="..\..\src\4txn\txn_cursor.cc" />
+    <ClCompile Include="..\..\src\4txn\txn_local.cc" />
+    <ClCompile Include="..\..\src\4txn\txn_remote.cc" />
+    <ClCompile Include="..\..\src\5hamsterdb\hamsterdb.cc" />
+    <ClCompile Include="..\..\src\5hamsterdb\hola.cc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

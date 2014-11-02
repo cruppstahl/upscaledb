@@ -544,7 +544,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
 
       int i, l = 0, r = (int)node_count;
-      int last = node_count + 1;
+      int last = (int)node_count + 1;
       int cmp = -1;
 
       // Run a binary search, but fall back to linear search as soon as

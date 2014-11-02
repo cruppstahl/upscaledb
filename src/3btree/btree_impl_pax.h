@@ -102,7 +102,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     template<typename Cmp>
     int compare(const ham_key_t *lhs, uint32_t rhs, Cmp &cmp) {
       return (cmp(lhs->data, lhs->size, P::m_keys.get_key_data(rhs),
-                              P::m_keys.get_key_size(rhs)));
+                              (uint16_t)P::m_keys.get_key_size(rhs)));
     }
 
     // Searches the node for the key and returns the slot of this key

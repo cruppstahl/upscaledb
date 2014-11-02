@@ -155,7 +155,7 @@ class ServerContext {
       if (index >= m_environments.size())
         return;
       EnvironmentVector::iterator it = m_environments.begin() + index;
-      ham_assert(it->index == handle);
+      // ham_assert(it->index == handle);
       if (it->index != handle)
         return;
       it->index = 0;

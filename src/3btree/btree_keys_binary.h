@@ -105,7 +105,7 @@ class BinaryKeyList : public BaseKeyList
     // Copies a key into |dest|
     void get_key(int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) const {
-      dest->size = m_key_size;
+      dest->size = (uint16_t)m_key_size;
       if (likely(deep_copy == false)) {
         dest->data = &m_data[slot * m_key_size];
         return;

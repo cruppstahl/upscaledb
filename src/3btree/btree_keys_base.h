@@ -64,7 +64,7 @@ struct BaseKeyList
   int linear_search(T *data, size_t start, size_t length, T key,
                   Cmp &comparator, int *pcmp) {
     int c = (int)start;
-    int end = (int)start + length;
+    int end = (int)(start + length);
 
 #undef COMPARE
 #define COMPARE(c)      if (key <= data[c]) {                           \
