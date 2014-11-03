@@ -458,9 +458,7 @@ x refactoring: switch to stdint-supplied types instead of own definitions
 o windows cleanups
     x install VS2008 on the new harddisk
     x install VS2010 on the new harddisk
-    o build release lib/dll with /PDBSTRIPPED (reduces file size?),
-        or figure out why the file size is so big
-    o a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
+    x a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
         or end up in wrong directories
     o The C# PInvoke for ham_cursor_find is missing the Record structure
         - also accept flags in ham_db_find and ham_cursor_find for approx.

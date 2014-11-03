@@ -23,7 +23,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.1.9.dll")]
+    [DeploymentItem("..\\win32\\msvc2013\\out\\dll_debug\\hamsterdb-2.1.9.dll")]
     public class EnvironmentTest
     {
         void checkEqual(byte[] lhs, byte[] rhs)
