@@ -468,14 +468,49 @@ o windows cleanups
     o automate the build process
     o ... and the packaging
 
-. "make dist" should write the current git commit and the build date to
+------------- hamsterdb-erlang 2.1.9 ---------------------------------
+
+o upgrade to hamsterdb-2.1.9
+
+o improve erlang integration
+    o quickcheck-ci.com
+    o look into Thomas' mail
+    o QuickCheck: create a new property for testing duplicates; the key is
+        always the same. The number of duplicate keys is tracked and
+        periodically checked with the API. A cursor can be used to remove a
+        specific duplicate, or to fetch a specific duplicate.
+
+------------- hamsterdb pro 2.1.9 ------------------------------------
+
+x PRO: review AES usage in read_page; if the page is mmapped
+    then decryption is not applied - no, it's ok. encryption
+    disables mmap
+
+o PRO: rebase to vanilla 2.1.9
+
+o PRO: review SSE code; the problem is that it's never called, because the
+    search threshold is always smaller than the minimum block size
+
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    msb is 1 -> 7 bit record ID (should be sufficient)
+    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
+    o Use small index which stores offset + bits for each group
+    o bits: number of bits per entry, or 0 if items are uncompressed (that's
+        the case if empty/tiny/small records are in this block)
+    o Use this index for binary search
+
+o Can we release an early version of zint32?
+
+------------- hamsterdb 2.1.10 ---------------------------------------
+
+o "make dist" should write the current git commit and the build date to
     a file; this should be printed by ham_bench and the tools
     o ham_bench: print this prior to the monster tests/performance tests
     o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
             move version.h to include/ham
     o also generate the ChangeLog from the git commits?
 
-. documentation rewrite
+o documentation rewrite
     o use github wiki
         o remove old cruft
     o then create the initial repository:
@@ -497,81 +532,85 @@ o windows cleanups
         overview (description, status)
         installation
         usage (compiling, linking)
-        api functions (one file per function)
+        api functions
+        pro functions
         samples
     /dotnet
         overview (description, status)
         installation
         usage (compiling, linking)
-        api functions (one file per function)
+        api functions
+        pro functions
         samples
     /erlang
         overview (description, status)
         installation
         usage (compiling, linking)
-        api functions (one file per function)
+        api functions
+        pro functions
         samples
     /python
         overview (description, status)
         installation
         usage (compiling, linking)
-        api functions (one file per function)
+        api functions
+        pro functions
         samples
-    o look for a technical writer to review the files
+    o have the hamsterdb/documentation directory "link" to the git project
 
-. refactoring: make journal stateless and exception safe
-    - if this works then do the same for Changeset
-    - if this works then do the same for BlobManager
-    - if this works then do the same for PageManager
-    - if this works then do the same for EnvironmentHeader
-    - if this works then do the same for Compressor
-    - if this works then do the same for Btree
+o grow allocated memory buffers exponentially
+    https://blog.mozilla.org/nnethercote/2014/11/04/please-grow-your-buffers-exponentially/comment-page-1/#comment-23272
+    this only affects the ByteArray, as far as i can see
 
-. refactoring: get rid of inheritance for env
-    - move implementation to a struct, w/o state
-    - struct will be kept separately (if there is any)
-    - base class will be abstract
-    - the env will become a "hub" which manages members (i.e. page_manager,
-        device) and forwards the calls to those members 
-    - implementation class uses a template parameter and forwards calls
-        to the struct; the state is a parameter which is only updated
-        if the operation succeeds
-    - if this pattern works then also apply it for Database,
-        Transaction, Cursor
+o refactoring: make journal stateless and exception safe
 
-. refactoring: improve the code separation of cursor and txn_cursor, i.e.
+o refactoring: make changeset stateless and exception safe
+
+o refactoring: make BlobManager stateless and exception safe
+
+o refactoring: make PageManager stateless and exception safe
+
+o refactoring: make EnvironmentHeader stateless and exception safe
+    -> will it ever be used outside of the EnvironmentConfiguration setting?
+    -> can we remove it?
+
+o refactoring: make Compressors stateless and exception safe
+
+o refactoring: make Btree stateless and exception safe
+
+o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
     -> clean up the whole Cursor stuff
 
-. refactoring: clean up the whole Database code; it's too much and too
-    complex
+o refactoring: clean up the whole Database code; it's too much and too
+    complex; there must be an absolutely clear border between Btree and
+    Transaction related code.
 
-. use cache-oblivious b-tree layout
-    ===> a much simpler approach would be to reserve "X" bytes when creating
-        the environment (and then map the whole range)
-        this would include storage for the blobs AND we would not have to mess
-        around with the mapping
-    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
-    o see roadmap document for more information
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-        (but what about the blobs??)
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o the new pages are not managed by the freelist! therefore the freelist
-        will not need any modifications
-    o after resize: mmap the whole file area. this is actually important because
-        mmap is much faster than r/w; but when the database is created, the
-        original mapping already exists. therefore we might have to handle
-        more than one mapping in the file
-    o PageManager: when allocating a new page then use the distribution
-        function to fetch a page from the reserved storage
-    . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages (if the database is big enough)
-        -> could create a second memory mapping for the next chunk
+o reserve file size upon creation, then map the whole range
+    o needs new parameter HAM_PARAM_ALLOCATE_STORAGE_BYTES
+    o support in ham_bench
+    o monster tests and performance tests
+    o also for java
+    o also for dotnet
+    o also for python
+    o also for erlang
 
-. look into spark, mongodb and mariadb integration
+o bulk updates/batched updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort, but
+        fail hard if the sort order is violated
+    - add those delta updates to the txn-trees or to the btree node,
+        simply transfer ownership of the memory
+    - can contain inserts or deletes
+    o also for remote, transfer in a single message
+    o also for .NET
+    o also for java
+    o also for erlang
+    o also for python
+
+o look into dynomite, spark, mongodb and mariadb integration
+    https://github.com/Netflix/dynomite
     -> like MapReduce, Spark requires an InputFormat class; templates are 
         available here:
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
@@ -585,38 +624,70 @@ o windows cleanups
         efforts/gains (will do the same for mysql, R and mongodb later); this
         task is not about writing code!
 
-------------- hamsterdb-erlang 2.1.9 ---------------------------------
+o First steps towards concurrency; target is having one lock per db
+    o create coding rules which help for thread-safety
+        o make members const whenever possible
+        o non-const members need to lock or be atomic
+        o if a class is deliberately NOT threadsafe (i.e. ByteArray) then
+            document as annotation, and create a special profile build
+            which verifies that all non-const members are accessed synchronized
 
-o upgrade to hamsterdb-2.1.9
+        class SingleThreadedGuard {
+          SingleThreadedGuard() {
+            if (atomic_inc(foo) != 1) 
+              throw ...;
+          }
 
-o improve erlang integration
-    o quickcheck-ci.com
-    o look into Thomas' mail
-    o QuickCheck: create a new property for testing duplicates; the key is
-        always the same. The number of duplicate keys is tracked and
-        periodically checked with the API. A cursor can be used to remove a
-        specific duplicate, or to fetch a specific duplicate.
+          ~SingleThreadedGuard() {
+            if (atomic_dec(foo) > 0)
+              throw ...;
+          }
+        };
+    o can we also utilize valgrind macros?
+    o need to compile this with -O3, release builds!
+    o perform this for layers 1 - 3
+    o and also for layer 4 - make sure that the code separation is clear
+        -> especially between database and transactions
+    o define the locking behaviour of all classes/logical modules
+    o verify this behaviour in the code 
+    o define which public API function locks what
+    o split the big lock and create one lock per database
+    o perform excessive testing
 
-------------- hamsterdb pro 2.1.9 ------------------------------------
+o Next steps towards concurrency; target is having one writer per db, but
+        multiple readers
+    o move flushing of transactions into background
+    o move cache purging into background
+    o background operations should be disabled with flags
+    o perform excessive testing
 
-o PRO: rebase to vanilla 2.1.9
 
-x PRO: review AES usage in read_page; if the page is mmapped
-    then decryption is not applied - no, it's ok. encryption
-    disables mmap
 
-o PRO: look for a better compression for DefaultRecordList, i.e.
-    msb is 1 -> 7 bit record ID (should be sufficient)
-    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
-    o requires index structure for addressing every N'th record
+
+
+
+
+
+
+
+. refactoring: get rid of inheritance for env
+    - move implementation to a struct, w/o state
+    - struct will be kept separately (if there is any)
+    - base class will be abstract
+    - the env will become a "hub" which manages members (i.e. page_manager,
+        device) and forwards the calls to those members 
+    - implementation class uses a template parameter and forwards calls
+        to the struct; the state is a parameter which is only updated
+        if the operation succeeds
+    - if this pattern works then also apply it for Database,
+        Transaction, Cursor
 
 o PRO: find an efficient compression method for InternalRecordList
+    -> does this make sense? internal nodes are always few...
+    -> also, this should play well with the compression of the DefaultRecordList
     x The page IDs should be modulo page-size (makes numbers smaller) - done
 
-    o Use bitpacking in variable-length groups, but always for 32 (16? 64?)
-        record IDs; the bits for each ID are variable
-    o Use small index which stores offset + bit width for each group
-    o Use this index for binary search
+o PRO: use compression also for duplicate records
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -628,42 +699,7 @@ o PRO: prefix compression for variable-length keys
     ==> prefixes and suffixes can be stored as extended keys if they become
         too large
     see indexcompression2009.pdf - Efficient index compression in DB2 LUW
-
-    o if key is appended at the end: just write the delta
-    o every "n'th" (50th?) key is written uncompressed
-    o otherwise append a delta-update to the page, and "merge" all deltas
-        before the page is flushed. This will improve performance for batched
-        updates, since they will cause only one page compression for
-        multiple updates.
-    o however, it's tricky to figure out whether a node requires a split or
-        not, since it requires a good estimate of the size for the new key 
-        -> if in doubt then just perform the merge
-    
-    o full keys can be further compressed with lzf or lzo
-    o key search: jumps from full key to full key; in between, there's a
-        linear search for the key
-
-o PRO: bulk updates
-    - require delta updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort, but
-        fail hard if the sort order is violated
-    - add those delta updates to the txn-trees or to the btree node,
-        simply transfer ownership of the memory
-    -> or are these "batched" updates, in combination with cache-oblivious
-        btrees? the batched updates contain lists of structures with
-        information about the update (i.e. insert, erase etc). internally,
-        a cursor is used to perform the update. this would be fast and a
-        relatively cheap way to perform multiple operations in one
-        single transaction. and they would not require delta updates, but
-        still provide real value.
-    o also for remote, transfer in a single message
-    o also for .NET
-    o also for java
-    o also for erlang
-    o also for python
-
-------------- hamsterdb 2.1.9 ---------------------------------------
+    o look for more research papers
 
 . release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
@@ -713,6 +749,26 @@ o PRO: bulk updates
     https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf
 
 o QuickCheck: automatically test the recovery feature by invoking "crashes"
+
+. use cache-oblivious b-tree layout
+    -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
+    o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+        (but what about the blobs??)
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    o after resize: mmap the whole file area. this is actually important because
+        mmap is much faster than r/w; but when the database is created, the
+        original mapping already exists. therefore we might have to handle
+        more than one mapping in the file
+    o PageManager: when allocating a new page then use the distribution
+        function to fetch a page from the reserved storage
+    . try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages (if the database is big enough)
+        -> could create a second memory mapping for the next chunk
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node
@@ -772,7 +828,7 @@ o the bucket for concurrency TODOs
         delete them?
 
     o an intermediate stage would be to have concurrent reads but exclusive
-        writes (one writer, many readers) - makes sense?
+        writes (one writer per database, many readers) - makes sense?
 
     o create coding rules
         o synchronization either in lowest or highest level of the callstack
