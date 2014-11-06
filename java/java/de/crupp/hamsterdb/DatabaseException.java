@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,61 +18,61 @@ package de.crupp.hamsterdb;
 
 public class DatabaseException extends java.lang.Exception {
 
-    private native String ham_strerror(int errno);
+  private native String ham_strerror(int errno);
 
-    /**
-     * Constructor
-     */
-    public DatabaseException() {
-        super();
-    }
+  /**
+   * Constructor
+   */
+  public DatabaseException() {
+    super();
+  }
 
-    public DatabaseException(Throwable t) {
-        super(t);
-    }
+  public DatabaseException(Throwable t) {
+    super(t);
+  }
 
-    public DatabaseException(int errno) {
-        super();
-        m_errno=errno;
-    }
+  public DatabaseException(int errno) {
+    super();
+    m_errno = errno;
+  }
 
-    /**
-     * Returns the hamsterdb error code
-     *
-     * @return The hamsterdb error code
-     */
-    public int getErrno() {
-        return m_errno;
-    }
+  /**
+   * Returns the hamsterdb error code
+   *
+   * @return The hamsterdb error code
+   */
+  public int getErrno() {
+    return m_errno;
+  }
 
-    /**
-     * Returns an English error description.
-     * <p>
-     * This method wraps the native ham_strerror function.
-     *
-     * @return an English error description
-     */
-    public String getMessage() {
-        return ham_strerror(m_errno);
-    }
+  /**
+   * Returns an English error description.
+   * <p>
+   * This method wraps the native ham_strerror function.
+   *
+   * @return an English error description
+   */
+  public String getMessage() {
+    return ham_strerror(m_errno);
+  }
 
-    /**
-     * Returns an English error description.
-     * <p>
-     * This method wraps the native ham_strerror function.
-     *
-     * @return an English error description
-     */
-    public String toString() {
-        return getMessage();
-    }
+  /**
+   * Returns an English error description.
+   * <p>
+   * This method wraps the native ham_strerror function.
+   *
+   * @return an English error description
+   */
+  public String toString() {
+    return getMessage();
+  }
 
-    /**
-     * The hamsterdb status code
-     */
-    private int m_errno;
+  /**
+   * The hamsterdb status code
+   */
+  private int m_errno;
 
-    static {
-        System.loadLibrary("hamsterdb-java");
-    }
+  static {
+    System.loadLibrary("hamsterdb-java");
+  }
 }

@@ -142,7 +142,7 @@ public class Environment {
    * More information about flags, parameters and possible exceptions:
    * <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga4316524c094e12d84f8be7456d2101a8">C documentation</a>
    */
-  public synchronized void create(String filename, int flags, int mode,
+  public void create(String filename, int flags, int mode,
       Parameter[] params)
       throws DatabaseException {
     // make sure that the parameters don't have a NULL-element
@@ -221,7 +221,7 @@ public class Environment {
    * More information about flags, parameters and possible exceptions:
    * <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga4dbe3a84324f142a7c2344c33314d9b5">C documentation</a>
    */
-  public synchronized void open(String filename, int flags,
+  public void open(String filename, int flags,
       Parameter[] params)
       throws DatabaseException {
     // make sure that the parameters don't have a NULL-element
@@ -287,7 +287,7 @@ public class Environment {
    *
    * @return a Database object
    */
-  public synchronized Database createDatabase(short name, int flags,
+  public Database createDatabase(short name, int flags,
       Parameter[] params)
       throws DatabaseException {
     // make sure that the parameters don't have a NULL-element
@@ -340,7 +340,7 @@ public class Environment {
    *
    * @return a Database object
    */
-  public synchronized Database openDatabase(short name, int flags,
+  public Database openDatabase(short name, int flags,
           Parameter[] params)
       throws DatabaseException {
     // ham_env_open_db will throw an DatabaseException if it fails
@@ -362,7 +362,7 @@ public class Environment {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga07a3749e3dfa88138c3056e5052bb96a">C documentation</a>
    */
-  public synchronized void renameDatabase(short oldname, short newname)
+  public void renameDatabase(short oldname, short newname)
       throws DatabaseException {
     int status = ham_env_rename_db(m_handle, oldname, newname, 0);
     if (status != 0)
@@ -381,7 +381,7 @@ public class Environment {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga4ceb71003291e9eabe2df7140c89610c">C documentation</a>
    */
-  public synchronized void eraseDatabase(short name)
+  public void eraseDatabase(short name)
     throws DatabaseException {
       int status = ham_env_erase_db(m_handle, name, 0);
       if (status != 0)
@@ -400,7 +400,7 @@ public class Environment {
    *
    * @return an array with all Database names of this Environment
    */
-  public synchronized short[] getDatabaseNames()
+  public short[] getDatabaseNames()
       throws DatabaseException {
     /* the native library throws an exception, if necessary */
     return ham_env_get_database_names(m_handle);
@@ -412,7 +412,7 @@ public class Environment {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga1da6fd9eee42c7d0c6e4a23dd7e5c059">C documentation</a>
    */
-  public synchronized void getParameters(Parameter[] params)
+  public void getParameters(Parameter[] params)
       throws DatabaseException {
     int status = ham_env_get_parameters(m_handle, params);
     if (status != 0)
@@ -430,7 +430,7 @@ public class Environment {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga45a4d0ce402d5ed49006da470b31baf6">C documentation</a>
    */
-  public synchronized void flush()
+  public void flush()
       throws DatabaseException {
     int status = ham_env_flush(m_handle);
     if (status != 0)
@@ -446,7 +446,7 @@ public class Environment {
    *
    * @param flags flags for beginning the Transaction
    */
-  public synchronized Transaction begin(int flags)
+  public Transaction begin(int flags)
       throws DatabaseException {
     return new Transaction(this, ham_txn_begin(m_handle, flags));
   }
@@ -456,7 +456,7 @@ public class Environment {
    *
    * @see Database#begin(int)
    */
-  public synchronized Transaction begin()
+  public Transaction begin()
       throws DatabaseException {
     return begin(0);
   }
@@ -471,7 +471,7 @@ public class Environment {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#gaec7ee5ca832fa06438b4806ae5e096c4">C documentation</a>
    */
-  public synchronized void close() {
+  public void close() {
     if (m_handle != 0)
       ham_env_close(m_handle, 0);
     m_handle = 0;

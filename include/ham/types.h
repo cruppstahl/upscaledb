@@ -106,14 +106,15 @@ extern "C" {
 #  include <stdint.h>
 #endif
 
-typedef int64_t     int64_t;
-typedef uint64_t    uint64_t;
-typedef int32_t     int32_t;
-typedef uint32_t    uint32_t;
-typedef int16_t     int16_t;
-typedef uint16_t    uint16_t;
-typedef int8_t      int8_t;
-typedef uint8_t     uint8_t;
+/* Deprecated typedefs; used prior to 2.1.9. Please do not use them! */
+typedef int64_t     ham_s64_t;
+typedef uint64_t    ham_u64_t;
+typedef int32_t     ham_s32_t;
+typedef uint32_t    ham_u32_t;
+typedef int16_t     ham_s16_t;
+typedef uint16_t    ham_u16_t;
+typedef int8_t      ham_s8_t;
+typedef uint8_t     ham_u8_t;
 
 /*
  * Undefine macros to avoid macro redefinitions

@@ -159,7 +159,7 @@ namespace Hamster
       }
       if (st != 0)
         throw new DatabaseException(st);
-      CompareFoo=foo;
+      CompareFoo = foo;
     }
 
     private CompareFunc CompareFoo;
@@ -180,9 +180,15 @@ namespace Hamster
     /// <summary>
     /// Searches an item in the Database, returns the record
     /// </summary>
-    public byte[] Find(byte[] key)
-    {
-      return Find(null, key);
+    public byte[] Find(byte[] key) {
+      return Find(null, ref key, 0);
+    }
+
+    /// <summary>
+    /// Searches an item in the Database, returns the record
+    /// </summary>
+    public byte[] Find(Transaction txn, byte[] key) {
+      return Find(txn, ref key, 0);
     }
 
     /// <summary>
@@ -199,6 +205,7 @@ namespace Hamster
     /// </remarks>
     /// <param name="txn">The optional Transaction</param>
     /// <param name="key">The key of the item</param>
+    /// <param name="flags">The flags of the operation</param>
     /// <returns>The record of the item</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
@@ -206,15 +213,16 @@ namespace Hamster
     ///     if the item was not found</item>
     ///   </list>
     /// </exception>
-    public byte[] Find(Transaction txn, byte[] key) {
-      byte[] r;
+    public byte[] Find(Transaction txn, ref byte[] key, int flags) {
+      byte[] record = null;
       lock (this) {
-        r = NativeMethods.Find(handle,
-              txn != null ? txn.Handle : IntPtr.Zero, key, 0);
+        int st = NativeMethods.Find(handle,
+                        txn != null ? txn.Handle : IntPtr.Zero,
+                        ref key, ref record, flags);
+        if (st != 0)
+          throw new DatabaseException(st);
       }
-      if (r == null)
-        throw new DatabaseException(GetLastError());
-      return r;
+      return record;
     }
 
     /// <summary>

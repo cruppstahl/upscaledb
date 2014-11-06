@@ -461,10 +461,16 @@ o windows cleanups
     x a few projects are not built (hamzilla_debug_x64, server_dll_x64...)
         or end up in wrong directories
     o The C# PInvoke for ham_cursor_find is missing the Record structure
-        - also accept flags in ham_db_find and ham_cursor_find for approx.
+        o also accept flags in ham_db_find and ham_cursor_find for approx.
             matching, and copy the key!
+        o this needs a unittest
     o C# unittests sporadically fail b/c a handle is closed multiple times
+        - seems that the java API solves these problems more elegantly
         o also look at Sandeep's mail regarding a crash
+        o Database: store all Cursors in a list, then close them before
+            closing the Database
+        o Environment: store all Transactions in a list, then close them before
+            closing the Environment
     o automate the build process
     o ... and the packaging
 
@@ -488,15 +494,18 @@ x PRO: review AES usage in read_page; if the page is mmapped
 
 o PRO: rebase to vanilla 2.1.9
 
-o PRO: review SSE code; the problem is that it's never called, because the
+o PRO: review SIMD code; the problem is that it's never called, because the
     search threshold is always smaller than the minimum block size
 
 o PRO: look for a better compression for DefaultRecordList, i.e.
     msb is 1 -> 7 bit record ID (should be sufficient)
-    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 16 bytes)
+    msb is 0 -> 5 bit flags for size (2 bits unused), inline data (max 8 bytes)
     o Use small index which stores offset + bits for each group
-    o bits: number of bits per entry, or 0 if items are uncompressed (that's
-        the case if empty/tiny/small records are in this block)
+    o Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
+        number can then hold 16 ints
+    o if flags == 2#11111 then the number is a 64bit blob id
+    o otherwise the flags specify the length of the inline data
+    o avoid ripple effects by growing/splitting the block
     o Use this index for binary search
 
 o Can we release an early version of zint32?
@@ -574,9 +583,11 @@ o refactoring: make EnvironmentHeader stateless and exception safe
     -> will it ever be used outside of the EnvironmentConfiguration setting?
     -> can we remove it?
 
+o refactoring: make AES Encryption stateless and exception safe
+
 o refactoring: make Compressors stateless and exception safe
 
-o refactoring: make Btree stateless and exception safe
+o refactoring: make Btree Actions stateless and exception safe
 
 o refactoring: improve the code separation of cursor and txn_cursor, i.e.
     in db_local::cursor_get_record_size (wtf - is_null(0)?)
@@ -603,6 +614,9 @@ o bulk updates/batched updates
     - add those delta updates to the txn-trees or to the btree node,
         simply transfer ownership of the memory
     - can contain inserts or deletes
+    o the Update structure, which describes a single update, can also
+        be used internally to pass all parameters to the Btree actions;
+        they would then be completely stateless
     o also for remote, transfer in a single message
     o also for .NET
     o also for java
@@ -623,6 +637,12 @@ o look into dynomite, spark, mongodb and mariadb integration
     o write down everything i find, collect information and estimate
         efforts/gains (will do the same for mysql, R and mongodb later); this
         task is not about writing code!
+    o come up with priorities, estimates
+
+    o dynomite: requires C interface and C marshalling code. rewrite C++
+        marshalling routines to C
+    o dynomite: send a patch to support more backends
+    o dynomite: send a patch to separate existing backends into their own file
 
 o First steps towards concurrency; target is having one lock per db
     o create coding rules which help for thread-safety
@@ -654,6 +674,11 @@ o First steps towards concurrency; target is having one lock per db
     o split the big lock and create one lock per database
     o perform excessive testing
 
+o Next steps towards concurrency: flush caches asynchronously,
+    use non-blocking writes (with libuv)
+    o or have a separate thread perform purges, flushes with libuv
+    o ... and prefetches (when opening a database with HAM_PREFETCH_INDEX)
+
 o Next steps towards concurrency; target is having one writer per db, but
         multiple readers
     o move flushing of transactions into background
@@ -683,7 +708,6 @@ o Next steps towards concurrency; target is having one writer per db, but
         Transaction, Cursor
 
 o PRO: find an efficient compression method for InternalRecordList
-    -> does this make sense? internal nodes are always few...
     -> also, this should play well with the compression of the DefaultRecordList
     x The page IDs should be modulo page-size (makes numbers smaller) - done
 

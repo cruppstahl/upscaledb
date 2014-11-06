@@ -311,6 +311,14 @@ namespace Hamster
     }
 
     /// <summary>
+    /// Searches a key and points the Cursor to this key;
+    /// returns the record of the key
+    /// </summary>
+    public byte[] Find(byte[] key) {
+      return Find(key, 0);
+    }
+
+    /// <summary>
     /// Searches a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
@@ -323,19 +331,22 @@ namespace Hamster
     /// on the first duplicate.
     /// </remarks>
     /// <param name="key">The key to search for</param>
+    /// <param name="flags">The flags, can be zero</param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
     ///   <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
     ///     if the requested key was not found</item>
     ///   </list>
     /// </exception>
-    public void Find(byte[] key) {
+    public byte[] Find(byte[] key, int flags) {
       int st;
+      byte[] record = null;
       lock (db) {
-        st = NativeMethods.CursorFind(handle, key, 0);
+        st = NativeMethods.CursorFind(handle, ref key, ref record, flags);
       }
       if (st != 0)
         throw new DatabaseException(st);
+      return record;
     }
 
     /// <summary>

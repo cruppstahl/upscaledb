@@ -101,14 +101,14 @@ namespace SampleEnv3
         static void Main(string[] args) {
             System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
             Hamster.Environment env = new Hamster.Environment();
-            Database[] db=new Database[3];
-            Cursor[] cursor=new Cursor[3];
+            Database[] db = new Database[3];
+            Cursor[] cursor = new Cursor[3];
 
             /*
              * set up the customer and order data - these arrays will later
              * be inserted into the Databases
              */
-            Customer[] customers=new Customer[4];
+            Customer[] customers = new Customer[4];
             customers[0] = new Customer(1, "Alan Antonov Corp.");
             customers[1] = new Customer(2, "Barry Broke Inc.");
             customers[2] = new Customer(3, "Carl Caesar Lat.");

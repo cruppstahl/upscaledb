@@ -17,15 +17,16 @@
 using Hamster;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Diagnostics;
 
 namespace Unittests
 {
     /// <summary>
-    ///This is a test class for TransactionTest and is intended
-    ///to contain all TransactionTest Unit Tests
+    /// This is a test class for TransactionTest and is intended
+    /// to contain all TransactionTest Unit Tests
     ///</summary>
     [TestClass()]
-    [DeploymentItem("..\\win32\\msvc2013\\out\\dll_debug\\hamsterdb-2.1.9.dll")]
+    [DeploymentItem("hamsterdb-2.1.9.dll")]
     public class TransactionTest
     {
         private Hamster.Environment env;

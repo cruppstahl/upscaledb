@@ -20,13 +20,13 @@ package de.crupp.hamsterdb;
  * The hamsterdb Version information
  */
 public class Version {
-    /** the major version number */
-    public int major;
+  /** the major version number */
+  public int major;
 
-    /** the minor version number */
-    public int minor;
+  /** the minor version number */
+  public int minor;
 
-    /** the version revision */
-    public int revision;
+  /** the version revision */
+  public int revision;
 }
 

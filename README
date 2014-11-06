@@ -15,7 +15,9 @@ This release fixes several bugs and improved the whole recovery process.
 Microsoft Visual Studio 2008 is no longer supported. Instead, project
 files for Visual Studio 2013 were added.
 
-The custom typdef for hamsterdb types (ham_u32_t, ham_u64_t etc) were removed.
+There were various performance improvements.
+
+The custom typdef for hamsterdb types (ham_u32_t, ham_u64_t etc) are deprecated.
 They got replaced by types from stdint.h.
 
 A new parameter HAM_PARAM_FILE_SIZE_LIMIT was added; it can set a file size

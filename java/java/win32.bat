@@ -1,9 +1,7 @@
 
 @echo off
 
-set VER_MAJ=2
-set VER_MIN=0
-set VER_REV=0.rc3
+set VERSION=2.1.9
 
 if ["%JDK%"] == [] goto l1
 goto start
@@ -24,14 +22,14 @@ echo Creating JAR archive failed, exiting
 goto end
 
 :start
-for %%F in (Const DatabaseException Database Environment Cursor Version License Parameter ErrorHandler CompareCallback PrefixCompareCallback DuplicateCompareCallback Transaction) do (
+for %%F in (Const DatabaseException Database Environment Cursor Version Parameter ErrorHandler CompareCallback Transaction) do (
     echo Compiling %%F.java...
     "%JDK%\bin\javac" de/crupp/hamsterdb/%%F.java
     if errorlevel 1 goto error1
 )
 
 echo Packing JAR file...
-"%JDK%\bin\jar" -cf hamsterdb-%VER_MAJ%.%VER_MIN%.%VER_REV%.jar de/crupp/hamsterdb/*.class
+"%JDK%\bin\jar" -cf hamsterdb-%VERSION%.jar de/crupp/hamsterdb/*.class
 if errorlevel 1 goto error2
 
 echo Done!

@@ -117,7 +117,7 @@ public class Database {
    *
    * @return the error code of the last operation
    */
-  public synchronized int getError() {
+  public int getError() {
     return ham_db_get_error(m_handle);
   }
 
@@ -139,7 +139,7 @@ public class Database {
    * <p>
    * @see Database#setPrefixComparator
    */
-  public synchronized void setComparator(CompareCallback cmp) {
+  public void setComparator(CompareCallback cmp) {
     m_cmp = cmp;
     ham_db_set_compare_func(m_handle, m_cmp);
   }
@@ -198,7 +198,7 @@ public class Database {
    *
    * @see Database#insert(Transaction, byte[], byte[], int)
    */
-  public synchronized void insert(byte[] key, byte[] record, int flags)
+  public void insert(byte[] key, byte[] record, int flags)
       throws DatabaseException {
     insert(null, key, record, flags);
   }
@@ -208,7 +208,7 @@ public class Database {
    *
    * @see Database#insert(Transaction, byte[], byte[], int)
    */
-  public synchronized void insert(Transaction txn, byte[] key,
+  public void insert(Transaction txn, byte[] key,
     byte[] record)
       throws DatabaseException {
     insert(txn, key, record, 0);
@@ -249,13 +249,13 @@ public class Database {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
    */
-  public synchronized void insert(Transaction txn, byte[] key,
+  public void insert(Transaction txn, byte[] key,
       byte[] record, int flags)
       throws DatabaseException {
     if (key == null || record == null)
       throw new NullPointerException();
     int status = ham_db_insert(m_handle, txn != null ? txn.getHandle() : 0,
-                key, record, flags);
+                            key, record, flags);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -265,7 +265,7 @@ public class Database {
    *
    * @see Database#erase(Transaction, byte[])
    */
-  public synchronized void erase(byte[] key)
+  public void erase(byte[] key)
       throws DatabaseException {
     erase(null, key);
   }
@@ -289,7 +289,7 @@ public class Database {
    *
    * @see Cursor#erase
    */
-  public synchronized void erase(Transaction txn, byte[] key)
+  public void erase(Transaction txn, byte[] key)
       throws DatabaseException {
     if (key == null)
       throw new NullPointerException();
@@ -308,7 +308,7 @@ public class Database {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
    */
-  public synchronized void getParameters(Parameter[] params)
+  public void getParameters(Parameter[] params)
       throws DatabaseException {
     int status = ham_db_get_parameters(m_handle, params);
     if (status != 0)
@@ -320,7 +320,7 @@ public class Database {
    *
    * @see Database#getKeyCount(Transaction, int)
    */
-  public synchronized long getKeyCount(Transaction txn)
+  public long getKeyCount(Transaction txn)
       throws DatabaseException {
     return getKeyCount(txn, 0);
   }
@@ -330,7 +330,7 @@ public class Database {
    *
    * @see Database#getKeyCount(Transaction, int)
    */
-  public synchronized long getKeyCount()
+  public long getKeyCount()
       throws DatabaseException {
     return getKeyCount(null, 0);
   }
@@ -340,7 +340,7 @@ public class Database {
    *
    * @see Database#getKeyCount(Transaction, int)
    */
-  public synchronized long getKeyCount(int flags)
+  public long getKeyCount(int flags)
       throws DatabaseException {
     return getKeyCount(null, flags);
   }
@@ -350,7 +350,7 @@ public class Database {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
    */
-  public synchronized long getKeyCount(Transaction txn, int flags)
+  public long getKeyCount(Transaction txn, int flags)
       throws DatabaseException {
     // native function will throw exception
     return ham_db_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
@@ -373,7 +373,7 @@ public class Database {
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
    */
-  public synchronized void close(int flags) {
+  public void close(int flags) {
     if (m_handle != 0) {
       closeCursors();
       ham_db_close(m_handle, flags);
@@ -393,7 +393,7 @@ public class Database {
   /**
    * Adds a cursor - used by Cursor.java
    */
-  public void addCursor(Cursor cursor) {
+  public synchronized void addCursor(Cursor cursor) {
     if (m_cursor_set == null)
       m_cursor_set = new HashSet<Cursor>();
     m_cursor_set.add(cursor);
@@ -402,14 +402,14 @@ public class Database {
   /**
    * Removes a cursor - used by Cursor.java
    */
-  public void removeCursor(Cursor cursor) {
+  public synchronized void removeCursor(Cursor cursor) {
     m_cursor_set.remove(cursor);
   }
 
   /**
    * closes all cursors of this database
    */
-  public void closeCursors() {
+  public synchronized void closeCursors() {
     if (m_cursor_set == null)
       return;
     Iterator iterator = m_cursor_set.iterator();

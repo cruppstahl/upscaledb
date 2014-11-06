@@ -35,8 +35,6 @@ namespace Hamster
       public Int32 partial_offset;
       public Int32 partial_size;
       public Int32 flags;
-      public Int32 _flags;
-      public Int64 _rid;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -174,32 +172,34 @@ namespace Hamster
         byte[] lhs, int lhsLength,
         byte[] rhs, int rhsLength);
 
-    [DllImport("hamsterdb-2.1.9.dll", EntryPoint = "ham_db_set_duplicate_compare_func",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern int SetDuplicateCompareFunc(IntPtr handle,
-        NativeMethods.DuplicateCompareFunc foo);
-
     [DllImport("hamsterdb-2.1.9.dll", EntryPoint = "ham_db_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int FindLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
 
-    static public unsafe byte[] Find(IntPtr handle, IntPtr txnhandle,
-                byte[] data, int flags) {
+    static public unsafe int Find(IntPtr handle, IntPtr txnhandle,
+                ref byte[] keydata, ref byte[] recdata, int flags) {
       KeyStruct key = new KeyStruct();
       RecordStruct record = new RecordStruct();
-      key.size = (short)data.GetLength(0);
-      fixed (byte* bk = data) {
+      key.size = (short)keydata.GetLength(0);
+      fixed (byte *bk = keydata) {
         key.data = bk;
         int st = FindLow(handle, txnhandle, ref key, ref record, flags);
-        if (st == 0) {
-          // I didn't found a way to avoid the copying...
-          IntPtr recData = new IntPtr(record.data);
-          byte[] newArray = new byte[record.size];
-          Marshal.Copy(recData, newArray, 0, record.size);
-          return newArray;
+        if (st != 0)
+          return st;
+        // I didn't found a way to avoid the copying...
+        IntPtr recData = new IntPtr(record.data);
+        byte[] newRecData = new byte[record.size];
+        Marshal.Copy(recData, newRecData, 0, record.size);
+        recdata = newRecData;
+        // also copy the key data if approx. matching was requested
+        if ((flags & (HamConst.HAM_FIND_LT_MATCH | HamConst.HAM_FIND_GT_MATCH)) != 0) {
+          IntPtr keyData = new IntPtr(key.data);
+          byte[] newKeyData = new byte[key.size];
+          Marshal.Copy(keyData, newKeyData, 0, key.size);
+          keydata = newKeyData;
         }
-        throw new DatabaseException(st);
+        return 0;
       }
     }
 
@@ -316,14 +316,31 @@ namespace Hamster
     [DllImport("hamsterdb-2.1.9.dll", EntryPoint = "ham_cursor_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorFindLow(IntPtr handle,
-        ref KeyStruct key, int flags);
+        ref KeyStruct key, ref RecordStruct record, int flags);
 
-    static unsafe public int CursorFind(IntPtr handle, byte[] data, int flags) {
+    static unsafe public int CursorFind(IntPtr handle, ref byte[] keydata,
+                            ref byte[] recdata, int flags) {
       KeyStruct key = new KeyStruct();
-      fixed (byte *b=data) {
-        key.data = b;
-        key.size = (short)data.GetLength(0);
-        return CursorFindLow(handle, ref key, flags);
+      RecordStruct record = new RecordStruct();
+
+      fixed (byte* bk = keydata) {
+        key.data = bk;
+        int st = CursorFindLow(handle, ref key, ref record, flags);
+        if (st != 0)
+          return st;
+        // I didn't found a way to avoid the copying...
+        IntPtr recData = new IntPtr(record.data);
+        byte[] newRecData = new byte[record.size];
+        Marshal.Copy(recData, newRecData, 0, record.size);
+        recdata = newRecData;
+        // also copy the key data if approx. matching was requested
+        if ((flags & (HamConst.HAM_FIND_LT_MATCH | HamConst.HAM_FIND_GT_MATCH)) != 0) {
+          IntPtr keyData = new IntPtr(key.data);
+          byte[] newKeyData = new byte[key.size];
+          Marshal.Copy(keyData, newKeyData, 0, key.size);
+          keydata = newKeyData;
+        }
+        return 0;
       }
     }
 
