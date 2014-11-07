@@ -25,49 +25,41 @@ namespace Unittests
     /// This is a test class for TransactionTest and is intended
     /// to contain all TransactionTest Unit Tests
     ///</summary>
-    [TestClass()]
-    [DeploymentItem("hamsterdb-2.1.9.dll")]
     public class TransactionTest
     {
         private Hamster.Environment env;
         private Database db;
 
-        [TestInitialize()]
-        public void MyTestInitialize()
+        private void SetUp()
         {
             env = new Hamster.Environment();
             env.Create("test.db", HamConst.HAM_ENABLE_TRANSACTIONS);
             db = env.CreateDatabase(1);
         }
 
-        [TestCleanup()]
-        public void MyTestCleanup()
+        private void TearDown()
         {
             db.Close();
             env.Close();
         }
 
-        [DeploymentItem("HamsterDb-dotnet.dll")]
-
-        [TestMethod()]
-        public void AbortTest()
+        private void AbortTest()
         {
             Transaction t = env.Begin();
             t.Abort();
         }
 
-        [TestMethod()]
-        public void CommitTest()
+        private void CommitTest()
         {
             Transaction t = env.Begin();
             t.Commit();
         }
 
-        [TestMethod()]
-        public void InsertFindCommitTest() {
+        private void InsertFindCommitTest()
+        {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=env.Begin();
+            Transaction t = env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             try {
@@ -80,11 +72,11 @@ namespace Unittests
             db.Find(k);
         }
 
-        [TestMethod()]
-        public void InsertFindAbortTest() {
+        private void InsertFindAbortTest()
+        {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=env.Begin();
+            Transaction t = env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             t.Abort();
@@ -96,11 +88,11 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void EraseFindCommitTest() {
+        private void EraseFindCommitTest()
+        {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=env.Begin();
+            Transaction t = env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             try {
@@ -113,9 +105,9 @@ namespace Unittests
             db.Erase(k);
         }
 
-        [TestMethod()]
-        public void CursorTest() {
-            Transaction t=env.Begin();
+        private void CursorTest()
+        {
+            Transaction t = env.Begin();
             Cursor c = new Cursor(db, t);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -126,9 +118,9 @@ namespace Unittests
             db.Find(k);
         }
 
-        [TestMethod()]
-        public void GetKeyCountTest() {
-            Transaction t=env.Begin();
+        private void GetKeyCountTest()
+        {
+            Transaction t = env.Begin();
 
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -137,6 +129,44 @@ namespace Unittests
             Assert.AreEqual(1, db.GetKeyCount(t));
             t.Commit();
             Assert.AreEqual(1, db.GetKeyCount());
+        }
+
+        public void Run()
+        {
+            Console.WriteLine("TransactionTest.AbortTest");
+            SetUp();
+            AbortTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.CommitTest");
+            SetUp();
+            CommitTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.InsertFindAbortTest");
+            SetUp();
+            InsertFindAbortTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.InsertFindCommitTest");
+            SetUp();
+            InsertFindCommitTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.EraseFindCommitTest");
+            SetUp();
+            EraseFindCommitTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.CursorTest"); 
+            SetUp();
+            CursorTest();
+            TearDown();
+
+            Console.WriteLine("TransactionTest.GetKeyCountTest"); 
+            SetUp();
+            GetKeyCountTest();
+            TearDown();
         }
     }
 }

@@ -91,7 +91,8 @@ namespace Hamster
 
     internal Database(IntPtr handle) {
       this.handle = handle;
-      this.cursors = new List<Cursor>();
+      cursors = new List<Cursor>();
+      pinnedCompareFunc = new NativeMethods.CompareFunc(MyCompareFunc);
     }
 
     /// <summary>

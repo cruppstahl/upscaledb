@@ -23,8 +23,6 @@ using Hamster;
 
 namespace Unittests
 {
-    [TestClass()]
-    [DeploymentItem("..\\..\\..\\..\\win32\\msvc2013\\out\\dll_debug\\hamsterdb-2.1.9.dll")]
     public class DatabaseTest
     {
         private static int errorCounter;
@@ -34,8 +32,7 @@ namespace Unittests
             errorCounter++;
         }
 
-        [TestMethod()]
-        public void SetErrorHandler() {
+        private void SetErrorHandler() {
             Hamster.Environment env = new Hamster.Environment();
             ErrorHandler eh = new ErrorHandler(MyErrorHandler);
             try {
@@ -49,8 +46,7 @@ namespace Unittests
             Database.SetErrorHandler(null);
         }
 
-        [TestMethod()]
-        public void CreateWithParameters()
+        private void CreateWithParameters()
         {
             using (Hamster.Environment env = new Hamster.Environment())
             {
@@ -65,8 +61,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateWithParameters2()
+        private void CreateWithParameters2()
         {
             using (Hamster.Environment env = new Hamster.Environment())
             {
@@ -76,15 +71,13 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void GetVersion() {
+        private void GetVersion() {
             Hamster.Version v = Database.GetVersion();
             Assert.AreEqual(2, v.major);
             Assert.AreEqual(1, v.minor);
         }
 
-        [TestMethod()]
-        public void DatabaseClose() {
+        private void DatabaseClose() {
             Database db = new Database();
             try {
                 db.Close();
@@ -94,8 +87,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateString() {
+        private void CreateString() {
             Database db = new Database();
             Hamster.Environment env = new Hamster.Environment();
             try {
@@ -113,8 +105,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateInvalidParameter() {
+        private void CreateInvalidParameter() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[3];
@@ -131,8 +122,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringIntIntParameter() {
+        private void CreateStringIntIntParameter() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[1];
@@ -148,8 +138,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringIntIntParameterNeg() {
+        private void CreateStringIntIntParameterNeg() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[1];
@@ -165,23 +154,6 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void GetError() {
-            Hamster.Environment env = new Hamster.Environment();
-            Database db = new Database();
-            try {
-                env.Create("ntest.db");
-                db = env.CreateDatabase(1);
-                db.Insert(null, null, HamConst.HAM_OVERWRITE | HamConst.HAM_DUPLICATE);
-            }
-            catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
-            }
-            Assert.AreEqual(HamConst.HAM_INV_PARAMETER, db.GetLastError());
-            db.Close();
-            env.Close();
-        }
-
         private int compareCounter;
 
         private int MyCompareFunc(byte[] lhs, byte[] rhs) {
@@ -190,16 +162,20 @@ namespace Unittests
             return ++compareCounter;
         }
 
-        [TestMethod()]
-        public void SetComparator() {
+        private void SetComparator() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
+            Parameter[] param = new Parameter[1];
+            param[0] = new Parameter();
+            param[0].name = HamConst.HAM_PARAM_KEY_TYPE;
+            param[0].value = HamConst.HAM_TYPE_CUSTOM;
+
             compareCounter = 0;
             try {
                 env.Create("ntest.db");
-                db = env.CreateDatabase(1);
+                db = env.CreateDatabase(1, 0, param);
                 db.SetCompareFunc(new CompareFunc(MyCompareFunc));
                 db.Insert(k, r);
                 k[0] = 1;
@@ -210,14 +186,7 @@ namespace Unittests
             catch (DatabaseException e) {
                 Assert.Fail("unexpected exception " + e);
             }
-            Assert.AreEqual(3, compareCounter);
-        }
-
-        private int MyDupeCompareFunc(byte[] lhs, byte[] rhs)
-        {
-            // always return a different value or hamsterdb thinks
-            // we're inserting duplicates
-            return ++compareCounter;
+            Assert.AreEqual(1, compareCounter);
         }
 
         void checkEqual(byte[] lhs, byte[] rhs)
@@ -227,8 +196,7 @@ namespace Unittests
                 Assert.AreEqual(lhs[i], rhs[i]);
         }
 
-        [TestMethod()]
-        public void FindKey() {
+        private void FindKey() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -248,8 +216,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void FindKeyNull() {
+        private void FindKeyNull() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             try {
@@ -263,8 +230,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void FindUnknownKey() {
+        private void FindUnknownKey() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -280,8 +246,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void InsertKey() {
+        private void InsertKey() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -315,8 +280,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void InsertKeyInvalidParam() {
+        private void InsertKeyInvalidParam() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -343,8 +307,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void InsertKeyNegative() {
+        private void InsertKeyNegative() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -362,8 +325,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void InsertKeyOverwrite() {
+        private void InsertKeyOverwrite() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -384,8 +346,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void EraseKey() {
+        private void EraseKey() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -408,8 +369,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void EraseKeyNegative() {
+        private void EraseKeyNegative() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -424,8 +384,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void EraseUnknownKey() {
+        private void EraseUnknownKey() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -441,8 +400,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void EraseKeyTwice() {
+        private void EraseKeyTwice() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -465,8 +423,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void Recovery() {
+        private void Recovery() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
             env.Create("ntest.db", HamConst.HAM_ENABLE_RECOVERY);
@@ -479,8 +436,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void GetKeyCount()
+        private void GetKeyCount()
         {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -548,28 +504,32 @@ namespace Unittests
             return db;
         }
 
-        [TestMethod()]
-        public void Cursor10000Test()
+        private void Cursor10000Test()
         {
             //create database
             Hamster.Environment env = new Hamster.Environment();
             env.Create("ntest.db");
-            Database hamster = env.CreateDatabase(1);
+
+            Parameter[] param = new Parameter[1];
+            param[0] = new Parameter();
+            param[0].name = HamConst.HAM_PARAM_KEY_TYPE;
+            param[0].value = HamConst.HAM_TYPE_UINT64;
+            Database db = env.CreateDatabase(1, 0, param);
 
             //insert records
             for (ulong i = 0; i < 10000; i++)
             {
                 byte[] key = BitConverter.GetBytes(i);
                 byte[] record = new byte[20];
-                hamster.Insert(key, record);
+                db.Insert(key, record);
             }
 
             //close database
-            hamster.Close();
+            db.Close();
 
             //reopen again
-            hamster = env.OpenDatabase(1);
-            Cursor cursor = new Cursor(hamster);
+            db = env.OpenDatabase(1);
+            Cursor cursor = new Cursor(db);
 
             cursor.MoveFirst();
             ulong firstKey = BitConverter.ToUInt64(cursor.GetKey(), 0);
@@ -581,11 +541,11 @@ namespace Unittests
 
             //close database
             cursor.Close();
-            hamster.Close();
+            db.Close();
+            env.Close();
         }
 
-        [TestMethod()]
-        public void AutoCleanupCursors()
+        private void AutoCleanupCursors()
         {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -596,9 +556,7 @@ namespace Unittests
             env.Close(HamConst.HAM_AUTO_CLEANUP);
         }
 
-
-        [TestMethod()]
-        public void AutoCleanupCursors2()
+        private void AutoCleanupCursors2()
         {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -613,8 +571,7 @@ namespace Unittests
             env.Close(HamConst.HAM_AUTO_CLEANUP);
         }
 
-        [TestMethod()]
-        public void AutoCleanupCursors3()
+        private void AutoCleanupCursors3()
         {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -631,8 +588,7 @@ namespace Unittests
             env.Close(HamConst.HAM_AUTO_CLEANUP);
         }
 
-        [TestMethod()]
-        public void AutoCleanupCursors4()
+        private void AutoCleanupCursors4()
         {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -647,6 +603,96 @@ namespace Unittests
             cursor5.Close();
             // let gc do the cleanup
             env.Close(HamConst.HAM_AUTO_CLEANUP);
+        }
+
+        public void Run()
+        {
+            Console.WriteLine("DatabaseTest.SetErrorHandler");
+            SetErrorHandler();
+
+            Console.WriteLine("DatabaseTest.CreateWithParameters");
+            CreateWithParameters();
+
+            Console.WriteLine("DatabaseTest.CreateWithParameters2");
+            CreateWithParameters2();
+
+            Console.WriteLine("DatabaseTest.GetVersion");
+            GetVersion();
+
+            Console.WriteLine("DatabaseTest.DatabaseClose");
+            DatabaseClose();
+
+            Console.WriteLine("DatabaseTest.CreateInvalidParameter");
+            CreateInvalidParameter();
+
+            Console.WriteLine("DatabaseTest.CreateString");
+            CreateString();
+
+            Console.WriteLine("DatabaseTest.CreateStringIntIntParameter");
+            CreateStringIntIntParameter();
+
+            Console.WriteLine("DatabaseTest.CreateStringIntIntParameterNeg");
+            CreateStringIntIntParameterNeg();
+
+            Console.WriteLine("DatabaseTest.CreateWithParameters");
+            CreateWithParameters();
+
+            Console.WriteLine("DatabaseTest.CreateWithParameters2");
+            CreateWithParameters2();
+
+            Console.WriteLine("DatabaseTest.SetComparator");
+            SetComparator();
+
+            Console.WriteLine("DatabaseTest.FindKey"); 
+            FindKey();
+
+            Console.WriteLine("DatabaseTest.FindKeyNull"); 
+            FindKeyNull();
+
+            Console.WriteLine("DatabaseTest.FindUnknownKey"); 
+            FindUnknownKey();
+
+            Console.WriteLine("DatabaseTest.InsertKey"); 
+            InsertKey();
+
+            Console.WriteLine("DatabaseTest.InsertKeyInvalidParam"); 
+            InsertKeyInvalidParam();
+
+            Console.WriteLine("DatabaseTest.InsertKeyNegative");
+            InsertKeyNegative();
+
+            Console.WriteLine("DatabaseTest.InsertKeyOverwrite");
+            InsertKeyOverwrite();
+
+            Console.WriteLine("DatabaseTest.EraseKey");
+            EraseKey();
+
+            Console.WriteLine("DatabaseTest.EraseKeyNegative");
+            EraseKeyNegative();
+
+            Console.WriteLine("DatabaseTest.EraseKeyTwice");
+            EraseKeyTwice();
+
+            Console.WriteLine("DatabaseTest.EraseUnknownKey");
+            EraseUnknownKey();
+
+            Console.WriteLine("DatabaseTest.GetKeyCount");
+            GetKeyCount();
+
+            Console.WriteLine("DatabaseTest.Cursor10000Test");
+            Cursor10000Test();
+
+            Console.WriteLine("DatabaseTest.AutoCleanupCursors");
+            AutoCleanupCursors();
+
+            Console.WriteLine("DatabaseTest.AutoCleanupCursors2");
+            AutoCleanupCursors2();
+
+            Console.WriteLine("DatabaseTest.AutoCleanupCursors3");
+            AutoCleanupCursors3();
+
+            Console.WriteLine("DatabaseTest.AutoCleanupCursors4");
+            AutoCleanupCursors4();
         }
     }
 }

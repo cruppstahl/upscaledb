@@ -22,8 +22,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Unittests
 {
-    [TestClass()]
-    [DeploymentItem("hamsterdb-2.1.9.dll")]
     public class EnvironmentTest
     {
         void checkEqual(byte[] lhs, byte[] rhs)
@@ -33,8 +31,7 @@ namespace Unittests
                 Assert.AreEqual(lhs[i], rhs[i]);
         }
 
-        [TestMethod()]
-        public void CreateString() {
+        private void CreateString() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create("ntest.db");
@@ -45,8 +42,8 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringNull() {
+        private void CreateStringNull()
+        {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create(null);
@@ -57,8 +54,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringInt() {
+        private void CreateStringInt() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create(null, HamConst.HAM_IN_MEMORY);
@@ -69,8 +65,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringIntInt() {
+        private void CreateStringIntInt() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create("ntest.db", 0, 0644);
@@ -81,8 +76,8 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringIntIntParameter() {
+        private void CreateStringIntIntParameter()
+        {
             Hamster.Environment env = new Hamster.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
@@ -97,8 +92,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateStringIntIntParameterNeg() {
+        private void CreateStringIntIntParameterNeg() {
             Hamster.Environment env = new Hamster.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
@@ -113,8 +107,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void OpenString() {
+        private void OpenString() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create("ntest.db");
@@ -127,8 +120,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void OpenStringNegative() {
+        private void OpenStringNegative() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Open("ntestxxxxx.db");
@@ -139,8 +131,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void OpenStringIntIntParameter() {
+        private void OpenStringIntIntParameter() {
             Hamster.Environment env = new Hamster.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
@@ -157,8 +148,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateDatabaseShort() {
+        private void CreateDatabaseShort() {
             Hamster.Environment env = new Hamster.Environment();
             byte[] k=new byte[5];
             byte[] r=new byte[5];
@@ -178,8 +168,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void CreateDatabaseNegative() {
+        private void CreateDatabaseNegative() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create("ntest.db");
@@ -191,8 +180,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void OpenDatabaseNegative() {
+        private void OpenDatabaseNegative() {
             Hamster.Environment env = new Hamster.Environment();
             try {
                 env.Create("ntest.db");
@@ -204,8 +192,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void RenameDatabase() {
+        private void RenameDatabase() {
             Hamster.Environment env = new Hamster.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -226,8 +213,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void EraseDatabase() {
+        private void EraseDatabase() {
             Hamster.Environment env = new Hamster.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -246,8 +232,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void EraseUnknownDatabase() {
+        private void EraseUnknownDatabase() {
             Hamster.Environment env = new Hamster.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -265,8 +250,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void Flush()
+        private void Flush()
         {
             Hamster.Environment env = new Hamster.Environment();
             env.Create("ntest.db");
@@ -274,8 +258,7 @@ namespace Unittests
             env.Close();
         }
 
-        [TestMethod()]
-        public void GetDatabaseNames() {
+        private void GetDatabaseNames() {
             Database db;
             short[] names;
             short[] s1 ={ 13 };
@@ -305,5 +288,49 @@ namespace Unittests
             env.Close();
         }
 
+        public void Run()
+        {
+            Console.WriteLine("EnvironmentTest.CreateDatabaseNegative");
+            CreateDatabaseNegative();
+
+            Console.WriteLine("EnvironmentTest.CreateDatabaseShort");
+            CreateDatabaseShort();
+
+            Console.WriteLine("EnvironmentTest.CreateString");
+            CreateString();
+
+            Console.WriteLine("EnvironmentTest.CreateStringInt");
+            CreateStringInt();
+
+            Console.WriteLine("EnvironmentTest.CreateStringIntInt");
+            CreateStringIntInt();
+
+            Console.WriteLine("EnvironmentTest.CreateStringIntIntParameter");
+            CreateStringIntIntParameter();
+
+            Console.WriteLine("EnvironmentTest.CreateStringIntIntParameterNeg");
+            CreateStringIntIntParameterNeg();
+
+            Console.WriteLine("EnvironmentTest.CreateStringNull");
+            CreateStringNull();
+
+            Console.WriteLine("EnvironmentTest.RenameDatabase"); 
+            RenameDatabase();
+
+            Console.WriteLine("EnvironmentTest.EraseDatabase"); 
+            EraseDatabase();
+
+            Console.WriteLine("EnvironmentTest.EraseUnknownDatabase");
+            EraseUnknownDatabase();
+
+            Console.WriteLine("EnvironmentTest.OpenDatabaseNegative");
+            OpenDatabaseNegative();
+
+            Console.WriteLine("EnvironmentTest.Flush");
+            Flush();
+
+            Console.WriteLine("EnvironmentTest.GetDatabaseNames");
+            GetDatabaseNames();
+        }
     }
 }

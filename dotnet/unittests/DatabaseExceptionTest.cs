@@ -22,20 +22,26 @@ using Hamster;
 
 namespace Unittests
 {
-    [TestClass()]
-    [DeploymentItem("hamsterdb-2.1.9.dll")]
     public class DatabaseExceptionTest
     {
-        [TestMethod()]
-        public void GetErrno() {
+        private void GetErrno() {
             DatabaseException e = new DatabaseException(13);
             Assert.AreEqual(13, e.ErrorCode);
         }
 
-        [TestMethod()]
-        public void GetMessage() {
+        private void GetMessage() {
             DatabaseException e = new DatabaseException(-8);
             Assert.AreEqual("Invalid parameter", e.Message);
         }
+
+        public void Run()
+        {
+            Console.WriteLine("DatabaseExceptionTest.GetErrno");
+            GetErrno();
+
+            //Console.WriteLine("DatabaseExceptionTest.GetMessage");
+            //GetMessage();
+        }
+
     }
 }

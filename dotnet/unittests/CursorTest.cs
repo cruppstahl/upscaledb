@@ -17,13 +17,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Hamster;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Unittests
 {
-    [TestClass()]
-    [DeploymentItem("hamsterdb-2.1.9.dll")]
     public class CursorTest
     {
         private int counter;
@@ -46,33 +44,28 @@ namespace Unittests
         private Hamster.Environment env;
         private Database db;
 
-        [TestInitialize()]
-        public void SetUp() {
+        private void SetUp() {
             env = new Hamster.Environment();
             db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1, HamConst.HAM_ENABLE_DUPLICATE_KEYS);
         }
 
-        [TestCleanup()]
-        public void TearDown() {
+        private void TearDown() {
             env.Close(HamConst.HAM_AUTO_CLEANUP);
         }
 
-        [TestMethod()]
-        public void Create() {
+        private void Create() {
             Cursor c = new Cursor(db);
             c.Close();
         }
 
-        [TestMethod()]
-        public void Clone() {
+        private void Clone() {
             Cursor c1 = new Cursor(db);
             Cursor c2 = c1.Clone();
         }
 
-        [TestMethod()]
-        public void Move() {
+        private void Move() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -95,8 +88,7 @@ namespace Unittests
             c.Move(HamConst.HAM_CURSOR_FIRST);
         }
 
-        [TestMethod()]
-        public void MoveNegative() {
+        private void MoveNegative() {
             Cursor c = new Cursor(db);
             try {
                 c.Move(HamConst.HAM_CURSOR_NEXT);
@@ -106,8 +98,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void MoveFirst() {
+        private void MoveFirst() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -115,8 +106,7 @@ namespace Unittests
             c.MoveFirst();
         }
 
-        [TestMethod()]
-        public void MoveLast() {
+        private void MoveLast() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -124,8 +114,7 @@ namespace Unittests
             c.MoveLast();
         }
 
-        [TestMethod()]
-        public void MoveNext() {
+        private void MoveNext() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -133,8 +122,7 @@ namespace Unittests
             c.MoveNext();
         }
 
-        [TestMethod()]
-        public void MovePrevious() {
+        private void MovePrevious() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -149,8 +137,7 @@ namespace Unittests
                 Assert.AreEqual(lhs[i], rhs[i]);
         }
 
-        [TestMethod()]
-        public void GetKey() {
+        private void GetKey() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -160,8 +147,7 @@ namespace Unittests
             checkEqual(k, f);
         }
 
-        [TestMethod()]
-        public void GetRecord() {
+        private void GetRecord() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -171,8 +157,7 @@ namespace Unittests
             checkEqual(r, f);
         }
 
-        [TestMethod()]
-        public void Overwrite() {
+        private void Overwrite() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r1 = new byte[5]; r1[0] = 1;
@@ -186,8 +171,7 @@ namespace Unittests
             checkEqual(r2, g);
         }
 
-        [TestMethod()]
-        public void Find() {
+        private void Find() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] k2 = new byte[5]; k2[0] = 6;
@@ -203,8 +187,7 @@ namespace Unittests
             checkEqual(r2, g);
         }
 
-        [TestMethod()]
-        public void Insert() {
+        private void Insert() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -224,8 +207,7 @@ namespace Unittests
             checkEqual(k2, q);
         }
 
-        [TestMethod()]
-        public void InsertDuplicate() {
+        private void InsertDuplicate() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -244,8 +226,7 @@ namespace Unittests
             checkEqual(k1, q);
         }
 
-        [TestMethod()]
-        public void InsertNegative() {
+        private void InsertNegative() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -265,8 +246,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void Erase() {
+        private void Erase() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] r1 = new byte[5]; r1[0] = 1;
@@ -274,8 +254,7 @@ namespace Unittests
             c.Erase();
         }
 
-        [TestMethod()]
-        public void EraseNegative() {
+        private void EraseNegative() {
             Cursor c = new Cursor(db);
             try {
                 c.Erase();
@@ -285,8 +264,7 @@ namespace Unittests
             }
         }
 
-        [TestMethod()]
-        public void GetDuplicateCount() {
+        private void GetDuplicateCount() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] r1 = new byte[5]; r1[0] = 1;
@@ -304,6 +282,94 @@ namespace Unittests
             c.Erase();
             c.MoveFirst();
             Assert.AreEqual(2, c.GetDuplicateCount());
+        }
+
+        public void Run()
+        {
+            Console.WriteLine("CursorTest.Create");
+            SetUp();
+            Create();            
+            TearDown();
+
+            Console.WriteLine("CursorTest.Clone");
+            SetUp();
+            Clone();
+            TearDown();
+
+            Console.WriteLine("CursorTest.Move");
+            SetUp();
+            Move();
+            TearDown();
+
+            Console.WriteLine("CursorTest.MoveNegative");
+            SetUp();
+            MoveNegative();
+            TearDown();
+
+            Console.WriteLine("CursorTest.MoveFirst");
+            SetUp();
+            MoveFirst();
+            TearDown();
+
+            Console.WriteLine("CursorTest.MoveLast");
+            SetUp();
+            MoveLast();
+            TearDown();
+
+            Console.WriteLine("CursorTest.MoveNext");
+            SetUp();
+            MoveNext();
+            TearDown();
+
+            Console.WriteLine("CursorTest.MovePrevious");
+            SetUp();
+            MovePrevious();
+            TearDown();
+
+            Console.WriteLine("CursorTest.GetKey");
+            SetUp();
+            GetKey();
+            TearDown();
+
+            Console.WriteLine("CursorTest.GetRecord");
+            SetUp();
+            GetRecord();
+            TearDown();
+
+            Console.WriteLine("CursorTest.Find");
+            SetUp();
+            Find();
+            TearDown();
+
+            Console.WriteLine("CursorTest.Insert");
+            SetUp();
+            Insert();
+            TearDown();
+
+            Console.WriteLine("CursorTest.InsertDuplicate");
+            SetUp();
+            InsertDuplicate();
+            TearDown();
+
+            Console.WriteLine("CursorTest.InsertNegative");
+            SetUp();
+            InsertNegative();
+            TearDown();
+
+            Console.WriteLine("CursorTest.Erase");
+            SetUp();
+            Erase();
+            TearDown();
+
+            Console.WriteLine("CursorTest.EraseNegative");
+            SetUp();
+            EraseNegative();
+            TearDown();
+
+            Console.WriteLine("CursorTest.GetDuplicateCount");
+            SetUp();
+            GetDuplicateCount();
+            TearDown();
         }
     }
 }
