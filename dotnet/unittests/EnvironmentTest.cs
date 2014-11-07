@@ -86,8 +86,8 @@ namespace Unittests
             Hamster.Environment env = new Hamster.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_MAX_DATABASES;
-            param[0].value = 10;
+            param[0].name = HamConst.HAM_PARAM_CACHE_SIZE;
+            param[0].value = 1000;
             try {
                 env.Create("ntest.db", 0, 0644, param);
                 env.Close();

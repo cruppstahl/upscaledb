@@ -37,7 +37,7 @@ namespace Hamster
     /// </summary>
     /// <param name="error">A hamsterdb error code</param>
     public DatabaseException(int error) {
-      this.error=error;
+      this.error = error;
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ namespace Hamster
         return error;
       }
       set {
-        error=value;
+        error = value;
       }
     }
 

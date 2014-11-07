@@ -80,7 +80,7 @@ namespace Unittests
         public void GetVersion() {
             Hamster.Version v = Database.GetVersion();
             Assert.AreEqual(2, v.major);
-            Assert.AreEqual(0, v.minor);
+            Assert.AreEqual(1, v.minor);
         }
 
         [TestMethod()]

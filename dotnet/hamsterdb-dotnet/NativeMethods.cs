@@ -181,7 +181,7 @@ namespace Hamster
                 ref byte[] keydata, ref byte[] recdata, int flags) {
       KeyStruct key = new KeyStruct();
       RecordStruct record = new RecordStruct();
-      key.size = (short)keydata.GetLength(0);
+      key.size = (short)keydata.Length;
       fixed (byte *bk = keydata) {
         key.data = bk;
         int st = FindLow(handle, txnhandle, ref key, ref record, flags);
@@ -325,6 +325,7 @@ namespace Hamster
 
       fixed (byte* bk = keydata) {
         key.data = bk;
+        key.size = (short)keydata.Length;
         int st = CursorFindLow(handle, ref key, ref record, flags);
         if (st != 0)
           return st;
