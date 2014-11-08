@@ -605,6 +605,42 @@ namespace Unittests
             env.Close();
         }
 
+        private void ApproxMatching()
+        {
+            Hamster.Environment env = new Hamster.Environment();
+            Database db = new Database();
+            byte[] k1 = new byte[5];
+            byte[] r1 = new byte[5];
+            k1[0] = 1; r1[0] = 1;
+            byte[] k2 = new byte[5];
+            byte[] r2 = new byte[5];
+            k2[0] = 2; r2[0] = 2;
+            byte[] k3 = new byte[5];
+            byte[] r3 = new byte[5];
+            k3[0] = 3; r3[0] = 3;
+            try
+            {
+                env.Create("ntest.db");
+                db = env.CreateDatabase(1);
+                db.Insert(k1, r1);
+                db.Insert(k2, r2);
+                db.Insert(k3, r3);
+                byte[] r = db.Find(null, ref k2, HamConst.HAM_FIND_GT_MATCH);
+                checkEqual(r, r3);
+                checkEqual(k2, k3);
+                k2[0] = 2;
+                r = db.Find(null, ref k2, HamConst.HAM_FIND_LT_MATCH);
+                checkEqual(r, r1);
+                checkEqual(k2, k1);
+                db.Close();
+                env.Close();
+            }
+            catch (DatabaseException e)
+            {
+                Assert.Fail("unexpected exception " + e);
+            }
+        }
+
         public void Run()
         {
             Console.WriteLine("DatabaseTest.SetErrorHandler");
@@ -693,6 +729,9 @@ namespace Unittests
 
             Console.WriteLine("DatabaseTest.AutoCleanupCursors4");
             AutoCleanupCursors4();
+
+            Console.WriteLine("DatabaseTest.ApproxMatching");
+            ApproxMatching();
         }
     }
 }

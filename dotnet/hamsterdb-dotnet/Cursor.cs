@@ -313,8 +313,9 @@ namespace Hamster
     /// Searches a key and points the Cursor to this key;
     /// returns the record of the key
     /// </summary>
-    public byte[] Find(byte[] key) {
-      return Find(key, 0);
+    public byte[] Find(byte[] key)
+    {
+        return Find(key, 0);
     }
 
     /// <summary>
@@ -337,7 +338,7 @@ namespace Hamster
     ///     if the requested key was not found</item>
     ///   </list>
     /// </exception>
-    public byte[] Find(byte[] key, int flags) {
+    public byte[] Find(ref byte[] key, int flags) {
       int st;
       byte[] record = null;
       lock (db) {
@@ -346,6 +347,11 @@ namespace Hamster
       if (st != 0)
         throw new DatabaseException(st);
       return record;
+    }
+
+    public byte[] Find(byte[] key, int flags)
+    {
+        return Find(ref key, flags);
     }
 
     /// <summary>
