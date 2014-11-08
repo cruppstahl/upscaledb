@@ -271,7 +271,7 @@ namespace SampleEnv3
                         Console.Out.WriteLine("cursor.MoveNext failed: " + e);
                         return;
                     }
-                } while (1==1);
+                } while (1 == 1);
             }
         }
     }

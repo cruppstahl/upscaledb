@@ -553,7 +553,7 @@ namespace Unittests
             db = env.CreateDatabase(1);
             Cursor cursor = new Cursor(db);
             // let gc do the cleanup
-            env.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close();
         }
 
         private void AutoCleanupCursors2()
@@ -568,7 +568,7 @@ namespace Unittests
             Cursor cursor4 = new Cursor(db);
             Cursor cursor5 = new Cursor(db);
             // let gc do the cleanup
-            env.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close();
         }
 
         private void AutoCleanupCursors3()
@@ -585,7 +585,7 @@ namespace Unittests
             cursor3.Close();
             cursor5.Close();
             // let gc do the cleanup
-            env.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close();
         }
 
         private void AutoCleanupCursors4()
@@ -602,7 +602,7 @@ namespace Unittests
             cursor3.Close();
             cursor5.Close();
             // let gc do the cleanup
-            env.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close();
         }
 
         public void Run()

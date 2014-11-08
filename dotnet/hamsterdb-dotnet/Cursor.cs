@@ -89,14 +89,13 @@ namespace Hamster
     /// </exception>
     public void Create(Database db, Transaction txn) {
       this.db = db;
-      int st;
       lock (this.db) {
-        st = NativeMethods.CursorCreate(out handle, db.Handle,
+        int st = NativeMethods.CursorCreate(out handle, db.Handle,
                 txn != null ? txn.Handle : IntPtr.Zero, 0);
+        if (st != 0)
+          throw new DatabaseException(st);
+        db.AddCursor(this);
       }
-      if (st != 0)
-        throw new DatabaseException(st);
-      db.AddCursor(this);
     }
 
     /// <summary>
@@ -120,15 +119,15 @@ namespace Hamster
     ///   </list>
     /// </exception>
     public Cursor Clone() {
-      int st;
       IntPtr newHandle = new IntPtr(0);
       lock (this.db) {
-        st = NativeMethods.CursorClone(handle, out newHandle);
+        int st = NativeMethods.CursorClone(handle, out newHandle);
+        if (st != 0)
+          throw new DatabaseException(st);
+        Cursor c = new Cursor(db, newHandle);
+        db.AddCursor(c);
+        return c;
       }
-      if (st != 0)
-        throw new DatabaseException(st);
-      db.AddCursor(this);
-      return new Cursor(db, newHandle);
     }
 
     /// <summary>
@@ -521,18 +520,13 @@ namespace Hamster
     /// </remarks>
     public void Close() {
       if (handle == IntPtr.Zero)
-      {
-        if (db != null)
-          db.RemoveCursor(this);
         return;
-      }
       int st;
       lock (db) {
         st = NativeMethods.CursorClose(handle);
       }
       if (st != 0)
         throw new DatabaseException(st);
-      db.RemoveCursor(this);
       handle = IntPtr.Zero;
       db = null;
     }

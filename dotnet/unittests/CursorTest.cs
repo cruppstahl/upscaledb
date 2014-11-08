@@ -52,7 +52,7 @@ namespace Unittests
         }
 
         private void TearDown() {
-            env.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close();
         }
 
         private void Create() {

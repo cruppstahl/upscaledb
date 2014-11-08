@@ -410,30 +410,21 @@ namespace Hamster
     /// Closes the Database
     /// </summary>
     /// <remarks>
-    /// This is an overloaded function for
-    ///   Database.Close(0).
-    /// </remarks>
-    public void Close() {
-      Close(0);
-    }
-
-    /// <summary>
-    /// Closes the Database
-    /// </summary>
-    /// <remarks>
     /// This method wraps the native ham_db_close function.
     /// <br />
     /// Before closing the Database, the cache is flushed to Disk.
     /// </remarks>
-    public void Close(int flags) {
+    public void Close() {
       lock (this) {
         if (handle == IntPtr.Zero)
           return;
-        int st = NativeMethods.Close(handle, flags);
+        foreach (Cursor c in cursors)
+          c.Close();
+        cursors.Clear();
+        int st = NativeMethods.Close(handle, 0);
         if (st != 0)
           throw new DatabaseException(st);
         handle = IntPtr.Zero;
-        cursors.Clear();
       }
     }
 
@@ -450,7 +441,7 @@ namespace Hamster
     /// </summary>
     protected virtual void Dispose(bool all) {
       if (all)
-        Close(HamConst.HAM_AUTO_CLEANUP);
+        Close();
     }
 
     /// <summary>

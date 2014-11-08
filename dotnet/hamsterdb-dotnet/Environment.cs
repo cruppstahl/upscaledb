@@ -15,6 +15,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 
 namespace Hamster
 {
@@ -28,6 +29,7 @@ namespace Hamster
     /// </summary>
     public Environment() {
       handle = IntPtr.Zero;
+      databases = new List<Database>();
     }
 
     /// <summary>
@@ -36,6 +38,7 @@ namespace Hamster
     /// <remarks>This constructor is used by Database.GetEnvironment()</remarks>
     public Environment(IntPtr ptr) {
       handle = ptr;
+      databases = new List<Database>();
     }
 
     /// <summary>
@@ -364,7 +367,10 @@ namespace Hamster
       }
       if (st != 0)
         throw new DatabaseException(st);
-      return new Database(dbh);
+      
+      Database db = new Database(dbh);
+      databases.Add(db);
+      return db;
     }
 
     /// <summary>
@@ -435,7 +441,10 @@ namespace Hamster
       }
       if (st != 0)
         throw new DatabaseException(st);
-      return new Database(dbh);
+      
+      Database db = new Database(dbh);
+      databases.Add(db);
+      return db;
     }
 
     /// <summary>
@@ -583,22 +592,18 @@ namespace Hamster
     /// <summary>
     /// Closes the Environment
     /// </summary>
-    public void Close() {
-        Close(0);
-    }
-
-    /// <summary>
-    /// Closes the Environment
-    /// </summary>
     /// <remarks>
     /// This method wraps the native ham_env_close function.
     /// <br />
     /// </remarks>
-    public void Close(int flags) {
+    public void Close() {
       if (handle == IntPtr.Zero)
         return;
       lock (this) {
-        int st = NativeMethods.EnvClose(handle, flags);
+        foreach (Database db in databases)
+          db.Close();
+        databases.Clear();
+        int st = NativeMethods.EnvClose(handle, 0);
         if (st != 0)
           throw new DatabaseException(st);
         handle = IntPtr.Zero;
@@ -620,5 +625,6 @@ namespace Hamster
     }
 
     private IntPtr handle;
+    private List<Database> databases;
   }
 }
