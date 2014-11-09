@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -45,12 +42,12 @@ struct Globals {
   static uint64_t ms_extended_duptables;
 
   // Move every key > threshold to a blob. For testing purposes.
-  // TODO currently gets assigned at runtime
+  // Value is not persisted.
   static uint32_t ms_extended_threshold;
 
   // Create duplicate table if amount of duplicates > threshold. For testing
   // purposes.
-  // TODO currently gets assigned at runtime
+  // Value is not persisted.
   static uint32_t ms_duplicate_threshold;
 
   // linear search threshold for the PAX layout
@@ -79,9 +76,6 @@ struct Globals {
 
   // PRO: Tracking key bytes after compression
   static uint64_t ms_bytes_after_compression;
-
-  // PRO: enable/disable SIMD
-  static bool ms_is_simd_enabled;
 };
 
 } // namespace hamsterdb

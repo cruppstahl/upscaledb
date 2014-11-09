@@ -97,6 +97,18 @@ struct JournalState
   // A map of all opened Databases
   typedef std::map<uint16_t, Database *> DatabaseMap;
   DatabaseMap database_map;
+
+  // The compressor; can be null
+  ScopedPtr<Compressor> compressor;
+
+  // Counting the flushed bytes (for ham_env_get_metrics)
+  uint64_t count_bytes_flushed;
+
+  // Counting the bytes before compression (for ham_env_get_metrics)
+  uint64_t count_bytes_before_compression;
+
+  // Counting the bytes after compression (for ham_env_get_metrics)
+  uint64_t count_bytes_after_compression;
 };
 
 } // namespace hamsterdb

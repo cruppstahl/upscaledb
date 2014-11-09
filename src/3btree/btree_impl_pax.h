@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -96,6 +93,77 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     PaxNodeImpl(Page *page)
       : BaseNodeImpl<KeyList, RecordList>(page) {
       initialize();
+    }
+
+    // Searches the node for the key and returns the slot of this key
+    // NO simd support!
+    template<typename Cmp>
+    int find_child(ham_key_t *key, Cmp &comparator, uint64_t *precord_id,
+                    int *pcmp) {
+      size_t node_count = P::m_node->get_count();
+      ham_assert(node_count > 0);
+
+      // Run a binary search, but fall back to linear search as soon as
+      // the remaining range is too small
+      int threshold = P::m_keys.get_linear_search_threshold();
+      int i, l = 0, r = node_count;
+      int last = node_count + 1;
+      int cmp = -1;
+
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > threshold) {
+        /* get the median item; if it's identical with the "last" item,
+         * we've found the slot */
+        i = (l + r) / 2;
+
+        if (i == last) {
+          ham_assert(i >= 0);
+          ham_assert(i < (int)node_count);
+          *pcmp = 1;
+          if (precord_id)
+            *precord_id = P::get_record_id(i);
+          return (i);
+        }
+
+        /* compare it against the key */
+        cmp = compare(key, i, comparator);
+
+        /* found it? */
+        if (cmp == 0) {
+          *pcmp = cmp;
+          if (precord_id)
+            *precord_id = P::get_record_id(i);
+          return (i);
+        }
+        /* if the key is < the current item: search "to the left" */
+        else if (cmp < 0) {
+          if (r == 0) {
+            ham_assert(i == 0);
+            *pcmp = cmp;
+            if (precord_id)
+              *precord_id = P::m_node->get_ptr_down();
+            return (-1);
+          }
+          r = i;
+        }
+        /* otherwise search "to the right" */
+        else {
+          last = i;
+          l = i;
+        }
+      }
+
+      // still here? then perform a linear search for the remaining range
+      ham_assert(r - l <= threshold);
+      int slot = P::m_keys.linear_search(l, r - l, key, comparator, pcmp);
+      if (precord_id) {
+        if (slot == -1)
+          *precord_id = P::m_node->get_ptr_down();
+        else
+          *precord_id = P::get_record_id(slot);
+      }
+      return (slot);
     }
 
     // Iterates all keys, calls the |visitor| on each

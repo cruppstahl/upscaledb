@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "0root/root.h"
@@ -19,6 +16,8 @@
 #include <boost/scope_exit.hpp>
 
 // Always verify that a file of level N does not include headers > N!
+#include "2compressor/compressor_factory.h"
+#include "2device/device.h"
 #include "3page_manager/page_manager.h"
 #include "3journal/journal.h"
 #include "3blob_manager/blob_manager.h"
@@ -33,6 +32,8 @@
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
 #endif
+
+EVAL_PREPARE
 
 namespace hamsterdb {
 
@@ -576,6 +577,8 @@ LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
 ham_status_t
 LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 {
+  EVAL_CHECK
+
   /* set the flags; strip off run-time (per session) flags for the btree */
   uint32_t persistent_flags = get_flags();
   persistent_flags &= ~(HAM_CACHE_UNLIMITED
@@ -602,6 +605,8 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
       m_config.key_size = 8;
       break;
   }
+
+  EVAL_CHECK
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED) {
@@ -631,6 +636,11 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   m_btree_index.reset(new BtreeIndex(this, btree_header, persistent_flags,
                         m_config.key_type, m_config.key_size));
 
+  if (m_config.key_compressor)
+    enable_key_compression(context, m_config.key_compressor);
+  if (m_config.record_compressor)
+    enable_record_compression(context, m_config.record_compressor);
+
   /* initialize the btree */
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size);
@@ -641,6 +651,8 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));
+
+  EVAL_CHECK
 
   return (0);
 }
@@ -664,6 +676,9 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
 
   m_config.key_type = btree_header->key_type();
   m_config.key_size = btree_header->key_size();
+
+  /* is key compression enabled? */
+  m_config.key_compressor = btree_header->key_compression();
 
   /* create the BtreeIndex */
   m_btree_index.reset(new BtreeIndex(this, btree_header,
@@ -691,6 +706,13 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_config.key_size = m_btree_index->key_size();
   m_config.key_type = m_btree_index->key_type();
   m_config.record_size = m_btree_index->record_size();
+
+  /* is record compression enabled? */
+  int algo = btree_header->record_compression();
+  if (algo) {
+    enable_record_compression(context, algo);
+    m_record_compressor.reset(CompressorFactory::create(algo));
+  }
 
   // fetch the current record number
   if ((get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
@@ -759,6 +781,8 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
     Page *page = 0;
     ham_parameter_t *p = param;
 
+    EVAL_CHECK
+
     if (p) {
       for (; p->name; p++) {
         switch (p->name) {
@@ -788,10 +812,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
           }
           break;
         case HAM_PARAM_RECORD_COMPRESSION:
-          p->value = 0;
+          p->value = btree_index()->record_compression();
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          p->value = 0;
+          p->value = btree_index()->key_compression();
           break;
         default:
           ham_trace(("unknown parameter %d", (int)p->name));
@@ -875,7 +899,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
-    LocalCursor *cursor = (LocalCursor *)cursor_create_impl(txn);
+    cursor = (LocalCursor *)cursor_create_impl(txn);
 
     st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
     if (st)
@@ -1713,6 +1737,24 @@ LocalDatabase::begin_temp_txn()
   if (st)
     throw Exception(st);
   return (txn);
+}
+
+void
+LocalDatabase::enable_record_compression(Context *context, int algo)
+{
+  EVAL_CHECK
+
+  m_record_compressor.reset(CompressorFactory::create(algo));
+  m_btree_index->set_record_compression(context, algo);
+}
+
+void
+LocalDatabase::enable_key_compression(Context *context, int algo)
+{
+  EVAL_CHECK
+
+  m_key_compression_algo = algo;
+  m_btree_index->set_key_compression(context, algo);
 }
 
 } // namespace hamsterdb

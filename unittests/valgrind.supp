@@ -1,19 +1,366 @@
 {
    <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZL22simple_compressor_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZL22simple_compressor_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:_ZN9hamsterdb16LocalEnvironment9create_dbEPPNS_8DatabaseEtjPK15ham_parameter_t
+   fun:ham_env_create_db
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:_ZN9hamsterdb16LocalEnvironment9create_dbEPPNS_8DatabaseEtjPK15ham_parameter_t
+   fun:ham_env_create_db
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_16LocalTransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb7Journal21append_changeset_pageEPNS_4PageEj
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZL20complex_journal_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DiskBlobManager12do_overwriteEPNS_13LocalDatabaseEmP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DiskBlobManager12do_overwriteEPNS_13LocalDatabaseEmP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DiskBlobManager11do_allocateEPNS_13LocalDatabaseEP12ham_record_tj
+   fun:_ZN9hamsterdb15DiskBlobManager12do_overwriteEPNS_13LocalDatabaseEmP12ham_record_tj
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE10set_recordEjP12ham_record_tjjPj
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL18simple_record_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE6insertEjPK9ham_key_t
+   fun:_ZN9hamsterdb18BtreeNodeProxyImplINS_15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS3_Lb0EEEEENS_19VariableSizeCompareEE6insertEjPK9ham_key_t
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL15simple_key_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9hamsterdb15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS2_Lb0EEEE6insertEjPK9ham_key_t
+   fun:_ZN9hamsterdb18BtreeNodeProxyImplINS_15DefaultNodeImplINS_17DefaultLayoutImplItLb0EEENS_23DefaultInlineRecordImplIS3_Lb0EEEEENS_19VariableSizeCompareEE6insertEjPK9ham_key_t
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+   fun:_ZL15simple_key_testi
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
    Memcheck:Param
    pwrite64(buf)
    fun:__pwrite_nocancel
    fun:_ZN9hamsterdb9os_pwriteEimPKvm
    fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
-   fun:_ZN9hamsterdb10DiskDevice10write_pageEPNS_4PageE
    fun:_ZN9hamsterdb4Page5flushEv
-   fun:_ZN9hamsterdb11PageManager10flush_pageEPNS_4PageE
    fun:_ZN9hamsterdbL17db_close_callbackEPNS_4PageEPNS_8DatabaseEj
-   fun:_ZN9hamsterdb5Cache5visitEPFbPNS_4PageEPNS_8DatabaseEjES4_j
    fun:_ZN9hamsterdb11PageManager14close_databaseEPNS_8DatabaseE
    fun:_ZN9hamsterdb13LocalDatabase10close_implEj
    fun:_ZN9hamsterdb8Database5closeEj
    fun:ham_db_close
+   fun:_ZN9hamsterdb16LocalEnvironment5closeEj
+   fun:ham_env_close
+   fun:_ZN17BaseCursorFixture8teardownEv
 }
 {
    <insert_a_suppression_name_here>
@@ -21,63 +368,31 @@
    write(buf)
    fun:__write_nocancel
    fun:_ZN9hamsterdb8os_writeEiPKvm
-   fun:_ZN9hamsterdb7Journal12flush_bufferEib
-   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
-   fun:_ZN9hamsterdb9Changeset5flushEm
-   fun:_ZN9hamsterdb23LocalTransactionManager20flush_committed_txnsEv
-   fun:_ZN9hamsterdb23LocalTransactionManager26maybe_flush_committed_txnsEv
-   fun:_ZN9hamsterdb23LocalTransactionManager6commitEPNS_11TransactionEj
-   fun:ham_txn_commit
-   fun:_ZN17DupeCursorFixture8teardownEv
-   fun:_ZN17DupeCursorFixtureD1Ev
-   fun:_ZL36TestCaseFunction_catch_internal_6759v
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Param
-   write(buf)
-   fun:__write_nocancel
-   fun:_ZN9hamsterdb8os_writeEiPKvm
-   fun:_ZN9hamsterdb7Journal12flush_bufferEib
    fun:_ZN9hamsterdb7Journal17append_txn_commitEPNS_16LocalTransactionEm
    fun:_ZN9hamsterdb23LocalTransactionManager6commitEPNS_11TransactionEj
    fun:ham_txn_commit
    fun:_ZN9hamsterdb19HighLevelTxnFixture20insertFindCommitTestEv
-   fun:_ZN9hamsterdbL36TestCaseFunction_catch_internal_1257Ev
-   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
-   fun:_ZNK5Catch12TestCaseInfo6invokeEv
-   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
-   fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
+   fun:_ZN9hamsterdbL36TestCaseFunction_catch_internal_1251Ev
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
 }
 {
    <insert_a_suppression_name_here>
-   Memcheck:Addr8
-   fun:_ZN9hamsterdb13LocalDatabase15get_btree_indexEv
-   fun:_ZN9hamsterdb11BtreeCursorC1EPNS_6CursorE
-   fun:_ZN9hamsterdb6CursorC1EPNS_13LocalDatabaseEPNS_11TransactionEj
-   fun:_ZN9hamsterdb14RemoteDatabase18cursor_create_implEPNS_11TransactionEj
-   fun:_ZN9hamsterdb8Database13cursor_createEPNS_11TransactionEj
-   fun:ham_cursor_create
-   fun:_ZN13RemoteFixture20cursorInsertFindTestEv
-   fun:_ZL36TestCaseFunction_catch_internal_1269v
-   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
-   fun:_ZNK5Catch12TestCaseInfo6invokeEv
-   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
-   fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Addr8
-   fun:_ZN9hamsterdb13LocalDatabase15get_btree_indexEv
-   fun:_ZN9hamsterdb11BtreeCursorC1EPNS_6CursorE
-   fun:_ZN9hamsterdb6CursorC1EPNS_13LocalDatabaseEPNS_11TransactionEj
-   fun:_ZN9hamsterdb14RemoteDatabase17cursor_clone_implEPNS_6CursorE
-   fun:_ZN9hamsterdb8Database12cursor_cloneEPNS_6CursorE
-   fun:ham_cursor_clone
-   fun:_ZN13RemoteFixture15cursorCloneTestEv
-   fun:_ZL36TestCaseFunction_catch_internal_1335v
-   fun:_ZNK5Catch20FreeFunctionTestCase6invokeEv
-   fun:_ZNK5Catch12TestCaseInfo6invokeEv
-   fun:_ZN5Catch6Runner14runCurrentTestERSsS1_
-   fun:_ZN5Catch6Runner7runTestERKNS_12TestCaseInfoE
+   Memcheck:Param
+   write(buf)
+   fun:__write_nocancel
+   fun:_ZN9hamsterdb8os_writeEiPKvm
+   fun:_ZN9hamsterdb7Journal16append_changesetEPPNS_4PageEjS3_jS3_jS3_jj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:ham_env_close
+   fun:_ZN9hamsterdb19HighLevelTxnFixture8teardownEv
+   fun:_ZN9hamsterdbL36TestCaseFunction_catch_internal_1251Ev
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
+   fun:main
 }

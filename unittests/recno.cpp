@@ -653,6 +653,107 @@ TEST_CASE("RecordNumber64/splitTest", "")
   f.splitTest();
 }
 
+TEST_CASE("RecordNumber32/createCloseTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createCloseTest();
+}
+
+TEST_CASE("RecordNumber32/createCloseOpenCloseTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createCloseOpenCloseTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertManyCloseTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertManyCloseTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseCursorTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseCursorTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseReopenTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseReopenTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseReopenCursorTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseReopenCursorTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseReopenTwiceTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseReopenTwiceTest();
+}
+
+TEST_CASE("RecordNumber32/createInsertCloseReopenTwiceCursorTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createInsertCloseReopenTwiceCursorTest();
+}
+
+TEST_CASE("RecordNumber32/insertBadKeyTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.insertBadKeyTest();
+}
+
+TEST_CASE("RecordNumber32/insertBadKeyCursorTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.insertBadKeyCursorTest();
+}
+
+TEST_CASE("RecordNumber32/createBadKeysizeTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.createBadKeysizeTest();
+}
+
+TEST_CASE("RecordNumber32/envTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.envTest();
+}
+
+TEST_CASE("RecordNumber32/overwriteTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.overwriteTest();
+}
+
+TEST_CASE("RecordNumber32/overwriteCursorTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.overwriteCursorTest();
+}
+
+TEST_CASE("RecordNumber32/eraseLastReopenTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.eraseLastReopenTest();
+}
+
+TEST_CASE("RecordNumber32/uncoupleTest", "")
+{
+  RecordNumberFixture<uint32_t> f;
+  f.uncoupleTest();
+}
 
 TEST_CASE("RecordNumber64-inmem/createCloseTest", "")
 {

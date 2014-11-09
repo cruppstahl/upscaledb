@@ -90,7 +90,6 @@
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
 #define ARG_PAX_LINEAR_THRESHOLD                65
-#define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
 #define ARG_RECORD_NUMBER32                     69
@@ -401,8 +400,7 @@ static option_t opts[] = {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo', "
-            "'bitmap')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,
@@ -410,12 +408,6 @@ static option_t opts[] = {
     "pax-linear-threshold",
     "Sets the threshold when switching from binary search to linear search",
     GETOPTS_NEED_ARGUMENT },
-  {
-    ARG_PAX_DISABLE_SIMD,
-    0,
-    "pax-disable-simd",
-    "Pro: Enables use of SIMD instructions",
-    0 },
   {
     ARG_READ_ONLY,
     0,
@@ -462,8 +454,10 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
+  if (!strcmp(param, "zint32_varbyte"))
+    return (HAM_COMPRESSOR_UINT32_VARBYTE);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo'\n", param);
+                  "'snappy', 'lzf', 'lzo', 'zint32_varbyte'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
@@ -797,9 +791,6 @@ parse_config(int argc, char **argv, Configuration *c)
         exit(-1);
       }
     }
-    else if (opt == ARG_PAX_DISABLE_SIMD) {
-      hamsterdb::Globals::ms_is_simd_enabled = false;
-    }
     else if (opt == ARG_ENABLE_CRC32) {
       c->enable_crc32 = true;
     }
@@ -925,7 +916,8 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
 
   // print key compression ratio
-  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->key_compression
+      && !strcmp(name, "hamsterdb")) {
     float ratio;
     if (metrics->hamster_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;

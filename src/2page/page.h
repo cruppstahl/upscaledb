@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -46,8 +43,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   uint32_t flags;
 
-  // reserved
-  uint32_t reserved;
+  // PRO: crc32
+  uint32_t crc32;
 
   // the lsn of the last operation
   uint64_t lsn;
@@ -277,6 +274,16 @@ class Page {
     // Sets the page's type (kType*)
     void set_type(uint32_t type) {
       m_datap->raw_data->header.flags = type;
+    }
+ 
+    // PRO: Returns the crc32
+    uint32_t get_crc32() const {
+      return (m_data->header.crc32);
+    }
+
+    // PRO: Sets the crc32
+    void set_crc32(uint32_t crc32) {
+      m_data->header.crc32 = crc32;
     }
 
     // Returns the lsn of the last modification
