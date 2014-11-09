@@ -59,7 +59,7 @@ namespace hamsterdb {
 #define HAM_VERSION_MIN     1
 #define HAM_VERSION_REV     9
 #define HAM_FILE_VERSION    4
-#define HAM_VERSION_STR     "2.1.10"
+#define HAM_VERSION_STR     "2.1.9"
 
 } // namespace hamsterdb
 

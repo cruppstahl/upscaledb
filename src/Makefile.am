@@ -159,6 +159,19 @@ AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
 libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
 						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
+=======
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
+=======
+AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
+libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)	\
+						  $(BOOST_THREAD_LDFLAGS)
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
+						  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+
+if ENABLE_COMPRESSION
+AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
+libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la
+>>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 if WITH_ZLIB
 libhamsterdb_la_LIBADD  += -lz
 endif

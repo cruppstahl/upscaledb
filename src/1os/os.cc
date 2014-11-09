@@ -41,7 +41,7 @@ cpuid(int cpuinfo[4], int infotype){
 }
 #endif
 
-extern bool
+bool
 os_has_avx()
 {
   static bool available = false;

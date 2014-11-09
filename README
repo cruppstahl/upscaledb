@@ -1,13 +1,13 @@
 hamsterdb pro 2.1.11                               Mi 13. Mai 07:50:47 CEST 2015
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb.
+This is the README file of hamsterdb pro.
 
 Contents:
 
 1. About
 
-This release of hamsterdb pro is based on hamsterdb 2.1.10. In addition,
+This release of hamsterdb pro is based on hamsterdb 2.1.11. In addition,
 it adds several (experimental) compression algorithms for uint32 keys.
 
 This release has several bug fixes (see below for a list). One bug is a race
@@ -35,6 +35,10 @@ Other Changes
 * Reducing I/O operations by allocating large buffers if file grows fast
 * Add InsertRecNo method to hamsterdb-dotnet (thanks, mjmckp)
 
+Bugfixes
+
+Other Changes
+
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
@@ -43,6 +47,7 @@ To see a list of all changes, look in the file ChangeLog.
 4. Features
 
 - PRO: SIMD instructions for lookups
+- PRO: CRC32 verification
 - PRO: transparent AES encryption
 - PRO: transparent CRC32 verification
 - PRO: transparent compression for journal, keys and records using 

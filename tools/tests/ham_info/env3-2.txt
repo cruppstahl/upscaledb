@@ -2,6 +2,7 @@ environment
   page_size:            16384
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   version:              2.1.11 
 =======
 <<<<<<< HEAD
@@ -13,6 +14,16 @@ environment
 =======
   version:              2.1.10 pro!
 >>>>>>> More fixes for 2.1.10
+=======
+  version:              2.1.10 pro!
+=======
+<<<<<<< HEAD
+  version:              2.1.10 
+=======
+  version:              2.1.9 pro!
+>>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+>>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+>>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
   max databases:        676
 
   database 2 (0x2)

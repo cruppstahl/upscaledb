@@ -88,10 +88,10 @@ class Database
     virtual void fill_metrics(ham_env_metrics_t *metrics) = 0;
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
+    virtual void get_parameters(ham_parameter_t *param) = 0;
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(uint32_t flags) = 0;
+    virtual void check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
     virtual ham_status_t count(Transaction *txn, bool distinct,

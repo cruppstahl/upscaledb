@@ -223,6 +223,7 @@ done:
   page->set_without_header(false);
   page->set_crc32(0);
   page->set_without_header(false);
+  page->set_crc32(0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();

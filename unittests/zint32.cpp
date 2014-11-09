@@ -69,6 +69,7 @@ struct Zint32Fixture {
     for (uint32_t i = 0; i < 128; i++)
       REQUIRE(din[i] == i);
   }
+
   void insertFindEraseFind(const IntVector &ivec) {
     ham_key_t key = {0};
     ham_record_t record = {0};

@@ -291,6 +291,9 @@ class DiskDevice : public Device {
 
   private:
     State m_state;
+
+    // dynamic byte array providing temporary space for encryption
+    ByteArray m_encryption_buffer;
 };
 
 } // namespace hamsterdb
