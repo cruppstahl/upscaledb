@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -151,16 +148,28 @@ class BaseNodeImpl
         /* insert the new key at the beginning? */
         if (result.slot == -1) {
           result.slot = 0;
-          ham_assert(cmp != 0);
+        else if (flags & PBtreeNode::kInsertPrepend)
+          result.slot = 0;
+        else if (flags & PBtreeNode::kInsertAppend)
+          result.slot = node_count;
+        else {
+          int cmp;
+          result.slot = find_lowerbound_impl(key, comparator, &cmp);
+
+          /* insert the new key at the beginning? */
+          if (result.slot == -1) {
+            result.slot = 0;
+            ham_assert(cmp != 0);
+          }
+          /* key exists already */
+          else if (cmp == 0) {
+            result.status = HAM_DUPLICATE_KEY;
+            return (result);
+          }
+          /* if the new key is > than the slot key: move to the next slot */
+          else if (cmp > 0)
+            result.slot++;
         }
-        /* key exists already */
-        else if (cmp == 0) {
-          result.status = HAM_DUPLICATE_KEY;
-          return (result);
-        }
-        /* if the new key is > than the slot key: move to the next slot */
-        else if (cmp > 0)
-          result.slot++;
       }
 
       // Uncouple the cursors.
@@ -208,6 +217,24 @@ class BaseNodeImpl
       return (slot);
     }
 
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    template<typename Cmp>
+    int find_exact(ham_key_t *key, Cmp &comparator) {
+      if (m_keys.has_simd_support()
+              && os_get_simd_lane_width() > 1) {
+        size_t node_count = m_node->get_count();
+        return (find_simd_sse<typename KeyList::type>(
+                            (typename KeyList::type *)m_keys.get_simd_data(),
+                            node_count, key));
+      }
+
+      int cmp;
+      int r = find_exact_impl(key, comparator, &cmp);
+      return (cmp ? -1 : r);
+    }
+#else // !HAM_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
@@ -216,6 +243,7 @@ class BaseNodeImpl
       int r = find_exact_impl(context, key, comparator, &cmp);
       return (cmp ? -1 : r);
     }
+#endif // HAM_ENABLE_SIMD
 
     // Splits a node and moves parts of the current node into |other|, starting
     // at the |pivot| slot
@@ -411,6 +439,75 @@ class BaseNodeImpl
     template<typename Cmp>
     int find_impl_binlin(Context *context, const ham_key_t *key,
                     Cmp &comparator, int *pcmp) {
+      switch ((int)KeyList::kSearchImplementation) {
+        case BaseKeyList::kBinaryLinear:
+          return (find_impl_binlin(key, comparator, pcmp));
+        case BaseKeyList::kCustomSearch:
+        case BaseKeyList::kCustomExactImplementation:
+          return (m_keys.find(context, m_node->get_count(), key,
+                      comparator, pcmp));
+        default: // BaseKeyList::kBinarySearch
+          return (find_impl_binary(context, key, comparator, pcmp));
+      }
+    }
+
+    // Binary search
+    template<typename Cmp>
+    int find_impl_binary(Context *context, const ham_key_t *key,
+            Cmp &comparator, int *pcmp) {
+      size_t node_count = m_node->get_count();
+      ham_assert(node_count > 0);
+
+      int i, l = 0, r = (int)node_count;
+      int last = node_count + 1;
+      int cmp = -1;
+
+      /* repeat till we found the key or the remaining range is so small that
+       * we rather perform a linear search (which is faster for small ranges) */
+      while (r - l > 0) {
+        /* get the median item; if it's identical with the "last" item,
+         * we've found the slot */
+        i = (l + r) / 2;
+
+        if (i == last) {
+          ham_assert(i >= 0);
+          ham_assert(i < (int)node_count);
+          *pcmp = 1;
+          return (i);
+        }
+
+        /* compare it against the key */
+        cmp = compare(key, i, comparator);
+
+        /* found it? */
+        if (cmp == 0) {
+          *pcmp = cmp;
+          return (i);
+        }
+        /* if the key is bigger than the item: search "to the left" */
+        else if (cmp < 0) {
+          if (r == 0) {
+            ham_assert(i == 0);
+            *pcmp = cmp;
+            return (-1);
+          }
+          r = i;
+        }
+        /* otherwise search "to the right" */
+        else {
+          last = i;
+          l = i;
+        }
+      }
+
+      *pcmp = cmp;
+      return (-1);
+    }
+
+    // Binary search combined with linear search
+    template<typename Cmp>
+    int find_impl_binlin(const ham_key_t *key, Cmp &comparator, int *pcmp) {
+>>>>>>> Adding Zint32 varbyte compression
       size_t node_count = m_node->get_count();
       ham_assert(node_count > 0);
 

@@ -1,22 +1,21 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "0root/root.h"
 
 #include <string.h>
+
+#include "3rdparty/murmurhash3/MurmurHash3.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/dynamic_array.h"
@@ -217,6 +216,7 @@ done:
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(context->db);
+  page->set_crc32(0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -793,6 +793,20 @@ PageManagerState *
 PageManagerTest::state()
 {
   return (&m_sut->m_state);
+}
+
+void
+PageManager::verify_crc32(Page *page)
+{
+  uint32_t crc32;
+  MurmurHash3_x86_32(page->get_payload(),
+                  m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                  (uint32_t)page->get_address(), &crc32);
+  if (crc32 != page->get_crc32()) {
+    ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                    page->get_address(), crc32, page->get_crc32()));
+    throw Exception(HAM_INTEGRITY_VIOLATED);
+  }
 }
 
 } // namespace hamsterdb

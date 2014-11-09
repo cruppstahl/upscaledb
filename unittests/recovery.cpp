@@ -110,7 +110,7 @@ insert(int argc, char **argv) {
   // if db does not yet exist: create it, otherwise open it
   st = ham_env_open(&env, "recovery.db",
             HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
-            get_parameters(use_compression));
+            get_parameters(false));
   if (st == HAM_FILE_NOT_FOUND) {
     st = ham_env_create(&env, "recovery.db",
               HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, 0644,
@@ -200,7 +200,7 @@ erase(int argc, char **argv) {
 
   st = ham_env_open(&env, "recovery.db",
             HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
-            get_parameters(use_compression));
+            get_parameters(false));
   if (st) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);
@@ -273,7 +273,7 @@ recover(int argc, char **argv) {
 
   st = ham_env_open(&env, "recovery.db",
             HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY,
-            get_parameters(use_compression));
+            get_parameters(false));
   if (st == 0)
     exit(0);
   if (st != HAM_NEED_RECOVERY) {
@@ -283,7 +283,7 @@ recover(int argc, char **argv) {
 
   st = ham_env_open(&env, "recovery.db",
             HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY,
-            get_parameters(use_compression));
+            get_parameters(false));
   if (st != 0) {
     printf("ham_env_open failed: %d\n", (int)st);
     exit(-1);

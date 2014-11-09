@@ -251,6 +251,15 @@ MESSAGE_BEGIN(CursorGetRecordSizeReply)
   uint64 size;
 MESSAGE_END
 
+MESSAGE_BEGIN(CursorGetRecordSizeRequest)
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorGetRecordSizeReply)
+  sint32 status;
+  uint64 size;
+MESSAGE_END
+
 MESSAGE_BEGIN(CursorGetDuplicatePositionRequest)
   uint64 cursor_handle;
 MESSAGE_END

@@ -1,15 +1,17 @@
-hamsterdb 2.1.10                                   Mo 23. Feb 23:07:52 CET 2015
+hamsterdb pro 2.1.9                                So 30. Nov 21:27:07 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb.
+This is the README file of hamsterdb pro.
 
 Contents:
 
 1. About
 
-hamsterdb is a database engine written in C/C++. It is fast, production-proven
-and easy to use.
+This release of hamsterdb pro is based on hamsterdb 2.1.9. In addition,
+it contains (experimental) compression for uint32 keys;
+see HAM_COMPRESSOR_UINT32_VARBYTE.
 
+<<<<<<< HEAD
 This release has several bug fixes (see below for a list). Thanks to those who
 reported them and invested lots of time to come up with samples to reproduce
 the bugs.
@@ -21,6 +23,9 @@ HAM_RECORD_NUMBER64 for 64bit record numbers, and HAM_RECORD_NUMBER32 for
 A major change under the hood: dirty pages are now flushed asynchronously.
 Expect performance improvements in this release, and more to come in the
 next releases.
+=======
+Please visit the webpage for additional documentation.
+>>>>>>> 345f47f... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 
 2. Changes
 
@@ -58,6 +63,10 @@ Other Changes
 	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
 * Implemented ham_cursor_get_record_size() for remote access
 
+Bugfixes
+
+Other Changes
+
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
@@ -66,6 +75,7 @@ To see a list of all changes, look in the file ChangeLog.
 4. Features
 
 - PRO: SIMD instructions for lookups
+- PRO: CRC32 verification
 - PRO: transparent AES encryption
 - PRO: transparent CRC32 verification
 - PRO: transparent compression for journal, keys and records using 

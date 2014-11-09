@@ -1,26 +1,27 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * See the file COPYING for License information.
  */
 
 /**
  * @file hamsterdb.h
- * @brief Include file for hamsterdb Embedded Storage
+ * @brief Include file for hamsterdb Embedded Storage Pro
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.10
+ * @version 2.1.10-pro
  *
  * @mainpage
+ *
+ * <b>This is the commercial closed-source version of hamsterdb!</b>
  *
  * This manual documents the hamsterdb C API. hamsterdb is a key/value database
  * that is linked directly into your application, avoiding all the overhead
@@ -533,6 +534,26 @@ ham_get_version(uint32_t *major, uint32_t *minor,
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref HAM_ENABLE_FSYNC to force the use of fsync.
  *
+ * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * to provide recovery if the system crashes. These journal files can be
+ * compressed by supplying the parameter
+ * @ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
+ *
+ * <Pro</b> hamsterdb can transparently encrypt the generated file using
+ * 128bit AES in CBC mode. The transactional journal is not encrypted.
+ * Encryption can be enabled by specifying @ref HAM_PARAM_ENCRYPTION_KEY
+ * (see below). The identical key has to be provided in @ref ham_env_open
+ * as well. Ignored for remote Environments.
+ *
+ * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * when it is fetched from disk if the flag @ref HAM_ENABLE_CRC32 is set.
+ * API functions will return @ref HAM_INTEGRITY_VIOLATED in case of failed
+ * verifications. Not allowed in In-Memory Environments. This flag is not
+ * persisted.
+ *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
@@ -568,6 +589,8 @@ ham_get_version(uint32_t *major, uint32_t *minor,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
+ *     <li>@ref HAM_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *      checksums. Not allowed in combination with @ref HAM_IN_MEMORY.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -595,6 +618,11 @@ ham_get_version(uint32_t *major, uint32_t *minor,
  *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
+ *      the journal files to reduce I/O. See notes above.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *      encryption key; enables AES encryption for the Environment file. Not
+ *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -636,8 +664,21 @@ ham_env_create(ham_env_t **env, const char *filename,
  * Specify a URL instead of a filename (i.e.
  * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
- * Also see the documentation @ref ham_env_create about Transactions, Recovery
- * and the use of fsync.
+ * Also see the documentation @ref ham_env_create about Transactions, Recovery,
+ * AES encryption and the use of fsync.
+ *
+ * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * to provide recovery if the system crashes. These journal files can be
+ * compressed by supplying the parameter
+ * @ref HAM_PARAM_JOURNAL_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
+ *
+ * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * when it is fetched from disk if the flag @ref HAM_ENABLE_CRC32 is set.
+ * API functions will return @ref HAM_INTEGRITY_VIOLATED in case of failed
+ * verifications. This flag is not persisted.
  *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file, or URL of a hamsterdb
@@ -675,6 +716,8 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then hamsterdb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
+ *     <li>@ref HAM_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *      checksums.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
@@ -694,6 +737,11 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
+ *    <li><b>Pro</b>@ref HAM_PARAM_JOURNAL_COMPRESSION</li> Compresses
+ *      the journal files to reduce I/O. See notes above.
+ *    <li><b>Pro</b>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *      encryption key; enables AES encryption for the Environment file. Not
+ *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -829,6 +877,16 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * vs "key doesn't exist"). The default record size is
  * @ref HAM_RECORD_SIZE_UNLIMITED.
  *
+ * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * I/O and disk space. Compression is enabled with
+ * @ref HAM_PARAM_RECORD_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details.
+ *
+ * <b>Pro</b> Keys can also be compressed by setting the parameter
+ * @ref HAM_PARAM_KEY_COMPRESSION. See the hamsterdb pro documentation
+ * for more details.
+ *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *      Database. To close the handle, use @ref ham_db_close.
@@ -867,6 +925,10 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <li>@ref HAM_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref HAM_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
+ *    <li><b>Pro</b>@ref HAM_PARAM_RECORD_COMPRESSION</li> Compresses
+ *      the records.
+ *    <li><b>Pro</b>@ref HAM_PARAM_KEY_COMPRESSION</li> Compresses
+ *      the keys.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -893,6 +955,13 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  * @ref ham_db_close. Alternatively, the Database handle is closed
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
+ *
+ * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * I/O and disk space. Compression is enabled with
+ * @ref HAM_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
+ * @ref HAM_COMPRESSOR_ZLIB, @ref HAM_COMPRESSOR_SNAPPY etc. See the
+ * hamsterdb pro documentation for more details. This parameter is not
+ * persisted.
  *
  * @param env A valid Environment handle
  * @param db A valid Database handle, which will point to the opened
@@ -1821,6 +1890,12 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * http://www.oberhumer.com/opensource/lzo
  */
 #define HAM_COMPRESSOR_LZO          4
+
+/**
+ * hamsterdb pro: uint32 key compression (varbyte)
+ * (experimental)
+ */
+#define HAM_COMPRESSOR_UINT32_VARBYTE   5
 
 /**
  * Retrieves the Environment handle of a Database

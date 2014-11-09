@@ -1,23 +1,21 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
+#include "2compressor/compressor_factory.h"
 #include "2device/device_factory.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_stats.h"
@@ -125,11 +123,11 @@ LocalEnvironment::do_create()
   page->set_dirty(true);
 
   m_header.reset(new EnvironmentHeader(page));
-
-  /* initialize the header */
+  /* initialize the header; hamsterdb pro always sets the msb of the
+   * file version */
   m_header->set_magic('H', 'A', 'M', '\0');
   m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
-          HAM_FILE_VERSION);
+          HAM_FILE_VERSION | 0x80);
   m_header->set_page_size(m_config.page_size_bytes);
   m_header->set_max_databases(m_config.max_databases);
 
@@ -141,6 +139,11 @@ LocalEnvironment::do_create()
     m_journal.reset(new Journal(this));
     m_journal->create();
   }
+
+  /* Now that the header was created we can finally store the compression
+   * information */
+  if (m_config.journal_compressor)
+    m_header->set_journal_compression(m_config.journal_compressor);
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
@@ -211,7 +214,17 @@ LocalEnvironment::do_open()
 
     /* check the database version; everything with a different file version
      * is incompatible */
-    if (m_header->get_version(3) != HAM_FILE_VERSION) {
+    if (m_header->get_version(3) == HAM_FILE_VERSION) {
+      // this file was created with the APL version; upgrade it to
+      // the commercial license by setting the msb of the file version
+      if ((get_flags() & HAM_READ_ONLY) == 0) {
+        m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
+              HAM_FILE_VERSION | 0x80);
+        m_header->get_header_page()->set_dirty(true);
+        m_device->write(0, hdrbuf, sizeof(hdrbuf));
+      }
+    }
+    else if (m_header->get_version(3) != (HAM_FILE_VERSION | 0x80)) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
@@ -244,6 +257,10 @@ fail_with_fake_cleansing:
     page->fetch(0);
     m_header.reset(new EnvironmentHeader(page));
   }
+
+  /* Now that the header page was fetched we can retrieve the compression
+   * information */
+  m_config.journal_compressor = m_header->get_journal_compression();
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
@@ -324,7 +341,7 @@ LocalEnvironment::do_get_parameters(ham_parameter_t *param)
         p->value = m_config.journal_switch_threshold;
         break;
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        p->value = 0;
+        p->value = m_config.journal_compressor;
         break;
       case HAM_PARAM_POSIX_FADVISE:
         p->value = m_config.posix_advice;
@@ -375,11 +392,19 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_RECORD_COMPRESSION:
-          ham_trace(("Record compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
+          if (!CompressorFactory::is_available(param->value)) {
+            ham_trace(("unknown algorithm for record compression"));
+            return (HAM_INV_PARAMETER);
+          }
+          config.record_compressor = (int)param->value;
+          break;
         case HAM_PARAM_KEY_COMPRESSION:
-          ham_trace(("Key compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
+          if (!CompressorFactory::is_available(param->value)) {
+            ham_trace(("unknown algorithm for key compression"));
+            return (HAM_INV_PARAMETER);
+          }
+          config.key_compressor = (int)param->value;
+          break;
         case HAM_PARAM_KEY_TYPE:
           config.key_type = (uint16_t)param->value;
           break;
@@ -442,6 +467,39 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     }
     config.key_type = HAM_TYPE_UINT64;
   }
+  // Pro: uint32 compression is only allowed for uint32-keys
+  if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE) {
+    if (config.key_type != HAM_TYPE_UINT32) {
+      ham_trace(("Uint32 compression only allowed for uint32 keys "
+                 "(HAM_TYPE_UINT32)"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
+
+  // Pro: all heavy-weight compressors are only allowed for
+  // variable-length binary keys
+  if (config.key_compressor == HAM_COMPRESSOR_LZF
+        || config.key_compressor == HAM_COMPRESSOR_SNAPPY
+        || config.key_compressor == HAM_COMPRESSOR_LZO
+        || config.key_compressor == HAM_COMPRESSOR_ZLIB) {
+    if (config.key_type != HAM_TYPE_BINARY
+          || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
+      ham_trace(("Key compression only allowed for unlimited binary keys "
+                 "(HAM_TYPE_BINARY"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
+
+  // Pro: all heavy-weight compressors are only allowed for
+  // variable-length binary keys
+  else if (config.key_compressor != HAM_COMPRESSOR_NONE) {
+    if (config.key_type != HAM_TYPE_BINARY
+          || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
+      ham_trace(("Key compression only allowed for unlimited binary keys "
+                 "(HAM_TYPE_BINARY"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
 
   uint32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_FLUSH_WHEN_COMMITTED
@@ -478,10 +536,8 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
       break;
     }
   }
-  if (dbi == m_header->get_max_databases()) {
-    delete db;
+  if (dbi == m_header->get_max_databases())
     return (HAM_LIMITS_REACHED);
-  }
 
   mark_header_page_dirty(&context);
 
@@ -518,11 +574,13 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_RECORD_COMPRESSION:
-          ham_trace(("Record compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
+          ham_trace(("Record compression parameters are only allowed in "
+                     "ham_env_create_db"));
+          return (HAM_INV_PARAMETER);
         case HAM_PARAM_KEY_COMPRESSION:
-          ham_trace(("Key compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
+          ham_trace(("Key compression parameters are only allowed in "
+                     "ham_env_create_db"));
+          return (HAM_INV_PARAMETER);
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
           return (HAM_INV_PARAMETER);
@@ -547,10 +605,8 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
       break;
   }
 
-  if (dbi == m_header->get_max_databases()) {
-    delete db;
+  if (dbi == m_header->get_max_databases())
     return (HAM_DATABASE_NOT_FOUND);
-  }
 
   /* open the database */
   ham_status_t st = db->open(&context, btree_header(dbi));

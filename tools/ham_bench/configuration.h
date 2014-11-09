@@ -100,7 +100,7 @@ struct Configuration
       "snappy",
       "lzf",
       "lzo",
-      "bitmap"
+      "zint32_varbyte"
     };
     std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)

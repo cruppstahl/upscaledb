@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 #define WIN32_LEAN_AND_MEAN
 #include "0root/root.h"
@@ -1445,6 +1442,50 @@ handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
   reply.id = kCursorGetRecordCountReply;
   reply.cursor_get_record_count_reply.status = st;
   reply.cursor_get_record_count_reply.count = count;
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
+            Protocol *request)
+{
+  ham_status_t st = 0;
+  uint64_t size = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_cursor_get_record_size_request());
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request().cursor_handle());
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_record_size((ham_cursor_t *)cursor, &size);
+
+  Protocol reply(Protocol::CURSOR_GET_RECORD_SIZE_REPLY);
+  reply.mutable_cursor_get_record_size_reply()->set_status(st);
+  reply.mutable_cursor_get_record_size_reply()->set_size(size);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
+            SerializedWrapper *request)
+{
+  ham_status_t st = 0;
+  uint64_t size = 0;
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request.cursor_handle);
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_record_size((ham_cursor_t *)cursor, &size);
+
+  SerializedWrapper reply;
+  reply.id = kCursorGetRecordSizeReply;
+  reply.cursor_get_record_size_reply.status = st;
+  reply.cursor_get_record_size_reply.size = size;
 
   send_wrapper(srv, tcp, &reply);
 }

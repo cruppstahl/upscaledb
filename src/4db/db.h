@@ -1,17 +1,14 @@
 /*
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * NOTICE: All information contained herein is, and remains the property
+ * of Christoph Rupp and his suppliers, if any. The intellectual and
+ * technical concepts contained herein are proprietary to Christoph Rupp
+ * and his suppliers and may be covered by Patents, patents in process,
+ * and are protected by trade secret or copyright law. Dissemination of
+ * this information or reproduction of this material is strictly forbidden
+ * unless prior written permission is obtained from Christoph Rupp.
  */
 
 /*
@@ -91,10 +88,10 @@ class Database
     virtual void fill_metrics(ham_env_metrics_t *metrics) = 0;
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
+    virtual void get_parameters(ham_parameter_t *param) = 0;
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(uint32_t flags) = 0;
+    virtual void check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
     virtual ham_status_t count(Transaction *txn, bool distinct,

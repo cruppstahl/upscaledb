@@ -7,7 +7,7 @@ dnl information
 dnl
 
 dnl Initialize autoconf/automake
-AC_INIT([hamsterdb], [2.1.10], [http://hamsterdb.com])
+AC_INIT([hamsterdb-pro], [2.1.10], [http://hamsterdb.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 AC_CONFIG_MACRO_DIR(m4)
 AC_COPYRIGHT([Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de)])
@@ -40,6 +40,9 @@ AC_CHECK_HEADERS([fcntl.h unistd.h uv.h])
 
 m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
 AX_CXX_GCC_ABI_DEMANGLE
+
+# include hamsterdb-pro stuff
+m4_include([configure-pro.ac])
 
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.53])
@@ -181,6 +184,7 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 AC_CONFIG_FILES(Makefile src/Makefile src/2protobuf/Makefile src/2protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/5server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(3rdparty/liblzf/Makefile 3rdparty/murmurhash3/Makefile)
 AC_OUTPUT
 
 # Messages

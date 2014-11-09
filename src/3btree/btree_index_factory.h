@@ -31,6 +31,7 @@
 #include "3btree/btree_keys_pod.h"
 #include "3btree/btree_keys_binary.h"
 #include "3btree/btree_keys_varlen.h"
+#include "3btree/btree_keys_zint32.h"
 #include "3btree/btree_records_default.h"
 #include "3btree/btree_records_inline.h"
 #include "3btree/btree_records_internal.h"
@@ -83,6 +84,7 @@ struct BtreeIndexFactory
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
     bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
+    int key_compression = db->get_config().key_compressor;
 
     switch (key_type) {
       // 8bit unsigned integer
@@ -160,6 +162,13 @@ struct BtreeIndexFactory
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
         if (use_duplicates) {
+          if (key_compression > 0) {
+            ham_trace(("key compression is not enabled for duplicate keys"));
+            // If required then just extend the code here. The KeyList
+            // implementation itself will work. Only this file has to
+            // be adjusted.
+            throw Exception(HAM_NOT_IMPLEMENTED);
+          }
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -177,21 +186,40 @@ struct BtreeIndexFactory
                   NumericCompare<uint32_t> >());
         }
         else {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<uint32_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
-                            PaxLayout::InlineRecordList>,
-                      NumericCompare<uint32_t> >());
-          else
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
-                            PaxLayout::DefaultRecordList>,
-                      NumericCompare<uint32_t> >());
+          if (key_compression == HAM_COMPRESSOR_UINT32_VARBYTE) {
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::Zint32KeyList,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::Zint32KeyList,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else { // no key compression
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
         }
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:

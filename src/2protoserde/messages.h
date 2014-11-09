@@ -1271,6 +1271,63 @@ struct SerializedCursorGetRecordSizeReply {
   }
 };
 
+struct SerializedCursorGetRecordSizeRequest {
+  SerializedUint64 cursor_handle;
+
+  SerializedCursorGetRecordSizeRequest() {
+    clear();
+  }
+
+  size_t get_size() const {
+    return (
+          cursor_handle.get_size() + 
+          0);
+  }
+
+  void clear() {
+    cursor_handle.clear();
+  }
+
+  void serialize(unsigned char **pptr, int *psize) const {
+    cursor_handle.serialize(pptr, psize);
+  }
+
+  void deserialize(unsigned char **pptr, int *psize) {
+    cursor_handle.deserialize(pptr, psize);
+  }
+};
+
+struct SerializedCursorGetRecordSizeReply {
+  SerializedSint32 status;
+  SerializedUint64 size;
+
+  SerializedCursorGetRecordSizeReply() {
+    clear();
+  }
+
+  size_t get_size() const {
+    return (
+          status.get_size() + 
+          size.get_size() + 
+          0);
+  }
+
+  void clear() {
+    status.clear();
+    size.clear();
+  }
+
+  void serialize(unsigned char **pptr, int *psize) const {
+    status.serialize(pptr, psize);
+    size.serialize(pptr, psize);
+  }
+
+  void deserialize(unsigned char **pptr, int *psize) {
+    status.deserialize(pptr, psize);
+    size.deserialize(pptr, psize);
+  }
+};
+
 struct SerializedCursorGetDuplicatePositionRequest {
   SerializedUint64 cursor_handle;
 
