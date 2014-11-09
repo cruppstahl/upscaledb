@@ -9,15 +9,62 @@ x a finished TODO item
 
 ------------- hamsterdb-erlang 2.1.9 ---------------------------------
 
+<<<<<<< HEAD
+=======
+x upgrade to hamsterdb-2.1.9
+
+>>>>>>> Updated TODO
 o improve erlang integration
     o integration for quickcheck-ci.com
     x look into Thomas' mail
 
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
+<<<<<<< HEAD
 x documentation rewrite
     x use github wiki, remove old cruft
     x then create the initial repository:
+=======
+x PRO: review AES usage in read_page; if the page is mmapped then decryption
+    is not applied - no, it's ok. encryption disables mmap
+
+o PRO: rebase to vanilla 2.1.9
+
+o PRO: review SIMD code; the problem is that it's never called, because the
+    search threshold is always smaller than the minimum block size
+    o use fixed block size, otherwise fallback to non-simd search
+    o run performance tests
+
+o PRO: refactoring: make AES Encryption stateless and exception safe
+
+o PRO: refactoring: make Compressors stateless and exception safe
+
+o PRO: Can we release an early version of zint32? (undocumented)
+    o need to fix erase() handling
+    o add full test coverage
+
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    o try to move the Zint32 index to a base class
+    o Use small index which stores offset + bits for each group
+    o Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
+        number can then hold flags for 16 numbers
+        o (but maybe increase this to hold at least 32 or 64 numbers, to
+            reduce the overhead ratio)
+    o a separate bit is used to signal whether the (compressed) number is
+        a record id
+    o avoid ripple effects by growing/splitting the block
+    o Use this index for the default internal record list
+    o Use this index for duplicate groups
+
+------------- hamsterdb 2.1.10 ---------------------------------------
+
+o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+            move version.h to include/ham
+
+o documentation rewrite
+    o use github wiki, remove old cruft
+    o then create the initial repository:
+>>>>>>> Updated TODO
         https://github.com/blog/699-making-github-more-open-git-backed-wikis
 
     x /introduction
@@ -449,12 +496,16 @@ o refactoring: make EnvironmentHeader stateless and exception safe
     o PageManager performs flushes/closes, not LocalEnvironment::close
     o LocalEnvironment does not need to store an instance of the Header!
 
+<<<<<<< HEAD
 o Erlang: investigate failure in ham_eqc2
 
 o Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
+=======
+o refactoring: make Btree Actions stateless and exception safe
+>>>>>>> Updated TODO
 
 o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then
@@ -465,6 +516,7 @@ o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
 
 o reserve file size upon creation, then map the whole range
+<<<<<<< HEAD
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
     o automatically page-align the size
     o only for disk-based devices!
@@ -473,6 +525,9 @@ o reserve file size upon creation, then map the whole range
         o unittest - verify that the initial file size is correct
         o unittest - verify that the file size does not grow if new pages
             are allocated
+=======
+    o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
+>>>>>>> Updated TODO
     o support in ham_bench
     o monster tests and performance tests
     o also for java
@@ -691,6 +746,7 @@ o refactoring: create a Update structure whenever a database is modified;
     o same for ham_cursor_overwrite
     o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
 
+<<<<<<< HEAD
 o delta updates managed in the BtreeNode
     Updates are attached to a node. A background thread can merge them.
     At runtime, they're consolidated. An Update can be part of a Transaction.
@@ -743,6 +799,97 @@ o delta updates managed in the BtreeNode
         flushes (really?)
 
 
+=======
+o look into dynomite, spark, mongodb and mariadb integration
+    https://github.com/Netflix/dynomite
+    -> like MapReduce, Spark requires an InputFormat class; templates are 
+        available here:
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
+
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+    o write down everything i find, collect information and estimate
+        efforts/gains (will do the same for mysql, R and mongodb later); this
+        task is not about writing code!
+    o come up with priorities, estimates
+
+    o dynomite: requires C interface and C marshalling code. rewrite C++
+        marshalling routines to C
+    o dynomite: send a patch to support more backends
+    o dynomite: send a patch to separate existing backends into their own file
+
+o First steps towards concurrency; target is having one lock per db
+    o create coding rules which help for thread-safety
+        o make members const whenever possible
+        o non-const members need to lock or be atomic
+        o if a class is deliberately NOT threadsafe (i.e. ByteArray) then
+            document as annotation, and create a special profile build
+            which verifies that all non-const members are accessed synchronized
+
+        class SingleThreadedGuard {
+          SingleThreadedGuard() {
+            if (atomic_inc(foo) != 1) 
+              throw ...;
+          }
+
+          ~SingleThreadedGuard() {
+            if (atomic_dec(foo) > 0)
+              throw ...;
+          }
+        };
+    o can we also utilize valgrind macros?
+    o need to compile this with -O3, release builds!
+    o perform this for layers 1 - 3
+    o and also for layer 4 - make sure that the code separation is clear
+        -> especially between btree and transactions
+    o define the locking behaviour of all classes/logical modules
+    o verify this behaviour in the code 
+    o define which public API function locks what
+    o split the big lock and create one lock per database
+    o perform excessive testing
+
+o Next steps towards concurrency: flush caches asynchronously,
+    use non-blocking writes (with libuv)
+    o or have a separate thread perform purges, flushes with libuv
+    o ... and prefetches (when opening a database with HAM_PREFETCH_INDEX)
+
+o Next steps towards concurrency; target is having one writer per db, but
+        multiple readers
+    o move flushing of transactions into background
+    o move cache purging into background
+    o background operations should be disabled with flags
+    o perform excessive testing
+
+
+
+
+
+
+
+
+
+
+. refactoring: get rid of inheritance for env
+    - move implementation to a struct, w/o state
+    - struct will be kept separately (if there is any)
+    - base class will be abstract
+    - the env will become a "hub" which manages members (i.e. page_manager,
+        device) and forwards the calls to those members 
+    - implementation class uses a template parameter and forwards calls
+        to the struct; the state is a parameter which is only updated
+        if the operation succeeds
+    - if this pattern works then also apply it for Database,
+        Transaction, Cursor
+
+o PRO: find an efficient compression method for InternalRecordList
+    -> also, this should play well with the compression of the DefaultRecordList
+    x The page IDs should be modulo page-size (makes numbers smaller) - done
+
+o PRO: use compression also for duplicate records
+>>>>>>> Updated TODO
 
 
 
@@ -796,7 +943,10 @@ o QuickCheck: create a new property for testing duplicates; the key is
     periodically checked with the API. A cursor can be used to remove a
     specific duplicate, or to fetch a specific duplicate.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> Updated TODO
 . use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
     o see roadmap document for more information
@@ -817,6 +967,113 @@ o QuickCheck: create a new property for testing duplicates; the key is
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
+<<<<<<< HEAD
+=======
+o delta updates managed in the BtreeNode
+    the operations are attached to the node, but as soon as the node
+    is accessed for a lookup or a scan, or immediately before the node
+    is flushed, the deltas are merged into the node. So far this does not
+    sound too efficient, but the bulk updates in combination with the
+    key compression (i.e. for prefix compression) will benefit a lot.
+
+    Also, they are really required for concurrency and to allow multiple
+    writers in parallel.
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o need a flag to disable DeltaUpdates
+        o add flag to ham_bench
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
+    o make the merge algorithm as efficient as possible
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
+
+o the bucket for concurrency TODOs
+    this are the requirements:
+    - PRO: inserts are fully concurrent (APL: only one insert at a time)
+    - transactions are flushed in background
+    - dirty pages are flushed in background
+    - reading pages is synchronous, writing pages is asynchronous
+        -> needs a very fast locking scheme
+    - SSDs support many async. writes in parallel - be prepared!
+    http://meetingcpp.com/tl_files/2013/talks/scaling_with_cpp11_edouard_alligand.pdf
+    - remove db_get_last_error?
+    - how to deal with temporary pointers (key->data, record->data)?
+        store them in tls? or always allocate new pointers and let the caller
+        delete them?
+
+    o an intermediate stage would be to have concurrent reads but exclusive
+        writes (one writer per database, many readers) - makes sense?
+
+    o create coding rules
+        o synchronization either in lowest or highest level of the callstack
+        o when to use what kind of synchronization
+        o which modules are single-threaded/synchronized, which are atomic,
+            which are concurrent?
+
+    o how can we verify the correctness of the implementation?
+        - i.e. by using static analysis or dynamic analysis, together
+            with annotated code/custom tools? even if these tools do not
+            exist then a system of annotations/naming conventions can help
+            writing/maintaining the code
+
+    o mutex implementations should have built-in monitoring, i.e.
+        number of locks/unlocks, wait times, contention etc
+        o need read/write mutex, fast latches
+
+    o come up with a list of all functions, define which locking operation
+        is required; then review the code and make sure this will work
+        o the environment configuration
+        o the database configuration
+        o the transaction tree handling
+        o the page manager, the device and the cache
+        o the btree
+        o the btree nodes (i.e. extkeycache, compressor)
+        o parallel lookups (using the same memory arena)
+
+    o reduce the linked lists - they're hard to be updated with atomic
+        operations
+        o page
+        o transaction and dependent objects
+        o ...
+
+    o separate SMOs from the actual operation (#2)
+        -> check the literature
+        http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
+        o move SMO operations to "the janitor" (btree_janitor.h)
+
+    o the global environment-lock should go because it's expensive; rather
+        increment an atomic latch, and refuse to close/erase the database as
+        long as the latch is > 0 
+
+
+
+
+>>>>>>> Updated TODO
 o PRO: hot backups (vacuumizes to a different file)
     really only for PRO?
     http://sqlite.org/c3ref/backup_finish.html
