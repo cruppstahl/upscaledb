@@ -176,17 +176,17 @@ find_simd_sse(size_t node_count, T *data, const ham_key_t *hkey)
 
   // still here? then perform a linear search for the remaining range
   ham_assert(r - l <= threshold);
-  return (linear_search_sse(data, l, r - l, key));
+  if (r + threshold < (int)node_count)
+    return (linear_search_sse(data, l, threshold, key));
+  return (linear_search(data, l, r - l, key));
 }
 
 template<>
 inline int
 linear_search_sse<uint16_t>(uint16_t *data, int start, int count, uint16_t key)
 {
+  ham_assert(count == 16);
   __m128i key8 = _mm_set1_epi16(key);
-
-  if (count < 16)
-    return (linear_search(data, start, count, key));
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
   __m128i v2 = _mm_loadu_si128((const __m128i *)&data[start + 8]);
@@ -209,10 +209,8 @@ template<>
 inline int
 linear_search_sse<uint32_t>(uint32_t *data, int start, int count, uint32_t key)
 {
+  ham_assert(count == 16);
   __m128i key4 = _mm_set1_epi32(key);
-
-  if (count < 16)
-    return (linear_search(data, start, count, key));
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
   __m128i v2 = _mm_loadu_si128((const __m128i *)&data[start + 4]);
@@ -241,9 +239,7 @@ template<>
 inline int
 linear_search_sse<float>(float *data, int start, int count, float key)
 {
-  if (count < 16)
-    return (linear_search(data, start, count, key));
-
+  ham_assert(count == 16);
   __m128 key4 = _mm_set1_ps(key);
 
   __m128 v1 = _mm_loadu_ps((const float *)&data[start + 0]);
@@ -276,9 +272,7 @@ template<>
 inline int
 linear_search_sse<double>(double *data, int start, int count, double key)
 {
-  if (count < 4)
-    return (linear_search(data, start, count, key));
-
+  ham_assert(count == 4);
   __m128d key2 = _mm_set1_pd(key);
 
   __m128d v1 = _mm_loadu_pd(&data[start + 0]);
@@ -307,10 +301,8 @@ template<>
 inline int
 linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 {
+  ham_assert(count == 4);
   __m128i key2 = _mm_set1_epi64x(key);
-
-  if (count < 4)
-    return (linear_search(data, start, count, key));
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
   __m128i v2 = _mm_loadu_si128((const __m128i *)&data[start + 2]);
