@@ -14,19 +14,19 @@
  */
 
 /*
- * An abstract base class for a compressor.
+ * A parameterized implementation for the abstract Compressor class.
  *
  * @exception_safe: strong
  * @thread_safe: no
  */
 
-#ifndef HAM_COMPRESSOR_H
-#define HAM_COMPRESSOR_H
+#ifndef HAM_COMPRESSOR_IMPL_H
+#define HAM_COMPRESSOR_IMPL_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1base/byte_array.h"
+#include "2compressor/compressor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -34,71 +34,62 @@
 
 namespace hamsterdb {
 
-class Compressor {
+template<class T>
+class CompressorImpl : public Compressor {
   public:
-    // Constructor
-    Compressor()
-      : m_skip(0) {
-    }
-
-    // Virtual destructor - can be overwritten
-    virtual ~Compressor() {
-    }
-
     // Compresses |inlength1| bytes of data in |inp1|. If |inp2| is supplied
     // then |inp2| will be compressed immediately after |inp1|.
     // The compressed data can then be retrieved with |get_output_data()|.
     //
     // Returns the length of the compressed data.
     virtual uint32_t compress(const uint8_t *inp1, uint32_t inlength1,
-                    const uint8_t *inp2 = 0, uint32_t inlength2 = 0) = 0;
+                    const uint8_t *inp2 = 0, uint32_t inlength2 = 0) {
+      uint32_t clen = 0;
+      uint32_t arena_size = m_skip + m_impl.get_compressed_length(inlength1);
+      if (inp2 != 0)
+        arena_size += m_impl.get_compressed_length(inlength2);
+      m_arena.resize(arena_size + m_skip);
 
-    // Reserves |n| bytes in the output buffer; can be used by the caller
-    // to insert flags or sizes
-    void reserve(int n) {
-      m_skip = n;
+      uint8_t *out = (uint8_t *)m_arena.get_ptr() + m_skip;
+
+      clen = m_impl.compress(inp1, inlength1, out,
+                      m_arena.get_size() - m_skip);
+      if (inp2)
+        clen += m_impl.compress(inp2, inlength2, out + clen,
+                        m_arena.get_size() - clen - m_skip);
+      return (clen);
     }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data.
     virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength) = 0;
+                    uint32_t outlength) {
+      m_arena.resize(outlength);
+      m_impl.decompress(inp, inlength, (uint8_t *)m_arena.get_ptr(), outlength);
+    }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data. Uses the caller's |arena|
     // for storage.
     virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength, ByteArray *arena) = 0;
+                    uint32_t outlength, ByteArray *arena) {
+      arena->resize(outlength);
+      m_impl.decompress(inp, inlength, (uint8_t *)arena->get_ptr(), outlength);
+    }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data. Uses the caller's |destination|
     // for storage.
     virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength, uint8_t *destination) = 0;
-
-    // Retrieves the compressed (or decompressed) data, including its size
-    const uint8_t *get_output_data() const {
-      return ((uint8_t *)m_arena.get_ptr());
+                    uint32_t outlength, uint8_t *destination) {
+      m_impl.decompress(inp, inlength, destination, outlength);
     }
 
-    // Same as above, but non-const
-    uint8_t *get_output_data() {
-      return ((uint8_t *)m_arena.get_ptr());
-    }
-
-    // Returns the internal memory arena
-    ByteArray *get_arena() {
-      return (&m_arena);
-    }
-
-  protected:
-    // The ByteArray which stores the compressed (or decompressed) data
-    ByteArray m_arena;
-
-    // Number of bytes to reserve for the caller
-    int m_skip;
+  private:
+    // The actual implementation
+    T m_impl;
 };
 
 }; // namespace hamsterdb
 
-#endif // HAM_COMPRESSOR_H
+#endif // HAM_COMPRESSOR_IMPL_H

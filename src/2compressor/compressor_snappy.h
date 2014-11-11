@@ -17,7 +17,7 @@
  * A compressor which uses snappy.
  *
  * @exception_safe: unknown
- * @thread_safe: unknown
+ * @thread_safe: yes
  */
 
 #ifndef HAM_COMPRESSOR_SNAPPY_H
@@ -40,41 +40,35 @@
 
 namespace hamsterdb {
 
-class SnappyCompressor : public Compressor {
-  public:
-    // Constructor
-    SnappyCompressor() {
-    }
+struct SnappyCompressor {
+  // Returns the maximum number of bytes that are required for
+  // compressing |length| bytes.
+  uint32_t get_compressed_length(uint32_t length) {
+    return (snappy::MaxCompressedLength(length));
+  }
 
-  protected:
-    // Returns the maximum number of bytes that are required for
-    // compressing |length| bytes.
-    virtual uint32_t get_compressed_length(uint32_t length) {
-      return (snappy::MaxCompressedLength(length));
-    }
+  // Performs the actual compression. |outp| points into |m_arena| and
+  // has sufficient size (allocated with |get_compressed_length()|).
+  //
+  // Returns the length of the compressed data.
+  uint32_t compress(const uint8_t *inp, uint32_t inlength,
+                          uint8_t *outp, uint32_t outlength) {
+    size_t real_outlength = outlength;
+    snappy::RawCompress((const char *)inp, inlength,
+              (char *)outp, &real_outlength);
+    ham_assert(real_outlength <= outlength);
+    return (real_outlength);
+  }
 
-    // Performs the actual compression. |outp| points into |m_arena| and
-    // has sufficient size (allocated with |get_compressed_length()|).
-    //
-    // Returns the length of the compressed data.
-    virtual uint32_t do_compress(const uint8_t *inp, uint32_t inlength,
-                            uint8_t *outp, uint32_t outlength) {
-      size_t real_outlength = outlength;
-      snappy::RawCompress((const char *)inp, inlength,
-                (char *)outp, &real_outlength);
-      ham_assert(real_outlength <= outlength);
-      return (real_outlength);
-    }
-
-    // Performs the actual decompression. Derived classes decompress into
-    // |m_arena| which has sufficient size for the decompressed data.
-    virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
-                            uint8_t *outp, uint32_t outlength) {
-      ham_assert(snappy::IsValidCompressedBuffer((const char *)inp, inlength));
-      if (!snappy::RawUncompress((const char *)inp, inlength,
-                  (char *)outp))
-        throw Exception(HAM_INTERNAL_ERROR);
-    }
+  // Performs the actual decompression. Derived classes decompress into
+  // |m_arena| which has sufficient size for the decompressed data.
+  void decompress(const uint8_t *inp, uint32_t inlength,
+                          uint8_t *outp, uint32_t outlength) {
+    ham_assert(snappy::IsValidCompressedBuffer((const char *)inp, inlength));
+    if (!snappy::RawUncompress((const char *)inp, inlength,
+                (char *)outp))
+      throw Exception(HAM_INTERNAL_ERROR);
+  }
 };
 
 }; // namespace hamsterdb

@@ -17,6 +17,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "2compressor/compressor_factory.h"
+#include "2compressor/compressor_impl.h"
 #include "2compressor/compressor_zlib.h"
 #include "2compressor/compressor_snappy.h"
 #include "2compressor/compressor_lzf.h"
@@ -70,28 +71,28 @@ CompressorFactory::create(int type)
   switch (type) {
     case HAM_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
-      return (new ZlibCompressor());
+      return (new CompressorImpl<ZlibCompressor>());
 #else
       ham_log(("hamsterdb was built without support for zlib compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_SNAPPY:
 #ifdef HAVE_SNAPPY_H
-      return (new SnappyCompressor());
+      return (new CompressorImpl<SnappyCompressor>());
 #else
       ham_log(("hamsterdb was built without support for snappy compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_LZO:
 #ifdef HAVE_LZO_LZO1X_H
-      return (new LzopCompressor());
+      return (new CompressorImpl<LzopCompressor>());
 #else
       ham_log(("hamsterdb was built without support for lzop compression"));
       throw Exception(HAM_INV_PARAMETER);
 #endif
     case HAM_COMPRESSOR_LZF:
       // this is always available
-      return (new LzfCompressor());
+      return (new CompressorImpl<LzfCompressor>());
     default:
       ham_log(("Unknown compressor type %d", type));
       throw Exception(HAM_INV_PARAMETER);

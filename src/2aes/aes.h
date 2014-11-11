@@ -15,8 +15,8 @@
  * Based on code from Saju Pillai (saju.pillai@gmail.com)
  *      http://saju.net.in/code/misc/openssl_aes.c.txt
  *
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_AES_H
