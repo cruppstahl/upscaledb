@@ -77,7 +77,8 @@ test_SOURCES    = api110.cpp \
 				  simd.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp \
-				  utils.h
+				  utils.h \
+				  zint32.cpp
 
 recovery_SOURCES = recovery.cpp
 

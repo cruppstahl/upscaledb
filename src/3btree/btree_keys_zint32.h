@@ -123,10 +123,7 @@ class Zint32KeyList : public BaseKeyList
       m_data = data;
       m_range_size = range_size;
 
-      // a new node starts with an empty block
-      set_block_count(0);
-      set_used_size(sizeof(uint32_t) * 2);
-      add_block(0);
+      initialize();
     }
 
     // Opens an existing KeyList. Called after a btree node was fetched from
@@ -285,7 +282,7 @@ class Zint32KeyList : public BaseKeyList
       // is there just one key left in that block? then reduce the counters
       if (index->key_count == 1) {
         index->key_count = 0;
-        ham_assert(index->used_size == 0);
+        index->used_size = 0;
       }
       // otherwise remove the key from the block. This does not change
       // the size of the block!
@@ -294,7 +291,7 @@ class Zint32KeyList : public BaseKeyList
       }
 
       // if the block is now empty then remove it, unless it's the last block
-      if (index->key_count == 0 && get_block_count() > 0) {
+      if (index->key_count == 0 && get_block_count() > 1) {
         remove_block(index);
       }
 
@@ -312,7 +309,16 @@ class Zint32KeyList : public BaseKeyList
       // find the start block 
       int src_position_in_block;
       Index *srci = find_block_by_slot(sstart, &src_position_in_block);
-      Index *dsti = 0;
+
+      // get the destination block
+      int dst_position_in_block;
+      Index *dsti = dest.find_block_by_slot(dstart, &dst_position_in_block);
+
+      // make sure it has free space
+      if (dsti->block_size < srci->block_size)
+        dest.grow_block(dsti, srci->block_size);
+
+      int copied_blocks = 0;
 
       if (src_position_in_block > 0) {
         src_position_in_block++;
@@ -326,14 +332,6 @@ class Zint32KeyList : public BaseKeyList
         // need to keep a copy of the pointer where we started, so we can later
         // figure out how many bytes were copied
         uint8_t *start_s = s;
-
-        // get the destination block
-        int dst_position_in_block;
-        dsti = dest.find_block_by_slot(dstart, &dst_position_in_block);
-
-        // make sure it has free space
-        if (dsti->block_size < srci->block_size)
-          dest.grow_block(dsti, srci->block_size);
 
         // fast-forward to the start position in the destination block
         uint8_t *d;
@@ -380,16 +378,17 @@ class Zint32KeyList : public BaseKeyList
 
         index = srci + 1;
       }
-      // |src_position_in_block| is > 0 - just fall through and the whole
-      // block will be copied
+      // |src_position_in_block| is > 0 - copy the current block, then
+      // fall through
       else {
-        index = srci;
+        copy_blocks(srci, dest, dsti);
+        index = srci + 1;
+        copied_blocks++;
       }
 
       // now copy the remaining blocks
       // TODO it would be faster to introduce add_many_blocks()
       // instead of invoking add_block() several times
-      int copied_blocks = 0;
       Index *endi = get_block_index(get_block_count()); 
       for (; index < endi; index++, copied_blocks++) {
         dsti = dest.add_block(dest.get_block_count(), index->block_size);
@@ -414,6 +413,11 @@ class Zint32KeyList : public BaseKeyList
           used_size = index->offset + index->block_size;
       }
       set_used_size(used_size + 8 + sizeof(Index) * get_block_count());
+
+      // we need at least ONE empty block, otherwise a few functions will bail
+      if (get_block_count() == 0) {
+        initialize();
+      }
 
       ham_assert(dest.check_integrity(node_count - sstart));
       ham_assert(check_integrity(sstart));
@@ -450,6 +454,8 @@ class Zint32KeyList : public BaseKeyList
       size_t total_keys = 0;
       int used_size = 0;
       for (; index < end; index++) {
+        if (node_count > 0)
+          ham_assert(index->key_count > 0);
         total_keys += index->key_count;
         if (used_size < index->offset + index->block_size)
           used_size = index->offset + index->block_size;
@@ -506,6 +512,13 @@ class Zint32KeyList : public BaseKeyList
     }
 
   private:
+    // Create an initial empty block
+    void initialize() {
+      set_block_count(0);
+      set_used_size(sizeof(uint32_t) * 2);
+      add_block(0);
+    }
+
     // Finds a key; returns a pointer to its compressed location.
     // Returns the compare result in |*pcmp| and the slot of the |key| in
     // |*pslot|.
@@ -665,12 +678,13 @@ class Zint32KeyList : public BaseKeyList
     void remove_block(Index *index) {
       ham_assert(get_block_count() > 1);
       ham_assert(index->key_count == 0);
+      uint32_t block_size = index->block_size;
 
       // shift all indices (and the payload data) to the left
-      ::memmove(index + 1, index, get_used_size()
+      ::memmove(index, index + 1, get_used_size()
                     - sizeof(Index) * (index - get_block_index(0) + 1));
       set_block_count(get_block_count() - 1);
-      set_used_size(get_used_size() - sizeof(Index));
+      set_used_size(get_used_size() - (sizeof(Index) + block_size));
     }
 
     // Splits a block; returns the index where the new |key| will be inserted
@@ -874,7 +888,6 @@ class Zint32KeyList : public BaseKeyList
 
     // Erases a key from a block
     void erase_key_from_block(Index *index, int position) {
-      ham_assert(position < index->key_count);
       ham_assert(index->key_count > 1);
 
       uint8_t *p = get_block_data(index);
@@ -882,12 +895,13 @@ class Zint32KeyList : public BaseKeyList
       // erase the first key?
       if (position == 0) {
         uint32_t second, first = index->value;
-        uint8_t *q = p + read_int(p, &second);
+        uint8_t *start = p;
+        p += read_int(p, &second);
         // replace the first key with the second key (uncompressed)
         index->value = first + second;
         // shift all remaining deltas to the left
-        ::memmove(p, q, index->used_size - (q - p));
-        index->used_size -= q - p;
+        ::memmove(start, p, index->used_size);
+        index->used_size -= p - start;
         index->key_count--;
         return;
       }
@@ -895,33 +909,42 @@ class Zint32KeyList : public BaseKeyList
       // otherwise fast-forward to the position of the key and remove it;
       // then update the delta of the next key
       uint32_t key = index->value;
-      uint8_t *q = p;
+      uint32_t delta;
+      uint8_t *prev_p = p;
       for (int i = 1; i < position; i++) {
-        uint32_t delta;
-        q = p;
+        prev_p = p;
         p += read_int(p, &delta);
         key += delta;
       }
 
       // if this was the last key then return
       if (position == index->key_count - 1) {
-        index->used_size -= p - q;
+        index->used_size -= p - prev_p;
         index->key_count--;
         return;
       }
 
+      // save the current key, it will be required later
+      uint32_t prev_key = key;
+      prev_p = p;
+
+      // now skip the key which is deleted
+      p += read_int(p, &delta);
+      key += delta;
+
       // read the next delta, it has to be updated
-      uint32_t next_key;
-      int size = read_int(p, &next_key);
-      p += size;
-      next_key += key;
+      p += read_int(p, &delta);
+      uint32_t next_key = key + delta;
 
-      // |p| now points *behind* |next_key|, |q| points to the beginning
-      // of the deleted key. |size| is the size of the old delta-value.
-      q += write_int(q, next_key);
-      ::memmove(q, p, index->used_size - (p - get_block_data(index)) - size);
+      // |prev_p| points to the start of the deleted key. |p| points *behind*
+      // |next_key|.
+      prev_p += write_int(prev_p, next_key - prev_key);
 
-      index->used_size -= size;
+      // now shift all remaining keys "to the left", append them to |prev_p|
+      ::memmove(prev_p, p,
+              (get_block_data(index) + index->used_size) - prev_p);
+
+      index->used_size -= p - prev_p;
       index->key_count--;
     }
 
