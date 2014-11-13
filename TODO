@@ -28,42 +28,63 @@ x documentation rewrite
 x PRO: review AES usage in read_page; if the page is mmapped then decryption
     is not applied - no, it's ok. encryption disables mmap
 
-o PRO: rebase to vanilla 2.1.9
+x PRO: rebase to vanilla 2.1.9
 
-o PRO: review SIMD code; the problem is that it's never called, because the
+x PRO: refactoring: make AES Encryption stateless and exception safe
+    (if possible)
+
+x PRO: refactoring: make Compressors stateless and exception safe
+    (and maybe w/o inheritance?)
+
+x PRO: review SIMD code; the problem is that it's never called, because the
     search threshold is always smaller than the minimum block size
-    o use fixed block size, otherwise fallback to non-simd search
-    o run performance tests
-
-o PRO: refactoring: make AES Encryption stateless and exception safe
-
-o PRO: refactoring: make Compressors stateless and exception safe
+    x use fixed block size, otherwise fallback to non-simd search
+    x run performance tests - ok
 
 o PRO: Can we release an early version of zint32? (undocumented)
-    o need to fix erase() handling
-    o add full test coverage
+    x need to fix erase() handling
+    x add test coverage in unittests
+        x insert w/ appends, lookup, erase, lookup
+        x insert w/ prepends, lookup, erase, lookup
+        x insert w/ random, lookup, erase, lookup
+    o add full test coverage in monster tests
 
-o PRO: look for a better compression for DefaultRecordList, i.e.
+. PRO: look for a better compression for DefaultRecordList, i.e.
+    - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
+        number can then hold flags for 16 numbers
+        -> (but maybe increase this to hold at least 32 or 64 numbers, to
+            reduce the overhead ratio)
+    o create a GroupedVarInt<Max, T> class, where |Max| is the maximum number
+        of elements that are grouped, and T is the type of these elements
+        (i.e. uint64_t)
+        -> memory is managed by the caller
+        -> the state (i.e. used block size etc) is stored externally, and
+            managed by the caller
+        o append a key
+        o prepend a key
+        o insert a key in the middle
+        o grow blocks
+        o split blocks
+        o can perform copies w/o re-compressing
+
     o try to move the Zint32 index to a base class
     o Use small index which stores offset + bits for each group
-    o Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
-        number can then hold flags for 16 numbers
-        o (but maybe increase this to hold at least 32 or 64 numbers, to
-            reduce the overhead ratio)
     o a separate bit is used to signal whether the (compressed) number is
         a record id
     o avoid ripple effects by growing/splitting the block
-    o Use this index for the default internal record list
-    o Use this index for duplicate groups
+
+. PRO: Use the GroupedVarInt also for duplicate groups
 
 ------------- hamsterdb 2.1.10 ---------------------------------------
 
-o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
-            move version.h to include/ham
-
 o documentation rewrite
+<<<<<<< HEAD
     o use github wiki, remove old cruft
     o then create the initial repository:
+>>>>>>> Updated TODO
+=======
+    x use github wiki, remove old cruft
+    x then create the initial repository:
 >>>>>>> Updated TODO
         https://github.com/blog/699-making-github-more-open-git-backed-wikis
 
@@ -88,6 +109,7 @@ o documentation rewrite
         x python
         x protobuf
 
+<<<<<<< HEAD
     x have the hamsterdb/documentation directory "link" to the git project
 
 x get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
@@ -104,6 +126,33 @@ x Zint32: still has a few bugs when running unittests because
     b zint32.cpp:66
     b hamsterdb::Zint32::Zint32KeyList::copy_to
     x then once more check the monster tests
+=======
+    o have the hamsterdb/documentation directory "link" to the git project
+
+o improve the webpage documentation
+    o document the various btree formats on the webpage, with images
+        o variable length keys (w/ extended keys)
+        o POD keys
+        o default records
+        o inline records
+        o fixed-length records
+        o duplicates (w/ overflow tables)
+        o PRO: compressed keys
+        o PRO: compressed records
+
+o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+            move version.h to include/ham
+
+o grow allocated memory buffers exponentially
+    https://blog.mozilla.org/nnethercote/2014/11/04/please-grow-your-buffers-exponentially/comment-page-1/#comment-23272
+    this only affects the ByteArray, as far as i can see
+
+o refactoring: the ByteArray should be non-copyable. Also review its uses,
+    try to figure out how it can be improved. Should it be a
+    DynamicArray<uint8_t>?
+
+o refactoring: make journal stateless and exception safe
+>>>>>>> Updated TODO
 
 x remove dependency to malloc.h, use stdlib.h instead
 
@@ -512,8 +561,16 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     discard if the real page_size is a different one
     o deal with databases < 16kb?
 
+<<<<<<< HEAD
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
+=======
+o refactoring: clean up the whole Database code; it's too much and too
+    complex; there must be an absolutely clear border between Btree and
+    Transaction related code.
+    -> should we move the transactional implementations to their own
+        database class, i.e. TransactionalDatabase?
+>>>>>>> Updated TODO
 
 o reserve file size upon creation, then map the whole range
 <<<<<<< HEAD
@@ -845,6 +902,9 @@ o First steps towards concurrency; target is having one lock per db
     o perform this for layers 1 - 3
     o and also for layer 4 - make sure that the code separation is clear
         -> especially between btree and transactions
+    o how do we deal with temporary data that is returned to the caller?
+        (i.e. record->data) - use tls? or simply allocate the pointer when
+        it's required? but who will free the pointer then?
     o define the locking behaviour of all classes/logical modules
     o verify this behaviour in the code 
     o define which public API function locks what
@@ -853,6 +913,7 @@ o First steps towards concurrency; target is having one lock per db
 
 o Next steps towards concurrency: flush caches asynchronously,
     use non-blocking writes (with libuv)
+    o when splitting pages: keep the old copies instead of blocking?
     o or have a separate thread perform purges, flushes with libuv
     o ... and prefetches (when opening a database with HAM_PREFETCH_INDEX)
 
@@ -863,6 +924,8 @@ o Next steps towards concurrency; target is having one writer per db, but
     o background operations should be disabled with flags
     o perform excessive testing
 
+o Final steps towards concurrency; multiple writers, multiple readers
+    o requires delta updates
 
 
 
