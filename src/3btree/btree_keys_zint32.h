@@ -209,7 +209,7 @@ class Zint32KeyList : public BaseKeyList
                     int *pcmp) {
       ham_assert(get_block_count() > 0);
 
-      int slot;
+      int slot = 0;
       find_impl(*(uint32_t *)hkey->data, pcmp, &slot);
       return (slot);
     }
@@ -375,7 +375,10 @@ class Zint32KeyList : public BaseKeyList
           dsti->key_count++;
         }
         srci->key_count -= dsti->key_count;
-        srci->used_size -= s - start_s;
+        if (srci->key_count == 1)
+          srci->used_size = 0;
+        else
+          srci->used_size -= s - start_s;
         dsti->used_size += d - start_d;
 
         index = srci + 1;
@@ -514,6 +517,8 @@ class Zint32KeyList : public BaseKeyList
     // Prints a key to |out| (for debugging)
     void print(int slot, std::stringstream &out) const {
       out << value(slot);
+      if (slot == -99)
+        print_block(get_block_index(0));
     }
 
     // Returns the size of a key; only required to appease the compiler,
@@ -581,14 +586,12 @@ class Zint32KeyList : public BaseKeyList
       }
 
       // then search in the compressed blog
-      int slot = 0;
       uint32_t delta, prev = index->value;
       uint8_t *p = get_block_data(index);
-      uint8_t *end = p + index->used_size;
-      while (p < end) {
+      int slot;
+      for (slot = 1; slot < index->key_count; slot++) {
         p += read_int(p, &delta);
         prev += delta;
-        slot++;
 
         if (prev >= key) {
           *pslot += slot;
