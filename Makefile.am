@@ -3,8 +3,7 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = 3rdparty src include samples tools unittests java
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \
-             documentation/hamsterdb-main.jpg           \
-             documentation/*.doc                        \
+             documentation/wiki                         \
              documentation/source                       \
              documentation/html
 

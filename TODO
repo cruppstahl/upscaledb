@@ -69,7 +69,7 @@ o PRO: Can we release an early version of zint32? (undocumented)
 
 ------------- hamsterdb 2.1.10 ---------------------------------------
 
-o documentation rewrite
+x documentation rewrite
     x use github wiki, remove old cruft
     x then create the initial repository:
         https://github.com/blog/699-making-github-more-open-git-backed-wikis
@@ -95,7 +95,7 @@ o documentation rewrite
         x python
         x protobuf
 
-    o have the hamsterdb/documentation directory "link" to the git project
+    x have the hamsterdb/documentation directory "link" to the git project
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images

@@ -1,0 +1,3 @@
+[submodule "documentation/wiki"]
+	path = documentation/wiki
+	url = git@github.com:cruppstahl/hamsterdb.wiki.git

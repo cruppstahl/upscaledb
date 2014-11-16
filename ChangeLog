@@ -16,6 +16,9 @@ Nov 20, 2014 - chris ---------------------------------------------------
 o Fixed compilation error on debian Wheezy, gcc 4.7.2, 32bit (thanks,
 	Thomas Fähnle)
 
+Nov 16, 2014 - chris ---------------------------------------------------
+o The github wiki is now linked into documentation/wiki
+
 Nov 08, 2014 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.9
 
