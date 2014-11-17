@@ -17,7 +17,7 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "2device/device_inmem.h"
 #include "3blob_manager/blob_manager_inmem.h"
 #include "4env/env_local.h"

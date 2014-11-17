@@ -47,7 +47,7 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "1base/error.h"
 
 #ifndef HAM_ROOT_H

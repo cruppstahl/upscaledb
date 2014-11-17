@@ -21,7 +21,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "2device/device.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"

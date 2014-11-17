@@ -60,7 +60,7 @@ namespace hamsterdb {
  */
 class Memory {
   public:
-    // allocates a byte array of |size| elements, casted into type |T *|;
+    // allocates |size| bytes, casted into type |T *|;
     // returns null if out of memory.
     // usage:
     //
@@ -80,7 +80,7 @@ class Memory {
       return (t);
     }
 
-    // allocation function; returns null if out of memory. initializes
+    // allocates |size| bytes; returns null if out of memory. initializes
     // the allocated memory with zeroes.
     // usage:
     //
@@ -101,11 +101,11 @@ class Memory {
       return (t);
     }
 
-    // re-allocation function; returns null if out of memory.
+    // re-allocates |ptr| for |size| bytes; returns null if out of memory.
     // |ptr| can be null on first use.
     // usage:
     //
-    //     p = Memory::reallocate_bytes<char>(p, 100);
+    //     p = Memory::reallocate<char>(p, 100);
     //
     template<typename T>
     static T *reallocate(T *ptr, size_t size) {

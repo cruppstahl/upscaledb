@@ -1980,7 +1980,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
   if (nread >= 0) {
     // if we already started buffering data: append the data to the buffer
     if (!buffer->is_empty()) {
-      buffer->append(buf->base, nread);
+      buffer->append((uint8_t *)buf->base, nread);
 
       // for each full package in the buffer...
       while (buffer->get_size() > 8) {

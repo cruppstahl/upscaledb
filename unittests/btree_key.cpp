@@ -19,7 +19,7 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "2page/page.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_flags.h"

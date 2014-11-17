@@ -15,14 +15,14 @@
  */
 
 /*
- * A class managing a dynamically sized byte array
+ * A class managing a dynamically sized array for arbitrary types
  *
  * @exception_safe: strong
  * @thread_safe: no
  */
 
-#ifndef HAM_BYTE_ARRAY_H
-#define HAM_BYTE_ARRAY_H
+#ifndef HAM_DYNAMIC_ARRAY_H
+#define HAM_DYNAMIC_ARRAY_H
 
 #include "0root/root.h"
 
@@ -39,56 +39,63 @@
 namespace hamsterdb {
 
 /*
- * The ByteArray class is a dynamic, resizable array. The internal memory
- * is released when the ByteArray instance is destructed.
+ * The DynamicArray class is a dynamic, resizable array. The internal memory
+ * is released when the DynamicArray instance is destructed.
+ *
+ * Unlike std::vector, the DynamicArray uses libc functions for constructing,
+ * copying and initializing elements.
  */
-class ByteArray
+template<typename T>
+class DynamicArray
 {
   public:
-    ByteArray(size_t size = 0)
+    typedef T value_t;
+    typedef T *pointer_t;
+
+    DynamicArray(size_t size = 0)
       : m_ptr(0), m_size(0), m_own(true) {
       resize(size);
     }
 
-    ByteArray(size_t size, uint8_t fill_byte)
+    DynamicArray(size_t size, uint8_t fill_byte)
       : m_ptr(0), m_size(0), m_own(true) {
       resize(size);
       if (m_ptr)
-        ::memset(m_ptr, fill_byte, m_size);
+        ::memset(m_ptr, fill_byte, sizeof(T) * m_size);
     }
 
-    ~ByteArray() {
+    ~DynamicArray() {
       clear();
     }
 
-    void append(const void *ptr, size_t size) {
-      size_t oldsize = m_size;
-      char *p = (char *)resize(m_size + size);
-      ::memcpy(p + oldsize, ptr, size);
+    void append(const T *ptr, size_t size) {
+      size_t old_size = m_size;
+      T *p = (T *)resize(m_size + size);
+      ::memcpy(p + old_size, ptr, sizeof(T) * size);
     }
 
-    void copy(const void *ptr, size_t size) {
+    void copy(const T *ptr, size_t size) {
       resize(size);
-      ::memcpy(m_ptr, ptr, size);
+      ::memcpy(m_ptr, ptr, sizeof(T) * size);
       m_size = size;
     }
 
-    void overwrite(uint32_t position, const void *ptr, size_t size) {
-      ::memcpy(((uint8_t *)m_ptr) + position, ptr, size);
+    void overwrite(uint32_t position, const T *ptr, size_t size) {
+      ::memcpy(((uint8_t *)m_ptr) + position, ptr, sizeof(T) * size);
     }
 
-    void *resize(size_t size) {
+    T *resize(size_t size) {
       if (size > m_size) {
-        m_ptr = Memory::reallocate<void>(m_ptr, size);
+        m_ptr = Memory::reallocate<T>(m_ptr, sizeof(T) * size);
         m_size = size;
       }
       return (m_ptr);
     }
 
-    void *resize(size_t size, uint8_t fill_byte) {
+    T *resize(size_t size, uint8_t fill_byte) {
       resize(size);
       if (m_ptr)
-        memset(m_ptr, fill_byte, size);
+        ::memset(m_ptr, fill_byte, sizeof(T) * size);
       return (m_ptr);
     }
 
@@ -100,15 +107,15 @@ class ByteArray
       m_size = size;
     }
 
-    void *get_ptr() {
+    T *get_ptr() {
       return (m_ptr);
     }
 
-    const void *get_ptr() const {
+    const T *get_ptr() const {
       return (m_ptr);
     }
 
-    void assign(void *ptr, size_t size) {
+    void assign(T *ptr, size_t size) {
       clear();
       m_ptr = ptr;
       m_size = size;
@@ -130,11 +137,21 @@ class ByteArray
     }
 
   private:
-    void *m_ptr;
+    // Pointer to the data
+    T *m_ptr;
+
+    // The size of the array
     size_t m_size;
+
+    // True if the destructor should free the pointer
     bool m_own;
 };
 
+/*
+ * A ByteArray is a DynamicArray for bytes
+ */
+typedef DynamicArray<uint8_t> ByteArray;
+
 } // namespace hamsterdb
 
-#endif // HAM_BYTE_ARRAY_H
+#endif // HAM_DYNAMIC_ARRAY_H

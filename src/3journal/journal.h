@@ -76,7 +76,7 @@
 
 #include "ham/hamsterdb_int.h" // for metrics
 
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "1os/file.h"
 #include "1errorinducer/errorinducer.h"
 #include "3journal/journal_entries.h"
@@ -268,11 +268,11 @@ class Journal
 
     // Appends an entry to the journal
     void append_entry(int idx,
-                const void *ptr1 = 0, size_t ptr1_size = 0,
-                const void *ptr2 = 0, size_t ptr2_size = 0,
-                const void *ptr3 = 0, size_t ptr3_size = 0,
-                const void *ptr4 = 0, size_t ptr4_size = 0,
-                const void *ptr5 = 0, size_t ptr5_size = 0) {
+                const uint8_t *ptr1 = 0, size_t ptr1_size = 0,
+                const uint8_t *ptr2 = 0, size_t ptr2_size = 0,
+                const uint8_t *ptr3 = 0, size_t ptr3_size = 0,
+                const uint8_t *ptr4 = 0, size_t ptr4_size = 0,
+                const uint8_t *ptr5 = 0, size_t ptr5_size = 0) {
       if (ptr1_size)
         m_buffer[idx].append(ptr1, ptr1_size);
       if (ptr2_size)

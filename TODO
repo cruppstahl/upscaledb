@@ -100,6 +100,11 @@ x documentation rewrite
 x get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
             move version.h to include/ham
 
+x refactoring: the ByteArray should be non-copyable, or at least
+    clearly define the copying semantics regarding ownership. Also
+    review its uses, try to figure out how it can be improved. Should it be a
+    DynamicArray<uint8_t>?
+
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
@@ -110,20 +115,6 @@ o improve the webpage documentation
         o duplicates (w/ overflow tables)
         o PRO: compressed keys
         o PRO: compressed records
-
-o grow allocated memory buffers exponentially
-    https://blog.mozilla.org/nnethercote/2014/11/04/please-grow-your-buffers-exponentially/comment-page-1/#comment-23272
-    this only affects the ByteArray, as far as i can see
-    o this is quite an effort because currently the size == capacity, and the
-        capacity is not tracked separately.
-    o new constructor which calls assign(): void *ptr, size_t size, bool own
-    o need to introduce a "capacity" of the underlying buffer
-    o make sure that the capacity is never exceeded
-
-o refactoring: the ByteArray should be non-copyable, or at least
-    clearly define the copying semantics regarding ownership. Also
-    review its uses, try to figure out how it can be improved. Should it be a
-    DynamicArray<uint8_t>?
 
 o refactoring: make journal stateless and exception safe
 

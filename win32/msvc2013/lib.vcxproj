@@ -199,7 +199,7 @@
     <ClInclude Include="..\..\include\ham\types.h" />
     <ClInclude Include="..\..\src\0root\root.h" />
     <ClInclude Include="..\..\src\1base\abi.h" />
-    <ClInclude Include="..\..\src\1base\byte_array.h" />
+    <ClInclude Include="..\..\src\1base\dynamic_array.h" />
     <ClInclude Include="..\..\src\1base\error.h" />
     <ClInclude Include="..\..\src\1base\mutex.h" />
     <ClInclude Include="..\..\src\1base\packstart.h" />

@@ -28,6 +28,7 @@
 #include "ham/hamsterdb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/dynamic_array.h"
 #include "2page/page.h"
 
 #ifndef HAM_ROOT_H
@@ -36,7 +37,6 @@
 
 namespace hamsterdb {
 
-class ByteArray;
 class LocalDatabase;
 class LocalEnvironment;
 

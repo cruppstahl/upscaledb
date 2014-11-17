@@ -41,7 +41,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/globals.h"
-#include "1base/byte_array.h"
+#include "1base/dynamic_array.h"
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_records_base.h"

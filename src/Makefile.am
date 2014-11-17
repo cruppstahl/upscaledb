@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 libhamsterdb_la_SOURCES = \
 	0root/root.h \
 	1base/abi.h \
-	1base/byte_array.h \
+	1base/dynamic_array.h \
 	1base/error.cc \
 	1base/error.h \
 	1errorinducer/errorinducer.h \

@@ -22,7 +22,6 @@
 #endif
 
 #include "1base/error.h"
-#include "1base/byte_array.h"
 #include "1errorinducer/errorinducer.h"
 #include "1os/os.h"
 #include "2device/device.h"
@@ -121,11 +120,11 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
   int cur = txn->get_log_desc();
 
   if (txn->get_name().size())
-    append_entry(cur, (void *)&entry, (uint32_t)sizeof(entry),
-                (void *)txn->get_name().c_str(),
+    append_entry(cur, (uint8_t *)&entry, (uint32_t)sizeof(entry),
+                (uint8_t *)txn->get_name().c_str(),
                 (uint32_t)txn->get_name().size() + 1);
   else
-    append_entry(cur, (void *)&entry, (uint32_t)sizeof(entry));
+    append_entry(cur, (uint8_t *)&entry, (uint32_t)sizeof(entry));
   maybe_flush_buffer(cur);
 
   m_open_txn[cur]++;
@@ -155,7 +154,7 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
-  append_entry(idx, &entry, sizeof(entry));
+  append_entry(idx, (uint8_t *)&entry, sizeof(entry));
   maybe_flush_buffer(idx);
   // no need for fsync - incomplete transactions will be aborted anyway
 }
@@ -178,7 +177,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   // immediately. The counters will be modified in transaction_flushed().
   int idx = txn->get_log_desc();
 
-  append_entry(idx, &entry, sizeof(entry));
+  append_entry(idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
   flush_buffer(idx, m_env->get_flags() & HAM_ENABLE_FSYNC);
@@ -224,10 +223,10 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   insert.insert_flags = flags;
 
   // append the entry to the logfile
-  append_entry(idx, &entry, sizeof(entry),
-                &insert, sizeof(PJournalEntryInsert) - 1,
-                key->data, key->size,
-                record->data, (flags & HAM_PARTIAL
+  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
+                (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1,
+                (uint8_t *)key->data, key->size,
+                (uint8_t *)record->data, (flags & HAM_PARTIAL
                                 ? record->partial_size
                                 : record->size));
   maybe_flush_buffer(idx);
@@ -264,9 +263,9 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   }
 
   // append the entry to the logfile
-  append_entry(idx, &entry, sizeof(entry),
-                (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
-                key->data, key->size);
+  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
+                (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
+                (uint8_t *)key->data, key->size);
   maybe_flush_buffer(idx);
 }
 
@@ -298,8 +297,8 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
   uint32_t entry_position = m_buffer[m_current_fd].get_size();
 
   // write the data to the file
-  append_entry(m_current_fd, &entry, sizeof(entry),
-                &changeset, sizeof(PJournalEntryChangeset));
+  append_entry(m_current_fd, (uint8_t *)&entry, sizeof(entry),
+                (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_env->get_page_size();
   for (uint32_t i = 0; i < bucket1_size; i++)
@@ -314,7 +313,8 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // and patch in the followup-size
-  m_buffer[m_current_fd].overwrite(entry_position, &entry, sizeof(entry));
+  m_buffer[m_current_fd].overwrite(entry_position,
+          (uint8_t *)&entry, sizeof(entry));
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
@@ -334,7 +334,7 @@ Journal::append_changeset_page(Page *page, uint32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
 
-  append_entry(m_current_fd, &header, sizeof(header),
+  append_entry(m_current_fd, (uint8_t *)&header, sizeof(header),
                 page->get_raw_payload(), page_size);
   return (page_size + sizeof(header));
 }
