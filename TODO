@@ -116,8 +116,6 @@ o improve the webpage documentation
         o PRO: compressed keys
         o PRO: compressed records
 
-o refactoring of layers 1, 2: make methods const whenever possible
-
 o refactoring: make journal stateless and exception safe
 
 o refactoring: make changeset stateless and exception safe
