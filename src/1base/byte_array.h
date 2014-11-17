@@ -17,7 +17,7 @@
 /*
  * A class managing a dynamically sized byte array
  *
- * @exception_safe: nothrow
+ * @exception_safe: strong
  * @thread_safe: no
  */
 

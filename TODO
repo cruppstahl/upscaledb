@@ -97,6 +97,9 @@ x documentation rewrite
 
     x have the hamsterdb/documentation directory "link" to the git project
 
+x get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
+            move version.h to include/ham
+
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
@@ -108,15 +111,18 @@ o improve the webpage documentation
         o PRO: compressed keys
         o PRO: compressed records
 
-o get rid of HAM_API_REVISION, move HAM_VERSION_* to the header file, or
-            move version.h to include/ham
-
 o grow allocated memory buffers exponentially
     https://blog.mozilla.org/nnethercote/2014/11/04/please-grow-your-buffers-exponentially/comment-page-1/#comment-23272
     this only affects the ByteArray, as far as i can see
+    o this is quite an effort because currently the size == capacity, and the
+        capacity is not tracked separately.
+    o new constructor which calls assign(): void *ptr, size_t size, bool own
+    o need to introduce a "capacity" of the underlying buffer
+    o make sure that the capacity is never exceeded
 
-o refactoring: the ByteArray should be non-copyable. Also review its uses,
-    try to figure out how it can be improved. Should it be a
+o refactoring: the ByteArray should be non-copyable, or at least
+    clearly define the copying semantics regarding ownership. Also
+    review its uses, try to figure out how it can be improved. Should it be a
     DynamicArray<uint8_t>?
 
 o refactoring: make journal stateless and exception safe
@@ -449,6 +455,44 @@ o Next steps towards concurrency; target is having one writer per db, but
 o Final steps towards concurrency; multiple writers, multiple readers
     o requires delta updates
 
+
+o bulk updates/batched updates
+    - give users API to allocate memory for keys/records
+    - if user says that data is already sorted then do not re-sort, but
+        fail hard if the sort order is violated
+    - add those delta updates to the txn-trees or to the btree node,
+        simply transfer ownership of the memory
+    - can contain inserts or deletes
+    o the Update structure, which describes a single update, can also
+        be used internally to pass all parameters to the Btree actions;
+        they would then be completely stateless
+    o also for remote, transfer in a single message
+    o also for .NET
+    o also for java
+    o also for erlang
+    o also for python
+
+o look into dynomite, spark, mongodb and mariadb integration
+    https://github.com/Netflix/dynomite
+    -> like MapReduce, Spark requires an InputFormat class; templates are 
+        available here:
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
+        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
+    -> https://developer.yahoo.com/hadoop/tutorial/module5.html#fileformat
+
+    -> would be an interesting market with requirements for column store
+        storage
+    -> how does the integration look like?
+    -> has TPC-benchmarks and other benchmarks ready
+    -> Spark RDDs have similar characteristics as hola streams/views
+    o write down everything i find, collect information and estimate
+        efforts/gains; this task is not about writing code!
+    o come up with priorities, estimates
+
+    o dynomite: requires C interface and C marshalling code. rewrite C++
+        marshalling routines to C
+    o dynomite: send a patch to support more backends
+    o dynomite: send a patch to separate existing backends into their own file
 
 
 

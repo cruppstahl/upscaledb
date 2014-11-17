@@ -41,7 +41,6 @@ hamsterdb.spec
 include/ham/hamsterdb.h
 include/ham/hamsterdb.hpp
 include/ham/hamsterdb_ola.h
-src/1base/version.h
 dotnet/hamsterdb-dotnet/NativeMethods.cs
 dotnet/unittests/*.cs
 java/java/Makefile.am
@@ -58,6 +57,6 @@ done
 
 echo
 echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-echo Manually update src/1base/version.h and ChangeLog!
+echo Manually update include/ham/hamsterdb.h and ChangeLog!
 echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

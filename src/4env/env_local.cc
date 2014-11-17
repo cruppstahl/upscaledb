@@ -17,7 +17,6 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1base/version.h"
 #include "1os/os.h"
 #include "2device/device_factory.h"
 #include "3btree/btree_index.h"

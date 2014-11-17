@@ -28,7 +28,6 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/byte_array.h"
-#include "1base/version.h"
 #include "1mem/mem.h"
 #include "2config/db_config.h"
 #include "2config/env_config.h"

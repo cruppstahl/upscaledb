@@ -22,7 +22,6 @@
 #include "os.hpp"
 
 #include "1os/os.h"
-#include "1base/version.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_stats.h"
 #include "4db/db.h"

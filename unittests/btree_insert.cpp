@@ -19,7 +19,6 @@
 #include "utils.h"
 #include "os.hpp"
 
-#include "1base/version.h"
 #include "2page/page.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node.h"
