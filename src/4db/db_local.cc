@@ -995,6 +995,22 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
       }
     }
   }
+  else {
+    if (cursor->is_coupled_to_txnop() && record)
+      cursor->get_txn_cursor()->copy_coupled_record(record);
+  }
+
+bail:
+  get_local_env()->get_changeset().clear();
+
+  if (st)
+    return (st);
+
+  /* approximate matching? then also copy the key */
+  if (ham_key_get_intflags(key) & BtreeKey::kApproximate) {
+    if (cursor->is_coupled_to_txnop())
+      cursor->get_txn_cursor()->copy_coupled_key(key);
+  }
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
@@ -1014,6 +1030,24 @@ LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
 {
   return (cursor->get_duplicate_position());
 }
+
+ham_status_t
+LocalDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *size)
+{
+  TransactionCursor *txnc = cursor->get_txn_cursor();
+
+  if (cursor->is_nil(0) && txnc->is_nil())
+    return (HAM_CURSOR_IS_NIL);
+
+  /* this function will do all the work */
+  *size = cursor->get_record_size();
+
+  get_local_env()->get_changeset().clear();
+
+  /* set a flag that the cursor just completed an Insert-or-find
+   * operation; this information is needed in ham_cursor_move */
+  cursor->set_lastop(Cursor::kLookupOrInsert);
+>>>>>>> Refactoring Cursor class; no functional changes
 
 uint64_t
 LocalDatabase::cursor_get_record_size(Cursor *cursor)

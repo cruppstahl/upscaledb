@@ -544,6 +544,26 @@ o PRO: add more simdcomp related functions for blocks < 128 integers
     o review once more
     o send push request to Daniel
 
+o refactoring: clean up the whole Database code; it's too much and too
+    complex; there must be an absolutely clear border between Btree and
+    Transaction related code.
+    -> should we move the transactional implementations to their own
+        database class, i.e. TransactionalDatabase?
+    o a lot of functions have to clear the changeset when they leave;
+        use ON_EXIT_SCOPE macro for this!
+    x LocalDatabase::cursor_get_duplicate_position: delegate to Cursor class
+    o when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
+    o LocalDatabase::cursor_insert -> calls LocalDatabase::insert
+    o LocalDatabase::cursor_erase -> calls LocalDatabase::erase
+    o LocalDatabase::cursor_find -> calls LocalDatabase::find
+
+o refactoring: improve the code separation of cursor, btree_cursor
+    and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
+    etc
+    -> clean up the whole Cursor stuff
+    o review if the Cursor class has access to any shared resource
+>>>>>>> Refactoring Cursor class; no functional changes
+
 o refactoring: make EnvironmentHeader stateless and exception safe
     o transform to struct instead of class
     o remove dependency from the PageManager (store header page)
@@ -551,6 +571,7 @@ o refactoring: make EnvironmentHeader stateless and exception safe
     o PageManager performs flushes/closes, not LocalEnvironment::close
     o LocalEnvironment does not need to store an instance of the Header!
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o Erlang: investigate failure in ham_eqc2
 
@@ -577,6 +598,29 @@ o refactoring: clean up the whole Database code; it's too much and too
     -> should we move the transactional implementations to their own
         database class, i.e. TransactionalDatabase?
 >>>>>>> Updated TODO
+=======
+o refactoring: create a Update structure whenever a database is modified;
+    it consists of the operation type, key, record (optional), operation flags,
+    ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
+    class.
+    This structure is then forwarded to the journal, and to all BtreeActions.
+    The BtreeActions no longer require state (at least large parts of it).
+    This structure will also be used for the DeltaUpdates and for batched
+    updates later on.
+    o insert: create such a structure in ham_db_insert, forward it to the
+        lower layers
+    o erase: create such a structure in ham_db_erase, forward it to the
+        lower layers
+
+o refactoring: make journal stateless and exception safe
+    (if it makes sense)
+
+o refactoring: make changeset stateless and exception safe
+    (if it makes sense)
+
+o refactoring: make BlobManager stateless and exception safe
+    (if it makes sense)
+>>>>>>> Refactoring Cursor class; no functional changes
 
 o reserve file size upon creation, then map the whole range
 <<<<<<< HEAD
