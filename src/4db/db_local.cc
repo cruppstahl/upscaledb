@@ -84,7 +84,6 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
       }
     }
     else { /* txn is still active */
-      /* TODO txn_set_conflict_txn(txn, optxn); */
       return (HAM_TXN_CONFLICT);
     }
 
@@ -156,7 +155,6 @@ LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
       }
     }
     else { /* txn is still active */
-      /* TODO txn_set_conflict_txn(txn, optxn); */
       return (HAM_TXN_CONFLICT);
     }
 
@@ -183,12 +181,12 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
   bool node_created = false;
 
   /* get (or create) the node for this key */
-  TransactionNode *node = get_txn_index()->get(key, 0);
+  TransactionNode *node = m_txn_index->get(key, 0);
   if (!node) {
     node = new TransactionNode(this, key);
     node_created = true;
     // TODO only store when the operation is successful?
-    get_txn_index()->store(node);
+    m_txn_index->store(node);
   }
 
   // check for conflicts of this key
@@ -199,7 +197,7 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
   st = check_insert_conflicts(txn, node, key, flags);
   if (st) {
     if (node_created) {
-      get_txn_index()->remove(node);
+      m_txn_index->remove(node);
       delete node;
     }
     return (st);
@@ -248,7 +246,6 @@ LocalDatabase::find_txn(LocalTransaction *txn, ham_key_t *key,
 {
   ham_status_t st = 0;
   TransactionOperation *op = 0;
-  BtreeIndex *be = get_btree_index();
   bool first_loop = true;
   bool exact_is_erased = false;
 
@@ -261,7 +258,7 @@ LocalDatabase::find_txn(LocalTransaction *txn, ham_key_t *key,
 
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
-  TransactionNode *node = get_txn_index()->get(key, flags);
+  TransactionNode *node = m_txn_index->get(key, flags);
 
   /*
    * pick the node of this key, and walk through each operation
@@ -328,7 +325,6 @@ retry:
       }
     }
     else { /* txn is still active */
-      /* TODO txn_set_conflict_txn(txn, optxn); */
       return (HAM_TXN_CONFLICT);
     }
 
@@ -354,7 +350,7 @@ retry:
       flags = flags & (~HAM_FIND_EXACT_MATCH);
 
     // now lookup in the btree
-    st = be->find(txn, 0, key, record, flags);
+    st = m_btree_index->find(txn, 0, key, record, flags);
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
         arena->resize(txnkey.size);
@@ -380,7 +376,7 @@ retry:
     // if there's an approx match in the btree: compare both keys and
     // use the one that is closer. if the btree is closer: make sure
     // that it was not erased or overwritten in a transaction
-    int cmp = get_btree_index()->compare_keys(key, &txnkey);
+    int cmp = m_btree_index->compare_keys(key, &txnkey);
     bool use_btree = false;
     if (flags & HAM_FIND_GT_MATCH) {
       if (cmp < 0)
@@ -427,7 +423,7 @@ retry:
    * were no conflicts, and we have not found the key: now try to
    * lookup the key in the btree.
    */
-  return (be->find(txn, 0, key, record, flags));
+  return (m_btree_index->find(txn, 0, key, record, flags));
 }
 
 ham_status_t
@@ -442,12 +438,12 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, uint32_t flags,
     pc = cursor->get_parent();
 
   /* get (or create) the node for this key */
-  TransactionNode *node = get_txn_index()->get(key, 0);
+  TransactionNode *node = m_txn_index->get(key, 0);
   if (!node) {
     node = new TransactionNode(this, key);
     node_created = true;
     // TODO only store when the operation is successful?
-    get_txn_index()->store(node);
+    m_txn_index->store(node);
   }
 
   /* check for conflicts of this key - but only if we're not erasing a
@@ -456,7 +452,7 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, uint32_t flags,
     st = check_erase_conflicts(txn, node, key, flags);
     if (st) {
       if (node_created) {
-        get_txn_index()->remove(node);
+        m_txn_index->remove(node);
         delete node;
       }
       return (st);
@@ -491,71 +487,6 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, uint32_t flags,
   }
 
   ham_assert(st == 0);
-  return (0);
-}
-
-ham_status_t
-LocalDatabase::open(uint16_t descriptor)
-{
-  /*
-   * set the database flags; strip off the persistent flags that may have been
-   * set by the caller, before mixing in the persistent flags as obtained
-   * from the btree.
-   */
-  uint32_t flags = get_rt_flags();
-  flags &= ~(HAM_CACHE_UNLIMITED
-            | HAM_DISABLE_MMAP
-            | HAM_ENABLE_FSYNC
-            | HAM_READ_ONLY
-            | HAM_ENABLE_RECOVERY
-            | HAM_AUTO_RECOVERY
-            | HAM_ENABLE_TRANSACTIONS);
-
-  PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
-
-  m_config.key_type = desc->get_key_type();
-  m_config.key_size = desc->get_key_size();
-
-  /* create the BtreeIndex */
-  m_btree_index.reset(new BtreeIndex(this, descriptor,
-                            flags | desc->get_flags(),
-                            desc->get_key_type(), desc->get_key_size()));
-
-  ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
-  ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_FSYNC));
-  ham_assert(!(m_btree_index->get_flags() & HAM_READ_ONLY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_RECOVERY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_AUTO_RECOVERY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_TRANSACTIONS));
-
-  /* initialize the btree */
-  m_btree_index->open();
-
-  /* create the TransactionIndex - TODO only if txn's are enabled? */
-  m_txn_index.reset(new TransactionIndex(this));
-
-  /* merge the non-persistent database flag with the persistent flags from
-   * the btree index */
-  m_config.flags = get_rt_flags(true) | m_btree_index->get_flags();
-  m_config.key_size = m_btree_index->get_key_size();
-  m_config.key_type = m_btree_index->get_key_type();
-  m_config.record_size = m_btree_index->get_record_size();
-
-
-  if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
-    return (0);
-
-  ham_key_t key = {};
-  Cursor *c = new Cursor(this, 0, 0);
-  ham_status_t st = cursor_move(c, &key, 0, HAM_CURSOR_LAST);
-  cursor_close(c);
-  if (st)
-    return (st == HAM_KEY_NOT_FOUND ? 0 : st);
-
-  ham_assert(key.size == sizeof(uint64_t));
-  m_recno = *(uint64_t *)key.data;
-
   return (0);
 }
 
@@ -628,12 +559,74 @@ LocalDatabase::create(uint16_t descriptor)
 }
 
 ham_status_t
+LocalDatabase::open(uint16_t descriptor)
+{
+  /*
+   * set the database flags; strip off the persistent flags that may have been
+   * set by the caller, before mixing in the persistent flags as obtained
+   * from the btree.
+   */
+  uint32_t flags = get_rt_flags();
+  flags &= ~(HAM_CACHE_UNLIMITED
+            | HAM_DISABLE_MMAP
+            | HAM_ENABLE_FSYNC
+            | HAM_READ_ONLY
+            | HAM_ENABLE_RECOVERY
+            | HAM_AUTO_RECOVERY
+            | HAM_ENABLE_TRANSACTIONS);
+
+  PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
+
+  m_config.key_type = desc->get_key_type();
+  m_config.key_size = desc->get_key_size();
+
+  /* create the BtreeIndex */
+  m_btree_index.reset(new BtreeIndex(this, descriptor,
+                            flags | desc->get_flags(),
+                            desc->get_key_type(), desc->get_key_size()));
+
+  ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
+  ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
+  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_FSYNC));
+  ham_assert(!(m_btree_index->get_flags() & HAM_READ_ONLY));
+  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_RECOVERY));
+  ham_assert(!(m_btree_index->get_flags() & HAM_AUTO_RECOVERY));
+  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_TRANSACTIONS));
+
+  /* initialize the btree */
+  m_btree_index->open();
+
+  /* create the TransactionIndex - TODO only if txn's are enabled? */
+  m_txn_index.reset(new TransactionIndex(this));
+
+  /* merge the non-persistent database flag with the persistent flags from
+   * the btree index */
+  m_config.flags = get_rt_flags(true) | m_btree_index->get_flags();
+  m_config.key_size = m_btree_index->get_key_size();
+  m_config.key_type = m_btree_index->get_key_type();
+  m_config.record_size = m_btree_index->get_record_size();
+
+  // fetch the current record number
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+    ham_key_t key = {};
+    Cursor *c = new Cursor(this, 0, 0);
+    ham_status_t st = cursor_move(c, &key, 0, HAM_CURSOR_LAST);
+    cursor_close(c);
+    if (st)
+      return (st == HAM_KEY_NOT_FOUND ? 0 : st);
+
+    ham_assert(key.size == sizeof(uint64_t));
+    m_recno = *(uint64_t *)key.data;
+  }
+
+  return (0);
+}
+
+ham_status_t
 LocalDatabase::get_parameters(ham_parameter_t *param)
 {
   Page *page = 0;
   ham_parameter_t *p = param;
-
-  ham_assert(get_btree_index() != 0);
 
   if (p) {
     for (; p->name; p++) {
@@ -687,8 +680,11 @@ LocalDatabase::check_integrity(uint32_t flags)
 
   /* call the btree function */
   m_btree_index->check_integrity(flags);
-  get_local_env()->get_changeset().clear();
 
+  /* call the txn function */
+  //m_txn_index->check_integrity(flags);
+
+  get_local_env()->get_changeset().clear();
   return (0);
 }
 
@@ -741,7 +737,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
     do {
       /* process the key */
       (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(txn, 0)
+                                        ? cursor->get_record_count(0)
                                         : 1);
     } while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
     goto bail;
@@ -754,7 +750,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
     do {
       // get the coupled page
       cursor->get_btree_cursor()->get_coupled_key(&page);
-      BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
+      BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
       // and let the btree node perform the remaining work
       node->scan(visitor, 0, distinct);
 
@@ -772,7 +768,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
 
     int slot;
     cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
-    BtreeNodeProxy *node = get_btree_index()->get_node_from_page(page);
+    BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
     /* are transactions present? then check if the next txn key is >= btree[0]
      * and <= btree[n] */
@@ -784,7 +780,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
     if (!txnkey) {
       /* process the key */
       (*visitor)(key.data, key.size, distinct
-                                          ? cursor->get_record_count(txn, 0)
+                                          ? cursor->get_record_count(0)
                                           : 1);
       break;
     }
@@ -803,14 +799,14 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
         }
         /* process the key */
         (*visitor)(key.data, key.size, distinct
-                                          ? cursor->get_record_count(txn, 0)
+                                          ? cursor->get_record_count(0)
                                           : 1);
       } while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
 
       if (st == HAM_KEY_NOT_FOUND)
         goto bail;
       if (st != HAM_SUCCESS) {
-        cursor->close();
+        cursor_close(cursor);
         throw Exception(st);
       }
     }
@@ -826,12 +822,11 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
   /* pick up the remaining transactional keys */
   while ((st = cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
     (*visitor)(key.data, key.size, distinct
-                                      ? cursor->get_record_count(txn, 0)
+                                      ? cursor->get_record_count(0)
                                       : 1);
   }
 
 bail:
-  // TODO not exception safe! call close() in Cursor::~Cursor()?
   cursor_close(cursor);
   get_local_env()->get_changeset().clear();
 }
@@ -1429,43 +1424,16 @@ bail:
   return (0);
 }
 
-ham_status_t
-LocalDatabase::cursor_get_record_count(Cursor *cursor,
-          uint32_t *count, uint32_t flags)
+uint32_t
+LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags)
 {
-  TransactionCursor *txnc = cursor->get_txn_cursor();
-
-  if (cursor->is_nil(0) && txnc->is_nil())
-    return (HAM_CURSOR_IS_NIL);
-
-  /* this function will do all the work */
-  *count = cursor->get_record_count(
-            cursor->get_txn() ? cursor->get_txn() : 0,
-            flags);
-
-  /* set a flag that the cursor just completed an Insert-or-find
-   * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::kLookupOrInsert);
-
-  get_local_env()->get_changeset().clear();
-
-  return (0);
+  return (cursor->get_record_count(flags));
 }
 
 uint32_t
 LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
 {
-  TransactionCursor *txnc = cursor->get_txn_cursor();
-
-  if (cursor->is_nil(0) && txnc->is_nil())
-    throw Exception(HAM_CURSOR_IS_NIL);
-
-  // use btree cursor?
-  if (txnc->is_nil())
-    return (cursor->get_btree_cursor()->get_duplicate_index());
-
-  // otherwise return the index in the duplicate cache
-  return (cursor->get_dupecache_index() - 1);
+  return (cursor->get_duplicate_position());
 }
 
 ham_status_t
@@ -1477,8 +1445,7 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *size)
     return (HAM_CURSOR_IS_NIL);
 
   /* this function will do all the work */
-  *size = cursor->get_record_size(
-                cursor->get_txn() ? cursor->get_txn() : 0);
+  *size = cursor->get_record_size();
 
   get_local_env()->get_changeset().clear();
 
@@ -1611,9 +1578,8 @@ ham_status_t
 LocalDatabase::close_impl(uint32_t flags)
 {
   /* check if this database is modified by an active transaction */
-  TransactionIndex *tree = get_txn_index();
-  if (tree) {
-    TransactionNode *node = tree->get_first();
+  if (m_txn_index) {
+    TransactionNode *node = m_txn_index->get_first();
     while (node) {
       TransactionOperation *op = node->get_newest_op();
       while (op) {

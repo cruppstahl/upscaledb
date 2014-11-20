@@ -476,9 +476,8 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   return (st);
 }
 
-ham_status_t
-RemoteDatabase::cursor_get_record_count(Cursor *cursor,
-                uint32_t *count, uint32_t flags)
+uint32_t
+RemoteDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
@@ -494,9 +493,9 @@ RemoteDatabase::cursor_get_record_count(Cursor *cursor,
 
   ham_status_t st = reply.cursor_get_record_count_reply.status;
   if (st == 0)
-    *count = reply.cursor_get_record_count_reply.count;
+    return (reply.cursor_get_record_count_reply.count);
 
-  return (st);
+  throw Exception(st);
 }
 
 uint32_t

@@ -1064,10 +1064,15 @@ Cursor::erase(Transaction *txn, uint32_t flags)
   return (st);
 }
 
-int
-Cursor::get_record_count(Transaction *txn, uint32_t flags)
+uint32_t
+Cursor::get_record_count(uint32_t flags)
 {
-  if (txn) {
+  TransactionCursor *txnc = get_txn_cursor();
+
+  if (is_nil(0) && txnc->is_nil()) // TODO wtf?
+    throw Exception(HAM_CURSOR_IS_NIL);
+
+  if (m_txn) {
     if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
       DupeCache *dc = get_dupecache();
@@ -1086,12 +1091,28 @@ Cursor::get_record_count(Transaction *txn, uint32_t flags)
 }
 
 uint64_t
-Cursor::get_record_size(Transaction *txn)
+Cursor::get_record_size()
 {
   if (is_coupled_to_txnop())
     return (get_txn_cursor()->get_record_size());
   else
     return (get_btree_cursor()->get_record_size());
+}
+
+uint32_t
+Cursor::get_duplicate_position()
+{
+  TransactionCursor *txnc = get_txn_cursor();
+
+  if (is_nil(0) && txnc->is_nil()) // TODO wtf?
+    throw Exception(HAM_CURSOR_IS_NIL);
+
+  // use btree cursor?
+  if (txnc->is_nil())
+    return (get_btree_cursor()->get_duplicate_index());
+
+  // otherwise return the index in the duplicate cache
+  return (get_dupecache_index() - 1);
 }
 
 ham_status_t

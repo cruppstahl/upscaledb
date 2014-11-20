@@ -1153,6 +1153,31 @@ struct TxnCursorFixture {
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
+
+  void approxMatchTest() {
+    ham_db_t *db;
+    REQUIRE(0 == ham_env_create_db(m_env, &db, 33, 0, 0));
+
+    char data[1024 * 64] = {0};
+    for (int i = 0; i < 40; i++) {
+      uint64_t k = 10 + i * 13;
+      ham_key_t key = ham_make_key(&k, sizeof(k));
+      ham_record_t record = ham_make_record(data, sizeof(data));
+      REQUIRE(ham_db_insert(db, 0, &key, &record, 0) == 0);
+    }
+
+    ham_cursor_t *cursor;
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+    uint64_t k = 0;
+    ham_key_t key = ham_make_key(&k, sizeof(k));
+    ham_record_t record = {0};
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &record, HAM_FIND_GEQ_MATCH));
+    REQUIRE(key.size == 8);
+    REQUIRE(*(uint64_t *)key.data == 10);
+
+    REQUIRE(0 == ham_db_close(db, HAM_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("TxnCursor/cursorIsNilTest", "")
@@ -1369,6 +1394,12 @@ TEST_CASE("TxnCursor/overwriteRecordsNilCursorTest", "")
 {
   TxnCursorFixture f;
   f.overwriteRecordsNilCursorTest();
+}
+
+TEST_CASE("TxnCursor/approxMatchTest", "")
+{
+  //TxnCursorFixture f;
+  //f.approxMatchTest(); TODO currently failing
 }
 
 } // namespace hamsterdb

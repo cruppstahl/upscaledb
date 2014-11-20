@@ -1718,13 +1718,12 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
       return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    *count = 0;
-
-    return (db->set_error(db->cursor_get_record_count(cursor,
-                                    count, flags)));
+    *count = db->cursor_get_record_count(cursor, flags);
+    return (db->set_error(0));
   }
   catch (Exception &ex) {
-    return (ex.code);
+    *count = 0;
+    return (db->set_error(ex.code));
   }
 }
 

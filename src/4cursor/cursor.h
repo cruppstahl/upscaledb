@@ -316,18 +316,13 @@ class Cursor
     ham_status_t erase(Transaction *txn, uint32_t flags);
 
     // Retrieves the number of duplicates of the current key
-    //
-    // The Transaction is passed as a separate pointer since it might be a
-    // local/temporary Transaction that was created only for this single
-    // operation.
-    int get_record_count(Transaction *txn, uint32_t flags);
+    uint32_t get_record_count(uint32_t flags);
+
+    // Retrieves the duplicate position of a cursor
+    uint32_t get_duplicate_position();
 
     // Retrieves the size of the current record
-    //
-    // The Transaction is passed as a separate pointer since it might be a
-    // local/temporary Transaction that was created only for this single
-    // operation.
-    uint64_t get_record_size(Transaction *txn);
+    uint64_t get_record_size();
 
     // Overwrites the record of the current key
     //
@@ -408,11 +403,13 @@ class Cursor
     }
 
     // Returns the Transaction cursor
+    // TODO required?
     TransactionCursor *get_txn_cursor() {
       return (&m_txn_cursor);
     }
 
     // Returns the Btree cursor
+    // TODO required?
     BtreeCursor *get_btree_cursor() {
       return (&m_btree_cursor);
     }

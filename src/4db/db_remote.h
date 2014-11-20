@@ -91,8 +91,8 @@ class RemoteDatabase : public Database
                     ham_record_t *record, uint32_t flags);
 
     // Returns number of duplicates (ham_cursor_get_record_count)
-    virtual ham_status_t cursor_get_record_count(Cursor *cursor,
-                    uint32_t *count, uint32_t flags);
+    virtual uint32_t cursor_get_record_count(Cursor *cursor,
+                    uint32_t flags);
 
     // Returns position in duplicate list (ham_cursor_get_duplicate_position)
     virtual uint32_t cursor_get_duplicate_position(Cursor *cursor);
