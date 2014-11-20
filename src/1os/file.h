@@ -126,10 +126,10 @@ class File
     void seek(uint64_t offset, int whence);
 
     // Tell the position in a file
-    size_t tell();
+    uint64_t tell();
 
     // Returns the size of the file
-    size_t get_file_size();
+    uint64_t get_file_size();
 
     // Truncate/resize the file
     void truncate(uint64_t newsize);

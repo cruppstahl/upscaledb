@@ -261,7 +261,7 @@ File::seek(uint64_t offset, int whence)
   }
 }
 
-size_t
+uint64_t
 File::tell()
 {
   DWORD st;
@@ -284,7 +284,7 @@ File::tell()
 #   define INVALID_FILE_SIZE   ((DWORD)-1)
 #endif
 
-size_t
+uint64_t
 File::get_file_size()
 {
   ham_status_t st;
