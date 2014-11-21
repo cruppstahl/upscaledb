@@ -1078,7 +1078,345 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     get_local_env()->get_txn_manager()->commit(local_txn);
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+    get_local_env()->get_changeset().flush();
+
+  return (0);
+}
+
+ham_status_t
+LocalDatabase::find(Transaction *htxn, ham_key_t *key,
+            ham_record_t *record, uint32_t flags)
+{
+  ham_status_t st;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+
+  uint64_t recno = 0;
+
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
+    ham_trace(("invalid key size (%u instead of %u)",
+          key->size, m_config.key_size));
+    return (HAM_INV_KEY_SIZE);
+  }
+
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  /* if this database has duplicates, then we use ham_cursor_find
+   * because we have to build a duplicate list, and this is currently
+   * only available in ham_cursor_find
+   *
+   * TODO create cursor on the stack and avoid the memory allocation!
+   */
+  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    Cursor *c;
+    st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
+            (ham_txn_t *)txn, HAM_DONT_LOCK);
+    if (st)
+      return (st);
+    st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
+    cursor_close(c);
+    get_local_env()->get_changeset().clear();
+    return (st);
+  }
+
+  /*
+   * if transactions are enabled: read keys from transaction trees,
+   * otherwise read immediately from disk
+   */
+  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
+    st = find_txn(txn, key, record, flags);
+  else
+    st = m_btree_index->find(0, 0, key, record, flags);
+
+  get_local_env()->get_changeset().clear();
+
+  if (get_rt_flags() & HAM_RECORD_NUMBER)
+    *(uint64_t *)key->data = recno;
+
+  return (st);
+}
+
+Cursor *
+LocalDatabase::cursor_create_impl(Transaction *txn, uint32_t flags)
+{
+  return (new Cursor(this, txn, flags));
+}
+
+Cursor *
+LocalDatabase::cursor_clone_impl(Cursor *src)
+{
+  return (new Cursor(*src));
+}
+
+ham_status_t
+LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
+        ham_record_t *record, uint32_t flags)
+{
+  return (insert_impl(cursor, cursor->get_txn(), key, record, flags));
+}
+
+ham_status_t
+LocalDatabase::cursor_erase(Cursor *cursor, uint32_t flags)
+{
+  Transaction *local_txn = 0;
+
+  /* if user did not specify a transaction, but transactions are enabled:
+   * create a temporary one */
+  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+    cursor->set_txn(local_txn);
+  }
+
+  /* this function will do all the work */
+  ham_status_t st = cursor->erase(cursor->get_txn()
+                                    ? cursor->get_txn()
+                                    : local_txn,
+                                  flags);
+
+  /* clear the changeset */
+  get_local_env()->get_changeset().clear();
+
+  /* if we created a temp. txn then clean it up again */
+  if (local_txn)
+    cursor->set_txn(0);
+
+  /* on success: verify that cursor is now nil */
+  if (st == 0) {
+    cursor->couple_to_btree();
+    ham_assert(cursor->get_txn_cursor()->is_nil());
+    ham_assert(cursor->is_nil(0));
+    cursor->clear_dupecache();
+  }
+  else {
+    if (local_txn)
+      get_local_env()->get_txn_manager()->abort(local_txn);
+    get_local_env()->get_changeset().clear();
+    return (st);
+  }
+
+  ham_assert(st == 0);
+
+  /* no need to append the journal entry - it's appended in erase_txn(),
+   * which is called by txn_cursor_erase() */
+
+  if (local_txn)
+    get_local_env()->get_txn_manager()->commit(local_txn);
+  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+    get_local_env()->get_changeset().flush();
+
+  return (0);
+}
+
+ham_status_t
+LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
+          ham_record_t *record, uint32_t flags)
+{
+  TransactionCursor *txnc = cursor->get_txn_cursor();
+
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
+    ham_trace(("invalid key size (%u instead of %u)",
+          key->size, m_config.key_size));
+    return (HAM_INV_KEY_SIZE);
+  }
+
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+    if (key->size != sizeof(uint64_t) || !key->data) {
+      ham_trace(("key->size must be 8, key->data must not be NULL"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
+
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  /* reset the dupecache */
+  cursor->clear_dupecache();
+
+  cursor->set_to_nil(Cursor::kBoth);
+
+  /*
+   * first try to find the key in the transaction tree. If it exists and
+   * is NOT a duplicate then return its record. If it does not exist or
+   * it has duplicates then lookup the key in the btree.
+   *
+   * in non-Transaction mode directly search through the btree.
+   */
+  ham_status_t st;
+  if (cursor->get_txn() || (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    st = cursor->get_txn_cursor()->find(key, flags);
+    /* if the key was erased in a transaction then fail with an error
+     * (unless we have duplicates - they're checked below) */
+    if (st) {
+      if (st == HAM_KEY_NOT_FOUND)
+        goto btree;
+      if (st == HAM_KEY_ERASED_IN_TXN) {
+        /* performance hack: if coupled op erases ALL duplicates
+         * then we know that the key no longer exists. if coupled op
+         * references a single duplicate w/ index > 1 then
+         * we know that there are other duplicates. if coupled op
+         * references the FIRST duplicate (idx 1) then we have
+         * to check if there are other duplicates */
+        TransactionOperation *op = txnc->get_coupled_op();
+        ham_assert(op->get_flags() & TransactionOperation::kErase);
+        if (!op->get_referenced_dupe()) {
+          // ALL!
+          st = HAM_KEY_NOT_FOUND;
+        }
+        else if (op->get_referenced_dupe() > 1) {
+          // not the first dupe - there are other dupes
+          st = 0;
+        }
+        else if (op->get_referenced_dupe() == 1) {
+          // check if there are other dupes
+          bool is_equal;
+          (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
+          if (!is_equal)
+            cursor->set_to_nil(Cursor::kBtree);
+          if (!cursor->get_dupecache_count())
+            st = HAM_KEY_NOT_FOUND;
+          else
+            st = 0;
+        }
+      }
+      if (st)
+        goto bail;
+    }
+    else {
+      bool is_equal;
+      (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
+      if (!is_equal)
+        cursor->set_to_nil(Cursor::kBtree);
+    }
+    cursor->couple_to_txnop();
+    if (!cursor->get_dupecache_count()) {
+      if (record)
+        txnc->copy_coupled_record(record);
+      goto bail;
+    }
+    if (st == 0)
+      goto check_dupes;
+  }
+
+btree:
+  st = cursor->get_btree_cursor()->find(key, record, flags);
+  if (st == 0) {
+    cursor->couple_to_btree();
+    /* if btree keys were found: reset the dupecache. The previous
+     * call to cursor_get_dupecache_count() already initialized the
+     * dupecache, but only with txn keys because the cursor was only
+     * coupled to the txn */
+    cursor->clear_dupecache();
+  }
+
+check_dupes:
+  /* if the key has duplicates: build a duplicate table, then
+   * couple to the first/oldest duplicate */
+  if (cursor->get_dupecache_count()) {
+    DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
+    if (e->use_btree())
+      cursor->couple_to_btree();
+    else
+      cursor->couple_to_txnop();
+    cursor->couple_to_dupe(1);
+    st = 0;
+
+    /* now read the record */
+    if (record) {
+      /* TODO this works, but in case of the btree key w/ duplicates
+      * it's possible that we read the record twice. I'm not sure if
+      * this can be avoided, though. */
+      if (cursor->is_coupled_to_txnop())
+        cursor->get_txn_cursor()->copy_coupled_record(record);
+      else
+        st = cursor->get_btree_cursor()->move(0, record, 0);
+    }
+  }
+  else {
+    if (cursor->is_coupled_to_txnop() && record)
+      cursor->get_txn_cursor()->copy_coupled_record(record);
+  }
+
+bail:
+  get_local_env()->get_changeset().clear();
+
+  if (st)
+    return (st);
+
+  /* approximate matching? then also copy the key */
+  if (ham_key_get_intflags(key) & BtreeKey::kApproximate) {
+    if (cursor->is_coupled_to_txnop())
+      cursor->get_txn_cursor()->copy_coupled_key(key);
+  }
+
+  /* set a flag that the cursor just completed an Insert-or-find
+   * operation; this information is needed in ham_cursor_move */
+  cursor->set_lastop(Cursor::kLookupOrInsert);
+
+  return (0);
+}
+
+uint32_t
+LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags)
+{
+  return (cursor->get_record_count(flags));
+}
+
+uint32_t
+LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
+{
+  return (cursor->get_duplicate_position());
+}
+
+uint64_t
+LocalDatabase::cursor_get_record_size(Cursor *cursor)
+{
+  return (cursor->get_record_size());
+}
+
+ham_status_t
+LocalDatabase::cursor_overwrite(Cursor *cursor,
+          ham_record_t *record, uint32_t flags)
+{
+  Transaction *local_txn = 0;
+
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  /* if user did not specify a transaction, but transactions are enabled:
+   * create a temporary one */
+  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+    cursor->set_txn(local_txn);
+  }
+
+  /* this function will do all the work */
+  ham_status_t st = cursor->overwrite(cursor->get_txn()
+                                        ? cursor->get_txn()
+                                        : local_txn,
+                                      record, flags);
+
+  /* if we created a temp. txn then clean it up again */
+  if (local_txn)
+    cursor->set_txn(0);
+
+  if (st) {
+    if (local_txn)
+      get_local_env()->get_txn_manager()->abort(local_txn);
+    get_local_env()->get_changeset().clear();
+    return (st);
+  }
+
+  /* the journal entry is appended in insert_txn() */
+
+  if (local_txn)
+    get_local_env()->get_txn_manager()->commit(local_txn);
+  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+>>>>>>> More refactoring, wip
     get_local_env()->get_changeset().flush();
   }
 
