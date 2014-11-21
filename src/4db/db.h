@@ -87,14 +87,13 @@ class Database
     }
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
+    virtual void get_parameters(ham_parameter_t *param) = 0;
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(uint32_t flags) = 0;
+    virtual void check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
-    virtual void count(Transaction *txn, bool distinct,
-                    uint64_t *keycount) = 0;
+    virtual uint64_t count(Transaction *txn, bool distinct) = 0;
 
     // Scans the whole database, applies a processor function
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
@@ -137,9 +136,7 @@ class Database
     virtual uint32_t cursor_get_duplicate_position(Cursor *cursor) = 0;
 
     // Get current record size (ham_cursor_get_record_size)
-    // TODO return size instead of status?
-    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    uint64_t *size) = 0;
+    virtual uint64_t cursor_get_record_size(Cursor *cursor) = 0;
 
     // Overwrites the record of a cursor (ham_cursor_overwrite)
     virtual ham_status_t cursor_overwrite(Cursor *cursor,

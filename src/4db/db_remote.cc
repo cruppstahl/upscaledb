@@ -34,7 +34,7 @@
 
 namespace hamsterdb {
 
-ham_status_t
+void
 RemoteDatabase::get_parameters(ham_parameter_t *param)
 {
   RemoteEnvironment *env = get_remote_env();
@@ -54,7 +54,7 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
 
   ham_status_t st = reply->db_get_parameters_reply().status();
   if (st)
-    return (st);
+    throw Exception(st);
 
   p = param;
   while (p && p->name) {
@@ -89,11 +89,9 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
     }
     p++;
   }
-
-  return (0);
 }
 
-ham_status_t
+void
 RemoteDatabase::check_integrity(uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
@@ -106,13 +104,13 @@ RemoteDatabase::check_integrity(uint32_t flags)
 
   ham_assert(reply->has_db_check_integrity_reply());
 
-  return (reply->db_check_integrity_reply().status());
+  ham_status_t st = reply->db_check_integrity_reply().status();
+  if (st)
+    throw Exception(st);
 }
 
-
-void
-RemoteDatabase::count(Transaction *htxn, bool distinct,
-              uint64_t *keycount)
+uint64_t
+RemoteDatabase::count(Transaction *htxn, bool distinct)
 {
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
@@ -134,7 +132,7 @@ RemoteDatabase::count(Transaction *htxn, bool distinct,
   if (st)
     throw Exception(st);
 
-  *keycount = reply.db_count_reply.keycount;
+  return (reply.db_count_reply.keycount);
 }
 
 ham_status_t
@@ -519,13 +517,11 @@ RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor)
   throw Exception(st);
 }
 
-ham_status_t
-RemoteDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *size)
+uint64_t
+RemoteDatabase::cursor_get_record_size(Cursor *cursor)
 {
-  (void)cursor;
-  (void)size;
   /* need this? send me a mail and i will implement it */
-  return (HAM_NOT_IMPLEMENTED);
+  throw Exception(HAM_NOT_IMPLEMENTED);
 }
 
 ham_status_t

@@ -105,6 +105,8 @@ x refactoring: the ByteArray should be non-copyable, or at least
     review its uses, try to figure out how it can be improved. Should it be a
     DynamicArray<uint8_t>?
 
+o fix MacOS compiler issue reported by Daniel Lemire
+
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
@@ -116,6 +118,7 @@ o improve the webpage documentation
         o PRO: compressed keys
         o PRO: compressed records
 
+<<<<<<< HEAD
 o refactoring: make journal stateless and exception safe
 
 o refactoring: make changeset stateless and exception safe
@@ -262,29 +265,35 @@ o Concurrency: move "purge cache" to background
     o extend monster tests
     o use valgrind to check for race conditions etc 
 
+=======
+>>>>>>> More refactorings, no functional changes
 o refactoring: clean up the whole Database code; it's too much and too
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
     -> should we move the transactional implementations to their own
         database class, i.e. TransactionalDatabase?
+    x LocalDatabase::cursor_get_duplicate_position: delegate to Cursor class
+    x when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
     o a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
-    x LocalDatabase::cursor_get_duplicate_position: delegate to Cursor class
-    o when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
     o LocalDatabase::cursor_insert -> calls LocalDatabase::insert
+        o remove BtreeCursor::insert, it does not have relevant code
     o LocalDatabase::cursor_erase -> calls LocalDatabase::erase
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
+
+o #42: approx. matching: cursor returns wrong key when using transactions
+    x create a unittest to reproduce this
+    o the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
+
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
 
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
     -> clean up the whole Cursor stuff
-    o review if the Cursor class has access to any shared resource
->>>>>>> Refactoring Cursor class; no functional changes
-
-o refactoring: make EnvironmentHeader stateless and exception safe
-    -> will it ever be used outside of the EnvironmentConfiguration setting?
-    -> can we remove it?
+    o review if the Cursor class has access to any shared resource; what
+        about the cursor list??
 
 <<<<<<< HEAD
 o refactoring: make AES Encryption stateless and exception safe
@@ -313,6 +322,40 @@ o refactoring: create a Update structure whenever a database is modified;
         lower layers
     o erase: create such a structure in ham_db_erase, forward it to the
         lower layers
+    o same for cursor functions
+    o same for ham_cursor_overwrite
+    o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
+
+o move "purge cache" to background
+    1) page list is not modified while it is traversed/modified
+        - the purger will traverse the list only from back to front
+        - the list's operation are only atomic regarding back to front
+            traversals, not reverse
+        - the purger must not modify the list; it will only unmap/free the
+            page buffer!
+    2) it must be an atomic operation to lock the page as "in use" and to
+        check this lock!
+    3) PageManager: when fetching a page that is currently flushed to disk:
+        wait till flush is finished, then return the page
+    o add a flag to disable background operations
+    o create a new thread; use libuv
+    o rewrite Page-list to be atomic (at least forward-only)
+    o purger thread periodically walks over the list, purges
+        o can be waken up by the main thread
+    o page must not be purged while it's "in use"
+    o mark page as "in use" during purge
+    o afterwards once more run the leveldb benchmarks
+
+o reduce the number functions which modify the pages; all other functions
+    just get a const page
+
+o support multiple worker threads which perform I/O
+
+o Cursor::get_record_size is not implemented for remote access
+
+o refactoring: make EnvironmentHeader stateless and exception safe
+    -> will it ever be used outside of the EnvironmentConfiguration setting?
+    -> can we remove it?
 
 o refactoring: make journal stateless and exception safe
     (if it makes sense)
@@ -333,6 +376,7 @@ o reserve file size upon creation, then map the whole range
     o also for python
     o also for erlang
 
+<<<<<<< HEAD
 o bulk updates/batched updates
     - give users API to allocate memory for keys/records
     - if user says that data is already sorted then do not re-sort, but
@@ -511,20 +555,9 @@ o look into dynomite, spark, mongodb and mariadb integration
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
     -> https://developer.yahoo.com/hadoop/tutorial/module5.html#fileformat
-
-    -> would be an interesting market with requirements for column store
-        storage
-    -> how does the integration look like?
-    -> has TPC-benchmarks and other benchmarks ready
-    -> Spark RDDs have similar characteristics as hola streams/views
-    o write down everything i find, collect information and estimate
-        efforts/gains; this task is not about writing code!
-    o come up with priorities, estimates
-
-    o dynomite: requires C interface and C marshalling code. rewrite C++
-        marshalling routines to C
-    o dynomite: send a patch to support more backends
-    o dynomite: send a patch to separate existing backends into their own file
+=======
+o continue with concurrency...
+>>>>>>> More refactorings, no functional changes
 
 
 
@@ -533,17 +566,8 @@ o look into dynomite, spark, mongodb and mariadb integration
 
 
 
-. refactoring: get rid of inheritance for env
-    - move implementation to a struct, w/o state
-    - struct will be kept separately (if there is any)
-    - base class will be abstract
-    - the env will become a "hub" which manages members (i.e. page_manager,
-        device) and forwards the calls to those members 
-    - implementation class uses a template parameter and forwards calls
-        to the struct; the state is a parameter which is only updated
-        if the operation succeeds
-    - if this pattern works then also apply it for Database,
-        Transaction, Cursor
+
+
 
 o PRO: find an efficient compression method for InternalRecordList
     -> also, this should play well with the compression of the DefaultRecordList
@@ -676,68 +700,6 @@ o delta updates managed in the BtreeNode
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
-
-
-o the bucket for concurrency TODOs
-    this are the requirements:
-    - PRO: inserts are fully concurrent (APL: only one insert at a time)
-    - transactions are flushed in background
-    - dirty pages are flushed in background
-    - reading pages is synchronous, writing pages is asynchronous
-        -> needs a very fast locking scheme
-    - SSDs support many async. writes in parallel - be prepared!
-    http://meetingcpp.com/tl_files/2013/talks/scaling_with_cpp11_edouard_alligand.pdf
-    - remove db_get_last_error?
-    - how to deal with temporary pointers (key->data, record->data)?
-        store them in tls? or always allocate new pointers and let the caller
-        delete them?
-
-    o an intermediate stage would be to have concurrent reads but exclusive
-        writes (one writer per database, many readers) - makes sense?
-
-    o create coding rules
-        o synchronization either in lowest or highest level of the callstack
-        o when to use what kind of synchronization
-        o which modules are single-threaded/synchronized, which are atomic,
-            which are concurrent?
-
-    o how can we verify the correctness of the implementation?
-        - i.e. by using static analysis or dynamic analysis, together
-            with annotated code/custom tools? even if these tools do not
-            exist then a system of annotations/naming conventions can help
-            writing/maintaining the code
-
-    o mutex implementations should have built-in monitoring, i.e.
-        number of locks/unlocks, wait times, contention etc
-        o need read/write mutex, fast latches
-
-    o come up with a list of all functions, define which locking operation
-        is required; then review the code and make sure this will work
-        o the environment configuration
-        o the database configuration
-        o the transaction tree handling
-        o the page manager, the device and the cache
-        o the btree
-        o the btree nodes (i.e. extkeycache, compressor)
-        o parallel lookups (using the same memory arena)
-
-    o reduce the linked lists - they're hard to be updated with atomic
-        operations
-        o page
-        o transaction and dependent objects
-        o ...
-
-    o separate SMOs from the actual operation (#2)
-        -> check the literature
-        http://pdf.aminer.org/000/409/763/b_trees_with_relaxed_balance.pdf
-        o move SMO operations to "the janitor" (btree_janitor.h)
-
-    o the global environment-lock should go because it's expensive; rather
-        increment an atomic latch, and refuse to close/erase the database as
-        long as the latch is > 0 
-
-
-
 
 o PRO: hot backups (vacuumizes to a different file)
     really only for PRO?

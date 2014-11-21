@@ -51,7 +51,7 @@ hola_count(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->count(txn, false, &result->u.result_u64);
+    result->u.result_u64 = db->count(txn, false);
     return (db->set_error(0));
   }
   catch (Exception &ex) {
@@ -226,7 +226,7 @@ hola_count_distinct(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->count(txn, true, &result->u.result_u64);
+    result->u.result_u64 = db->count(txn, true);
     return (db->set_error(0));
   }
   catch (Exception &ex) {

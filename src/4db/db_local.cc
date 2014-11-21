@@ -622,7 +622,7 @@ LocalDatabase::open(uint16_t descriptor)
   return (0);
 }
 
-ham_status_t
+void
 LocalDatabase::get_parameters(ham_parameter_t *param)
 {
   Page *page = 0;
@@ -664,15 +664,13 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
-        return (HAM_INV_PARAMETER);
+        throw Exception(HAM_INV_PARAMETER);
       }
     }
   }
-
-  return (0);
 }
 
-ham_status_t
+void
 LocalDatabase::check_integrity(uint32_t flags)
 {
   /* purge cache if necessary */
@@ -685,12 +683,10 @@ LocalDatabase::check_integrity(uint32_t flags)
   //m_txn_index->check_integrity(flags);
 
   get_local_env()->get_changeset().clear();
-  return (0);
 }
 
-void
-LocalDatabase::count(Transaction *htxn, bool distinct,
-                uint64_t *pkeycount)
+uint64_t
+LocalDatabase::count(Transaction *htxn, bool distinct)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
@@ -701,21 +697,22 @@ LocalDatabase::count(Transaction *htxn, bool distinct,
    * call the btree function - this will retrieve the number of keys
    * in the btree
    */
-  *pkeycount = m_btree_index->count(distinct);
+  uint64_t keycount = m_btree_index->count(distinct);
 
   /*
    * if transactions are enabled, then also sum up the number of keys
    * from the transaction tree
    */
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
-    *pkeycount += m_txn_index->count(txn, distinct);
+    keycount += m_txn_index->count(txn, distinct);
 
   get_local_env()->get_changeset().clear();
+
+  return (keycount);
 }
 
 void
-LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor,
-                bool distinct)
+LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
   Page *page;
   ham_key_t key = {0};
@@ -1436,24 +1433,10 @@ LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
   return (cursor->get_duplicate_position());
 }
 
-ham_status_t
-LocalDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *size)
+uint64_t
+LocalDatabase::cursor_get_record_size(Cursor *cursor)
 {
-  TransactionCursor *txnc = cursor->get_txn_cursor();
-
-  if (cursor->is_nil(0) && txnc->is_nil())
-    return (HAM_CURSOR_IS_NIL);
-
-  /* this function will do all the work */
-  *size = cursor->get_record_size();
-
-  get_local_env()->get_changeset().clear();
-
-  /* set a flag that the cursor just completed an Insert-or-find
-   * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::kLookupOrInsert);
-
-  return (0);
+  return (cursor->get_record_size());
 }
 
 ham_status_t

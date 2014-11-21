@@ -54,14 +54,13 @@ class RemoteDatabase : public Database
     }
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param);
+    virtual void get_parameters(ham_parameter_t *param);
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(uint32_t flags);
+    virtual void check_integrity(uint32_t flags);
 
     // Returns the number of keys
-    virtual void count(Transaction *txn, bool distinct,
-                    uint64_t *keycount);
+    virtual uint64_t count(Transaction *txn, bool distinct);
 
     // Scans the whole database, applies a processor function
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
@@ -98,8 +97,7 @@ class RemoteDatabase : public Database
     virtual uint32_t cursor_get_duplicate_position(Cursor *cursor);
 
     // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    uint64_t *size);
+    virtual uint64_t cursor_get_record_size(Cursor *cursor);
 
     // Overwrites the record of a cursor (ham_cursor_overwrite)
     virtual ham_status_t cursor_overwrite(Cursor *cursor,

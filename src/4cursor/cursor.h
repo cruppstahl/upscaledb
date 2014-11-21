@@ -349,7 +349,7 @@ class Cursor
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
     void clear_dupecache() {
-      get_dupecache()->clear();
+      m_dupecache.clear();
       set_dupecache_index(0);
     }
 
@@ -379,7 +379,7 @@ class Cursor
         update_dupecache(kBtree | kTxn);
       else
         update_dupecache(kBtree);
-      return (get_dupecache()->get_count());
+      return (m_dupecache.get_count());
     }
 
     // Get the 'next' Cursor in this Database
@@ -425,11 +425,13 @@ class Cursor
     }
 
     // Returns a pointer to the duplicate cache
+    // TODO really required?
     DupeCache *get_dupecache() {
       return (&m_dupecache);
     }
 
     // Returns a pointer to the duplicate cache
+    // TODO really required?
     const DupeCache *get_dupecache() const {
       return (&m_dupecache);
     }
@@ -470,7 +472,7 @@ class Cursor
 
     // Returns true if this key has duplicates
     bool has_duplicates() const {
-      return (get_dupecache()->get_count() > 0);
+      return (m_dupecache.get_count() > 0);
     }
 
     // Moves cursor to the first duplicate

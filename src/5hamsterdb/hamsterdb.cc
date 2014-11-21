@@ -919,7 +919,8 @@ ham_db_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
     ScopedLock lock(db->get_env()->get_mutex());
 
     /* get the parameters */
-    return (db->get_parameters(param));
+    db->get_parameters(param);
+    return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1252,10 +1253,11 @@ ham_db_check_integrity(ham_db_t *hdb, uint32_t flags)
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error(db->check_integrity(flags)));
+    db->check_integrity(flags);
+    return (db->set_error(0));
   }
   catch (Exception &ex) {
-    return (ex.code);
+    return (db->set_error(ex.code));
   }
 }
 
@@ -1781,12 +1783,12 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
       return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    *size = 0;
-
-    return (db->set_error(db->cursor_get_record_size(cursor, size)));
+    *size = db->cursor_get_record_size(cursor);
+    return (db->set_error(0));
   }
   catch (Exception &ex) {
-    return (ex.code);
+    *size = 0;
+    return (db->set_error(ex.code));
   }
 }
 
@@ -1905,15 +1907,14 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  *keycount = 0;
-
   try {
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->count(txn, (flags & HAM_SKIP_DUPLICATES) != 0, keycount);
+    *keycount = db->count(txn, (flags & HAM_SKIP_DUPLICATES) != 0);
     return (db->set_error(0));
   }
   catch (Exception &ex) {
+    *keycount = 0;
     return (db->set_error(ex.code));
   }
 }
