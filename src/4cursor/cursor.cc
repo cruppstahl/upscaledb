@@ -1071,22 +1071,6 @@ Cursor::get_duplicate_position()
   return (get_dupecache_index() - 1);
 }
 
-uint32_t
-Cursor::get_duplicate_position()
-{
-  TransactionCursor *txnc = get_txn_cursor();
-
-  if (is_nil(0) && txnc->is_nil()) // TODO wtf?
-    throw Exception(HAM_CURSOR_IS_NIL);
-
-  // use btree cursor?
-  if (txnc->is_nil())
-    return (get_btree_cursor()->get_duplicate_index());
-
-  // otherwise return the index in the duplicate cache
-  return (get_dupecache_index() - 1);
-}
-
 ham_status_t
 Cursor::overwrite(Transaction *htxn, ham_record_t *record, uint32_t flags)
 {
