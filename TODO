@@ -276,8 +276,18 @@ o refactoring: clean up the whole Database code; it's too much and too
     x when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
     o a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
+===========================
     o LocalDatabase::cursor_insert -> calls LocalDatabase::insert
         o remove BtreeCursor::insert, it does not have relevant code
+currently fails in Remote/cursorInsertRecnoTest
+op->get_referenced_dupe ist 1, obwohl es kein duplicate von diesem key gibt
+problem ist dass cursor->duplicate_index nach dem 1. insert auf 1 gesetzt wird
+der 2. insert setzt den index aber nicht zurück
+
+hamsterdb::LocalDatabase::insert_txn()
+    if (c->get_dupecache_index())
+        op->set_referenced_dupe(c->get_dupecache_index());
+===========================
     o LocalDatabase::cursor_erase -> calls LocalDatabase::erase
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
 
@@ -294,6 +304,11 @@ o refactoring: improve the code separation of cursor, btree_cursor
     -> clean up the whole Cursor stuff
     o review if the Cursor class has access to any shared resource; what
         about the cursor list??
+    o the whole cursor state is messed up. there should be 3 states:
+        - nil
+        - coupled to btree
+        - coupled to txn
+        and nothing else!
 
 <<<<<<< HEAD
 o refactoring: make AES Encryption stateless and exception safe

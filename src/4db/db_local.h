@@ -195,6 +195,10 @@ class LocalDatabase : public Database {
     friend struct HamsterdbFixture;
     friend struct ExtendedKeyFixture;
 
+    // The actual implementation of insert()
+    ham_status_t insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags);
+
     // returns the next record number
     uint64_t get_incremented_recno() {
       return (++m_recno);
