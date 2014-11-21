@@ -31,6 +31,7 @@
 #endif
 
 #include <string>
+#include <stdlib.h>
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -50,11 +51,11 @@ get_classname(const T& t)
   if (!name)
     return ("");
   if (status) {
-    free(name);
+    ::free(name);
     return ("");
   }
   std::string s = name;
-  free(name);
+  ::free(name);
   return (s);
 #else
   return ("");
