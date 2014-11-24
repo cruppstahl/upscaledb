@@ -16,8 +16,8 @@
 /*
  * A compressor implementation using liblzf.
  *
- * @exception_safe: strong
- * @thread_safe: yes
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_COMPRESSOR_LZF_H
@@ -39,29 +39,35 @@
 
 namespace hamsterdb {
 
-struct LzfCompressor {
-  // Returns the maximum number of bytes that are required for
-  // compressing |length| bytes.
-  uint32_t get_compressed_length(uint32_t length) {
-    return (length < 32 ? 64 : (length + length / 2));
-  }
+class LzfCompressor : public Compressor {
+  public:
+    // Constructor
+    LzfCompressor() {
+    }
 
-  // Performs the actual compression. |outp| points into |m_arena| and
-  // has sufficient size (allocated with |get_compressed_length()|).
-  //
-  // Returns the length of the compressed data.
-  uint32_t compress(const uint8_t *inp, uint32_t inlength,
-                          uint8_t *outp, uint32_t outlength) {
-    return (::lzf_compress(inp, inlength, outp, outlength));
-  }
+  protected:
+    // Returns the maximum number of bytes that are required for
+    // compressing |length| bytes.
+    virtual uint32_t get_compressed_length(uint32_t length) {
+      return (length < 32 ? 64 : (length + length / 2));
+    }
 
-  // Performs the actual decompression. Derived classes decompress into
-  // |m_arena| which has sufficient size for the decompressed data.
-  void decompress(const uint8_t *inp, uint32_t inlength,
-                          uint8_t *outp, uint32_t outlength) {
-    if (!::lzf_decompress(inp, inlength, outp, outlength))
-      throw Exception(HAM_INTERNAL_ERROR);
-  }
+    // Performs the actual compression. |outp| points into |m_arena| and
+    // has sufficient size (allocated with |get_compressed_length()|).
+    //
+    // Returns the length of the compressed data.
+    virtual uint32_t do_compress(const uint8_t *inp, uint32_t inlength,
+                            uint8_t *outp, uint32_t outlength) {
+      return (::lzf_compress(inp, inlength, outp, outlength));
+    }
+
+    // Performs the actual decompression. Derived classes decompress into
+    // |m_arena| which has sufficient size for the decompressed data.
+    virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
+                            uint8_t *outp, uint32_t outlength) {
+      if (!::lzf_decompress(inp, inlength, outp, outlength))
+        throw Exception(HAM_INTERNAL_ERROR);
+    }
 };
 
 }; // namespace hamsterdb

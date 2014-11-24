@@ -16,8 +16,8 @@
 /*
  * A factory for compressor objects.
  *
- * @exception_safe: nothrow
- * @thread_safe: yes
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_COMPRESSOR_FACTORY_H

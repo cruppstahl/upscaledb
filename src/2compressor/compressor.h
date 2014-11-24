@@ -16,8 +16,8 @@
 /*
  * An abstract base class for a compressor.
  *
- * @exception_safe: strong
- * @thread_safe: no
+ * @exception_safe: unknown
+ * @thread_safe: unknown
  */
 
 #ifndef HAM_COMPRESSOR_H
@@ -50,8 +50,23 @@ class Compressor {
     // The compressed data can then be retrieved with |get_output_data()|.
     //
     // Returns the length of the compressed data.
-    virtual uint32_t compress(const uint8_t *inp1, uint32_t inlength1,
-                    const uint8_t *inp2 = 0, uint32_t inlength2 = 0) = 0;
+    uint32_t compress(const uint8_t *inp1, uint32_t inlength1,
+                    const uint8_t *inp2 = 0, uint32_t inlength2 = 0) {
+      uint32_t clen = 0;
+      uint32_t arena_size = m_skip + get_compressed_length(inlength1);
+      if (inp2 != 0)
+        arena_size += get_compressed_length(inlength2);
+      m_arena.resize(arena_size + m_skip);
+
+      uint8_t *out = (uint8_t *)m_arena.get_ptr() + m_skip;
+
+      clen = do_compress(inp1, inlength1, out,
+                                  m_arena.get_size() - m_skip);
+      if (inp2)
+        clen += do_compress(inp2, inlength2, out + clen,
+                          m_arena.get_size() - clen - m_skip);
+      return (clen);
+    }
 
     // Reserves |n| bytes in the output buffer; can be used by the caller
     // to insert flags or sizes
@@ -61,20 +76,28 @@ class Compressor {
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data.
-    virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength) = 0;
+    void decompress(const uint8_t *inp, uint32_t inlength,
+                    uint32_t outlength) {
+      m_arena.resize(outlength);
+      do_decompress(inp, inlength, (uint8_t *)m_arena.get_ptr(), outlength);
+    }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data. Uses the caller's |arena|
     // for storage.
-    virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength, ByteArray *arena) = 0;
+    void decompress(const uint8_t *inp, uint32_t inlength,
+                    uint32_t outlength, ByteArray *arena) {
+      arena->resize(outlength);
+      do_decompress(inp, inlength, (uint8_t *)arena->get_ptr(), outlength);
+    }
 
     // Decompresses |inlength| bytes of data in |inp|. |outlength| is the
     // expected size of the decompressed data. Uses the caller's |destination|
     // for storage.
-    virtual void decompress(const uint8_t *inp, uint32_t inlength,
-                    uint32_t outlength, uint8_t *destination) = 0;
+    void decompress(const uint8_t *inp, uint32_t inlength,
+                    uint32_t outlength, uint8_t *destination) {
+      do_decompress(inp, inlength, destination, outlength);
+    }
 
     // Retrieves the compressed (or decompressed) data, including its size
     const uint8_t *get_output_data() const {
@@ -92,6 +115,24 @@ class Compressor {
     }
 
   protected:
+    // Returns the maximum number of bytes that are required for
+    // compressing |length| bytes.
+    virtual uint32_t get_compressed_length(uint32_t length) = 0;
+
+    // Performs the actual compression. |outp| points into |m_arena| and
+    // has sufficient size (allocated with |get_compressed_length()|).
+    //
+    // Returns the length of the compressed data.
+    // In case of an error: returns length of the uncompressed data + 1
+    virtual uint32_t do_compress(const uint8_t *inp, uint32_t inlength,
+                            uint8_t *outp, uint32_t outlength) = 0;
+
+    // Performs the actual decompression. |outp| points into |m_arena| and
+    // has sufficient size for the decompressed data.
+    virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
+                            uint8_t *outp, uint32_t outlength) = 0;
+
+  private:
     // The ByteArray which stores the compressed (or decompressed) data
     ByteArray m_arena;
 
