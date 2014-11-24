@@ -101,10 +101,10 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Constructor
     VariableLengthKeyList(LocalDatabase *db)
-      : m_db(db), m_index(db), m_data(0), m_compressor(0) {
+      : m_db(db), m_index(db), m_data(0) {
       int algo = m_db->get_config().key_compressor;
       if (algo)
-        m_compressor = CompressorFactory::create(algo);
+        m_compressor.reset(CompressorFactory::create(algo));
       size_t page_size = db->get_local_env()->get_page_size();
       if (Globals::ms_extended_threshold)
         m_extkey_threshold = Globals::ms_extended_threshold;
@@ -569,7 +569,7 @@ class VariableLengthKeyList : public BaseKeyList
     size_t m_extkey_threshold;
 
     // Compressor for the keys
-    Compressor *m_compressor;
+    ScopedPtr<Compressor> m_compressor;
 };
 
 } // namespace DefLayout
