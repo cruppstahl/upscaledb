@@ -34,6 +34,7 @@ libhamsterdb_la_SOURCES = \
 	1rb/rb.h \
 	2aes/aes.h \
 	2compressor/compressor.h \
+	2compressor/compressor_impl.h \
 	2compressor/compressor_factory.h \
 	2compressor/compressor_factory.cc \
 	2compressor/compressor_lzf.h \
