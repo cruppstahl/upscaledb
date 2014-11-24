@@ -1,4 +1,4 @@
-hamsterdb pro 2.1.8                                Sa 23. Aug 22:19:56 CEST 2014
+hamsterdb pro 2.1.9                                Sa 23. Aug 22:19:56 CEST 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb pro.
@@ -7,7 +7,7 @@ Contents:
 
 1. About
 
-This release of hamsterdb pro is based on hamsterdb 2.1.8, and contains the
+This release of hamsterdb pro is based on hamsterdb 2.1.9, and contains the
 following additional changes:
 
 - Added CRC32 verification (use HAM_ENABLE_CRC32)

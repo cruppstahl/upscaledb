@@ -92,7 +92,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_debug.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.8.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,7 +117,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64_debug.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)\libhamsterdb-2.1.8.lib</OutputFile>
+      <OutputFile>$(OutDir)\libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Lib>
@@ -138,7 +138,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.8.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -167,7 +167,7 @@
       <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.8.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and     keys, AES encryption, SIMD
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
