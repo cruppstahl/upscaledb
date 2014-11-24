@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef HAM_ENABLE_COMPRESSION
+
 #include <vector>
 #include <algorithm>
 
@@ -127,3 +129,5 @@ TEST_CASE("Zint32/descendingDataTest", "")
 }
 
 } // namespace hamsterdb
+
+#endif // HAM_ENABLE_COMPRESSION
