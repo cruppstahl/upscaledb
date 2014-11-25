@@ -207,7 +207,7 @@ printf '#================================================================\n'
 
 # build protobuf files
 if test x$enable_remote != xno; then
-make --directory=src/protobuf proto
+make --directory=src/2protobuf proto
 make --directory=tools proto
 fi
 
