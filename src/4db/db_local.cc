@@ -850,8 +850,6 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
   ham_status_t st;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
-  uint64_t recno = 0;
-
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
       && key->size != m_config.key_size) {
     ham_trace(("invalid key size (%u instead of %u)",
@@ -890,9 +888,6 @@ LocalDatabase::find(Transaction *htxn, ham_key_t *key,
     st = m_btree_index->find(0, 0, key, record, flags);
 
   get_local_env()->get_changeset().clear();
-
-  if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(uint64_t *)key->data = recno;
 
   return (st);
 }
@@ -956,8 +951,8 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   get_local_env()->get_page_manager()->purge_cache();
 
   /* reset the dupecache */
+  // TODO merge both calls, only set to nil if find() was successful
   cursor->clear_dupecache();
-
   cursor->set_to_nil(Cursor::kBoth);
 
   /*
