@@ -169,6 +169,18 @@ BtreeCursor::find(ham_key_t *key, ByteArray *key_arena, ham_record_t *record,
   return (m_btree->find(m_parent, key, key_arena, record, record_arena, flags));
 }
 
+ham_status_t
+BtreeCursor::erase(uint32_t flags)
+{
+  Transaction *txn = m_parent->get_txn();
+
+  if (m_state != kStateUncoupled && m_state != kStateCoupled)
+    return (HAM_CURSOR_IS_NIL);
+
+  return (m_btree->erase(txn, m_parent, 0, 0, flags));
+>>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
+}
+
 bool
 BtreeCursor::points_to(Page *page, int slot)
 {
