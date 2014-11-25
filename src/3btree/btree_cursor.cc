@@ -184,18 +184,6 @@ BtreeCursor::find(ham_key_t *key, ham_record_t *record, uint32_t flags)
 }
 
 ham_status_t
-BtreeCursor::insert(ham_key_t *key, ham_record_t *record, uint32_t flags)
-{
-  Transaction *txn = m_parent->get_txn();
-
-  ham_assert(key);
-  ham_assert(record);
-
-  // call the btree insert function
-  return (m_btree->insert(txn, m_parent, key, record, flags));
-}
-
-ham_status_t
 BtreeCursor::erase(uint32_t flags)
 {
   Transaction *txn = m_parent->get_txn();

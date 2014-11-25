@@ -33,39 +33,13 @@ x PRO: review SIMD code; the problem is that it's never called, because the
     x use fixed block size, otherwise fallback to non-simd search
     x run performance tests - ok
 
-o PRO: Can we release an early version of zint32? (undocumented)
+x PRO: Can we release an early version of zint32? (undocumented)
     x need to fix erase() handling
     x add test coverage in unittests
         x insert w/ appends, lookup, erase, lookup
         x insert w/ prepends, lookup, erase, lookup
         x insert w/ random, lookup, erase, lookup
-    o add full test coverage in monster tests
-
-. PRO: look for a better compression for DefaultRecordList, i.e.
-    - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
-        number can then hold flags for 16 numbers
-        -> (but maybe increase this to hold at least 32 or 64 numbers, to
-            reduce the overhead ratio)
-    o create a GroupedVarInt<Max, T> class, where |Max| is the maximum number
-        of elements that are grouped, and T is the type of these elements
-        (i.e. uint64_t)
-        -> memory is managed by the caller
-        -> the state (i.e. used block size etc) is stored externally, and
-            managed by the caller
-        o append a key
-        o prepend a key
-        o insert a key in the middle
-        o grow blocks
-        o split blocks
-        o can perform copies w/o re-compressing
-
-    o try to move the Zint32 index to a base class
-    o Use small index which stores offset + bits for each group
-    o a separate bit is used to signal whether the (compressed) number is
-        a record id
-    o avoid ripple effects by growing/splitting the block
-
-. PRO: Use the GroupedVarInt also for duplicate groups
+    x add full test coverage in monster tests
 
 ------------- hamsterdb 2.1.10 ---------------------------------------
 
@@ -105,6 +79,7 @@ x refactoring: the ByteArray should be non-copyable, or at least
     review its uses, try to figure out how it can be improved. Should it be a
     DynamicArray<uint8_t>?
 
+<<<<<<< HEAD
 o fix MacOS compiler issue reported by Daniel Lemire
 
 o improve the webpage documentation
@@ -267,6 +242,8 @@ o Concurrency: move "purge cache" to background
 
 =======
 >>>>>>> More refactorings, no functional changes
+=======
+>>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
 o refactoring: clean up the whole Database code; it's too much and too
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
@@ -274,29 +251,34 @@ o refactoring: clean up the whole Database code; it's too much and too
         database class, i.e. TransactionalDatabase?
     x LocalDatabase::cursor_get_duplicate_position: delegate to Cursor class
     x when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
-    o a lot of functions have to clear the changeset when they leave;
-        use ON_EXIT_SCOPE macro for this!
-===========================
-    o LocalDatabase::cursor_insert -> calls LocalDatabase::insert
-        o remove BtreeCursor::insert, it does not have relevant code
-currently fails in Remote/cursorInsertRecnoTest
-op->get_referenced_dupe ist 1, obwohl es kein duplicate von diesem key gibt
-problem ist dass cursor->duplicate_index nach dem 1. insert auf 1 gesetzt wird
-der 2. insert setzt den index aber nicht zurück
-
-hamsterdb::LocalDatabase::insert_txn()
-    if (c->get_dupecache_index())
-        op->set_referenced_dupe(c->get_dupecache_index());
-===========================
+    x LocalDatabase::cursor_insert -> calls LocalDatabase::insert
+        x remove BtreeCursor::insert, it does not have relevant code
     o LocalDatabase::cursor_erase -> calls LocalDatabase::erase
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
+    o a lot of functions have to clear the changeset when they leave;
+        use ON_EXIT_SCOPE macro for this!
 
 o #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
     o the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
 
+o fix MacOS compiler issue reported by Daniel Lemire
+
+o check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early
+
+o remove dependency to malloc.h, use stdlib.h instead
+
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
+
+o Zint32: add compression based on bit-packing
+    -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
+    o move block/index related functionality to a base class BlockKeyList
+    o implement the compression
+        -> only use as many bits per block as required for those numbers
+        -> use delta-encoding to have better compression
 
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
@@ -310,6 +292,7 @@ o refactoring: improve the code separation of cursor, btree_cursor
         - coupled to txn
         and nothing else!
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o refactoring: make AES Encryption stateless and exception safe
 
@@ -341,6 +324,8 @@ o refactoring: create a Update structure whenever a database is modified;
     o same for ham_cursor_overwrite
     o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
 
+=======
+>>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
 o move "purge cache" to background
     1) page list is not modified while it is traversed/modified
         - the purger will traverse the list only from back to front
@@ -372,6 +357,7 @@ o refactoring: make EnvironmentHeader stateless and exception safe
     -> will it ever be used outside of the EnvironmentConfiguration setting?
     -> can we remove it?
 
+<<<<<<< HEAD
 o refactoring: make journal stateless and exception safe
     (if it makes sense)
 >>>>>>> Refactoring Cursor class; no functional changes
@@ -381,6 +367,12 @@ o refactoring: make changeset stateless and exception safe
 
 o refactoring: make BlobManager stateless and exception safe
     (if it makes sense)
+=======
+o reduce record IDs in internal nodes to 32bit; this is enough, and allows
+    32bit compression with grouped varints and/or binary packing
+    o can we do this without breaking backwards compatibility of the file
+        format?
+>>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
@@ -574,6 +566,16 @@ o look into dynomite, spark, mongodb and mariadb integration
 o continue with concurrency...
 >>>>>>> More refactorings, no functional changes
 
+o improve the webpage documentation
+    o document the various btree formats on the webpage, with images
+        o variable length keys (w/ extended keys)
+        o POD keys
+        o default records
+        o inline records
+        o fixed-length records
+        o duplicates (w/ overflow tables)
+        o PRO: compressed keys
+        o PRO: compressed records
 
 
 
@@ -583,6 +585,31 @@ o continue with concurrency...
 
 
 
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
+        number can then hold flags for 16 numbers
+        -> (but maybe increase this to hold at least 32 or 64 numbers, to
+            reduce the overhead ratio)
+    o create a GroupedVarInt<Max, T> class, where |Max| is the maximum number
+        of elements that are grouped, and T is the type of these elements
+        (i.e. uint64_t)
+        -> memory is managed by the caller
+        -> the state (i.e. used block size etc) is stored externally, and
+            managed by the caller
+        o append a key
+        o prepend a key
+        o insert a key in the middle
+        o grow blocks
+        o split blocks
+        o can perform copies w/o re-compressing
+
+    o try to move the Zint32 index to a base class
+    o Use small index which stores offset + bits for each group
+    o a separate bit is used to signal whether the (compressed) number is
+        a record id
+    o avoid ripple effects by growing/splitting the block
+
+o PRO: Use the GroupedVarInt also for duplicate groups
 
 o PRO: find an efficient compression method for InternalRecordList
     -> also, this should play well with the compression of the DefaultRecordList
@@ -673,6 +700,22 @@ o QuickCheck: create a new property for testing duplicates; the key is
     . try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
+
+o refactoring: create a Update structure whenever a database is modified;
+    it consists of the operation type, key, record (optional), operation flags,
+    ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
+    class.
+    This structure is then forwarded to the journal, and to all BtreeActions.
+    The BtreeActions no longer require state (at least large parts of it).
+    This structure will also be used for the DeltaUpdates and for batched
+    updates later on.
+    o insert: create such a structure in ham_db_insert, forward it to the
+        lower layers
+    o erase: create such a structure in ham_db_erase, forward it to the
+        lower layers
+    o same for cursor functions
+    o same for ham_cursor_overwrite
+    o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
 
 o delta updates managed in the BtreeNode
     the operations are attached to the node, but as soon as the node

@@ -158,9 +158,6 @@ class BtreeCursor
     // is a valid pointer)
     ham_status_t find(ham_key_t *key, ham_record_t *record, uint32_t flags);
 
-    // Inserts a key/record pair with a cursor
-    ham_status_t insert(ham_key_t *key, ham_record_t *record, uint32_t flags);
-
     // Erases the key from the index; afterwards, the cursor points to NIL
     ham_status_t erase(uint32_t flags);
 

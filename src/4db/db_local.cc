@@ -97,7 +97,9 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
    *
    * however we can skip this check if we do not care about duplicates.
    */
-  if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
+  if ((flags & HAM_OVERWRITE)
+          || (flags & HAM_DUPLICATE)
+          || (get_rt_flags() & HAM_RECORD_NUMBER))
     return (0);
 
   ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
@@ -1515,9 +1517,8 @@ LocalDatabase::flush_txn_operation(LocalTransaction *txn,
       /* pick the first cursor, get the parent/btree cursor and
        * insert the key/record pair in the btree. The btree cursor
        * then will be coupled to this item. */
-      st = c1->get_btree_cursor()->insert(
-                  node->get_key(), op->get_record(),
-                  op->get_orig_flags() | additional_flag);
+      st = m_btree_index->insert(c1->get_txn(), c1, node->get_key(),
+                  op->get_record(), op->get_orig_flags() | additional_flag);
       if (!st) {
         /* uncouple the cursor from the txn-op, and remove it */
         c1->couple_to_btree(); // TODO merge these two calls
@@ -1605,9 +1606,8 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     key->size = sizeof(uint64_t);
     *(uint64_t *)key->data = recno;
 
-    /* A recno key is always appended sequentially, and specify HAM_OVERWRITE
-     * because it makes transactions faster */
-    flags |= HAM_HINT_APPEND | HAM_OVERWRITE;
+    /* A recno key is always appended sequentially */
+    flags |= HAM_HINT_APPEND;
   }
 
   /* purge cache if necessary */
