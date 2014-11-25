@@ -864,13 +864,6 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
   try {
     ScopedLock lock = ScopedLock(env->get_mutex());
 
-#ifdef HAM_DEBUG
-    /* make sure that the changeset is empty */
-    LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
-    if (lenv)
-      ham_assert(lenv->get_changeset().is_empty());
-#endif
-
     /* auto-abort (or commit) all pending transactions */
     if (env->get_txn_manager()) {
       Transaction *t;

@@ -629,6 +629,9 @@ RemoteDatabase::close_impl(uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 
+  // do not set HAM_DONT_LOCK over the network
+  flags &= ~HAM_DONT_LOCK;
+
   Protocol request(Protocol::DB_CLOSE_REQUEST);
   request.mutable_db_close_request()->set_db_handle(get_remote_handle());
   request.mutable_db_close_request()->set_flags(flags);

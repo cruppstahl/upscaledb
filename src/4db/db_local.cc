@@ -243,7 +243,7 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::find_txn(LocalTransaction *txn, ham_key_t *key,
+LocalDatabase::find_txn(Cursor *cursor, LocalTransaction *txn, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
@@ -314,12 +314,18 @@ retry:
       else if ((op->get_flags() & TransactionOperation::kInsert)
           || (op->get_flags() & TransactionOperation::kInsertOverwrite)
           || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
+        if (cursor) { // TODO merge those calls
+          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->couple_to_txnop();
+        }
         // approx match? leave the loop and continue
         // with the btree
         if (ham_key_get_intflags(key) & BtreeKey::kApproximate)
           break;
         // otherwise copy the record and return
-        return (LocalDatabase::copy_record(this, txn, op, record));
+        if (record)
+          return (LocalDatabase::copy_record(this, txn, op, record));
+        return (0);
       }
       else if (!(op->get_flags() & TransactionOperation::kNop)) {
         ham_assert(!"shouldn't be here");
@@ -336,6 +342,8 @@ retry:
   /*
    * if there was an approximate match: check if the btree provides
    * a better match
+   *
+   * TODO use ByteArray instead of Memory::allocate()
    */
   if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
     ham_key_t txnkey = {0};
@@ -352,7 +360,7 @@ retry:
       flags = flags & (~HAM_FIND_EXACT_MATCH);
 
     // now lookup in the btree
-    st = m_btree_index->find(txn, 0, key, record, flags);
+    st = m_btree_index->find(txn, cursor, key, record, flags);
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
         arena->resize(txnkey.size);
@@ -365,7 +373,13 @@ retry:
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
 
-      return (LocalDatabase::copy_record(this, txn, op, record));
+      if (cursor) { // TODO merge those calls
+        cursor->get_txn_cursor()->couple_to_op(op);
+        cursor->couple_to_txnop();
+      }
+      if (record)
+        return (LocalDatabase::copy_record(this, txn, op, record));
+      return (0);
     }
     else if (st)
       return (st);
@@ -373,6 +387,8 @@ retry:
     if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
         && (flags & HAM_FIND_EXACT_MATCH)) {
       Memory::release(txnkey.data);
+      if (cursor)
+        cursor->couple_to_btree();
       return (0);
     }
     // if there's an approx match in the btree: compare both keys and
@@ -396,7 +412,7 @@ retry:
       // lookup again, with the same flags and the btree key.
       // this will check if the key was erased or overwritten
       // in a transaction
-      st = find_txn(txn, key, record, flags | HAM_FIND_EXACT_MATCH);
+      st = find_txn(cursor, txn, key, record, flags | HAM_FIND_EXACT_MATCH);
       if (st == 0)
         ham_key_set_intflags(key,
           (ham_key_get_intflags(key) | BtreeKey::kApproximate));
@@ -414,7 +430,13 @@ retry:
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
 
-      return (LocalDatabase::copy_record(this, txn, op, record));
+      if (cursor) { // TODO merge those calls
+        cursor->get_txn_cursor()->couple_to_op(op);
+        cursor->couple_to_txnop();
+      }
+      if (record)
+        return (LocalDatabase::copy_record(this, txn, op, record));
+      return (0);
     }
   }
 
@@ -425,7 +447,7 @@ retry:
    * were no conflicts, and we have not found the key: now try to
    * lookup the key in the btree.
    */
-  return (m_btree_index->find(txn, 0, key, record, flags));
+  return (m_btree_index->find(txn, cursor, key, record, flags));
 }
 
 ham_status_t
@@ -847,49 +869,7 @@ ham_status_t
 LocalDatabase::find(Transaction *htxn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st;
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
-
-  /* if this database has duplicates, then we use ham_cursor_find
-   * because we have to build a duplicate list, and this is currently
-   * only available in ham_cursor_find
-   *
-   * TODO create cursor on the stack and avoid the memory allocation!
-   */
-  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    Cursor *c;
-    st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
-            (ham_txn_t *)txn, HAM_DONT_LOCK);
-    if (st)
-      return (st);
-    st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
-    cursor_close(c);
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  /*
-   * if transactions are enabled: read keys from transaction trees,
-   * otherwise read immediately from disk
-   */
-  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
-    st = find_txn(txn, key, record, flags);
-  else
-    st = m_btree_index->find(0, 0, key, record, flags);
-
-  get_local_env()->get_changeset().clear();
-
-  return (st);
+  return (find_impl(0, htxn, key, record, flags));
 }
 
 Cursor *
@@ -931,6 +911,42 @@ ham_status_t
 LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
           ham_record_t *record, uint32_t flags)
 {
+  /* reset the dupecache */
+  // TODO merge both calls, only set to nil if find() was successful
+  cursor->clear_dupecache();
+  cursor->set_to_nil(Cursor::kBoth);
+
+  ham_status_t st = find_impl(cursor, cursor->get_txn(), key, record, flags);
+  if (st)
+    return (st);
+
+  // TODO necessary? I think so, but check nevertheless
+  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
+    bool is_equal;
+    (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
+    //if (!is_equal)
+      //cursor->set_to_nil(Cursor::kBtree);
+  }
+
+  /* if the key has duplicates: build a duplicate table, then couple to the
+   * first/oldest duplicate */
+  if (cursor->get_dupecache_count()) {
+    DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
+    if (e->use_btree())
+      cursor->couple_to_btree();
+    else
+      cursor->couple_to_txnop();
+    cursor->couple_to_dupe(1);
+  }
+
+  get_local_env()->get_changeset().clear();
+
+  /* set a flag that the cursor just completed an Insert-or-find
+   * operation; this information is needed in ham_cursor_move */
+  cursor->set_lastop(Cursor::kLookupOrInsert);
+
+  return (0);
+#if 0
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
@@ -1068,12 +1084,7 @@ bail:
     if (cursor->is_coupled_to_txnop())
       cursor->get_txn_cursor()->copy_coupled_key(key);
   }
-
-  /* set a flag that the cursor just completed an Insert-or-find
-   * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::kLookupOrInsert);
-
-  return (0);
+#endif
 }
 
 uint32_t
@@ -1602,6 +1613,72 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     get_local_env()->get_changeset().flush();
 
   return (0);
+}
+
+ham_status_t
+LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+            ham_record_t *record, uint32_t flags)
+{
+  ham_status_t st;
+  LocalTransaction *local_txn = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
+    ham_trace(("invalid key size (%u instead of %u)",
+          key->size, m_config.key_size));
+    return (HAM_INV_KEY_SIZE);
+  }
+
+  /* purge cache if necessary */
+  get_local_env()->get_page_manager()->purge_cache();
+
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                        0, HAM_TXN_TEMPORARY);
+    if (cursor)
+      cursor->set_txn(local_txn);
+    txn = local_txn;
+  }
+
+#if 0
+  /* if this database has duplicates, then we use ham_cursor_find
+   * because we have to build a duplicate list, and this is currently
+   * only available in ham_cursor_find
+   *
+   * TODO create cursor on the stack and avoid the memory allocation!
+   * TODO or move this to 5hamsterdb/hamsterdb.cc?
+   */
+  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    Cursor *c;
+    st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
+            (ham_txn_t *)txn, HAM_DONT_LOCK);
+    if (st)
+      return (st);
+    st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
+    cursor_close(c);
+    get_local_env()->get_changeset().clear();
+    return (st);
+  }
+#endif
+
+  /*
+   * if transactions are enabled: read keys from transaction trees,
+   * otherwise read immediately from disk
+   */
+  if (txn)
+    st = find_txn(cursor, txn, key, record, flags);
+  else
+    st = m_btree_index->find(0, cursor, key, record, flags);
+
+  if (local_txn) {
+    get_local_env()->get_txn_manager()->abort(local_txn);
+    if (cursor)
+      cursor->set_txn(0);
+  }
+  get_local_env()->get_changeset().clear();
+
+  return (st);
 }
 
 ham_status_t

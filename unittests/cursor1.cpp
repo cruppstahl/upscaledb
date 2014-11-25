@@ -157,31 +157,23 @@ struct BaseCursorFixture {
   void insertFindMultipleCursorsTest(void)
   {
     ham_cursor_t *c[5];
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
 
     for (int i = 0; i < 5; i++)
       REQUIRE(0 == createCursor(&c[i]));
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 ==
-          ham_cursor_find(c[i], &key, 0, 0));
+      REQUIRE(0 == ham_cursor_find(c[i], &key, 0, 0));
     }
 
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key, &rec, 0));
     REQUIRE(0 == strcmp("12345", (char *)key.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec.data));
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 ==
-          ham_cursor_move(c[i], &key, &rec, 0));
+      REQUIRE(0 == ham_cursor_move(c[i], &key, &rec, 0));
       REQUIRE(0 == strcmp("12345", (char *)key.data));
       REQUIRE(0 == strcmp("abcde", (char *)rec.data));
       REQUIRE(0 == ham_cursor_close(c[i]));

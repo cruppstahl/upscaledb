@@ -199,6 +199,10 @@ class LocalDatabase : public Database {
     ham_status_t insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
+    // The actual implementation of find()
+    ham_status_t find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags);
+
     // The actual implementation of erase()
     ham_status_t erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                     uint32_t flags);
@@ -233,7 +237,7 @@ class LocalDatabase : public Database {
     // Lookup of a key/record pair in the Transaction index and in the btree,
     // if transactions are disabled/not successful; copies the
     // record into |record|. Also performs approx. matching.
-    ham_status_t find_txn(LocalTransaction *txn, ham_key_t *key,
+    ham_status_t find_txn(Cursor *cursor, LocalTransaction *txn, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // the current record number
