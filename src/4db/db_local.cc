@@ -840,60 +840,7 @@ LocalDatabase::insert(Transaction *htxn, ham_key_t *key,
 ham_status_t
 LocalDatabase::erase(Transaction *htxn, ham_key_t *key, uint32_t flags)
 {
-  LocalTransaction *local_txn = 0;
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-  uint64_t recno = 0;
-
-  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-
-  /* record number: make sure that we have a valid key structure */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != sizeof(uint64_t) || !key->data) {
-      ham_trace(("key->size must be 8, key->data must not be NULL"));
-      return (HAM_INV_PARAMETER);
-    }
-    recno = *(uint64_t *)key->data;
-  }
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
-  }
-
-  /*
-   * if transactions are enabled: append a 'erase key' operation into
-   * the txn tree; otherwise immediately erase the key from disk
-   */
-  ham_status_t st;
-  if (txn)
-    st = erase_txn(txn, key, flags, 0);
-  else
-    st = m_btree_index->erase(0, 0, key, 0, flags);
-
-  if (st) {
-    if (local_txn)
-      get_local_env()->get_txn_manager()->abort(local_txn);
-
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(uint64_t *)key->data = recno;
-
-  if (local_txn)
-    get_local_env()->get_txn_manager()->commit(local_txn);
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush();
-
-  return (0);
+  return (erase_impl(0, htxn, key, flags));
 }
 
 ham_status_t
@@ -972,54 +919,17 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 ham_status_t
 LocalDatabase::cursor_erase(Cursor *cursor, uint32_t flags)
 {
-  Transaction *local_txn = 0;
+  ham_key_t *key;
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
-    cursor->set_txn(local_txn);
-  }
+  if (cursor->is_nil())
+    throw Exception(HAM_CURSOR_IS_NIL);
 
-  /* this function will do all the work */
-  ham_status_t st = cursor->erase(cursor->get_txn()
-                                    ? cursor->get_txn()
-                                    : local_txn,
-                                  flags);
+  if (cursor->is_coupled_to_txnop()) // TODO rewrite the next line
+    key = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+  else // cursor->is_coupled_to_btree()
+    key = 0;
 
-  /* clear the changeset */
-  get_local_env()->get_changeset().clear();
-
-  /* if we created a temp. txn then clean it up again */
-  if (local_txn)
-    cursor->set_txn(0);
-
-  /* on success: verify that cursor is now nil */
-  if (st == 0) {
-    cursor->couple_to_btree();
-    ham_assert(cursor->get_txn_cursor()->is_nil());
-    ham_assert(cursor->is_nil(0));
-    cursor->clear_dupecache();
-  }
-  else {
-    if (local_txn)
-      get_local_env()->get_txn_manager()->abort(local_txn);
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  ham_assert(st == 0);
-
-  /* no need to append the journal entry - it's appended in erase_txn(),
-   * which is called by txn_cursor_erase() */
-
-  if (local_txn)
-    get_local_env()->get_txn_manager()->commit(local_txn);
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush();
-
-  return (0);
+  return (erase_impl(cursor, cursor->get_txn(), key, flags));
 }
 
 ham_status_t
@@ -1688,6 +1598,112 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::kLookupOrInsert);
+  }
+
+  if (local_txn)
+    get_local_env()->get_txn_manager()->commit(local_txn);
+  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+    get_local_env()->get_changeset().flush();
+
+  return (0);
+}
+
+ham_status_t
+LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+                uint32_t flags)
+{
+  LocalTransaction *local_txn = 0;
+  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+
+  if (key) {
+    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+        && key->size != m_config.key_size) {
+      ham_trace(("invalid key size (%u instead of %u)",
+            key->size, m_config.key_size));
+      return (HAM_INV_KEY_SIZE);
+    }
+
+    /* record number: make sure that we have a valid key structure */
+    if (get_rt_flags() & HAM_RECORD_NUMBER) {
+      if (key->size != sizeof(uint64_t) || !key->data) {
+        ham_trace(("key->size must be 8, key->data must not be NULL"));
+        return (HAM_INV_PARAMETER);
+      }
+    }
+  }
+
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                        0, HAM_TXN_TEMPORARY);
+    if (cursor)
+      cursor->set_txn(local_txn);
+    txn = local_txn;
+  }
+
+  /*
+   * if transactions are enabled: append a 'erase key' operation into
+   * the txn tree; otherwise immediately erase the key from disk
+   */
+  ham_status_t st;
+  if (txn == 0) {
+    st = m_btree_index->erase(txn, cursor, key, 0, flags);
+  }
+  else {
+    if (cursor) {
+      /*
+       * !!
+       * we have two cases:
+       *
+       * 1. the cursor is coupled to a btree item (or uncoupled, but not nil)
+       *    and the txn_cursor is nil; in that case, we have to
+       *    - uncouple the btree cursor
+       *    - insert the erase-op for the key which is used by the btree cursor
+       *
+       * 2. the cursor is coupled to a txn-op; in this case, we have to
+       *    - insert the erase-op for the key which is used by the txn-op
+       *
+       * TODO clean up this whole mess. code should be like
+       *
+       *   if (txn)
+       *     erase_txn(txn, cursor->get_key(), 0, cursor->get_txn_cursor());
+       */
+      /* case 1 described above */
+      if (cursor->is_coupled_to_btree()) {
+        cursor->set_to_nil(Cursor::kTxn);
+        cursor->get_btree_cursor()->uncouple_from_page();
+        st = erase_txn(txn, cursor->get_btree_cursor()->get_uncoupled_key(),
+                        0, cursor->get_txn_cursor());
+      }
+      /* case 2 described above */
+      else {
+        st = erase_txn(txn, cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key(),
+                        0, cursor->get_txn_cursor());
+      }
+
+      if (local_txn)
+        cursor->set_txn(0);
+    }
+    else {
+      st = erase_txn(txn, key, flags, 0);
+    }
+  }
+
+  /* on success: verify that cursor is now nil */
+  if (cursor && st == 0) {
+    cursor->set_to_nil(0);
+    cursor->couple_to_btree(); // TODO why?
+    ham_assert(cursor->get_txn_cursor()->is_nil());
+    ham_assert(cursor->is_nil(0));
+    cursor->clear_dupecache(); // TODO merge with set_to_nil()
+  }
+
+  if (st) {
+    if (local_txn)
+      get_local_env()->get_txn_manager()->abort(local_txn);
+
+    get_local_env()->get_changeset().clear();
+    return (st);
   }
 
   if (local_txn)

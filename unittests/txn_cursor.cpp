@@ -1037,75 +1037,6 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
-  void eraseKeysTest() {
-    ham_txn_t *txn;
-
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
-
-    /* insert/erase a few different keys */
-    REQUIRE(0 == insertCursor(cursor, "key1"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(false == cursor->is_nil());
-    REQUIRE(0 == cursor->erase());
-
-    /* make sure that the keys do not exist */
-    REQUIRE(HAM_KEY_ERASED_IN_TXN == findCursor(cursor, "key1"));
-
-    REQUIRE(0 == insertCursor(cursor, "key2"));
-    REQUIRE(0 == cursor->erase());
-    REQUIRE(HAM_KEY_ERASED_IN_TXN == findCursor(cursor, "key2"));
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
-  void negativeEraseKeysTest() {
-    ham_txn_t *txn;
-
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
-
-    /* erase a key that does not exist */
-    REQUIRE(0 == insertCursor(cursor, "key1"));
-    REQUIRE(0 == erase(txn, "key1"));
-    REQUIRE(HAM_CURSOR_IS_NIL == cursor->erase());
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
-  void negativeEraseKeysNilTest() {
-    ham_txn_t *txn;
-
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
-
-    /* erase a key with a cursor that is nil */
-    REQUIRE(HAM_CURSOR_IS_NIL == cursor->erase());
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
   void overwriteRecordsTest() {
     ham_txn_t *txn;
 
@@ -1364,24 +1295,6 @@ TEST_CASE("TxnCursor/insertCreateConflictTest", "")
 {
   TxnCursorFixture f;
   f.insertCreateConflictTest();
-}
-
-TEST_CASE("TxnCursor/eraseKeysTest", "")
-{
-  TxnCursorFixture f;
-  f.eraseKeysTest();
-}
-
-TEST_CASE("TxnCursor/negativeEraseKeysTest", "")
-{
-  TxnCursorFixture f;
-  f.negativeEraseKeysTest();
-}
-
-TEST_CASE("TxnCursor/negativeEraseKeysNilTest", "")
-{
-  TxnCursorFixture f;
-  f.negativeEraseKeysNilTest();
 }
 
 TEST_CASE("TxnCursor/overwriteRecordsTest", "")

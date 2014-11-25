@@ -118,9 +118,6 @@ class TransactionCursor
     // Retrieves the record size of the current item
     uint64_t get_record_size();
 
-    // Erases the current item, then 'nil's the cursor
-    ham_status_t erase();
-
     // Returns the pointer to the next cursor in the linked list of coupled
     // cursors
     TransactionCursor *get_coupled_next() {

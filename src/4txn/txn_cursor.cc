@@ -336,54 +336,6 @@ TransactionCursor::get_record_size()
   throw Exception(HAM_CURSOR_IS_NIL);
 }
 
-ham_status_t
-TransactionCursor::erase()
-{
-  ham_status_t st;
-  TransactionNode *node;
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
-
-  /* don't continue if cursor is nil */
-  // TODO not nice to access the btree cursor here
-  if (m_parent->get_btree_cursor()->get_state() == BtreeCursor::kStateNil
-        && is_nil())
-    return (HAM_CURSOR_IS_NIL);
-
-  /*
-   * !!
-   * we have two cases:
-   *
-   * 1. the cursor is coupled to a btree item (or uncoupled, but not nil)
-   *  and the txn_cursor is nil; in that case, we have to
-   *    - uncouple the btree cursor
-   *    - insert the erase-op for the key which is used by the btree cursor
-   *
-   * 2. the cursor is coupled to a txn-op; in this case, we have to
-   *    - insert the erase-op for the key which is used by the txn-op
-   */
-
-  /* case 1 described above */
-  // TODO uncoupling the btree cursor should be a private operation; i am not
-  // convinced that it is necessary here
-  if (is_nil()) {
-    BtreeCursor *btc = m_parent->get_btree_cursor();
-    if (btc->get_state() == BtreeCursor::kStateCoupled)
-      btc->uncouple_from_page();
-    st = get_db()->erase_txn(txn, btc->get_uncoupled_key(), 0, this);
-    if (st)
-      return (st);
-  }
-  /* case 2 described above */
-  else {
-    node = m_coupled_op->get_node();
-    st = get_db()->erase_txn(txn, node->get_key(), 0, this);
-    if (st)
-      return (st);
-  }
-
-  return (0);
-}
-
 LocalDatabase *
 TransactionCursor::get_db()
 {

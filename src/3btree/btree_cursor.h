@@ -142,7 +142,6 @@ class BtreeCursor
     }
 
     // Uncouples the cursor
-    // Asserts that the cursor is coupled
     void uncouple_from_page();
 
     // Returns true if a cursor points to this btree key
@@ -157,9 +156,6 @@ class BtreeCursor
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
     ham_status_t find(ham_key_t *key, ham_record_t *record, uint32_t flags);
-
-    // Erases the key from the index; afterwards, the cursor points to NIL
-    ham_status_t erase(uint32_t flags);
 
     // Moves the cursor to the first, last, next or previous element
     ham_status_t move(ham_key_t *key, ham_record_t *record, uint32_t flags);

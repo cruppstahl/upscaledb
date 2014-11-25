@@ -308,13 +308,6 @@ class Cursor
       return ((m_flags & kCoupledToTxn) ? true : false);
     }
 
-    // Erases the key/record pair that the cursor points to.
-    //
-    // On success, the cursor is then set to nil. The Transaction is passed
-    // as a separate pointer since it might be a local/temporary Transaction
-    // that was created only for this single operation.
-    ham_status_t erase(Transaction *txn, uint32_t flags);
-
     // Retrieves the number of duplicates of the current key
     uint32_t get_record_count(uint32_t flags);
 

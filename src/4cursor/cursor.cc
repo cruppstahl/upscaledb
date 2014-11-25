@@ -1015,30 +1015,6 @@ Cursor::set_to_nil(int what)
   }
 }
 
-ham_status_t
-Cursor::erase(Transaction *txn, uint32_t flags)
-{
-  ham_status_t st;
-
-  /* if transactions are enabled: add a erase-op to the txn-tree */
-  if (txn) {
-    /* if cursor is coupled to a btree item: set the txn-cursor to
-     * nil; otherwise txn_cursor_erase() doesn't know which cursor
-     * part is the valid one */
-    if (is_coupled_to_btree())
-      set_to_nil(kTxn);
-    st = m_txn_cursor.erase();
-  }
-  else {
-    st = m_btree_cursor.erase(flags);
-  }
-
-  if (st == 0)
-    set_to_nil(0);
-
-  return (st);
-}
-
 uint32_t
 Cursor::get_record_count(uint32_t flags)
 {

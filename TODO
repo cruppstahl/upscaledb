@@ -253,8 +253,11 @@ o refactoring: clean up the whole Database code; it's too much and too
     x when to call cursor->set_lastop(Cursor::kLookupOrInsert)?
     x LocalDatabase::cursor_insert -> calls LocalDatabase::insert
         x remove BtreeCursor::insert, it does not have relevant code
-    o LocalDatabase::cursor_erase -> calls LocalDatabase::erase
+    x LocalDatabase::cursor_erase -> calls LocalDatabase::erase
+        x remove BtreeCursor::erase
+        x remove TransactionCursor::erase
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
+        o remove BtreeCursor::find
     o a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
 
@@ -264,14 +267,14 @@ o #42: approx. matching: cursor returns wrong key when using transactions
 
 o fix MacOS compiler issue reported by Daniel Lemire
 
-o check recovery.pl - extended_tests are failing on PRO because the
-    error inducer hits too early
-
 o remove dependency to malloc.h, use stdlib.h instead
 
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
+
+o check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early
 
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
@@ -284,13 +287,15 @@ o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
     -> clean up the whole Cursor stuff
-    o review if the Cursor class has access to any shared resource; what
-        about the cursor list??
     o the whole cursor state is messed up. there should be 3 states:
         - nil
         - coupled to btree
         - coupled to txn
         and nothing else!
+    o there should be a get_key() and a get_record() method; the caller should
+        not get access to txn_cursor/btree_cursor etc
+    o review if the Cursor class has access to any shared resource; what
+        about the cursor list??
 
 <<<<<<< HEAD
 <<<<<<< HEAD
