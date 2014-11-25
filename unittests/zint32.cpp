@@ -62,6 +62,8 @@ struct Zint32Fixture {
       record.data = (void *)&k;
       record.size = sizeof(k);
 
+      if (*it == 23384)
+          printf("hit\n");
       REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
     }
 

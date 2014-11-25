@@ -331,6 +331,24 @@ class Zint32KeyList : public BaseKeyList
         uint32_t srckey = 0;
         s = fast_forward_to_position(srci, src_position_in_block - 1, &srckey);
 
+        // TODO this is a problem. we need to know the delta size of
+        // src_position_in_block because |srckey| is moved to the other
+        // block, but how many bytes were required by srckey? need to
+        // adjust index->used_size accordingly)
+        /*
+        if (src_position_in_block >= 2) {
+          s = fast_forward_to_position(srci, src_position_in_block - 2, &srckey);
+          start_s = s;
+          s += read_int(s, &delta);
+          srckey += delta;
+        }
+        else {
+          s = get_block_data(srci);
+          start_s = s;
+          srckey = srci->value;
+        }
+        */
+
         // need to keep a copy of the pointer where we started, so we can later
         // figure out how many bytes were copied
         uint8_t *start_s = s;
@@ -369,8 +387,7 @@ class Zint32KeyList : public BaseKeyList
         // now copy the remaining keys of the first block
         for (int i = src_position_in_block; i < srci->key_count; i++) {
           uint32_t delta;
-          s += read_int(s, &delta);
-
+          s += read_int(s, &delta); // TODO use memcpy!
           d += write_int(d, delta);
           dsti->key_count++;
         }
@@ -488,6 +505,13 @@ class Zint32KeyList : public BaseKeyList
                         (int)index->block_size));
           throw Exception(HAM_INTEGRITY_VIOLATED);
         }
+
+        uint8_t *p = get_block_data(index);
+        for (int i = 1; i < index->key_count; i++) {
+          uint32_t delta;
+          p += read_int(p, &delta);
+        }
+        ham_assert(index->used_size == p - get_block_data(index));
       }
 
       // add static overhead
@@ -752,17 +776,17 @@ class Zint32KeyList : public BaseKeyList
       uint8_t *src = get_block_data(index);
       uint32_t prev = index->value;
       uint32_t delta;
+      int old_key_count = index->key_count;
+      int old_used_size = index->used_size;
 
       // roughly skip half of the data
-      int size = index->used_size / 2;
-      int i;
-      for (i = 1; i < index->key_count && size > 0; i++) {
+      for (int i = 1; i < old_key_count / 2; i++) {
         int delta_size = read_int(src, &delta);
         prev += delta;
         src += delta_size;
-        size -= delta_size;
       }
-      ham_assert(i < index->key_count);
+      index->key_count /= 2;
+      index->used_size = src - get_block_data(index);
 
       // the next delta will be the initial key of the new block
       src += read_int(src, &delta);
@@ -771,15 +795,11 @@ class Zint32KeyList : public BaseKeyList
 
       // now copy the remaining data
       uint8_t *dst = get_block_data(new_index);
-      size = (get_block_data(index) + index->used_size) - src;
-      memcpy(dst, src, size);
-      dst += size;
+      new_index->used_size = (get_block_data(index) + old_used_size) - src;
+      ::memcpy(dst, src, new_index->used_size);
 
       // and update all counters
-      new_index->key_count = index->key_count - i;
-      index->key_count = i;
-      new_index->used_size = dst - get_block_data(new_index);
-      index->used_size = src - get_block_data(index);
+      new_index->key_count = old_key_count - index->key_count;
 
       // now figure out whether the key will be inserted in the old or
       // the new block
