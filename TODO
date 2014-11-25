@@ -97,11 +97,16 @@ x refactoring: the ByteArray should be non-copyable, or at least
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 x Zint32: still has a few bugs when running unittests because
+=======
+o Zint32: still has a few bugs when running unittests because
+>>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
     index->used_size is miscalculated
     gdb --args ./test Zint*
     b zint32.cpp:66
     b hamsterdb::Zint32::Zint32KeyList::copy_to
+<<<<<<< HEAD
     x then once more check the monster tests
 =======
     o have the hamsterdb/documentation directory "link" to the git project
@@ -529,6 +534,10 @@ o PRO: add more simdcomp related functions for blocks < 128 integers
 >>>>>>> More refactorings, no functional changes
 =======
 >>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
+=======
+    o then once more check the monster tests
+
+>>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
 o refactoring: clean up the whole Database code; it's too much and too
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
@@ -541,10 +550,14 @@ o refactoring: clean up the whole Database code; it's too much and too
     x LocalDatabase::cursor_erase -> calls LocalDatabase::erase
         x remove BtreeCursor::erase
         x remove TransactionCursor::erase
+===============
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
         o remove BtreeCursor::find
+        o remove TransactionCursor::find
+===============
     o a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
+    o run performance tests
 
 o #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
@@ -557,9 +570,6 @@ o remove dependency to malloc.h, use stdlib.h instead
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
-
-o check recovery.pl - extended_tests are failing on PRO because the
-    error inducer hits too early
 
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
@@ -666,6 +676,9 @@ o move "purge cache" to background
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
     o afterwards once more run the leveldb benchmarks
+
+o check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early
 
 o reduce the number functions which modify the pages; all other functions
     just get a const page
