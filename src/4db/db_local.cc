@@ -306,7 +306,26 @@ retry:
               (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
         }
-        return (HAM_KEY_NOT_FOUND);
+        /* if a duplicate was deleted then check if there are other duplicates
+         * left */
+        st = HAM_KEY_NOT_FOUND;
+        if (op->get_referenced_dupe() > 1) {
+          // not the first dupe - there are other dupes
+          st = 0;
+        }
+        else if (op->get_referenced_dupe() == 1) {
+          // check if there are other dupes
+          bool is_equal;
+          (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
+          if (!is_equal) // TODO merge w/ line above?
+            cursor->set_to_nil(Cursor::kBtree);
+          st = cursor->get_dupecache_count() ? 0 : HAM_KEY_NOT_FOUND;
+        }
+        if (st == 0) { // TODO merge both calls
+          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->couple_to_txnop();
+        }
+        return (st);
       }
       /* if the key already exists then return its record; do not
        * return pointers to TransactionOperation::get_record, because it may be
@@ -866,10 +885,30 @@ LocalDatabase::erase(Transaction *htxn, ham_key_t *key, uint32_t flags)
 }
 
 ham_status_t
-LocalDatabase::find(Transaction *htxn, ham_key_t *key,
+LocalDatabase::find(Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  return (find_impl(0, htxn, key, record, flags));
+  /* if this database has duplicates, then we use ham_cursor_find
+   * because we have to build a duplicate list, and this is currently
+   * only available in ham_cursor_find
+   *
+   * TODO create cursor on the stack and avoid the memory allocation!
+   * TODO or at least use internal functions...
+   */
+  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    Cursor *c;
+    ham_status_t st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
+                    (ham_txn_t *)txn, HAM_DONT_LOCK);
+    if (st == 0) {
+      st = ham_cursor_find((ham_cursor_t *)c, key, record,
+                      flags | HAM_DONT_LOCK);
+      cursor_close(c);
+      get_local_env()->get_changeset().clear();
+    }
+    return (st);
+  }
+
+  return (find_impl(0, txn, key, record, flags));
 }
 
 Cursor *
@@ -924,8 +963,8 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
     bool is_equal;
     (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
-    //if (!is_equal)
-      //cursor->set_to_nil(Cursor::kBtree);
+    if (!is_equal)
+      cursor->set_to_nil(Cursor::kBtree);
   }
 
   /* if the key has duplicates: build a duplicate table, then couple to the

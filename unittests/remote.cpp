@@ -861,12 +861,11 @@ struct RemoteFixture {
     ham_key_t key = {};
     ham_record_t rec = {};
     rec.data = (void *)data;
-    rec.size = (uint32_t)::strlen(data)+1;
+    rec.size = (uint32_t)::strlen(data) + 1;
     key.data = (void *)k;
-    key.size = (uint16_t)(k ? ::strlen(k)+1 : 0);
+    key.size = (uint16_t)(k ? ::strlen(k) + 1 : 0);
 
-    REQUIRE(0 ==
-          ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
   }
 
   void cursorGetDuplicateCountTest() {
@@ -876,50 +875,38 @@ struct RemoteFixture {
     ham_cursor_t *c;
     ham_txn_t *txn;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 14, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 14, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == ham_cursor_create(&c, db, txn, 0));
 
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_get_duplicate_count(0, &count, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_get_duplicate_count(c, 0, 0));
-    REQUIRE(HAM_CURSOR_IS_NIL ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_cursor_get_duplicate_count(0, &count, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_cursor_get_duplicate_count(c, 0, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)0 == count);
 
     insertData(c, 0, "1111111111");
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)1 == count);
 
     insertData(c, 0, "2222222222");
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)2 == count);
 
     insertData(c, 0, "3333333333");
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)3 == count);
 
     REQUIRE(0 == ham_cursor_erase(c, 0));
-    REQUIRE(HAM_CURSOR_IS_NIL ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL == ham_cursor_get_duplicate_count(c, &count, 0));
 
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    REQUIRE(0 ==
-        ham_cursor_find(c, &key, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_get_duplicate_count(c, &count, 0));
+    ham_key_t key = {0};
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)2 == count);
 
     REQUIRE(0 == ham_cursor_close(c));
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
