@@ -325,18 +325,17 @@ class Zint32KeyList : public BaseKeyList
       if (src_position_in_block > 0) {
         src_position_in_block++; // TODO inc, and dec is below??
 
-        // if the start position is in the middle of a block then fast-forward
-        // to that position
         uint8_t *s;
         uint32_t srckey = 0;
-        s = fast_forward_to_position(srci, src_position_in_block - 1, &srckey);
+        uint32_t delta;
 
-        // TODO this is a problem. we need to know the delta size of
-        // src_position_in_block because |srckey| is moved to the other
-        // block, but how many bytes were required by srckey? need to
-        // adjust index->used_size accordingly)
-        /*
-        if (src_position_in_block >= 2) {
+        // need to keep a copy of the pointer where we started, so we can later
+        // figure out how many bytes were copied
+        uint8_t *start_s;
+
+        // if the start position is in the middle of a block then fast-forward
+        // to that position
+        if (src_position_in_block > 2) {
           s = fast_forward_to_position(srci, src_position_in_block - 2, &srckey);
           start_s = s;
           s += read_int(s, &delta);
@@ -345,13 +344,9 @@ class Zint32KeyList : public BaseKeyList
         else {
           s = get_block_data(srci);
           start_s = s;
-          srckey = srci->value;
+          s += read_int(s, &delta);
+          srckey = srci->value + delta;
         }
-        */
-
-        // need to keep a copy of the pointer where we started, so we can later
-        // figure out how many bytes were copied
-        uint8_t *start_s = s;
 
         // fast-forward to the start position in the destination block
         uint8_t *d;
@@ -386,7 +381,6 @@ class Zint32KeyList : public BaseKeyList
 
         // now copy the remaining keys of the first block
         for (int i = src_position_in_block; i < srci->key_count; i++) {
-          uint32_t delta;
           s += read_int(s, &delta); // TODO use memcpy!
           d += write_int(d, delta);
           dsti->key_count++;
@@ -506,12 +500,14 @@ class Zint32KeyList : public BaseKeyList
           throw Exception(HAM_INTEGRITY_VIOLATED);
         }
 
+        /*
         uint8_t *p = get_block_data(index);
         for (int i = 1; i < index->key_count; i++) {
           uint32_t delta;
           p += read_int(p, &delta);
         }
         ham_assert(index->used_size == p - get_block_data(index));
+        */
       }
 
       // add static overhead
@@ -1003,8 +999,9 @@ class Zint32KeyList : public BaseKeyList
         return;
       }
 
+      // cut off the last key in the block?
       if (position == index->key_count - 1) {
-        index->used_size -= p - prev_p;
+        index->used_size -= (get_block_data(index) + index->used_size) - p;
         index->key_count--;
         return;
       }
