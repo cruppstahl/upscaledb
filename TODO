@@ -98,14 +98,19 @@ x refactoring: the ByteArray should be non-copyable, or at least
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 x Zint32: still has a few bugs when running unittests because
 =======
 o Zint32: still has a few bugs when running unittests because
+>>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
+=======
+x Zint32: still has a few bugs when running unittests because
 >>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
     index->used_size is miscalculated
     gdb --args ./test Zint*
     b zint32.cpp:66
     b hamsterdb::Zint32::Zint32KeyList::copy_to
+<<<<<<< HEAD
 <<<<<<< HEAD
     x then once more check the monster tests
 =======
@@ -536,6 +541,9 @@ o PRO: add more simdcomp related functions for blocks < 128 integers
 >>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
 =======
     o then once more check the monster tests
+=======
+    x then once more check the monster tests
+>>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
 
 >>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
 o refactoring: clean up the whole Database code; it's too much and too
@@ -554,10 +562,16 @@ o refactoring: clean up the whole Database code; it's too much and too
     o LocalDatabase::cursor_find -> calls LocalDatabase::find
         o remove BtreeCursor::find
         o remove TransactionCursor::find
+
+Cursor-dupes/findInDuplicatesTest
+b hamsterdb::LocalDatabase::cursor_find
+-> i think the correct record is now chosen, but it is not copied back to
+    the user's structure!
 ===============
     o a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
     o run performance tests
+    o run monster tests
 
 o #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
@@ -574,6 +588,9 @@ o migrate to libuv 1.0, it has a stable API
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
     o move block/index related functionality to a base class BlockKeyList
+        (w/ template parameter for the block structure)
+    o add parameter to header file
+    o support in ham_bench
     o implement the compression
         -> only use as many bits per block as required for those numbers
         -> use delta-encoding to have better compression
@@ -581,6 +598,7 @@ o Zint32: add compression based on bit-packing
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
+<<<<<<< HEAD
     -> clean up the whole Cursor stuff
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -627,6 +645,8 @@ o refactoring: clean up the whole Database code; it's too much and too
         about the cursor list??
 =======
 >>>>>>> Refactoring of LocalDatabase::erase, cursor_erase
+=======
+>>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
     o the whole cursor state is messed up. there should be 3 states:
         - nil
         - coupled to btree
