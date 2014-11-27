@@ -379,6 +379,8 @@ retry:
       flags = flags & (~HAM_FIND_EXACT_MATCH);
 
     // now lookup in the btree
+    if (cursor)
+      cursor->set_to_nil(Cursor::kBtree);
     st = m_btree_index->find(txn, cursor, key, record, flags);
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {

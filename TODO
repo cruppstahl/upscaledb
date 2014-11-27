@@ -277,11 +277,13 @@ o refactoring: clean up the whole Database code; it's too much and too
     o run performance tests
     o run monster tests
 
-o #42: approx. matching: cursor returns wrong key when using transactions
+x #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
-    o the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
+    x the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
 
-o fix MacOS compiler issue reported by Daniel Lemire (master branch!)
+o cherry-pick the following commits on the master branch
+    1447ba4eb217532e8fb49c4a84a0dc3b982a3ffe
+    6a8dd20ec9bd2ec718d1136db7667e0e58911003
 
 o remove dependency to malloc.h, use stdlib.h instead
 
