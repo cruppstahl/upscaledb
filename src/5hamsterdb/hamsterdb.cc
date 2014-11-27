@@ -16,11 +16,7 @@
 
 #include "0root/root.h"
 
-#ifdef HAVE_MALLOC_H
-#  include <malloc.h>
-#else
-#  include <stdlib.h>
-#endif
+#include <stdlib.h>
 #include <string.h>
 
 #include "ham/hamsterdb.h"

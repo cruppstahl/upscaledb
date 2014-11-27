@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_MALLOC_H
-#  include <malloc.h>
-#else
-#  include <stdlib.h>
-#endif
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 

@@ -34,7 +34,7 @@ AM_PROG_CC_C_O
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([mmap munmap madvice getpagesize fdatasync fsync writev pread pwrite])
-AC_CHECK_HEADERS([fcntl.h unistd.h malloc.h uv.h])
+AC_CHECK_HEADERS([fcntl.h unistd.h uv.h])
 
 m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
 AX_CXX_GCC_ABI_DEMANGLE

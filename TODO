@@ -285,7 +285,7 @@ o cherry-pick the following commits on the master branch
     1447ba4eb217532e8fb49c4a84a0dc3b982a3ffe
     6a8dd20ec9bd2ec718d1136db7667e0e58911003
 
-o remove dependency to malloc.h, use stdlib.h instead
+x remove dependency to malloc.h, use stdlib.h instead
 
 o add patches from Thomas Fähnle
 

@@ -10,6 +10,7 @@ o issue #43: fixed segfault when flushing transactions (thanks, Joel
 	Jacobson)
 
 Nov 27, 2014 - chris ---------------------------------------------------
+o Removed dependency to malloc.h
 o issue #42: ham_cursor_find returned wrong key w/ approx. matching and
 	transactions
 

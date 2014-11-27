@@ -28,9 +28,6 @@
 
 #include <new>
 #include <stdlib.h>
-#ifdef HAVE_MALLOC_H
-#  include <malloc.h>
-#endif
 #ifdef HAM_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #endif
@@ -137,9 +134,6 @@ class Memory {
 
     // updates and returns the collected metrics
     static void get_global_metrics(ham_env_metrics_t *metrics);
-
-    // releases unused memory back to the operating system
-    static void release_to_system();
 
   private:
     // peak memory usage

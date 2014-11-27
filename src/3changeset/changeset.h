@@ -27,11 +27,7 @@
 
 #include "0root/root.h"
 
-#ifdef HAVE_MALLOC_H
-#  include <malloc.h>
-#else
-#  include <stdlib.h>
-#endif
+#include <stdlib.h>
 
 // Always verify that a file of level N does not include headers > N!
 #include "2page/page.h"

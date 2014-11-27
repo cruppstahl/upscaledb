@@ -19,9 +19,8 @@
 #ifdef HAM_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #  include <google/malloc_extension.h>
-#elif HAVE_MALLOC_H
-#  include <malloc.h>
 #endif
+#include <stdlib.h>
 
 #include "ham/hamsterdb_int.h"
 
@@ -56,22 +55,6 @@ Memory::get_global_metrics(ham_env_metrics_t *metrics)
 
   metrics->mem_total_allocations = ms_total_allocations;
   metrics->mem_current_allocations = ms_current_allocations;
-}
-
-void 
-Memory::release_to_system()
-{
-#ifdef HAM_USE_TCMALLOC
-  MallocExtension::instance()->ReleaseFreeMemory();
-#elif WIN32
-  // TODO
-#elif __FreeBSD__
-  // TODO
-#elif __APPLE__
-  // TODO
-#elif __GNUC__
-  ::malloc_trim(File::get_granularity());
-#endif
 }
 
 } // namespace hamsterdb
