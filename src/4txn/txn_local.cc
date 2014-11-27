@@ -536,15 +536,13 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
     get_local_env()->get_journal()->append_txn_abort(txn,
                     get_local_env()->get_incremented_lsn());
 
-  /* clean up the changeset */
-  get_local_env()->get_changeset().clear();
-
   /* flush committed transactions; while this one was not committed,
    * we might have cleared the way now to flush other committed
    * transactions */
   m_queued_txn_for_flush++;
-  // no need to increment m_queued_{ops,bytes}_for_flush because this
-  // operation does no longer contain any operations
+
+  /* no need to increment m_queued_{ops,bytes}_for_flush because this
+   * operation does no longer contain any operations */
   maybe_flush_committed_txns();
 }
 

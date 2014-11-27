@@ -62,11 +62,11 @@ Cursor::Cursor(Cursor &other)
 void
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
+  AutoClearChangeset acc(m_db->get_local_env()->get_changeset());
+
   uint32_t count = btc->get_record_count(0);
   for (uint32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
-
-  m_db->get_local_env()->get_changeset().clear();
 }
 
 void
@@ -224,6 +224,8 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
 void
 Cursor::sync(uint32_t flags, bool *equal_keys)
 {
+  AutoClearChangeset acc(m_db->get_local_env()->get_changeset());
+
   if (equal_keys)
     *equal_keys = false;
 
@@ -265,8 +267,6 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
       *equal_keys = true;
     get_db()->cursor_close(clone);
   }
-
-  m_db->get_local_env()->get_changeset().clear();
 }
 
 ham_status_t

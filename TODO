@@ -270,17 +270,9 @@ o refactoring: clean up the whole Database code; it's too much and too
     x LocalDatabase::cursor_erase -> calls LocalDatabase::erase
         x remove BtreeCursor::erase
         x remove TransactionCursor::erase
-===============
-    o LocalDatabase::cursor_find -> calls LocalDatabase::find
-        o remove BtreeCursor::find
-        o remove TransactionCursor::find
-
-Cursor-dupes/findInDuplicatesTest
-b hamsterdb::LocalDatabase::cursor_find
--> i think the correct record is now chosen, but it is not copied back to
-    the user's structure!
-===============
-    o a lot of functions have to clear the changeset when they leave;
+    x LocalDatabase::cursor_find -> calls LocalDatabase::find
+        x update BtreeCursor::find
+    x a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
     o run performance tests
     o run monster tests
@@ -289,9 +281,11 @@ o #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
     o the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
 
-o fix MacOS compiler issue reported by Daniel Lemire
+o fix MacOS compiler issue reported by Daniel Lemire (master branch!)
 
 o remove dependency to malloc.h, use stdlib.h instead
+
+o add patches from Thomas Fähnle
 
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html

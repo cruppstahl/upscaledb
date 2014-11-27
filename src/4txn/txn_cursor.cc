@@ -231,9 +231,8 @@ TransactionCursor::find(ham_key_t *key, uint32_t flags)
   set_to_nil();
 
   /* then lookup the node */
-  LocalDatabase *db = get_db();
-  if (db->get_txn_index())
-    node = db->get_txn_index()->get(key, flags);
+  if (get_db()->get_txn_index())
+    node = get_db()->get_txn_index()->get(key, flags);
   if (!node)
     return (HAM_KEY_NOT_FOUND);
 

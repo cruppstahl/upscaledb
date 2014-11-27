@@ -174,13 +174,9 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
 ham_status_t
 BtreeCursor::find(ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
-  Transaction *txn = m_parent->get_txn();
-
-  ham_assert(key);
-
   set_to_nil();
 
-  return (m_btree->find(txn, m_parent, key, record, flags));
+  return (m_btree->find(m_parent->get_txn(), m_parent, key, record, flags));
 }
 
 bool

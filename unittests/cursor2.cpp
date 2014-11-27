@@ -1349,10 +1349,8 @@ struct DupeCursorFixture {
       ham_key_t key = {0};
       key.size = 3;
       key.data = (void *)"k1";
-      REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-      REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+      REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+      REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", HAM_CURSOR_FIRST));

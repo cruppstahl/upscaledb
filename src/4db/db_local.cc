@@ -102,10 +102,9 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
           || (get_rt_flags() & HAM_RECORD_NUMBER))
     return (0);
 
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
-
-  get_local_env()->get_changeset().clear();
-
   switch (st) {
     case HAM_KEY_NOT_FOUND:
       return (0);
@@ -163,14 +162,14 @@ LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
     op = op->get_previous_in_node();
   }
 
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /*
    * we've successfully checked all un-flushed transactions and there
    * were no conflicts. Now check all transactions which are already
    * flushed - basically that's identical to a btree lookup.
    */
-  ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
-  get_local_env()->get_changeset().clear();
-  return (st);
+  return (m_btree_index->find(0, 0, key, 0, flags));
 }
 
 ham_status_t
@@ -309,6 +308,11 @@ retry:
         /* if a duplicate was deleted then check if there are other duplicates
          * left */
         st = HAM_KEY_NOT_FOUND;
+        // TODO merge both calls
+        if (cursor) {
+          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->couple_to_txnop();
+        }
         if (op->get_referenced_dupe() > 1) {
           // not the first dupe - there are other dupes
           st = 0;
@@ -320,10 +324,6 @@ retry:
           if (!is_equal) // TODO merge w/ line above?
             cursor->set_to_nil(Cursor::kBtree);
           st = cursor->get_dupecache_count() ? 0 : HAM_KEY_NOT_FOUND;
-        }
-        if (st == 0) { // TODO merge both calls
-          cursor->get_txn_cursor()->couple_to_op(op);
-          cursor->couple_to_txnop();
         }
         return (st);
       }
@@ -716,6 +716,8 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
 void
 LocalDatabase::check_integrity(uint32_t flags)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
@@ -724,13 +726,12 @@ LocalDatabase::check_integrity(uint32_t flags)
 
   /* call the txn function */
   //m_txn_index->check_integrity(flags);
-
-  get_local_env()->get_changeset().clear();
 }
 
 uint64_t
 LocalDatabase::count(Transaction *htxn, bool distinct)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   /* purge cache if necessary */
@@ -748,15 +749,13 @@ LocalDatabase::count(Transaction *htxn, bool distinct)
    */
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
     keycount += m_txn_index->count(txn, distinct);
-
-  get_local_env()->get_changeset().clear();
-
   return (keycount);
 }
 
 void
 LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
   Page *page;
   ham_key_t key = {0};
 
@@ -868,7 +867,6 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
 bail:
   cursor_close(cursor);
-  get_local_env()->get_changeset().clear();
 }
 
 ham_status_t
@@ -888,6 +886,8 @@ ham_status_t
 LocalDatabase::find(Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
    * only available in ham_cursor_find
@@ -903,7 +903,6 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
       st = ham_cursor_find((ham_cursor_t *)c, key, record,
                       flags | HAM_DONT_LOCK);
       cursor_close(c);
-      get_local_env()->get_changeset().clear();
     }
     return (st);
   }
@@ -950,6 +949,8 @@ ham_status_t
 LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
           ham_record_t *record, uint32_t flags)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* reset the dupecache */
   // TODO merge both calls, only set to nil if find() was successful
   cursor->clear_dupecache();
@@ -963,8 +964,8 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
     bool is_equal;
     (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
-    if (!is_equal)
-      cursor->set_to_nil(Cursor::kBtree);
+    //if (!is_equal)
+      //cursor->set_to_nil(Cursor::kBtree);
   }
 
   /* if the key has duplicates: build a duplicate table, then couple to the
@@ -976,154 +977,20 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     else
       cursor->couple_to_txnop();
     cursor->couple_to_dupe(1);
-  }
-
-  get_local_env()->get_changeset().clear();
-
-  /* set a flag that the cursor just completed an Insert-or-find
-   * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::kLookupOrInsert);
-
-  return (0);
-#if 0
-  TransactionCursor *txnc = cursor->get_txn_cursor();
-
-  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != sizeof(uint64_t) || !key->data) {
-      ham_trace(("key->size must be 8, key->data must not be NULL"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
-
-  /* reset the dupecache */
-  // TODO merge both calls, only set to nil if find() was successful
-  cursor->clear_dupecache();
-  cursor->set_to_nil(Cursor::kBoth);
-
-  /*
-   * first try to find the key in the transaction tree. If it exists and
-   * is NOT a duplicate then return its record. If it does not exist or
-   * it has duplicates then lookup the key in the btree.
-   *
-   * in non-Transaction mode directly search through the btree.
-   */
-  ham_status_t st;
-  if (cursor->get_txn() || (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    st = cursor->get_txn_cursor()->find(key, flags);
-    /* if the key was erased in a transaction then fail with an error
-     * (unless we have duplicates - they're checked below) */
-    if (st) {
-      if (st == HAM_KEY_NOT_FOUND)
-        goto btree;
-      if (st == HAM_KEY_ERASED_IN_TXN) {
-        /* performance hack: if coupled op erases ALL duplicates
-         * then we know that the key no longer exists. if coupled op
-         * references a single duplicate w/ index > 1 then
-         * we know that there are other duplicates. if coupled op
-         * references the FIRST duplicate (idx 1) then we have
-         * to check if there are other duplicates */
-        TransactionOperation *op = txnc->get_coupled_op();
-        ham_assert(op->get_flags() & TransactionOperation::kErase);
-        if (!op->get_referenced_dupe()) {
-          // ALL!
-          st = HAM_KEY_NOT_FOUND;
-        }
-        else if (op->get_referenced_dupe() > 1) {
-          // not the first dupe - there are other dupes
-          st = 0;
-        }
-        else if (op->get_referenced_dupe() == 1) {
-          // check if there are other dupes
-          bool is_equal;
-          (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
-          if (!is_equal)
-            cursor->set_to_nil(Cursor::kBtree);
-          if (!cursor->get_dupecache_count())
-            st = HAM_KEY_NOT_FOUND;
-          else
-            st = 0;
-        }
-      }
-      if (st)
-        goto bail;
-    }
-    else {
-      bool is_equal;
-      (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
-      if (!is_equal)
-        cursor->set_to_nil(Cursor::kBtree);
-    }
-    cursor->couple_to_txnop();
-    if (!cursor->get_dupecache_count()) {
-      if (record)
-        txnc->copy_coupled_record(record);
-      goto bail;
-    }
-    if (st == 0)
-      goto check_dupes;
-  }
-
-btree:
-  st = cursor->get_btree_cursor()->find(key, record, flags);
-  if (st == 0) {
-    cursor->couple_to_btree();
-    /* if btree keys were found: reset the dupecache. The previous
-     * call to cursor_get_dupecache_count() already initialized the
-     * dupecache, but only with txn keys because the cursor was only
-     * coupled to the txn */
-    cursor->clear_dupecache();
-  }
-
-check_dupes:
-  /* if the key has duplicates: build a duplicate table, then
-   * couple to the first/oldest duplicate */
-  if (cursor->get_dupecache_count()) {
-    DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
-    if (e->use_btree())
-      cursor->couple_to_btree();
-    else
-      cursor->couple_to_txnop();
-    cursor->couple_to_dupe(1);
-    st = 0;
-
-    /* now read the record */
-    if (record) {
-      /* TODO this works, but in case of the btree key w/ duplicates
-      * it's possible that we read the record twice. I'm not sure if
-      * this can be avoided, though. */
+    if (record) { // TODO don't copy record if it was already
+                  // copied in find_impl
       if (cursor->is_coupled_to_txnop())
         cursor->get_txn_cursor()->copy_coupled_record(record);
       else
         st = cursor->get_btree_cursor()->move(0, record, 0);
     }
   }
-  else {
-    if (cursor->is_coupled_to_txnop() && record)
-      cursor->get_txn_cursor()->copy_coupled_record(record);
-  }
 
-bail:
-  get_local_env()->get_changeset().clear();
+  /* set a flag that the cursor just completed an Insert-or-find
+   * operation; this information is needed in ham_cursor_move */
+  cursor->set_lastop(Cursor::kLookupOrInsert);
 
-  if (st)
-    return (st);
-
-  /* approximate matching? then also copy the key */
-  if (ham_key_get_intflags(key) & BtreeKey::kApproximate) {
-    if (cursor->is_coupled_to_txnop())
-      cursor->get_txn_cursor()->copy_coupled_key(key);
-  }
-#endif
+  return (0);
 }
 
 uint32_t
@@ -1149,6 +1016,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
           ham_record_t *record, uint32_t flags)
 {
   Transaction *local_txn = 0;
+  AutoClearChangeset acc(get_local_env()->get_changeset());
 
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -1173,7 +1041,6 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   if (st) {
     if (local_txn)
       get_local_env()->get_txn_manager()->abort(local_txn);
-    get_local_env()->get_changeset().clear();
     return (st);
   }
 
@@ -1225,17 +1092,16 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
 
   ham_status_t st = 0;
 
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* in non-transactional mode - just call the btree function and return */
   if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
     st = cursor->get_btree_cursor()->move(key, record, flags);
-    get_local_env()->get_changeset().clear();
     return (st);
   }
 
   /* everything else is handled by the cursor function */
   st = cursor->move(key, record, flags);
-
-  get_local_env()->get_changeset().clear();
 
   /* store the direction */
   if (flags & HAM_CURSOR_NEXT)
@@ -1265,6 +1131,8 @@ LocalDatabase::cursor_close_impl(Cursor *cursor)
 ham_status_t
 LocalDatabase::close_impl(uint32_t flags)
 {
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* check if this database is modified by an active transaction */
   if (m_txn_index) {
     TransactionNode *node = m_txn_index->get_first();
@@ -1290,9 +1158,6 @@ LocalDatabase::close_impl(uint32_t flags)
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY)
    m_btree_index->release();
-
-  /* clear the changeset */
-  get_local_env()->get_changeset().clear();
 
   /*
    * flush all pages of this database (but not the header page,
@@ -1565,6 +1430,8 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     flags |= HAM_HINT_APPEND;
   }
 
+  AutoClearChangeset acc(get_local_env()->get_changeset());
+
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
 
@@ -1605,7 +1472,6 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       ham_assert(st != HAM_DUPLICATE_KEY);
     }
 
-    get_local_env()->get_changeset().clear();
     return (st);
   }
 
@@ -1661,6 +1527,7 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   ham_status_t st;
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+  AutoClearChangeset acc(get_local_env()->get_changeset());
 
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
       && key->size != m_config.key_size) {
@@ -1680,27 +1547,6 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     txn = local_txn;
   }
 
-#if 0
-  /* if this database has duplicates, then we use ham_cursor_find
-   * because we have to build a duplicate list, and this is currently
-   * only available in ham_cursor_find
-   *
-   * TODO create cursor on the stack and avoid the memory allocation!
-   * TODO or move this to 5hamsterdb/hamsterdb.cc?
-   */
-  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    Cursor *c;
-    st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
-            (ham_txn_t *)txn, HAM_DONT_LOCK);
-    if (st)
-      return (st);
-    st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
-    cursor_close(c);
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-#endif
-
   /*
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
@@ -1715,7 +1561,6 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     if (cursor)
       cursor->set_txn(0);
   }
-  get_local_env()->get_changeset().clear();
 
   return (st);
 }
@@ -1726,6 +1571,7 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 {
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+  AutoClearChangeset acc(get_local_env()->get_changeset());
 
   if (key) {
     if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
@@ -1812,8 +1658,6 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   if (st) {
     if (local_txn)
       get_local_env()->get_txn_manager()->abort(local_txn);
-
-    get_local_env()->get_changeset().clear();
     return (st);
   }
 
