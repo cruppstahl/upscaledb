@@ -585,7 +585,7 @@ o cherry-pick the following commits on the master branch
     6a8dd20ec9bd2ec718d1136db7667e0e58911003
 >>>>>>> issue #42: ham_cursor_find returned wrong key w/ approx. matching and transactions
 
-o remove dependency to malloc.h, use stdlib.h instead
+x remove dependency to malloc.h, use stdlib.h instead
 
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
