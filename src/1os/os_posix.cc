@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+#define _GNU_SOURCE        1 // for O_LARGEFILE
+#define _FILE_OFFSET_BITS 64
+
 #include "0root/root.h"
 
-#define _GNU_SOURCE   1 // for O_LARGEFILE
-#define __USE_XOPEN2K 1 // for ftruncate()
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>

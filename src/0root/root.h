@@ -24,9 +24,9 @@
 #ifndef HAM_ROOT_H
 #define HAM_ROOT_H
 
-#include "ham/types.h"
-
-// include autoconf header file; otherwise, assume sane default values
+// some feature macros in config.h must be set *before* inclusion
+// of any system headers to have the desired effect.
+// assume sane default values if there is no config.h.
 #ifdef HAVE_CONFIG_H
 #   include "../config.h"
 #else
@@ -35,6 +35,8 @@
 #   define HAVE_PREAD             1
 #   define HAVE_PWRITE            1
 #endif
+
+#include "ham/types.h"
 
 // check for a valid build
 #if (!defined(HAM_DEBUG))
