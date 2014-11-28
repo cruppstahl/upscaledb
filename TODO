@@ -116,6 +116,7 @@ x Zint32: still has a few bugs when running unittests because
 =======
     o have the hamsterdb/documentation directory "link" to the git project
 
+<<<<<<< HEAD
 =======
 >>>>>>> The macro HAM_API_REVISION is now deprecated; use HAM_VERSION_* instead
 =======
@@ -151,11 +152,17 @@ o refactoring: the ByteArray should be non-copyable, or at least
 o refactoring: make journal stateless and exception safe
 >>>>>>> Updated TODO
 
+=======
+>>>>>>> Fixed large file support on linux
 x remove dependency to malloc.h, use stdlib.h instead
 
 x add patches from Thomas Fähnle
 
+<<<<<<< HEAD
 x refactoring: clean up the whole Database code; it's too much and too
+=======
+o refactoring: clean up the whole Database code; it's too much and too
+>>>>>>> Fixed large file support on linux
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
     -> should we move the transactional implementations to their own
@@ -585,21 +592,39 @@ o cherry-pick the following commits on the master branch
     6a8dd20ec9bd2ec718d1136db7667e0e58911003
 >>>>>>> issue #42: ham_cursor_find returned wrong key w/ approx. matching and transactions
 
+<<<<<<< HEAD
 x remove dependency to malloc.h, use stdlib.h instead
 
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
+=======
+>>>>>>> Fixed large file support on linux
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
-    o move block/index related functionality to a base class BlockKeyList
+    x add parameter to header file
+    x support in ham_bench
+    x update IndexFactory for the new KeyList
+    x move block/index related functionality to a base class BlockKeyList
         (w/ template parameter for the block structure)
-    o add parameter to header file
-    o support in ham_bench
+    o integrate Daniel's sources as a library
     o implement the compression
-        -> only use as many bits per block as required for those numbers
-        -> use delta-encoding to have better compression
+        o don't use index->used_size, index->block_size; they're always
+            static
+        o use delta-encoding to have better compression
+        o keep track of the bits required to encode a block
+        o blocks have a fixed size; no need to resize them, as long as the
+            bit width is not increased
+        o vacuumize: try to create blocks for 128 integers!
+            merge blocks if
+              - both blocks have <= 128 keys
+              - the last key of a block == the first key of the next block - 1
+        . need a solution without simd!?
+
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
 
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
