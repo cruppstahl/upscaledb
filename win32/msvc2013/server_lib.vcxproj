@@ -133,9 +133,9 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamserver-2.1.9.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2013;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
