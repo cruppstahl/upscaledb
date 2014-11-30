@@ -1,5 +1,6 @@
 Nov 24, 2014 - chris ---------------------------------------------------
 						release of hamsterdb-pro 2.1.9
+o Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_VARBYTE)
 
 Sep 13, 2014 - chris ---------------------------------------------------
 						release of hamsterdb-pro 2.1.8

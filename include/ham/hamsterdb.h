@@ -1837,6 +1837,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * hamsterdb pro: uint32 key compression (varbyte)
+ * (experimental)
  */
 #define HAM_COMPRESSOR_UINT32_VARBYTE   5
 

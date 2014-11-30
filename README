@@ -1,4 +1,4 @@
-hamsterdb pro 2.1.9                                Sa 23. Aug 22:19:56 CEST 2014
+hamsterdb pro 2.1.9                                So 30. Nov 21:27:07 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb pro.
@@ -7,28 +7,49 @@ Contents:
 
 1. About
 
-This release of hamsterdb pro is based on hamsterdb 2.1.9, and contains the
-following additional changes:
-
-- Added CRC32 verification (use HAM_ENABLE_CRC32)
-- SIMD instructions are now also used if duplicates are enabled (the use of
-    duplicate keys prevented SIMD instructions in the previous versions)
-- SIMD instructions are now also used for HAM_TYPE_REAL64 keys
+This release of hamsterdb pro is based on hamsterdb 2.1.9. In addition,
+it contains (experimental) compression for uint32 keys;
+see HAM_COMPRESSOR_UINT32_VARBYTE.
 
 Please visit the webpage for additional documentation.
 
 2. Changes
 
 New Features
-* Enabling SIMD support for duplicate keys
+* Experimental compression for HAM_TYPE_UINT32 keys
 * Added new parameter to set a file size limit - HAM_PARAM_FILE_SIZE_LIMIT
-* Added SIMD support for HAM_TYPE_REAL64 keys
 
 Bugfixes
+* Fixed a failing test from the erlang package
+* Fixed an assert when re-organizing nodes with variable length keys 
+* issue #39: recovery can fail with IO_ERROR if journal file is incomplete;
+	fixed (thanks, Michael Moellney)
+* issue #38: temporary transactions and recovery (w/o transactions)
+	created huge logfiles; fixed (thanks, Michael Moellney)
+* issue #34: some names violated reserved identifiers, fixed (thanks,
+	Markus Elfring)
+* Bugfix: fixed-length records were sometimes not inserted correctly 
+	with HAM_DUPLICATE_INSERT_FIRST
 * Fixed segfault when opening a file with HAM_ENABLE_RECOVERY (and
 	without HAM_ENABLE_TRANSACTIONS)
 
 Other Changes
+* Removed outdated project files of MSVC2008, added MSVC2013
+* Removed custom ham_* typedefs; now using types from stdint.h
+* Major rewrite of the recovery logic; increased test coverage
+* Added new parameter HAM_PARAM_JOURNAL_SWITCH_THRESHOLD to control
+	the size of the journal files
+* Unused pages are now freed with madvise; performance improvements
+	when large files are mmapped
+* Improved record storage and reduced size for fixed length records
+* Minor performance improvements for hola_sum
+* ABI change: removed deprecated fields from ham_record_t
+* Introduced two new makros to initialize ham_key_t and ham_record_t
+	structures: ham_make_key, ham_make_record
+* The file structure has been completely reorganized. It is described
+	in documentation/source/structure.txt.
+* Splitting unittests/cursor.cpp in two files to avoid out-of-memory
+	errors during compilation on weak VM's
 * hamserver now also compiles against libuv 0.10.25 (in addition to 0.11.*)
 
 To see a list of all changes, look in the file ChangeLog.
