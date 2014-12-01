@@ -313,6 +313,9 @@ o Zint32: add compression based on bit-packing
               - the last key of a block == the first key of the next block - 1
         . need a solution without simd!?
 
+o Thomas Fähnle: create new parameter for fadvise configuration
+    (see mail)
+
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
@@ -870,7 +873,7 @@ o "hola" - olap functions that operate directly on the btree data
     -> requires grouped varints
 
 o asynchronous prefetching of pages
-    -> see posix_fadvice, libprefetch
+    -> see posix_fadvise, libprefetch
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created

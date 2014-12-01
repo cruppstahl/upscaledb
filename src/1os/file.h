@@ -107,9 +107,6 @@ class File
     // Unmaps a buffer
     void munmap(void *buffer, size_t size);
 
-    // Allows kernel to free mmapped resources of a page
-    void madvice_dontneed(void *buffer, size_t size);
-
     // Positional read from a file
     void pread(uint64_t addr, void *buffer, size_t len);
 

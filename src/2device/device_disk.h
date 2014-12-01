@@ -216,11 +216,6 @@ class DiskDevice : public Device {
     // Frees a page on the device; plays counterpoint to |alloc_page|
     virtual void free_page(Page *page) {
       ham_assert(page->get_data() != 0);
-
-      if (page->is_allocated())
-        m_state.file.madvice_dontneed(page->get_data(),
-                        m_config.page_size_bytes);
-
       page->free_buffer();
     }
 
