@@ -149,7 +149,7 @@ class BaseNodeImpl
           return (result);
         }
         /* if the new key is > than the slot key: move to the next slot */
-        if (cmp > 0)
+        else if (cmp > 0)
           result.slot++;
       }
 

@@ -264,8 +264,12 @@ x remove dependency to malloc.h, use stdlib.h instead
 
 x add patches from Thomas Fähnle
 
+<<<<<<< HEAD
 >>>>>>> Fixed large file support on linux
 o refactoring: clean up the whole Database code; it's too much and too
+=======
+x refactoring: clean up the whole Database code; it's too much and too
+>>>>>>> Fixing a regression
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
     -> should we move the transactional implementations to their own
@@ -281,8 +285,8 @@ o refactoring: clean up the whole Database code; it's too much and too
         x update BtreeCursor::find
     x a lot of functions have to clear the changeset when they leave;
         use ON_EXIT_SCOPE macro for this!
-    o run performance tests
-    o run monster tests
+    x run performance tests
+    x run monster tests
 
 x #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
@@ -300,11 +304,14 @@ o Zint32: add compression based on bit-packing
     x move block/index related functionality to a base class BlockKeyList
         (w/ template parameter for the block structure)
     o integrate Daniel's sources as a library
+        o add a unittest to compress/decompress
     o implement the compression
-        o don't use index->used_size, index->block_size; they're always
-            static
-        o use delta-encoding to have better compression
+        x don't use index->used_size, it's not required
+        x don't use index->block_size; it's always static
+        x use delta-encoding to have better compression
         o keep track of the bits required to encode a block
+        o make sure that compressing/decompressing under-filled blocks
+            does not exceed the boundary!
         o blocks have a fixed size; no need to resize them, as long as the
             bit width is not increased
         o vacuumize: try to create blocks for 128 integers!
@@ -313,12 +320,17 @@ o Zint32: add compression based on bit-packing
               - the last key of a block == the first key of the next block - 1
         . need a solution without simd!?
 
+o btree_erase:71 if the node is empty then it should be merged and
+    moved to the freelist!
+
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)
 
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
+
+o refactoring: db_local.cc has so many TODOs!
 
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
