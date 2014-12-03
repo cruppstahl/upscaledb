@@ -56,6 +56,12 @@ struct BaseCursorFixture {
   }
 
   virtual void teardown() {
+    /* we have to manually clear the changeset, otherwise ham_db_close will
+     * fail. The changeset was filled in be->insert(0, but this is an
+     * internal function which will not clear it. All other functions fail
+     * and therefore do not touch the changeset. */
+    ((LocalEnvironment *)m_env)->get_changeset().clear();
+
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
       m_cursor = 0;
@@ -1001,12 +1007,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
      * and therefore this fails */
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-
-    /* we have to manually clear the changeset, otherwise ham_db_close will
-     * fail. The changeset was filled in be->insert(0, but this is an
-     * internal function which will not clear it. All other functions fail
-     * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
   }
 
   void moveFirstErasedInsertedInTxnTest() {
@@ -1330,12 +1330,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
      * and therefore this fails */
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-
-    /* we have to manually clear the changeset, otherwise ham_db_close will
-     * fail. The changeset was filled in 0, be->insert(but this is an
-     * internal function which will not clear it. All other functions fail
-     * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
   }
 
   void moveLastErasedInsertedInTxnTest() {

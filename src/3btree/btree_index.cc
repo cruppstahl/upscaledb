@@ -379,6 +379,10 @@ class CalcKeysVisitor : public BtreeVisitor {
       : m_db(db), m_distinct(distinct), m_count(0) {
     }
 
+    virtual bool is_read_only() const {
+      return (true);
+    }
+
     virtual void operator()(BtreeNodeProxy *node) {
       size_t node_count = node->get_count();
 
@@ -417,6 +421,10 @@ class FreeBlobsVisitor : public BtreeVisitor {
   public:
     virtual void operator()(BtreeNodeProxy *node) {
       node->remove_all_entries();
+    }
+
+    virtual bool is_read_only() const {
+      return (false);
     }
 };
 

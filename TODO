@@ -333,6 +333,12 @@ o A few things to refactor in the btree
         -> use a common behaviour/indexing
     o EraseAction line 71: if the node is empty then it should be merged and
         moved to the freelist!
+    o btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
+        in btree_index.h. Can both be combined?
+    o PageManager::fetch_page should be available in a const version
+        (fetch_const_page) which sets a flag in the page ("kIsImmutable").
+        the NodeProxy must test this flag whenever it modifies a page!
+        (debug only)
 
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)

@@ -169,6 +169,8 @@ struct PDupeEntry;
 
 struct BtreeVisitor {
   virtual void operator()(BtreeNodeProxy *node) = 0;
+
+  virtual bool is_read_only() const = 0;
 };
 
 //

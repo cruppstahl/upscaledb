@@ -116,6 +116,36 @@ class BtreeEraseAction : public BtreeUpdateAction
 
       page->set_dirty(true);
 
+      // still got duplicates left? then adjust all cursors
+      if (node->is_leaf() && has_duplicates_left && db->get_cursor_list()) {
+        Cursor *cursors = db->get_cursor_list();
+        BtreeCursor *btcur = cursors->get_btree_cursor();
+
+        int duplicate_index =
+                m_cursor
+                    ? m_cursor->get_duplicate_index()
+                    : m_duplicate_index;
+
+        while (btcur) {
+          BtreeCursor *next = 0;
+          if (cursors->get_next()) {
+            cursors = cursors->get_next();
+            next = cursors->get_btree_cursor();
+          }
+
+          if (btcur != m_cursor && btcur->points_to(page, slot)) {
+            if (btcur->get_duplicate_index() == duplicate_index)
+                btcur->set_to_nil();
+            else if (btcur->get_duplicate_index() > duplicate_index)
+              btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
+          }
+          btcur = next;
+        }
+        // all cursors were adjusted, the duplicate was deleted. return
+        // to caller!
+        return;
+      }
+
       // now remove the key
       if (!has_duplicates_left)
         node->erase(slot);
@@ -148,36 +178,6 @@ class BtreeEraseAction : public BtreeUpdateAction
           }
           btcur = next;
         }
-      }
-
-      // still got duplicates left? then adjust all cursors
-      if (node->is_leaf() && has_duplicates_left && db->get_cursor_list()) {
-        Cursor *cursors = db->get_cursor_list();
-        BtreeCursor *btcur = cursors->get_btree_cursor();
-
-        int duplicate_index =
-                m_cursor
-                    ? m_cursor->get_duplicate_index()
-                    : m_duplicate_index;
-
-        while (btcur) {
-          BtreeCursor *next = 0;
-          if (cursors->get_next()) {
-            cursors = cursors->get_next();
-            next = cursors->get_btree_cursor();
-          }
-
-          if (btcur != m_cursor && btcur->points_to(page, slot)) {
-            if (btcur->get_duplicate_index() == duplicate_index)
-                btcur->set_to_nil();
-            else if (btcur->get_duplicate_index() > duplicate_index)
-              btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
-          }
-          btcur = next;
-        }
-        // all cursors were adjusted, the duplicate was deleted. return
-        // to caller!
-        return;
       }
     }
 

@@ -23,6 +23,7 @@
 
 #include "3btree/btree_index.h"
 #include "4db/db_local.h"
+#include "4env/env_local.h"
 
 namespace hamsterdb {
 
@@ -116,7 +117,9 @@ struct HolaFixture {
     ham_record_t r = {0};
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert(0, 0, &k, &r, 0));
+    ham_status_t st = be->insert(0, 0, &k, &r, 0);
+    ((LocalEnvironment *)m_env)->get_changeset().clear();
+    return (st);
   }
 
   ham_status_t insertTxn(ham_txn_t *txn, uint32_t key) {

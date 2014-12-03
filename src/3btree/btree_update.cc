@@ -96,6 +96,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
           merge_page(child_page, sib_page);
           // also remove the link to the sibling from the parent
           node->erase(slot + 1);
+          page->set_dirty(true);
         }
       }
     }
@@ -118,7 +119,8 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
           merge_page(sib_page, child_page);
           // also remove the link to the sibling from the parent
           node->erase(slot);
-          // continue with the sibling
+          page->set_dirty(true);
+          // continue traversal with the sibling
           child_page = sib_page;
           child_node = sib_node;
         }

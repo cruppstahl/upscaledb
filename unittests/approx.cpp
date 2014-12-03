@@ -27,7 +27,7 @@
 #include "3btree/btree_cursor.h"
 #include "4db/db.h"
 #include "4cursor/cursor.h"
-#include "4env/env.h"
+#include "4env/env_local.h"
 
 using namespace hamsterdb;
 
@@ -47,6 +47,9 @@ struct ApproxFixture {
   }
 
   ~ApproxFixture() {
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    lenv->get_changeset().clear();
+
     REQUIRE(0 == ham_txn_abort(m_txn, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }

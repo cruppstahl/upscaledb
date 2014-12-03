@@ -45,9 +45,13 @@ class BtreeVisitAction
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
 
+      uint32_t pm_flags = 0;
+      if (m_visitor.is_read_only())
+        pm_flags = PageManager::kReadOnly;
+
       // get the root page of the tree
       Page *page = env->get_page_manager()->fetch_page(db,
-                    m_btree->get_root_address());
+                    m_btree->get_root_address(), pm_flags);
 
       // go down to the leaf
       while (page) {
@@ -63,7 +67,7 @@ class BtreeVisitAction
             // load the right sibling
             uint64_t right = node->get_right();
             if (right)
-              page = env->get_page_manager()->fetch_page(db, right);
+              page = env->get_page_manager()->fetch_page(db, right, pm_flags);
             else
               page = 0;
           }
@@ -71,7 +75,7 @@ class BtreeVisitAction
 
         // follow the pointer to the smallest child
         if (ptr_down)
-          page = env->get_page_manager()->fetch_page(db, ptr_down);
+          page = env->get_page_manager()->fetch_page(db, ptr_down, pm_flags);
         else
           break;
       }
@@ -87,7 +91,7 @@ class BtreeVisitAction
 
         /* follow the pointer to the right sibling */
         if (right)
-          page = env->get_page_manager()->fetch_page(db, right);
+          page = env->get_page_manager()->fetch_page(db, right, pm_flags);
         else
           break;
       }

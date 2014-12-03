@@ -128,23 +128,6 @@ class Changeset
     size_t m_others_capacity;
 };
 
-/**
- * A helper class which clears the Changeset when it leaves the scope
- */
-struct AutoClearChangeset
-{
-  AutoClearChangeset(Changeset &changeset)
-    : m_changeset(changeset) {
-  }
-
-  ~AutoClearChangeset() {
-    m_changeset.clear();
-  }
-
-  Changeset &m_changeset;
-};
-
-
 } // namespace hamsterdb
 
 #endif /* HAM_CHANGESET_H */
