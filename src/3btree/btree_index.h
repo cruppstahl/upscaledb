@@ -338,6 +338,7 @@ class BtreeIndex
     }
 
   private:
+    friend class BtreeUpdateAction;
     friend class BtreeCheckAction;
     friend class BtreeEnumAction;
     friend class BtreeEraseAction;
@@ -375,7 +376,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_child(Page *parent, ham_key_t *key, int *idxptr = 0);
+    Page *find_child(Page *parent, const ham_key_t *key, int *idxptr = 0);
 
     // Searches a leaf node for a key.
     //

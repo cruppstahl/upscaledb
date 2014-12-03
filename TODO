@@ -320,8 +320,19 @@ o Zint32: add compression based on bit-packing
               - the last key of a block == the first key of the next block - 1
         . need a solution without simd!?
 
-o btree_erase:71 if the node is empty then it should be merged and
-    moved to the freelist!
+o Remove requirement for "delete stability" when erasing keys
+    x Introduce generic BtreeUpdateAction which handles merges and splits
+    o when erasing a key: also expect splits
+    o run monster tests
+    o run performance tests
+
+o A few things to refactor in the btree
+    o the BtreeAction classes do not need a Transaction pointer as an argument!
+    o actually NO part of the Btree should access a Transaction...
+    o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
+        -> use a common behaviour/indexing
+    o EraseAction line 71: if the node is empty then it should be merged and
+        moved to the freelist!
 
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)

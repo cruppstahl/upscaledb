@@ -1415,31 +1415,27 @@ struct DuplicateFixture {
   }
 
   void insertBeforeTest() {
-    ham_key_t key;
-    ham_record_t rec;
+    ham_key_t key = {0};
     ham_cursor_t *c;
     const char *values[] = { "11111", "222222", "3333333", "44444444" };
-
-    memset(&key, 0, sizeof(key));
 
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
+      ham_record_t rec = ham_make_record((void *)values[i],
+                            (uint32_t)::strlen(values[i]) + 1);
+      REQUIRE(0 == ham_cursor_insert(c, &key, &rec,
+                              HAM_DUPLICATE_INSERT_BEFORE));
       memset(&rec, 0, sizeof(rec));
-      rec.data = (void *)values[i];
-      rec.size = (uint32_t)strlen((char *)rec.data) + 1;
-      REQUIRE(0 ==
-            ham_cursor_insert(c, &key, &rec,
-                HAM_DUPLICATE_INSERT_BEFORE));
-      memset(&rec, 0, sizeof(rec));
-      REQUIRE(0 ==
-            ham_cursor_move(c, 0, &rec, 0));
-      REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
-      REQUIRE(0 == strcmp(values[i], (char *)rec.data));
-      REQUIRE((i <= 1 ? 0 : i - 1) ==
-            ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
-      REQUIRE(0 ==
-            ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
+      REQUIRE(0 == ham_cursor_move(c, 0, &rec, 0));
+      REQUIRE(::strlen((char *)rec.data) == ::strlen(values[i]));
+      REQUIRE(0 == ::strcmp(values[i], (char *)rec.data));
+      int di = ((Cursor *)c)->get_btree_cursor()->get_duplicate_index();
+      if (i <= 1)
+        REQUIRE(di == 0);
+      else
+        REQUIRE(di == i -1);
+      REQUIRE(0 == ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
     }
 
     checkData(c, HAM_CURSOR_FIRST,  0, values[1]);

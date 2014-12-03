@@ -119,7 +119,7 @@ BtreeIndex::flush_descriptor()
 }
 
 Page *
-BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
+BtreeIndex::find_child(Page *page, const ham_key_t *key, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
 
@@ -128,7 +128,7 @@ BtreeIndex::find_child(Page *page, ham_key_t *key, int *idxptr)
   ham_assert(node->get_ptr_down() != 0);
 
   uint64_t record_id;
-  int slot = node->find_child(key, &record_id);
+  int slot = node->find_child((ham_key_t *)key, &record_id);
 
   if (idxptr)
     *idxptr = slot;

@@ -76,6 +76,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_records_duplicate.h \
 	3btree/btree_stats.cc \
 	3btree/btree_stats.h \
+	3btree/btree_update.cc \
 	3btree/btree_visit.cc \
 	3btree/btree_visitor.h \
 	3btree/upfront_index.h \
