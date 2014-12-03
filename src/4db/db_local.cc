@@ -1529,7 +1529,6 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   ham_status_t st;
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-  AutoClearChangeset acc(get_local_env()->get_changeset());
 
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
       && key->size != m_config.key_size) {
@@ -1553,10 +1552,13 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
    */
-  if (txn)
-    st = find_txn(cursor, txn, key, record, flags);
-  else
-    st = m_btree_index->find(0, cursor, key, record, flags);
+  {
+    AutoClearChangeset acc(get_local_env()->get_changeset());
+    if (txn)
+      st = find_txn(cursor, txn, key, record, flags);
+    else
+      st = m_btree_index->find(0, cursor, key, record, flags);
+  }
 
   if (local_txn) {
     get_local_env()->get_txn_manager()->abort(local_txn);
