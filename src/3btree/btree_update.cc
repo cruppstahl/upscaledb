@@ -74,7 +74,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
 
     // get the child page
     Page *sib_page = 0;
-    Page *child_page = m_btree->find_child(page, key, &slot);
+    Page *child_page = m_btree->find_child(page, key, 0, &slot);
     BtreeNodeProxy *child_node = m_btree->get_node_from_page(child_page);
 
     // We can merge this child with the RIGHT sibling iff...
@@ -145,6 +145,9 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
   BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sibling);
+
+  if (sib_node->is_leaf())
+    BtreeCursor::uncouple_all_cursors(sibling, 0);
 
   node->merge_from(sib_node);
   page->set_dirty(true);

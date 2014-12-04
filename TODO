@@ -343,6 +343,12 @@ o A few things to refactor in the btree
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)
 
+o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
+    updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
+    but it's unclear whether the duplicate index is ever required. Better
+    use a logical index ("kLastDuplicate") and lazily calculate the actual
+    position when it's required.
+
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!

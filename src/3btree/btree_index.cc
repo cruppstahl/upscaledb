@@ -119,7 +119,8 @@ BtreeIndex::flush_descriptor()
 }
 
 Page *
-BtreeIndex::find_child(Page *page, const ham_key_t *key, int *idxptr)
+BtreeIndex::find_child(Page *page, const ham_key_t *key,
+                uint32_t page_manager_flags, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
 
@@ -134,7 +135,7 @@ BtreeIndex::find_child(Page *page, const ham_key_t *key, int *idxptr)
     *idxptr = slot;
 
   return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
-                    record_id));
+                    record_id, page_manager_flags));
 }
 
 int

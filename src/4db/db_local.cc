@@ -206,8 +206,8 @@ LocalDatabase::insert_txn(LocalTransaction *txn, ham_key_t *key,
                 ((flags & HAM_DUPLICATE)
                     ? TransactionOperation::kInsertDuplicate
                     : (flags & HAM_OVERWRITE)
-                    ? TransactionOperation::kInsertOverwrite
-                    : TransactionOperation::kInsert),
+                        ? TransactionOperation::kInsertOverwrite
+                        : TransactionOperation::kInsert),
                 get_local_env()->get_incremented_lsn(), key, record);
 
   // if there's a cursor then couple it to the op; also store the
@@ -469,7 +469,7 @@ retry:
 
 ham_status_t
 LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, uint32_t flags,
-        TransactionCursor *cursor)
+                        TransactionCursor *cursor)
 {
   ham_status_t st = 0;
   TransactionOperation *op;
@@ -488,7 +488,7 @@ LocalDatabase::erase_txn(LocalTransaction *txn, ham_key_t *key, uint32_t flags,
   }
 
   /* check for conflicts of this key - but only if we're not erasing a
-   * duplicate key. dupes are checked for conflicts in _local_cursor_move */
+   * duplicate key. dupes are checked for conflicts in _local_cursor_move TODO that function no longer exists */
   if (!pc || (!pc->get_dupecache_index())) {
     st = check_erase_conflicts(txn, node, key, flags);
     if (st) {
@@ -966,7 +966,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
       cursor->couple_to_btree();
     else
       cursor->couple_to_txnop();
-    cursor->couple_to_dupe(1);
+    cursor->couple_to_dupe(1); // 1-based index!
     if (record) { // TODO don't copy record if it was already
                   // copied in find_impl
       if (cursor->is_coupled_to_txnop())
@@ -1473,10 +1473,17 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   if (cursor) {
     if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
       DupeCache *dc = cursor->get_dupecache();
+      // TODO required? should have happened in insert_txn
       cursor->couple_to_txnop();
+      /* the cursor is coupled to the txn-op; nil the btree-cursor to
+       * trigger a sync() call when fetching the duplicates */
+      // TODO merge with the line above
+      cursor->set_to_nil(Cursor::kBtree);
+
       /* reset the dupecache, otherwise cursor->get_dupecache_count()
        * does not update the dupecache correctly */
       dc->clear();
+      
       /* if duplicate keys are enabled: set the duplicate index of
        * the new key  */
       if (st == 0 && cursor->get_dupecache_count()) {
@@ -1493,6 +1500,7 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       }
     }
     else {
+      // TODO required? should have happened in BtreeInsertAction
       cursor->couple_to_btree();
     }
 
@@ -1627,7 +1635,8 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       }
       /* case 2 described above */
       else {
-        st = erase_txn(txn, cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key(),
+        // TODO this line is ugly
+        st = erase_txn(txn, cursor->get_txn_cursor()->get_coupled_op()->get_key(),
                         0, cursor->get_txn_cursor());
       }
 

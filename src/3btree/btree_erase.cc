@@ -146,10 +146,6 @@ class BtreeEraseAction : public BtreeUpdateAction
         return;
       }
 
-      // now remove the key
-      if (!has_duplicates_left)
-        node->erase(slot);
-
       // no duplicates left, the key was deleted; all cursors pointing to
       // this key are set to nil, all cursors pointing to a key in the same
       // page are adjusted, if necessary
@@ -179,6 +175,10 @@ class BtreeEraseAction : public BtreeUpdateAction
           btcur = next;
         }
       }
+
+      // now remove the key
+      if (!has_duplicates_left)
+        node->erase(slot);
     }
 
     // the key that is retrieved

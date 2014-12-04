@@ -376,9 +376,12 @@ class BtreeIndex
     // Searches |parent| page for key |key| and returns the child
     // page in |child|.
     //
+    // |page_manager_flags| are forwarded to PageManager::fetch.
+    //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_child(Page *parent, const ham_key_t *key, int *idxptr = 0);
+    Page *find_child(Page *parent, const ham_key_t *key,
+                    uint32_t page_manager_flags, int *idxptr);
 
     // Searches a leaf node for a key.
     //
