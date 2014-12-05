@@ -180,11 +180,11 @@ class PageManager {
     }
 
     // Stores a page in the list
-    void store_page(Page *page, bool dont_flush_state = false) {
+    void store_page(Page *page, uint32_t flags) {
       m_cache.put_page(page);
 
       /* write to disk (if necessary) */
-      if (dont_flush_state == false)
+      if (!(flags & kDisableStoreState) && !(flags & kReadOnly))
         maybe_store_state();
     }
 

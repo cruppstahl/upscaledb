@@ -285,7 +285,7 @@ PageManager::fetch_page(LocalDatabase *db, uint64_t address,
   ham_assert(page->get_data());
 
   /* store the page in the list */
-  store_page(page);
+  store_page(page, flags);
 
   if (flags & kNoHeader)
     page->set_without_header(true);
@@ -365,7 +365,7 @@ done:
     m_env->get_changeset().add_page(page);
 
   /* store the page in the cache */
-  store_page(page, (flags & kDisableStoreState) != 0);
+  store_page(page, flags);
 
   switch (page_type) {
     case Page::kTypeBindex:
@@ -541,6 +541,8 @@ PageManager::close_database(LocalDatabase *db)
   }
 
   m_cache.visit(db_close_callback, m_env, db, 0);
+
+  m_env->get_changeset().clear();
 }
 
 void
