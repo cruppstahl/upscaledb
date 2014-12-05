@@ -149,6 +149,24 @@ File::get_granularity()
 }
 
 void
+File::set_posix_advice(int advice)
+{
+  m_posix_advice = advice;
+  ham_assert(m_fd != HAM_INVALID_FD);
+
+#if HAVE_POSIX_FADVISE
+  if (m_posix_advice == HAM_POSIX_FADVICE_RANDOM) {
+    int r = ::posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+    if (r != 0) {
+      ham_log(("posix_fadvise failed with status %d (%s)",
+                              errno, strerror(errno)));
+      throw Exception(HAM_IO_ERROR);
+    }
+  }
+#endif
+}
+
+void
 File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
   os_log(("File::mmap: fd=%d, position=%lld, size=%lld", m_fd, position, size));
@@ -166,6 +184,16 @@ File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
   }
 #else
   throw Exception(HAM_NOT_IMPLEMENTED);
+#endif
+
+#if HAVE_MADVISE
+  if (m_posix_advice == HAM_POSIX_FADVICE_RANDOM) {
+    int r = ::madvise(*buffer, size, MADV_RANDOM);
+    if (r != 0) {
+      ham_log(("madvise failed with status %d (%s)", errno, strerror(errno)));
+      throw Exception(HAM_IO_ERROR);
+    }
+  }
 #endif
 }
 

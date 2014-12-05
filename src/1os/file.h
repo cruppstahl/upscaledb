@@ -60,12 +60,13 @@ class File
 
     // Constructor: creates an empty File handle
     File()
-      : m_fd(HAM_INVALID_FD), m_mmaph(HAM_INVALID_FD) {
+      : m_fd(HAM_INVALID_FD), m_mmaph(HAM_INVALID_FD), m_posix_advice(0) {
     }
 
     // Copy constructor: moves ownership of the file handle
     File(File &other)
-      : m_fd(other.m_fd), m_mmaph(other.m_mmaph) {
+      : m_fd(other.m_fd), m_mmaph(other.m_mmaph),
+        m_posix_advice(other.m_posix_advice) {
       other.m_fd = HAM_INVALID_FD;
 	  other.m_mmaph = HAM_INVALID_FD;
     }
@@ -95,6 +96,9 @@ class File
 
     // Flushes a file
     void flush();
+
+    // Sets the parameter for posix_fadvise()
+    void set_posix_advice(int parameter);
 
     // Maps a file in memory
     //
@@ -140,6 +144,9 @@ class File
 
     // The mmap handle - required for Win32
     ham_fd_t m_mmaph;
+
+    // Parameter for posix_fadvise()
+    int m_posix_advice;
 };
 
 } // namespace hamsterdb

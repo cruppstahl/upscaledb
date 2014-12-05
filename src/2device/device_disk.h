@@ -72,6 +72,7 @@ class DiskDevice : public Device {
     virtual void create() {
       File file;
       file.create(m_config.filename.c_str(), m_config.file_mode);
+      file.set_posix_advice(m_config.posix_advice);
       m_state.file = file;
     }
 
@@ -83,6 +84,7 @@ class DiskDevice : public Device {
 
       State state = m_state;
       state.file.open(m_config.filename.c_str(), read_only);
+      state.file.set_posix_advice(m_config.posix_advice);
 
       // the file size which backs the mapped ptr
       state.file_size = state.file.get_file_size();

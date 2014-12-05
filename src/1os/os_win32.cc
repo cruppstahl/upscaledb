@@ -98,6 +98,12 @@ File::get_granularity()
 }
 
 void
+File::set_posix_advice(int advice)
+{
+  // Only available for posix platforms
+}
+
+void
 File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
   ham_status_t st;

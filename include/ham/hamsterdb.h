@@ -579,6 +579,10 @@ ham_get_version(uint32_t *major, uint32_t *minor,
  *    <li>@ref HAM_PARAM_CACHE_SIZE</li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
+ *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advise" for
+ *      posix_fadvise(). Only on supported platforms. Allowed values are
+ *      @ref HAM_POSIX_FADVICE_NORMAL (which is the default) or
+ *      @ref HAM_POSIX_FADVICE_RANDOM.
  *    <li>@ref HAM_PARAM_PAGE_SIZE</li> The size of a file page, in
  *      bytes. It is recommended not to change the default size. The
  *      default size depends on hardware and operating system.
@@ -678,6 +682,10 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_CACHE_SIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
+ *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advise" for
+ *      posix_fadvise(). Only on supported platforms. Allowed values are
+ *      @ref HAM_POSIX_FADVICE_NORMAL (which is the default) or
+ *      @ref HAM_POSIX_FADVICE_RANDOM.
  *    <li>@ref HAM_PARAM_FILE_SIZE_LIMIT</li> Sets a file size limit (in bytes).
  *      Disabled by default. If the limit is exceeded, API functions
  *      return @ref HAM_LIMITS_REACHED.
@@ -1705,6 +1713,16 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_create, @ref ham_env_open; sets a
  * limit for the file size (in bytes) */
 #define HAM_PARAM_FILE_SIZE_LIMIT       0x00000109
+
+/** Parameter name for @ref ham_env_create, @ref ham_env_open; sets the
+ * parameter for posix_fadvise() */
+#define HAM_PARAM_POSIX_FADVISE         0x00000110
+
+/** Value for @ref HAM_PARAM_POSIX_FADVISE */
+#define HAM_POSIX_FADVICE_NORMAL                 0
+
+/** Value for @ref HAM_PARAM_POSIX_FADVISE */
+#define HAM_POSIX_FADVICE_RANDOM                 1
 
 /** Value for unlimited record sizes */
 #define HAM_RECORD_SIZE_UNLIMITED       ((uint32_t)-1)

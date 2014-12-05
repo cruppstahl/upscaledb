@@ -2094,6 +2094,36 @@ struct HamsterdbFixture {
       REQUIRE(f.get_file_size() == (size_t)2 * 16 * 1024);
     }
   }
+
+  void posixFadviseTest() {
+    ham_env_t *env;
+    ham_parameter_t pin[] = {
+        {HAM_PARAM_POSIX_FADVISE, HAM_POSIX_FADVICE_RANDOM},
+        {0, 0}
+    };
+    ham_parameter_t pout[] = {
+        {HAM_PARAM_POSIX_FADVISE, 0},
+        {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&env, Utils::opath("test.db"),
+                            0, 0, &pin[0]));
+    REQUIRE(0 == ham_env_get_parameters(env, &pout[0]));
+    REQUIRE(HAM_POSIX_FADVICE_RANDOM == pout[0].value);
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    // open, make sure the property was not persisted
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_get_parameters(env, &pout[0]));
+    REQUIRE(HAM_POSIX_FADVICE_NORMAL == pout[0].value);
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    // open with flag
+    REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, &pin[0]));
+    REQUIRE(0 == ham_env_get_parameters(env, &pout[0]));
+    REQUIRE(HAM_POSIX_FADVICE_RANDOM == pout[0].value);
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Hamsterdb/versionTest", "")
@@ -2478,6 +2508,12 @@ TEST_CASE("Hamsterdb/fileSizeLimitBlobInMemoryTest", "")
 {
   HamsterdbFixture f;
   f.fileSizeLimitBlobTest(true);
+}
+
+TEST_CASE("Hamsterdb/posixFadviseTest", "")
+{
+  HamsterdbFixture f;
+  f.posixFadviseTest();
 }
 
 } // namespace hamsterdb

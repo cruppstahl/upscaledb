@@ -94,6 +94,7 @@
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
 #define ARG_RECORD_NUMBER                       69
+#define ARG_POSIX_FADVICE                       70
 
 /*
  * command line parameters
@@ -432,6 +433,12 @@ static option_t opts[] = {
     "record-number",
     "Enables use of record numbers",
     0 },
+  {
+    ARG_POSIX_FADVICE,
+    0,
+    "posix-fadvice",
+    "Sets the posix_fadvise() parameter: 'random', 'normal' (default)",
+    GETOPTS_NEED_ARGUMENT },
   {0, 0}
 };
 
@@ -772,6 +779,16 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
       hamsterdb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
+    }
+    else if (opt == ARG_POSIX_FADVICE) {
+      if (!strcmp(param, "normal"))
+        c->posix_fadvice = HAM_POSIX_FADVICE_NORMAL;
+      else if (!strcmp(param, "random"))
+        c->posix_fadvice = HAM_POSIX_FADVICE_RANDOM;
+      else {
+        printf("[FAIL] invalid parameter for 'posix-fadvice'\n");
+        exit(-1);
+      }
     }
     else if (opt == ARG_PAX_DISABLE_SIMD) {
       hamsterdb::Globals::ms_is_simd_enabled = false;

@@ -29,7 +29,7 @@
 #include <string>
 #include <limits>
 
-#include <ham/types.h>
+#include <ham/hamsterdb.h>
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -50,7 +50,8 @@ struct EnvironmentConfiguration
       cache_size_bytes(HAM_DEFAULT_CACHE_SIZE),
       file_size_limit_bytes(std::numeric_limits<size_t>::max()), 
       remote_timeout_sec(0), journal_compressor(0),
-      is_encryption_enabled(false), journal_switch_threshold(0) {
+      is_encryption_enabled(false), journal_switch_threshold(0),
+      posix_advice(HAM_POSIX_FADVICE_NORMAL) {
   }
 
   // the environment's flags
@@ -91,6 +92,9 @@ struct EnvironmentConfiguration
 
   // threshold for switching journal files
   size_t journal_switch_threshold;
+
+  // parameter for posix_fadvise()
+  int posix_advice;
 };
 
 } // namespace hamsterdb

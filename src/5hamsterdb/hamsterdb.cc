@@ -400,6 +400,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
+      case HAM_PARAM_POSIX_FADVISE:
+        config.posix_advice = (int)param->value;
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);
@@ -654,6 +657,9 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
       case HAM_PARAM_ENCRYPTION_KEY:
         ham_trace(("Encryption is only available in hamsterdb pro"));
         return (HAM_NOT_IMPLEMENTED);
+      case HAM_PARAM_POSIX_FADVISE:
+        config.posix_advice = (int)param->value;
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);

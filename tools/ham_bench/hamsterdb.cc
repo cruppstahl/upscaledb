@@ -82,11 +82,14 @@ HamsterDatabase::do_create_env()
 
   int p = 0;
   if (ms_env == 0) {
-    params[p].name = HAM_PARAM_CACHESIZE;
+    params[p].name = HAM_PARAM_CACHE_SIZE;
     params[p].value = m_config->cachesize;
     p++;
-    params[p].name = HAM_PARAM_PAGESIZE;
+    params[p].name = HAM_PARAM_PAGE_SIZE;
     params[p].value = m_config->pagesize;
+    p++;
+    params[p].name = HAM_PARAM_POSIX_FADVISE;
+    params[p].value = m_config->posix_fadvice;
     p++;
     if (m_config->use_encryption) {
       params[p].name = HAM_PARAM_ENCRYPTION_KEY;
@@ -164,8 +167,11 @@ HamsterDatabase::do_open_env()
   // check if another thread was faster
   if (ms_env == 0) {
     int p = 0;
-    params[p].name = HAM_PARAM_CACHESIZE;
+    params[p].name = HAM_PARAM_CACHE_SIZE;
     params[p].value = m_config->cachesize;
+    p++;
+    params[p].name = HAM_PARAM_POSIX_FADVISE;
+    params[p].value = m_config->posix_fadvice;
     p++;
     if (m_config->use_encryption) {
       params[p].name = HAM_PARAM_ENCRYPTION_KEY;
