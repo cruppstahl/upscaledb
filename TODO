@@ -644,11 +644,49 @@ o Remove requirement for "delete stability" when erasing keys
     o run monster tests
     o run performance tests
 
+o Thomas Fähnle: create new parameter for fadvise configuration
+    x implement for file-based (w and w/o memory mapping) devices 
+    x need to check for the function in configure.ac
+    x return flag with ham_env_get_parameter (not documented)
+    x create a unittest to make sure that the parameter is not persisted
+    o create a new parameter for ham_bench
+
 o A few things to refactor in the btree
     o the BtreeAction classes do not need a Transaction pointer as an argument!
-    o actually NO part of the Btree should access a Transaction...
+    o actually NO part of the Btree should EVER access a Transaction...
     o btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
         in btree_index.h. Can both be combined?
+
+o "replication" vs "transactions": pure replication is much slower, although
+    it is much simpler. However, transactions are buffered and "group flushed"
+    whereas pure replication is flushed after each operation.
+    => this mode should also create a journal, but no Transaction structures.
+    o make sure the journal is always created
+    o treat enabled transactions separately from the journal (should already
+        be the case since transactions can be used without the journal)
+    o recovery code must not re-create transactions if they are disabled
+
+o move "purge cache" to background
+    1) page list is not modified while it is traversed/modified
+        - the purger will traverse the list only from back to front
+        - the list's operation are only atomic regarding back to front
+            traversals, not reverse
+        - the purger must not modify the list; it will only unmap/free the
+            page buffer!
+    2) it must be an atomic operation to lock the page as "in use" and to
+        check this lock!
+    3) PageManager: when fetching a page that is currently flushed to disk:
+        wait till flush is finished, then return the page
+    o add a flag to disable background operations
+    o create a new thread; use libuv
+    o rewrite Page-list to be atomic (at least forward-only)
+    o purger thread periodically walks over the list, purges
+        o can be waken up by the main thread
+    o page must not be purged while it's "in use"
+    o mark page as "in use" during purge
+    o afterwards once more run the leveldb benchmarks
+
+o More things to refactor in the btree
     o PageManager::fetch_page should be available in a const version
         (fetch_const_page) which sets a flag in the page ("kIsImmutable").
         the NodeProxy must test this flag whenever it modifies a page!
@@ -657,6 +695,7 @@ o A few things to refactor in the btree
         -> use a common behaviour/indexing
     o EraseAction line 71: if the node is empty then it should be merged and
         moved to the freelist!
+<<<<<<< HEAD
 >>>>>>> Fixed another regression
 
 o Thomas Fähnle: create new parameter for fadvise configuration
@@ -668,6 +707,8 @@ o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 =======
+=======
+>>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
     but it's unclear whether the duplicate index is ever required. Better
@@ -741,6 +782,7 @@ o refactoring: clean up the whole Database code; it's too much and too
         about the cursor list??
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> More refactorings, no functional changes
 o refactoring: create a Update structure whenever a database is modified;
     it consists of the operation type, key, record (optional), operation flags,
@@ -780,6 +822,8 @@ o move "purge cache" to background
     o mark page as "in use" during purge
     o afterwards once more run the leveldb benchmarks
 
+=======
+>>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
 
@@ -838,6 +882,7 @@ o reserve file size upon creation, then map the whole range
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 o blob performance improvements
     o there's no need to copy the BlobHeader; this can be returned as a pointer
         instead (verify! the pointer must not be modified - make it const!)
@@ -848,6 +893,11 @@ o blob performance improvements
             pointer
         - If a record is in a mapped page then simply return a
             pointer
+=======
+o continue with concurrency...
+    next stage: flush changesets in background. this should work whenever
+    recovery is enabled (with and without transactions)!
+>>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
