@@ -180,7 +180,7 @@ class PageManager {
     }
 
     // Stores a page in the list
-    void store_page(Page *page, uint32_t flags = 0) {
+    void store_page(Page *page, uint32_t flags) {
       m_cache.put_page(page);
 
       /* write to disk (if necessary) */

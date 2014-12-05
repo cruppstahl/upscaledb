@@ -633,17 +633,47 @@ o Zint32: add compression based on bit-packing
         . need a solution without simd!?
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 o btree_erase:71 if the node is empty then it should be merged and
     moved to the freelist!
+=======
+o Remove requirement for "delete stability" when erasing keys
+    x Introduce generic BtreeUpdateAction which handles merges and splits
+    o when erasing a key: also expect splits
+    o run monster tests
+    o run performance tests
+
+o A few things to refactor in the btree
+    o the BtreeAction classes do not need a Transaction pointer as an argument!
+    o actually NO part of the Btree should access a Transaction...
+    o btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
+        in btree_index.h. Can both be combined?
+    o PageManager::fetch_page should be available in a const version
+        (fetch_const_page) which sets a flag in the page ("kIsImmutable").
+        the NodeProxy must test this flag whenever it modifies a page!
+        (debug only)
+    o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
+        -> use a common behaviour/indexing
+    o EraseAction line 71: if the node is empty then it should be merged and
+        moved to the freelist!
+>>>>>>> Fixed another regression
 
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)
 
+<<<<<<< HEAD
 >>>>>>> Fixing a regression
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
+=======
+o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
+    updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
+    but it's unclear whether the duplicate index is ever required. Better
+    use a logical index ("kLastDuplicate") and lazily calculate the actual
+    position when it's required.
+>>>>>>> Fixed another regression
 
 o refactoring: db_local.cc has so many TODOs!
 
@@ -706,6 +736,7 @@ o refactoring: clean up the whole Database code; it's too much and too
         and nothing else!
     o there should be a get_key() and a get_record() method; the caller should
         not get access to txn_cursor/btree_cursor etc
+    o cursor.cc has so many TODOs!
     o review if the Cursor class has access to any shared resource; what
         about the cursor list??
 
@@ -755,7 +786,9 @@ o check recovery.pl - extended_tests are failing on PRO because the
 o reduce the number functions which modify the pages; all other functions
     just get a const page
 
-o support multiple worker threads which perform I/O
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
 
 o Cursor::get_record_size is not implemented for remote access
 
@@ -779,6 +812,9 @@ o reduce record IDs in internal nodes to 32bit; this is enough, and allows
     o can we do this without breaking backwards compatibility of the file
         format?
 >>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
+
+o support multiple worker threads which perform I/O
+    o how many threads should be created??
 
 o reserve file size upon creation, then map the whole range
 <<<<<<< HEAD
