@@ -311,7 +311,7 @@ struct DupeCursorFixture {
     r.size = rec ? strlen(rec) + 1 : 0;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    ham_status_t st =  be->insert(0, 0, &k, &r, flags);
+    ham_status_t st =  be->insert(0, &k, &r, flags);
     ((LocalEnvironment *)m_env)->get_changeset().clear();
     return (st);
   }

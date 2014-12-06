@@ -1318,7 +1318,7 @@ LocalDatabase::flush_txn_operation(LocalTransaction *txn,
           ? HAM_DUPLICATE
           : HAM_OVERWRITE;
     if (!op->get_cursor_list()) {
-      st = m_btree_index->insert(txn, 0, node->get_key(), op->get_record(),
+      st = m_btree_index->insert(0, node->get_key(), op->get_record(),
                   op->get_orig_flags() | additional_flag);
     }
     else {
@@ -1327,8 +1327,8 @@ LocalDatabase::flush_txn_operation(LocalTransaction *txn,
       /* pick the first cursor, get the parent/btree cursor and
        * insert the key/record pair in the btree. The btree cursor
        * then will be coupled to this item. */
-      st = m_btree_index->insert(c1->get_txn(), c1, node->get_key(),
-                  op->get_record(), op->get_orig_flags() | additional_flag);
+      st = m_btree_index->insert(c1, node->get_key(), op->get_record(),
+                  op->get_orig_flags() | additional_flag);
       if (!st) {
         /* uncouple the cursor from the txn-op, and remove it */
         c1->couple_to_btree(); // TODO merge these two calls
@@ -1346,7 +1346,7 @@ LocalDatabase::flush_txn_operation(LocalTransaction *txn,
     }
   }
   else if (op->get_flags() & TransactionOperation::kErase) {
-    st = m_btree_index->erase(txn, 0, node->get_key(),
+    st = m_btree_index->erase(0, node->get_key(),
                   op->get_referenced_dupe(), op->get_flags());
     if (st == HAM_KEY_NOT_FOUND)
       st = 0;
@@ -1441,7 +1441,7 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                                                 ? cursor->get_txn_cursor()
                                                 : 0);
   else
-    st = m_btree_index->insert(txn, cursor, key, record, flags);
+    st = m_btree_index->insert(cursor, key, record, flags);
 
   // remove the transaction reference from the cursor
   if (cursor && local_txn)
@@ -1605,7 +1605,7 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
    */
   ham_status_t st;
   if (txn == 0) {
-    st = m_btree_index->erase(txn, cursor, key, 0, flags);
+    st = m_btree_index->erase(cursor, key, 0, flags);
   }
   else {
     if (cursor) {

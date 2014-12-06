@@ -44,7 +44,7 @@ class BtreeFindAction
 {
   public:
     BtreeFindAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, ham_record_t *record, uint32_t flags)
+                ham_key_t *key, ham_record_t *record, uint32_t flags)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags) {
       if (cursor && cursor->get_btree_cursor()->get_parent())

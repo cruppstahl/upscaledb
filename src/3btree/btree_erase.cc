@@ -29,7 +29,6 @@
 #include "3btree/btree_update.h"
 #include "3btree/btree_node_proxy.h"
 #include "4db/db.h"
-#include "4txn/txn.h"
 #include "4cursor/cursor.h"
 
 #ifndef HAM_ROOT_H
@@ -44,8 +43,8 @@ namespace hamsterdb {
 class BtreeEraseAction : public BtreeUpdateAction
 {
   public:
-    BtreeEraseAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-        ham_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
+    BtreeEraseAction(BtreeIndex *btree, Cursor *cursor, ham_key_t *key,
+            int duplicate_index = 0, uint32_t flags = 0)
       : BtreeUpdateAction(btree, cursor
                                     ? cursor->get_btree_cursor()
                                     : 0, duplicate_index),
@@ -189,10 +188,9 @@ class BtreeEraseAction : public BtreeUpdateAction
 };
 
 ham_status_t
-BtreeIndex::erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                int duplicate, uint32_t flags)
+BtreeIndex::erase(Cursor *cursor, ham_key_t *key, int duplicate, uint32_t flags)
 {
-  BtreeEraseAction bea(this, txn, cursor, key, duplicate, flags);
+  BtreeEraseAction bea(this, cursor, key, duplicate, flags);
   return (bea.run());
 }
 

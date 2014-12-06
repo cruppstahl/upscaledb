@@ -292,9 +292,16 @@ x #42: approx. matching: cursor returns wrong key when using transactions
     x create a unittest to reproduce this
     x the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
 
-o cherry-pick the following commits on the master branch
+x cherry-pick the following commits on the master branch
     1447ba4eb217532e8fb49c4a84a0dc3b982a3ffe
     6a8dd20ec9bd2ec718d1136db7667e0e58911003
+
+x Thomas Fähnle: create new parameter for fadvise configuration
+    x implement for file-based (w and w/o memory mapping) devices 
+    x need to check for the function in configure.ac
+    x return flag with ham_env_get_parameter (not documented)
+    x create a unittest to make sure that the parameter is not persisted
+    x create a new parameter for ham_bench
 
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
@@ -325,13 +332,6 @@ o Remove requirement for "delete stability" when erasing keys
     o when erasing a key: also expect splits
     o run monster tests
     o run performance tests
-
-o Thomas Fähnle: create new parameter for fadvise configuration
-    x implement for file-based (w and w/o memory mapping) devices 
-    x need to check for the function in configure.ac
-    x return flag with ham_env_get_parameter (not documented)
-    x create a unittest to make sure that the parameter is not persisted
-    o create a new parameter for ham_bench
 
 o A few things to refactor in the btree
     o the BtreeAction classes do not need a Transaction pointer as an argument!

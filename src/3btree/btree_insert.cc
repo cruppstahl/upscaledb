@@ -49,7 +49,7 @@ namespace hamsterdb {
 class BtreeInsertAction : public BtreeUpdateAction
 {
   public:
-    BtreeInsertAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
+    BtreeInsertAction(BtreeIndex *btree, Cursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags)
       : BtreeUpdateAction(btree, cursor
                                     ? cursor->get_btree_cursor()
@@ -207,10 +207,10 @@ class BtreeInsertAction : public BtreeUpdateAction
 };
 
 ham_status_t
-BtreeIndex::insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                ham_record_t *record, uint32_t flags)
+BtreeIndex::insert(Cursor *cursor, ham_key_t *key, ham_record_t *record,
+                uint32_t flags)
 {
-  BtreeInsertAction bia(this, txn, cursor, key, record, flags);
+  BtreeInsertAction bia(this, cursor, key, record, flags);
   return (bia.run());
 }
 

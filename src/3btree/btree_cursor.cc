@@ -25,7 +25,6 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_node_proxy.h"
-#include "4txn/txn.h"
 #include "4cursor/cursor.h"
 
 #ifndef HAM_ROOT_H

@@ -63,7 +63,7 @@ struct ApproxFixture {
     r.size = k.size;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert((Transaction *)m_txn, 0, &k, &r, 0));
+    return (be->insert(0, &k, &r, 0));
   }
 
   ham_status_t insertTxn(const char *s, uint32_t flags = 0) {

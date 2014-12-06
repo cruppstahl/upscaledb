@@ -117,7 +117,7 @@ struct HolaFixture {
     ham_record_t r = {0};
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    ham_status_t st = be->insert(0, 0, &k, &r, 0);
+    ham_status_t st = be->insert(0, &k, &r, 0);
     ((LocalEnvironment *)m_env)->get_changeset().clear();
     return (st);
   }

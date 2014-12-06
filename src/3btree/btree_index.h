@@ -162,9 +162,9 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 #include "1base/packstop.h"
 
+class Transaction;
 class LocalDatabase;
 class BtreeNodeProxy;
-class Transaction;
 struct PDupeEntry;
 
 struct BtreeVisitor {
@@ -270,17 +270,17 @@ class BtreeIndex
     void open();
 
     // Lookup a key in the index (ham_db_find)
-    ham_status_t find(Transaction *txn, Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags);
+    ham_status_t find(Transaction *txn, Cursor *cursor, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
-    ham_status_t insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
+    ham_status_t insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // Erases a key/record from the index (ham_db_erase).
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
-    ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
+    ham_status_t erase(Cursor *cursor, ham_key_t *key,
                     int duplicate_index, uint32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node
