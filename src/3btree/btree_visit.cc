@@ -24,6 +24,7 @@
 #include "3page_manager/page_manager.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
+#include "3btree/btree_visitor.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

@@ -50,6 +50,20 @@ struct ScanVisitor {
   virtual void assign_result(hola_result_t *result) = 0;
 };
 
+class BtreeNodeProxy;
+
+//
+// The BtreeVisitor is the callback implementation for the visit call.
+// It will visit each node instead of each key.
+//
+struct BtreeVisitor {
+  // Specifies if the visitor modifies the node
+  virtual bool is_read_only() const = 0;
+
+  // called for each node
+  virtual void operator()(BtreeNodeProxy *node) = 0;
+};
+
 } // namespace hamsterdb
 
 #endif /* HAM_BTREE_VISITOR_H */

@@ -303,6 +303,12 @@ x Thomas Fähnle: create new parameter for fadvise configuration
     x create a unittest to make sure that the parameter is not persisted
     x create a new parameter for ham_bench
 
+x A few things to refactor in the btree
+    x the BtreeAction classes do not need a Transaction pointer as an argument!
+    x actually NO part of the Btree should EVER access a Transaction...
+    x btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
+        in btree_index.h. Can both be combined?
+
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
     x add parameter to header file
@@ -340,17 +346,11 @@ o Remove requirement for "delete stability" when erasing keys
     o run monster tests
     o run performance tests
 
-o A few things to refactor in the btree
-    x the BtreeAction classes do not need a Transaction pointer as an argument!
-    x actually NO part of the Btree should EVER access a Transaction...
-    o btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
-        in btree_index.h. Can both be combined?
-
 o Introduce new option for record numbers (HAM_RECORD_NUMBER32,
     HAM_RECORD_NUMBER64), deprecate the old one. Use 32bit whenever possible!
     o implement
     o don't forget to check for overflow!
-    o add unittests
+    o add unittests (re-use existing tests)
     o add monster tests
     o add performance tests
 

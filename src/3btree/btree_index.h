@@ -165,12 +165,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 class LocalDatabase;
 class BtreeNodeProxy;
 struct PDupeEntry;
-
-struct BtreeVisitor {
-  virtual void operator()(BtreeNodeProxy *node) = 0;
-
-  virtual bool is_read_only() const = 0;
-};
+struct BtreeVisitor;
 
 //
 // Abstract base class, overwritten by a templated version
