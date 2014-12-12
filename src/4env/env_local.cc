@@ -556,10 +556,18 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
               ham_trace(("invalid key size %u - must be < 0xffff"));
               return (HAM_INV_KEY_SIZE);
             }
-            if (config.flags & HAM_RECORD_NUMBER) {
-              if (param->value > 0 && param->value < sizeof(uint64_t)) {
+            if (config.flags & HAM_RECORD_NUMBER32) {
+              if (param->value > 0 && param->value != sizeof(uint32_t)) {
+                ham_trace(("invalid key size %u - must be 4 for "
+                           "HAM_RECORD_NUMBER32 databases",
+                           (unsigned)param->value));
+                return (HAM_INV_KEY_SIZE);
+              }
+            }
+            if (config.flags & HAM_RECORD_NUMBER64) {
+              if (param->value > 0 && param->value != sizeof(uint64_t)) {
                 ham_trace(("invalid key size %u - must be 8 for "
-                           "HAM_RECORD_NUMBER databases",
+                           "HAM_RECORD_NUMBER64 databases",
                            (unsigned)param->value));
                 return (HAM_INV_KEY_SIZE);
               }
@@ -577,25 +585,35 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     }
   }
 
-  if (config.key_type == HAM_TYPE_UINT8
+  if (config.flags & HAM_RECORD_NUMBER32) {
+    if (config.key_type == HAM_TYPE_UINT8
         || config.key_type == HAM_TYPE_UINT16
-        || config.key_type == HAM_TYPE_UINT32
+        || config.key_type == HAM_TYPE_UINT64
         || config.key_type == HAM_TYPE_REAL32
         || config.key_type == HAM_TYPE_REAL64) {
-    if (config.flags & HAM_RECORD_NUMBER) {
-      ham_trace(("HAM_RECORD_NUMBER not allowed in combination with "
+      ham_trace(("HAM_RECORD_NUMBER32 not allowed in combination with "
                       "fixed length type"));
       return (HAM_INV_PARAMETER);
     }
   }
 
-  if (config.flags & HAM_RECORD_NUMBER)
-    config.key_type = HAM_TYPE_UINT64;
+  if (config.flags & HAM_RECORD_NUMBER64) {
+    if (config.key_type == HAM_TYPE_UINT8
+        || config.key_type == HAM_TYPE_UINT16
+        || config.key_type == HAM_TYPE_UINT32
+        || config.key_type == HAM_TYPE_REAL32
+        || config.key_type == HAM_TYPE_REAL64) {
+      ham_trace(("HAM_RECORD_NUMBER64 not allowed in combination with "
+                      "fixed length type"));
+      return (HAM_INV_PARAMETER);
+    }
+  }
 
   uint32_t mask = HAM_FORCE_RECORDS_INLINE
                     | HAM_FLUSH_WHEN_COMMITTED
                     | HAM_ENABLE_DUPLICATE_KEYS
-                    | HAM_RECORD_NUMBER;
+                    | HAM_RECORD_NUMBER32
+                    | HAM_RECORD_NUMBER64;
   if (config.flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
     return (HAM_INV_PARAMETER);

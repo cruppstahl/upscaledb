@@ -1035,9 +1035,12 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     }
 
     /* record number: make sure that we have a valid key structure */
-    if ((db->get_rt_flags() & HAM_RECORD_NUMBER)
-        && (key->size != sizeof(uint64_t) || !key->data)) {
-      ham_trace(("key->size must be 8, key->data must not be NULL"));
+    if ((db->get_rt_flags() & HAM_RECORD_NUMBER32) && !key->data) {
+      ham_trace(("key->data must not be NULL"));
+      return (db->set_error(HAM_INV_PARAMETER));
+    }
+    if ((db->get_rt_flags() & HAM_RECORD_NUMBER64) && !key->data) {
+      ham_trace(("key->data must not be NULL"));
       return (db->set_error(HAM_INV_PARAMETER));
     }
 
@@ -1148,17 +1151,18 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
       return (db->set_error(HAM_INV_PARAMETER));
 
     /* allocate temp. storage for a recno key */
-    if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
+    if ((db->get_rt_flags() & HAM_RECORD_NUMBER32)
+        || (db->get_rt_flags() & HAM_RECORD_NUMBER64)) {
       if (flags & HAM_OVERWRITE) {
-        if (key->size != sizeof(uint64_t) || !key->data) {
-          ham_trace(("key->size must be 8, key->data must not be NULL"));
+        if (!key->data) {
+          ham_trace(("key->data must not be NULL"));
           return (db->set_error(HAM_INV_PARAMETER));
         }
       }
       else {
         if (key->flags & HAM_KEY_USER_ALLOC) {
-          if (!key->data || key->size != sizeof(uint64_t)) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
+          if (!key->data) {
+            ham_trace(("key->data must not be NULL"));
             return (db->set_error(HAM_INV_PARAMETER));
           }
         }
@@ -1625,17 +1629,18 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     }
 
     /* allocate temp. storage for a recno key */
-    if (db->get_rt_flags() & HAM_RECORD_NUMBER) {
+    if ((db->get_rt_flags() & HAM_RECORD_NUMBER32)
+        || (db->get_rt_flags() & HAM_RECORD_NUMBER64)) {
       if (flags & HAM_OVERWRITE) {
-        if (key->size != sizeof(uint64_t) || !key->data) {
-          ham_trace(("key->size must be 8, key->data must not be NULL"));
+        if (!key->data) {
+          ham_trace(("key->data must not be NULL"));
           return (db->set_error(HAM_INV_PARAMETER));
         }
       }
       else {
         if (key->flags & HAM_KEY_USER_ALLOC) {
-          if (!key->data || key->size != sizeof(uint64_t)) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
+          if (!key->data) {
+            ham_trace(("key->data must not be NULL"));
             return (db->set_error(HAM_INV_PARAMETER));
           }
         }

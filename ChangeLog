@@ -9,6 +9,10 @@ Dec 30, 2014 - chris ---------------------------------------------------
 o issue #43: fixed segfault when flushing transactions (thanks, Joel
 	Jacobson)
 
+Dec 12, 2014 - chris ---------------------------------------------------
+o Deprecated HAM_RECORD_NUMBER (use HAM_RECORD_NUMBER64 instead);
+	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
+
 Dec 05, 2014 - chris ---------------------------------------------------
 o Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 

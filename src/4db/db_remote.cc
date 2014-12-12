@@ -147,8 +147,14 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
                 : &txn->get_key_arena();
 
   /* recno: do not send the key */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    /* allocate memory for the key */
+  if (get_rt_flags() & HAM_RECORD_NUMBER32) {
+    if (!key->data) {
+      arena->resize(sizeof(uint32_t));
+      key->data = arena->get_ptr();
+      key->size = sizeof(uint32_t);
+    }
+  }
+  else if (get_rt_flags() & HAM_RECORD_NUMBER64) {
     if (!key->data) {
       arena->resize(sizeof(uint64_t));
       key->data = arena->get_ptr();
@@ -161,7 +167,7 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
   request.db_insert_request.db_handle = get_remote_handle();
   request.db_insert_request.txn_handle = txn ? txn->get_remote_handle() : 0;
   request.db_insert_request.flags = flags;
-  if (key && !(get_rt_flags() & HAM_RECORD_NUMBER)) {
+  if (key && !(get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
     request.db_insert_request.has_key = true;
     request.db_insert_request.key.has_data = true;
     request.db_insert_request.key.data.size = key->size;
@@ -185,18 +191,16 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
   ham_assert(reply.id == kDbInsertReply);
 
   ham_status_t st = reply.db_insert_reply.status;
+  if (st)
+    return (st);
 
-  /* recno: the key was modified! */
-  if (st == 0 && reply.db_insert_reply.has_key) {
-    if (reply.db_insert_reply.key.data.size == sizeof(uint64_t)) {
-      ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(uint64_t));
-      memcpy(key->data, reply.db_insert_reply.key.data.value,
-                sizeof(uint64_t));
-    }
+  if (reply.db_insert_reply.has_key) {
+    ham_assert(key->data != 0);
+    ham_assert(key->size == reply.db_insert_reply.key.data.size);
+    ::memcpy(key->data, reply.db_insert_reply.key.data.value, key->size);
   }
 
-  return (st);
+  return (0);
 }
 
 ham_status_t
@@ -347,10 +351,16 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
                 : &txn->get_key_arena();
 
   /* recno: do not send the key */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+  if (get_rt_flags() & HAM_RECORD_NUMBER32) {
     send_key = false;
-
-    /* allocate memory for the key */
+    if (!key->data) {
+      arena->resize(sizeof(uint32_t));
+      key->data = arena->get_ptr();
+      key->size = sizeof(uint32_t);
+    }
+  }
+  else if (get_rt_flags() & HAM_RECORD_NUMBER64) {
+    send_key = false;
     if (!key->data) {
       arena->resize(sizeof(uint64_t));
       key->data = arena->get_ptr();
@@ -386,18 +396,16 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   ham_assert(reply.id == kCursorInsertReply);
 
   ham_status_t st = reply.cursor_insert_reply.status;
+  if (st)
+    return (st);
 
-  /* recno: the key was modified! */
-  if (st == 0 && reply.cursor_insert_reply.has_key) {
-    if (reply.cursor_insert_reply.key.data.size == sizeof(uint64_t)) {
-      ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(uint64_t));
-      memcpy(key->data, reply.cursor_insert_reply.key.data.value,
-                      sizeof(uint64_t));
-    }
+  if (reply.cursor_insert_reply.has_key) {
+    ham_assert(key->size == reply.cursor_insert_reply.key.data.size);
+    ham_assert(key->data != 0);
+    ::memcpy(key->data, reply.cursor_insert_reply.key.data.value, key->size);
   }
 
-  return (st);
+  return (0);
 }
 
 ham_status_t

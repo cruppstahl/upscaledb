@@ -841,13 +841,18 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <ul>
  *     <li>@ref HAM_ENABLE_DUPLICATE_KEYS </li> Enable duplicate keys for this
  *      Database. By default, duplicate keys are disabled.
- *     <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
+ *     <li>@ref HAM_RECORD_NUMBER32 </li> Creates an "auto-increment" Database.
+ *      Keys in Record Number Databases are automatically assigned an
+ *      incrementing 32bit value. If key->data is not NULL
+ *      (and key->flags is @ref HAM_KEY_USER_ALLOC), the value of the current
+ *      key is returned in @a key. If key-data is NULL and key->size is 0,
+ *      key->data is temporarily allocated by hamsterdb.
+ *     <li>@ref HAM_RECORD_NUMBER64 </li> Creates an "auto-increment" Database.
  *      Keys in Record Number Databases are automatically assigned an
  *      incrementing 64bit value. If key->data is not NULL
- *      (and key->flags is @ref HAM_KEY_USER_ALLOC and key->size is 8),
- *      the value of the current key is returned in @a key. If key-data is NULL
- *      and key->size is 0, key->data is temporarily allocated by
- *      hamsterdb.
+ *      (and key->flags is @ref HAM_KEY_USER_ALLOC), the value of the current
+ *      key is returned in @a key. If key-data is NULL and key->size is 0,
+ *      key->data is temporarily allocated by hamsterdb.
  *    </ul>
  *
  * @param params An array of ham_parameter_t structures. The following
@@ -1198,9 +1203,16 @@ ham_txn_abort(ham_txn_t *txn, uint32_t flags);
  * This flag is non persistent. */
 #define HAM_DISABLE_MMAP                            0x00000200
 
+/* deprecated */
+#define HAM_RECORD_NUMBER                           HAM_RECORD_NUMBER64
+
 /** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
-#define HAM_RECORD_NUMBER                           0x00002000
+#define HAM_RECORD_NUMBER32                         0x00001000
+
+/** Flag for @ref ham_env_create_db.
+ * This flag is persisted in the Database. */
+#define HAM_RECORD_NUMBER64                         0x00002000
 
 /** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
@@ -1452,12 +1464,12 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * The duplicate key is inserted after all other duplicate keys (see
  * @ref HAM_DUPLICATE_INSERT_LAST).
  *
- * Record Number Databases (created with @ref HAM_RECORD_NUMBER) expect
- * either an empty @a key (with a size of 0 and data pointing to NULL),
- * or a user-supplied key (with key.flag @ref HAM_KEY_USER_ALLOC, a size
- * of 8 and a valid data pointer).
+ * Record Number Databases (created with @ref HAM_RECORD_NUMBER32 or
+ * @ref HAM_RECORD_NUMBER64) expect either an empty @a key (with a size of
+ * 0 and data pointing to NULL), or a user-supplied key (with key.flag
+ * @ref HAM_KEY_USER_ALLOC and a valid data pointer).
  * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
- * allocate memory for key->data, which will then point to an 8-byte
+ * allocate memory for key->data, which will then point to an 4-byte (or 8-byte)
  * unsigned integer.
  *
  * For very fast sequential inserts please use @ref ham_cursor_insert in
@@ -2378,12 +2390,12 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * After inserting, the Cursor will point to the new item. If inserting
  * the item failed, the Cursor is not modified.
  *
- * Record Number Databases (created with @ref HAM_RECORD_NUMBER) expect
- * either an empty @a key (with a size of 0 and data pointing to NULL),
- * or a user-supplied key (with key.flag @ref HAM_KEY_USER_ALLOC, a size
- * of 8 and a valid data pointer).
+ * Record Number Databases (created with @ref HAM_RECORD_NUMBER32 or
+ * @ref HAM_RECORD_NUMBER64) expect either an empty @a key (with a size of
+ * 0 and data pointing to NULL), or a user-supplied key (with key.flag
+ * @ref HAM_KEY_USER_ALLOC and a valid data pointer).
  * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
- * allocate memory for key->data, which will then point to an 8-byte
+ * allocate memory for key->data, which will then point to an 4-byte (or 8-byte)
  * unsigned integer.
  *
  * @param cursor A valid Cursor handle

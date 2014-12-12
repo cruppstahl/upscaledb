@@ -89,8 +89,8 @@ struct Configuration
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
       flush_txn_immediately(false), disable_recovery(false),
       journal_compression(0), record_compression(0), key_compression(0),
-      read_only(false), enable_crc32(false), record_number(false),
-      posix_fadvice(HAM_POSIX_FADVICE_NORMAL) {
+      read_only(false), enable_crc32(false), record_number32(false),
+      record_number64(false), posix_fadvice(HAM_POSIX_FADVICE_NORMAL) {
   }
 
   void print() const {
@@ -176,8 +176,10 @@ struct Configuration
       std::cout << "--duptable-threshold=" << duptable_threshold << " ";
     if (enable_crc32)
       std::cout << "--enable-crc32 ";
-    if (record_number)
-      std::cout << "--record-number ";
+    if (record_number32)
+      std::cout << "--record-number32 ";
+    if (record_number64)
+      std::cout << "--record-number64 ";
     if (posix_fadvice)
       std::cout << "--posix-fadvice="
               << (posix_fadvice == HAM_POSIX_FADVICE_RANDOM
@@ -290,7 +292,8 @@ struct Configuration
   int key_compression;
   bool read_only;
   bool enable_crc32;
-  bool record_number;
+  bool record_number32;
+  bool record_number64;
   int posix_fadvice;
 };
 

@@ -70,7 +70,7 @@ main()
   ham_db_close(db, 0);
 
   st = ham_env_create_db(env, &db, 33,
-        HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATE_KEYS, 0);
+                HAM_RECORD_NUMBER64 | HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
     printf("ham_env_create_db: %d\n", st);
     exit(-1);

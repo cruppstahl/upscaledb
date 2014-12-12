@@ -337,7 +337,8 @@ HamsterDatabase::do_create_db(int id)
   uint32_t flags = 0;
 
   flags |= m_config->duplicate ? HAM_ENABLE_DUPLICATES : 0;
-  flags |= m_config->record_number ? HAM_RECORD_NUMBER : 0;
+  flags |= m_config->record_number32 ? HAM_RECORD_NUMBER32 : 0;
+  flags |= m_config->record_number64 ? HAM_RECORD_NUMBER64 : 0;
   if (m_config->force_records_inline)
     flags |= HAM_FORCE_RECORDS_INLINE;
 
@@ -414,7 +415,7 @@ HamsterDatabase::do_insert(Transaction *txn, ham_key_t *key,
     flags |= HAM_DUPLICATE;
 
   ham_key_t recno_key = {0};
-  if (m_config->record_number)
+  if (m_config->record_number32 || m_config->record_number64)
     key = &recno_key;
 
   ham_status_t st = ham_db_insert(m_db, (ham_txn_t *)txn, key, record, flags);

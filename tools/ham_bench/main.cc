@@ -93,8 +93,9 @@
 #define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
-#define ARG_RECORD_NUMBER                       69
-#define ARG_POSIX_FADVICE                       70
+#define ARG_RECORD_NUMBER32                     69
+#define ARG_RECORD_NUMBER64                     70
+#define ARG_POSIX_FADVICE                       71
 
 /*
  * command line parameters
@@ -428,10 +429,16 @@ static option_t opts[] = {
     "Pro: Enables use of CRC32 verification",
     0 },
   {
-    ARG_RECORD_NUMBER,
+    ARG_RECORD_NUMBER32,
     0,
-    "record-number",
-    "Enables use of record numbers",
+    "record-number32",
+    "Enables use of 32bit record numbers",
+    0 },
+  {
+    ARG_RECORD_NUMBER64,
+    0,
+    "record-number64",
+    "Enables use of 64bit record numbers",
     0 },
   {
     ARG_POSIX_FADVICE,
@@ -796,8 +803,15 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_ENABLE_CRC32) {
       c->enable_crc32 = true;
     }
-    else if (opt == ARG_RECORD_NUMBER) {
-      c->record_number = true;
+    else if (opt == ARG_RECORD_NUMBER32) {
+      c->record_number32 = true;
+      c->key_is_fixed_size = true;
+      c->key_size = 4;
+      c->key_type = Configuration::kKeyUint32;
+      c->distribution = Configuration::kDistributionAscending;
+    }
+    else if (opt == ARG_RECORD_NUMBER64) {
+      c->record_number64 = true;
       c->key_is_fixed_size = true;
       c->key_size = 8;
       c->key_type = Configuration::kKeyUint64;

@@ -309,6 +309,22 @@ x A few things to refactor in the btree
     x btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
         in btree_index.h. Can both be combined?
 
+x Introduce new option for record numbers (HAM_RECORD_NUMBER32,
+    HAM_RECORD_NUMBER64), deprecate the old one. Use 32bit whenever possible!
+    x introduce a new flag; the old one uses 64bit. all tests must work
+    x implement (local)
+    x implement (server)
+    x implement (remote)
+    x verify with ham_dump/ham_info
+    x add unittests
+        x re-use existing tests
+        x also for remote!
+        x check for overflows!
+    x add to ham_bench
+    x fix documentation
+        x samples
+        x header file
+
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
     x add parameter to header file
@@ -346,14 +362,6 @@ o Remove requirement for "delete stability" when erasing keys
     o run monster tests
     o run performance tests
 
-o Introduce new option for record numbers (HAM_RECORD_NUMBER32,
-    HAM_RECORD_NUMBER64), deprecate the old one. Use 32bit whenever possible!
-    o implement
-    o don't forget to check for overflow!
-    o add unittests (re-use existing tests)
-    o add monster tests
-    o add performance tests
-
 o "replication" vs "transactions": pure replication is much slower, although
     it is much simpler. However, transactions are buffered and "group flushed"
     whereas pure replication is flushed after each operation.
@@ -362,6 +370,8 @@ o "replication" vs "transactions": pure replication is much slower, although
     o treat enabled transactions separately from the journal (should already
         be the case since transactions can be used without the journal)
     o recovery code must not re-create transactions if they are disabled
+    o run monster tests
+    o run performance tests
 
 o move "purge cache" to background
     1) page list is not modified while it is traversed/modified
@@ -398,6 +408,9 @@ o refactoring: make EnvironmentHeader stateless and exception safe
 
 o support multiple worker threads which perform I/O
     o how many threads should be created??
+
+o documentation related issues for 2.1.10
+    o HAM_RECORD_NUMBER32: add/update tutorial
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES

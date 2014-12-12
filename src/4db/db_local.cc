@@ -99,7 +99,7 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
    */
   if ((flags & HAM_OVERWRITE)
           || (flags & HAM_DUPLICATE)
-          || (get_rt_flags() & HAM_RECORD_NUMBER))
+          || (get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)))
     return (0);
 
   ham_status_t st = m_btree_index->find(0, key, 0, 0, 0, flags);
@@ -653,7 +653,7 @@ LocalDatabase::open(uint16_t descriptor)
   m_config.record_size = m_btree_index->get_record_size();
 
   // fetch the current record number
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+  if ((get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
     ham_key_t key = {};
     Cursor *c = new Cursor(this, 0, 0);
     ham_status_t st = cursor_move(c, &key, 0, HAM_CURSOR_LAST);
@@ -661,8 +661,10 @@ LocalDatabase::open(uint16_t descriptor)
     if (st)
       return (st == HAM_KEY_NOT_FOUND ? 0 : st);
 
-    ham_assert(key.size == sizeof(uint64_t));
-    m_recno = *(uint64_t *)key.data;
+    if (get_rt_flags() & HAM_RECORD_NUMBER32)
+      m_recno = *(uint32_t *)key.data;
+    else
+      m_recno = *(uint64_t *)key.data;
   }
 
   return (0);
@@ -1379,9 +1381,17 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   LocalTransaction *local_txn = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    if (key->size != 0 && key->size != m_config.key_size) {
-      ham_trace(("invalid record number key size (%u instead of 0 or %u)",
+  if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
+    if (key->size == 0 && key->data == 0) {
+      // ok!
+    }
+    else if (key->size == 0 && key->data != 0) {
+      ham_trace(("for record number keys set key size to 0, "
+                             "key->data to null"));
+      return (HAM_INV_PARAMETER);
+    }
+    else if (key->size != m_config.key_size) {
+      ham_trace(("invalid key size (%u instead of %u)",
             key->size, m_config.key_size));
       return (HAM_INV_KEY_SIZE);
     }
@@ -1406,9 +1416,12 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   /*
    * record number: make sure that we have a valid key structure,
    * and lazy load the last used record number
+   *
+   * TODO TODO
+   * too much duplicated code
    */
   uint64_t recno = 0;
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+  if (get_rt_flags() & HAM_RECORD_NUMBER64) {
     if (flags & HAM_OVERWRITE) {
       ham_assert(key->size == sizeof(uint64_t));
       ham_assert(key->data != 0);
@@ -1426,6 +1439,28 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     }
     key->size = sizeof(uint64_t);
     *(uint64_t *)key->data = recno;
+
+    /* A recno key is always appended sequentially */
+    flags |= HAM_HINT_APPEND;
+  }
+  else if (get_rt_flags() & HAM_RECORD_NUMBER32) {
+    if (flags & HAM_OVERWRITE) {
+      ham_assert(key->size == sizeof(uint32_t));
+      ham_assert(key->data != 0);
+      recno = *(uint32_t *)key->data;
+    }
+    else {
+      /* get the record number and increment it */
+      recno = get_incremented_recno();
+    }
+
+    /* allocate memory for the key */
+    if (!key->data) {
+      arena->resize(sizeof(uint32_t));
+      key->data = arena->get_ptr();
+    }
+    key->size = sizeof(uint32_t);
+    *(uint32_t *)key->data = recno;
 
     /* A recno key is always appended sequentially */
     flags |= HAM_HINT_APPEND;
@@ -1464,8 +1499,8 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       get_local_env()->get_txn_manager()->abort(local_txn);
     }
 
-    if ((get_rt_flags() & HAM_RECORD_NUMBER)
-        && !(flags & HAM_OVERWRITE)) {
+    if ((get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))
+          && !(flags & HAM_OVERWRITE)) {
       if (!(key->flags & HAM_KEY_USER_ALLOC)) {
         key->data = 0;
         key->size = 0;
@@ -1475,10 +1510,6 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 
     return (st);
   }
-
-  // return the incremented record number in the key.
-  if (get_rt_flags() & HAM_RECORD_NUMBER)
-    key->size = sizeof(uint64_t);
 
   // couple the cursor to the inserted key
   if (cursor) {
@@ -1598,14 +1629,6 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       ham_trace(("invalid key size (%u instead of %u)",
             key->size, m_config.key_size));
       return (HAM_INV_KEY_SIZE);
-    }
-
-    /* record number: make sure that we have a valid key structure */
-    if (get_rt_flags() & HAM_RECORD_NUMBER) {
-      if (key->size != sizeof(uint64_t) || !key->data) {
-        ham_trace(("key->size must be 8, key->data must not be NULL"));
-        return (HAM_INV_PARAMETER);
-      }
     }
   }
 

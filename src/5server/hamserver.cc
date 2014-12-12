@@ -644,8 +644,8 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_rt_flags(true) & HAM_RECORD_NUMBER)) {
-        ham_assert(key.size == sizeof(uint64_t));
+          && (((Database *)db)->get_rt_flags(true)
+                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
         send_key = true;
       }
     }
@@ -704,8 +704,8 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_rt_flags(true) & HAM_RECORD_NUMBER)) {
-        ham_assert(key.size == sizeof(uint64_t));
+          && (((Database *)db)->get_rt_flags(true)
+                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
         send_key = true;
       }
     }
@@ -1266,8 +1266,8 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
   /* recno: return the modified key */
   if (st == 0) {
-    if (cursor->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
-      ham_assert(key.size == sizeof(uint64_t));
+    if (cursor->get_db()->get_rt_flags(true)
+                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
       send_key = true;
     }
   }
@@ -1319,8 +1319,8 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp,
 
   /* recno: return the modified key */
   if (st == 0) {
-    if (cursor->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
-      ham_assert(key.size == sizeof(uint64_t));
+    if (cursor->get_db()->get_rt_flags(true)
+                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
       send_key = true;
     }
   }

@@ -24,6 +24,8 @@
 
 #include "0root/root.h"
 
+#include <limits>
+
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
 #include "3btree/btree_index.h"
@@ -42,6 +44,9 @@ class TransactionCursor;
 class TransactionOperation;
 class LocalEnvironment;
 class LocalTransaction;
+
+template<typename T>
+class RecordNumberFixture;
 
 //
 // The database implementation for local file access
@@ -194,6 +199,8 @@ class LocalDatabase : public Database {
     friend struct DbFixture;
     friend struct HamsterdbFixture;
     friend struct ExtendedKeyFixture;
+    friend class RecordNumberFixture<uint32_t>;
+    friend class RecordNumberFixture<uint64_t>;
 
     // The actual implementation of insert()
     ham_status_t insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
@@ -209,7 +216,13 @@ class LocalDatabase : public Database {
 
     // returns the next record number
     uint64_t get_incremented_recno() {
-      return (++m_recno);
+      m_recno++;
+      if (m_config.flags & HAM_RECORD_NUMBER32
+            && m_recno > std::numeric_limits<uint32_t>::max())
+        throw Exception(HAM_LIMITS_REACHED);
+      else if (m_recno == 0)
+        throw Exception(HAM_LIMITS_REACHED);
+      return (m_recno);
     }
 
     // Checks if an insert operation conflicts with another txn; this is the

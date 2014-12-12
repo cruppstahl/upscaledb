@@ -50,7 +50,11 @@ struct RemoteFixture {
     ham_db_close(m_db, 0);
 
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33,
-            HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATE_KEYS, 0));
+            HAM_RECORD_NUMBER64 | HAM_ENABLE_DUPLICATE_KEYS, 0));
+    ham_db_close(m_db, 0);
+
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 34,
+            HAM_RECORD_NUMBER32, 0));
     ham_db_close(m_db, 0);
 
     REQUIRE(0 == ham_srv_init(&cfg, &m_srv));
@@ -144,7 +148,8 @@ struct RemoteFixture {
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
-    REQUIRE(3u == max_names);
+    REQUIRE(34 == names[3]);
+    REQUIRE(4u == max_names);
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -174,7 +179,8 @@ struct RemoteFixture {
     REQUIRE(14 == names[0]);
     REQUIRE(15 == names[1]);
     REQUIRE(33 == names[2]);
-    REQUIRE(3u == max_names);
+    REQUIRE(34 == names[3]);
+    REQUIRE(4u == max_names);
 
     REQUIRE(HAM_DATABASE_NOT_FOUND ==
           ham_env_rename_db(env, 13, 16, 0));
@@ -184,7 +190,8 @@ struct RemoteFixture {
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
-    REQUIRE(3u == max_names);
+    REQUIRE(34 == names[3]);
+    REQUIRE(4u == max_names);
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -247,14 +254,15 @@ struct RemoteFixture {
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
-    REQUIRE(3u == max_names);
+    REQUIRE(34 == names[3]);
+    REQUIRE(4u == max_names);
 
     REQUIRE(0 == ham_env_erase_db(env, 14, 0));
-    REQUIRE(0 ==
-        ham_env_get_database_names(env, &names[0], &max_names));
+    REQUIRE(0 == ham_env_get_database_names(env, &names[0], &max_names));
     REQUIRE(13 == names[0]);
     REQUIRE(33 == names[1]);
-    REQUIRE(2u == max_names);
+    REQUIRE(34 == names[2]);
+    REQUIRE(3u == max_names);
 
     REQUIRE(HAM_DATABASE_NOT_FOUND ==
         ham_env_erase_db(env, 14, 0));
@@ -444,7 +452,8 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void insertRecnoTest() {
+  template<typename RecnoType>
+  void insertRecnoTest(int dbid) {
     ham_db_t *db;
     ham_env_t *env;
     ham_key_t key = {};
@@ -454,16 +463,16 @@ struct RemoteFixture {
     rec.size = 12;
 
     REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 == ham_env_open_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, dbid, 0, 0));
 
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(8 == key.size);
-    REQUIRE(1ull == *(uint64_t *)key.data);
+    REQUIRE(sizeof(RecnoType) == key.size);
+    REQUIRE(1ull == *(RecnoType *)key.data);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(8 == key.size);
-    REQUIRE(2ull == *(uint64_t *)key.data);
+    REQUIRE(sizeof(RecnoType) == key.size);
+    REQUIRE(2ull == *(RecnoType *)key.data);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -546,28 +555,27 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void insertFindEraseRecnoTest() {
+  template<typename RecnoType>
+  void insertFindEraseRecnoTest(int dbid) {
     ham_db_t *db;
     ham_env_t *env;
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
     uint64_t keycount;
-    uint64_t recno;
+    RecnoType recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, dbid, 0, 0));
 
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
-    REQUIRE(8 == key.size);
-    recno = *(uint64_t *)key.data;
+    REQUIRE(sizeof(RecnoType) == key.size);
+    recno = *(RecnoType *)key.data;
     REQUIRE(1ull == recno);
 
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec2, 0));
@@ -578,14 +586,14 @@ struct RemoteFixture {
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
-    recno = *(uint64_t *)key.data;
+    recno = *(RecnoType *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
-    recno = *(uint64_t *)key.data;
+    recno = *(RecnoType *)key.data;
     REQUIRE(3ull == recno);
 
     REQUIRE(0 == ham_db_erase(db, 0, &key, 0));
@@ -612,13 +620,10 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
@@ -652,13 +657,10 @@ struct RemoteFixture {
     rec.partial_offset = 0;
     rec.partial_size = 5;
 
-    REQUIRE(0 ==
-          ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-          ham_env_create_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
     REQUIRE(HAM_INV_PARAMETER ==
           ham_cursor_insert(cursor, &key, &rec, HAM_PARTIAL));
 
@@ -683,7 +685,8 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void cursorInsertRecnoTest() {
+  template<typename RecnoType>
+  void cursorInsertRecnoTest(int dbid) {
     ham_db_t *db;
     ham_env_t *env;
     ham_cursor_t *cursor;
@@ -693,21 +696,18 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, dbid, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
 
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(8 == key.size);
-    REQUIRE(1ull == *(uint64_t *)key.data);
+    REQUIRE(sizeof(RecnoType) == key.size);
+    REQUIRE(1ull == *(RecnoType *)key.data);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(8 == key.size);
-    REQUIRE(2ull == *(uint64_t *)key.data);
+    REQUIRE(sizeof(RecnoType) == key.size);
+    REQUIRE(2ull == *(RecnoType *)key.data);
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -726,13 +726,10 @@ struct RemoteFixture {
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
@@ -756,7 +753,8 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
-  void cursorInsertFindEraseRecnoTest() {
+  template<typename RecnoType>
+  void cursorInsertFindEraseRecnoTest(int dbid) {
     ham_db_t *db;
     ham_env_t *env;
     ham_cursor_t *cursor;
@@ -764,24 +762,21 @@ struct RemoteFixture {
     ham_record_t rec = {};
     ham_record_t rec2 = {};
     uint64_t keycount;
-    uint64_t recno;
+    RecnoType recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, dbid, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
-    REQUIRE(8 == key.size);
-    recno = *(uint64_t *)key.data;
+    REQUIRE(sizeof(RecnoType) == key.size);
+    recno = *(RecnoType *)key.data;
     REQUIRE(1ull == recno);
 
     REQUIRE(0 == ham_cursor_find(cursor, &key, &rec2, 0));
@@ -792,14 +787,14 @@ struct RemoteFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
-    recno = *(uint64_t *)key.data;
+    recno = *(RecnoType *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
-    recno = *(uint64_t *)key.data;
+    recno = *(RecnoType *)key.data;
     REQUIRE(3ull == recno);
 
     REQUIRE(0 == ham_cursor_erase(cursor, 0));
@@ -828,13 +823,10 @@ struct RemoteFixture {
     rec2.size = sizeof(buf);
     rec2.flags = HAM_RECORD_USER_ALLOC;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     ham_env_erase_db(env, 33, 0);
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 33, 0, 0));
-    REQUIRE(0 ==
-        ham_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
@@ -1039,10 +1031,8 @@ struct RemoteFixture {
     ham_db_t *db1, *db2;
     ham_env_t *env;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db1, 33, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db1, 33, 0, 0));
     REQUIRE(HAM_DATABASE_ALREADY_OPEN ==
         ham_env_open_db(env, &db2, 33, 0, 0));
 
@@ -1248,10 +1238,10 @@ TEST_CASE("Remote/insertFindPartialTest", "")
   f.insertFindPartialTest();
 }
 
-TEST_CASE("Remote/insertRecnoTest", "")
+TEST_CASE("Remote/insertRecno64Test", "")
 {
   RemoteFixture f;
-  f.insertRecnoTest();
+  f.insertRecnoTest<uint64_t>(33);
 }
 
 TEST_CASE("Remote/insertFindEraseTest", "")
@@ -1266,10 +1256,10 @@ TEST_CASE("Remote/insertFindEraseUserallocTest", "")
   f.insertFindEraseUserallocTest();
 }
 
-TEST_CASE("Remote/insertFindEraseRecnoTest", "")
+TEST_CASE("Remote/insertFindEraseRecno64Test", "")
 {
   RemoteFixture f;
-  f.insertFindEraseRecnoTest();
+  f.insertFindEraseRecnoTest<uint64_t>(33);
 }
 
 TEST_CASE("Remote/cursorInsertFindTest", "")
@@ -1284,10 +1274,10 @@ TEST_CASE("Remote/cursorInsertFindPartialTest", "")
   f.cursorInsertFindPartialTest();
 }
 
-TEST_CASE("Remote/cursorInsertRecnoTest", "")
+TEST_CASE("Remote/cursorInsertRecno64Test", "")
 {
   RemoteFixture f;
-  f.cursorInsertRecnoTest();
+  f.cursorInsertRecnoTest<uint64_t>(33);
 }
 
 TEST_CASE("Remote/cursorInsertFindEraseTest", "")
@@ -1302,10 +1292,10 @@ TEST_CASE("Remote/cursorInsertFindEraseUserallocTest", "")
   f.cursorInsertFindEraseUserallocTest();
 }
 
-TEST_CASE("Remote/cursorInsertFindEraseRecnoTest", "")
+TEST_CASE("Remote/cursorInsertFindEraseRecno64Test", "")
 {
   RemoteFixture f;
-  f.cursorInsertFindEraseRecnoTest();
+  f.cursorInsertFindEraseRecnoTest<uint64_t>(33);
 }
 
 TEST_CASE("Remote/cursorGetDuplicateCountTest", "")
@@ -1366,6 +1356,30 @@ TEST_CASE("Remote/timeoutTest", "")
 {
   RemoteFixture f;
   f.timeoutTest();
+}
+
+TEST_CASE("Remote/insertRecno32Test", "")
+{
+  RemoteFixture f;
+  f.insertRecnoTest<uint32_t>(34);
+}
+
+TEST_CASE("Remote/insertFindEraseRecno32Test", "")
+{
+  RemoteFixture f;
+  f.insertFindEraseRecnoTest<uint32_t>(34);
+}
+
+TEST_CASE("Remote/cursorInsertRecno32Test", "")
+{
+  RemoteFixture f;
+  f.cursorInsertRecnoTest<uint32_t>(34);
+}
+
+TEST_CASE("Remote/cursorInsertFindEraseRecno32Test", "")
+{
+  RemoteFixture f;
+  f.cursorInsertFindEraseRecnoTest<uint32_t>(34);
 }
 
 #endif // HAM_ENABLE_REMOTE

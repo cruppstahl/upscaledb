@@ -347,7 +347,6 @@ class BtreeIndex
     friend struct BtreeCursorFixture;
     friend struct DbFixture;
     friend struct DuplicateFixture;
-    friend struct RecordNumberFixture;
 
     // Implementation of get_node_from_page() (for leaf nodes)
     BtreeNodeProxy *get_leaf_node_from_page_impl(Page *page) const {

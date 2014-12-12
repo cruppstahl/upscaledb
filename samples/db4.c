@@ -54,7 +54,7 @@ main(int argc, char **argv) {
     return (-1);
   }
 
-  st = ham_env_create_db(env, &db, DATABASE_NAME, HAM_RECORD_NUMBER, 0);
+  st = ham_env_create_db(env, &db, DATABASE_NAME, HAM_RECORD_NUMBER32, 0);
   if (st != HAM_SUCCESS) {
     printf("ham_env_create_db() failed with error %d\n", st);
     return (-1);
@@ -72,7 +72,7 @@ main(int argc, char **argv) {
      * and not flexible, but it's good enough for this example.
      */
     while ((p = strtok(start, " \t\r\n"))) {
-      uint64_t recno;
+      uint32_t recno;
 
       key.flags = HAM_KEY_USER_ALLOC;
       key.data = &recno;
@@ -116,13 +116,7 @@ main(int argc, char **argv) {
     }
 
     /* print the record number and the word */
-#ifdef WIN32
-    printf("%I64u: %s\n", *(uint64_t *)key.data,
-        (const char *)record.data);
-#else
-    printf("%llu: %s\n", *(unsigned long long *)key.data,
-        (const char *)record.data);
-#endif
+    printf("%u: %s\n", *(uint32_t *)key.data, (const char *)record.data);
   }
 
   /*
