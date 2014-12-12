@@ -615,22 +615,27 @@ o Zint32: add compression based on bit-packing
     x update IndexFactory for the new KeyList
     x move block/index related functionality to a base class BlockKeyList
         (w/ template parameter for the block structure)
-    o integrate Daniel's sources as a library
-        o add a unittest to compress/decompress
+    x integrate Daniel's sources as a library
+        x add a unittest to compress/decompress
     o implement the compression
         x don't use index->used_size, it's not required
         x don't use index->block_size; it's always static
         x use delta-encoding to have better compression
-        o keep track of the bits required to encode a block
-        o make sure that compressing/decompressing under-filled blocks
-            does not exceed the boundary!
-        o blocks have a fixed size; no need to resize them, as long as the
-            bit width is not increased
-        o vacuumize: try to create blocks for 128 integers!
-            merge blocks if
-              - both blocks have <= 128 keys
-              - the last key of a block == the first key of the next block - 1
-        . need a solution without simd!?
+        x fill in the implementation
+====================================
+        o add unittests (similar to zint32)
+SimdComp/ascendingDataTest
+vacuumize_impl() is causing problems because growing blocks requires a page
+split. The implementation of vacuumize_impl itself is broken. In addition,
+it might remove blocks, and invalidate pointers that were fetched by the
+caller. maybe it's better to require a split, which in turn will cause a
+vacuumize by the caller (with an additional retry)?
+====================================
+    o don't split blocks in the middle if the new key is appended
+    o don't split blocks in the middle if the new key is prepended
+    o add monster tests (similar to zint32)
+    o test with bulk-erase and deltas of size 1, no records
+        -> no delete stability!
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -640,7 +645,9 @@ o btree_erase:71 if the node is empty then it should be merged and
 =======
 o Remove requirement for "delete stability" when erasing keys
     x Introduce generic BtreeUpdateAction which handles merges and splits
-    o when erasing a key: also expect splits
+    o when erasing a key: also expect splits; in case of a split the
+        BtreeEraseAction has to retry the operation - either with the old
+        or the new node!
     o run monster tests
     o run performance tests
 
@@ -652,10 +659,18 @@ o Thomas Fähnle: create new parameter for fadvise configuration
     o create a new parameter for ham_bench
 
 o A few things to refactor in the btree
-    o the BtreeAction classes do not need a Transaction pointer as an argument!
-    o actually NO part of the Btree should EVER access a Transaction...
+    x the BtreeAction classes do not need a Transaction pointer as an argument!
+    x actually NO part of the Btree should EVER access a Transaction...
     o btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
         in btree_index.h. Can both be combined?
+
+o Introduce new option for record numbers (HAM_RECORD_NUMBER32,
+    HAM_RECORD_NUMBER64), deprecate the old one. Use 32bit whenever possible!
+    o implement
+    o don't forget to check for overflow!
+    o add unittests
+    o add monster tests
+    o add performance tests
 
 o "replication" vs "transactions": pure replication is much slower, although
     it is much simpler. However, transactions are buffered and "group flushed"
@@ -686,6 +701,34 @@ o move "purge cache" to background
     o mark page as "in use" during purge
     o afterwards once more run the leveldb benchmarks
 
+o check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early
+
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
+
+o implement Cursor::get_record_size for remote access
+
+o refactoring: make EnvironmentHeader stateless and exception safe
+    -> will it ever be used outside of the EnvironmentConfiguration setting?
+    -> can we remove it?
+
+o support multiple worker threads which perform I/O
+    o how many threads should be created??
+
+o reserve file size upon creation, then map the whole range
+    o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
+    o support in ham_bench
+    o monster tests and performance tests
+    o also for java
+    o also for dotnet
+    o also for python
+    o also for erlang
+
+o If mmap is enabled then keys and records don't have to be copied as long
+    as they point into the mapped area!
+
 o More things to refactor in the btree
     o PageManager::fetch_page should be available in a const version
         (fetch_const_page) which sets a flag in the page ("kIsImmutable").
@@ -695,6 +738,7 @@ o More things to refactor in the btree
         -> use a common behaviour/indexing
     o EraseAction line 71: if the node is empty then it should be merged and
         moved to the freelist!
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> Fixed another regression
 
@@ -709,6 +753,9 @@ o migrate to libuv 1.0, it has a stable API
 =======
 =======
 >>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
+=======
+
+>>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
     but it's unclear whether the duplicate index is ever required. Better
@@ -783,6 +830,7 @@ o refactoring: clean up the whole Database code; it's too much and too
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> More refactorings, no functional changes
 o refactoring: create a Update structure whenever a database is modified;
     it consists of the operation type, key, record (optional), operation flags,
@@ -826,20 +874,11 @@ o move "purge cache" to background
 >>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
+=======
+>>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
 
-o reduce the number functions which modify the pages; all other functions
-    just get a const page
 
-o migrate to libuv 1.0, it has a stable API
-    http://docs.libuv.org/en/latest/migration_010_100.html
-    o also for windows!
-
-o Cursor::get_record_size is not implemented for remote access
-
-o refactoring: make EnvironmentHeader stateless and exception safe
-    -> will it ever be used outside of the EnvironmentConfiguration setting?
-    -> can we remove it?
-
+<<<<<<< HEAD
 <<<<<<< HEAD
 o refactoring: make journal stateless and exception safe
     (if it makes sense)
@@ -879,6 +918,8 @@ o reserve file size upon creation, then map the whole range
     o also for dotnet
     o also for python
     o also for erlang
+=======
+>>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1030,6 +1071,7 @@ o improve the webpage documentation
 
 o internal nodes should use 32bit page IDs!
 
+o PRO: allow compression of 32bit record numbers
 
 o PRO: look for a better compression for DefaultRecordList, i.e.
     - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit

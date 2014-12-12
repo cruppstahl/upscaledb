@@ -1112,8 +1112,14 @@ check_dupes:
       * this can be avoided, though. */
       if (cursor->is_coupled_to_txnop())
         cursor->get_txn_cursor()->copy_coupled_record(record);
-      else
-        st = cursor->get_btree_cursor()->move(0, record, 0);
+      else {
+        Transaction *txn = cursor->get_txn();
+        ByteArray *record_arena = (txn == 0
+                      || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                   ? &get_record_arena()
+                   : &txn->get_record_arena();
+        st = cursor->get_btree_cursor()->move(0, 0, record, record_arena, 0);
+      }
     }
   }
   else {
