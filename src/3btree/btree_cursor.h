@@ -155,10 +155,14 @@ class BtreeCursor
 
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
-    ham_status_t find(ham_key_t *key, ham_record_t *record, uint32_t flags);
+    ham_status_t find(ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags);
 
     // Moves the cursor to the first, last, next or previous element
-    ham_status_t move(ham_key_t *key, ham_record_t *record, uint32_t flags);
+    ham_status_t move(ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags);
 
     // Returns the number of records of the referenced key
     int get_record_count(uint32_t flags);

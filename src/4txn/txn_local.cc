@@ -444,13 +444,13 @@ struct KeyCounter : public TransactionIndex::Visitor
             || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
           // check if the key already exists in the btree - if yes,
           // we do not count it (it will be counted later)
-          if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
+          if (HAM_KEY_NOT_FOUND == be->find(0, node->get_key(), 0, 0, 0, 0))
             counter++;
           return;
         }
         else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
           // check if btree has other duplicates
-          if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
+          if (0 == be->find(0, node->get_key(), 0, 0, 0, 0)) {
             // yes, there's another one
             if (distinct)
               return;

@@ -200,7 +200,12 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
   TransactionOperation *op;
   ham_status_t st;
   Cursor *clone = get_db()->cursor_clone(this);
-  st = m_btree_cursor.move(&key, 0, 0);
+
+  ByteArray *key_arena = (get_txn() == 0
+                    || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
+               ? &get_db()->get_key_arena()
+               : &get_txn()->get_key_arena();
+  st = m_btree_cursor.move(&key, key_arena, 0, 0, 0);
   if (st) {
     get_db()->cursor_close(clone);
     return (st);
@@ -239,7 +244,7 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
                 : HAM_FIND_LEQ_MATCH);
     /* the flag DONT_LOAD_KEY does not load the key if there's an
      * approx match - it only positions the cursor */
-    ham_status_t st = m_btree_cursor.find(k, 0, kSyncDontLoadKey | flags);
+    ham_status_t st = m_btree_cursor.find(k, 0, 0, 0, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
      * set fresh_start to false; otherwise do_local_cursor_move
      * will move the btree cursor again */
@@ -367,7 +372,7 @@ Cursor::move_next_key_singlestep()
   /* if both cursors point to the same key: move next with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
+      st = btrc->move(0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
       if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
         if (m_txn_cursor.is_nil())
@@ -397,7 +402,7 @@ Cursor::move_next_key_singlestep()
   }
   /* if the btree-key is smaller: move it next */
   else if (m_last_cmp < 0) {
-    st = btrc->move(0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
+    st = btrc->move(0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
     if (st == HAM_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
@@ -530,8 +535,8 @@ Cursor::move_previous_key_singlestep()
   /* if both cursors point to the same key: move previous with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(0, 0, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES);
-      if (st == HAM_KEY_NOT_FOUND || st==HAM_CURSOR_IS_NIL) {
+      st = btrc->move(0, 0, 0, 0, HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
+      if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
         if (m_txn_cursor.is_nil())
           return (HAM_KEY_NOT_FOUND);
@@ -556,7 +561,7 @@ Cursor::move_previous_key_singlestep()
   }
   /* if the btree-key is greater: move previous */
   else if (m_last_cmp > 0) {
-    st = btrc->move(0, 0, HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
+    st = btrc->move(0, 0, 0, 0, HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
     if (st == HAM_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
@@ -692,7 +697,7 @@ Cursor::move_first_key_singlestep()
   /* fetch the smallest key from the transaction tree. */
   txns = m_txn_cursor.move(HAM_CURSOR_FIRST);
   /* fetch the smallest key from the btree tree. */
-  btrs = btrc->move(0, 0, HAM_CURSOR_FIRST|HAM_SKIP_DUPLICATES);
+  btrs = btrc->move(0, 0, 0, 0, HAM_CURSOR_FIRST | HAM_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
   if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
     return (HAM_KEY_NOT_FOUND);
@@ -799,7 +804,7 @@ Cursor::move_last_key_singlestep()
   /* fetch the largest key from the transaction tree. */
   txns = m_txn_cursor.move(HAM_CURSOR_LAST);
   /* fetch the largest key from the btree tree. */
-  btrs = btrc->move(0, 0, HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
+  btrs = btrc->move(0, 0, 0, 0, HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
   if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
     return (HAM_KEY_NOT_FOUND);
@@ -968,7 +973,17 @@ retrieve_key_and_record:
       }
     }
     else {
-      st = btrc->move(key, record, 0);
+      ByteArray *key_arena = (get_txn() == 0
+                        || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
+                   ? &get_db()->get_key_arena()
+                   : &get_txn()->get_key_arena();
+
+      ByteArray *record_arena = (get_txn() == 0
+                      || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
+                   ? &get_db()->get_record_arena()
+                   : &get_txn()->get_record_arena();
+
+      st = btrc->move(key, key_arena, record, record_arena, 0);
     }
   }
 

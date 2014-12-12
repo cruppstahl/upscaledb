@@ -118,11 +118,10 @@ BtreeCursor::overwrite(ham_record_t *record, uint32_t flags)
 }
 
 ham_status_t
-BtreeCursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
+BtreeCursor::move(ham_key_t *key, ByteArray *key_arena, ham_record_t *record,
+                ByteArray *record_arena, uint32_t flags)
 {
   ham_status_t st = 0;
-  LocalDatabase *db = m_parent->get_db();
-  Transaction *txn = m_parent->get_txn();
 
   if (flags & HAM_CURSOR_FIRST)
     st = move_first(flags);
@@ -151,31 +150,23 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
   ham_assert(node->is_leaf());
 
-  if (key) {
-    ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &db->get_key_arena()
-            : &txn->get_key_arena();
+  if (key)
+    node->get_key(m_coupled_index, key_arena, key);
 
-    node->get_key(m_coupled_index, arena, key);
-  }
-
-  if (record) {
-    ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-           ? &db->get_record_arena()
-           : &txn->get_record_arena();
-
-    node->get_record(m_coupled_index, arena, record, flags, m_duplicate_index);
-  }
+  if (record)
+    node->get_record(m_coupled_index, record_arena, record,
+                    flags, m_duplicate_index);
 
   return (0);
 }
 
 ham_status_t
-BtreeCursor::find(ham_key_t *key, ham_record_t *record, uint32_t flags)
+BtreeCursor::find(ham_key_t *key, ByteArray *key_arena, ham_record_t *record,
+                ByteArray *record_arena, uint32_t flags)
 {
   set_to_nil();
 
-  return (m_btree->find(m_parent->get_txn(), m_parent, key, record, flags));
+  return (m_btree->find(m_parent, key, key_arena, record, record_arena, flags));
 }
 
 bool
@@ -275,7 +266,7 @@ BtreeCursor::couple()
   ham_key_t uncoupled_key = m_uncoupled_key;
   m_uncoupled_arena = ByteArray();
 
-  find(&uncoupled_key, 0, 0);
+  find(&uncoupled_key, 0, 0, 0, 0);
 
   m_duplicate_index = duplicate_index;
   m_uncoupled_key = uncoupled_key;

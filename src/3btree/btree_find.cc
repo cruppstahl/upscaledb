@@ -43,10 +43,12 @@ namespace hamsterdb {
 class BtreeFindAction
 {
   public:
-    BtreeFindAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
-                ham_key_t *key, ham_record_t *record, uint32_t flags)
-      : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
-        m_record(record), m_flags(flags) {
+    BtreeFindAction(BtreeIndex *btree, Cursor *cursor,
+                    ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags)
+      : m_btree(btree), m_cursor(0), m_key(key), m_record(record),
+        m_flags(flags), m_key_arena(key_arena), m_record_arena(record_arena) {
       if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
     }
@@ -309,21 +311,11 @@ class BtreeFindAction
        * is set: */
       if (m_key && (ham_key_get_intflags(m_key) & BtreeKey::kApproximate)
           && !(m_flags & Cursor::kSyncDontLoadKey)) {
-        ByteArray *arena = (m_txn == 0
-                        || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
-              ? &db->get_key_arena()
-              : &m_txn->get_key_arena();
-
-        node->get_key(slot, arena, m_key);
+        node->get_key(slot, m_key_arena, m_key);
       }
 
       if (m_record) {
-        ByteArray *arena = (m_txn == 0
-                        || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
-               ? &db->get_record_arena()
-               : &m_txn->get_record_arena();
-
-        node->get_record(slot, arena, m_record, m_flags);
+        node->get_record(slot, m_record_arena, m_record, m_flags);
       }
 
       return (0);
@@ -332,9 +324,6 @@ class BtreeFindAction
   private:
     // the current btree
     BtreeIndex *m_btree;
-
-    // the current transaction
-    Transaction *m_txn;
 
     // the current cursor
     BtreeCursor *m_cursor;
@@ -347,13 +336,20 @@ class BtreeFindAction
 
     // flags of ham_db_find()
     uint32_t m_flags;
+
+    // allocator for the key data
+    ByteArray *m_key_arena;
+
+    // allocator for the record data
+    ByteArray *m_record_arena;
 };
 
 ham_status_t
-BtreeIndex::find(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                ham_record_t *record, uint32_t flags)
+BtreeIndex::find(Cursor *cursor, ham_key_t *key, ByteArray *key_arena,
+                ham_record_t *record, ByteArray *record_arena, uint32_t flags)
 {
-  BtreeFindAction bfa(this, txn, cursor, key, record, flags);
+  BtreeFindAction bfa(this, cursor, key, key_arena, record,
+                  record_arena, flags);
   return (bfa.run());
 }
 

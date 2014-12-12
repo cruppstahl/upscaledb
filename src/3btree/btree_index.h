@@ -162,7 +162,6 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 #include "1base/packstop.h"
 
-class Transaction;
 class LocalDatabase;
 class BtreeNodeProxy;
 struct PDupeEntry;
@@ -270,8 +269,9 @@ class BtreeIndex
     void open();
 
     // Lookup a key in the index (ham_db_find)
-    ham_status_t find(Transaction *txn, Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    ham_status_t find(Cursor *cursor, ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
     ham_status_t insert(Cursor *cursor, ham_key_t *key,

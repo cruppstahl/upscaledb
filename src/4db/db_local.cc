@@ -102,7 +102,7 @@ LocalDatabase::check_insert_conflicts(LocalTransaction *txn,
           || (get_rt_flags() & HAM_RECORD_NUMBER))
     return (0);
 
-  ham_status_t st = m_btree_index->find(0, 0, key, 0, flags);
+  ham_status_t st = m_btree_index->find(0, key, 0, 0, 0, flags);
   switch (st) {
     case HAM_KEY_NOT_FOUND:
       return (0);
@@ -165,7 +165,7 @@ LocalDatabase::check_erase_conflicts(LocalTransaction *txn,
    * were no conflicts. Now check all transactions which are already
    * flushed - basically that's identical to a btree lookup.
    */
-  return (m_btree_index->find(0, 0, key, 0, flags));
+  return (m_btree_index->find(0, key, 0, 0, 0, flags));
 }
 
 ham_status_t
@@ -246,9 +246,12 @@ LocalDatabase::find_txn(Cursor *cursor, LocalTransaction *txn, ham_key_t *key,
   bool first_loop = true;
   bool exact_is_erased = false;
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &get_key_arena()
-            : &txn->get_key_arena();
+  ByteArray *key_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                ? &get_key_arena()
+                : &txn->get_key_arena();
+  ByteArray *record_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                ? &get_record_arena()
+                : &txn->get_record_arena();
 
   ham_key_set_intflags(key,
         (ham_key_get_intflags(key) & (~BtreeKey::kApproximate)));
@@ -377,11 +380,12 @@ retry:
     // now lookup in the btree
     if (cursor)
       cursor->set_to_nil(Cursor::kBtree);
-    st = m_btree_index->find(txn, cursor, key, record, flags);
+    st = m_btree_index->find(cursor, key, key_arena, record,
+                    record_arena, flags);
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-        arena->resize(txnkey.size);
-        key->data = arena->get_ptr();
+        key_arena->resize(txnkey.size);
+        key->data = key_arena->get_ptr();
       }
       if (txnkey.data) {
         memcpy(key->data, txnkey.data, txnkey.size);
@@ -437,8 +441,8 @@ retry:
     }
     else { // use txn
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-        arena->resize(txnkey.size);
-        key->data = arena->get_ptr();
+        key_arena->resize(txnkey.size);
+        key->data = key_arena->get_ptr();
       }
       if (txnkey.data) {
         memcpy(key->data, txnkey.data, txnkey.size);
@@ -464,7 +468,8 @@ retry:
    * were no conflicts, and we have not found the key: now try to
    * lookup the key in the btree.
    */
-  return (m_btree_index->find(txn, cursor, key, record, flags));
+  return (m_btree_index->find(cursor, key, key_arena, record,
+                          record_arena, flags));
 }
 
 ham_status_t
@@ -971,8 +976,14 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
                   // copied in find_impl
       if (cursor->is_coupled_to_txnop())
         cursor->get_txn_cursor()->copy_coupled_record(record);
-      else
-        st = cursor->get_btree_cursor()->move(0, record, 0);
+      else {
+        Transaction *txn = cursor->get_txn();
+        ByteArray *record_arena = (txn == 0
+                      || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                   ? &get_record_arena()
+                   : &txn->get_record_arena();
+        st = cursor->get_btree_cursor()->move(0, 0, record, record_arena, 0);
+      }
     }
   }
 
@@ -1088,8 +1099,8 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
 
   /* in non-transactional mode - just call the btree function and return */
   if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    st = cursor->get_btree_cursor()->move(key, record, flags);
-    return (st);
+    return (cursor->get_btree_cursor()->move(key, &get_key_arena(), record,
+                    &get_record_arena(), flags));
   }
 
   /* everything else is handled by the cursor function */
@@ -1553,8 +1564,15 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
    */
   if (txn)
     st = find_txn(cursor, txn, key, record, flags);
-  else
-    st = m_btree_index->find(0, cursor, key, record, flags);
+  else {
+    ByteArray *key_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                  ? &get_key_arena()
+                  : &txn->get_key_arena();
+    ByteArray *rec_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                  ? &get_record_arena()
+                  : &txn->get_record_arena();
+    st = m_btree_index->find(cursor, key, key_arena, record, rec_arena, flags);
+  }
 
   if (local_txn) {
     get_local_env()->get_changeset().clear();
