@@ -339,17 +339,10 @@ o Zint32: add compression based on bit-packing
         x don't use index->block_size; it's always static
         x use delta-encoding to have better compression
         x fill in the implementation
-====================================
         o add unittests (similar to zint32)
-SimdComp/ascendingDataTest
-vacuumize_impl() is causing problems because growing blocks requires a page
-split. The implementation of vacuumize_impl itself is broken. In addition,
-it might remove blocks, and invalidate pointers that were fetched by the
-caller. maybe it's better to require a split, which in turn will cause a
-vacuumize by the caller (with an additional retry)?
-====================================
     o don't split blocks in the middle if the new key is appended
     o don't split blocks in the middle if the new key is prepended
+    o don't calculate bitwidth if index->bits is already maxxed out (32)
     o add monster tests (similar to zint32)
     o test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
@@ -433,6 +426,9 @@ o More things to refactor in the btree
         -> use a common behaviour/indexing
     o EraseAction line 71: if the node is empty then it should be merged and
         moved to the freelist!
+
+o when splitting and HAM_HINT_APPEND is set, the new page is appended.
+    do the same for prepend!
 
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
