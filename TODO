@@ -224,6 +224,7 @@ x Introduce new option for record numbers (HAM_RECORD_NUMBER32,
         x header file
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 x implement Cursor::get_record_size for remote access
 
 x issue43: fix segfault
@@ -611,6 +612,10 @@ o migrate to libuv 1.0, it has a stable API
 >>>>>>> Fixed large file support on linux
 =======
 >>>>>>> Introducing 32bit record numbers (HAM_RECORD_NUMBER32)
+=======
+x implement Cursor::get_record_size for remote access
+
+>>>>>>> Implemented ham_cursor_get_record_size() for remote access
 o Zint32: add compression based on bit-packing
     -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
     x add parameter to header file
@@ -620,11 +625,12 @@ o Zint32: add compression based on bit-packing
         (w/ template parameter for the block structure)
     x integrate Daniel's sources as a library
         x add a unittest to compress/decompress
-    o implement the compression
+    x implement the compression
         x don't use index->used_size, it's not required
         x don't use index->block_size; it's always static
         x use delta-encoding to have better compression
         x fill in the implementation
+<<<<<<< HEAD
 ====================================
         o add unittests (similar to zint32)
 SimdComp/ascendingDataTest
@@ -636,6 +642,15 @@ vacuumize by the caller (with an additional retry)?
 ====================================
     o don't split blocks in the middle if the new key is appended
     o don't split blocks in the middle if the new key is prepended
+=======
+        x add unittests (similar to zint32)
+    o there is no vacuumize prior to a split. The vacuumize is cancelled
+        immediately because it is always "internal"
+    o don't split blocks in the middle if the new key is appended
+    o don't split blocks in the middle if the new key is prepended
+    o don't calculate bitwidth if index->bits is already maxxed out (32)
+    o fix the remaining TODOs
+>>>>>>> Implemented ham_cursor_get_record_size() for remote access
     o add monster tests (similar to zint32)
     o test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
@@ -689,6 +704,11 @@ o "replication" vs "transactions": pure replication is much slower, although
     o run monster tests
     o run performance tests
 
+    o also look at this:
+    http://yoshinorimatsunobu.blogspot.de/2014/03/why-buffered-writes-are-sometimes.html
+        -> can we use aligned buffers?
+        -> open journal file in write-only mode?
+
 o move "purge cache" to background
     1) page list is not modified while it is traversed/modified
         - the purger will traverse the list only from back to front
@@ -716,8 +736,6 @@ o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
-o implement Cursor::get_record_size for remote access
-
 o refactoring: make EnvironmentHeader stateless and exception safe
     -> will it ever be used outside of the EnvironmentConfiguration setting?
     -> can we remove it?
@@ -729,7 +747,14 @@ o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
 
 o reserve file size upon creation, then map the whole range
-    o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
+    o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
+    o automatically page-align the size
+    o only for disk-based devices!
+        o unittest
+    o the device will manage the mapping
+        o unittest - verify that the initial file size is correct
+        o unittest - verify that the file size does not grow if new pages
+            are allocated
     o support in ham_bench
     o monster tests and performance tests
     o also for java
@@ -739,6 +764,10 @@ o reserve file size upon creation, then map the whole range
 
 o If mmap is enabled then keys and records don't have to be copied as long
     as they point into the mapped area!
+    - If a key is in a mapped page (w/o extended key) then simply return a
+        pointer
+    - If a record is in a mapped page then simply return a
+        pointer
 
 o More things to refactor in the btree
     o PageManager::fetch_page should be available in a const version
