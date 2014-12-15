@@ -1549,6 +1549,50 @@ handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
+handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
+            Protocol *request)
+{
+  ham_status_t st = 0;
+  uint64_t size = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_cursor_get_record_size_request());
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request().cursor_handle());
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_record_size((ham_cursor_t *)cursor, &size);
+
+  Protocol reply(Protocol::CURSOR_GET_RECORD_SIZE_REPLY);
+  reply.mutable_cursor_get_record_size_reply()->set_status(st);
+  reply.mutable_cursor_get_record_size_reply()->set_size(size);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
+            SerializedWrapper *request)
+{
+  ham_status_t st = 0;
+  uint64_t size = 0;
+
+  Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request.cursor_handle);
+  if (!cursor)
+    st = HAM_INV_PARAMETER;
+  else
+    st = ham_cursor_get_record_size((ham_cursor_t *)cursor, &size);
+
+  SerializedWrapper reply;
+  reply.id = kCursorGetRecordSizeReply;
+  reply.cursor_get_record_size_reply.status = st;
+  reply.cursor_get_record_size_reply.size = size;
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
 handle_cursor_get_duplicate_position(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
@@ -1806,6 +1850,9 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
       case kCursorGetRecordCountRequest:
         handle_cursor_get_record_count(srv, tcp, &request);
         break;
+      case kCursorGetRecordSizeRequest:
+        handle_cursor_get_record_size(srv, tcp, &request);
+        break;
       case kCursorGetDuplicatePositionRequest:
         handle_cursor_get_duplicate_position(srv, tcp, &request);
         break;
@@ -1910,6 +1957,9 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
       break;
     case ProtoWrapper_Type_CURSOR_GET_RECORD_COUNT_REQUEST:
       handle_cursor_get_record_count(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_GET_RECORD_SIZE_REQUEST:
+      handle_cursor_get_record_size(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_CURSOR_GET_DUPLICATE_POSITION_REQUEST:
       handle_cursor_get_duplicate_position(srv, tcp, wrapper);

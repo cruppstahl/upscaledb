@@ -528,8 +528,22 @@ RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor)
 uint64_t
 RemoteDatabase::cursor_get_record_size(Cursor *cursor)
 {
-  /* need this? send me a mail and i will implement it */
-  throw Exception(HAM_NOT_IMPLEMENTED);
+  RemoteEnvironment *env = get_remote_env();
+
+  SerializedWrapper request;
+  request.id = kCursorGetRecordSizeRequest;
+  request.cursor_get_record_size_request.cursor_handle =
+                  cursor->get_remote_handle();
+
+  SerializedWrapper reply;
+  env->perform_request(&request, &reply);
+  ham_assert(reply.id == kCursorGetRecordSizeReply);
+
+  ham_status_t st = reply.cursor_get_record_size_reply.status;
+  if (st == 0)
+    return (reply.cursor_get_record_size_reply.size);
+
+  throw Exception(st);
 }
 
 ham_status_t

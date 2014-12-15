@@ -71,6 +71,8 @@ enum {
   kCursorFindReply,
   kCursorGetRecordCountRequest,
   kCursorGetRecordCountReply,
+  kCursorGetRecordSizeRequest,
+  kCursorGetRecordSizeReply,
   kCursorGetDuplicatePositionRequest,
   kCursorGetDuplicatePositionReply,
   kCursorOverwriteRequest,
@@ -254,6 +256,15 @@ MESSAGE_BEGIN(CursorGetRecordCountReply)
   uint32 count;
 MESSAGE_END
 
+MESSAGE_BEGIN(CursorGetRecordSizeRequest)
+  uint64 cursor_handle;
+MESSAGE_END
+
+MESSAGE_BEGIN(CursorGetRecordSizeReply)
+  sint32 status;
+  uint64 size;
+MESSAGE_END
+
 MESSAGE_BEGIN(CursorGetDuplicatePositionRequest)
   uint64 cursor_handle;
 MESSAGE_END
@@ -318,6 +329,8 @@ MESSAGE_BEGIN(Wrapper)
   CursorFindReply cursor_find_reply;
   CursorGetRecordCountRequest cursor_get_record_count_request;
   CursorGetRecordCountReply cursor_get_record_count_reply;
+  CursorGetRecordSizeRequest cursor_get_record_size_request;
+  CursorGetRecordSizeReply cursor_get_record_size_reply;
   CursorGetDuplicatePositionRequest cursor_get_duplicate_position_request;
   CursorGetDuplicatePositionReply cursor_get_duplicate_position_reply;
   CursorOverwriteRequest cursor_overwrite_request;
@@ -394,6 +407,10 @@ MESSAGE_BEGIN(Wrapper)
         return (s + cursor_get_record_count_request.get_size());
       case kCursorGetRecordCountReply: 
         return (s + cursor_get_record_count_reply.get_size());
+      case kCursorGetRecordSizeRequest: 
+        return (s + cursor_get_record_size_request.get_size());
+      case kCursorGetRecordSizeReply: 
+        return (s + cursor_get_record_size_reply.get_size());
       case kCursorGetDuplicatePositionRequest: 
         return (s + cursor_get_duplicate_position_request.get_size());
       case kCursorGetDuplicatePositionReply: 
@@ -501,6 +518,12 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeRequest: 
+        cursor_get_record_size_request.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeReply: 
+        cursor_get_record_size_reply.serialize(pptr, psize);
         break;
       case kCursorGetDuplicatePositionRequest: 
         cursor_get_duplicate_position_request.serialize(pptr, psize);
@@ -614,6 +637,12 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeRequest: 
+        cursor_get_record_size_request.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeReply: 
+        cursor_get_record_size_reply.deserialize(pptr, psize);
         break;
       case kCursorGetDuplicatePositionRequest: 
         cursor_get_duplicate_position_request.deserialize(pptr, psize);

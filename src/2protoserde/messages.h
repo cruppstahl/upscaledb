@@ -13,11 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * @exception_safe: nothrow
+ * @thread_safe: no
+ */
+
 #ifndef HAM_MESSAGES_H
 #define HAM_MESSAGES_H
 
-#include <ham/hamsterdb.h>
+#include "0root/root.h"
+
 #include <assert.h>
+
+#include "ham/hamsterdb.h"
+
+// Always verify that a file of level N does not include headers > N!
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 /** a magic and version indicator for the remote protocol */
 #define HAM_TRANSFER_MAGIC_V2   (('h'<<24)|('a'<<16)|('m'<<8)|'2')
@@ -53,6 +68,8 @@ enum {
   kCursorFindReply,
   kCursorGetRecordCountRequest,
   kCursorGetRecordCountReply,
+  kCursorGetRecordSizeRequest,
+  kCursorGetRecordSizeReply,
   kCursorGetDuplicatePositionRequest,
   kCursorGetDuplicatePositionReply,
   kCursorOverwriteRequest,
@@ -60,11 +77,6 @@ enum {
   kCursorMoveRequest,
   kCursorMoveReply
 };
-
-#ifdef WIN32
-#  pragma warning(push)
-#  pragma warning(disable: 4800)
-#endif
 
 template<typename Ex, typename In>
 struct Serialized_Base {
@@ -74,8 +86,8 @@ struct Serialized_Base {
     clear();
   }
 
-  Serialized_Base(const Ex &t) {
-    value = static_cast<In>(t);
+  Serialized_Base(const Ex &t)
+    : value((In)t) {
   }
 
   operator Ex() {
@@ -104,10 +116,6 @@ struct Serialized_Base {
     assert(*psize >= 0);
   }
 };
-
-#ifdef WIN32
-#  pragma warning(pop)
-#endif
 
 struct SerializedBytes {
   uint8_t *value;
@@ -1295,6 +1303,63 @@ struct SerializedCursorGetRecordCountReply {
   }
 };
 
+struct SerializedCursorGetRecordSizeRequest {
+  SerializedUint64 cursor_handle;
+
+  SerializedCursorGetRecordSizeRequest() {
+    clear();
+  }
+
+  size_t get_size() const {
+    return (
+          cursor_handle.get_size() + 
+          0);
+  }
+
+  void clear() {
+    cursor_handle.clear();
+  }
+
+  void serialize(unsigned char **pptr, int *psize) const {
+    cursor_handle.serialize(pptr, psize);
+  }
+
+  void deserialize(unsigned char **pptr, int *psize) {
+    cursor_handle.deserialize(pptr, psize);
+  }
+};
+
+struct SerializedCursorGetRecordSizeReply {
+  SerializedSint32 status;
+  SerializedUint64 size;
+
+  SerializedCursorGetRecordSizeReply() {
+    clear();
+  }
+
+  size_t get_size() const {
+    return (
+          status.get_size() + 
+          size.get_size() + 
+          0);
+  }
+
+  void clear() {
+    status.clear();
+    size.clear();
+  }
+
+  void serialize(unsigned char **pptr, int *psize) const {
+    status.serialize(pptr, psize);
+    size.serialize(pptr, psize);
+  }
+
+  void deserialize(unsigned char **pptr, int *psize) {
+    status.deserialize(pptr, psize);
+    size.deserialize(pptr, psize);
+  }
+};
+
 struct SerializedCursorGetDuplicatePositionRequest {
   SerializedUint64 cursor_handle;
 
@@ -1533,6 +1598,8 @@ struct SerializedWrapper {
   SerializedCursorFindReply cursor_find_reply;
   SerializedCursorGetRecordCountRequest cursor_get_record_count_request;
   SerializedCursorGetRecordCountReply cursor_get_record_count_reply;
+  SerializedCursorGetRecordSizeRequest cursor_get_record_size_request;
+  SerializedCursorGetRecordSizeReply cursor_get_record_size_reply;
   SerializedCursorGetDuplicatePositionRequest cursor_get_duplicate_position_request;
   SerializedCursorGetDuplicatePositionReply cursor_get_duplicate_position_reply;
   SerializedCursorOverwriteRequest cursor_overwrite_request;
@@ -1612,6 +1679,10 @@ struct SerializedWrapper {
         return (s + cursor_get_record_count_request.get_size());
       case kCursorGetRecordCountReply: 
         return (s + cursor_get_record_count_reply.get_size());
+      case kCursorGetRecordSizeRequest: 
+        return (s + cursor_get_record_size_request.get_size());
+      case kCursorGetRecordSizeReply: 
+        return (s + cursor_get_record_size_reply.get_size());
       case kCursorGetDuplicatePositionRequest: 
         return (s + cursor_get_duplicate_position_request.get_size());
       case kCursorGetDuplicatePositionReply: 
@@ -1719,6 +1790,12 @@ struct SerializedWrapper {
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeRequest: 
+        cursor_get_record_size_request.serialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeReply: 
+        cursor_get_record_size_reply.serialize(pptr, psize);
         break;
       case kCursorGetDuplicatePositionRequest: 
         cursor_get_duplicate_position_request.serialize(pptr, psize);
@@ -1832,6 +1909,12 @@ struct SerializedWrapper {
         break;
       case kCursorGetRecordCountReply: 
         cursor_get_record_count_reply.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeRequest: 
+        cursor_get_record_size_request.deserialize(pptr, psize);
+        break;
+      case kCursorGetRecordSizeReply: 
+        cursor_get_record_size_reply.deserialize(pptr, psize);
         break;
       case kCursorGetDuplicatePositionRequest: 
         cursor_get_duplicate_position_request.deserialize(pptr, psize);
