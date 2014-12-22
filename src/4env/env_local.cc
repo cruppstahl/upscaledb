@@ -595,9 +595,9 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
                       "fixed length type"));
       return (HAM_INV_PARAMETER);
     }
+    config.key_type = HAM_TYPE_UINT32;
   }
-
-  if (config.flags & HAM_RECORD_NUMBER64) {
+  else if (config.flags & HAM_RECORD_NUMBER64) {
     if (config.key_type == HAM_TYPE_UINT8
         || config.key_type == HAM_TYPE_UINT16
         || config.key_type == HAM_TYPE_UINT32
@@ -607,6 +607,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
                       "fixed length type"));
       return (HAM_INV_PARAMETER);
     }
+    config.key_type = HAM_TYPE_UINT64;
   }
 
   uint32_t mask = HAM_FORCE_RECORDS_INLINE
