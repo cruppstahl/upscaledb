@@ -68,26 +68,21 @@ LocalEnvironment::create()
   /* create the file */
   m_device->create();
 
-  /* create the configuration object */
-  m_header.reset(new EnvironmentHeader(m_device.get()));
-
   /* allocate the header page */
-  {
-    Page *page = new Page(this->get_device());
-    page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
-    memset(page->get_data(), 0, m_config.page_size_bytes);
-    page->set_type(Page::kTypeHeader);
-    m_header->set_header_page(page);
+  Page *page = new Page(this->get_device());
+  page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
+  ::memset(page->get_data(), 0, m_config.page_size_bytes);
+  page->set_type(Page::kTypeHeader);
+  page->set_dirty(true);
 
-    /* initialize the header */
-    m_header->set_magic('H', 'A', 'M', '\0');
-    m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
-            HAM_FILE_VERSION);
-    m_header->set_page_size(m_config.page_size_bytes);
-    m_header->set_max_databases(m_config.max_databases);
+  m_header.reset(new EnvironmentHeader(page));
 
-    page->set_dirty(true);
-  }
+  /* initialize the header */
+  m_header->set_magic('H', 'A', 'M', '\0');
+  m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
+          HAM_FILE_VERSION);
+  m_header->set_page_size(m_config.page_size_bytes);
+  m_header->set_max_databases(m_config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this,
@@ -127,9 +122,6 @@ LocalEnvironment::open()
   if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
 
-  /* create the configuration object */
-  m_header.reset(new EnvironmentHeader(m_device.get()));
-
   /*
    * read the database header
    *
@@ -144,15 +136,17 @@ LocalEnvironment::open()
   {
     Page *page = 0;
     uint8_t hdrbuf[512];
-    Page fakepage(m_device.get());
 
     /*
      * in here, we're going to set up a faked headerpage for the
      * duration of this call; BE VERY CAREFUL: we MUST clean up
      * at the end of this section or we'll be in BIG trouble!
      */
+    Page fakepage(m_device.get());
     fakepage.set_data((PPageData *)hdrbuf);
-    m_header->set_header_page(&fakepage);
+
+    /* create the configuration object */
+    m_header.reset(new EnvironmentHeader(&fakepage));
 
     /*
      * now fetch the header data we need to get an estimate of what
@@ -190,7 +184,7 @@ fail_with_fake_cleansing:
 
     /* undo the headerpage fake first! */
     fakepage.set_data(0);
-    m_header->set_header_page(0);
+    m_header.reset(0);
 
     /* exit when an error was signaled */
     if (st) {
@@ -202,7 +196,7 @@ fail_with_fake_cleansing:
     /* now read the "real" header page and store it in the Environment */
     page = new Page(this->get_device());
     page->fetch(0);
-    m_header->set_header_page(page);
+    m_header.reset(new EnvironmentHeader(page));
   }
 
   /* load page manager after setting up the blobmanager and the device! */
@@ -230,8 +224,7 @@ fail_with_fake_cleansing:
 }
 
 ham_status_t
-LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname,
-    uint32_t flags)
+LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
   ham_status_t st = 0;
 
@@ -351,7 +344,7 @@ LocalEnvironment::get_database_names(uint16_t *names, uint32_t *count)
 
   /* copy each database name to the array */
   ham_assert(m_header->get_max_databases() > 0);
-  for (i = 0; i<m_header->get_max_databases(); i++) {
+  for (i = 0; i < m_header->get_max_databases(); i++) {
     name = get_btree_descriptor(i)->get_dbname();
     if (name == 0)
       continue;
@@ -393,15 +386,14 @@ LocalEnvironment::close(uint32_t flags)
       && (get_flags() & HAM_IN_MEMORY) == 0
       && (get_flags() & HAM_READ_ONLY) == 0) {
     uint64_t new_blobid = m_page_manager->store_state();
-    Page *hdrpage = get_header()->get_header_page();
-    if (new_blobid != get_header()->get_page_manager_blobid()) {
-      get_header()->set_page_manager_blobid(new_blobid);
+    Page *hdrpage = m_header->get_header_page();
+    if (new_blobid != m_header->get_page_manager_blobid()) {
+      m_header->set_page_manager_blobid(new_blobid);
       hdrpage->set_dirty(true);
     }
     if (get_flags() & HAM_ENABLE_RECOVERY) {
       if (hdrpage->is_dirty())
         get_changeset().add_page(hdrpage);
-      //if (m_journal && (flags & HAM_DONT_CLEAR_LOG) == 0)
       if (!get_changeset().is_empty())
         get_changeset().flush(get_incremented_lsn());
     }
@@ -431,7 +423,7 @@ LocalEnvironment::close(uint32_t flags)
     if (page->get_data())
       device->free_page(page);
     delete page;
-    m_header->set_header_page(0);
+    m_header.reset();
   }
 
   /* close the device */
@@ -624,8 +616,6 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
   LocalDatabase *db = new LocalDatabase(this, config);
 
   /* check if this database name is unique */
-  ham_assert(m_header->get_max_databases() > 0);
-
   uint16_t dbi;
   for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
     uint16_t name = get_btree_descriptor(i)->get_dbname();
@@ -638,7 +628,6 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* find a free slot in the PBtreeHeader array and store the name */
-  ham_assert(m_header->get_max_databases() > 0);
   for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
     uint16_t name = get_btree_descriptor(dbi)->get_dbname();
     if (!name) {
@@ -720,7 +709,6 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
 
   ham_assert(get_device());
   ham_assert(0 != m_header->get_header_page());
-  ham_assert(m_header->get_max_databases() > 0);
 
   /* search for a database with this name */
   uint16_t dbi;

@@ -68,7 +68,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   uint8_t _reserved3;
 
   /** blob id of the PageManager's state */
-  uint64_t _pm_state;
+  uint64_t _page_manager_blobid;
 
   /*
    * following here:
@@ -84,13 +84,8 @@ class EnvironmentHeader
 {
   public:
     // Constructor
-    EnvironmentHeader(Device *device)
-      : m_device(device), m_header_page(0) {
-    }
-
-    // TODO remove this; set page in constructor, remove device!
-    void set_header_page(Page *page) {
-      m_header_page = page;
+    EnvironmentHeader(Page *page)
+      : m_header_page(page) {
     }
 
     // Sets the 'magic' field of a file header
@@ -115,18 +110,17 @@ class EnvironmentHeader
     }
 
     // Returns byte |i| of the 'version'-header
-    // TODO use a logical structure 'Version'
-    uint8_t get_version(uint32_t idx) {
-      return (get_header()->_version[idx]);
+    uint8_t get_version(int i) {
+      return (get_header()->_version[i]);
     }
 
     // Sets the version of a file header
-    // TODO use a logical structure 'Version'
-    void set_version(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
-      get_header()->_version[0] = a;
-      get_header()->_version[1] = b;
-      get_header()->_version[2] = c;
-      get_header()->_version[3] = d;
+    void set_version(uint8_t major, uint8_t minor, uint8_t revision,
+                    uint8_t file) {
+      get_header()->_version[0] = major;
+      get_header()->_version[1] = minor;
+      get_header()->_version[2] = revision;
+      get_header()->_version[3] = file;
     }
 
     // Returns get the maximum number of databases for this file
@@ -135,8 +129,8 @@ class EnvironmentHeader
     }
 
     // Sets the maximum number of databases for this file
-    void set_max_databases(uint16_t md) {
-      get_header()->_max_databases = md;
+    void set_max_databases(uint16_t max_databases) {
+      get_header()->_max_databases = max_databases;
     }
 
     // Returns the page size from the header page
@@ -145,18 +139,18 @@ class EnvironmentHeader
     }
 
     // Sets the page size in the header page
-    void set_page_size(uint32_t ps) {
-      get_header()->_page_size = ps;
+    void set_page_size(uint32_t page_size) {
+      get_header()->_page_size = page_size;
     }
 
     // Returns the PageManager's blob id
     uint64_t get_page_manager_blobid() {
-      return (get_header()->_pm_state);
+      return (get_header()->_page_manager_blobid);
     }
 
     // Sets the page size in the header page
     void set_page_manager_blobid(uint64_t blobid) {
-      get_header()->_pm_state = blobid;
+      get_header()->_page_manager_blobid = blobid;
     }
 
     // Returns the Journal compression configuration
@@ -180,9 +174,6 @@ class EnvironmentHeader
     PEnvironmentHeader *get_header() {
       return ((PEnvironmentHeader *)(m_header_page->get_payload()));
     }
-
-    // The device
-    Device *m_device;
 
     // The header page of the Environment
     Page *m_header_page;

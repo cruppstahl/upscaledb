@@ -384,23 +384,32 @@ o Concurrency: move "purge cache" to background
         the used pages to the front. As a consequence, a new purge mechanism
         is required to identify "old" pages. These pages then could even be
         sorted before they are flushed.
-    - Try to get rid of the page lists. Have a generic "PageCollection<Max>"
-        class with statically allocated storage for Max pages, and which uses a
-        pointer for more pages if Max is not sufficient. Use this in the
-        Changeset and the Cache buckets.
-    o add a flag to disable background operations
+
+    o Create a background thread
+    o Join thread when closing the Environment
+    o create a non-blocking queue for passing data to the thread
+    o add a flag to disable background operations (why?)
+
+    o Get rid of the page lists. Have a generic "PageCollection" class
+        with atomic updates. Use this in the Changeset and the Cache buckets.
+        o use a DynamicArray<std::pair<uint64_t, Page *>> for memory
+        o whenever the array grows:
+            1) grow into a copy
+            2) perform "compactions" if too many elements were deleted
+            3) perform CAS with the old pointer
+        o assert that there is only 1 writer at a time (i.e. use a mutex)
+        o when inserting: set the pointer, then increment the counter
+        o when deleting: simply set to zero
+        o never use a lock when reading
+        o use hazard pointers; auto-delete them after 1 second
+            (pass them to the thread for management)
+
+    o have a Facade for the thread. If threading is enabled then store the
+        message in the message-queue; otherwise perform the request while
+        blocking
+        o but don't add the same request twice if it's still in the queue
+
     o get rid of the Page-List (use a generic visitor for the Cache)
-    o rewrite all other lists with the PageCollection
-        o should allow reading w/o blocking
-        o appending pages should be "free" (no lock, unless the list must
-            grow)
-        o to delete entries just overwrite them with zeroes
-        o use CAS/hazard ptr to allocate and append new lists
-        o there will be multiple writers and multiple readers
-        - think this through; CAS and appends are not necessarily atomic!
-          also, if elements are deleted with 0 then it might make sense to
-          reorganize those lists if there are too many deleted elements
-    o create a background thread; use libuv
     o purger thread periodically walks over the list, purges
         o can be woken up by the main thread
     o if a page is deleted or closed: let purger thread clean up the pages
@@ -408,6 +417,15 @@ o Concurrency: move "purge cache" to background
     o mark page as "in use" during purge
     o run performance tests
     o and run the leveldb benchmarks
+    o extend monster tests
+    o use valgrind to check for race conditions etc 
+
+o refactoring: make EnvironmentHeader stateless and exception safe
+    o transform to struct instead of class
+    o remove dependency from the PageManager (store header page)
+    o move header Page ownership from EnvironmentHeader to PageManager
+    o PageManager performs flushes/closes, not LocalEnvironment::close
+    o LocalEnvironment does not need to store an instance of the Header!
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
@@ -416,9 +434,10 @@ o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
-o refactoring: make EnvironmentHeader stateless and exception safe
-    -> will it ever be used outside of the EnvironmentConfiguration setting?
-    -> can we remove it?
+o LocalEnvironment::open creates a "fakepage" to find out the page_size;
+    just assume the default page size of 16kb and read the first page. Then
+    discard if the real page_size is a different one
+    o deal with databases < 16kb?
 
 o support multiple worker threads which perform I/O
     o how many threads should be created??
