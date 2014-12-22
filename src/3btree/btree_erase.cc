@@ -55,7 +55,7 @@ class BtreeEraseAction : public BtreeUpdateAction
 
     // This is the entry point for the erase operation
     ham_status_t run() {
-      /* coupled cursor: remove the key directly from the page. */
+      // Coupled cursor: try to remove the key directly from the page
       if (m_cursor) {
         if (m_cursor->get_state() == BtreeCursor::kStateCoupled) {
           Page *coupled_page;
@@ -64,9 +64,23 @@ class BtreeEraseAction : public BtreeUpdateAction
 
           BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
           ham_assert(node->is_leaf());
-          remove_entry(coupled_page, coupled_index);
+
+          // Now try to delete the key. This can require a page split if the
+          // KeyList is not "delete-stable" (some compressed lists can
+          // grow when keys are deleted).
+          try {
+            remove_entry(coupled_page, 0, coupled_index);
+          }
+          catch (Exception &ex) {
+            if (ex.code != HAM_LIMITS_REACHED)
+              throw ex;
+            goto fall_through;
+          }
           // TODO if the page is empty then ask the janitor to clean it up
           return (0);
+
+fall_through:
+          m_cursor->uncouple_from_page();
         }
 
         if (m_cursor->get_state() == BtreeCursor::kStateUncoupled)
@@ -87,13 +101,12 @@ class BtreeEraseAction : public BtreeUpdateAction
       }
 
       // remove the key from the leaf
-      remove_entry(page, slot);
+      remove_entry(page, parent, slot);
       return (0);
     }
 
   private:
-    /* remove an item from a page */
-    void remove_entry(Page *page, int slot) {
+    void remove_entry(Page *page, Page *parent, int slot) {
       LocalDatabase *db = m_btree->get_db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -175,9 +188,22 @@ class BtreeEraseAction : public BtreeUpdateAction
         }
       }
 
-      // now remove the key
-      if (!has_duplicates_left)
+      if (has_duplicates_left)
+        return;
+
+      // We've reached the leaf; it's still possible that we have to
+      // split the page, therefore this case has to be handled
+      try {
         node->erase(slot);
+      }
+      catch (Exception &ex) {
+        if (ex.code == HAM_LIMITS_REACHED) {
+          BtreeStatistics::InsertHints hints;
+          page = split_page(page, parent, m_key, hints);
+          node->erase(slot);
+        }
+        throw ex;
+      }
     }
 
     // the key that is retrieved

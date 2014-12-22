@@ -342,23 +342,26 @@ o Zint32: add compression based on bit-packing
         x use delta-encoding to have better compression
         x fill in the implementation
         x add unittests (similar to zint32)
-    o there is no vacuumize prior to a split. The vacuumize is cancelled
-        immediately because it is always "internal"
-    o don't split blocks in the middle if the new key is appended
-    o don't split blocks in the middle if the new key is prepended
-    o don't calculate bitwidth if index->bits is already maxxed out (32)
-    o fix the remaining TODOs
-    o add monster tests (similar to zint32)
+    x add monster tests (similar to zint32/varbyte)
+    x don't calculate bitwidth if index->bits is already maxxed out (32)
+    x there is no vacuumize prior to a split. The vacuumize is cancelled
+        immediately because it is always "internal".
+    x don't split blocks in the middle if the new key is appended
+    x don't split blocks in the middle if the new key is prepended
     o test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
+    o fix the remaining TODOs
+        o improve copy_to() performance by allocating multiple
+            blocks at once
+        o improve vacuumize_impl() performance by allocating multiple
+            blocks at once
+        o add functions for simdcomp library to deal with underfilled blocks
 
-o Remove requirement for "delete stability" when erasing keys
+x Remove requirement for "delete stability" when erasing keys
     x Introduce generic BtreeUpdateAction which handles merges and splits
-    o when erasing a key: also expect splits; in case of a split the
+    x when erasing a key: also expect splits; in case of a split the
         BtreeEraseAction has to retry the operation - either with the old
         or the new node!
-    o run monster tests
-    o run performance tests
 
 o "replication" vs "transactions": pure replication is much slower, although
     it is much simpler. However, transactions are buffered and "group flushed"
@@ -376,7 +379,7 @@ o "replication" vs "transactions": pure replication is much slower, although
         -> can we use aligned buffers?
         -> open journal file in write-only mode?
 
-o move "purge cache" to background
+o Concurrency: move "purge cache" to background
     1) page list is not modified while it is traversed/modified
         - the purger will traverse the list only from back to front
         - the list's operation are only atomic regarding back to front
@@ -387,14 +390,38 @@ o move "purge cache" to background
         check this lock!
     3) PageManager: when fetching a page that is currently flushed to disk:
         wait till flush is finished, then return the page
+    - Alternatively, reorg the hash table. All buckets are in serial memory.
+        This requires a few allocations, but reduces cache misses because
+        there's no "jumping" from page to page. Such a bucket can be replaced
+        atomically with CAS (hazard pointer!) and appended w/o locking. And
+        it avoids frequent calls to remove_from_list/insert_to_list to push
+        the used pages to the front. As a consequence, a new purge mechanism
+        is required to identify "old" pages. These pages then could even be
+        sorted before they are flushed.
+    - Try to get rid of the page lists. Have a generic "PageCollection<Max>"
+        class with statically allocated storage for Max pages, and which uses a
+        pointer for more pages if Max is not sufficient. Use this in the
+        Changeset and the Cache buckets.
     o add a flag to disable background operations
-    o create a new thread; use libuv
-    o rewrite Page-list to be atomic (at least forward-only)
+    o get rid of the Page-List (use a generic visitor for the Cache)
+    o rewrite all other lists with the PageCollection
+        o should allow reading w/o blocking
+        o appending pages should be "free" (no lock, unless the list must
+            grow)
+        o to delete entries just overwrite them with zeroes
+        o use CAS/hazard ptr to allocate and append new lists
+        o there will be multiple writers and multiple readers
+        - think this through; CAS and appends are not necessarily atomic!
+          also, if elements are deleted with 0 then it might make sense to
+          reorganize those lists if there are too many deleted elements
+    o create a background thread; use libuv
     o purger thread periodically walks over the list, purges
-        o can be waken up by the main thread
+        o can be woken up by the main thread
+    o if a page is deleted or closed: let purger thread clean up the pages
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
-    o afterwards once more run the leveldb benchmarks
+    o run performance tests
+    o and run the leveldb benchmarks
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
@@ -449,6 +476,12 @@ o More things to refactor in the btree
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
+
+
+
+
+
+
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
     but it's unclear whether the duplicate index is ever required. Better
@@ -471,6 +504,7 @@ o refactoring: improve the code separation of cursor, btree_cursor
     o review if the Cursor class has access to any shared resource; what
         about the cursor list??
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -747,6 +781,8 @@ o look into dynomite, spark, mongodb and mariadb integration
         https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
     -> https://developer.yahoo.com/hadoop/tutorial/module5.html#fileformat
 =======
+=======
+>>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
 o continue with concurrency...
 <<<<<<< HEAD
 >>>>>>> More refactorings, no functional changes
@@ -766,11 +802,24 @@ o improve the webpage documentation
         o PRO: compressed keys
         o PRO: compressed records
 
+o internal nodes should use 32bit page IDs!
 
 
 
 
 
+
+o PRO: prefix compression for variable-length keys
+    use an indirection for the prefixes and suffixes; store each
+    part in a slot. the keys themselves have then fixed length (2 slot id's)
+        ==> supports efficient binary search!
+        ==> is efficient for random read/writes AND linear scans
+        however, it's very complex to figure out how to optimally split the
+        strings into prefixes and suffixes
+    ==> prefixes and suffixes can be stored as extended keys if they become
+        too large
+    see indexcompression2009.pdf - Efficient index compression in DB2 LUW
+    o look for more research papers
 
 
 o PRO: allow compression of 32bit record numbers
@@ -806,18 +855,6 @@ o PRO: find an efficient compression method for InternalRecordList
     x The page IDs should be modulo page-size (makes numbers smaller) - done
 
 o PRO: use compression also for duplicate records
-
-o PRO: prefix compression for variable-length keys
-    use an indirection for the prefixes and suffixes; store each
-    part in a slot. the keys themselves have then fixed length (2 slot id's)
-        ==> supports efficient binary search!
-        ==> is efficient for random read/writes AND linear scans
-        however, it's very complex to figure out how to optimally split the
-        strings into prefixes and suffixes
-    ==> prefixes and suffixes can be stored as extended keys if they become
-        too large
-    see indexcompression2009.pdf - Efficient index compression in DB2 LUW
-    o look for more research papers
 
 . release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
