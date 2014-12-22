@@ -363,21 +363,7 @@ x Remove requirement for "delete stability" when erasing keys
         BtreeEraseAction has to retry the operation - either with the old
         or the new node!
 
-o "replication" vs "transactions": pure replication is much slower, although
-    it is much simpler. However, transactions are buffered and "group flushed"
-    whereas pure replication is flushed after each operation.
-    => this mode should also create a journal, but no Transaction structures.
-    o make sure the journal is always created
-    o treat enabled transactions separately from the journal (should already
-        be the case since transactions can be used without the journal)
-    o recovery code must not re-create transactions if they are disabled
-    o run monster tests
-    o run performance tests
-
-    o also look at this:
-    http://yoshinorimatsunobu.blogspot.de/2014/03/why-buffered-writes-are-sometimes.html
-        -> can we use aligned buffers?
-        -> open journal file in write-only mode?
+o hamsterdb-erlang: add support for HAM_RECORD_NUMBER32
 
 o Concurrency: move "purge cache" to background
     1) page list is not modified while it is traversed/modified

@@ -152,73 +152,77 @@ public class Const {
   public final static int HAM_DISABLE_MMAP          =  0x200;
 
   /** Flag for Database.create() */
-  public final static int HAM_RECORD_NUMBER           =   0x2000;
+  public final static int HAM_RECORD_NUMBER32       =  0x1000;
 
   /** Flag for Database.create() */
-  public final static int HAM_ENABLE_DUPLICATE_KEYS       =   0x4000;
+  public final static int HAM_RECORD_NUMBER64       =  0x2000;
+  public final static int HAM_RECORD_NUMBER         =  HAM_RECORD_NUMBER64;
+
+  /** Flag for Database.create() */
+  public final static int HAM_ENABLE_DUPLICATE_KEYS =  0x4000;
 
   /** Flag for Database.create(), Database.open() */
-  public final static int HAM_ENABLE_RECOVERY         =   0x8000;
+  public final static int HAM_ENABLE_RECOVERY       =  0x8000;
 
   /** Flag for Database.open() */
-  public final static int HAM_AUTO_RECOVERY           =  0x10000;
+  public final static int HAM_AUTO_RECOVERY         =  0x10000;
 
   /** Flag for Database.create, Database.open(), ... */
-  public final static int HAM_ENABLE_TRANSACTIONS       =  0x20000;
+  public final static int HAM_ENABLE_TRANSACTIONS   =  0x20000;
 
   /** Flag for Database.create, Database.open(), ... */
-  public final static int HAM_CACHE_UNLIMITED         =  0x40000;
+  public final static int HAM_CACHE_UNLIMITED       =  0x40000;
 
   /** Flag for Environment.create, Environment.open() */
-  public final static int HAM_FLUSH_WHEN_COMMITTED      =  0x01000000;
+  public final static int HAM_FLUSH_WHEN_COMMITTED  =  0x01000000;
 
   /** Flag for Environment.create, Environment.open() */
   public final static int HAM_ENABLE_CRC32          =  0x02000000;
 
   /** Parameter name for Database.open(), Database.create() */
-  public final static int HAM_PARAM_CACHE_SIZE        =  0x100;
-  public final static int HAM_PARAM_CACHESIZE         =  0x100;
+  public final static int HAM_PARAM_CACHE_SIZE      =  0x100;
+  public final static int HAM_PARAM_CACHESIZE       =  0x100;
 
   /** Parameter name for Database.create() */
-  public final static int HAM_PARAM_PAGE_SIZE         =  0x101;
-  public final static int HAM_PARAM_PAGESIZE          =  0x101;
+  public final static int HAM_PARAM_PAGE_SIZE       =  0x101;
+  public final static int HAM_PARAM_PAGESIZE        =  0x101;
 
   /** Parameter name for Database.create() */
-  public final static int HAM_PARAM_KEY_SIZE          =  0x102;
-  public final static int HAM_PARAM_KEYSIZE           =  0x102;
+  public final static int HAM_PARAM_KEY_SIZE        =  0x102;
+  public final static int HAM_PARAM_KEYSIZE         =  0x102;
 
   /** Parameter name for Environment.create() */
-  public final static int HAM_PARAM_MAX_DATABASES       =  0x103;
+  public final static int HAM_PARAM_MAX_DATABASES   =  0x103;
 
   /** Parameter name for Environment.create() */
-  public final static int HAM_PARAM_KEY_TYPE          =  0x104;
+  public final static int HAM_PARAM_KEY_TYPE        =  0x104;
 
   /** Parameter name for Environment.create(), Environment.open() */
   public final static int HAM_PARAM_NETWORK_TIMEOUT_SEC     =  0x107;
 
   /** Parameter name for Database.create() */
-  public final static int HAM_PARAM_RECORD_SIZE         =  0x108;
+  public final static int HAM_PARAM_RECORD_SIZE     =  0x108;
 
   /** Parameter name for Environment.open(), Environment.create() */
-  public final static int HAM_PARAM_FILE_SIZE_LIMIT       =  0x109;
+  public final static int HAM_PARAM_FILE_SIZE_LIMIT =  0x109;
 
   /** Value for unlimited record sizes */
-  public final static int HAM_RECORD_SIZE_UNLIMITED       =  0xffffffff;
+  public final static int HAM_RECORD_SIZE_UNLIMITED =  0xffffffff;
 
   /** Value for unlimited key sizes */
-  public final static int HAM_KEY_SIZE_UNLIMITED        =  0xffff;
+  public final static int HAM_KEY_SIZE_UNLIMITED    =  0xffff;
 
   /** Parameter name for Environment.getParameters(),... */
   public final static int HAM_PARAM_FLAGS           =  0x200;
 
   /** Parameter name for Environment.getParameters(),... */
-  public final static int HAM_PARAM_FILEMODE          =  0x201;
+  public final static int HAM_PARAM_FILEMODE        =  0x201;
 
   /** Parameter name for Environment.getParameters(),... */
-  public final static int HAM_PARAM_FILENAME          =  0x202;
+  public final static int HAM_PARAM_FILENAME        =  0x202;
 
   /** Parameter name for Database.getParameters() */
-  public final static int HAM_PARAM_DATABASE_NAME       =  0x203;
+  public final static int HAM_PARAM_DATABASE_NAME   =  0x203;
 
   /** Parameter name for Database.getParameters() */
   public final static int HAM_PARAM_MAX_KEYS_PER_PAGE     =  0x204;

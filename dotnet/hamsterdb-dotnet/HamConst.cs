@@ -117,7 +117,11 @@ namespace Hamster
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_FREELIST_FLUSH =  0x00800;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_RECORD_NUMBER          =  0x02000;
+    public const int HAM_RECORD_NUMBER32        =  0x01000;
+    /// <summary>Flag for Database.Create</summary>
+    public const int HAM_RECORD_NUMBER64        =  0x02000;
+    /// <summary>Flag for Database.Create (deprecated)</summary>
+    public const int HAM_RECORD_NUMBER          =  HAM_RECORD_NUMBER64;
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_ENABLE_DUPLICATE_KEYS  =  0x04000;
     /// <summary>Flag for Database.Create</summary>

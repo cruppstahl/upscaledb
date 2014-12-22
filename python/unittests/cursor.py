@@ -236,7 +236,7 @@ class CursorTestCase(unittest.TestCase):
   def testFindRecno(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER64)
     db.insert(None, 1, "value1")
     db.insert(None, 2, "value2")
     db.insert(None, 3, "value3")
@@ -297,7 +297,7 @@ class CursorTestCase(unittest.TestCase):
   def testInsertRecno(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER32)
     c = hamsterdb.cursor(db)
     c.insert(1, "value1")
     assert 1  == c.get_key()

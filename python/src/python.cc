@@ -375,17 +375,26 @@ db_find(HamDatabase *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  uint64_t recno;
+  uint32_t recno32;
+  uint64_t recno64;
   HamTransaction *txn = 0;
 
   /* recno: first object is an integer */
-  if (self->flags & HAM_RECORD_NUMBER) {
+  if (self->flags & HAM_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
-    recno = PyInt_AsLong(temp);
-    key.data = &recno;
-    key.size = sizeof(recno);
+    recno32 = (uint32_t)PyInt_AsLong(temp);
+    key.data = &recno32;
+    key.size = sizeof(recno32);
+  }
+  else if (self->flags & HAM_RECORD_NUMBER64) {
+    PyObject *temp;
+    if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
+      return (0);
+    recno64 = PyInt_AsLong(temp);
+    key.data = &recno64;
+    key.size = sizeof(recno64);
   }
   else if (!PyArg_ParseTuple(args, "Os#:find", &txn, &key.data, &key.size))
     return (0);
@@ -449,7 +458,7 @@ db_insert(HamDatabase *self, PyObject *args)
   HamTransaction *txn = 0;
 
   /* recno: ignore the second object */
-  if (self->flags & HAM_RECORD_NUMBER) {
+  if (self->flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OOs#|i:insert", &txn, &temp,
                             &record.data, &record.size, &flags))
@@ -482,17 +491,26 @@ static PyObject *
 db_erase(HamDatabase *self, PyObject *args)
 {
   ham_key_t key = {0};
-  uint64_t recno;
+  uint32_t recno32;
+  uint64_t recno64;
   HamTransaction *txn;
 
   /* recno: first object is an integer */
-  if (self->flags & HAM_RECORD_NUMBER) {
+  if (self->flags & HAM_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
-    recno = PyInt_AsLong(temp);
-    key.data = &recno;
-    key.size = sizeof(recno);
+    recno32 = (uint32_t)PyInt_AsLong(temp);
+    key.data = &recno32;
+    key.size = sizeof(recno32);
+  }
+  else if (self->flags & HAM_RECORD_NUMBER64) {
+    PyObject *temp;
+    if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
+      return (0);
+    recno64 = PyInt_AsLong(temp);
+    key.data = &recno64;
+    key.size = sizeof(recno64);
   }
   else if (!PyArg_ParseTuple(args, "Os#:erase", &txn, &key.data, &key.size))
     return (0);
@@ -1141,7 +1159,7 @@ cursor_insert(HamCursor *self, PyObject *args)
   uint32_t flags = 0;
 
   /* recno: ignore the first object */
-  if (self->db->flags & HAM_RECORD_NUMBER) {
+  if (self->db->flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "Os#|i:insert", &temp,
               &record.data, &record.size, &flags))
@@ -1162,16 +1180,25 @@ cursor_find(HamCursor *self, PyObject *args)
 {
   ham_key_t key = {0};
   ham_record_t record = {0};
-  uint64_t recno;
+  uint32_t recno32;
+  uint64_t recno64;
 
   /* recno: first object is an integer */
-  if (self->db->flags & HAM_RECORD_NUMBER) {
+  if (self->db->flags & HAM_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "O!:find", &PyInt_Type, &temp))
       return (0);
-    recno = PyInt_AsLong(temp);
-    key.data = &recno;
-    key.size = sizeof(recno);
+    recno32 = (uint32_t)PyInt_AsLong(temp);
+    key.data = &recno32;
+    key.size = sizeof(recno32);
+  }
+  else if (self->db->flags & HAM_RECORD_NUMBER64) {
+    PyObject *temp;
+    if (!PyArg_ParseTuple(args, "O!:find", &PyInt_Type, &temp))
+      return (0);
+    recno64 = PyInt_AsLong(temp);
+    key.data = &recno64;
+    key.size = sizeof(recno64);
   }
   else if (!PyArg_ParseTuple(args, "s#:find", &key.data, &key.size))
     return (0);
@@ -1222,7 +1249,11 @@ cursor_get_key(HamCursor *self, PyObject *args)
     THROW(st);
 
   /* recno: return int, otherwise string */
-  if (db->flags & HAM_RECORD_NUMBER) {
+  if (db->flags & HAM_RECORD_NUMBER32) {
+    uint32_t recno = *(uint32_t *)key.data;
+    return (Py_BuildValue("i", (int)recno));
+  }
+  if (db->flags & HAM_RECORD_NUMBER64) {
     uint64_t recno = *(uint64_t *)key.data;
     return (Py_BuildValue("i", (int)recno));
   }
@@ -1383,7 +1414,9 @@ inithamsterdb()
   add_const(d, "HAM_READ_ONLY", HAM_READ_ONLY);
   add_const(d, "HAM_IN_MEMORY", HAM_IN_MEMORY);
   add_const(d, "HAM_DISABLE_MMAP", HAM_DISABLE_MMAP);
-  add_const(d, "HAM_RECORD_NUMBER", HAM_RECORD_NUMBER);
+  add_const(d, "HAM_RECORD_NUMBER", HAM_RECORD_NUMBER64); // deprecated
+  add_const(d, "HAM_RECORD_NUMBER32", HAM_RECORD_NUMBER32);
+  add_const(d, "HAM_RECORD_NUMBER64", HAM_RECORD_NUMBER64);
   add_const(d, "HAM_ENABLE_DUPLICATE_KEYS", HAM_ENABLE_DUPLICATE_KEYS);
   add_const(d, "HAM_ENABLE_RECOVERY", HAM_ENABLE_RECOVERY);
   add_const(d, "HAM_AUTO_RECOVERY", HAM_AUTO_RECOVERY);

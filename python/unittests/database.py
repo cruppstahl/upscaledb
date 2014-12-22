@@ -70,7 +70,7 @@ class DatabaseTestCase(unittest.TestCase):
   def testInsertRecno(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER32)
     db.insert(None, "key1", "value")
     db.insert(None, 5, "value")
     db.insert(None, None, "value")
@@ -112,7 +112,7 @@ class DatabaseTestCase(unittest.TestCase):
   def testFindRecno(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER64)
     db.insert(None, "", "value1")
     db.insert(None, "", "value2")
     db.insert(None, "", "value3")
@@ -176,7 +176,7 @@ class DatabaseTestCase(unittest.TestCase):
   def testEraseRecno(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER32)
     db.insert(None, "", "value1")
     db.insert(None, "", "value2")
     db.insert(None, "", "value3")
@@ -248,7 +248,7 @@ class DatabaseTestCase(unittest.TestCase):
   def testRecnoReopen(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER64)
     db.insert(None, "key1", "value")
     db.insert(None, 5, "value")
     db.insert(None, None, "value")

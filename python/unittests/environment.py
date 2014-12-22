@@ -158,7 +158,7 @@ class EnvironmentTestCase(unittest.TestCase):
   def testCreateDbParam(self):
     env = hamsterdb.env()
     env.create("test.db")
-    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER)
+    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER64)
     db.close()
     db = env.open_db(3)
     db.close()
