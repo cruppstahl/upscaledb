@@ -87,6 +87,11 @@ fall_through:
           m_key = m_cursor->get_uncoupled_key();
       }
 
+      return (erase());
+    }
+
+  private:
+    ham_status_t erase() {
       // traverse the tree to the leaf, splitting/merging nodes as required
       Page *parent;
       BtreeStatistics::InsertHints hints;
@@ -101,12 +106,10 @@ fall_through:
       }
 
       // remove the key from the leaf
-      remove_entry(page, parent, slot);
-      return (0);
+      return (remove_entry(page, parent, slot));
     }
 
-  private:
-    void remove_entry(Page *page, Page *parent, int slot) {
+    ham_status_t remove_entry(Page *page, Page *parent, int slot) {
       LocalDatabase *db = m_btree->get_db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -155,7 +158,7 @@ fall_through:
         }
         // all cursors were adjusted, the duplicate was deleted. return
         // to caller!
-        return;
+        return (0);
       }
 
       // no duplicates left, the key was deleted; all cursors pointing to
@@ -189,7 +192,7 @@ fall_through:
       }
 
       if (has_duplicates_left)
-        return;
+        return (0);
 
       // We've reached the leaf; it's still possible that we have to
       // split the page, therefore this case has to be handled
@@ -197,13 +200,17 @@ fall_through:
         node->erase(slot);
       }
       catch (Exception &ex) {
-        if (ex.code == HAM_LIMITS_REACHED) {
-          BtreeStatistics::InsertHints hints;
-          page = split_page(page, parent, m_key, hints);
-          node->erase(slot);
-        }
-        throw ex;
+        if (ex.code != HAM_LIMITS_REACHED)
+          throw ex;
+
+        // Split the page in the middle. This will invalidate the |node| pointer
+        // and the |slot| of the key, therefore restart the whole operation
+        BtreeStatistics::InsertHints hints = {0};
+        split_page(page, parent, m_key, hints);
+        return (erase());
       }
+
+      return (0);
     }
 
     // the key that is retrieved

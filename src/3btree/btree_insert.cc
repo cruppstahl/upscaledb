@@ -87,6 +87,9 @@ class BtreeInsertAction : public BtreeUpdateAction
       else
         st = insert();
 
+      if (st == HAM_LIMITS_REACHED)
+        st = insert();
+
       if (st)
         stats->insert_failed();
       else {
@@ -135,11 +138,8 @@ class BtreeInsertAction : public BtreeUpdateAction
         return (insert());
 
       /*
-       * if the page is not empty: check if we append the key at the end / start
-       * (depending on force_append/force_prepend),
-       * or if it's actually inserted in the middle (when neither force_append
-       * or force_prepend is specified: that'd be SEQUENTIAL insertion
-       * hinting somewhere in the middle of the total key range.
+       * if the page is not empty: check if we append the key at the end/start
+       * (depending on the flags), or if it's actually inserted in the middle.
        */
       if (node->get_count() != 0) {
         if (m_hints.flags & HAM_HINT_APPEND) {
@@ -179,16 +179,10 @@ class BtreeInsertAction : public BtreeUpdateAction
 
       // We've reached the leaf; it's still possible that we have to
       // split the page, therefore this case has to be handled
-      ham_status_t st;
-      try {
-        st = insert_in_page(page, m_key, m_record, m_hints);
-      }
-      catch (Exception &ex) {
-        if (ex.code == HAM_LIMITS_REACHED) {
-          page = split_page(page, parent, m_key, m_hints);
-          return (insert_in_page(page, m_key, m_record, m_hints));
-        }
-        throw ex;
+      ham_status_t st = insert_in_page(page, m_key, m_record, m_hints);
+      if (st == HAM_LIMITS_REACHED) {
+        page = split_page(page, parent, m_key, m_hints);
+        return (insert_in_page(page, m_key, m_record, m_hints));
       }
       return (st);
     }

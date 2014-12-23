@@ -371,7 +371,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
     case HAM_SUCCESS:
       break;
     default:
-      throw Exception(result.status);
+      return (result.status);
   }
 
   uint32_t new_duplicate_id = 0;

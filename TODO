@@ -348,7 +348,7 @@ o Zint32: add compression based on bit-packing
         immediately because it is always "internal".
     x don't split blocks in the middle if the new key is appended
     x don't split blocks in the middle if the new key is prepended
-    o test with bulk-erase and deltas of size 1, no records
+    x test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
     o fix the remaining TODOs
         o improve copy_to() performance by allocating multiple
@@ -356,6 +356,8 @@ o Zint32: add compression based on bit-packing
         o improve vacuumize_impl() performance by allocating multiple
             blocks at once
         o add functions for simdcomp library to deal with underfilled blocks
+    . erase: only calculate bits of the new delta, not of the whole block
+    o add more unittests for delete stability
 
 x Remove requirement for "delete stability" when erasing keys
     x Introduce generic BtreeUpdateAction which handles merges and splits
