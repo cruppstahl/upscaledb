@@ -51,10 +51,14 @@ compare(void *vlhs, void *vrhs)
   if (lhs == rhs)
     return (0);
 
-  return (db->get_btree_index()->compare_keys(lhs->get_key(), rhs->get_key()));
+  ham_key_t *lhskey = lhs->get_key();
+  ham_key_t *rhskey = rhs->get_key();
+  ham_assert(lhskey && rhskey);
+  return (db->get_btree_index()->compare_keys(lhskey, rhskey));
 }
 
-rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
+rb_proto(static, rbt_, TransactionIndex, TransactionNode)
+rb_gen(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 
 void
 TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
@@ -202,6 +206,19 @@ TransactionIndex::store(TransactionNode *node)
 void
 TransactionIndex::remove(TransactionNode *node)
 {
+#ifdef HAM_DEBUG
+  bool found = false;
+  TransactionNode *n = rbt_first(this);
+  while (n) {
+    if (n == node) {
+      found = true;
+      break;
+    }
+    n = rbt_next(this, n);
+  }
+  ham_assert(found == true);
+#endif
+
   rbt_remove(this, node);
 }
 
@@ -292,11 +309,6 @@ TransactionIndex::TransactionIndex(LocalDatabase *db)
   : m_db(db)
 {
   rbt_new(this);
-
-  // avoid warning about unused function
-  if (0) {
-    (void) (rbt_ppsearch(this, 0));
-  }
 }
 
 TransactionIndex::~TransactionIndex()

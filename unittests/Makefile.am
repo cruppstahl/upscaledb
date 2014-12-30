@@ -1,8 +1,8 @@
 
 EXTRA_DIST      = recovery.pl valgrind.supp data/*
 
-noinst_PROGRAMS = test recovery issue32
-noinst_BIN      = test recovery issue32
+noinst_PROGRAMS = test recovery issue32 issue43
+noinst_BIN      = test recovery issue32 issue43
 
 
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include -I../src
@@ -104,3 +104,6 @@ test_recovery:
 
 issue32_SOURCES = issue32.c
 issue32_LDADD   = $(top_builddir)/src/libhamsterdb.la
+
+issue43_SOURCES = issue43.cc
+issue43_LDADD   = $(top_builddir)/src/libhamsterdb.la
