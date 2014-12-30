@@ -263,6 +263,7 @@ x Zint32: add compression based on bit-packing
     x test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
     x erase: only calculate bits of the new delta, not of the whole block
+<<<<<<< HEAD
     x fix the remaining TODOs
         x improve vacuumize_impl() performance by allocating multiple
             blocks at once
@@ -663,12 +664,13 @@ vacuumize by the caller (with an additional retry)?
 >>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
     o test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
+=======
+>>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
     o fix the remaining TODOs
-        o improve copy_to() performance by allocating multiple
-            blocks at once
-        o improve vacuumize_impl() performance by allocating multiple
+        x improve vacuumize_impl() performance by allocating multiple
             blocks at once
         o add functions for simdcomp library to deal with underfilled blocks
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -679,6 +681,15 @@ o btree_erase:71 if the node is empty then it should be merged and
 =======
 o Remove requirement for "delete stability" when erasing keys
 =======
+=======
+    . improve copy_to() performance by allocating multiple blocks at once
+    o add more unittests for delete stability
+
+x issue43: fix segfault
+    it seems that a node is removed which is not in the rb-tree. the node
+    used to be there, but got dropped when another node was removed.
+
+>>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 x Remove requirement for "delete stability" when erasing keys
 >>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
     x Introduce generic BtreeUpdateAction which handles merges and splits
@@ -686,6 +697,7 @@ x Remove requirement for "delete stability" when erasing keys
         BtreeEraseAction has to retry the operation - either with the old
         or the new node!
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o Thomas Fähnle: create new parameter for fadvise configuration
     x implement for file-based (w and w/o memory mapping) devices 
@@ -725,6 +737,9 @@ o "replication" vs "transactions": pure replication is much slower, although
     http://yoshinorimatsunobu.blogspot.de/2014/03/why-buffered-writes-are-sometimes.html
         -> can we use aligned buffers?
         -> open journal file in write-only mode?
+=======
+x hamsterdb-erlang: add support for HAM_RECORD_NUMBER32
+>>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 
 o Concurrency: move "purge cache" to background
     1) page list is not modified while it is traversed/modified
@@ -773,6 +788,7 @@ o Concurrency: move "purge cache" to background
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
 
+<<<<<<< HEAD
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
@@ -780,6 +796,12 @@ o migrate to libuv 1.0, it has a stable API
 o refactoring: make EnvironmentHeader stateless and exception safe
     -> will it ever be used outside of the EnvironmentConfiguration setting?
     -> can we remove it?
+=======
+o LocalEnvironment::open creates a "fakepage" to find out the page_size;
+    just assume the default page size of 16kb and read the first page. Then
+    discard if the real page_size is a different one
+    o deal with databases < 16kb?
+>>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 
 o support multiple worker threads which perform I/O
     o how many threads should be created??
@@ -810,6 +832,14 @@ o If mmap is enabled then keys and records don't have to be copied as long
     - If a record is in a mapped page then simply return a
         pointer
 
+
+
+
+
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
+
 o More things to refactor in the btree
     o PageManager::fetch_page should be available in a const version
         (fetch_const_page) which sets a flag in the page ("kIsImmutable").
@@ -826,6 +856,7 @@ o More things to refactor in the btree
 o Thomas Fähnle: create new parameter for fadvise configuration
     (see mail)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> Fixing a regression
@@ -846,6 +877,8 @@ o migrate to libuv 1.0, it has a stable API
 
 
 >>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
+=======
+>>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
     but it's unclear whether the duplicate index is ever required. Better
