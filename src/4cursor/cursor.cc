@@ -347,9 +347,9 @@ Cursor::compare()
 
     // need to fix the sort order - we compare txnk vs page[slot], but the
     // caller expects m_last_cmp to be the comparison of page[slot] vs txnk
-    if (m_last_cmp == -1)
+    if (m_last_cmp < 0)
       m_last_cmp = +1;
-    else if (m_last_cmp == +1)
+    else if (m_last_cmp > 0)
       m_last_cmp = -1;
 
     return (m_last_cmp);

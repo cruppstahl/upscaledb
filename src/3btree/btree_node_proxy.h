@@ -320,28 +320,13 @@ struct VariableSizeCompare
           const void *rhs_data, uint32_t rhs_size) const {
     if (lhs_size < rhs_size) {
       int m = ::memcmp(lhs_data, rhs_data, lhs_size);
-      if (m < 0)
-        return (-1);
-      if (m > 0)
-        return (+1);
-      return (-1);
+      return (m == 0 ? -1 : m);
     }
-    else if (rhs_size < lhs_size) {
+    if (rhs_size < lhs_size) {
       int m = ::memcmp(lhs_data, rhs_data, rhs_size);
-      if (m < 0)
-        return (-1);
-      if (m > 0)
-        return (+1);
-      return (+1);
+      return (m == 0 ? +1 : m);
     }
-    else {
-      int m = memcmp(lhs_data, rhs_data, lhs_size);
-      if (m < 0)
-        return (-1);
-      if (m > 0)
-        return (+1);
-      return (0);
-    }
+    return (::memcmp(lhs_data, rhs_data, lhs_size));
   }
 };
 
