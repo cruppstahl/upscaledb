@@ -10,16 +10,20 @@ x a finished TODO item
 ------------- hamsterdb-erlang 2.1.9 ---------------------------------
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 x upgrade to hamsterdb-2.1.9
 
 >>>>>>> Updated TODO
+=======
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 o improve erlang integration
     o integration for quickcheck-ci.com
     x look into Thomas' mail
 
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 x documentation rewrite
     x use github wiki, remove old cruft
@@ -57,6 +61,9 @@ o documentation rewrite
     o then create the initial repository:
 >>>>>>> Updated TODO
 =======
+=======
+x documentation rewrite
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
     x use github wiki, remove old cruft
     x then create the initial repository:
 >>>>>>> Updated TODO
@@ -263,6 +270,7 @@ x Zint32: add compression based on bit-packing
     x test with bulk-erase and deltas of size 1, no records
         -> no delete stability!
     x erase: only calculate bits of the new delta, not of the whole block
+<<<<<<< HEAD
 <<<<<<< HEAD
     x fix the remaining TODOs
         x improve vacuumize_impl() performance by allocating multiple
@@ -765,6 +773,53 @@ o Concurrency: move "purge cache" to background
         pointer for more pages if Max is not sufficient. Use this in the
         Changeset and the Cache buckets.
     o add a flag to disable background operations
+=======
+    x fix the remaining TODOs
+        x improve vacuumize_impl() performance by allocating multiple
+            blocks at once
+        x rewrite simdmaxbitsd1() to accept a "length" parameter
+
+x Mail from Joel: approx. matching returns wrong key
+    ham_cursor_find(... HAM_FIND_GEQ_MATCH)
+    keys "aa", "bb", "cc", find "b": returns "cc" instead of "bb"
+    -> use existing sources as the basis
+    -> insert keys as suggested
+
+o Concurrency: move "purge cache" to background
+    -> reorg the hash table. All buckets are in serial memory. This requires
+      a few allocations, but reduces cache misses because there's no
+      "jumping" from page to page. Such a bucket can be replaced
+      atomically with CAS (hazard pointer!) and appended w/o locking. And
+      it avoids frequent calls to remove_from_list/insert_to_list to push
+      the used pages to the front. As a consequence, a new purge mechanism
+      is required to identify "old" pages. These pages then could even be
+      sorted before they are flushed.
+
+    o Get rid of the page lists. Have a generic "PageCollection" class
+        with atomic updates. Use this in the Changeset and the Cache buckets.
+        o use a DynamicArray<std::pair<uint64_t, Page *>> for memory
+        o whenever the array grows:
+            1) grow into a copy
+            2) perform "compactions" if too many elements were deleted
+            3) perform CAS with the old pointer
+        o assert that there is only 1 writer at a time (i.e. use a mutex)
+        o when inserting: set the pointer, then atomically increment the counter
+        o when deleting: simply set to zero
+        o never use a lock when reading
+        o use hazard pointers; auto-delete them after 1 second
+            (pass them to the thread for management)
+
+    o Create a background thread
+    o Join thread when closing the Environment
+    o create a non-blocking queue for passing data to the thread
+
+    o have a Facade for the thread. If threading is enabled then store the
+        message in the message-queue; otherwise perform the request while
+        blocking
+        o but don't add the same request twice if it's still in the queue
+        o remember that there can be more threads, at least for I/O...
+
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
     o get rid of the Page-List (use a generic visitor for the Cache)
     o rewrite all other lists with the PageCollection
         o should allow reading w/o blocking
@@ -836,7 +891,7 @@ o If mmap is enabled then keys and records don't have to be copied as long
 
 
 
-o migrate to libuv 1.0, it has a stable API
+. migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
@@ -871,6 +926,7 @@ o migrate to libuv 1.0, it has a stable API
 >>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
 =======
 
+<<<<<<< HEAD
 
 
 
@@ -880,15 +936,18 @@ o migrate to libuv 1.0, it has a stable API
 =======
 >>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
+=======
+o refactoring: db_local.cc has so many TODOs!
+
+. refactor LocalDatabase::cursor_insert: when done, the duplicate index is
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
     but it's unclear whether the duplicate index is ever required. Better
     use a logical index ("kLastDuplicate") and lazily calculate the actual
     position when it's required.
 >>>>>>> Fixed another regression
 
-o refactoring: db_local.cc has so many TODOs!
-
-o refactoring: improve the code separation of cursor, btree_cursor
+. refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
 <<<<<<< HEAD
@@ -1066,6 +1125,9 @@ o continue with concurrency...
     recovery is enabled (with and without transactions)!
 >>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 
+
+
+
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
@@ -1082,10 +1144,23 @@ o internal nodes should use 32bit page IDs!
 
 
 
+o PRO: additional zint32 TODOs for simdcomp
+    o needs to work with various page sizes; have to increase the offset
+        parameter for the index!
+    o improve copy_to() performance by allocating multiple blocks at once
+    o rewrite remainding simdcomp functions to accept a "length" parameter
+    o add more unittests for delete stability
 
+o PRO: allow compression of 32bit record numbers
+
+<<<<<<< HEAD
 . migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
+=======
+o PRO: use zint32 compression for internal nodes
+    -> requires 32bit page IDs
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 
 <<<<<<< HEAD
 o More things to refactor in the btree
@@ -1165,6 +1240,7 @@ o refactoring: db_local.cc has so many TODOs!
     use a logical index ("kLastDuplicate") and lazily calculate the actual
     position when it's required.
 
+<<<<<<< HEAD
 . refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
@@ -1215,6 +1291,8 @@ o internal nodes should use 32bit page IDs!
 
 o PRO: allow compression of 32bit record numbers
 
+=======
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 o PRO: look for a better compression for DefaultRecordList, i.e.
     - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
         number can then hold flags for 16 numbers
@@ -1239,8 +1317,85 @@ o PRO: look for a better compression for DefaultRecordList, i.e.
         a record id
     o avoid ripple effects by growing/splitting the block
 
-o PRO: Use the GroupedVarInt also for duplicate groups
+o PRO: use compression also for duplicate records
+    i.e. use GroupedVarint for inline duplicates
 
+
+
+
+o refactoring: create a Update structure whenever a database is modified;
+    it consists of the operation type, key, record (optional), operation flags,
+    ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
+    class.
+    This structure is then forwarded to the journal, and to all BtreeActions.
+    The BtreeActions no longer require state (at least large parts of it).
+    This structure will also be used for the DeltaUpdates and for batched
+    updates later on.
+    o insert: create such a structure in ham_db_insert, forward it to the
+        lower layers
+    o erase: create such a structure in ham_db_erase, forward it to the
+        lower layers
+    o same for cursor functions
+    o same for ham_cursor_overwrite
+    o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
+
+o delta updates managed in the BtreeNode
+    the operations are attached to the node, but as soon as the node
+    is accessed for a lookup or a scan, or immediately before the node
+    is flushed, the deltas are merged into the node. So far this does not
+    sound too efficient, but the bulk updates in combination with the
+    key compression (i.e. for prefix compression) will benefit a lot.
+
+    Also, they are really required for concurrency and to allow multiple
+    writers in parallel.
+
+    these DUs are *very* similar to TransactionOperations; can both be
+    combined? We already consolidate Txns with the Btree. If the Txns are
+    based on DUs and attached to the BtreeNode (instead to a separate TxnTree)
+    then both can be consolidated in a single sweep. Committing/Aborting
+    becomes O(1), and the background thread can then flush them do disk.
+
+    -> Flushes/Merges happen in background
+    -> Transactions, Commits and Btree operations are completely decoupled.
+        This requires a new recovery/logging strategy!
+    -> The whole btree will borrow ideas from an LSM since it is running
+        compactions in the background
+    -> Needs more research...
+
+    x perform a benchmark/profiling: random inserts vs. ascending inserts;
+        the difference should be caused by memcopy/memmove (is it?)
+        x PAX
+            -> absolutely worth the effort, about 60% are spent in memmove
+        x Default
+            -> also worth the effort, about 15% are spent in memmove
+
+    o need a flag to disable DeltaUpdates
+        o add flag to ham_bench
+    o rename TransactionOperation to DeltaUpdate, decouple code from txn
+    o totally transparent to the caller, handled in the proxy
+    o only add deltas to leaf nodes; internal nodes have too many read
+        operations and would anyway require immediate flushes
+    o DeltaUpdate objects from a txn-flush should directly go down to
+        the node (detach from txn, attach to node)
+    o should the the insert + set_record operations be combined into a
+        single call? this has the additional advantage that the overhead
+        of calling set_record will disappear
+    o merge delta updates when reading and flushing
+        o however, for simple lookup calls (no duplicates) the DUs can
+            be traversed, too 
+    o requires_split() must take delta updates into account
+    o make the merge algorithm as efficient as possible
+        o sort deltas by key
+        o first execute all 'erase' either against other deltas or against
+            the node
+        o then merge the remaining inserts
+        o this needs lots of tests
+    o now run tests: should every update be stored as a DeltaUpdate? If not
+        then disable them by default, unless Transactions are used (and unless
+        bulk updates are used)
+
+
+<<<<<<< HEAD
 o PRO: additional zint32 TODOs for simdcomp
     o needs to work with various page sizes; have to increase the offset
         parameter for the index!
@@ -1495,6 +1650,10 @@ o PRO: use compression also for duplicate records
 . release-v2.pl: valgrind takes sooo long. should we use clang's
     AddressSanitizer instead? or both?
 >>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
+=======
+
+
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 
 . hola - next steps
     o support java api
@@ -1547,9 +1706,13 @@ o QuickCheck: create a new property for testing duplicates; the key is
     specific duplicate, or to fetch a specific duplicate.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> Updated TODO
+=======
+
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 . use cache-oblivious b-tree layout
     -> http://supertech.csail.mit.edu/cacheObliviousBTree.html
     o see roadmap document for more information
@@ -1570,6 +1733,7 @@ o QuickCheck: create a new property for testing duplicates; the key is
         allocate one but multiple pages (if the database is big enough)
         -> could create a second memory mapping for the next chunk
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -1699,6 +1863,8 @@ o the bucket for concurrency TODOs
 >>>>>>> Updated TODO
 =======
 >>>>>>> More refactorings, no functional changes
+=======
+>>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
 o PRO: hot backups (vacuumizes to a different file)
     really only for PRO?
     http://sqlite.org/c3ref/backup_finish.html
