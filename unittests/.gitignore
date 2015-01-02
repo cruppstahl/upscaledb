@@ -1,4 +1,6 @@
 issue32
+issue43
+testdb*
 *.o
 *.lo
 *.la

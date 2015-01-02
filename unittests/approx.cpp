@@ -31,6 +31,20 @@
 
 using namespace hamsterdb;
 
+static int
+slot_key_cmp(ham_db_t *db, const uint8_t *lhs, uint32_t lsz,
+        const uint8_t *rhs, uint32_t rsz)
+{
+  uint32_t i;
+
+  for (i = 0; i < lsz; ++i) {
+    if (lhs[i] != rhs[i]) {
+      return lhs[i] > rhs[i] ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
 struct ApproxFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
@@ -47,10 +61,17 @@ struct ApproxFixture {
   }
 
   ~ApproxFixture() {
+    teardown();
+  }
+
+  void teardown() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     lenv->get_changeset().clear();
 
-    REQUIRE(0 == ham_txn_abort(m_txn, 0));
+    if (m_txn) {
+      REQUIRE(0 == ham_txn_abort(m_txn, 0));
+      m_txn = 0;
+    }
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
@@ -347,6 +368,37 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("83"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "81", "83"));
   }
+
+  void issue44Test() {
+    teardown();
+
+    ham_parameter_t param[] = {
+        {HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM},
+        {HAM_PARAM_KEY_SIZE, 41},
+        {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+    REQUIRE(0 == ham_db_set_compare_func(m_db, slot_key_cmp));
+
+    const char *values[] = { "11", "22", "33", "44", "55" };
+    for (int i = 0; i < 5; i++) {
+      char keydata[41];
+      ::memcpy(&keydata[0], values[i], 3);
+      ham_key_t key = ham_make_key(&keydata[0], sizeof(keydata));
+      ham_record_t rec = ham_make_record((void *)values[i], 3);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    char keydata[41];
+    ::memcpy(&keydata[0], "10", 3);
+    ham_key_t key = ham_make_key((void *)keydata, sizeof(keydata));
+    ham_record_t rec = {0};
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "11"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "11"));
+  }
 };
 
 TEST_CASE("Approx/lessThanTest", "") {
@@ -367,5 +419,10 @@ TEST_CASE("Approx/greaterThanTest", "") {
 TEST_CASE("Approx/greaterOrEqualTest", "") {
   ApproxFixture f;
   f.greaterOrEqualTest();
+}
+
+TEST_CASE("Approx/issue44Test", "") {
+  ApproxFixture f;
+  f.issue44Test();
 }
 

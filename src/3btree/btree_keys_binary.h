@@ -124,7 +124,7 @@ class BinaryKeyList : public BaseKeyList
     // linear search
     size_t get_linear_search_threshold() const {
       if (m_key_size > 32)
-        return (0); // disable linear search for large keys
+        return (-1); // disable linear search for large keys
       return (128 / m_key_size);
 
     }
