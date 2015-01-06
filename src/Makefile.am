@@ -21,7 +21,6 @@ libhamsterdb_la_SOURCES = \
 	1base/scoped_ptr.h \
 	1base/util.cc \
 	1base/util.h \
-	1base/version.h \
 	1globals/globals.h \
 	1globals/globals.cc \
 	1mem/mem.cc \
@@ -77,6 +76,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_stats.cc \
 	3btree/btree_stats.h \
 	3btree/btree_update.cc \
+	3btree/btree_update.h \
 	3btree/btree_visit.cc \
 	3btree/btree_visitor.h \
 	3btree/upfront_index.h \

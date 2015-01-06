@@ -346,6 +346,28 @@ x Mail from Joel: approx. matching returns wrong key
     -> use existing sources as the basis
     -> insert keys as suggested
 
+o Mail from Joel: approx. matching returns wrong key
+    o reproduce with new database file
+    o fix the bug
+
+o Improve test coverage of approx. matching w/ EQC
+    x need erlang function for approx. matching (ham_db_find w/ flags
+        -> returns status AND key)
+    x for all key types (incl. fixed length keys of size 5, 32, 48 and
+        variable length keys)
+    x generate keys based on key type/size
+    x store inserted keys
+    x verify the result of the find operation
+    x specify key flags for approx. matching and verify the result
+        x lt_match
+        x leq_match
+        x gt_match
+        x geq_match
+    x add inline records of max. size to increase splits
+    o add integer and real types; need different key comparison!!
+    o only btree
+    o then add transactions
+
 o Concurrency: move "purge cache" to background
     -> reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no

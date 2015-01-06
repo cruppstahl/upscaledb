@@ -1365,11 +1365,6 @@ ham_db_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @param flags Optional flags for searching, which can be combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *    <li>@ref HAM_FIND_EXACT_MATCH </li> (default). If the @a key exists,
- *        the cursor is adjusted to reference the record. Otherwise, an
- *        error is returned. Note that for backwards compatibility
- *        the value zero (0) can specified as an alternative when this
- *        option is not mixed with any of the others in this list.
  *    <li>@ref HAM_FIND_LT_MATCH </li> Cursor 'find' flag 'Less Than': the
  *        cursor is moved to point at the last record which' key
  *        is less than the specified key. When such a record cannot
@@ -2172,8 +2167,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * by @ref ham_key_get_approximate_match_type() tells you which kind of match
  * (equal, less than, greater than) occurred. This is very useful to
  * discern between the various possible successful answers produced by the
- * combinations of @ref HAM_FIND_LT_MATCH, @ref HAM_FIND_GT_MATCH and/or
- * @ref HAM_FIND_EXACT_MATCH.
+ * combinations of @ref HAM_FIND_LT_MATCH and @ref HAM_FIND_GT_MATCH.
  *
  * @param cursor A valid Cursor handle
  * @param key A pointer to a @ref ham_key_t structure. If this
@@ -2189,11 +2183,6 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @param flags Optional flags for searching, which can be combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *    <li>@ref HAM_FIND_EXACT_MATCH </li> (default). If the @a key exists,
- *        the cursor is adjusted to reference the record. Otherwise, an
- *        error is returned. Note that for backwards compatibility
- *        the value zero (0) can specified as an alternative when this
- *        option is not mixed with any of the others in this list.
  *    <li>@ref HAM_FIND_LT_MATCH </li> Cursor 'find' flag 'Less Than': the
  *        cursor is moved to point at the last record which' key
  *        is less than the specified key. When such a record cannot
@@ -2242,20 +2231,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * Note that these flags may be bitwise OR-ed to form functional combinations.
  *
  * @ref HAM_FIND_LEQ_MATCH, @ref HAM_FIND_GEQ_MATCH and
- * @ref HAM_FIND_NEAR_MATCH are themselves shorthands created using
- *    the bitwise OR operation like this:
- *    <ul>
- *      <li>@ref HAM_FIND_LEQ_MATCH </li> == (@ref HAM_FIND_LT_MATCH |
- *        @ref HAM_FIND_EXACT_MATCH)
- *    <li>@ref HAM_FIND_GEQ_MATCH </li> == (@ref HAM_FIND_GT_MATCH |
- *        @ref HAM_FIND_EXACT_MATCH)
- *    <li>@ref HAM_FIND_NEAR_MATCH </li> == (@ref HAM_FIND_LT_MATCH |
- *        @ref HAM_FIND_GT_MATCH | @ref HAM_FIND_EXACT_MATCH)
- *    <li>The remaining bit-combination (@ref HAM_FIND_LT_MATCH |
- *        @ref HAM_FIND_GT_MATCH) has no shorthand, but it will function
- *        as expected nevertheless: finding only 'neighbouring' records
- *        for the given key.
- *    </ul>
+ * @ref HAM_FIND_LT_MATCH, @ref HAM_FIND_GT_MATCH
  *
  * @return @ref HAM_SUCCESS upon success. Mind the remarks about the
  *     @a key flags being adjusted and the useful invocation of
@@ -2281,29 +2257,18 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, uint32_t flags);
 
-/**
- * Cursor 'find' flag: return an exact match (default).
- *
- * Note: For backwards compatibility, you can specify zero (0) as an
- * alternative when this flag is used alone.
- *
- * Approx. matching is disabled if Transactions are enabled.
- */
+/* internal flag */
 #define HAM_FIND_EXACT_MATCH            0x4000
 
 /**
  * Cursor 'find' flag 'Less Than': return the nearest match below the
  * given key, whether an exact match exists or not.
- *
- * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_LT_MATCH               0x1000
 
 /**
  * Cursor 'find' flag 'Greater Than': return the nearest match above the
  * given key, whether an exact match exists or not.
- *
- * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_GT_MATCH               0x2000
 
@@ -2313,8 +2278,6 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *
  * May be combined with @ref HAM_FIND_GEQ_MATCH to accept any 'near' key, or
  * you can use the @ref HAM_FIND_NEAR_MATCH constant as a shorthand for that.
- *
- * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_LEQ_MATCH      (HAM_FIND_LT_MATCH | HAM_FIND_EXACT_MATCH)
 
@@ -2324,8 +2287,6 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *
  * May be combined with @ref HAM_FIND_LEQ_MATCH to accept any 'near' key,
  * or you can use the @ref HAM_FIND_NEAR_MATCH constant as a shorthand for that.
- *
- * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_GEQ_MATCH      (HAM_FIND_GT_MATCH | HAM_FIND_EXACT_MATCH)
 
@@ -2341,8 +2302,6 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * simply return the first of both found. As such, this flag is the simplest
  * possible combination of the combined @ref HAM_FIND_LEQ_MATCH and
  * @ref HAM_FIND_GEQ_MATCH flags.
- *
- * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_NEAR_MATCH     (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH  \
                                   | HAM_FIND_EXACT_MATCH)

@@ -399,6 +399,236 @@ struct ApproxFixture {
     REQUIRE(0 == ::strcmp((char *)key.data, "11"));
     REQUIRE(0 == ::strcmp((char *)rec.data, "11"));
   }
+
+  void greaterThanTest2() {
+    teardown();
+
+    ham_parameter_t param[] = {
+        {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
+        {HAM_PARAM_KEY_SIZE, 32},
+        {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+
+    char data[32] = {0};
+    ham_key_t key = ham_make_key(&data[0], sizeof(data));
+    ham_record_t rec = {0};
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+
+    data[31] = 1;
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    char newdata[32] = {0};
+    REQUIRE(0 == ::memcmp(key.data, &newdata[0], sizeof(newdata)));
+  }
+
+  template<typename Generator>
+  void btreeLowerThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i < 5000; i++) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    gen.generate(0, &key);
+    REQUIRE(HAM_KEY_NOT_FOUND
+            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+
+    for (i = 1; i < 5000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i - 1, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+  }
+
+  template<typename Generator>
+  void btreeLowerEqualThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i < 10000; i += 2) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 10000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i & 1 ? i - 1 : i, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+  }
+
+  template<typename Generator>
+  void btreeGreaterThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 1; i <= 5000; i++) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 5000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i + 1, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+
+    gen.generate(5000, &key);
+    REQUIRE(HAM_KEY_NOT_FOUND
+            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+  }
+
+  template<typename Generator>
+  void btreeGreaterEqualThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i <= 10000; i += 2) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 10000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i & 1 ? i + 1 : i, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+
+    gen.generate(10000, &key);
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+  }
 };
 
 TEST_CASE("Approx/lessThanTest", "") {
@@ -426,3 +656,238 @@ TEST_CASE("Approx/issue44Test", "") {
   f.issue44Test();
 }
 
+TEST_CASE("Approx/greaterThanTest2", "") {
+  ApproxFixture f;
+  f.greaterThanTest2();
+}
+
+template<uint16_t Length>
+struct BinaryGenerator {
+  BinaryGenerator() {
+    ::memset(buffer, 0, Length);
+  }
+
+  void generate(int i, ham_key_t *key) {
+    ::sprintf(buffer, "%05d", i);
+    key->data = buffer;
+    key->size = Length;
+  }
+
+  uint16_t get_key_size() const {
+    return (Length);
+  }
+
+  uint64_t get_key_type() const {
+    return (HAM_TYPE_BINARY);
+  }
+
+  char buffer[Length];
+};
+
+TEST_CASE("Approx/btreeLowerThanBinary8Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanBinary32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanBinary48Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<BinaryGenerator<48> >();
+}
+
+struct BinaryVarLenGenerator : public BinaryGenerator<32> {
+  uint16_t get_key_size() const {
+    return (HAM_KEY_SIZE_UNLIMITED);
+  }
+};
+
+TEST_CASE("Approx/btreeLowerThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<BinaryVarLenGenerator>();
+}
+
+template<uint64_t type, typename T>
+struct PodGenerator {
+  PodGenerator() : t(0) {
+  }
+
+  void generate(int i, ham_key_t *key) {
+    t = (T)i;
+    key->data = &t;
+    key->size = sizeof(t);
+  }
+
+  uint16_t get_key_size() const {
+    return (0);
+  }
+
+  uint64_t get_key_type() const {
+    return (type);
+  }
+
+  T t;
+};
+
+TEST_CASE("Approx/btreeLowerThanUint16Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanUint32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanUint64Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanReal32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/btreeLowerThanReal64Test", "") {
+  ApproxFixture f;
+  f.btreeLowerThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanBinary8Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanBinary32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanBinary48Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/btreeGreaterThanUint16Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanUint32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanUint64Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanReal32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/btreeGreaterThanReal64Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanBinary8Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanBinary32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanBinary48Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanUint16Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanUint32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanUint64Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanReal32Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/btreeLowerEqualThanReal64Test", "") {
+  ApproxFixture f;
+  f.btreeLowerEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanBinary8Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanBinary32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanBinary48Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanUint16Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanUint32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanUint64Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanReal32Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/btreeGreaterEqualThanReal64Test", "") {
+  ApproxFixture f;
+  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
