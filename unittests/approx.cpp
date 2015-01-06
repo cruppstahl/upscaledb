@@ -844,6 +844,217 @@ struct ApproxFixture {
     gen.generate(10000, &key);
     REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
   }
+
+  template<typename Generator>
+  void mixedLessThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i < 5000; i++) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    gen.generate(0, &key);
+    REQUIRE(HAM_KEY_NOT_FOUND
+            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+
+    for (i = 1; i < 5000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i - 1, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+  }
+
+  template<typename Generator>
+  void mixedLessEqualThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i < 10000; i += 2) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 10000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i & 1 ? i - 1 : i, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+  }
+
+  template<typename Generator>
+  void mixedGreaterThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 1; i <= 5000; i++) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 5000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i + 1, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+
+    gen.generate(5000, &key);
+    REQUIRE(HAM_KEY_NOT_FOUND
+            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+  }
+
+  template<typename Generator>
+  void mixedGreaterEqualThanTest() {
+    teardown();
+    Generator gen, gen2;
+
+    ham_parameter_t envparam[] = {
+        {HAM_PARAM_PAGE_SIZE, 1024},
+        {0, 0}
+    };
+
+    ham_parameter_t dbparam[] = {
+        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
+        {HAM_PARAM_RECORD_SIZE, 32},
+        {0, 0},
+        {0, 0}
+    };
+
+    if (gen.get_key_size() > 0) {
+      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].value = gen.get_key_size();
+    }
+
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+    REQUIRE(0 ==
+        ham_env_create_db(m_env, &m_db, 1,
+                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+
+    ham_key_t key = {0};
+    char recbuffer[32] = {0};
+    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+
+    int i;
+    for (i = 0; i <= 10000; i += 2) {
+      gen.generate(i, &key);
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (i = 0; i < 10000; i++) {
+      gen.generate(i, &key);
+
+      ham_key_t key2 = {0};
+      gen2.generate(i & 1 ? i + 1 : i, &key2);
+      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(key2.size == key.size);
+      REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
+    }
+
+    gen.generate(10000, &key);
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+  }
 };
 
 TEST_CASE("Approx/lessThanTest", "") {
@@ -1301,4 +1512,192 @@ TEST_CASE("Approx/txnGreaterEqualThanReal32Test", "") {
 TEST_CASE("Approx/txnGreaterEqualThanReal64Test", "") {
   ApproxFixture f;
   f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+// Mixed tests (Transaction + Btree) for HAM_FIND_LT_MATCH
+
+TEST_CASE("Approx/mixedLessThanBinary8Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/mixedLessThanBinary32Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/mixedLessThanBinary48Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/mixedLessThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/mixedLessThanUint16Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/mixedLessThanUint32Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/mixedLessThanUint64Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/mixedLessThanReal32Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/mixedLessThanReal64Test", "") {
+  ApproxFixture f;
+  f.mixedLessThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+// Mixed tests (Transaction + Btree) for HAM_FIND_GT_MATCH
+
+TEST_CASE("Approx/mixedGreaterThanBinary8Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanBinary32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanBinary48Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/mixedGreaterThanUint16Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanUint32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanUint64Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanReal32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/mixedGreaterThanReal64Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+// Mixed tests (Transaction + Btree) for HAM_FIND_LEQ_MATCH
+
+TEST_CASE("Approx/mixedLessEqualThanBinary8Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanBinary32Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanBinary48Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanUint16Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanUint32Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanUint64Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanReal32Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/mixedLessEqualThanReal64Test", "") {
+  ApproxFixture f;
+  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+}
+
+// Mixed tests (Transaction + Btree) for HAM_FIND_GEQ_MATCH
+
+TEST_CASE("Approx/mixedGreaterEqualThanBinary8Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<BinaryGenerator<8> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanBinary32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<BinaryGenerator<32> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanBinary48Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<BinaryGenerator<48> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanBinaryVarlenTest", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<BinaryVarLenGenerator>();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanUint16Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanUint32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanUint64Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanReal32Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+}
+
+TEST_CASE("Approx/mixedGreaterEqualThanReal64Test", "") {
+  ApproxFixture f;
+  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
 }
