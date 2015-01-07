@@ -346,11 +346,7 @@ x Mail from Joel: approx. matching returns wrong key
     -> use existing sources as the basis
     -> insert keys as suggested
 
-o Mail from Joel: approx. matching returns wrong key
-    o reproduce with new database file
-    o fix the bug
-
-o Improve test coverage of approx. matching w/ EQC
+x Impove test coverage of approx. matching w/ EQC
     x need erlang function for approx. matching (ham_db_find w/ flags
         -> returns status AND key)
     x for all key types (incl. fixed length keys of size 5, 32, 48 and
@@ -364,14 +360,16 @@ o Improve test coverage of approx. matching w/ EQC
         x gt_match
         x geq_match
     x add inline records of max. size to increase splits
-    o add integer and real types; need different key comparison!!
-    o only btree
-    o then add transactions
+    x only btree
 
-o Update wiki documentation/web documentation
-    o ham_env_create: links to doxygen-reference is broken
-    o verify other links
-    o update doxygen documentation to 2.1.9
+x Update wiki documentation/web documentation
+    x ham_env_create: links to doxygen-reference is broken
+    x verify other links
+    x update doxygen documentation to 2.1.9
+
+o Mail from Joel: approx. matching returns wrong key
+    x increase test coverage A LOT!
+    x rewrite comparison logic
 
 o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_open
 o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_get_parameters
@@ -428,6 +426,10 @@ o refactoring: make EnvironmentHeader stateless and exception safe
     o move header Page ownership from EnvironmentHeader to PageManager
     o PageManager performs flushes/closes, not LocalEnvironment::close
     o LocalEnvironment does not need to store an instance of the Header!
+
+o Erlang: investigate failure in ham_eqc2
+
+o Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early

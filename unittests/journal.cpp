@@ -1439,6 +1439,45 @@ struct JournalFixture {
     REQUIRE(0 == ham_cursor_close(cursor));
 #endif
   }
+
+  void switchThresholdTest() {
+    teardown();
+
+    ham_parameter_t params[] = {
+      {HAM_PARAM_JOURNAL_SWITCH_THRESHOLD, 33}, 
+      {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS, 0644, &params[0]));
+
+    // verify threshold through ham_env_get_parameters
+    params[0].value = 0;
+    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(params[0].value == 33);
+
+    // verify threshold in the Journal object
+    m_lenv = (LocalEnvironment *)m_env;
+    Journal *j = m_lenv->get_journal();
+    REQUIRE(j->m_threshold == 33);
+
+    // open w/o parameter
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, 0));
+    params[0].value = 0;
+    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(params[0].value == 0);
+
+    // open w/ parameter
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    params[0].value = 44;
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
+                    HAM_ENABLE_TRANSACTIONS, &params[0]));
+    params[0].value = 0;
+    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(params[0].value == 44);
+  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1601,6 +1640,12 @@ TEST_CASE("Journal/recoverFromRecoveryTest", "")
 {
   JournalFixture f;
   f.recoverFromRecoveryTest();
+}
+
+TEST_CASE("Journal/switchThresholdTest", "")
+{
+  JournalFixture f;
+  f.switchThresholdTest();
 }
 
 } // namespace hamsterdb

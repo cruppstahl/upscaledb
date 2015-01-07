@@ -477,6 +477,9 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
         else
           p->value = 0;
         break;
+      case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
+        p->value = m_config.journal_switch_threshold;
+        break;
       case HAM_PARAM_JOURNAL_COMPRESSION:
         p->value = 0;
         break;

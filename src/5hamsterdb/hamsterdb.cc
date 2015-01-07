@@ -648,6 +648,9 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
         if (param->value > 0)
           config.file_size_limit_bytes = (size_t)param->value;
         break;
+      case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
+        config.journal_switch_threshold = (uint32_t)param->value;
+        break;
       case HAM_PARAM_LOG_DIRECTORY:
         config.log_filename = (const char *)param->value;
         break;
