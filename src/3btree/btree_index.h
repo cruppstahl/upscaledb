@@ -384,7 +384,8 @@ class BtreeIndex
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    int find_leaf(Page *page, ham_key_t *key, uint32_t flags);
+    int find_leaf(Page *page, ham_key_t *key, uint32_t flags,
+                    uint32_t *approx_match);
 
     // pointer to the database object
     LocalDatabase *m_db;

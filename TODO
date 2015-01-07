@@ -368,6 +368,15 @@ o Improve test coverage of approx. matching w/ EQC
     o only btree
     o then add transactions
 
+o Update wiki documentation/web documentation
+    o ham_env_create: links to doxygen-reference is broken
+    o verify other links
+    o update doxygen documentation to 2.1.9
+
+o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_open
+o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_get_parameters
+    o add unittest for ham_env_create and ham_env_open
+
 o Concurrency: move "purge cache" to background
     -> reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
