@@ -367,23 +367,29 @@ x Update wiki documentation/web documentation
     x verify other links
     x update doxygen documentation to 2.1.9
 
+x improve HAM_PARAM_JOURNAL_SWITCH_THRESHOLD
+    x implement for ham_env_open
+    x implement for ham_env_get_parameters
+    x add unittest for ham_env_create and ham_env_open
+
 o Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
     x rewrite comparison logic
 
-o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_open
-o HAM_PARAM_JOURNAL_SWITCH_THRESHOLD: implement for ham_env_get_parameters
-    o add unittest for ham_env_create and ham_env_open
-
 o Concurrency: move "purge cache" to background
-    -> reorg the hash table. All buckets are in serial memory. This requires
+    -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
       "jumping" from page to page. Such a bucket can be replaced
       atomically with CAS (hazard pointer!) and appended w/o locking. And
       it avoids frequent calls to remove_from_list/insert_to_list to push
       the used pages to the front. As a consequence, a new purge mechanism
       is required to identify "old" pages. These pages then could even be
-      sorted before they are flushed.
+      sorted before they are flushed. (This was tested before w/o any effect,
+      but maybe back then the databases simply were too small?)
+
+    -> The new page "list" will support concurrent reads and writes. This
+      means there can be multiple threads performing I/O without
+      blocking each other.
 
     o Get rid of the page lists. Have a generic "PageCollection" class
         with atomic updates. Use this in the Changeset and the Cache buckets.
@@ -399,15 +405,14 @@ o Concurrency: move "purge cache" to background
         o use hazard pointers; auto-delete them after 1 second
             (pass them to the thread for management)
 
-    o Create a background thread
+    o Create a background thread (use boost::thread)
     o Join thread when closing the Environment
     o create a non-blocking queue for passing data to the thread
 
-    o have a Facade for the thread. If threading is enabled then store the
-        message in the message-queue; otherwise perform the request while
-        blocking
+    o have a Facade for the thread which handles sending/receiving the
+        messages.
         o but don't add the same request twice if it's still in the queue
-        o remember that there can be more threads, at least for I/O...
+        o remember that there can be multiple consumer threads
 
     o get rid of the Page-List (use a generic visitor for the Cache)
     o purger thread periodically walks over the list, purges
@@ -419,6 +424,9 @@ o Concurrency: move "purge cache" to background
     o and run the leveldb benchmarks
     o extend monster tests
     o use valgrind to check for race conditions etc 
+
+    o if a database is deleted: move job to background thread
+    o if a database is closed: move job to background thread
 
 o refactoring: make EnvironmentHeader stateless and exception safe
     o transform to struct instead of class
@@ -440,7 +448,9 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     o deal with databases < 16kb?
 
 o support multiple worker threads which perform I/O
-    o how many threads should be created??
+    o create 1 thread for hdds
+    o create N threads for ssds, depending on number of controllers
+    -> make overwritable by parameter
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
