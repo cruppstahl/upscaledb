@@ -1676,7 +1676,8 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
- * sets the threshold for journal file switching */
+ * Journal files are switched whenever the number of new Transactions exceeds
+ * this threshold. */
 #define HAM_PARAM_JOURNAL_SWITCH_THRESHOLD 0x00001
 
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
