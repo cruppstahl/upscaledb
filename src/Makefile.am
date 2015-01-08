@@ -82,6 +82,8 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_keys_varlen.h \
 	3btree/btree_keys_pod.h \
 	3btree/btree_keys_zint32.h \
+	3btree/btree_keys_simdcomp.h \
+	3btree/btree_keys_groupvarint.h \
 	3btree/btree_node.h \
 	3btree/btree_node_proxy.h \
 	3btree/btree_records_base.h \
@@ -141,18 +143,12 @@ libhamsterdb_la_SOURCES = \
 
 EXTRA_DIST = 1os/os_win32.cc
 
-<<<<<<< HEAD
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
-libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
-=======
-AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
-libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)	\
-						  $(BOOST_THREAD_LDFLAGS)
 libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
-						  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
 
 if ENABLE_COMPRESSION
 AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION

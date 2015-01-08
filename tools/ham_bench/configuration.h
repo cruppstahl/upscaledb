@@ -100,7 +100,9 @@ struct Configuration
       "snappy",
       "lzf",
       "lzo",
-      "zint32_varbyte"
+      "zint32_varbyte",
+      "zint32_simdcomp",
+      "zint32_groupvarint",
     };
     std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)

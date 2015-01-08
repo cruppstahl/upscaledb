@@ -31,7 +31,7 @@
 
 namespace hamsterdb {
 
-void
+ham_status_t
 RemoteDatabase::get_parameters(ham_parameter_t *param)
 {
   try {
@@ -94,7 +94,7 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
   }
 }
 
-void
+ham_status_t
 RemoteDatabase::check_integrity(uint32_t flags)
 {
   try {

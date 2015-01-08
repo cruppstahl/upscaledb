@@ -1155,7 +1155,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
     {
       DuplicateTableFixture f(env_flags[i]);
       LocalEnvironment *env = (LocalEnvironment *)f.m_env;
-      Context context(env, 0, 0);
+      Context context(env, 0, (LocalDatabase *)f.m_db);
 
       char buffer[16] = {0};
       ham_record_t record = {0};
@@ -1178,7 +1178,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
     {
       DuplicateTableFixture f(env_flags[i]);
       LocalEnvironment *env = (LocalEnvironment *)f.m_env;
-      Context context(env, 0, 0);
+      Context context(env, 0, (LocalDatabase *)f.m_db);
 
       char buffer[16] = {0};
       ham_record_t record = {0};

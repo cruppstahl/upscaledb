@@ -51,10 +51,10 @@ class RemoteDatabase : public Database
     virtual void fill_metrics(ham_env_metrics_t *metrics) { }
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual void get_parameters(ham_parameter_t *param);
+    virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual void check_integrity(uint32_t flags);
+    virtual ham_status_t check_integrity(uint32_t flags);
 
     // Returns the number of keys
     virtual ham_status_t count(Transaction *txn, bool distinct,
