@@ -456,8 +456,13 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZO);
   if (!strcmp(param, "zint32_varbyte"))
     return (HAM_COMPRESSOR_UINT32_VARBYTE);
+  if (!strcmp(param, "zint32_simdcomp"))
+    return (HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  if (!strcmp(param, "zint32_groupvarint"))
+    return (HAM_COMPRESSOR_UINT32_GROUPVARINT);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo', 'zint32_varbyte'\n", param);
+              "'snappy', 'lzf', 'lzo', 'zint32_varbyte', 'zint32_simdcomp', "
+              "'zint32_groupvarint'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }

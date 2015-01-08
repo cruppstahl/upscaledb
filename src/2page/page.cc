@@ -14,6 +14,7 @@
 #include "0root/root.h"
 
 #include <string.h>
+#include "3rdparty/murmurhash3/MurmurHash3.h"
 
 #include "1base/error.h"
 #include "1os/os.h"
@@ -78,6 +79,14 @@ void
 Page::flush()
 {
   if (is_dirty()) {
+    // Pro: update crc32
+    if ((m_device->config().flags & HAM_ENABLE_CRC32)
+            && likely(!is_without_header())) {
+      uint32_t crc32;
+      MurmurHash3_x86_32(get_payload(), m_device->config().page_size_bytes
+             - (sizeof(PPageHeader) - 1), (uint32_t)get_address(), &crc32);
+      set_crc32(crc32);
+    }
     m_device->write_page(this);
     set_dirty(false);
     ms_page_count_flushed++;

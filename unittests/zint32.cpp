@@ -32,11 +32,11 @@ struct Zint32Fixture {
 
   typedef std::vector<uint32_t> IntVector;
 
-  Zint32Fixture()
+  Zint32Fixture(uint64_t compressor)
     : m_db(0), m_env(0) {
     ham_parameter_t p[] = {
       { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
-      { HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_UINT32_VARBYTE },
+      { HAM_PARAM_KEY_COMPRESSION, compressor },
       { HAM_PARAM_RECORD_SIZE, 4 },
       { 0, 0 }
     };
@@ -50,6 +50,22 @@ struct Zint32Fixture {
 	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
+  void basicSimdcompTest() {
+    uint32_t din[128];
+    for (uint32_t i = 0; i < 128; i++)
+      din[i] = i;
+
+    uint32_t dout[128];
+    uint32_t bits = simdmaxbitsd1(0, &din[0]);
+    REQUIRE(bits == 1);
+    simdpackwithoutmaskd1(0, &din[0], (__m128i *)&dout[0], bits);
+
+    ::memset(&din[0], 0, sizeof(din));
+    simdunpackd1(0, (__m128i *)&dout[0], &din[0], bits);
+
+    for (uint32_t i = 0; i < 128; i++)
+      REQUIRE(din[i] == i);
+  }
   void insertFindEraseFind(const IntVector &ivec) {
     ham_key_t key = {0};
     ham_record_t record = {0};
@@ -96,7 +112,7 @@ struct Zint32Fixture {
   }
 };
 
-TEST_CASE("Zint32/randomDataTest", "")
+TEST_CASE("Varbyte/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -104,27 +120,97 @@ TEST_CASE("Zint32/randomDataTest", "")
   std::srand(0); // make this reproducable
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f;
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/ascendingDataTest", "")
+TEST_CASE("Varbyte/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f;
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/descendingDataTest", "")
+TEST_CASE("Varbyte/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f;
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("SimdComp/basicSimdcompTest", "")
+{
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  f.basicSimdcompTest();
+}
+
+TEST_CASE("SimdComp/randomDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+  std::srand(0); // make this reproducible
+  std::random_shuffle(ivec.begin(), ivec.end());
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("SimdComp/ascendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("SimdComp/descendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 30000; i >= 0; i--)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("GroupVarint/randomDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+  std::srand(0); // make this reproducible
+  std::random_shuffle(ivec.begin(), ivec.end());
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("GroupVarint/ascendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("GroupVarint/descendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 30000; i >= 0; i--)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
   f.insertFindEraseFind(ivec);
 }
 

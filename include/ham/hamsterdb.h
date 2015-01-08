@@ -1895,9 +1895,20 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * hamsterdb pro: uint32 key compression (varbyte)
  * (experimental)
  */
-#define HAM_COMPRESSOR_UINT32_VARBYTE   5
+#define HAM_COMPRESSOR_UINT32_VARBYTE       5
 
 /**
+ * hamsterdb pro: uint32 key compression (simd compression)
+ */
+#define HAM_COMPRESSOR_UINT32_SIMDCOMP      6
+
+/**
+ * hamsterdb pro: uint32 key compression (Group Varint compression)
+ */
+#define HAM_COMPRESSOR_UINT32_GROUPVARINT   7
+
+/**
+>>>>>>> fea20c3... Adding group varint-compression for uint32 keys
  * Retrieves the Environment handle of a Database
  *
  * @param db A valid Database handle

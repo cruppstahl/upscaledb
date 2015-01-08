@@ -34,6 +34,8 @@ CompressorFactory::is_available(int type)
 #ifdef HAM_ENABLE_COMPRESSION
   switch (type) {
     case HAM_COMPRESSOR_UINT32_VARBYTE:
+    case HAM_COMPRESSOR_UINT32_SIMDCOMP:
+    case HAM_COMPRESSOR_UINT32_GROUPVARINT:
       return (true);
     case HAM_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H

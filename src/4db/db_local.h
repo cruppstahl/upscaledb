@@ -93,10 +93,10 @@ class LocalDatabase : public Database {
     virtual void fill_metrics(ham_env_metrics_t *metrics);
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual void get_parameters(ham_parameter_t *param);
+    virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual void check_integrity(uint32_t flags);
+    virtual ham_status_t check_integrity(uint32_t flags);
 
     // Returns the number of keys
     virtual ham_status_t count(Transaction *txn, bool distinct,
@@ -239,10 +239,10 @@ class LocalDatabase : public Database {
     LocalTransaction *begin_temp_txn();
 
     // Enables record compression for this database
-    void enable_record_compression(int algo);
+    void enable_record_compression(Context *context, int algo);
 
     // Enables key compression for this database
-    void enable_key_compression(int algo);
+    void enable_key_compression(Context *context, int algo);
 
     // returns the next record number
     uint64_t next_record_number() {

@@ -68,6 +68,8 @@ PageManager::initialize(uint64_t pageid)
     delete m_state.state_page;
   m_state.state_page = new Page(m_state.device);
   m_state.state_page->fetch(pageid);
+  if (m_state.config.flags & HAM_ENABLE_CRC32)
+    verify_crc32(m_state.state_page);
 
   Page *page = m_state.state_page;
   uint32_t page_size = m_state.config.page_size_bytes;
@@ -155,6 +157,8 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
 
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
+  else if (m_state.config.flags & HAM_ENABLE_CRC32)
+    verify_crc32(page);
 
   m_state.page_count_fetched++;
   return (safely_lock_page(context, page, false));

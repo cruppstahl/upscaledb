@@ -1,3 +1,6 @@
 [submodule "documentation/wiki"]
 	path = documentation/wiki
 	url = https://github.com/cruppstahl/hamsterdb.wiki.git
+[submodule "3rdparty/simdcomp"]
+	path = 3rdparty/simdcomp
+	url = https://github.com/cruppstahl/simdcomp.git
