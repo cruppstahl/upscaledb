@@ -876,12 +876,12 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
         if (!t->is_aborted() && !t->is_committed()) {
           if (flags & HAM_TXN_AUTO_COMMIT)
             env->get_txn_manager()->commit(t, 0);
-          else /* if (flags&HAM_TXN_AUTO_ABORT) */
+          else /* if (flags & HAM_TXN_AUTO_ABORT) */
             env->get_txn_manager()->abort(t, 0);
         }
-
-        env->get_txn_manager()->flush_committed_txns();
       }
+
+      env->get_txn_manager()->flush_committed_txns();
     }
 
     /* close the environment */
