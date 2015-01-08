@@ -362,6 +362,18 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
+o crash when env is opened
+    insert w/ overwrite: 1104669304804000000
+    txn id = 1333
+    lsn = 3995
+    blobid = 729496
+
+o crash when env is closed
+    Journal::recover -> __abort_uncommitted_txns -> ham_txn_abort
+        -> env->get_txn_manager()->abort
+    crashes because env->m_txn_manager == 0
+    maybe don't call ham_txn_abort but call txn->abort instead?
+
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
@@ -1123,9 +1135,15 @@ o blob performance improvements
 o continue with concurrency...
     next stage: flush changesets in background. this should work whenever
     recovery is enabled (with and without transactions)!
+<<<<<<< HEAD
 >>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
 
 
+=======
+    Also, try to handle blob pages separately from the rest - at least if blobs
+        are allocated and not overwritten! then the leaf operations would
+        maybe become atomic. -> needs more thinking
+>>>>>>> Updated TODO file
 
 
 o improve the webpage documentation
