@@ -91,6 +91,7 @@ namespace hamsterdb {
 
 class Page;
 class Database;
+class Transaction;
 class LocalEnvironment;
 class LocalTransaction;
 
@@ -231,6 +232,19 @@ class Journal
 
   private:
     friend struct JournalFixture;
+
+    // Returns a pointer to database. If the database was not yet opened then
+    // it is opened implicitly.
+    Database *get_db(uint16_t dbname);
+
+    // Returns a pointer to a Transaction object.
+    Transaction *get_txn(uint64_t txn_id);
+
+    // Closes all databases.
+    void close_all_databases();
+
+    // Aborts all transactions which are still active.
+    void abort_uncommitted_txns();
 
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression

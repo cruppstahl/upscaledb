@@ -436,26 +436,27 @@ Journal::close(bool noclear)
   }
 }
 
-static Database *
-recover_get_db(Environment *env, uint16_t dbname)
+Database *
+Journal::get_db(uint16_t dbname)
 {
   // first check if the Database is already open
-  Environment::DatabaseMap::iterator it = env->get_database_map().find(dbname);
-  if (it != env->get_database_map().end())
+  Environment::DatabaseMap::iterator it
+          = m_env->get_database_map().find(dbname);
+  if (it != m_env->get_database_map().end())
     return (it->second);
 
   // not found - open it
   Database *db = 0;
   DatabaseConfiguration config;
   config.db_name = dbname;
-  env->open_db(&db, config, 0);
+  m_env->open_db(&db, config, 0);
   return (db);
 }
 
-static Transaction *
-recover_get_txn(Environment *env, uint64_t txn_id)
+Transaction *
+Journal::get_txn(uint64_t txn_id)
 {
-  Transaction *txn = env->get_txn_manager()->get_oldest_txn();
+  Transaction *txn = m_env->get_txn_manager()->get_oldest_txn();
   while (txn) {
     if (txn->get_id() == txn_id)
       return (txn);
@@ -465,29 +466,29 @@ recover_get_txn(Environment *env, uint64_t txn_id)
   return (0);
 }
 
-static void
-__close_all_databases(LocalEnvironment *env)
+void
+Journal::close_all_databases()
 {
   ham_status_t st = 0;
 
-  Environment::DatabaseMap::iterator it = env->get_database_map().begin();
-  while (it != env->get_database_map().end()) {
+  Environment::DatabaseMap::iterator it = m_env->get_database_map().begin();
+  while (it != m_env->get_database_map().end()) {
     Environment::DatabaseMap::iterator it2 = it; it++;
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
-      if (env->get_flags() & HAM_ENABLE_RECOVERY)
-        env->get_changeset().clear();
+      if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+        m_env->get_changeset().clear();
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
   }
 }
 
-static void
-__abort_uncommitted_txns(Environment *env)
+void
+Journal::abort_uncommitted_txns()
 {
   ham_status_t st;
-  Transaction *newer, *txn = env->get_txn_manager()->get_oldest_txn();
+  Transaction *newer, *txn = m_env->get_txn_manager()->get_oldest_txn();
 
   while (txn) {
     newer = txn->get_next();
@@ -708,12 +709,12 @@ Journal::recover_journal(uint64_t start_lsn)
         break;
       }
       case kEntryTypeTxnAbort: {
-        Transaction *txn = recover_get_txn(m_env, entry.txn_id);
+        Transaction *txn = get_txn(entry.txn_id);
         st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
       case kEntryTypeTxnCommit: {
-        Transaction *txn = recover_get_txn(m_env, entry.txn_id);
+        Transaction *txn = get_txn(entry.txn_id);
         st = ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
@@ -739,8 +740,8 @@ Journal::recover_journal(uint64_t start_lsn)
         record.partial_size = ins->record_partial_size;
         record.partial_offset = ins->record_partial_offset;
         if (entry.txn_id)
-          txn = recover_get_txn(m_env, entry.txn_id);
-        db = recover_get_db(m_env, entry.dbname);
+          txn = get_txn(entry.txn_id);
+        db = get_db(entry.dbname);
         st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, 
                     &key, &record, ins->insert_flags | HAM_DONT_LOCK);
         break;
@@ -760,8 +761,8 @@ Journal::recover_journal(uint64_t start_lsn)
           continue;
 
         if (entry.txn_id)
-          txn = recover_get_txn(m_env, entry.txn_id);
-        db = recover_get_db(m_env, entry.dbname);
+          txn = get_txn(entry.txn_id);
+        db = get_db(entry.dbname);
         key.data = e->get_key_data();
         key.size = e->key_size;
         st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
@@ -790,11 +791,10 @@ Journal::recover_journal(uint64_t start_lsn)
 
 bail:
   // all transactions which are not yet committed will be aborted
-  (void)__abort_uncommitted_txns(m_env);
+  abort_uncommitted_txns();
 
-  // also close and delete all open databases - they were created in
-  // recover_get_db()
-  (void)__close_all_databases(m_env);
+  // also close and delete all open databases - they were created in get_db()
+  close_all_databases();
 
   // flush all committed transactions
   if (st == 0)

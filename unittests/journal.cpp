@@ -1478,6 +1478,26 @@ struct JournalFixture {
     REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
     REQUIRE(params[0].value == 44);
   }
+
+  void issue45Test() {
+    ham_txn_t *txn;
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
+
+    /* create a transaction with one insert */
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    key.data = (void *)"aaaaa";
+    key.size = 6;
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+
+    /* reopen and recover. issue 45 causes a segfault */
+    REQUIRE(0 == ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1646,6 +1666,12 @@ TEST_CASE("Journal/switchThresholdTest", "")
 {
   JournalFixture f;
   f.switchThresholdTest();
+}
+
+TEST_CASE("Journal/issue45Test", "")
+{
+  JournalFixture f;
+  f.issue45Test();
 }
 
 } // namespace hamsterdb
