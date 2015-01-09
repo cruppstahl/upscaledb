@@ -372,28 +372,37 @@ x improve HAM_PARAM_JOURNAL_SWITCH_THRESHOLD
     x implement for ham_env_get_parameters
     x add unittest for ham_env_create and ham_env_open
 
+x issue45: crash when env is closed
+    Journal::recover -> __abort_uncommitted_txns -> ham_txn_abort
+        -> env->get_txn_manager()->abort
+    crashes because env->m_txn_manager == 0
+    x reproduce in a unittest
+    x don't call ham_txn_abort but call txn->abort instead
+
+o Crash when opening env and Journal is applied
+    starting w/ key 1104669304804000000, the blob 729496 (and all following
+    60 blobs on page 720896) are missing (= their blob headers are empty).
+    -> index already has a key, therefore the key is overwritten during
+        recovery; but the assigned record is bogus (blob_header is not
+        initialized)
+    -> the journal has no changeset
+    x is the page of that blob created or modified during recovery?
+        => no!
+            -> it's not modified in a changeset
+            -> the page is modified during recovery, but the affected record
+                is not (it's nulled out from the beginning)
+    x was this key the last one that was inserted?
+        -> no, there are more keys following; about 60 without blob, then
+            more with blobs
+    o which steps or failures could lead to this scenario?
+        1) a bug in the recovery process - no, because the file is already
+            broken prior to recovery
+        2) might be a crash during recovery which resulted in an invalid state
+
 o Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
     x rewrite comparison logic
     o try once more with the test files
-
-o crash when env is closed
-    Journal::recover -> __abort_uncommitted_txns -> ham_txn_abort
-        -> env->get_txn_manager()->abort
-    crashes because env->m_txn_manager == 0
-    o reproduce in a unittest
-    o don't call ham_txn_abort but call txn->abort instead
-
-o crash when env is opened
-    insert w/ overwrite: 1104669304804000000
-    txn id = 1333
-    lsn = 3995
-    blobid = 729496
-    -> index already has a key, therefore the key is overwritten during
-        recovery; but the assigned record is bogus (blob_header is not
-        initialized)
-    o is the page of that blob created or modified during recovery?
-    o which steps or failures could lead to this scenario?
 
 o PRO: add Group Varint-based integer encoding
     x add parameter to header file
@@ -515,12 +524,16 @@ o reserve file size upon creation, then map the whole range
     o also for python
     o also for erlang
 
-o If mmap is enabled then keys and records don't have to be copied as long
-    as they point into the mapped area!
-    - If a key is in a mapped page (w/o extended key) then simply return a
-        pointer
-    - If a record is in a mapped page then simply return a
-        pointer
+o blob performance improvements
+    o there's no need to copy the BlobHeader; this can be returned as a pointer
+        instead (verify! the pointer must not be modified - make it const!)
+        -> or is it possible that the header is spread over two pages??
+    o If mmap is enabled then keys and records don't have to be copied as long
+        as they point into the mapped area!
+        - If a key is in a mapped page (w/o extended key) then simply return a
+            pointer
+        - If a record is in a mapped page then simply return a
+            pointer
 
 
 

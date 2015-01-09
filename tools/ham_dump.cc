@@ -78,6 +78,12 @@ error(const char *foo, ham_status_t st)
 }
 
 static void
+warn(const char *foo, ham_status_t st)
+{
+  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+}
+
+static void
 dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_key_size,
                 int rec_fmt, int max_rec_size)
 {
@@ -222,7 +228,7 @@ dump_database(ham_db_t *db, uint16_t dbname, int max_key_size,
       if (st == HAM_KEY_NOT_FOUND)
         break;
       else
-        error("ham_cursor_next", st);
+        warn("ham_cursor_next", st);
     }
 
     dump_item(&key, &rec, key_fmt, max_key_size, rec_fmt, max_rec_size);

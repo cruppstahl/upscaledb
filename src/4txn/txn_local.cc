@@ -590,8 +590,11 @@ LocalTransactionManager::flush_committed_txns()
     else
       break;
 
-    ham_assert(m_queued_txn_for_flush > 0);
-    m_queued_txn_for_flush--;
+    /* it's possible that Transactions were aborted directly, and not through
+     * the TransactionManager (i.e. in Journal::abort_uncommitted_txns).
+     * so don't rely on m_queued_txn_for_flush, it might be zero */ 
+    if (m_queued_txn_for_flush > 0)
+      m_queued_txn_for_flush--;
 
     /* now remove the txn from the linked list */
     remove_txn_from_head(oldest);

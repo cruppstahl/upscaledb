@@ -487,17 +487,12 @@ Journal::close_all_databases()
 void
 Journal::abort_uncommitted_txns()
 {
-  ham_status_t st;
-  Transaction *newer, *txn = m_env->get_txn_manager()->get_oldest_txn();
+  Transaction *txn = m_env->get_txn_manager()->get_oldest_txn();
 
   while (txn) {
-    newer = txn->get_next();
-    if (!txn->is_committed()) {
-      st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
-      if (st)
-        throw Exception(st);
-    }
-    txn = newer;
+    if (!txn->is_committed())
+      txn->abort();
+    txn = txn->get_next();
   }
 }
 
