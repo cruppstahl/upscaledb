@@ -259,6 +259,8 @@ LocalDatabase::find_txn(Cursor *cursor, LocalTransaction *txn, ham_key_t *key,
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
   TransactionNode *node = m_txn_index->get(key, flags);
+  if (!node)
+    return (HAM_KEY_NOT_FOUND);
 
   /*
    * pick the node of this key, and walk through each operation
@@ -294,12 +296,16 @@ retry:
         first_loop = false;
         if (flags & HAM_FIND_LT_MATCH) {
           node = node->get_previous_sibling();
+          if (!node)
+            return (HAM_KEY_NOT_FOUND);
           ham_key_set_intflags(key,
               (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
         }
         else if (flags & HAM_FIND_GT_MATCH) {
           node = node->get_next_sibling();
+          if (!node)
+            return (HAM_KEY_NOT_FOUND);
           ham_key_set_intflags(key,
               (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;

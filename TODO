@@ -402,7 +402,11 @@ o Crash when opening env and Journal is applied
 o Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
     x rewrite comparison logic
-    o try once more with the test files
+    x reproduce with his test, fix the bug
+    o reproduce with a unittest
+        txn: search GEQ on the first key, which was erased
+            find_txn then moves to the next node, which is null
+            segfault when accessing *node
 
 o PRO: add Group Varint-based integer encoding
     x add parameter to header file
