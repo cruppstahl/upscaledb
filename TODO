@@ -317,6 +317,9 @@ x issue45: crash when env is closed
     x don't call ham_txn_abort but call txn->abort instead
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> issue #46: fixed segfault in approx. matching (thanks, Joel Jacobson)
 x Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
     x rewrite comparison logic
@@ -329,8 +332,11 @@ x Mail from Joel: approx. matching returns wrong key
             find_txn then moves to the next node, which is null
             segfault when accessing *node
 
+<<<<<<< HEAD
 x PRO: add Group Varint-based integer encoding
 =======
+=======
+>>>>>>> issue #46: fixed segfault in approx. matching (thanks, Joel Jacobson)
 o Crash when opening env and Journal is applied
     starting w/ key 1104669304804000000, the blob 729496 (and all following
     60 blobs on page 720896) are missing (= their blob headers are empty).
@@ -351,11 +357,14 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
+<<<<<<< HEAD
 o Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
     x rewrite comparison logic
     o try once more with the test files
 
+=======
+>>>>>>> issue #46: fixed segfault in approx. matching (thanks, Joel Jacobson)
 o PRO: add Group Varint-based integer encoding
 >>>>>>> issue #45: fixed segfault in Journal recovery (thanks, Michael Moellney)
     x add parameter to header file
@@ -367,9 +376,20 @@ o PRO: add Group Varint-based integer encoding
     x add monster tests (similar to zint32/varbyte)
     x don't split blocks in the middle if the new key is appended
     x don't split blocks in the middle if the new key is prepended
+<<<<<<< HEAD
     x tests fail if kMaxGroupVarintsPerBlock is set to 4
         x also try larger values
     x reduce index size by setting the correct bit widths
+=======
+    o tests fail if kMaxGroupVarintsPerBlock is set to 4
+        o also try larger values
+    o run ham_bench with different values for kMaxGroupVarintsPerBlock
+        (see mail to Daniel)
+    o reduce index size by setting the correct bit widths
+    o vacuumize (internal == false): merge two blocks if they're underfilled?
+        we have to reduce the number of indices
+        o also for varbyte?
+>>>>>>> issue #46: fixed segfault in approx. matching (thanks, Joel Jacobson)
 
 o Crash when opening env and Journal is applied
     starting w/ key 1104669304804000000, the blob 729496 (and all following
