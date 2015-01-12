@@ -465,11 +465,15 @@ o Concurrency: move "purge cache" to background
       blocking each other.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     x on a new branch! topic/thread
 
     x Create a generic "PageCollection" class with atomic updates
 =======
     o on a new branch! topic/thread
+=======
+    x on a new branch! topic/thread
+>>>>>>> Updated TODO
 
     o Create a generic "PageCollection" class with atomic updates
 >>>>>>> Started with PageCollection
