@@ -12,15 +12,16 @@ libhamsterdb_la_SOURCES = \
 	1base/dynamic_array.h \
 	1base/error.cc \
 	1base/error.h \
-	1errorinducer/errorinducer.h \
-	1errorinducer/errorinducer.cc \
 	1base/mutex.h \
 	1base/packstart.h \
 	1base/packstop.h \
 	1base/pickle.h \
 	1base/scoped_ptr.h \
+	1base/spinlock.h \
 	1base/util.cc \
 	1base/util.h \
+	1errorinducer/errorinducer.h \
+	1errorinducer/errorinducer.cc \
 	1globals/globals.h \
 	1globals/globals.cc \
 	1mem/mem.cc \
@@ -35,6 +36,7 @@ libhamsterdb_la_SOURCES = \
 	2config/env_config.h \
 	2page/page.cc \
 	2page/page.h \
+	2page/page_collection.h \
 	2device/device.h \
 	2device/device_disk.h \
 	2device/device_inmem.h \

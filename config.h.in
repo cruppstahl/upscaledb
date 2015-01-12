@@ -70,6 +70,9 @@
 /* Define to 1 if you have the `pwrite' function. */
 #undef HAVE_PWRITE
 
+/* Define to 1 if you have the `sched_yield' function. */
+#undef HAVE_SCHED_YIELD
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 

@@ -333,10 +333,27 @@ x Mail from Joel: approx. matching returns wrong key
             segfault when accessing *node
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 x PRO: add Group Varint-based integer encoding
 =======
 =======
 >>>>>>> issue #46: fixed segfault in approx. matching (thanks, Joel Jacobson)
+=======
+x PRO: add Group Varint-based integer encoding
+    x add parameter to header file
+    x support in ham_bench
+    x update IndexFactory for the new KeyList
+    x integrate Daniel's sources as a library
+    x implement the compression
+        x add unittests (similar to zint32)
+    x add monster tests (similar to zint32/varbyte)
+    x don't split blocks in the middle if the new key is appended
+    x don't split blocks in the middle if the new key is prepended
+    x tests fail if kMaxGroupVarintsPerBlock is set to 4
+        x also try larger values
+    x reduce index size by setting the correct bit widths
+
+>>>>>>> Started with PageCollection
 o Crash when opening env and Journal is applied
     starting w/ key 1104669304804000000, the blob 729496 (and all following
     60 blobs on page 720896) are missing (= their blob headers are empty).
@@ -357,6 +374,7 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o Mail from Joel: approx. matching returns wrong key
     x increase test coverage A LOT!
@@ -422,6 +440,14 @@ o crash when env is closed
         -> env->get_txn_manager()->abort
     crashes because env->m_txn_manager == 0
     maybe don't call ham_txn_abort but call txn->abort instead?
+=======
+o PRO: retrieve better statistics regarding compression/overhead/payload
+    o for each page retrieve those statistics and print them 
+    o extend ham_info
+        o by default, no new stats are printed
+        o a new option for brief, consolidated statistics
+        o a new option for long, extensive statistics
+>>>>>>> Started with PageCollection
 
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
@@ -438,13 +464,20 @@ o Concurrency: move "purge cache" to background
       means there can be multiple threads performing I/O without
       blocking each other.
 
+<<<<<<< HEAD
     x on a new branch! topic/thread
 
     x Create a generic "PageCollection" class with atomic updates
+=======
+    o on a new branch! topic/thread
+
+    o Create a generic "PageCollection" class with atomic updates
+>>>>>>> Started with PageCollection
         x use static memory as default, but replace w/ dynamic memory if
             capacity is not enough
         x need a very fast spinlock for writing
         x whenever the array grows:
+<<<<<<< HEAD
             1) grow into a copy
             2) perform CAS with the old pointer
             3) old pointer can be discarded after 1 second
@@ -860,15 +893,20 @@ o Concurrency: move "purge cache" to background
         with atomic updates. Use this in the Changeset and the Cache buckets.
         o use a DynamicArray<std::pair<uint64_t, Page *>> for memory
         o whenever the array grows:
+=======
+>>>>>>> Started with PageCollection
             1) grow into a copy
-            2) perform "compactions" if too many elements were deleted
-            3) perform CAS with the old pointer
-        o assert that there is only 1 writer at a time (i.e. use a mutex)
-        o when inserting: set the pointer, then atomically increment the counter
-        o when deleting: simply set to zero
-        o never use a lock when reading
+            2) perform CAS with the old pointer
+            3) old pointer can be discarded after 1 second
+        x assert that there is only 1 writer at a time (i.e. use a mutex)
+        x when inserting: set the pointer, then atomically increment the counter
+        x when deleting: simply set to zero
+        x never use a lock when reading
         o use hazard pointers; auto-delete them after 1 second
-            (pass them to the thread for management)
+            (by which thread? there's no pointer to env etc.
+            pass thread as parameter?)
+
+    o Use PageCollection in the Changeset
 
     o Create a background thread
     o Join thread when closing the Environment
@@ -882,6 +920,7 @@ o Concurrency: move "purge cache" to background
 
 >>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
     o get rid of the Page-List (use a generic visitor for the Cache)
+<<<<<<< HEAD
     o rewrite all other lists with the PageCollection
         o should allow reading w/o blocking
         o appending pages should be "free" (no lock, unless the list must
@@ -894,12 +933,38 @@ o Concurrency: move "purge cache" to background
           reorganize those lists if there are too many deleted elements
     o create a background thread; use libuv
     o purger thread periodically walks over the list, purges
+=======
+    o if a page is deleted or db is closed: let thread clean up the pages
+    o Use PageCollection for the Cache buckets; use atomic lsn tag for
+        the LRU algorithm
+        o thread periodically scans the cache to evict unused pages (really?)
+>>>>>>> Started with PageCollection
         o can be woken up by the main thread
-    o if a page is deleted or closed: let purger thread clean up the pages
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
     o run performance tests
     o and run the leveldb benchmarks
+<<<<<<< HEAD
+=======
+    o extend monster tests
+    o use valgrind to check for race conditions etc 
+
+    o if a database is deleted: move job to background thread
+        o make sure that it cannot be created while it is getting deleted
+    o if a database is closed: move job to background thread
+        o make sure that it cannot be opened while it is "in closing state"
+
+o refactoring: make EnvironmentHeader stateless and exception safe
+    o transform to struct instead of class
+    o remove dependency from the PageManager (store header page)
+    o move header Page ownership from EnvironmentHeader to PageManager
+    o PageManager performs flushes/closes, not LocalEnvironment::close
+    o LocalEnvironment does not need to store an instance of the Header!
+
+o Erlang: investigate failure in ham_eqc2
+
+o Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
+>>>>>>> Started with PageCollection
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
@@ -1221,6 +1286,12 @@ o PRO: additional zint32 TODOs for simdcomp
     o improve copy_to() performance by allocating multiple blocks at once
     o rewrite remainding simdcomp functions to accept a "length" parameter
     o add more unittests for delete stability
+
+o PRO: Group Varint-related improvements
+    o will currently not work with pages > 16kb
+    o vacuumize (internal == false): merge two blocks if they're underfilled?
+        we have to reduce the number of indices
+        o also for varbyte?
 
 o PRO: allow compression of 32bit record numbers
 

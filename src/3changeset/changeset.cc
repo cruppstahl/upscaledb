@@ -36,119 +36,52 @@ void (*g_CHANGESET_POST_LOG_HOOK)(void);
 void
 Changeset::add_page(Page *page)
 {
-  if (page->is_in_list(m_head, Page::kListChangeset))
-    return;
-
-  ham_assert(0 == page->get_next(Page::kListChangeset));
-  ham_assert(0 == page->get_previous(Page::kListChangeset));
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
-  m_head = page->list_insert(m_head, Page::kListChangeset);
+  if (contains(page))
+    return;
+
+  m_collection.add_page(page);
 }
 
 Page *
 Changeset::get_page(uint64_t pageid)
 {
-  Page *page = m_head;
+  ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
-  while (page) {
-    ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
-
-    if (page->get_address() == pageid)
-      return (page);
-    page = page->get_next(Page::kListChangeset);
-  }
-
-  return (0);
+  return (m_collection.get_page(pageid));
 }
 
 void
 Changeset::clear()
 {
-  while (m_head)
-    m_head = m_head->list_remove(m_head, Page::kListChangeset);
+  m_collection.clear();
 }
-
-#define append(b, bs, bc, p)                                          \
-  if (bs + 1 >= bc) {                                                 \
-    bc = bc ? bc * 2 : 8;                                             \
-    b = (Page **)::realloc(b, sizeof(Page *) * bc);                   \
-  }                                                                   \
-  b[bs++] = p;
 
 void
 Changeset::flush(uint64_t lsn)
 {
-  uint32_t page_count = 0;
-  Page *n, *p = m_head;
-  if (!p)
+  // now flush all modified pages to disk
+  ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
+
+  if (m_collection.is_empty())
     return;
+
+  // TODO swap with new PageCollection
+  // TODO but make sure that the swapped Collection stores the hazard pointer!
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  m_blobs_size = 0;
-  m_page_manager_size = 0;
-  m_indices_size = 0;
-  m_others_size = 0;
+  // TODO get a copy of the whole collection
+  // TODO sort by address (really?)
+  // TODO remove all pages that are not dirty
 
-  // first step: remove all pages that are not dirty and sort all others
-  // into the buckets
-  while (p) {
-    n = p->get_next(Page::kListChangeset);
-    if (!p->is_dirty()) {
-      p = n;
-      continue;
-    }
-
-    if (p->is_header()) {
-      append(m_indices, m_indices_size, m_indices_capacity, p);
-    }
-    else if (p->is_without_header()) {
-      append(m_blobs, m_blobs_size, m_blobs_capacity, p);
-    }
-    else {
-      switch (p->get_type()) {
-        case Page::kTypeBlob:
-          append(m_blobs, m_blobs_size, m_blobs_capacity, p);
-          break;
-        case Page::kTypeBroot:
-        case Page::kTypeBindex:
-        case Page::kTypeHeader:
-          append(m_indices, m_indices_size, m_indices_capacity, p);
-          break;
-        case Page::kTypePageManager:
-          append(m_page_manager, m_page_manager_size,
-                          m_page_manager_capacity, p);
-          break;
-        default:
-          append(m_others, m_others_size, m_others_capacity, p);
-          break;
-      }
-    }
-    page_count++;
-    p = n;
-  }
-
-  if (page_count == 0) {
-    clear();
-    return;
-  }
-
-  // If there's more than one index operation then the operation must
-  // be atomic and therefore logged.
+  // If only one page is modified then the modification is atomic. The page
+  // is written.
   //
-  // If there are unknown pages (in m_others) or PageManager state pages
-  // then we also log the modifications.
-  //
-  // Make sure that blob pages are logged at the end. Multi-page blob pages
-  // do not have a header and therefore don't store a lsn. But the lsn is
-  // required for recovery. Therefore make sure that pages WITH a page header
-  // are logged first, and Journal::recover_changeset can extract a valid
-  // lsn from those pages.
-  if (m_others_size
-      || m_page_manager_size
-      || m_indices_size > 1
-      || m_blobs_size) {
+  // If more than one page is modified then the modification is no longer
+  // atomic. All dirty pages are written to the log.
+  if (0) { // TODO
     m_env->get_journal()->append_changeset(m_page_manager, m_page_manager_size,
                     m_indices, m_indices_size,
                     m_others, m_others_size,
@@ -158,11 +91,6 @@ Changeset::flush(uint64_t lsn)
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  p = m_head;
-
-  // now flush all modified pages to disk
-  ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
-
   /* execute a post-log hook; this hook is set by the unittest framework
    * and can be used to make a backup copy of the logfile */
   if (g_CHANGESET_POST_LOG_HOOK)
@@ -170,6 +98,7 @@ Changeset::flush(uint64_t lsn)
 
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
+  // TODO
   while (p) {
     if (p->is_without_header() == false)
       p->set_lsn(lsn);
@@ -184,9 +113,6 @@ Changeset::flush(uint64_t lsn)
     m_env->get_device()->flush();
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-
-  /* done - we can now clear the changeset */
-  clear();
 }
 
 } // namespace hamsterdb

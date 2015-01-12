@@ -33,14 +33,14 @@ AM_PROG_CC_C_O
 
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([mmap munmap madvise getpagesize fdatasync fsync writev pread pwrite posix_fadvise])
+AC_CHECK_FUNCS([mmap munmap madvise getpagesize fdatasync fsync writev pread pwrite posix_fadvise sched_yield])
 AC_CHECK_HEADERS([fcntl.h unistd.h uv.h])
 
 m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
 AX_CXX_GCC_ABI_DEMANGLE
 
 m4_include([m4/boost.m4])
-BOOST_REQUIRE([1.36])
+BOOST_REQUIRE([1.53])
 BOOST_SYSTEM()
 BOOST_FILESYSTEM()
 BOOST_THREADS()

@@ -31,6 +31,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "2page/page.h"
+#include "2page/page_collection.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -51,81 +52,46 @@ class Changeset
 
   public:
     Changeset(LocalEnvironment *env)
-    : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
-      m_page_manager(0), m_page_manager_size(0), m_page_manager_capacity(0),
-      m_indices(0), m_indices_size(0), m_indices_capacity(0),
-      m_others(0), m_others_size(0), m_others_capacity(0) {
+      : m_env(env) {
     }
 
-    ~Changeset() {
-      if (m_blobs)
-        ::free(m_blobs);
-      if (m_page_manager)
-        ::free(m_page_manager);
-      if (m_indices)
-        ::free(m_indices);
-      if (m_others)
-        ::free(m_others);
-    }
-
-    /** is the changeset empty? */
+    /* Returns true if the changeset is empty */
     bool is_empty() const {
-      return (m_head == 0);
+      return (m_collection.is_empty());
     }
 
-    /** append a new page to the changeset */
+    /* Append a new page to the changeset */
     void add_page(Page *page);
 
-    /**
-     * get a page from the changeset
-     * returns NULL if the page is not part of the changeset
+    /*
+     * Returns a page from the changeset.
+     * Returns NULL if the page is not part of the changeset
      */
     Page *get_page(uint64_t pageid);
 
-    /** removes all pages from the changeset */
+    /* Removes all pages from the changeset */
     void clear();
 
-    /**
-     * flush all pages in the changeset - first write them to the log, then
-     * write them to the disk
-     *
-     * on success: will clear the changeset and the journal
+    /*
+     * Flush all pages in the changeset - first write them to the log, then
+     * write them to the disk.
+     * On success: will clear the changeset and the journal
      */
     void flush(uint64_t lsn = kDummyLsn);
 
-    /** check if the page is already part of the changeset */
-    bool contains(Page *page) {
-      return (page->is_in_list(m_head, Page::kListChangeset));
+    /* Check if the page is already part of the changeset */
+    bool contains(Page *page) const {
+            // TODO
+            return false;
+      //return (page->is_in_list(m_head, Page::kListChangeset));
     }
 
   private:
-    /** The Environment which created this Changeset */
+    /* The Environment which created this Changeset */
     LocalEnvironment *m_env;
 
-    /** the head of our linked list */
-    Page *m_head;
-
-    /** cached vectors for Changeset::flush(); using plain pointers
-     * instead of std::vector because
-     * - improved performance
-     * - workaround for an MSVC 9 bug:
-     *   http://social.msdn.microsoft.com/Forums/en-us/vcgeneral/thread/1bf2b062-150f-4f86-8081-d4d5dd0d1956
-     */
-    Page **m_blobs;
-    size_t m_blobs_size;
-    size_t m_blobs_capacity;
-
-    Page **m_page_manager;
-    size_t m_page_manager_size;
-    size_t m_page_manager_capacity;
-
-    Page **m_indices;
-    size_t m_indices_size;
-    size_t m_indices_capacity;
-
-    Page **m_others;
-    size_t m_others_size;
-    size_t m_others_capacity;
+    /* The pages which were added to this Changeset */
+    PageCollection m_collection;
 };
 
 } // namespace hamsterdb
