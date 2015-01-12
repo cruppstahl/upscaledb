@@ -379,6 +379,18 @@ x issue45: crash when env is closed
     x reproduce in a unittest
     x don't call ham_txn_abort but call txn->abort instead
 
+x Mail from Joel: approx. matching returns wrong key
+    x increase test coverage A LOT!
+    x rewrite comparison logic
+    x reproduce with his test, fix the bug
+    x fix the regressions (see Joel's mail)
+    x reproduce crash with a unittest
+        btree: insert "A"
+        txn: erase "A"
+        txn: search "A" w/ GEQ
+            find_txn then moves to the next node, which is null
+            segfault when accessing *node
+
 o Crash when opening env and Journal is applied
     starting w/ key 1104669304804000000, the blob 729496 (and all following
     60 blobs on page 720896) are missing (= their blob headers are empty).
@@ -399,15 +411,6 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
-o Mail from Joel: approx. matching returns wrong key
-    x increase test coverage A LOT!
-    x rewrite comparison logic
-    x reproduce with his test, fix the bug
-    o reproduce with a unittest
-        txn: search GEQ on the first key, which was erased
-            find_txn then moves to the next node, which is null
-            segfault when accessing *node
-
 o PRO: add Group Varint-based integer encoding
     x add parameter to header file
     x support in ham_bench
@@ -422,8 +425,10 @@ o PRO: add Group Varint-based integer encoding
         o also try larger values
     o run ham_bench with different values for kMaxGroupVarintsPerBlock
         (see mail to Daniel)
+    o reduce index size by setting the correct bit widths
     o vacuumize (internal == false): merge two blocks if they're underfilled?
         we have to reduce the number of indices
+        o also for varbyte?
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     -> extend ham_info

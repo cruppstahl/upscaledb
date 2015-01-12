@@ -259,8 +259,6 @@ LocalDatabase::find_txn(Cursor *cursor, LocalTransaction *txn, ham_key_t *key,
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
   TransactionNode *node = m_txn_index->get(key, flags);
-  if (!node)
-    return (HAM_KEY_NOT_FOUND);
 
   /*
    * pick the node of this key, and walk through each operation
@@ -297,7 +295,7 @@ retry:
         if (flags & HAM_FIND_LT_MATCH) {
           node = node->get_previous_sibling();
           if (!node)
-            return (HAM_KEY_NOT_FOUND);
+            break;
           ham_key_set_intflags(key,
               (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
@@ -305,7 +303,7 @@ retry:
         else if (flags & HAM_FIND_GT_MATCH) {
           node = node->get_next_sibling();
           if (!node)
-            return (HAM_KEY_NOT_FOUND);
+            break;
           ham_key_set_intflags(key,
               (ham_key_get_intflags(key) | BtreeKey::kApproximate));
           goto retry;
@@ -367,7 +365,7 @@ retry:
    * if there was an approximate match: check if the btree provides
    * a better match
    *
-   * TODO use ByteArray instead of Memory::allocate()
+   * TODO use alloca or ByteArray instead of Memory::allocate()
    */
   if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
     ham_key_t txnkey = {0};

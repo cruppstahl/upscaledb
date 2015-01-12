@@ -5,6 +5,10 @@ Jan 22, 2015 - chris ---------------------------------------------------
 o Added Cursor.TryFind to hamsterdb-dotnet
 	(thanks, mjmckp <matthew.j.m.peacock@gmail.com>)
 
+Jan 12, 2015 - chris ---------------------------------------------------
+o issue #46: fixed segfault in approx. matching (thanks, Joel
+	Jacobson)
+
 Jan 09, 2015 - chris ---------------------------------------------------
 o issue #45: fixed segfault in Journal recovery (thanks, Michael
 	Moellney)

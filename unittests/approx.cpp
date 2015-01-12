@@ -400,6 +400,16 @@ struct ApproxFixture {
     REQUIRE(0 == ::strcmp((char *)rec.data, "11"));
   }
 
+  void issue46Test() {
+    REQUIRE(0 == insertBtree("aa"));
+    REQUIRE(0 == eraseTxn("aa"));
+
+    ham_key_t key = ham_make_key((void *)"aa", 3);
+    ham_record_t rec = {0};
+
+    REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
+  }
+
   void greaterThanTest2() {
     teardown();
 
@@ -1390,6 +1400,11 @@ TEST_CASE("Approx/greaterOrEqualTest", "") {
 TEST_CASE("Approx/issue44Test", "") {
   ApproxFixture f;
   f.issue44Test();
+}
+
+TEST_CASE("Approx/issue46Test", "") {
+  ApproxFixture f;
+  f.issue46Test();
 }
 
 TEST_CASE("Approx/greaterThanTest2", "") {
