@@ -23,7 +23,7 @@
 #include "4db/db.h"
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct ChangesetFixture {
   ChangesetFixture() {
@@ -40,55 +40,59 @@ struct ChangesetFixture {
 
   ham_db_t *m_db;
   ham_env_t *m_env;
+
+  void addPages() {
+    Changeset ch((LocalEnvironment *)m_env);
+    Page *page[3];
+    for (int i = 0; i < 3; i++) {
+      page[i] = new Page(((LocalEnvironment *)m_env)->get_device());
+      page[i]->set_address(1024 * (i + 1));
+    }
+    for (int i = 0; i < 3; i++)
+      ch.add_page(page[i]);
+
+    for (int i = 0; i < 3; i++) {
+      PageCollection::Entry *e = ch.m_collection.begin() + i;
+      uint64_t address = e->get_address();
+      Page *p = e->get_page();
+      REQUIRE(address == 1024u * (i + 1));
+      REQUIRE(p == page[i]);
+    }
+    for (int i = 0; i < 3; i++)
+      delete page[i];
+  }
+
+  void getPages() {
+    Changeset ch((LocalEnvironment *)m_env);
+    Page *page[3];
+    for (int i = 0; i < 3; i++) {
+      page[i] = new Page(((LocalEnvironment *)m_env)->get_device());
+      page[i]->set_address(1024 * (i + 1));
+    }
+    for (int i = 0; i < 3; i++)
+      ch.add_page(page[i]);
+  
+    for (int i = 0; i < 3; i++)
+      REQUIRE(page[i] == ch.get_page(page[i]->get_address()));
+    REQUIRE((Page *)NULL == ch.get_page(999));
+
+    for (int i = 0; i < 3; i++)
+      delete page[i];
+  }
 };
 
 TEST_CASE("Changeset/addPages",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((LocalEnvironment *)f.m_env);
-  Page *page[3];
-  for (int i = 0; i < 3; i++) {
-    page[i] = new Page(((LocalEnvironment *)f.m_env)->get_device());
-    page[i]->set_address(1024 * i);
-  }
-  for (int i = 0; i < 3; i++)
-    ch.add_page(page[i]);
-  REQUIRE(page[1] ==
-      page[2]->get_next(Page::kListChangeset));
-  REQUIRE(page[0] ==
-        page[1]->get_next(Page::kListChangeset));
-  REQUIRE((Page *)NULL ==
-        page[0]->get_next(Page::kListChangeset));
-  REQUIRE(page[1] ==
-        page[0]->get_previous(Page::kListChangeset));
-  REQUIRE(page[2] ==
-        page[1]->get_previous(Page::kListChangeset));
-  REQUIRE((Page *)NULL ==
-        page[2]->get_previous(Page::kListChangeset));
-  for (int i = 0; i < 3; i++)
-    delete page[i];
+  f.addPages();
 }
 
 TEST_CASE("Changeset/getPages",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((LocalEnvironment *)f.m_env);
-  Page *page[3];
-  for (int i = 0; i < 3; i++) {
-    page[i] = new Page(((LocalEnvironment *)f.m_env)->get_device());
-    page[i]->set_address(1024 * i);
-  }
-  for (int i = 0; i < 3; i++)
-    ch.add_page(page[i]);
-
-  for (int i = 0; i < 3; i++)
-    REQUIRE(page[i] == ch.get_page(page[i]->get_address()));
-  REQUIRE((Page *)NULL == ch.get_page(999));
-
-  for (int i = 0; i < 3; i++)
-    delete page[i];
+  f.getPages();
 }
 
 TEST_CASE("Changeset/clear",
@@ -114,4 +118,6 @@ TEST_CASE("Changeset/clear",
   for (int i = 0; i < 3; i++)
     delete page[i];
 }
+
+} // namespace hamsterdb
 

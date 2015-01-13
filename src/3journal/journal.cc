@@ -270,11 +270,8 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 }
 
 void
-Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
-                    Page **bucket2, uint32_t bucket2_size,
-                    Page **bucket3, uint32_t bucket3_size,
-                    Page **bucket4, uint32_t bucket4_size,
-                    uint64_t lsn)
+Journal::append_changeset(const PageCollection &pages, int num_pages,
+                uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -288,8 +285,7 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
   entry.type = kEntryTypeChangeset;
   // followup_size is incomplete - the actual page sizes are added later
   entry.followup_size = sizeof(PJournalEntryChangeset);
-  changeset.num_pages = bucket1_size + bucket2_size
-                            + bucket3_size + bucket4_size;
+  changeset.num_pages = num_pages;
 
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
@@ -301,14 +297,12 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_env->get_page_size();
-  for (uint32_t i = 0; i < bucket1_size; i++)
-    entry.followup_size += append_changeset_page(bucket1[i], page_size);
-  for (uint32_t i = 0; i < bucket2_size; i++)
-    entry.followup_size += append_changeset_page(bucket2[i], page_size);
-  for (uint32_t i = 0; i < bucket3_size; i++)
-    entry.followup_size += append_changeset_page(bucket3[i], page_size);
-  for (uint32_t i = 0; i < bucket4_size; i++)
-    entry.followup_size += append_changeset_page(bucket4[i], page_size);
+  for (PageCollection::Entry *e = pages.begin(); e != pages.end(); e++) {
+    if (e->is_in_use()) {
+      ham_assert(e->get_page() != 0);
+      entry.followup_size += append_changeset_page(e->get_page(), page_size);
+    }
+  }
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
@@ -330,7 +324,7 @@ Journal::append_changeset(Page **bucket1, uint32_t bucket1_size,
 }
 
 uint32_t
-Journal::append_changeset_page(Page *page, uint32_t page_size)
+Journal::append_changeset_page(const Page *page, uint32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
 

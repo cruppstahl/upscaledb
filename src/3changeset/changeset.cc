@@ -38,6 +38,7 @@ Changeset::add_page(Page *page)
 {
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
+  // TODO merge both calls to avoid the race condition and make things faster
   if (contains(page))
     return;
 
@@ -48,7 +49,6 @@ Page *
 Changeset::get_page(uint64_t pageid)
 {
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
-
   return (m_collection.get_page(pageid));
 }
 
@@ -67,26 +67,31 @@ Changeset::flush(uint64_t lsn)
   if (m_collection.is_empty())
     return;
 
-  // TODO swap with new PageCollection
+  // Retrieve the list of pages
   // TODO but make sure that the swapped Collection stores the hazard pointer!
+  PageCollection pages;
+  m_collection.move(pages);
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  // TODO get a copy of the whole collection
   // TODO sort by address (really?)
-  // TODO remove all pages that are not dirty
+  // Remove all pages that are not dirty
+  int num_pages = 0;
+  for (PageCollection::Entry *e = pages.begin(); e != pages.end(); e++) {
+    if (e->is_in_use() && e->get_page()->is_dirty() == true)
+      num_pages++;
+  }
+
+  if (num_pages == 0)
+    return;
 
   // If only one page is modified then the modification is atomic. The page
   // is written.
   //
   // If more than one page is modified then the modification is no longer
   // atomic. All dirty pages are written to the log.
-  if (0) { // TODO
-    m_env->get_journal()->append_changeset(m_page_manager, m_page_manager_size,
-                    m_indices, m_indices_size,
-                    m_others, m_others_size,
-                    m_blobs, m_blobs_size,
-                    lsn);
+  if (num_pages > 1) {
+    m_env->get_journal()->append_changeset(pages, num_pages, lsn);
   }
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
@@ -98,14 +103,15 @@ Changeset::flush(uint64_t lsn)
 
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
-  // TODO
-  while (p) {
-    if (p->is_without_header() == false)
-      p->set_lsn(lsn);
-    m_env->get_page_manager()->flush_page(p);
-    p = p->get_next(Page::kListChangeset);
+  for (PageCollection::Entry *e = pages.begin(); e != pages.end(); e++) {
+    if (e->is_in_use()) {
+      Page *p = e->get_page();
+      if (p->is_without_header() == false)
+        p->set_lsn(lsn);
+      m_env->get_page_manager()->flush_page(p);
 
-    HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+      HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+    }
   }
 
   /* flush the file handle (if required) */

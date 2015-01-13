@@ -79,6 +79,7 @@
 #include "1base/dynamic_array.h"
 #include "1os/file.h"
 #include "1errorinducer/errorinducer.h"
+#include "2page/page_collection.h"
 #include "3journal/journal_entries.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -193,10 +194,7 @@ class Journal
                     uint64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
-    void append_changeset(Page **bucket1, uint32_t bucket1_size,
-                    Page **bucket2, uint32_t bucket2_size,
-                    Page **bucket3, uint32_t bucket3_size,
-                    Page **bucket4, uint32_t bucket4_size,
+    void append_changeset(const PageCollection &pages, int num_pages,
                     uint64_t lsn);
 
     // Adjusts the transaction counters; called whenever |txn| is flushed.
@@ -249,7 +247,7 @@ class Journal
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression
     // was enabled)
-    uint32_t append_changeset_page(Page *page, uint32_t page_size);
+    uint32_t append_changeset_page(const Page *page, uint32_t page_size);
 
     // Recovers (re-applies) the physical changelog; returns the lsn of the
     // Changelog

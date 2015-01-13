@@ -475,8 +475,12 @@ o Concurrency: move "purge cache" to background
     x on a new branch! topic/thread
 >>>>>>> Updated TODO
 
+<<<<<<< HEAD
     o Create a generic "PageCollection" class with atomic updates
 >>>>>>> Started with PageCollection
+=======
+    x Create a generic "PageCollection" class with atomic updates
+>>>>>>> More work on the PageCollection
         x use static memory as default, but replace w/ dynamic memory if
             capacity is not enough
         x need a very fast spinlock for writing
@@ -906,24 +910,38 @@ o Concurrency: move "purge cache" to background
         x when inserting: set the pointer, then atomically increment the counter
         x when deleting: simply set to zero
         x never use a lock when reading
-        o use hazard pointers; auto-delete them after 1 second
-            (by which thread? there's no pointer to env etc.
-            pass thread as parameter?)
 
     o Use PageCollection in the Changeset
+        o don't call contains() in add_page()? where else is it called?
 
+<<<<<<< HEAD
     o Create a background thread
+=======
+    o Create a background thread (use boost::thread)
+        o make sure that configure.ac checks for boost::thread
+>>>>>>> More work on the PageCollection
     o Join thread when closing the Environment
     o create a non-blocking queue for passing data to the thread
+        (see sample from boost::atomic)
+        o messages can be "mandatory"; otherwise they can be skipped when
+            the Environment is closed
 
+<<<<<<< HEAD
     o have a Facade for the thread. If threading is enabled then store the
         message in the message-queue; otherwise perform the request while
         blocking
         o but don't add the same request twice if it's still in the queue
         o remember that there can be more threads, at least for I/O...
+=======
+    o PageCollection: dispose hazard pointers after 1 second
+        (by which thread? there's no pointer to env etc.
+        pass queue as parameter?)
+        o also in ~PageCollection()
+>>>>>>> More work on the PageCollection
 
 >>>>>>> issue #44: approx. matching returned the wrong key (thanks, Joel
     o get rid of the Page-List (use a generic visitor for the Cache)
+<<<<<<< HEAD
 <<<<<<< HEAD
     o rewrite all other lists with the PageCollection
         o should allow reading w/o blocking
@@ -943,6 +961,18 @@ o Concurrency: move "purge cache" to background
         the LRU algorithm
         o thread periodically scans the cache to evict unused pages (really?)
 >>>>>>> Started with PageCollection
+=======
+
+    o Use PageCollection for the Cache buckets; use atomic lsn tag for
+        the LRU algorithm
+        o thread periodically scans the cache to evict unused pages (really?)
+        -> don't like this. Such a scan is not atomic, and feels slow. What
+            if the PageCollection re-introduces the linked list, and implements
+            it atomically (forward-only)? but then it will be slow to retrieve
+            pages "at the end". 
+        -> or should we just use spinlocks in the PageCollection, w/o
+            atomic ops?
+>>>>>>> More work on the PageCollection
         o can be woken up by the main thread
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
@@ -953,10 +983,10 @@ o Concurrency: move "purge cache" to background
     o extend monster tests
     o use valgrind to check for race conditions etc 
 
-    o if a database is deleted: move job to background thread
-        o make sure that it cannot be created while it is getting deleted
     o if a database is closed: move job to background thread
         o make sure that it cannot be opened while it is "in closing state"
+    o if a database is deleted: move job to background thread
+        o make sure that it cannot be created while it is getting deleted
 
 o refactoring: make EnvironmentHeader stateless and exception safe
     o transform to struct instead of class

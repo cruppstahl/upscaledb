@@ -81,12 +81,12 @@ class Changeset
 
     /* Check if the page is already part of the changeset */
     bool contains(Page *page) const {
-            // TODO
-            return false;
-      //return (page->is_in_list(m_head, Page::kListChangeset));
+      return (m_collection.contains(page->get_address()));
     }
 
   private:
+    friend struct ChangesetFixture;
+
     /* The Environment which created this Changeset */
     LocalEnvironment *m_env;
 
