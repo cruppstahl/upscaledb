@@ -51,13 +51,19 @@ struct ChangesetFixture {
     for (int i = 0; i < 3; i++)
       ch.add_page(page[i]);
 
-    for (int i = 0; i < 3; i++) {
-      PageCollection::Entry *e = ch.m_collection.begin() + i;
-      uint64_t address = e->get_address();
-      Page *p = e->get_page();
-      REQUIRE(address == 1024u * (i + 1));
-      REQUIRE(p == page[i]);
-    }
+    REQUIRE(page[1] ==
+        page[2]->get_next(Page::kListChangeset));
+    REQUIRE(page[0] ==
+          page[1]->get_next(Page::kListChangeset));
+    REQUIRE((Page *)NULL ==
+          page[0]->get_next(Page::kListChangeset));
+    REQUIRE(page[1] ==
+          page[0]->get_previous(Page::kListChangeset));
+    REQUIRE(page[2] ==
+          page[1]->get_previous(Page::kListChangeset));
+    REQUIRE((Page *)NULL ==
+          page[2]->get_previous(Page::kListChangeset));
+
     for (int i = 0; i < 3; i++)
       delete page[i];
   }

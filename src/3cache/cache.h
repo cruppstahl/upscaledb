@@ -59,29 +59,21 @@ class Cache
     };
 
   public:
-    // the default constructor
-    // |capacity_size| is in bytes!
+    // The default constructor
     Cache(LocalEnvironment *env,
             uint64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
       : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
         m_alloc_elements(0), m_totallist(0), m_totallist_tail(0),
+        m_buckets(kBucketSize, PageCollection(Page::kListBucket)),
         m_cache_hits(0), m_cache_misses(0) {
       ham_assert(m_capacity > 0);
-
-      for (uint32_t i = 0; i < kBucketSize; i++)
-        m_buckets.push_back(0);
     }
 
     // Retrieves a page from the cache, also removes the page from the cache
     // and re-inserts it at the front. Returns null if the page was not cached.
     Page *get_page(uint64_t address, uint32_t flags = 0) {
       size_t hash = calc_hash(address);
-      Page *page = m_buckets[hash];
-      while (page) {
-        if (page->get_address() == address)
-          break;
-        page = page->get_next(Page::kListBucket);
-      }
+      Page *page = m_buckets[hash].get(address);;
 
       /* not found? then return */
       if (!page) {
@@ -92,6 +84,7 @@ class Cache
       // Now re-insert the page at the head of the "totallist", and
       // thus move far away from the tail. The pages at the tail are highest
       // candidates to be deleted when the cache is purged.
+      // TODO this is not atomic!
       remove_page(page);
       put_page(page);
 
@@ -129,11 +122,13 @@ class Cache
        * !!!
        * to avoid inserting the page twice, we first remove it from the
        * bucket
+       *
+       * TODO not thread safe!
        */
-      if (page->is_in_list(m_buckets[hash], Page::kListBucket))
-        m_buckets[hash] = page->list_remove(m_buckets[hash], Page::kListBucket);
-      ham_assert(!page->is_in_list(m_buckets[hash], Page::kListBucket));
-      m_buckets[hash] = page->list_insert(m_buckets[hash], Page::kListBucket);
+      if (m_buckets[hash].contains(page))
+        m_buckets[hash].remove(page->get_address());
+      ham_assert(!m_buckets[hash].contains(page));
+      m_buckets[hash].add(page);
 
       /* is this the chronologically oldest page? then set the pointer */
       if (!m_totallist_tail)
@@ -152,9 +147,8 @@ class Cache
       /* remove the page from the cache buckets */
       if (page->get_address()) {
         size_t hash = calc_hash(page->get_address());
-        if (page->is_in_list(m_buckets[hash], Page::kListBucket)) {
-          m_buckets[hash] = page->list_remove(m_buckets[hash],
-                        Page::kListBucket);
+        if (m_buckets[hash].contains(page)) {
+          m_buckets[hash].remove(page->get_address());
         }
       }
 
@@ -289,8 +283,8 @@ class Cache
     // and therefore the highest candidate for a flush
     Page *m_totallist_tail;
 
-    // the buckets - a linked list of Page pointers
-    std::vector<Page *> m_buckets;
+    // The hash table buckets - a linked list of Page pointers
+    std::vector<PageCollection> m_buckets;
 
     // counts the cache hits
     uint64_t m_cache_hits;

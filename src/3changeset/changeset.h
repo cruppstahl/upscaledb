@@ -52,7 +52,7 @@ class Changeset
 
   public:
     Changeset(LocalEnvironment *env)
-      : m_env(env) {
+      : m_env(env), m_collection(Page::kListChangeset) {
     }
 
     /* Returns true if the changeset is empty */

@@ -270,8 +270,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 }
 
 void
-Journal::append_changeset(const PageCollection &pages, int num_pages,
-                uint64_t lsn)
+Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
 {
   if (m_disable_logging)
     return;
@@ -297,11 +296,8 @@ Journal::append_changeset(const PageCollection &pages, int num_pages,
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_env->get_page_size();
-  for (PageCollection::Entry *e = pages.begin(); e != pages.end(); e++) {
-    if (e->is_in_use()) {
-      ham_assert(e->get_page() != 0);
-      entry.followup_size += append_changeset_page(e->get_page(), page_size);
-    }
+  for (int i = 0; i < num_pages; i++) {
+    entry.followup_size += append_changeset_page(pages[i], page_size);
   }
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);

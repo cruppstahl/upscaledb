@@ -911,13 +911,29 @@ o Concurrency: move "purge cache" to background
         x when deleting: simply set to zero
         x never use a lock when reading
 
-    o Use PageCollection in the Changeset
-        o don't call contains() in add_page()? where else is it called?
+    x rewrite PageCollection
+        x use a single linked list (intrusive, just like now)
+        x use a Spinlock for reads *and* writes
+        . in the future, we can still add a bloom filter to check whether
+            a page exists or not
+
+    x Use PageCollection in the Changeset
+    x Make sure that extracting the pages is an atomic operation (locked!)
+        -> PageCollection::for_each(Visitor &visitor);
+        x Use this in the Changeset
+
+=====================================
+    o Use PageCollection for the Cache buckets
+        o fix the TODOs
+=====================================
+    o Use PageCollection for the Page list
+        (or can we get rid of Cache::m_totallist?)
 
 <<<<<<< HEAD
     o Create a background thread
 =======
     o Create a background thread (use boost::thread)
+<<<<<<< HEAD
         o make sure that configure.ac checks for boost::thread
 >>>>>>> More work on the PageCollection
     o Join thread when closing the Environment
@@ -974,6 +990,14 @@ o Concurrency: move "purge cache" to background
             atomic ops?
 >>>>>>> More work on the PageCollection
         o can be woken up by the main thread
+=======
+        x make sure that configure.ac checks for boost::thread
+    o Join thread when closing the Environment
+
+    o the PageManager must be thread-safe (really?)
+    o the Cache must be thread-safe
+
+>>>>>>> PageCollection is now back to the intrusive list
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
     o run performance tests

@@ -34,248 +34,141 @@ namespace hamsterdb {
 
 /*
  * The PageCollection class
- *
- * Stores Page lists in serial memory. Uses CAS (w/ hazard pointers)
- * for writes. Reads never block and can be performed even while a writer
- * is active. Only one writer at a time.
  */
 class PageCollection {
-    enum {
-      /* default capacity of the builtin storage */
-      kDefaultCapacity = 32,
-
-      /* address replacement for zero */
-      kAddressZero = 0xffffffffffffffff
-    };
-
   public:
-    /* maps page id to Page object */
-    class Entry {
-      public:
-        bool is_in_use() const {
-          return (m_address != 0);
-        }
-
-        // The page address is used as an indicator whether this
-        // Entry is used (0) or not (!= 0). But since page address of 0 is
-        // valid, 0 is rewritten as -1 (and vice versa).
-        uint64_t get_address() const {
-          uint64_t address = m_address;
-          return (address == kAddressZero ? 0 : address);
-        }
-
-        void set_address(uint64_t address) {
-          m_address = address ? address : kAddressZero;
-        }
-
-        Page *get_page() const {
-          return (m_page);
-        }
-
-        void set_page(Page *page) {
-          m_page = page;
-        }
-
-      private:
-        boost::atomic<uint64_t> m_address;
-        boost::atomic<Page *> m_page;
-    };
-
     // Default constructor
-    PageCollection()
-      : m_entries(&m_entry_storage[0]), m_entries_used(0),
-        m_entries_capacity(kDefaultCapacity) {
-      ::memset(m_entry_storage, 0, sizeof(m_entry_storage));
+    PageCollection(int list_id)
+      : m_head(0), m_size(0), m_id(list_id) {
     }
 
-    // Destructor - releases allocated memory and resources
+    // Destructor
     ~PageCollection() {
-      ScopedSpinlock lock(m_writer_mutex);
-      if (m_entries != &m_entry_storage[0]) {
-        Memory::release(m_entries);
-        m_entries = 0;
-        m_entries_capacity = 0;
-        m_entries_used = 0;
-      }
+      clear();
     }
 
     bool is_empty() const {
-      return (m_entries_used.load(boost::memory_order_relaxed) == 0);
+      return (m_size == 0);
+    }
+
+    int size() const {
+      return (m_size);
+    }
+
+    // Atomically applies the |visitor()| to each page
+    template<typename Visitor>
+    void for_each(Visitor &visitor) {
+      ScopedSpinlock lock(m_mutex);
+      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
+        visitor(p);
+      }
+    }
+
+    // Same as |for_each()|, but calls |clear()| afterwards
+    template<typename Visitor>
+    void extract(Visitor &visitor) {
+      ScopedSpinlock lock(m_mutex);
+      visitor.prepare(m_size);
+
+      Page *page = m_head;
+      while (page) {
+        Page *next = page->get_next(m_id);
+        visitor(page);
+        m_head = page->list_remove(m_head, m_id);
+        page = next;
+      }
+
+      m_head = 0;
+      m_size = 0;
     }
 
     // Clears the collection.
     void clear() {
-      ScopedSpinlock lock(m_writer_mutex);
+      ScopedSpinlock lock(m_mutex);
       clear_nolock();
     }
 
     // Returns a page from the collection
-    //
-    // No lock required.
-    Page *get_page(uint64_t address) const {
-      for (int i = 0; i < m_entries_capacity; i++) {
-        if (m_entries[i].get_address() == address)
-          return (m_entries[i].get_page());
+    Page *get(uint64_t address) const {
+      // ScopedSpinlock lock(m_mutex); TODO
+      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
+        if (p->get_address() == address)
+          return (p);
       }
       return (0);
     }
 
     // Removes a page from the collection
-    //
-    // No lock required. Sets the stored page address to zero.
-    void remove_page(uint64_t address) {
-      for (int i = 0; i < m_entries_capacity; i++) {
-        if (m_entries[i].get_address() == address) {
-          m_entries[i].set_address(0);
-          --m_entries_used;
-          return;
-        }
+    void remove(uint64_t address) {
+      ScopedSpinlock lock(m_mutex);
+      Page *page = get(address);
+      if (page) {
+        m_head = page->list_remove(m_head, m_id);
+        ham_assert(m_size > 0);
+        --m_size;
       }
     }
 
-    // Adds a new page to the collection
-    //
-    // !!
-    // Readers will always check the address of a slot first, therefore
-    // store new pages in reverse order (first store store the |page| pointer,
-    // THEN the address).
-    void add_page(Page *page) {
-      ScopedSpinlock lock(m_writer_mutex);
-
-      if (m_entries_used == m_entries_capacity - 1)
-        grow_buffer();
-
-      // fast path: try to append at the end
-      if (m_entries[m_entries_used].is_in_use() == false) {
-        m_entries[m_entries_used].set_page(page);
-        m_entries[m_entries_used].set_address(page->get_address());
-        ++m_entries_used;
-        return;
+    // Removes a page from the collection
+    void remove(Page *page) {
+      ScopedSpinlock lock(m_mutex);
+      if (contains(page)) {
+        m_head = page->list_remove(m_head, m_id);
+        ham_assert(m_size > 0);
+        --m_size;
       }
-
-      // otherwise search for a free slot
-      for (int i = 0; i < m_entries_capacity; i++) {
-        if (m_entries[i].is_in_use() == false) {
-          m_entries[i].set_page(page);
-          m_entries[i].set_address(page->get_address());
-          ++m_entries_used;
-          return;
-        }
-      }
-
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_INTERNAL_ERROR);
     }
 
-    // Returns true if a page with the |address| is already stored.
-    bool contains(uint64_t address) const {
-      if (address == 0)
-        address = kAddressZero;
+    // Adds a new page to the collection. Returns true if the page was added,
+    // otherwise false (that's the case if the page is already part of
+    // the list)
+    bool add(Page *page) {
+      ScopedSpinlock lock(m_mutex);
 
-      for (int i = 0; i < m_entries_capacity; i++) {
-        if (m_entries[i].get_address() == address)
-          return (true);
+      if (!contains(page)) {
+        m_head = page->list_insert(m_head, m_id);
+        ++m_size;
+        return (true);
       }
       return (false);
     }
 
-    // Atomically moves the data to the |destination|, which must be
-    // an unused and empty PageCollection. Calls clear() afterwards.
-    void move(PageCollection &destination) {
-      ScopedSpinlock lock1(m_writer_mutex);
-      ScopedSpinlock lock2(destination.m_writer_mutex);
-      
-      ham_assert(destination.is_empty());
-      ham_assert(destination.m_entries == &destination.m_entry_storage[0]);
-
-      // this collection uses allocated storage
-      if (m_entries != &m_entry_storage[0]) {
-        destination.m_entries = m_entries.load(boost::memory_order_relaxed);
-        destination.m_entries_used = m_entries_used.load(boost::memory_order_relaxed);
-        destination.m_entries_capacity = m_entries_capacity;
-
-        m_entries = &m_entry_storage[0];
-        m_entries_used = 0;
-        m_entries_capacity = kDefaultCapacity;
-        return;
-      }
-
-      // this collection uses builtin storage - copy it
-      ::memcpy(&destination.m_entry_storage[0], &m_entry_storage[0],
-                      sizeof(Entry) * kDefaultCapacity);
-      destination.m_entries_used = m_entries_used.load(boost::memory_order_relaxed);
-
-      clear_nolock();
+    // Returns true if a page with the |address| is already stored.
+    bool contains(uint64_t address) const {
+      return (get(address) != 0);
     }
 
-    /* Returns a pointer to the first element */
-    Entry *begin() const {
-      return (&m_entries[0]);
+    // Returns true if the |page| is already stored. This is much faster
+    // than contains(uint64_t address).
+    bool contains(Page *page) const {
+      return (page->is_in_list(m_head, m_id));
     }
-
-    /* Returns a pointer *after* the last element */
-    Entry *end() const {
-      return (&m_entries[m_entries_capacity]);
-    }
-
+    
   private:
     // Clears the collection.
     void clear_nolock() {
-      Entry *p;
-      if (m_entries != &m_entry_storage[0]) {
-        p = &m_entry_storage[0];
-        m_entries_capacity = kDefaultCapacity;
-      }
-      else {
-        p = Memory::allocate<Entry>(sizeof(Entry) * m_entries_capacity);
+      Page *page = m_head;
+      while (page) {
+        Page *next = page->get_next(m_id);
+        m_head = page->list_remove(m_head, m_id);
+        page = next;
       }
 
-      ::memset(p, 0, sizeof(Entry) * m_entries_capacity);
-      
-      Entry *old = m_entries.exchange(p, boost::memory_order_acquire);
-      m_entries_used = 0;
-
-      // TODO clean up in background
-      if (old != &m_entry_storage[0])
-        Memory::release(old);
+      m_head = 0;
+      m_size = 0;
     }
 
-    // Grows the underlying buffer
-    //
-    // First allocate a new buffer and copy the data.
-    // Then atomically replace the existing pointer. The old pointer
-    // will be hazard and garbage-collected after a while.
-    //
-    // !!
-    // Always call in locked context!
-    void grow_buffer() {
-      Entry *p = Memory::allocate<Entry>(sizeof(Entry) * m_entries_capacity * 2);
-      ::memcpy(p, m_entries, sizeof(Entry) * m_entries_capacity);
-      ::memset(p + m_entries_capacity, 0, sizeof(Entry) * m_entries_capacity);
-      
-      Entry *old = m_entries.exchange(p, boost::memory_order_acquire);
-      m_entries_capacity *= 2;
+    // A fast mutex
+    Spinlock m_mutex;
 
-      // TODO clean up in background
-      if (old != &m_entry_storage[0])
-        Memory::release(old);
-    }
+    // The head of the linked list
+    Page *m_head;
 
-    // A fast mutex for write access
-    Spinlock m_writer_mutex;
+    // Number of elements in the list
+    int m_size;
 
-    // Pointer to the stored entries
-    boost::atomic<Entry *>m_entries;
-
-    // Actually used entries. This number is pessimistic; deletes are not
-    // immediately substracted, but new pages cause atomic increments.
-    boost::atomic<int> m_entries_used;
-
-    // Capacity of m_entries
-    int m_entries_capacity;
-
-    // Builtin storage; used to avoid allocations
-    Entry m_entry_storage[kDefaultCapacity];
+    // The list ID
+    int m_id;
 };
 
 } // namespace hamsterdb

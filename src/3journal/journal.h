@@ -194,8 +194,7 @@ class Journal
                     uint64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
-    void append_changeset(const PageCollection &pages, int num_pages,
-                    uint64_t lsn);
+    void append_changeset(const Page **pages, int num_pages, uint64_t lsn);
 
     // Adjusts the transaction counters; called whenever |txn| is flushed.
     void transaction_flushed(LocalTransaction *txn);

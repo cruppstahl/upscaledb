@@ -27,7 +27,10 @@
 
 #include "0root/root.h"
 
-#include <sched.h>
+#ifndef HAM_OS_WIN32
+#  include <sched.h>
+#  include <unistd.h>
+#endif
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
@@ -42,7 +45,7 @@ class Spinlock {
     typedef enum {
       kLocked,
       kUnlocked,
-      kSpinThreshold = 1000
+      kSpinThreshold = 10
     } LockState;
 
   public:
@@ -50,17 +53,32 @@ class Spinlock {
       : m_state(kUnlocked) {
     }
 
+    // Need user-defined copy constructor because boost::atomic<> is not
+    // copyable
+    Spinlock(const Spinlock &other)
+      : m_state(other.m_state.load()) {
+    }
+
     void lock() {
       int k = 0;
       while (m_state.exchange(kLocked, boost::memory_order_acquire)
                       == kLocked) {
-        if (++k > kSpinThreshold) {
+        if (++k < kSpinThreshold) {
 #ifdef HAM_OS_WIN32
-          Sleep(1);
+          ::Sleep(0);
 #elif HAVE_SCHED_YIELD
           ::sched_yield();
 #else
-          // TODO what now?
+          ham_assert(!"Please implement me");
+#endif 
+        }
+        else {
+#ifdef HAM_OS_WIN32
+          ::Sleep(250);
+#elif HAVE_USLEEP
+          ::usleep(250);
+#else
+          ham_assert(!"Please implement me");
 #endif 
         }
       }
