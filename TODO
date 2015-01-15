@@ -922,15 +922,18 @@ o Concurrency: move "purge cache" to background
         -> PageCollection::for_each(Visitor &visitor);
         x Use this in the Changeset
 
-=====================================
     x Use PageCollection for the Page list
-    o Use PageCollection for the Cache buckets
+    x Use PageCollection for the Cache buckets
         x must keep track of the *tail* as well!
-        o fix the TODOs
-        o if the Cache is thread safe - should the PageCollection also be
-            thread safe?? locking twice does not make sense, and the Changeset
-            (currently) does not require locking
-=====================================
+        x if the Cache is thread safe - should the PageCollection also be
+            thread safe?? - no, not required
+        x fix the TODOs
+        x Cache::m_cur_elements no longer required (use totallist.size)
+        x Cache must be thread-safe
+    x the PageManager must be thread-safe - no, it's enough if
+        PageManager::purge_cache is thread-safe (that's the case)
+
+    o Run performance tests
 
 <<<<<<< HEAD
     o Create a background thread
@@ -996,24 +999,33 @@ o Concurrency: move "purge cache" to background
 =======
         x make sure that configure.ac checks for boost::thread
     o Join thread when closing the Environment
-
-    o the PageManager must be thread-safe (really?)
-    o the Cache must be thread-safe
+    o need a non-blocking message queue
+    o thread skips all non-mandatory messages when shutting down
 
 >>>>>>> PageCollection is now back to the intrusive list
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
+    o thread calls Cache::purge every 0.1 sec, or more often if the cache
+        is full and less often if it's not
+
     o run performance tests
     o and run the leveldb benchmarks
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     o extend monster tests
+=======
+>>>>>>> PageCollection now tracks the tail of a list
     o use valgrind to check for race conditions etc 
 
-    o if a database is closed: move job to background thread
-        o make sure that it cannot be opened while it is "in closing state"
-    o if a database is deleted: move job to background thread
-        o make sure that it cannot be created while it is getting deleted
+    o review comment in Cache::purge and rewrite
+        o but run performance tests
+
+o PRO: add more simdcomp related functions for blocks < 128 integers
+    o for compression
+    o for decompression
+    o review once more
+    o send push request to Daniel
 
 o refactoring: make EnvironmentHeader stateless and exception safe
     o transform to struct instead of class
@@ -1045,9 +1057,12 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     o deal with databases < 16kb?
 >>>>>>> issue #43: fixed segfault when flushing transactions (thanks, Joel
 
+<<<<<<< HEAD
 o support multiple worker threads which perform I/O
     o how many threads should be created??
 
+=======
+>>>>>>> PageCollection now tracks the tail of a list
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
 
@@ -1205,6 +1220,7 @@ o refactoring: clean up the whole Database code; it's too much and too
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> More refactorings, no functional changes
 o refactoring: create a Update structure whenever a database is modified;
     it consists of the operation type, key, record (optional), operation flags,
@@ -1323,6 +1339,19 @@ o continue with concurrency...
         are allocated and not overwritten! then the leaf operations would
         maybe become atomic. -> needs more thinking
 >>>>>>> Updated TODO file
+=======
+o continue with concurrency...
+    next stage: flush changesets in background. this should work whenever
+    recovery is enabled (with and without transactions)!
+    Also, try to handle blob pages separately from the rest - at least if blobs
+        are allocated and not overwritten! then the leaf operations would
+        maybe become atomic. -> needs more thinking
+    . support multiple worker threads which perform I/O
+        o create 1 thread for hdds
+        o create N threads for ssds, depending on number of controllers
+        -> make overwritable by parameter
+
+>>>>>>> PageCollection now tracks the tail of a list
 
 
 o improve the webpage documentation

@@ -42,6 +42,7 @@ libhamsterdb_la_SOURCES = \
 	2device/device_inmem.h \
 	2device/device_factory.h \
 	3cache/cache.h \
+	3cache/cache.cc \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
 	3blob_manager/blob_manager.h \

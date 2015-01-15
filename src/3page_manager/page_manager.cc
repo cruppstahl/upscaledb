@@ -463,6 +463,19 @@ flush_all_pages_callback(Page *page, LocalEnvironment *env,
   return (false);
 }
 
+static bool
+db_close_callback(Page *page, LocalEnvironment *env,
+        LocalDatabase *db, uint32_t flags)
+{
+  if (page->get_db() == db && page->get_address() != 0) {
+    ham_assert(page->get_cursor_list() == 0);
+    env->get_page_manager()->flush_page(page);
+    return (true);
+  }
+
+  return (false);
+}
+
 void
 PageManager::flush_all_pages(bool nodelete)
 {
@@ -470,7 +483,7 @@ PageManager::flush_all_pages(bool nodelete)
     m_last_blob_page_id = m_last_blob_page->get_address();
     m_last_blob_page = 0;
   }
-  m_cache.visit(flush_all_pages_callback, m_env, 0, nodelete ? 1 : 0);
+  m_cache.purge_if(flush_all_pages_callback, m_env, 0, nodelete ? 1 : 0);
 
   if (m_state_page)
     flush_page(m_state_page);
@@ -499,37 +512,7 @@ PageManager::purge_cache()
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  //
-  // By default this is capped to |kPurgeAtLeast| pages to avoid I/O spikes.
-  // In benchmarks this has proven to be a good limit.
-  size_t max_pages = m_cache.get_capacity() / m_env->get_page_size();
-  if (max_pages == 0)
-    max_pages = 1;
-  size_t limit = m_cache.get_current_elements() - max_pages;
-  if (limit < kPurgeAtLeast)
-    limit = kPurgeAtLeast;
-  m_cache.purge(purge_callback, this, limit);
-}
-
-static bool
-db_close_callback(Page *page, LocalEnvironment *env,
-        LocalDatabase *db, uint32_t flags)
-{
-  if (page->get_db() == db && page->get_address() != 0) {
-    env->get_page_manager()->flush_page(page);
-
-    // TODO is this really necessary?? i don't think so
-    if (page->get_data() &&
-        !page->is_without_header() &&
-          (page->get_type() == Page::kTypeBroot ||
-            page->get_type() == Page::kTypeBindex)) {
-      BtreeCursor::uncouple_all_cursors(page);
-    }
-
-    return (true);
-  }
-
-  return (false);
+  m_cache.purge(purge_callback, this);
 }
 
 void
@@ -539,8 +522,7 @@ PageManager::close_database(LocalDatabase *db)
     m_last_blob_page_id = m_last_blob_page->get_address();
     m_last_blob_page = 0;
   }
-
-  m_cache.visit(db_close_callback, m_env, db, 0);
+  m_cache.purge_if(db_close_callback, m_env, db, 0);
 
   m_env->get_changeset().clear();
 }
@@ -631,7 +613,7 @@ PageManager::close()
       m_env->get_changeset().flush(m_env->get_incremented_lsn());
   }
 
-  // flush all dirty pages to disk
+  // flush all dirty pages to disk, then delete them
   flush_all_pages();
 
   delete m_state_page;

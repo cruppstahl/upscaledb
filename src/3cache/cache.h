@@ -25,7 +25,7 @@
  * in a long time, and is the primary candidate for purging.
  *
  * @exception_safe: nothrow
- * @thread_safe: no
+ * @thread_safe: yes
  */
 
 #ifndef HAM_CACHE_H
@@ -35,8 +35,11 @@
 
 #include <vector>
 
+#include "ham/hamsterdb_int.h"
+
 // Always verify that a file of level N does not include headers > N!
-#include "4env/env_local.h"
+#include "1base/spinlock.h"
+#include "2page/page_collection.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -62,8 +65,8 @@ class Cache
     // The default constructor
     Cache(LocalEnvironment *env,
             uint64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
-      : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
-        m_alloc_elements(0), m_totallist(Page::kListCache),
+      : m_env(env), m_capacity(capacity_bytes), m_alloc_elements(0),
+        m_totallist(Page::kListCache),
         m_buckets(kBucketSize, PageCollection(Page::kListBucket)),
         m_cache_hits(0), m_cache_misses(0) {
       ham_assert(m_capacity > 0);
@@ -73,6 +76,9 @@ class Cache
     // and re-inserts it at the front. Returns null if the page was not cached.
     Page *get_page(uint64_t address, uint32_t flags = 0) {
       size_t hash = calc_hash(address);
+
+      ScopedSpinlock lock(m_mutex);
+
       Page *page = m_buckets[hash].get(address);;
 
       /* not found? then return */
@@ -88,15 +94,15 @@ class Cache
       m_totallist.add(page);
 
       m_cache_hits++;
-
       return (page);
     }
 
     // Stores a page in the cache
     void put_page(Page *page) {
       size_t hash = calc_hash(page->get_address());
-
       ham_assert(page->get_data());
+
+      ScopedSpinlock lock(m_mutex);
 
       /* First remove the page from the cache, if it's already cached
        *
@@ -106,7 +112,6 @@ class Cache
       m_totallist.remove(page);
       m_totallist.add(page);
 
-      m_cur_elements++;
       if (page->is_allocated())
         m_alloc_elements++;
 
@@ -116,82 +121,32 @@ class Cache
        * to avoid inserting the page twice, we first remove it from the
        * bucket
        */
-      m_buckets[hash].remove(page->get_address());
+      m_buckets[hash].remove(page);
       m_buckets[hash].add(page);
     }
 
     // Removes a page from the cache
     void remove_page(Page *page) {
-      ham_assert(page->get_address() != 0);
-
-      /* remove the page from the cache buckets */
-      size_t hash = calc_hash(page->get_address());
-      m_buckets[hash].remove(page->get_address());
-
-      /* remove it from the list of all cached pages */
-      if (m_totallist.remove(page)) {
-        m_cur_elements--;
-        if (page->is_allocated())
-          m_alloc_elements--;
-      }
+      ScopedSpinlock lock(m_mutex);
+      remove_page_unlocked(page);
     }
 
     typedef void (*PurgeCallback)(Page *page, PageManager *pm);
 
     // Purges the cache; the callback is called for every page that needs
     // to be purged
-    //
-    // TODO
-    // rewrite w/ extract()
-    void purge(PurgeCallback cb, PageManager *pm, unsigned limit) {
-      unsigned i = 0;
+    void purge(PurgeCallback cb, PageManager *pm);
 
-      /* get the chronologically oldest page */
-      Page *oldest = m_totallist.tail();
-      if (!oldest)
-        return;
-
-      /* now iterate through all pages, starting from the oldest
-       * (which is the tail of the "totallist", the list of ALL cached
-       * pages) */
-      Page *page = oldest;
-      do {
-        /* pick the first page that can be purged */
-        if (can_purge_page(page)) {
-          Page *prev = page->get_previous(Page::kListCache);
-          remove_page(page);
-          cb(page, pm);
-          i++;
-          page = prev;
-        }
-        else
-          page = page->get_previous(Page::kListCache);
-        ham_assert(page != oldest);
-      } while (i < limit && page && page != oldest);
-    }
-
-    // the visitor callback returns true if the page should be removed from
+    // The callback returns true if the page should be removed from
     // the cache and deleted
-    typedef bool (*VisitCallback)(Page *page, LocalEnvironment *env,
+    typedef bool (*PurgeIfCallback)(Page *page, LocalEnvironment *env,
             LocalDatabase *db, uint32_t flags);
 
-    // Visits all pages in the "totallist"; this is used by the Environment
-    // to flush (and delete) pages
-    //
-    // TODO use extract_if()
-    void visit(VisitCallback cb, LocalEnvironment *env, LocalDatabase *db,
-            uint32_t flags) {
-      Page *head = m_totallist.head();
-      while (head) {
-        Page *next = head->get_next(Page::kListCache);
-
-        if (cb(head, env, db, flags)) {
-          remove_page(head);
-          delete head;
-        }
-        head = next;
-      }
-    }
+    // Visits all pages in the "totallist". If |cb| returns true then the
+    // page is removed and deleted. This is used by the Environment
+    // to flush (and delete) pages.
+    void purge_if(PurgeIfCallback cb, LocalEnvironment *env, LocalDatabase *db,
+                    uint32_t flags);
 
     // Returns the capacity (in bytes)
     size_t get_capacity() const {
@@ -200,7 +155,7 @@ class Cache
 
     // Returns the number of currently cached elements
     size_t get_current_elements() const {
-      return (m_cur_elements);
+      return (m_totallist.size());
     }
 
     // Returns the number of currently cached elements (excluding those that
@@ -216,17 +171,17 @@ class Cache
     }
 
   private:
-    // Returns true if the page can be purged: page must use allocated
-    // memory instead of an mmapped pointer; page must not be in use (= in
-    // a changeset) and not have cursors attached
-    bool can_purge_page(Page *page) {
-      if (page->is_allocated() == false)
-        return (false);
-      if (m_env->get_changeset().contains(page))
-        return (false);
-      if (page->get_cursor_list() != 0)
-        return (false);
-      return (true);
+    friend struct PageCollectionPurgeIfCallback;
+
+    void remove_page_unlocked(Page *page) {
+      ham_assert(page->get_address() != 0);
+      size_t hash = calc_hash(page->get_address());
+      /* remove the page from the cache buckets */
+      m_buckets[hash].remove(page->get_address());
+
+      /* remove it from the list of all cached pages */
+      if (m_totallist.remove(page) && page->is_allocated())
+        m_alloc_elements--;
     }
 
     // Calculates the hash of a page address
@@ -237,11 +192,11 @@ class Cache
     // the current Environment
     LocalEnvironment *m_env;
 
+    // A fast spinlock
+    Spinlock m_mutex;
+
     // the capacity (in bytes)
     uint64_t m_capacity;
-
-    // the current number of cached elements
-    size_t m_cur_elements;
 
     // the current number of cached elements that were allocated (and not
     // mapped)

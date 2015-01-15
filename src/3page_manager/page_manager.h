@@ -35,6 +35,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "3cache/cache.h"
+#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -60,9 +61,6 @@ class PageManager {
 
       // flag for alloc_page(): Do not persist the PageManager state to disk
       kDisableStoreState = 4,
-
-      // The amount of pages that are at least flushed in purge_cache()
-      kPurgeAtLeast = 20,
 
       // Only pages above this age are purged
       kPurgeThreshold = 100,

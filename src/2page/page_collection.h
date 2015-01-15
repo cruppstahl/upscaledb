@@ -16,7 +16,7 @@
 
 /*
  * @exception_safe: strong
- * @thread_safe: yes
+ * @thread_safe: no
  */
 
 #ifndef HAM_PAGE_COLLECTION_H
@@ -26,7 +26,6 @@
 
 #include <boost/atomic.hpp>
 
-#include "1base/spinlock.h"
 #include "1mem/mem.h"
 #include "2page/page.h"
 
@@ -55,42 +54,56 @@ class PageCollection {
       return (m_size);
     }
 
+    // Returns the first page where |predicate()| returns true. Starts at
+    // the tail.
+    template<typename Predicate>
+    Page *find_first_reverse(Predicate &predicate) {
+      for (Page *p = m_tail; p != 0; p = p->get_previous(m_id)) {
+        if (predicate(p))
+          return (p);
+      }
+      return (0);
+    }
+
     // Atomically applies the |visitor()| to each page
     template<typename Visitor>
     void for_each(Visitor &visitor) {
-      ScopedSpinlock lock(m_mutex);
       for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
         visitor(p);
       }
     }
 
-    // Same as |for_each()|, but calls |clear()| afterwards
+    // Same as |for_each()|, but removes the page if |visitor()| returns true
     template<typename Visitor>
     void extract(Visitor &visitor) {
-      ScopedSpinlock lock(m_mutex);
       visitor.prepare(m_size);
 
       Page *page = m_head;
       while (page) {
         Page *next = page->get_next(m_id);
-        if (visitor(page))
-          m_head = page->list_remove(m_head, m_id);
+        if (visitor(page)) {
+          remove_impl(page);
+        }
         page = next;
       }
-
-      m_head = 0;
-      m_size = 0;
     }
 
     // Clears the collection.
     void clear() {
-      ScopedSpinlock lock(m_mutex);
-      clear_nolock();
+      Page *page = m_head;
+      while (page) {
+        Page *next = page->get_next(m_id);
+        remove_impl(page);
+        page = next;
+      }
+
+      ham_assert(m_head == 0);
+      ham_assert(m_tail == 0);
+      ham_assert(m_size == 0);
     }
 
     // Returns a page from the collection
     Page *get(uint64_t address) const {
-      // ScopedSpinlock lock(m_mutex); TODO
       for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
         if (p->get_address() == address)
           return (p);
@@ -110,25 +123,17 @@ class PageCollection {
 
     // Removes a page from the collection
     void remove(uint64_t address) {
-      ScopedSpinlock lock(m_mutex);
       Page *page = get(address);
       if (page) {
-        m_head = page->list_remove(m_head, m_id);
-        ham_assert(m_size > 0);
-        --m_size;
+        remove_impl(page);
       }
     }
 
     // Removes a page from the collection. Returns true if the page was removed,
     // otherwise false (if the page was not in the list)
     bool remove(Page *page) {
-      ScopedSpinlock lock(m_mutex);
       if (contains(page)) {
-        m_head = page->list_remove(m_head, m_id);
-        if (m_tail == page)
-          m_tail = page->get_previous(m_id);
-        ham_assert(m_size > 0);
-        --m_size;
+        remove_impl(page);
         return (true);
       }
       return (false);
@@ -138,8 +143,6 @@ class PageCollection {
     // added, otherwise false (that's the case if the page is already part of
     // the list)
     bool add(Page *page) {
-      ScopedSpinlock lock(m_mutex);
-
       if (!contains(page)) {
         m_head = page->list_insert(m_head, m_id);
         if (!m_tail)
@@ -162,21 +165,13 @@ class PageCollection {
     }
     
   private:
-    // Clears the collection.
-    void clear_nolock() {
-      Page *page = m_head;
-      while (page) {
-        Page *next = page->get_next(m_id);
-        m_head = page->list_remove(m_head, m_id);
-        page = next;
-      }
-
-      m_head = 0;
-      m_size = 0;
+    void remove_impl(Page *page) {
+      m_head = page->list_remove(m_head, m_id);
+      if (m_tail == page)
+        m_tail = page->get_previous(m_id);
+      ham_assert(m_size > 0);
+      --m_size;
     }
-
-    // A fast mutex
-    Spinlock m_mutex;
 
     // The head of the linked list
     Page *m_head;
