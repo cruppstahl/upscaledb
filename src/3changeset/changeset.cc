@@ -67,11 +67,12 @@ struct PageCollectionVisitor
     pages = Memory::allocate<Page *>(sizeof(Page *) * size);
   }
 
-  void operator()(Page *page) {
+  bool operator()(Page *page) {
     if (page->is_dirty() == true) {
       pages[num_pages] = page;
       ++num_pages;
     }
+    return (true);
   }
 
   int num_pages;

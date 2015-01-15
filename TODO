@@ -923,11 +923,14 @@ o Concurrency: move "purge cache" to background
         x Use this in the Changeset
 
 =====================================
+    x Use PageCollection for the Page list
     o Use PageCollection for the Cache buckets
+        x must keep track of the *tail* as well!
         o fix the TODOs
+        o if the Cache is thread safe - should the PageCollection also be
+            thread safe?? locking twice does not make sense, and the Changeset
+            (currently) does not require locking
 =====================================
-    o Use PageCollection for the Page list
-        (or can we get rid of Cache::m_totallist?)
 
 <<<<<<< HEAD
     o Create a background thread

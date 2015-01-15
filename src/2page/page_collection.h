@@ -39,7 +39,7 @@ class PageCollection {
   public:
     // Default constructor
     PageCollection(int list_id)
-      : m_head(0), m_size(0), m_id(list_id) {
+      : m_head(0), m_tail(0), m_size(0), m_id(list_id) {
     }
 
     // Destructor
@@ -73,8 +73,8 @@ class PageCollection {
       Page *page = m_head;
       while (page) {
         Page *next = page->get_next(m_id);
-        visitor(page);
-        m_head = page->list_remove(m_head, m_id);
+        if (visitor(page))
+          m_head = page->list_remove(m_head, m_id);
         page = next;
       }
 
@@ -98,6 +98,16 @@ class PageCollection {
       return (0);
     }
 
+    // Returns the head
+    Page *head() const {
+      return (m_head);
+    }
+
+    // Returns the tail
+    Page *tail() const {
+      return (m_tail);
+    }
+
     // Removes a page from the collection
     void remove(uint64_t address) {
       ScopedSpinlock lock(m_mutex);
@@ -109,24 +119,31 @@ class PageCollection {
       }
     }
 
-    // Removes a page from the collection
-    void remove(Page *page) {
+    // Removes a page from the collection. Returns true if the page was removed,
+    // otherwise false (if the page was not in the list)
+    bool remove(Page *page) {
       ScopedSpinlock lock(m_mutex);
       if (contains(page)) {
         m_head = page->list_remove(m_head, m_id);
+        if (m_tail == page)
+          m_tail = page->get_previous(m_id);
         ham_assert(m_size > 0);
         --m_size;
+        return (true);
       }
+      return (false);
     }
 
-    // Adds a new page to the collection. Returns true if the page was added,
-    // otherwise false (that's the case if the page is already part of
+    // Adds a new page at the head of the list. Returns true if the page was
+    // added, otherwise false (that's the case if the page is already part of
     // the list)
     bool add(Page *page) {
       ScopedSpinlock lock(m_mutex);
 
       if (!contains(page)) {
         m_head = page->list_insert(m_head, m_id);
+        if (!m_tail)
+          m_tail = page;
         ++m_size;
         return (true);
       }
@@ -163,6 +180,9 @@ class PageCollection {
 
     // The head of the linked list
     Page *m_head;
+
+    // The tail of the linked list
+    Page *m_tail;
 
     // Number of elements in the list
     int m_size;

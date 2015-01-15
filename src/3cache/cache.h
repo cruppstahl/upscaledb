@@ -63,7 +63,7 @@ class Cache
     Cache(LocalEnvironment *env,
             uint64_t capacity_bytes = HAM_DEFAULT_CACHE_SIZE)
       : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
-        m_alloc_elements(0), m_totallist(0), m_totallist_tail(0),
+        m_alloc_elements(0), m_totallist(Page::kListCache),
         m_buckets(kBucketSize, PageCollection(Page::kListBucket)),
         m_cache_hits(0), m_cache_misses(0) {
       ham_assert(m_capacity > 0);
@@ -84,9 +84,8 @@ class Cache
       // Now re-insert the page at the head of the "totallist", and
       // thus move far away from the tail. The pages at the tail are highest
       // candidates to be deleted when the cache is purged.
-      // TODO this is not atomic!
-      remove_page(page);
-      put_page(page);
+      m_totallist.remove(page);
+      m_totallist.add(page);
 
       m_cache_hits++;
 
@@ -99,19 +98,13 @@ class Cache
 
       ham_assert(page->get_data());
 
-      /* first remove the page from the cache, if it's already cached
+      /* First remove the page from the cache, if it's already cached
        *
-       * we re-insert the page because we want to make sure that the
-       * cache->_totallist_tail pointer is updated and that the page
-       * is inserted at the HEAD of the list
+       * Then re-insert the page at the head of the list. The tail will
+       * point to the least recently used page.
        */
-      if (page->is_in_list(m_totallist, Page::kListCache))
-        remove_page(page);
-
-      /* now (re-)insert into the list of all cached pages, and increment
-       * the counter */
-      ham_assert(!page->is_in_list(m_totallist, Page::kListCache));
-      m_totallist = page->list_insert(m_totallist, Page::kListCache);
+      m_totallist.remove(page);
+      m_totallist.add(page);
 
       m_cur_elements++;
       if (page->is_allocated())
@@ -122,43 +115,21 @@ class Cache
        * !!!
        * to avoid inserting the page twice, we first remove it from the
        * bucket
-       *
-       * TODO not thread safe!
        */
-      if (m_buckets[hash].contains(page))
-        m_buckets[hash].remove(page->get_address());
-      ham_assert(!m_buckets[hash].contains(page));
+      m_buckets[hash].remove(page->get_address());
       m_buckets[hash].add(page);
-
-      /* is this the chronologically oldest page? then set the pointer */
-      if (!m_totallist_tail)
-        m_totallist_tail = page;
     }
 
     // Removes a page from the cache
     void remove_page(Page *page) {
-      bool removed = false;
-
-      /* are we removing the chronologically oldest page? then
-       * update the pointer with the next oldest page */
-      if (m_totallist_tail == page)
-        m_totallist_tail = page->get_previous(Page::kListCache);
+      ham_assert(page->get_address() != 0);
 
       /* remove the page from the cache buckets */
-      if (page->get_address()) {
-        size_t hash = calc_hash(page->get_address());
-        if (m_buckets[hash].contains(page)) {
-          m_buckets[hash].remove(page->get_address());
-        }
-      }
+      size_t hash = calc_hash(page->get_address());
+      m_buckets[hash].remove(page->get_address());
 
       /* remove it from the list of all cached pages */
-      if (page->is_in_list(m_totallist, Page::kListCache)) {
-        m_totallist = page->list_remove(m_totallist, Page::kListCache);
-        removed = true;
-      }
-      /* decrease the number of cached elements */
-      if (removed) {
+      if (m_totallist.remove(page)) {
         m_cur_elements--;
         if (page->is_allocated())
           m_alloc_elements--;
@@ -169,11 +140,14 @@ class Cache
 
     // Purges the cache; the callback is called for every page that needs
     // to be purged
+    //
+    // TODO
+    // rewrite w/ extract()
     void purge(PurgeCallback cb, PageManager *pm, unsigned limit) {
       unsigned i = 0;
 
       /* get the chronologically oldest page */
-      Page *oldest = m_totallist_tail;
+      Page *oldest = m_totallist.tail();
       if (!oldest)
         return;
 
@@ -203,9 +177,11 @@ class Cache
 
     // Visits all pages in the "totallist"; this is used by the Environment
     // to flush (and delete) pages
+    //
+    // TODO use extract_if()
     void visit(VisitCallback cb, LocalEnvironment *env, LocalDatabase *db,
             uint32_t flags) {
-      Page *head = m_totallist;
+      Page *head = m_totallist.head();
       while (head) {
         Page *next = head->get_next(Page::kListCache);
 
@@ -258,11 +234,6 @@ class Cache
       return ((size_t)(o % kBucketSize));
     }
 
-    // Sets the HEAD of the global page list
-    void set_totallist(Page *l) {
-      m_totallist = l;
-    }
-
     // the current Environment
     LocalEnvironment *m_env;
 
@@ -277,11 +248,7 @@ class Cache
     size_t m_alloc_elements;
 
     // linked list of ALL cached pages
-    Page *m_totallist;
-
-    // the tail of the linked "totallist" - this is the oldest element,
-    // and therefore the highest candidate for a flush
-    Page *m_totallist_tail;
+    PageCollection m_totallist;
 
     // The hash table buckets - a linked list of Page pointers
     std::vector<PageCollection> m_buckets;
