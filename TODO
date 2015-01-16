@@ -933,6 +933,7 @@ o Concurrency: move "purge cache" to background
     x the PageManager must be thread-safe - no, it's enough if
         PageManager::purge_cache is thread-safe (that's the case)
 
+<<<<<<< HEAD
     o Run performance tests
 
 <<<<<<< HEAD
@@ -997,16 +998,25 @@ o Concurrency: move "purge cache" to background
 >>>>>>> More work on the PageCollection
         o can be woken up by the main thread
 =======
+=======
+    x Create a background thread (use boost::thread)
+>>>>>>> Added a worker thread
         x make sure that configure.ac checks for boost::thread
-    o Join thread when closing the Environment
-    o need a non-blocking message queue
+    x Join thread when closing the Environment
+    x thread should sleep till it's woken up, either by a new
+        message or by shutdown
+    o need a fast double-linked message queue
     o thread skips all non-mandatory messages when shutting down
 
+<<<<<<< HEAD
 >>>>>>> PageCollection is now back to the intrusive list
+=======
+    o Run performance tests
+
+>>>>>>> Added a worker thread
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
-    o thread calls Cache::purge every 0.1 sec, or more often if the cache
-        is full and less often if it's not
+    o wake up thread if cache is full
 
     o run performance tests
     o and run the leveldb benchmarks
@@ -1157,6 +1167,7 @@ o refactoring: db_local.cc has so many TODOs!
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
 <<<<<<< HEAD
+<<<<<<< HEAD
     -> clean up the whole Cursor stuff
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1205,6 +1216,8 @@ o refactoring: clean up the whole Database code; it's too much and too
 >>>>>>> Refactoring of LocalDatabase::erase, cursor_erase
 =======
 >>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
+=======
+>>>>>>> Added a worker thread
     o the whole cursor state is messed up. there should be 3 states:
         - nil
         - coupled to btree
@@ -1216,6 +1229,7 @@ o refactoring: clean up the whole Database code; it's too much and too
     o review if the Cursor class has access to any shared resource; what
         about the cursor list??
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1340,6 +1354,8 @@ o continue with concurrency...
         maybe become atomic. -> needs more thinking
 >>>>>>> Updated TODO file
 =======
+=======
+>>>>>>> Added a worker thread
 o continue with concurrency...
     next stage: flush changesets in background. this should work whenever
     recovery is enabled (with and without transactions)!
@@ -1351,8 +1367,20 @@ o continue with concurrency...
         o create N threads for ssds, depending on number of controllers
         -> make overwritable by parameter
 
+<<<<<<< HEAD
 >>>>>>> PageCollection now tracks the tail of a list
 
+=======
+o investigate "pointer swizzling": internal btree nodes should store "hints"
+    to the actual Page, not the Page IDs, as soon as the Page was loaded for
+    the first time. This could circumvent the buffer cache and increase
+    performance.
+    How to invalidate those hints or discover that a page was evicted from
+    cache?
+    - Eviction could only free the persistent part of a page, and not the
+        stub.
+    - Could also use reference counting for the page
+>>>>>>> Added a worker thread
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images

@@ -2,6 +2,7 @@
 SUBDIRS 			= ham_bench
 
 COMMON				= getopts.h getopts.c common.h common.c
+BOOST_LIBS			= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
 
 AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \
 					  -I../3rdparty/json
@@ -11,14 +12,14 @@ hamzilla_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                       $(top_builddir)/src/5server/libhamserver.la
 
 ham_info_SOURCES    = ham_info.cc $(COMMON)
-ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la $(BOOST_SYSTEM_LIBS)
+ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la $(BOOST_LIBS)
 
 ham_dump_SOURCES    = ham_dump.cc $(COMMON)
 ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la
 
 ham_export_SOURCES  = export.pb.cc ham_export.cc $(COMMON)
 ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a \
-					  -lprotobuf $(BOOST_SYSTEM_LIBS)
+					  -lprotobuf $(BOOST_LIBS)
 ham_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
 
 ham_import_SOURCES  = export.pb.cc ham_import.cc export.pb.h $(COMMON)

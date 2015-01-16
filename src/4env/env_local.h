@@ -45,6 +45,7 @@ class Journal;
 class PageManager;
 class BlobManager;
 class LocalTransaction;
+class Worker;
 
 //
 // The Environment implementation for local file access
@@ -180,6 +181,9 @@ class LocalEnvironment : public Environment
 
     // The logical journal
     ScopedPtr<Journal> m_journal;
+
+    // The worker thread
+    ScopedPtr<Worker> m_worker;
 };
 
 } // namespace hamsterdb

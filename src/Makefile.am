@@ -110,14 +110,16 @@ libhamsterdb_la_SOURCES = \
 	4txn/txn_remote.cc \
 	4txn/txn_remote.h \
 	4txn/txn.h \
+	4worker/worker.h \
 	5hamsterdb/hamsterdb.cc \
 	5hamsterdb/hola.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
-libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)
-libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS)
+libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)	\
+		$(BOOST_THREAD_LDFLAGS)
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE

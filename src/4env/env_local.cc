@@ -30,6 +30,7 @@
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
 #include "4txn/txn_cursor.h"
+#include "4worker/worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -102,6 +103,9 @@ LocalEnvironment::create()
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
     m_page_manager->flush_page(m_header->get_header_page());
+
+  /* last step: start the worker thread */
+  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -219,6 +223,9 @@ fail_with_fake_cleansing:
     if (get_flags() & HAM_ENABLE_RECOVERY)
       get_changeset().clear();
   }
+
+  /* last step: start the worker thread */
+  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -363,6 +370,10 @@ LocalEnvironment::close(uint32_t flags)
 {
   ham_status_t st;
   Device *device = get_device();
+
+  /* wait for the worker thread to stop */
+  if (m_worker.get())
+    m_worker->stop_and_join();
 
   /* flush all committed transactions */
   if (get_txn_manager())

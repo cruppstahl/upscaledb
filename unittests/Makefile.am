@@ -4,6 +4,8 @@ EXTRA_DIST      = recovery.pl valgrind.supp data/*
 noinst_PROGRAMS = test recovery issue32 issue43
 noinst_BIN      = test recovery issue32 issue43
 
+BOOST_LIBS		= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) $(BOOST_FILESYSTEM_LIBS)
+BOOST_FLAGS     = $(BOOST_SYSTEM_LDFLAGS) $(BOOST_THREAD_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
 
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include -I../src
 
@@ -79,11 +81,11 @@ test_SOURCES    = api110.cpp \
 recovery_SOURCES = recovery.cpp
 
 test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
-				  $(BOOST_SYSTEM_LIBS) $(BOOST_FILESYSTEM_LIBS) -lpthread -ldl
+				  $(BOOST_LIBS) -lpthread -ldl
 recovery_LDADD  = $(top_builddir)/src/.libs/libhamsterdb.a \
-				  $(BOOST_SYSTEM_LIBS) $(BOOST_FILESYSTEM_LIBS) -lpthread -ldl
-test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
-recovery_LDFLAGS= $(BOOST_SYSTEM_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
+				  $(BOOST_LIBS) -lpthread -ldl
+test_LDFLAGS    = $(BOOST_FLAGS)
+recovery_LDFLAGS= $(BOOST_FLAGS)
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
