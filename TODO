@@ -1005,8 +1005,11 @@ o Concurrency: move "purge cache" to background
     x Join thread when closing the Environment
     x thread should sleep till it's woken up, either by a new
         message or by shutdown
-    o need a fast double-linked message queue
-    o thread skips all non-mandatory messages when shutting down
+    x need a fast double-linked message queue
+    x wake up thread when new messages arrive
+    x thread skips all non-mandatory messages when shutting down
+    o some tasks should only exist once, i.e. purging the cache. no need to
+        add it to the queue multiple times
 
 <<<<<<< HEAD
 >>>>>>> PageCollection is now back to the intrusive list

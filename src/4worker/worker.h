@@ -26,8 +26,8 @@
 
 #include <boost/thread.hpp>
 
-#include "ham/hamsterdb_int.h"
-
+// Always verify that a file of level N does not include headers > N!
+#include "2queue/queue.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
@@ -41,6 +41,13 @@ class Worker
   public:
     Worker(LocalEnvironment *env)
       : m_env(env), m_stop_requested(false), m_thread(&Worker::run, this) {
+    }
+
+    void add_to_queue(MessageBase *message) {
+      m_queue.push(message);
+
+      ScopedLock lock(m_mutex);
+      m_cond.notify_one();
     }
 
     void stop_and_join() {
@@ -59,6 +66,16 @@ class Worker
       while (!m_stop_requested) {
         m_cond.wait(lock); // will unlock m_mutex while waiting
 
+        MessageBase *message;
+        while ((message = m_queue.pop()) != 0) {
+          // ignore the message if stop was requested and the message is not
+          // mandatory
+          if ((m_stop_requested && message->flags & MessageBase::kIsMandatory)
+                  || !m_stop_requested) {
+            // handle the message
+          }
+          delete message;
+        }
         //m_env->get_page_manager()->purge_cache();
         //boost::this_thread::yield();
       }
@@ -67,17 +84,20 @@ class Worker
     // The Environment which created the thread
     LocalEnvironment *m_env;
 
+    // A queue for storing messages
+    Queue m_queue;
+
     // true if the Environment is closed
     bool m_stop_requested;
-
-    // The actual thread
-    boost::thread m_thread;
 
     // A mutex for protecting |m_cond|
     boost::mutex m_mutex;
 
     // A condition to wait for
     boost::condition_variable m_cond;
+
+    // The actual thread
+    boost::thread m_thread;
 };
 
 } // namespace hamsterdb
