@@ -165,12 +165,6 @@ File::munmap(void *buffer, size_t size)
 }
 
 void
-File::madvice_dontneed(void *buffer, size_t size)
-{
-  // afaik not available on Win32
-}
-
-void
 File::pread(uint64_t addr, void *buffer, size_t len)
 {
   ham_status_t st;
