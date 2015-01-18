@@ -1015,13 +1015,28 @@ o Concurrency: move "purge cache" to background
 >>>>>>> PageCollection is now back to the intrusive list
 =======
     o Run performance tests
+        The cache evicts too fast, i.e. 2.1.9 page_count_fetched 0 -> 9998088
+        o --seed=12345 --stop-ops=10000000 --key=uint16
+        o --seed=12345 --stop-ops=50000 --key=uint16
+        o --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        o --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        o --seed=1380279291 --stop-ops=1000000 --key=uint16
 
+<<<<<<< HEAD
 >>>>>>> Added a worker thread
     o page must not be purged while it's "in use"
     o mark page as "in use" during purge
     o wake up thread if cache is full
+=======
+    o move page flush in background
+        o page must not be purged while it's "in use"
+        o mark page as "in use" during purge
+        o wake up thread if cache is full
 
-    o run performance tests
+    o run performance tests again
+        o also for > 10 million inserts
+>>>>>>> Updated TODO
+
     o and run the leveldb benchmarks
 <<<<<<< HEAD
 <<<<<<< HEAD
