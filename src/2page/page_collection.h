@@ -121,14 +121,6 @@ class PageCollection {
       return (m_tail);
     }
 
-    // Removes a page from the collection
-    void remove(uint64_t address) {
-      Page *page = get(address);
-      if (page) {
-        remove_impl(page);
-      }
-    }
-
     // Removes a page from the collection. Returns true if the page was removed,
     // otherwise false (if the page was not in the list)
     bool remove(Page *page) {
@@ -166,9 +158,11 @@ class PageCollection {
     
   private:
     void remove_impl(Page *page) {
-      m_head = page->list_remove(m_head, m_id);
+      // First update the tail because Page::list_remove() will change the
+      // pointers!
       if (m_tail == page)
         m_tail = page->get_previous(m_id);
+      m_head = page->list_remove(m_head, m_id);
       ham_assert(m_size > 0);
       --m_size;
     }

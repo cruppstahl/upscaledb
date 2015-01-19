@@ -429,6 +429,7 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
+<<<<<<< HEAD
 o crash when env is opened
     insert w/ overwrite: 1104669304804000000
     txn id = 1333
@@ -449,6 +450,8 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         o a new option for long, extensive statistics
 >>>>>>> Started with PageCollection
 
+=======
+>>>>>>> Fixing a performance regression/bug in PageCollection
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
@@ -1008,19 +1011,21 @@ o Concurrency: move "purge cache" to background
     x need a fast double-linked message queue
     x wake up thread when new messages arrive
     x thread skips all non-mandatory messages when shutting down
-    o some tasks should only exist once, i.e. purging the cache. no need to
-        add it to the queue multiple times
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> PageCollection is now back to the intrusive list
 =======
     o Run performance tests
+=======
+    x Run performance tests
+>>>>>>> Fixing a performance regression/bug in PageCollection
         The cache evicts too fast, i.e. 2.1.9 page_count_fetched 0 -> 9998088
-        o --seed=12345 --stop-ops=10000000 --key=uint16
-        o --seed=12345 --stop-ops=50000 --key=uint16
-        o --seed=1380279291 --stop-ops=1000000 --distribution=ascending
-        o --seed=1380279291 --stop-ops=1000000 --distribution=ascending
-        o --seed=1380279291 --stop-ops=1000000 --key=uint16
+        x --seed=12345 --stop-ops=10000000 --key=uint16
+        x --seed=12345 --stop-ops=50000 --key=uint16
+        x --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        x --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        x --seed=1380279291 --stop-ops=1000000 --key=uint16
 
 <<<<<<< HEAD
 >>>>>>> Added a worker thread
@@ -1029,9 +1034,20 @@ o Concurrency: move "purge cache" to background
     o wake up thread if cache is full
 =======
     o move page flush in background
+        -> A page is in use when it's added to a Changeset. However, pages that
+            are fetched read-only are never added. Have to find a solution
+            for them.
+        o wrap Changeset::flush and Changeset::clear into
+            LocalEnvironment::finalize_operation(abort/commit)
+        o always add a page to the Changeset, even if in-memory or
+            recovery is disabled; make sure this is an atomic operation!
+        o page needs a mutex or atomic state ("unused", "in-use", "flushing")
+
         o page must not be purged while it's "in use"
         o mark page as "in use" during purge
         o wake up thread if cache is full
+        o some tasks should only exist once, i.e. purging the cache. no need to
+            add it to the queue multiple times
 
     o run performance tests again
         o also for > 10 million inserts
@@ -1046,8 +1062,15 @@ o Concurrency: move "purge cache" to background
 >>>>>>> PageCollection now tracks the tail of a list
     o use valgrind to check for race conditions etc 
 
-    o review comment in Cache::purge and rewrite
+    o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
+
+o PRO: retrieve better statistics regarding compression/overhead/payload
+    o for each page retrieve those statistics and print them 
+    o extend ham_info
+        o by default, no new stats are printed
+        o a new option for brief, consolidated statistics
+        o a new option for long, extensive statistics
 
 o PRO: add more simdcomp related functions for blocks < 128 integers
     o for compression
@@ -1602,7 +1625,8 @@ o PRO: use compression also for duplicate records
 
 
 o refactoring: create a Update structure whenever a database is modified;
-    it consists of the operation type, key, record (optional), operation flags,
+    -> Also see "DeltaUpdate" story; it will use an identical structure.
+    It consists of the operation type, key, record (optional), operation flags,
     ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
     class.
     This structure is then forwarded to the journal, and to all BtreeActions.
@@ -1618,21 +1642,18 @@ o refactoring: create a Update structure whenever a database is modified;
     o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
 
 o delta updates managed in the BtreeNode
-    the operations are attached to the node, but as soon as the node
-    is accessed for a lookup or a scan, or immediately before the node
-    is flushed, the deltas are merged into the node. So far this does not
-    sound too efficient, but the bulk updates in combination with the
-    key compression (i.e. for prefix compression) will benefit a lot.
+    Updates are attached to a node. A background thread can merge them.
+    At runtime, they're consolidated. An Update can be part of a Transaction.
+    The existing TransactionOperation structure is replaced. The whole
+    Transaction handling will be rewritten. Instead of using separate
+    TransactionTrees, the Updates are attached to the node.
 
-    Also, they are really required for concurrency and to allow multiple
-    writers in parallel.
+    Updates are a sorted linked list. Prior to merge, those Updates that delete
+    keys will be applied.
 
-    these DUs are *very* similar to TransactionOperations; can both be
-    combined? We already consolidate Txns with the Btree. If the Txns are
-    based on DUs and attached to the BtreeNode (instead to a separate TxnTree)
-    then both can be consolidated in a single sweep. Committing/Aborting
-    becomes O(1), and the background thread can then flush them do disk.
-
+    When pages are merged or split then the delta updates are moved to the
+    new page. They are not merged immediately.
+       
     -> Flushes/Merges happen in background
     -> Transactions, Commits and Btree operations are completely decoupled.
         This requires a new recovery/logging strategy!
@@ -1640,19 +1661,15 @@ o delta updates managed in the BtreeNode
         compactions in the background
     -> Needs more research...
 
-    x perform a benchmark/profiling: random inserts vs. ascending inserts;
-        the difference should be caused by memcopy/memmove (is it?)
-        x PAX
-            -> absolutely worth the effort, about 60% are spent in memmove
-        x Default
-            -> also worth the effort, about 15% are spent in memmove
+    o rename TransactionOperation to Update, decouple code from txn
+    o The BtreeNodeProxy manages a (single) linked list of Updates
+    o New Updates are added at the front
+    o Make sure that all node-operations take the Updates into account
+        o first stage: merge them (sort, remove Erase-Updates, apply Inserts)
+        o second stage: consolidate the Updates and avoid merges
+        o insert: take delta updates into account when splitting pages
+        o when splitting pages: re-distribute the Updates, don't apply them
 
-    o need a flag to disable DeltaUpdates
-        o add flag to ham_bench
-    o rename TransactionOperation to DeltaUpdate, decouple code from txn
-    o totally transparent to the caller, handled in the proxy
-    o only add deltas to leaf nodes; internal nodes have too many read
-        operations and would anyway require immediate flushes
     o DeltaUpdate objects from a txn-flush should directly go down to
         the node (detach from txn, attach to node)
     o should the the insert + set_record operations be combined into a
@@ -1671,6 +1688,9 @@ o delta updates managed in the BtreeNode
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
+    . Add deltas to leaf nodes, but not to internal nodes; internal nodes
+        have too many read operations and would anyway require immediate
+        flushes (really?)
 
 
 <<<<<<< HEAD

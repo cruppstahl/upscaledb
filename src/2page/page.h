@@ -368,6 +368,8 @@ class Page {
     }
 
   private:
+    friend class PageCollection;
+
     // Sets the previous page of a linked list
     void set_previous(int list, Page *other) {
       m_prev[list] = other;

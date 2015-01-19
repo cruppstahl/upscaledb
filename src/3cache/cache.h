@@ -115,13 +115,6 @@ class Cache
       if (page->is_allocated())
         m_alloc_elements++;
 
-      /*
-       * insert it in the cache buckets
-       * !!!
-       * to avoid inserting the page twice, we first remove it from the
-       * bucket
-       */
-      m_buckets[hash].remove(page);
       m_buckets[hash].add(page);
     }
 
@@ -177,7 +170,7 @@ class Cache
       ham_assert(page->get_address() != 0);
       size_t hash = calc_hash(page->get_address());
       /* remove the page from the cache buckets */
-      m_buckets[hash].remove(page->get_address());
+      m_buckets[hash].remove(page);
 
       /* remove it from the list of all cached pages */
       if (m_totallist.remove(page) && page->is_allocated())
