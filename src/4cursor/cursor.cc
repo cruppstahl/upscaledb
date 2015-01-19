@@ -231,40 +231,37 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
     *equal_keys = false;
 
   if (is_nil(kBtree)) {
-    TransactionNode *node;
-    ham_key_t *k;
     if (!m_txn_cursor.get_coupled_op())
       return;
-    node = m_txn_cursor.get_coupled_op()->get_node();
-    k = node->get_key();
+    ham_key_t *key = m_txn_cursor.get_coupled_op()->get_node()->get_key();
 
     if (!(flags & kSyncOnlyEqualKeys))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
                 ? HAM_FIND_GEQ_MATCH
                 : HAM_FIND_LEQ_MATCH);
-    /* the flag DONT_LOAD_KEY does not load the key if there's an
+    /* the flag |kSyncDontLoadKey| does not load the key if there's an
      * approx match - it only positions the cursor */
-    ham_status_t st = m_btree_cursor.find(k, 0, 0, 0, kSyncDontLoadKey | flags);
+    ham_status_t st = m_btree_cursor.find(key, 0, 0, 0,
+                            kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
-     * set fresh_start to false; otherwise do_local_cursor_move
+     * set |equal_keys| to false; otherwise Cursor::move()
      * will move the btree cursor again */
-    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(k))
+    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(key))
       *equal_keys = true;
   }
   else if (is_nil(kTxn)) {
-    ham_key_t *k;
     Cursor *clone = get_db()->cursor_clone(this);
     clone->m_btree_cursor.uncouple_from_page();
-    k = clone->m_btree_cursor.get_uncoupled_key();
+    ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
     if (!(flags & kSyncOnlyEqualKeys))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
           ? HAM_FIND_GEQ_MATCH
           : HAM_FIND_LEQ_MATCH);
-    ham_status_t st = m_txn_cursor.find(k, kSyncDontLoadKey | flags);
+    ham_status_t st = m_txn_cursor.find(key, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
-    * set fresh_start to false; otherwise do_local_cursor_move
+    * set |equal_keys| to false; otherwise Cursor::move()
     * will move the btree cursor again */
-    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(k))
+    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(key))
       *equal_keys = true;
     get_db()->cursor_close(clone);
   }

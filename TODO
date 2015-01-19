@@ -566,6 +566,8 @@ o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
 o refactoring: db_local.cc has so many TODOs!
+    o erase_impl: move cursor-related code to the caller
+    o erase_impl: move sanity checks about key->size to erase()
 
 . refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,

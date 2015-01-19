@@ -965,12 +965,15 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
     bool is_equal;
     (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
-    //if (!is_equal)
-      //cursor->set_to_nil(Cursor::kBtree);
+    if (!is_equal && cursor->is_coupled_to_txnop())
+      cursor->set_to_nil(Cursor::kBtree);
   }
 
   /* if the key has duplicates: build a duplicate table, then couple to the
    * first/oldest duplicate */
+  if (get_rt_flags() & HAM_ENABLE_DUPLICATES)
+    cursor->clear_dupecache();
+
   if (cursor->get_dupecache_count()) {
     DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
     if (e->use_btree())
