@@ -16,6 +16,8 @@
 
 #include "0root/root.h"
 
+#include <boost/scope_exit.hpp>
+
 // Always verify that a file of level N does not include headers > N!
 #include "1mem/mem.h"
 #include "1os/os.h"
@@ -36,6 +38,12 @@
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
 #endif
+
+#define FINALIZE_ON_SCOPE_EXIT(db, st, txn)                 \
+  LocalDatabase *db__ = db;                                 \
+  BOOST_SCOPE_EXIT(db__, st, txn) {                         \
+    db__->finalize(st, txn);                                \
+  } BOOST_SCOPE_EXIT_END
 
 namespace hamsterdb {
 
@@ -1163,7 +1171,10 @@ ham_status_t
 LocalDatabase::cursor_overwrite(Cursor *cursor,
           ham_record_t *record, uint32_t flags)
 {
+  ham_status_t st = 0;
   Transaction *local_txn = 0;
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
 
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
@@ -1176,33 +1187,16 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   }
 
   /* this function will do all the work */
-  ham_status_t st = cursor->overwrite(cursor->get_txn()
-                                        ? cursor->get_txn()
-                                        : local_txn,
-                                      record, flags);
+  st = cursor->overwrite(cursor->get_txn()
+                                  ? cursor->get_txn()
+                                  : local_txn,
+                                record, flags);
 
   /* if we created a temp. txn then clean it up again */
   if (local_txn)
     cursor->set_txn(0);
 
-  if (st) {
-    if (local_txn)
-      get_local_env()->get_txn_manager()->abort(local_txn);
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  /* the journal entry is appended in insert_txn() */
-
-  if (local_txn)
-    get_local_env()->get_txn_manager()->commit(local_txn);
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
->>>>>>> More refactoring, wip
-    get_local_env()->get_changeset().flush();
-  }
-
-  return (0);
+  return (finalize(st, local_txn));
 }
 
 ham_status_t
@@ -1521,7 +1515,11 @@ ham_status_t
 LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  ham_status_t st = 0;
   LocalTransaction *local_txn = 0;
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
@@ -1624,7 +1622,6 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
-  ham_status_t st;
   if (txn)
     st = insert_txn(txn, key, record, flags, cursor
                                                 ? cursor->get_txn_cursor()
@@ -1636,26 +1633,8 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
   if (cursor && local_txn)
     cursor->set_txn(0);
 
-  if (st) {
-    if (local_txn) {
-      get_local_env()->get_changeset().clear();
-      get_local_env()->get_txn_manager()->abort(local_txn);
-    }
-
-    if ((get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))
-          && !(flags & HAM_OVERWRITE)) {
-      if (!(key->flags & HAM_KEY_USER_ALLOC)) {
-        key->data = 0;
-        key->size = 0;
-      }
-      ham_assert(st != HAM_DUPLICATE_KEY);
-    }
-
-    return (st);
-  }
-
   // couple the cursor to the inserted key
-  if (cursor) {
+  if (st == 0 && cursor) {
     if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
       DupeCache *dc = cursor->get_dupecache();
       // TODO required? should have happened in insert_txn
@@ -1694,24 +1673,18 @@ LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     cursor->set_lastop(Cursor::kLookupOrInsert);
   }
 
-  if (local_txn) {
-    get_local_env()->get_changeset().clear();
-    get_local_env()->get_txn_manager()->commit(local_txn);
-  }
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->get_changeset().flush();
-  }
-
-  return (0);
+  return (finalize(st, local_txn));
 }
 
 ham_status_t
 LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st;
+  ham_status_t st = 0;
   LocalTransaction *local_txn = 0;
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
@@ -1748,22 +1721,21 @@ LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     st = m_btree_index->find(cursor, key, key_arena, record, rec_arena, flags);
   }
 
-  if (local_txn) {
-    get_local_env()->get_changeset().clear();
-    get_local_env()->get_txn_manager()->abort(local_txn);
+  if (cursor && local_txn)
+    cursor->set_txn(0);
 
-    if (cursor)
-      cursor->set_txn(0);
-  }
-
-  return (st);
+  return (finalize(st, local_txn));
 }
 
 ham_status_t
 LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                 uint32_t flags)
 {
+  ham_status_t st = 0;
   LocalTransaction *local_txn = 0;
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
   if (key) {
@@ -1787,7 +1759,6 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
    * if transactions are enabled: append a 'erase key' operation into
    * the txn tree; otherwise immediately erase the key from disk
    */
-  ham_status_t st;
   if (txn == 0) {
     st = m_btree_index->erase(cursor, key, 0, flags);
   }
@@ -1841,12 +1812,18 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     cursor->clear_dupecache(); // TODO merge with set_to_nil()
   }
 
-  if (st) {
+  return (finalize(st, local_txn));
+}
+
+ham_status_t
+LocalDatabase::finalize(ham_status_t status, Transaction *local_txn)
+{
+  if (status) {
     if (local_txn) {
       get_local_env()->get_changeset().clear();
       get_local_env()->get_txn_manager()->abort(local_txn);
     }
-    return (st);
+    return (status);
   }
 
   if (local_txn) {
@@ -1857,7 +1834,6 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
       && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     get_local_env()->get_changeset().flush();
   }
-
   return (0);
 }
 

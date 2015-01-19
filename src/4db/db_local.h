@@ -214,6 +214,11 @@ class LocalDatabase : public Database {
     ham_status_t erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                     uint32_t flags);
 
+    // Finalizes an operation by committing or aborting the |local_txn|
+    // and clearing or flushing the Changeset.
+    // Returns |status|.
+    ham_status_t finalize(ham_status_t status, Transaction *local_txn);
+
     // returns the next record number
     uint64_t get_incremented_recno() {
       m_recno++;

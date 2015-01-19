@@ -1037,8 +1037,11 @@ o Concurrency: move "purge cache" to background
         -> A page is in use when it's added to a Changeset. However, pages that
             are fetched read-only are never added. Have to find a solution
             for them.
-        o wrap Changeset::flush and Changeset::clear into
+        x wrap Changeset::flush and Changeset::clear into
             LocalEnvironment::finalize_operation(abort/commit)
+        x make sure this is called after every operation (exception safe!)
+            -> use BOOST_SCOPE_EXIT
+
         o always add a page to the Changeset, even if in-memory or
             recovery is disabled; make sure this is an atomic operation!
         o page needs a mutex or atomic state ("unused", "in-use", "flushing")
