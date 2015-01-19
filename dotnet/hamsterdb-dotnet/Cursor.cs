@@ -355,6 +355,68 @@ namespace Hamster
     }
 
     /// <summary>
+    /// Searches for a key and points the Cursor to this key
+    /// </summary>
+    /// <remarks>
+    /// This method wraps the native ham_cursor_find function.
+    /// <br />
+    /// Searches for an item in the Database and points the Cursor to this
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
+    /// <br />
+    /// If the key has multiple duplicates, the Cursor is positioned
+    /// on the first duplicate.
+    /// </remarks>
+    /// <param name="key">The key to search for</param>
+    /// <param name="flags">The flags, can be zero</param>
+    public byte[] TryFind(ref byte[] key, int flags)
+    {
+        int st;
+        byte[] record = null;
+        lock (db)
+        {
+            st = NativeMethods.CursorFind(handle, ref key, ref record, flags);
+        }
+        return record;
+    }
+
+    /// <summary>
+    /// Searches for a key and points the Cursor to this key
+    /// </summary>
+    /// <remarks>
+    /// This method wraps the native ham_cursor_find function.
+    /// <br />
+    /// Searches for an item in the Database and points the Cursor to this
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
+    /// <br />
+    /// If the key has multiple duplicates, the Cursor is positioned
+    /// on the first duplicate.
+    /// </remarks>
+    /// <param name="key">The key to search for</param>
+    /// <param name="flags">The flags, can be zero</param>
+    public byte[] TryFind(byte[] key, int flags)
+    {
+        return TryFind(ref key, flags);
+    }
+
+    /// <summary>
+    /// Searches for a key and points the Cursor to this key
+    /// </summary>
+    /// <remarks>
+    /// This method wraps the native ham_cursor_find function.
+    /// <br />
+    /// Searches for an item in the Database and points the Cursor to this
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
+    /// <br />
+    /// If the key has multiple duplicates, the Cursor is positioned
+    /// on the first duplicate.
+    /// </remarks>
+    /// <param name="key">The key to search for</param>
+    public byte[] TryFind(byte[] key)
+    {
+        return TryFind(ref key, 0);
+    }
+
+    /// <summary>
     /// Inserts a Database item and points the Cursor to the new item
     /// </summary>
     /// <remarks>

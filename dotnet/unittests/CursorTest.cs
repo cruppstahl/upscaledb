@@ -187,6 +187,24 @@ namespace Unittests
             checkEqual(r2, g);
         }
 
+        private void TryFind()
+        {
+            Cursor c = new Cursor(db);
+            byte[] k1 = new byte[5]; k1[0] = 5;
+            byte[] k2 = new byte[5]; k2[0] = 6;
+            byte[] k3 = new byte[5]; k3[0] = 7;
+            byte[] r1 = new byte[5]; r1[0] = 1;
+            byte[] r2 = new byte[5]; r2[0] = 2;
+            db.Insert(k1, r1);
+            db.Insert(k2, r2);
+            var f = c.TryFind(k1);
+            checkEqual(r1, f);
+            var g = c.TryFind(k2);
+            checkEqual(r2, g);
+            var h = c.TryFind(k3);
+            Assert.IsNull(h);
+        }
+
         private void Insert() {
             Cursor c = new Cursor(db);
             byte[] q;
@@ -377,6 +395,11 @@ namespace Unittests
             Console.WriteLine("CursorTest.Find");
             SetUp();
             Find();
+            TearDown();
+
+            Console.WriteLine("CursorTest.TryFind");
+            SetUp();
+            TryFind();
             TearDown();
 
             Console.WriteLine("CursorTest.Insert");
