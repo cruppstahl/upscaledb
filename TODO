@@ -1042,12 +1042,79 @@ o Concurrency: move "purge cache" to background
         x make sure this is called after every operation (exception safe!)
             -> use BOOST_SCOPE_EXIT
 
-        o always add a page to the Changeset, even if in-memory or
-            recovery is disabled; make sure this is an atomic operation!
-        o page needs a mutex or atomic state ("unused", "in-use", "flushing")
+        x always add a page to the Changeset, even if in-memory or
+            recovery is disabled
 
-        o page must not be purged while it's "in use"
-        o mark page as "in use" during purge
+        o Right now only the Cache uses a mutex. But we need to know
+            whether a page is in use (= in a changelog) or if it's purged.
+            x add a spinlock to the page
+            o Cache::get acquires the lock
+                o PageManager must deal with flushed pages (pers == 0)
+            o when removing from the changelog: unlock
+            o when writing to disk: acquire the lock; when flushing: set the
+                pers-pointer to null
+                o if enough pages were flushed: remove empty stubs from
+                    the list
+
+===============================================================
+in a perfect world...
+- there is a separation between
+    o mutable database state
+        btree nodes
+        blobs
+        env header
+        journal
+    o immutable database state
+        static parameters
+    o operation state (parameters)
+        insert
+        erase...
+    o the code
+- immutable state can be accessed concurrently, w/o locking and blocking.
+- mutable state is synchronized on the lowest level, with very short locks
+
+how can we get there?
+    - extract static database/environment state
+        (mostly done, but clean up the use of the header page)
+    - extract operation state/user parameters into separate structures
+        MutableOperation<State> -> insert, erase...
+        ImmutableOperation<State> -> lookups, get_parameters, ...
+        - create/abort/commit temp transactions in Operation
+        - flush/clear changeset in Operation
+        - make BtreeActions state-less and const
+            ("const BtreeFindAction bfa(...)");
+        - use "const" pages for immutable operations
+
+struct PageManager:
+    only public functions    
+struct PageManagerState:
+    state data w/ getters, setters (if required)
+page_manager.cc:
+    static functions w/ logic
+    PageManager implementation calls static functions
+PageManagerFactory::create(...)
+
+- branch topic/perfect-world
+    PageManager neu schreiben - perfekt machen!!
+        Factory
+        can we remove dependency to Environment?
+            take ownership of changeset
+            const ref to Environment::m_config
+            take ownership of header page
+        get
+        put
+        del
+        has
+    Cache neu schreiben
+        get
+        put
+        del
+        has
+    Environment neu schreiben
+    Database neu schreiben
+
+===============================================================
+
         o wake up thread if cache is full
         o some tasks should only exist once, i.e. purging the cache. no need to
             add it to the queue multiple times
@@ -1067,6 +1134,8 @@ o Concurrency: move "purge cache" to background
 
     o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
+
+    o run monster tests
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     o for each page retrieve those statistics and print them 
@@ -1516,6 +1585,7 @@ o refactoring: reduce complexities by introducing "Operations". Each
           op.commit() // also commits local_txn
         else
           op.abort() // also aborts local_txn
+<<<<<<< HEAD
 =======
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -1529,6 +1599,8 @@ o PRO: prefix compression for variable-length keys
     see indexcompression2009.pdf - Efficient index compression in DB2 LUW
     o look for more research papers
 >>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
+=======
+>>>>>>> Refactoring of PageManager
 
 o refactoring: db_local.cc has so many TODOs!
     o each operation should follow this pattern:

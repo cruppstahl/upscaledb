@@ -86,10 +86,10 @@ LocalEnvironment::create()
   m_header->set_max_databases(m_config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(new PageManager(this,
+  m_page_manager.reset(new PageManager(PageManagerState(this,
                           m_config.flags & HAM_CACHE_UNLIMITED
                               ? 0xffffffffffffffffull
-                              : m_config.cache_size_bytes));
+                              : m_config.cache_size_bytes)));
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -204,10 +204,10 @@ fail_with_fake_cleansing:
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(new PageManager(this,
+  m_page_manager.reset(new PageManager(PageManagerState(this,
                           m_config.flags & HAM_CACHE_UNLIMITED
                               ? 0xffffffffffffffffull
-                              : m_config.cache_size_bytes));
+                              : m_config.cache_size_bytes)));
 
   /*
    * open the logfile and check if we need recovery. first open the

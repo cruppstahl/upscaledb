@@ -123,11 +123,11 @@ struct BlobManagerFixture {
     uint64_t page_id = (blobid / lenv->get_page_size())
                             * lenv->get_page_size();
 
-    REQUIRE(lenv->get_page_manager()->is_page_free(page_id) == false);
+    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == false);
 
     m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
 
-    REQUIRE(lenv->get_page_manager()->is_page_free(page_id) == true);
+    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == true);
   }
 
   void replaceTest() {

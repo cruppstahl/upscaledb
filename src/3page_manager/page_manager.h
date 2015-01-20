@@ -46,224 +46,171 @@ namespace hamsterdb {
 class LocalDatabase;
 class LocalEnvironment;
 
-class PageManager {
-    // The freelist maps page-id to number of free pages (usually 1)
-    typedef std::map<uint64_t, size_t> FreeMap;
+struct PageManagerState {
+  // The freelist maps page-id to number of free pages (usually 1)
+  typedef std::map<uint64_t, size_t> FreeMap;
 
-  public:
-    // Flags for PageManager::alloc_page()
-    enum {
-      // flag for alloc_page(): Clear the full page with zeroes
-      kClearWithZero     = 1,
+  PageManagerState(LocalEnvironment *env, uint64_t cache_size);
 
-      // flag for alloc_page(): Ignores the freelist
-      kIgnoreFreelist    = 2,
+  // The current Environment handle
+  LocalEnvironment *env;
 
-      // flag for alloc_page(): Do not persist the PageManager state to disk
-      kDisableStoreState = 4,
+  // The cache
+  Cache cache;
 
-      // Only pages above this age are purged
-      kPurgeThreshold = 100,
+  // The map with free pages
+  FreeMap free_pages;
 
-      // Flag for fetch_page(): only fetches from cache, not from disk
-      kOnlyFromCache = 1,
+  // Whether |m_free_pages| must be flushed or not
+  bool needs_flush;
 
-      // Flag for fetch_page(): does not add page to the Changeset
-      kReadOnly = 2,
+  // Page with the persisted state data. If multiple pages are allocated
+  // then these pages form a linked list, with |m_state_page| being the head
+  Page *state_page;
 
-      // Flag for fetch_page(): page is part of a multi-page blob, has no header
-      kNoHeader = 4
-    };
+  // Cached page where to add more blobs
+  Page *last_blob_page;
 
-    // Default constructor
-    //
-    // The cache size is specified in bytes!
-    PageManager(LocalEnvironment *env, uint64_t cache_size);
+  // Page where to add more blobs - if |m_last_blob_page| was flushed
+  uint64_t last_blob_page_id;
 
-    // Loads the state from a blob
-    void load_state(uint64_t blobid);
+  // tracks number of fetched pages
+  uint64_t page_count_fetched;
 
-    // Stores the state to a blob; returns the blobid
-    uint64_t store_state();
+  // tracks number of flushed pages
+  uint64_t page_count_flushed;
 
-    // Fills in the current metrics for the PageManager, the Cache and the
-    // Freelist
-    void get_metrics(ham_env_metrics_t *metrics) const;
+  // tracks number of index pages
+  uint64_t page_count_index;
 
-    // Fetches a page from disk
-    //
-    // @param db The Database which fetches this page
-    // @param address The page's address
-    // @param flags bitwise OR'd: kOnlyFromCache, kReadOnly
-    Page *fetch_page(LocalDatabase *db, uint64_t address, uint32_t flags = 0);
+  // tracks number of blob pages
+  uint64_t page_count_blob;
 
-    // Allocates a new page
-    //
-    // @param db The Database which allocates this page
-    // @param page_type One of Page::TYPE_* in page.h
-    // @param flags kClearWithZero
-    Page *alloc_page(LocalDatabase *db, uint32_t page_type,
-                    uint32_t flags = 0);
+  // tracks number of page manager pages
+  uint64_t page_count_page_manager;
 
-    // Allocates multiple adjacent pages
-    //
-    // Used by the BlobManager to store blobs that span multiple pages
-    // Returns the first page in the list of pages
-    Page *alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages);
+  // tracks number of cache hits
+  uint64_t cache_hits;
 
-    // Flushes a Page to disk
-    void flush_page(Page *page) {
-      if (page->is_dirty()) {
-        m_page_count_flushed++;
-        page->flush();
-      }
-    }
+  // tracks number of cache misses
+  uint64_t cache_misses;
 
-    // Flush all pages, and clear the cache.
-    //
-    // Set |clear_cache| to true if you want the cache to be cleared
-    void flush_all_pages(bool clear_cache = false);
+  // number of successful freelist hits
+  uint64_t freelist_hits;
 
-    // Purges the cache if the cache limits are exceeded
-    void purge_cache();
+  // number of freelist misses
+  uint64_t freelist_misses;
+};
 
-    // Reclaim file space; truncates unused file space at the end of the file.
-    void reclaim_space();
+struct PageManager {
+  // Flags for PageManager::alloc_page()
+  enum {
+    // flag for alloc_page(): Clear the full page with zeroes
+    kClearWithZero     = 1,
 
-    // Flushes all pages of a database
-    void close_database(LocalDatabase *db);
+    // flag for alloc_page(): Ignores the freelist
+    kIgnoreFreelist    = 2,
 
-    // Adds a page (or many pages) to the freelist; will not do anything
-    // if the Environment is in-memory.
-    void add_to_freelist(Page *page, size_t page_count = 1);
+    // flag for alloc_page(): Do not persist the PageManager state to disk
+    kDisableStoreState = 4,
 
-    // Returns the Page pointer where we can add more blobs
-    Page *get_last_blob_page(LocalDatabase *db) {
-      if (m_last_blob_page)
-        return (m_last_blob_page);
-      if (m_last_blob_page_id)
-        return (fetch_page(db, m_last_blob_page_id));
-      return (0);
-    }
+    // Only pages above this age are purged
+    kPurgeThreshold = 100,
 
-    // Sets the Page pointer where we can add more blobs
-    void set_last_blob_page(Page *page) {
-      m_last_blob_page_id = 0;
-      m_last_blob_page = page;
-    }
+    // Flag for fetch_page(): only fetches from cache, not from disk
+    kOnlyFromCache = 1,
 
-    // Closes the PageManager; flushes all dirty pages
-    void close();
+    // Flag for fetch_page(): does not add page to the Changeset
+    kReadOnly = 2,
 
-    // Removes a page from the list; only for testing.
-    void test_remove_page(Page *page) {
-      m_cache.remove_page(page);
-    }
+    // Flag for fetch_page(): page is part of a multi-page blob, has no header
+    kNoHeader = 4
+  };
 
-    // Returns true if a page is free. Ignores multi-pages; only for
-    // testing and integrity checks
-    bool is_page_free(uint64_t pageid) {
-      FreeMap::iterator it = m_free_pages.find(pageid);
-      return (it != m_free_pages.end());
-    }
+  // Default constructor
+  //
+  // The cache size is specified in bytes!
+  PageManager(PageManagerState state);
 
-  private:
-    friend struct BlobManagerFixture;
-    friend struct PageManagerFixture;
-    friend struct LogHighLevelFixture;
+  // Loads the state from a blob
+  // TODO make private?
+  void load_state(uint64_t blobid);
 
-    // Fetches a page from the list
-    Page *fetch_page(uint64_t id) {
-      return (m_cache.get_page(id));
-    }
+  // Stores the state to a blob; returns the blobid
+  // TODO make private?
+  uint64_t store_state();
 
-    // Stores a page in the list
-    void store_page(Page *page, uint32_t flags = 0) {
-      m_cache.put_page(page);
+  // Fills in the current metrics for the PageManager, the Cache and the
+  // Freelist
+  void get_metrics(ham_env_metrics_t *metrics) const;
 
-      /* write to disk (if necessary) */
-      if (!(flags & kDisableStoreState) && !(flags & kReadOnly))
-        maybe_store_state();
-    }
+  // Fetches a page from disk
+  //
+  // @param db The Database which fetches this page
+  // @param address The page's address
+  // @param flags bitwise OR'd: kOnlyFromCache, kReadOnly
+  Page *fetch_page(LocalDatabase *db, uint64_t address, uint32_t flags = 0);
 
-    /* returns true if the cache is full */
-    bool cache_is_full() const {
-      return (m_cache.get_allocated_elements() * m_env->get_page_size()
-              > m_cache.get_capacity());
-    }
+  // Allocates a new page
+  //
+  // @param db The Database which allocates this page
+  // @param page_type One of Page::TYPE_* in page.h
+  // @param flags kClearWithZero
+  Page *alloc_page(LocalDatabase *db, uint32_t page_type,
+                  uint32_t flags = 0);
 
-    /* if recovery is enabled then immediately write the modified blob */
-    void maybe_store_state(bool force = false) {
-      if (force || (m_env->get_flags() & HAM_ENABLE_RECOVERY)) {
-        uint64_t new_blobid = store_state();
-        if (new_blobid != m_env->get_header()->get_page_manager_blobid()) {
-          m_env->get_header()->set_page_manager_blobid(new_blobid);
-          m_env->get_header()->get_header_page()->set_dirty(true);
-          /* store the page in the changeset if recovery is enabled */
-          if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-            m_env->get_changeset().add_page(m_env->get_header()->get_header_page());
-        }
-      }
-    }
+  // Allocates multiple adjacent pages
+  //
+  // Used by the BlobManager to store blobs that span multiple pages
+  // Returns the first page in the list of pages
+  Page *alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages);
 
-    // Encodes |n| to |p|; returns the number of required bytes
-    int encode(uint8_t *p, uint64_t n);
+  // Flushes a Page to disk
+  void flush_page(Page *page);
 
-    // Decodes a number of |n| bytes stored in |p| and returns
-    // the decoded number
-    uint64_t decode(size_t n, uint8_t *p);
+  // Flush all pages, and clear the cache.
+  //
+  // Set |clear_cache| to true if you want the cache to be cleared
+  void flush_all_pages(bool clear_cache = false);
 
-    // callback for purging pages
-    static void purge_callback(Page *page, PageManager *pm);
+  // Purges the cache if the cache limits are exceeded
+  void purge_cache();
 
-    // The current Environment handle
-    LocalEnvironment *m_env;
+  // Reclaim file space; truncates unused file space at the end of the file.
+  void reclaim_space();
 
-    // The cache
-    Cache m_cache;
+  // Flushes all pages of a database
+  void close_database(LocalDatabase *db);
 
-    // The map with free pages
-    FreeMap m_free_pages;
+  // Adds a page (or many pages) to the freelist; will not do anything
+  // if the Environment is in-memory.
+  void add_to_freelist(Page *page, size_t page_count = 1);
 
-    // Whether |m_free_pages| must be flushed or not
-    bool m_needs_flush;
+  // Returns the Page pointer where we can add more blobs
+  Page *get_last_blob_page(LocalDatabase *db);
 
-    // Page with the persisted state data. If multiple pages are allocated
-    // then these pages form a linked list, with |m_state_page| being the head
-    Page *m_state_page;
+  // Sets the Page pointer where we can add more blobs
+  void set_last_blob_page(Page *page);
 
-    // Cached page where to add more blobs
-    Page *m_last_blob_page;
+  // Closes the PageManager; flushes all dirty pages
+  void close();
 
-    // Page where to add more blobs - if |m_last_blob_page| was flushed
-    uint64_t m_last_blob_page_id;
+  // Removes a page from the list; only for testing.
+  void test_remove_page(Page *page);
 
-    // tracks number of fetched pages
-    uint64_t m_page_count_fetched;
+  // Returns true if a page is free. Ignores multi-pages; only for
+  // testing and integrity checks
+  bool test_is_page_free(uint64_t pageid) {
+    PageManagerState::FreeMap::iterator it = m_state.free_pages.find(pageid);
+    return (it != m_state.free_pages.end());
+  }
 
-    // tracks number of flushed pages
-    uint64_t m_page_count_flushed;
+  friend struct BlobManagerFixture;
+  friend struct PageManagerFixture;
+  friend struct LogHighLevelFixture;
 
-    // tracks number of index pages
-    uint64_t m_page_count_index;
-
-    // tracks number of blob pages
-    uint64_t m_page_count_blob;
-
-    // tracks number of page manager pages
-    uint64_t m_page_count_page_manager;
-
-    // tracks number of cache hits
-    uint64_t m_cache_hits;
-
-    // tracks number of cache misses
-    uint64_t m_cache_misses;
-
-    // number of successful freelist hits
-    uint64_t m_freelist_hits;
-
-    // number of freelist misses
-    uint64_t m_freelist_misses;
+  // The state
+  PageManagerState m_state;
 };
 
 } // namespace hamsterdb

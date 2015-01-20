@@ -269,7 +269,7 @@ class BtreeCheckAction
                     "#%d is not unique", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);
           }
-          if (env->get_page_manager()->is_page_free(child_id)) {
+          if (env->get_page_manager()->test_is_page_free(child_id)) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);

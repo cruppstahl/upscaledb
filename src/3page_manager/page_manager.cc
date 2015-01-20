@@ -33,104 +33,52 @@
 
 namespace hamsterdb {
 
-PageManager::PageManager(LocalEnvironment *env, uint64_t cache_size)
-  : m_env(env), m_cache(env, cache_size), m_needs_flush(false),
-    m_state_page(0), m_last_blob_page(0), m_last_blob_page_id(0),
-    m_page_count_fetched(0), m_page_count_flushed(0), m_page_count_index(0),
-    m_page_count_blob(0), m_page_count_page_manager(0), m_cache_hits(0),
-    m_cache_misses(0), m_freelist_hits(0), m_freelist_misses(0)
-{
-}
+static Page *
+alloc_page_impl(PageManagerState &state, LocalDatabase *db,
+                uint32_t page_type, uint32_t flags);
 
-void
-PageManager::load_state(uint64_t pageid)
-{
-  if (m_state_page)
-    delete m_state_page;
+static Page *
+fetch_page_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
+                uint32_t flags);
 
-  m_state_page = new Page(m_env->get_device());
-  m_state_page->fetch(pageid);
+enum {
+  kPurgeAtLeast = 20
+};
 
-  m_free_pages.clear();
-
-  Page *page = m_state_page;
-  uint32_t page_size = m_env->get_page_size();
-
-  // the first page stores the page ID of the last blob
-  m_last_blob_page_id = *(uint64_t *)page->get_payload();
-
-  while (1) {
-    ham_assert(page->get_type() == Page::kTypePageManager);
-    uint8_t *p = page->get_payload();
-    // skip m_last_blob_page_id?
-    if (page == m_state_page)
-      p += sizeof(uint64_t);
-
-    // get the overflow address
-    uint64_t overflow = *(uint64_t *)p;
-    p += 8;
-
-    // get the number of stored elements
-    uint32_t counter = *(uint32_t *)p;
-    p += 4;
-
-    // now read all pages
-    for (uint32_t i = 0; i < counter; i++) {
-      // 4 bits page_counter, 4 bits for number of following bytes
-      int page_counter = (*p & 0xf0) >> 4;
-      int num_bytes = *p & 0x0f;
-      ham_assert(page_counter > 0);
-      ham_assert(num_bytes <= 8);
-      p += 1;
-
-      uint64_t id = Pickle::decode_u64(num_bytes, p);
-      p += num_bytes;
-
-      m_free_pages[id * page_size] = page_counter;
-    }
-
-    // load the overflow page
-    if (overflow)
-      page = fetch_page(0, overflow);
-    else
-      break;
-  }
-}
-
-uint64_t
-PageManager::store_state()
+static uint64_t
+store_state_impl(PageManagerState &state)
 {
   // no modifications? then simply return the old blobid
-  if (!m_needs_flush)
-    return (m_state_page ? m_state_page->get_address() : 0);
+  if (!state.needs_flush)
+    return (state.state_page ? state.state_page->get_address() : 0);
 
-  m_needs_flush = false;
+  state.needs_flush = false;
 
   // no freelist pages, no freelist state? then don't store anything
-  if (!m_state_page && m_free_pages.empty())
+  if (!state.state_page && state.free_pages.empty())
     return (0);
 
   // otherwise allocate a new page, if required
-  if (!m_state_page) {
-    m_state_page = new Page(m_env->get_device());
-    m_state_page->allocate(Page::kTypePageManager, Page::kInitializeWithZeroes);
+  if (!state.state_page) {
+    state.state_page = new Page(state.env->get_device());
+    state.state_page->allocate(Page::kTypePageManager,
+            Page::kInitializeWithZeroes);
   }
 
-  uint32_t page_size = m_env->get_page_size();
-
   /* store the page in the changeset if recovery is enabled */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    m_env->get_changeset().add_page(m_state_page);
+  if (state.env->get_flags() & HAM_ENABLE_RECOVERY)
+    state.env->get_changeset().add_page(state.state_page);
 
-  Page *page = m_state_page;
+  uint32_t page_size = state.env->get_page_size();
 
   // make sure that the page is logged
+  Page *page = state.state_page;
   page->set_dirty(true);
 
-  uint8_t *p = m_state_page->get_payload();
+  uint8_t *p = page->get_payload();
 
   // store page-ID of the last allocated blob
-  *(uint64_t *)p = m_last_blob_page_id;
+  *(uint64_t *)p = state.last_blob_page_id;
   p += sizeof(uint64_t);
 
   // reset the overflow pointer and the counter
@@ -138,35 +86,36 @@ PageManager::store_state()
   // a chain. We only save the first. That's not critical but also not nice.
   uint64_t next_pageid = *(uint64_t *)p;
   if (next_pageid) {
-    m_free_pages[next_pageid] = 1;
+    state.free_pages[next_pageid] = 1;
     ham_assert(next_pageid % page_size == 0);
   }
 
   // No freelist entries? then we're done. Make sure that there's no
   // overflow pointer or other garbage in the page!
-  if (m_free_pages.empty()) {
+  if (state.free_pages.empty()) {
     *(uint64_t *)p = 0;
     p += sizeof(uint64_t);
     *(uint32_t *)p = 0;
-    return (m_state_page->get_address());
+    return (state.state_page->get_address());
   }
 
-  FreeMap::const_iterator it = m_free_pages.begin();
-  while (it != m_free_pages.end()) {
+  PageManagerState::FreeMap::const_iterator it = state.free_pages.begin();
+  while (it != state.free_pages.end()) {
     // this is where we will store the data
     p = page->get_payload();
-    // skip m_last_blob_page_id?
-    if (page == m_state_page)
+    // skip state.last_blob_page_id?
+    if (page == state.state_page)
       p += sizeof(uint64_t);
     p += 8;   // leave room for the pointer to the next page
     p += 4;   // leave room for the counter
 
     uint32_t counter = 0;
 
-    while (it != m_free_pages.end()) {
+    while (it != state.free_pages.end()) {
       // 9 bytes is the maximum amount of storage that we will need for a
       // new entry; if it does not fit then break
-      if ((p + 9) - page->get_payload() >= (ptrdiff_t)m_env->get_usable_page_size())
+      if ((p + 9) - page->get_payload()
+              >= (ptrdiff_t)state.env->get_usable_page_size())
         break;
 
       // ... and check if the next entry (and the following) are directly
@@ -179,7 +128,7 @@ PageManager::store_state()
       // move to the next entry
       it++;
 
-      for (; it != m_free_pages.end() && page_counter < 16 - 1; it++) {
+      for (; it != state.free_pages.end() && page_counter < 16 - 1; it++) {
         if (it->first != current + page_size)
           break;
         current += page_size;
@@ -203,7 +152,7 @@ PageManager::store_state()
     }
 
     p = page->get_payload();
-    if (page == m_state_page) // skip m_last_blob_page_id?
+    if (page == state.state_page) // skip state.last_blob_page_id?
       p += sizeof(uint64_t);
     uint64_t next_pageid = *(uint64_t *)p;
     *(uint64_t *)p = 0;
@@ -213,13 +162,14 @@ PageManager::store_state()
     *(uint32_t *)p = counter;
 
     // are we done? if not then continue with the next page
-    if (it != m_free_pages.end()) {
+    if (it != state.free_pages.end()) {
       // allocate (or fetch) an overflow page
       if (!next_pageid) {
-        Page *new_page = alloc_page(0, Page::kTypePageManager, kIgnoreFreelist);
+        Page *new_page = alloc_page_impl(state, 0, Page::kTypePageManager,
+                PageManager::kIgnoreFreelist);
         // patch the overflow pointer in the old (current) page
         p = page->get_payload();
-        if (page == m_state_page) // skip m_last_blob_page_id?
+        if (page == state.state_page) // skip state.last_blob_page_id?
           p += sizeof(uint64_t);
         *(uint64_t *)p = new_page->get_address();
 
@@ -229,51 +179,192 @@ PageManager::store_state()
         *(uint64_t *)p = 0;
       }
       else
-        page = fetch_page(0, next_pageid);
+        page = fetch_page_impl(state, 0, next_pageid, 0);
 
       // make sure that the page is logged
       page->set_dirty(true);
     }
   }
 
-  return (m_state_page->get_address());
+  return (state.state_page->get_address());
 }
 
-void
-PageManager::get_metrics(ham_env_metrics_t *metrics) const
+/* if recovery is enabled then immediately write the modified blob */
+static void
+maybe_store_state(PageManagerState &state, bool force = false)
 {
-  metrics->page_count_fetched = m_page_count_fetched;
-  metrics->page_count_flushed = m_page_count_flushed;
-  metrics->page_count_type_index = m_page_count_index;
-  metrics->page_count_type_blob = m_page_count_blob;
-  metrics->page_count_type_page_manager = m_page_count_page_manager;
-  metrics->freelist_hits = m_freelist_hits;
-  metrics->freelist_misses = m_freelist_misses;
-  m_cache.get_metrics(metrics);
+  if (force || (state.env->get_flags() & HAM_ENABLE_RECOVERY)) {
+    uint64_t new_blobid = store_state_impl(state);
+    if (new_blobid != state.env->get_header()->get_page_manager_blobid()) {
+      state.env->get_header()->set_page_manager_blobid(new_blobid);
+      state.env->get_header()->get_header_page()->set_dirty(true);
+      /* store the page in the changeset if recovery is enabled */
+      if (state.env->get_flags() & HAM_ENABLE_RECOVERY)
+        state.env->get_changeset().add_page(
+                state.env->get_header()->get_header_page());
+    }
+  }
 }
 
-Page *
-PageManager::fetch_page(LocalDatabase *db, uint64_t address,
+// Fetches a page from the list
+Page * /* not static b/c used in unittests */
+fetch_page(PageManagerState &state, uint64_t id)
+{
+  return (state.cache.get_page(id));
+}
+
+// Stores a page in the list
+void /* not static b/c used in unittests */
+store_page(PageManagerState &state, Page *page, uint32_t flags = 0)
+{
+  state.cache.put_page(page);
+
+  /* write to disk (if necessary) */
+  if (!(flags & PageManager::kDisableStoreState)
+          && !(flags & PageManager::kReadOnly))
+    maybe_store_state(state);
+}
+
+/* returns true if the cache is full */
+bool /* not static b/c used in unittests */
+cache_is_full(const PageManagerState &state)
+{
+  return (state.cache.get_allocated_elements() * state.env->get_page_size()
+            > state.cache.get_capacity());
+}
+
+static bool
+flush_all_pages_callback(Page *page, LocalEnvironment *env,
+        LocalDatabase *db, uint32_t flags)
+{
+  env->get_page_manager()->flush_page(page);
+
+  /*
+   * if the page is deleted, uncouple all cursors, then
+   * free the memory of the page, then remove from the cache
+   */
+  if (flags == 0) {
+    (void)BtreeCursor::uncouple_all_cursors(page);
+    return (true);
+  }
+
+  return (false);
+}
+
+// callback for purging pages
+static void
+purge_callback(Page *page, PageManager *pm)
+{
+  BtreeCursor::uncouple_all_cursors(page);
+
+  if (pm->m_state.last_blob_page == page) {
+    pm->m_state.last_blob_page_id = pm->m_state.last_blob_page->get_address();
+    pm->m_state.last_blob_page = 0;
+  }
+
+  pm->flush_page(page);
+  delete page;
+}
+
+static void
+load_state_impl(PageManagerState &state, uint64_t pageid)
+{
+  if (state.state_page)
+    delete state.state_page;
+
+  state.free_pages.clear();
+  state.state_page = new Page(state.env->get_device());
+  state.state_page->fetch(pageid);
+
+  Page *page = state.state_page;
+  uint32_t page_size = state.env->get_page_size();
+
+  // the first page stores the page ID of the last blob
+  state.last_blob_page_id = *(uint64_t *)page->get_payload();
+
+  while (1) {
+    ham_assert(page->get_type() == Page::kTypePageManager);
+    uint8_t *p = page->get_payload();
+    // skip state.last_blob_page_id?
+    if (page == state.state_page)
+      p += sizeof(uint64_t);
+
+    // get the overflow address
+    uint64_t overflow = *(uint64_t *)p;
+    p += 8;
+
+    // get the number of stored elements
+    uint32_t counter = *(uint32_t *)p;
+    p += 4;
+
+    // now read all pages
+    for (uint32_t i = 0; i < counter; i++) {
+      // 4 bits page_counter, 4 bits for number of following bytes
+      int page_counter = (*p & 0xf0) >> 4;
+      int num_bytes = *p & 0x0f;
+      ham_assert(page_counter > 0);
+      ham_assert(num_bytes <= 8);
+      p += 1;
+
+      uint64_t id = Pickle::decode_u64(num_bytes, p);
+      p += num_bytes;
+
+      state.free_pages[id * page_size] = page_counter;
+    }
+
+    // load the overflow page
+    if (overflow)
+      page = fetch_page_impl(state, 0, overflow, 0);
+    else
+      break;
+  }
+}
+
+// Flushes a Page to disk
+static void
+flush_page_impl(PageManagerState &state, Page *page)
+{
+  if (page->is_dirty()) {
+    state.page_count_flushed++;
+    page->flush();
+  }
+}
+
+static void
+get_metrics_impl(const PageManagerState &state, ham_env_metrics_t *metrics)
+{
+  metrics->page_count_fetched = state.page_count_fetched;
+  metrics->page_count_flushed = state.page_count_flushed;
+  metrics->page_count_type_index = state.page_count_index;
+  metrics->page_count_type_blob = state.page_count_blob;
+  metrics->page_count_type_page_manager = state.page_count_page_manager;
+  metrics->freelist_hits = state.freelist_hits;
+  metrics->freelist_misses = state.freelist_misses;
+  state.cache.get_metrics(metrics);
+}
+
+static Page *
+fetch_page_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
                 uint32_t flags)
 {
-  Page *page = 0;
-
   /* fetch the page from the cache */
-  page = m_cache.get_page(address);
+  Page *page = state.cache.get_page(address);
   if (page) {
     ham_assert(page->get_data());
-    if (flags & kNoHeader)
+    if (flags & PageManager::kNoHeader)
       page->set_without_header(true);
     /* store the page in the changeset if recovery is enabled */
-    if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      m_env->get_changeset().add_page(page);
+    if (!(flags & PageManager::kReadOnly)
+            && state.env->get_flags() & HAM_ENABLE_RECOVERY)
+      state.env->get_changeset().add_page(page);
     return (page);
   }
 
-  if ((flags & kOnlyFromCache) || m_env->get_flags() & HAM_IN_MEMORY)
+  if ((flags & PageManager::kOnlyFromCache)
+          || state.env->get_flags() & HAM_IN_MEMORY)
     return (0);
 
-  page = new Page(m_env->get_device(), db);
+  page = new Page(state.env->get_device(), db);
   try {
     page->fetch(address);
   }
@@ -285,56 +376,58 @@ PageManager::fetch_page(LocalDatabase *db, uint64_t address,
   ham_assert(page->get_data());
 
   /* store the page in the list */
-  store_page(page, flags);
+  store_page(state, page, flags);
 
-  if (flags & kNoHeader)
+  if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
 
   /* store the page in the changeset */
-  if (!(flags & kReadOnly) && m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    m_env->get_changeset().add_page(page);
+  if (!(flags & PageManager::kReadOnly)
+          && state.env->get_flags() & HAM_ENABLE_RECOVERY)
+    state.env->get_changeset().add_page(page);
 
-  m_page_count_fetched++;
-
+  state.page_count_fetched++;
   return (page);
 }
 
-Page *
-PageManager::alloc_page(LocalDatabase *db, uint32_t page_type, uint32_t flags)
+static Page *
+alloc_page_impl(PageManagerState &state, LocalDatabase *db,
+        uint32_t page_type, uint32_t flags)
 {
   uint64_t address = 0;
   Page *page = 0;
-  uint32_t page_size = m_env->get_page_size();
+  uint32_t page_size = state.env->get_page_size();
   bool allocated = false;
 
   /* first check the internal list for a free page */
-  if ((flags & kIgnoreFreelist) == 0 && !m_free_pages.empty()) {
-    FreeMap::iterator it = m_free_pages.begin();
+  if ((flags & PageManager::kIgnoreFreelist) == 0
+          && !state.free_pages.empty()) {
+    PageManagerState::FreeMap::iterator it = state.free_pages.begin();
 
     address = it->first;
     ham_assert(address % page_size == 0);
     /* remove the page from the freelist */
-    m_free_pages.erase(it);
-    m_needs_flush = true;
+    state.free_pages.erase(it);
+    state.needs_flush = true;
 
-    m_freelist_hits++;
+    state.freelist_hits++;
 
     /* try to fetch the page from the cache */
-    page = fetch_page(address);
+    page = fetch_page(state, address);
     if (page)
       goto done;
     /* allocate a new page structure and read the page from disk */
-    page = new Page(m_env->get_device(), db);
+    page = new Page(state.env->get_device(), db);
     page->fetch(address);
     goto done;
   }
 
-  m_freelist_misses++;
+  state.freelist_misses++;
 
   try {
     if (!page) {
       allocated = true;
-      page = new Page(m_env->get_device(), db);
+      page = new Page(state.env->get_device(), db);
     }
 
     page->allocate(page_type);
@@ -361,24 +454,24 @@ done:
   }
 
   /* an allocated page is always flushed if recovery is enabled */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    m_env->get_changeset().add_page(page);
+  if (state.env->get_flags() & HAM_ENABLE_RECOVERY)
+    state.env->get_changeset().add_page(page);
 
   /* store the page in the cache */
-  store_page(page, flags);
+  store_page(state, page, flags);
 
   switch (page_type) {
     case Page::kTypeBindex:
     case Page::kTypeBroot: {
       memset(page->get_payload(), 0, sizeof(PBtreeNode));
-      m_page_count_index++;
+      state.page_count_index++;
       break;
     }
     case Page::kTypePageManager:
-      m_page_count_page_manager++;
+      state.page_count_page_manager++;
       break;
     case Page::kTypeBlob:
-      m_page_count_blob++;
+      state.page_count_blob++;
       break;
     default:
       break;
@@ -387,38 +480,40 @@ done:
   return (page);
 }
 
-Page *
-PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
+static Page *
+alloc_multiple_blob_pages_impl(PageManagerState &state, LocalDatabase *db,
+        size_t num_pages)
 {
   // allocate only one page? then use the normal ::alloc_page() method
   if (num_pages == 1)
-    return (alloc_page(db, Page::kTypeBlob));
+    return (alloc_page_impl(state, db, Page::kTypeBlob, 0));
 
   Page *page = 0;
-  uint32_t page_size = m_env->get_page_size();
+  uint32_t page_size = state.env->get_page_size();
 
   // Now check the freelist
-  if (!m_free_pages.empty()) {
-    for (FreeMap::iterator it = m_free_pages.begin(); it != m_free_pages.end();
+  if (!state.free_pages.empty()) {
+    for (PageManagerState::FreeMap::iterator it = state.free_pages.begin();
+            it != state.free_pages.end();
             it++) {
       if (it->second >= num_pages) {
         for (size_t i = 0; i < num_pages; i++) {
           if (i == 0) {
-            page = fetch_page(db, it->first);
+            page = fetch_page_impl(state, db, it->first, 0);
             page->set_type(Page::kTypeBlob);
             page->set_without_header(false);
           }
           else {
-            Page *p = fetch_page(db, it->first + (i * page_size));
+            Page *p = fetch_page_impl(state, db, it->first + (i * page_size), 0);
             p->set_type(Page::kTypeBlob);
             p->set_without_header(true);
           }
         }
         if (it->second > num_pages) {
-          m_free_pages[it->first + num_pages * page_size]
+          state.free_pages[it->first + num_pages * page_size]
                 = it->second - num_pages;
         }
-        m_free_pages.erase(it);
+        state.free_pages.erase(it);
         return (page);
       }
     }
@@ -429,38 +524,20 @@ PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
   //
   // disable "store state": the PageManager otherwise could alloc overflow
   // pages in the middle of our blob sequence.
-  uint32_t flags = kIgnoreFreelist | kDisableStoreState;
+  uint32_t flags = PageManager::kIgnoreFreelist
+                        | PageManager::kDisableStoreState;
   for (size_t i = 0; i < num_pages; i++) {
     if (page == 0)
-      page = alloc_page(db, Page::kTypeBlob, flags);
+      page = alloc_page_impl(state, db, Page::kTypeBlob, flags);
     else {
-      Page *p = alloc_page(db, Page::kTypeBlob, flags);
+      Page *p = alloc_page_impl(state, db, Page::kTypeBlob, flags);
       p->set_without_header(true);
     }
   }
 
   // now store the state
-  maybe_store_state();
-
+  maybe_store_state(state);
   return (page);
-}
-
-static bool
-flush_all_pages_callback(Page *page, LocalEnvironment *env,
-        LocalDatabase *db, uint32_t flags)
-{
-  env->get_page_manager()->flush_page(page);
-
-  /*
-   * if the page is deleted, uncouple all cursors, then
-   * free the memory of the page, then remove from the cache
-   */
-  if (flags == 0) {
-    (void)BtreeCursor::uncouple_all_cursors(page);
-    return (true);
-  }
-
-  return (false);
 }
 
 static bool
@@ -476,103 +553,129 @@ db_close_callback(Page *page, LocalEnvironment *env,
   return (false);
 }
 
-void
-PageManager::flush_all_pages(bool nodelete)
+static void
+flush_all_pages_impl(PageManagerState &state, bool nodelete = false)
 {
-  if (nodelete == false && m_last_blob_page) {
-    m_last_blob_page_id = m_last_blob_page->get_address();
-    m_last_blob_page = 0;
+  if (nodelete == false && state.last_blob_page) {
+    state.last_blob_page_id = state.last_blob_page->get_address();
+    state.last_blob_page = 0;
   }
-  m_cache.purge_if(flush_all_pages_callback, m_env, 0, nodelete ? 1 : 0);
+  state.cache.purge_if(flush_all_pages_callback, state.env, 0, nodelete ? 1 : 0);
 
-  if (m_state_page)
-    flush_page(m_state_page);
+  if (state.state_page)
+    flush_page_impl(state, state.state_page);
 }
 
-void
-PageManager::purge_callback(Page *page, PageManager *pm)
-{
-  BtreeCursor::uncouple_all_cursors(page);
-
-  if (pm->m_last_blob_page == page) {
-    pm->m_last_blob_page_id = pm->m_last_blob_page->get_address();
-    pm->m_last_blob_page = 0;
-  }
-
-  pm->flush_page(page);
-  delete page;
-}
-
-void
-PageManager::purge_cache()
+static void
+purge_cache_impl(PageManagerState &state, PageManager *pm)
 {
   // in-memory-db: don't remove the pages or they would be lost
-  if (m_env->get_flags() & HAM_IN_MEMORY || !cache_is_full())
+  if (state.env->get_flags() & HAM_IN_MEMORY || !cache_is_full(state))
     return;
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  m_cache.purge(purge_callback, this);
+  state.cache.purge(purge_callback, pm);
 }
 
-void
-PageManager::close_database(LocalDatabase *db)
+static void
+reclaim_space_impl(PageManagerState &state)
 {
-  if (m_last_blob_page) {
-    m_last_blob_page_id = m_last_blob_page->get_address();
-    m_last_blob_page = 0;
+  if (state.last_blob_page) {
+    state.last_blob_page_id = state.last_blob_page->get_address();
+    state.last_blob_page = 0;
   }
-  m_cache.purge_if(db_close_callback, m_env, db, 0);
+  ham_assert(!(state.env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
 
-  m_env->get_changeset().clear();
-}
-
-void
-PageManager::reclaim_space()
-{
-  if (m_last_blob_page) {
-    m_last_blob_page_id = m_last_blob_page->get_address();
-    m_last_blob_page = 0;
-  }
-  ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
   bool do_truncate = false;
-  size_t file_size = m_env->get_device()->get_file_size();
-  uint32_t page_size = m_env->get_page_size();
+  size_t file_size = state.env->get_device()->get_file_size();
+  uint32_t page_size = state.env->get_page_size();
 
-  while (m_free_pages.size() > 1) {
-    FreeMap::iterator fit = m_free_pages.find(file_size - page_size);
-    if (fit != m_free_pages.end()) {
-      Page *page = m_cache.get_page(fit->first);
+  while (state.free_pages.size() > 1) {
+    PageManagerState::FreeMap::iterator fit =
+                state.free_pages.find(file_size - page_size);
+    if (fit != state.free_pages.end()) {
+      Page *page = state.cache.get_page(fit->first);
       if (page) {
-        m_cache.remove_page(page);
+        state.cache.remove_page(page);
         delete page;
       }
       file_size -= page_size;
       do_truncate = true;
-      m_free_pages.erase(fit);
+      state.free_pages.erase(fit);
       continue;
     }
     break;
   }
 
   if (do_truncate) {
-    m_needs_flush = true;
-    maybe_store_state(true);
-    m_env->get_device()->truncate(file_size);
+    state.needs_flush = true;
+    maybe_store_state(state, true);
+    state.env->get_device()->truncate(file_size);
   }
 }
 
-void
-PageManager::add_to_freelist(Page *page, size_t page_count)
+static void
+close_database_impl(PageManagerState &state, LocalDatabase *db)
+{
+  if (state.last_blob_page) {
+    state.last_blob_page_id = state.last_blob_page->get_address();
+    state.last_blob_page = 0;
+  }
+  state.cache.purge_if(db_close_callback, state.env, db, 0);
+
+  state.env->get_changeset().clear();
+}
+
+static void
+close_impl(PageManagerState &state)
+{
+  // reclaim unused disk space
+  // if logging is enabled: also flush the changeset to write back the
+  // modified freelist pages
+  bool try_reclaim = state.env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL
+                ? false
+                : true;
+
+  // TODO this is just a hack b/c of a too complex cleanup logic in
+  // the environment; will be removed in 2.1.9
+  if ((state.env->get_flags() & HAM_ENABLE_RECOVERY)
+        && (state.env->get_journal() == 0))
+    try_reclaim = false;
+
+#ifdef WIN32
+  // Win32: it's not possible to truncate the file while there's an active
+  // mapping, therefore only reclaim if memory mapped I/O is disabled
+  if (!(state.env->get_flags() & HAM_DISABLE_MMAP))
+    try_reclaim = false;
+#endif
+
+  if (try_reclaim) {
+    reclaim_space_impl(state);
+
+    if (state.env->get_flags() & HAM_ENABLE_RECOVERY)
+      state.env->get_changeset().flush(state.env->get_incremented_lsn());
+  }
+
+  // flush all dirty pages to disk, then delete them
+  flush_all_pages_impl(state);
+
+  delete state.state_page;
+  state.state_page = 0;
+  state.last_blob_page = 0;
+}
+
+static void
+add_to_freelist_impl(PageManagerState &state, Page *page, size_t page_count)
 {
   ham_assert(page_count > 0);
 
-  if (m_env->get_flags() & HAM_IN_MEMORY)
+  if (state.env->get_flags() & HAM_IN_MEMORY)
     return;
 
-  m_needs_flush = true;
-  m_free_pages[page->get_address()] = page_count;
-  ham_assert(page->get_address() % m_env->get_page_size() == 0);
+  state.needs_flush = true;
+  state.free_pages[page->get_address()] = page_count;
+  ham_assert(page->get_address() % state.env->get_page_size() == 0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -583,42 +686,134 @@ PageManager::add_to_freelist(Page *page, size_t page_count)
   // relevant for logging.
 }
 
+static Page *
+get_last_blob_page_impl(PageManagerState &state, LocalDatabase *db)
+{
+  if (state.last_blob_page)
+    return (state.last_blob_page);
+  if (state.last_blob_page_id)
+    return (fetch_page_impl(state, db, state.last_blob_page_id, 0));
+  return (0);
+}
+
+static void 
+set_last_blob_page_impl(PageManagerState &state, Page *page)
+{
+  state.last_blob_page_id = 0;
+  state.last_blob_page = page;
+}
+
+
+PageManagerState::PageManagerState(LocalEnvironment *env, uint64_t cache_size)
+  : env(env), cache(env, cache_size), needs_flush(false),
+    state_page(0), last_blob_page(0), last_blob_page_id(0),
+    page_count_fetched(0), page_count_flushed(0), page_count_index(0),
+    page_count_blob(0), page_count_page_manager(0), cache_hits(0),
+    cache_misses(0), freelist_hits(0), freelist_misses(0)
+{
+}
+
+PageManager::PageManager(PageManagerState state)
+  : m_state(state)
+{
+}
+
+void
+PageManager::load_state(uint64_t pageid)
+{
+  load_state_impl(m_state, pageid);
+}
+
+uint64_t
+PageManager::store_state()
+{
+  return (store_state_impl(m_state));
+}
+
+void
+PageManager::get_metrics(ham_env_metrics_t *metrics) const
+{
+  get_metrics_impl(m_state, metrics);
+}
+
+Page *
+PageManager::fetch_page(LocalDatabase *db, uint64_t address,
+                uint32_t flags)
+{
+  return (fetch_page_impl(m_state, db, address, flags));
+}
+
+Page *
+PageManager::alloc_page(LocalDatabase *db, uint32_t page_type, uint32_t flags)
+{
+  return (alloc_page_impl(m_state, db, page_type, flags));
+}
+
+Page *
+PageManager::alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages)
+{
+  return (alloc_multiple_blob_pages_impl(m_state, db, num_pages));
+}
+
+void
+PageManager::flush_all_pages(bool nodelete)
+{
+  flush_all_pages_impl(m_state, nodelete);
+}
+
+void
+PageManager::purge_cache()
+{
+  purge_cache_impl(m_state, this);
+}
+
+void
+PageManager::close_database(LocalDatabase *db)
+{
+  close_database_impl(m_state, db);
+}
+
+void
+PageManager::reclaim_space()
+{
+  reclaim_space_impl(m_state);
+}
+
+void
+PageManager::add_to_freelist(Page *page, size_t page_count)
+{
+  add_to_freelist_impl(m_state, page, page_count);
+}
+
+void
+PageManager::test_remove_page(Page *page)
+{
+  m_state.cache.remove_page(page);
+  m_state.env->get_changeset().clear();
+}
+
 void
 PageManager::close()
 {
-  // reclaim unused disk space
-  // if logging is enabled: also flush the changeset to write back the
-  // modified freelist pages
-  bool try_reclaim = m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL
-                ? false
-                : true;
+  close_impl(m_state);
+}
 
-  // TODO this is just a hack b/c of a too complex cleanup logic in
-  // the environment; will be removed in 2.1.9
-  if ((m_env->get_flags() & HAM_ENABLE_RECOVERY)
-        && (m_env->get_journal() == 0))
-    try_reclaim = false;
+void
+PageManager::flush_page(Page *page)
+{
+  flush_page_impl(m_state, page);
+}
 
-#ifdef WIN32
-  // Win32: it's not possible to truncate the file while there's an active
-  // mapping, therefore only reclaim if memory mapped I/O is disabled
-  if (!(m_env->get_flags() & HAM_DISABLE_MMAP))
-    try_reclaim = false;
-#endif
+Page *
+PageManager::get_last_blob_page(LocalDatabase *db)
+{
+  return (get_last_blob_page_impl(m_state, db));
+}
 
-  if (try_reclaim) {
-    reclaim_space();
-
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      m_env->get_changeset().flush(m_env->get_incremented_lsn());
-  }
-
-  // flush all dirty pages to disk, then delete them
-  flush_all_pages();
-
-  delete m_state_page;
-  m_state_page = 0;
-  m_last_blob_page = 0;
+void 
+PageManager::set_last_blob_page(Page *page)
+{
+  set_last_blob_page_impl(m_state, page);
 }
 
 } // namespace hamsterdb
