@@ -1096,20 +1096,23 @@ PageManagerFactory::create(...)
 
 - branch topic/perfect-world
     PageManager neu schreiben - perfekt machen!!
-        Factory
-        can we remove dependency to Environment?
-            take ownership of changeset
-            const ref to Environment::m_config
-            take ownership of header page
-        get
-        put
-        del
-        has
+        x Factory
+        x move test functions to PageManagerTestGateway(state)
+        x split into multiple files
+        o can we remove dependency to Environment?
+            o take ownership of changeset
+            o const ref to Environment::m_config
+            o take ownership of header page
+        o get
+        o put
+        o del
+        o has
     Cache neu schreiben
-        get
-        put
-        del
-        has
+        o selbe regeln wie oben
+        o get
+        o put
+        o del
+        o has
     Environment neu schreiben
     Database neu schreiben
 

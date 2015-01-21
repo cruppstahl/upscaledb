@@ -32,6 +32,7 @@
 #include "1base/error.h"
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
+#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 #include "4db/db.h"
@@ -269,7 +270,8 @@ class BtreeCheckAction
                     "#%d is not unique", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);
           }
-          if (env->get_page_manager()->test_is_page_free(child_id)) {
+          PageManagerTestGateway test(env->get_page_manager());
+          if (test.is_page_free(child_id)) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);

@@ -22,17 +22,11 @@
 #include "2page/page.h"
 #include "2device/device.h"
 #include "3page_manager/page_manager.h"
-#include "4env/env.h"
+#include "3page_manager/page_manager_test.h"
+#include "4env/env_local.h"
 #include "4txn/txn.h"
 
 namespace hamsterdb {
-
-extern void
-store_page(PageManagerState &state, Page *page, uint32_t flags = 0);
-extern Page *
-fetch_page(PageManagerState &state, uint64_t address);
-extern bool
-cache_is_full(const PageManagerState &state);
 
 
 struct PageManagerFixture {
@@ -142,9 +136,10 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    store_page(lenv->get_page_manager()->m_state, page);
-    REQUIRE(page == fetch_page(lenv->get_page_manager()->m_state, 0x123ull));
-    lenv->get_page_manager()->test_remove_page(page);
+    PageManagerTestGateway test(lenv->get_page_manager());
+    test.store_page(page);
+    REQUIRE(page == test.fetch_page(0x123ull));
+    test.remove_page(page);
 
     page->set_data(0);
     delete page;
@@ -161,10 +156,11 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    store_page(lenv->get_page_manager()->m_state, page);
-    REQUIRE(page == fetch_page(lenv->get_page_manager()->m_state, 0x123ull));
-    lenv->get_page_manager()->test_remove_page(page);
-    REQUIRE((Page *)0 == fetch_page(lenv->get_page_manager()->m_state, 0x123ull));
+    PageManagerTestGateway test(lenv->get_page_manager());
+    test.store_page(page);
+    REQUIRE(page == test.fetch_page(0x123ull));
+    test.remove_page(page);
+    REQUIRE((Page *)0 == test.fetch_page(0x123ull));
 
     page->set_data(0);
     delete page;
@@ -174,6 +170,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     Page *page[20];
     PPageData pers[20];
+    PageManagerTestGateway test(lenv->get_page_manager());
 
     for (int i = 0; i < 20; i++) {
       page[i] = new Page(lenv->get_device());
@@ -181,14 +178,14 @@ struct PageManagerFixture {
       page[i]->set_without_header(true);
       page[i]->set_address(i + 1);
       page[i]->set_data(&pers[i]);
-      store_page(lenv->get_page_manager()->m_state, page[i]);
+      test.store_page(page[i]);
     }
     for (int i = 0; i < 20; i++)
-      REQUIRE(page[i] == fetch_page(lenv->get_page_manager()->m_state, i + 1));
+      REQUIRE(page[i] == test.fetch_page(i + 1));
     for (int i = 0; i < 20; i++)
-      lenv->get_page_manager()->test_remove_page(page[i]);
+      test.remove_page(page[i]);
     for (int i = 0; i < 20; i++) {
-      REQUIRE((Page *)0 == fetch_page(lenv->get_page_manager()->m_state, i + 1));
+      REQUIRE((Page *)0 == test.fetch_page(i + 1));
       page[i]->set_data(0);
       delete page[i];
     }
@@ -196,13 +193,15 @@ struct PageManagerFixture {
 
   void cacheNegativeGets() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    PageManagerTestGateway test(lenv->get_page_manager());
 
     for (int i = 0; i < 20; i++)
-      REQUIRE((Page *)0 == fetch_page(lenv->get_page_manager()->m_state, i + 1));
+      REQUIRE((Page *)0 == test.fetch_page(i + 1));
   }
 
   void cacheFullTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    PageManagerTestGateway test(lenv->get_page_manager());
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
@@ -213,8 +212,8 @@ struct PageManagerFixture {
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 1);
       v.push_back(p);
-      store_page(lenv->get_page_manager()->m_state, p);
-      REQUIRE(false == cache_is_full(lenv->get_page_manager()->m_state));
+      test.store_page(p);
+      REQUIRE(false == test.cache_is_full());
     }
 
     for (unsigned int i = 0; i < 5; i++) {
@@ -222,15 +221,15 @@ struct PageManagerFixture {
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 15 + 1);
       v.push_back(p);
-      store_page(lenv->get_page_manager()->m_state, p);
-      REQUIRE(true == cache_is_full(lenv->get_page_manager()->m_state));
+      test.store_page(p);
+      REQUIRE(true == test.cache_is_full());
     }
 
     for (unsigned int i = 0; i < 5; i++) {
-      REQUIRE(true == cache_is_full(lenv->get_page_manager()->m_state));
+      REQUIRE(true == test.cache_is_full());
       Page *p = v.back();
       v.pop_back();
-      lenv->get_page_manager()->test_remove_page(p);
+      test.remove_page(p);
       p->set_data(0);
       delete p;
     }
@@ -238,13 +237,13 @@ struct PageManagerFixture {
     for (unsigned int i = 0; i < 15; i++) {
       Page *p = v.back();
       v.pop_back();
-      lenv->get_page_manager()->test_remove_page(p);
-      REQUIRE(false == cache_is_full(lenv->get_page_manager()->m_state));
+      test.remove_page(p);
+      REQUIRE(false == test.cache_is_full());
       p->set_data(0);
       delete p;
     }
 
-    REQUIRE(false == cache_is_full(lenv->get_page_manager()->m_state));
+    REQUIRE(false == test.cache_is_full());
   }
 
   void storeStateTest() {
@@ -275,6 +274,7 @@ struct PageManagerFixture {
   void reclaimTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
+    PageManagerTestGateway test(pm);
     uint32_t page_size = lenv->get_page_size();
     Page *page[5] = {0};
 
@@ -293,13 +293,13 @@ struct PageManagerFixture {
     }
 
     // free the last 3 of them and move them to the freelist (and verify with
-    // test_is_page_free)
+    // is_page_free())
     for (int i = 2; i < 5; i++) {
       pm->add_to_freelist(page[i]);
-      REQUIRE(true == pm->test_is_page_free(page[i]->get_address()));
+      REQUIRE(true == test.is_page_free(page[i]->get_address()));
     }
     for (int i = 0; i < 2; i++) {
-      REQUIRE(false == pm->test_is_page_free(page[i]->get_address()));
+      REQUIRE(false == test.is_page_free(page[i]->get_address()));
     }
 
     // verify file size
@@ -314,7 +314,7 @@ struct PageManagerFixture {
     pm = lenv->get_page_manager();
 
     for (int i = 0; i < 2; i++)
-      REQUIRE(false == pm->test_is_page_free((3 + i) * page_size));
+      REQUIRE(false == test.is_page_free((3 + i) * page_size));
 
     // verify file size
 #ifndef WIN32

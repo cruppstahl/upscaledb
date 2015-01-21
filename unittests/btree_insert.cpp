@@ -24,7 +24,7 @@
 #include "3btree/btree_node.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db_local.h"
-#include "4env/env.h"
+#include "4env/env_local.h"
 
 using namespace hamsterdb;
 

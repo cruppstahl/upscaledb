@@ -30,12 +30,8 @@
 
 #include <map>
 
-#include "ham/hamsterdb_int.h"
-
 // Always verify that a file of level N does not include headers > N!
-#include "1base/error.h"
-#include "3cache/cache.h"
-#include "4env/env_local.h"
+#include "3page_manager/page_manager_state.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -46,63 +42,11 @@ namespace hamsterdb {
 class LocalDatabase;
 class LocalEnvironment;
 
-struct PageManagerState {
-  // The freelist maps page-id to number of free pages (usually 1)
-  typedef std::map<uint64_t, size_t> FreeMap;
-
-  PageManagerState(LocalEnvironment *env, uint64_t cache_size);
-
-  // The current Environment handle
-  LocalEnvironment *env;
-
-  // The cache
-  Cache cache;
-
-  // The map with free pages
-  FreeMap free_pages;
-
-  // Whether |m_free_pages| must be flushed or not
-  bool needs_flush;
-
-  // Page with the persisted state data. If multiple pages are allocated
-  // then these pages form a linked list, with |m_state_page| being the head
-  Page *state_page;
-
-  // Cached page where to add more blobs
-  Page *last_blob_page;
-
-  // Page where to add more blobs - if |m_last_blob_page| was flushed
-  uint64_t last_blob_page_id;
-
-  // tracks number of fetched pages
-  uint64_t page_count_fetched;
-
-  // tracks number of flushed pages
-  uint64_t page_count_flushed;
-
-  // tracks number of index pages
-  uint64_t page_count_index;
-
-  // tracks number of blob pages
-  uint64_t page_count_blob;
-
-  // tracks number of page manager pages
-  uint64_t page_count_page_manager;
-
-  // tracks number of cache hits
-  uint64_t cache_hits;
-
-  // tracks number of cache misses
-  uint64_t cache_misses;
-
-  // number of successful freelist hits
-  uint64_t freelist_hits;
-
-  // number of freelist misses
-  uint64_t freelist_misses;
-};
-
-struct PageManager {
+/*
+ * The PageManager implementation
+ */
+struct PageManager
+{
   // Flags for PageManager::alloc_page()
   enum {
     // flag for alloc_page(): Clear the full page with zeroes
@@ -114,9 +58,6 @@ struct PageManager {
     // flag for alloc_page(): Do not persist the PageManager state to disk
     kDisableStoreState = 4,
 
-    // Only pages above this age are purged
-    kPurgeThreshold = 100,
-
     // Flag for fetch_page(): only fetches from cache, not from disk
     kOnlyFromCache = 1,
 
@@ -126,11 +67,6 @@ struct PageManager {
     // Flag for fetch_page(): page is part of a multi-page blob, has no header
     kNoHeader = 4
   };
-
-  // Default constructor
-  //
-  // The cache size is specified in bytes!
-  PageManager(PageManagerState state);
 
   // Loads the state from a blob
   // TODO make private?
@@ -166,11 +102,13 @@ struct PageManager {
   Page *alloc_multiple_blob_pages(LocalDatabase *db, size_t num_pages);
 
   // Flushes a Page to disk
+  // TODO required?
   void flush_page(Page *page);
 
   // Flush all pages, and clear the cache.
   //
   // Set |clear_cache| to true if you want the cache to be cleared
+  // TODO can we get rid of clear_cache?
   void flush_all_pages(bool clear_cache = false);
 
   // Purges the cache if the cache limits are exceeded
@@ -179,7 +117,7 @@ struct PageManager {
   // Reclaim file space; truncates unused file space at the end of the file.
   void reclaim_space();
 
-  // Flushes all pages of a database
+  // Flushes and closes all pages of a database
   void close_database(LocalDatabase *db);
 
   // Adds a page (or many pages) to the freelist; will not do anything
@@ -195,19 +133,8 @@ struct PageManager {
   // Closes the PageManager; flushes all dirty pages
   void close();
 
-  // Removes a page from the list; only for testing.
-  void test_remove_page(Page *page);
-
-  // Returns true if a page is free. Ignores multi-pages; only for
-  // testing and integrity checks
-  bool test_is_page_free(uint64_t pageid) {
-    PageManagerState::FreeMap::iterator it = m_state.free_pages.find(pageid);
-    return (it != m_state.free_pages.end());
-  }
-
-  friend struct BlobManagerFixture;
-  friend struct PageManagerFixture;
-  friend struct LogHighLevelFixture;
+  // The constructor is not used directly. Use the PageManagerFactory instead
+  PageManager(PageManagerState state);
 
   // The state
   PageManagerState m_state;

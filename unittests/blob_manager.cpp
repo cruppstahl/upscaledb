@@ -21,6 +21,7 @@
 
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
+#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_flags.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "4env/env.h"
@@ -123,11 +124,12 @@ struct BlobManagerFixture {
     uint64_t page_id = (blobid / lenv->get_page_size())
                             * lenv->get_page_size();
 
-    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == false);
+    PageManagerTestGateway test(lenv->get_page_manager());
+    REQUIRE(test.is_page_free(page_id) == false);
 
     m_blob_manager->erase((LocalDatabase *)m_db, blobid, 0);
 
-    REQUIRE(lenv->get_page_manager()->test_is_page_free(page_id) == true);
+    REQUIRE(test.is_page_free(page_id) == true);
   }
 
   void replaceTest() {

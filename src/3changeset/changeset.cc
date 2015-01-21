@@ -22,7 +22,7 @@
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db.h"
-#include "4env/env.h"
+#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

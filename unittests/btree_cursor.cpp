@@ -25,7 +25,7 @@
 #include "3page_manager/page_manager.h"
 #include "3btree/btree_cursor.h"
 #include "4db/db.h"
-#include "4env/env.h"
+#include "4env/env_local.h"
 #include "4cursor/cursor.h"
 
 namespace hamsterdb {

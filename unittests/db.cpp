@@ -25,6 +25,7 @@
 #include "3btree/btree_index_factory.h"
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
+#include "3page_manager/page_manager_test.h"
 #include "4txn/txn.h"
 #include "4db/db.h"
 #include "4env/env.h"
@@ -121,6 +122,7 @@ struct DbFixture {
     uint8_t *p;
 
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
+    PageManagerTestGateway test(pm);
 
     REQUIRE((page = pm->alloc_page(m_dbp, 0)));
 
@@ -131,13 +133,13 @@ struct DbFixture {
     page->set_dirty(true);
     address = page->get_address();
     page->flush();
-    pm->test_remove_page(page);
+    test.remove_page(page);
     delete page;
 
     REQUIRE((page = pm->fetch_page(m_dbp, address)));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
-    pm->test_remove_page(page);
+    test.remove_page(page);
     delete page;
   }
 

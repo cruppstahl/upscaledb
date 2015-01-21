@@ -24,6 +24,7 @@
 #include "2page/page.h"
 #include "2device/device.h"
 #include "3page_manager/page_manager.h"
+#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 
@@ -206,16 +207,16 @@ maybe_store_state(PageManagerState &state, bool force = false)
   }
 }
 
-// Fetches a page from the list
-Page * /* not static b/c used in unittests */
-fetch_page(PageManagerState &state, uint64_t id)
+// Fetches a page from the cache
+static Page *
+fetch_page_from_cache(PageManagerState &state, uint64_t id)
 {
   return (state.cache.get_page(id));
 }
 
-// Stores a page in the list
-void /* not static b/c used in unittests */
-store_page(PageManagerState &state, Page *page, uint32_t flags = 0)
+// Stores a page in the cache
+static void
+store_page_in_cache(PageManagerState &state, Page *page, uint32_t flags = 0)
 {
   state.cache.put_page(page);
 
@@ -226,8 +227,8 @@ store_page(PageManagerState &state, Page *page, uint32_t flags = 0)
 }
 
 /* returns true if the cache is full */
-bool /* not static b/c used in unittests */
-cache_is_full(const PageManagerState &state)
+static bool
+cache_is_full_impl(const PageManagerState &state)
 {
   return (state.cache.get_allocated_elements() * state.env->get_page_size()
             > state.cache.get_capacity());
@@ -376,7 +377,7 @@ fetch_page_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
   ham_assert(page->get_data());
 
   /* store the page in the list */
-  store_page(state, page, flags);
+  store_page_in_cache(state, page, flags);
 
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
@@ -413,7 +414,7 @@ alloc_page_impl(PageManagerState &state, LocalDatabase *db,
     state.freelist_hits++;
 
     /* try to fetch the page from the cache */
-    page = fetch_page(state, address);
+    page = fetch_page_from_cache(state, address);
     if (page)
       goto done;
     /* allocate a new page structure and read the page from disk */
@@ -458,7 +459,7 @@ done:
     state.env->get_changeset().add_page(page);
 
   /* store the page in the cache */
-  store_page(state, page, flags);
+  store_page_in_cache(state, page, flags);
 
   switch (page_type) {
     case Page::kTypeBindex:
@@ -570,7 +571,7 @@ static void
 purge_cache_impl(PageManagerState &state, PageManager *pm)
 {
   // in-memory-db: don't remove the pages or they would be lost
-  if (state.env->get_flags() & HAM_IN_MEMORY || !cache_is_full(state))
+  if (state.env->get_flags() & HAM_IN_MEMORY || !cache_is_full_impl(state))
     return;
 
   // Purge as many pages as possible to get memory usage down to the
@@ -786,13 +787,6 @@ PageManager::add_to_freelist(Page *page, size_t page_count)
 }
 
 void
-PageManager::test_remove_page(Page *page)
-{
-  m_state.cache.remove_page(page);
-  m_state.env->get_changeset().clear();
-}
-
-void
 PageManager::close()
 {
   close_impl(m_state);
@@ -814,6 +808,57 @@ void
 PageManager::set_last_blob_page(Page *page)
 {
   set_last_blob_page_impl(m_state, page);
+}
+
+
+
+static void
+remove_page_impl(PageManagerState &state, Page *page)
+{
+  state.cache.remove_page(page);
+  state.env->get_changeset().clear();
+}
+
+static bool
+is_page_free_impl(const PageManagerState &state, uint64_t pageid)
+{
+  PageManagerState::FreeMap::const_iterator it = state.free_pages.find(pageid);
+  return (it != state.free_pages.end());
+}
+
+PageManagerTestGateway::PageManagerTestGateway(PageManager *page_manager)
+  : m_state(page_manager->m_state)
+{
+}
+
+void
+PageManagerTestGateway::remove_page(Page *page)
+{
+  remove_page_impl(m_state, page);
+}
+
+bool
+PageManagerTestGateway::is_page_free(uint64_t pageid)
+{
+  return (is_page_free_impl(m_state, pageid));
+}
+
+Page *
+PageManagerTestGateway::fetch_page(uint64_t id)
+{
+  return (fetch_page_from_cache(m_state, id));
+}
+
+void
+PageManagerTestGateway::store_page(Page *page)
+{
+  return (store_page_in_cache(m_state, page));
+}
+
+bool
+PageManagerTestGateway::cache_is_full()
+{
+  return (cache_is_full_impl(m_state));
 }
 
 } // namespace hamsterdb

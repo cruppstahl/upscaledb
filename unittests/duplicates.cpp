@@ -29,6 +29,7 @@
 #include "4db/db.h"
 #include "4cursor/cursor.h"
 #include "4env/env.h"
+#include "4env/env_local.h"
 
 namespace hamsterdb {
 
