@@ -499,7 +499,7 @@ public:
     BtreeIndex *be = db->get_btree_index();
     Page *page;
     PageManager *pm = db->get_local_env()->get_page_manager();
-    REQUIRE((page = pm->fetch_page(db, be->get_root_address())) != 0);
+    REQUIRE((page = pm->fetch(db, be->get_root_address())) != 0);
     REQUIRE(page != 0);
     BtreeCursor::uncouple_all_cursors(page);
 

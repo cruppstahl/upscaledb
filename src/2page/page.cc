@@ -26,6 +26,8 @@
 
 namespace hamsterdb {
 
+uint64_t Page::ms_page_count_flushed = 0;
+
 Page::Page(Device *device, LocalDatabase *db)
   : m_device(device), m_db(db), m_address(0), m_is_allocated(false),
     m_is_without_header(false), m_is_dirty(false), m_cursor_list(0),
@@ -75,6 +77,7 @@ Page::flush()
   if (is_dirty()) {
     m_device->write_page(this);
     set_dirty(false);
+    ms_page_count_flushed++;
   }
 }
 

@@ -41,8 +41,8 @@ class LocalEnvironment;
 
 struct PageManagerFactory
 {
-  static PageManager *create(LocalEnvironment *env, size_t cache_size) {
-    return (new PageManager(PageManagerState(env, cache_size)));
+  static PageManager *create(LocalEnvironment *env) {
+    return (new PageManager(PageManagerState(env)));
   }
 };
 

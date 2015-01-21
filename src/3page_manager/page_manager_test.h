@@ -42,6 +42,9 @@ struct PageManagerTestGateway
   // Constructor
   PageManagerTestGateway(PageManager *page_manager);
 
+  // Stores the local PageManager state to disk; returns the blob id
+  uint64_t store_state();
+
   // Removes a page from the list; only for testing.
   void remove_page(Page *page);
 
@@ -56,7 +59,7 @@ struct PageManagerTestGateway
   void store_page(Page *page);
 
   // Returns true if the cache is full
-  bool cache_is_full();
+  bool is_cache_full();
 
   // Reference of the original state
   PageManagerState &m_state;

@@ -44,7 +44,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_env->get_page_manager()->get_last_blob_page(db);
+  Page *page = m_env->get_page_manager()->get_last_blob_page();
 
   PBlobPageHeader *header = 0;
   uint64_t address = 0;
@@ -67,7 +67,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
-    page = m_env->get_page_manager()->alloc_multiple_blob_pages(db, num_pages);
+    page = m_env->get_page_manager()->alloc_multiple_blob_pages(num_pages);
     ham_assert(page->is_without_header() == false);
 
     // initialize the PBlobPageHeader
@@ -360,7 +360,7 @@ DiskBlobManager::do_erase(LocalDatabase *db, uint64_t blobid, Page *page,
   if (header->get_free_bytes() == (header->get_num_pages()
               * m_env->get_page_size()) - kPageOverhead) {
     m_env->get_page_manager()->set_last_blob_page(0);
-    m_env->get_page_manager()->add_to_freelist(page, header->get_num_pages());
+    m_env->get_page_manager()->del(page, header->get_num_pages());
     header->initialize();
     return;
   }
@@ -539,7 +539,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, uint64_t address,
       if (page && page->get_address() != pageid)
         page = 0;
       if (!page)
-        page = m_env->get_page_manager()->fetch_page(db, pageid,
+        page = m_env->get_page_manager()->fetch(db, pageid,
                         PageManager::kNoHeader);
 
       uint32_t write_start = (uint32_t)(address - page->get_address());
@@ -573,7 +573,7 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
     if (page && page->get_address() != pageid)
       page = 0;
     if (!page)
-      page = m_env->get_page_manager()->fetch_page(db, pageid,
+      page = m_env->get_page_manager()->fetch(db, pageid,
                         fetch_read_only ? PageManager::kReadOnly : 0);
 
     // now read the data from the page

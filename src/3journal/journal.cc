@@ -500,7 +500,7 @@ Journal::recover()
   uint64_t page_manager_blobid
           = m_env->get_header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
-    m_env->get_page_manager()->load_state(page_manager_blobid);
+    m_env->get_page_manager()->initialize(page_manager_blobid);
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().clear();
   }
@@ -627,7 +627,7 @@ Journal::recover_changeset()
 
         // flush the modified page to disk
         page->set_dirty(true);
-        m_env->get_page_manager()->flush_page(page);
+        page->flush();
       }
 
       delete page;

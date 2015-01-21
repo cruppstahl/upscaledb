@@ -86,10 +86,7 @@ LocalEnvironment::create()
   m_header->set_max_databases(m_config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this,
-                          m_config.flags & HAM_CACHE_UNLIMITED
-                              ? 0xffffffffffffffffull
-                              : m_config.cache_size_bytes));
+  m_page_manager.reset(PageManagerFactory::create(this));
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -102,7 +99,7 @@ LocalEnvironment::create()
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_page_manager->flush_page(m_header->get_header_page());
+    m_header->get_header_page()->flush();
 
   /* last step: start the worker thread */
   m_worker.reset(new Worker(this));
@@ -204,10 +201,7 @@ fail_with_fake_cleansing:
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this,
-                          m_config.flags & HAM_CACHE_UNLIMITED
-                              ? 0xffffffffffffffffull
-                              : m_config.cache_size_bytes));
+  m_page_manager.reset(PageManagerFactory::create(this));
 
   /*
    * open the logfile and check if we need recovery. first open the
@@ -219,7 +213,7 @@ fail_with_fake_cleansing:
 
   /* load the state of the PageManager */
   if (m_header->get_page_manager_blobid() != 0) {
-    m_page_manager->load_state(m_header->get_page_manager_blobid());
+    m_page_manager->initialize(m_header->get_page_manager_blobid());
     if (get_flags() & HAM_ENABLE_RECOVERY)
       get_changeset().clear();
   }
@@ -392,24 +386,6 @@ LocalEnvironment::close(uint32_t flags)
       return (st);
   }
 
-  // store the state of the PageManager
-  if (m_page_manager
-      && (get_flags() & HAM_IN_MEMORY) == 0
-      && (get_flags() & HAM_READ_ONLY) == 0) {
-    uint64_t new_blobid = m_page_manager->store_state();
-    Page *hdrpage = m_header->get_header_page();
-    if (new_blobid != m_header->get_page_manager_blobid()) {
-      m_header->set_page_manager_blobid(new_blobid);
-      hdrpage->set_dirty(true);
-    }
-    if (get_flags() & HAM_ENABLE_RECOVERY) {
-      if (hdrpage->is_dirty())
-        get_changeset().add_page(hdrpage);
-      if (!get_changeset().is_empty())
-        get_changeset().flush(get_incremented_lsn());
-    }
-  }
-
   /* flush all committed transactions */
   if (m_txn_manager)
     get_txn_manager()->flush_committed_txns();
@@ -520,12 +496,11 @@ LocalEnvironment::flush(uint32_t flags)
   if (get_txn_manager())
     get_txn_manager()->flush_committed_txns();
 
-  /* flush the header page, if necessary */
-  if (m_header->get_header_page()->is_dirty())
-    get_page_manager()->flush_page(m_header->get_header_page());
+  /* flush the header page */
+  m_header->get_header_page()->flush();
 
   /* flush all open pages to disk */
-  get_page_manager()->flush_all_pages(true);
+  m_page_manager->flush();
 
   /* flush the device - this usually causes a fsync() */
   device->flush();
@@ -810,7 +785,7 @@ void
 LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
 {
   // PageManager metrics (incl. cache and freelist)
-  m_page_manager->get_metrics(metrics);
+  m_page_manager->fill_metrics(metrics);
   // the BlobManagers
   m_blob_manager->get_metrics(metrics);
   // the Journal (if available)

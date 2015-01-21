@@ -575,7 +575,7 @@ struct DuplicateFixture {
     insertData("333", "cccccccccc");
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE((page = ((LocalEnvironment *)m_env)->get_page_manager()->fetch_page(
+    REQUIRE((page = ((LocalEnvironment *)m_env)->get_page_manager()->fetch(
                             (LocalDatabase *)m_db,
                             be->get_root_address())));
 

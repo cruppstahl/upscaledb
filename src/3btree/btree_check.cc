@@ -62,7 +62,7 @@ class BtreeCheckAction
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      page = env->get_page_manager()->fetch_page(db,
+      page = env->get_page_manager()->fetch(db,
                     m_btree->get_root_address(), PageManager::kReadOnly);
 
 #if HAM_DEBUG
@@ -91,7 +91,7 @@ class BtreeCheckAction
 
         // follow the pointer to the smallest child
         if (ptr_down)
-          page = env->get_page_manager()->fetch_page(db, ptr_down,
+          page = env->get_page_manager()->fetch(db, ptr_down,
                                 PageManager::kReadOnly);
         else
           page = 0;
@@ -140,7 +140,7 @@ class BtreeCheckAction
         // follow the right sibling
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         if (node->get_right())
-          child = env->get_page_manager()->fetch_page(db, node->get_right(),
+          child = env->get_page_manager()->fetch(db, node->get_right(),
                                             PageManager::kReadOnly);
         else
           child = 0;

@@ -56,7 +56,7 @@ BtreeIndex::create(uint16_t key_type, uint32_t key_size, uint32_t rec_size)
   ham_assert(key_size != 0);
 
   /* allocate a new root page */
-  Page *root = m_db->get_local_env()->get_page_manager()->alloc_page(m_db,
+  Page *root = m_db->get_local_env()->get_page_manager()->alloc(m_db,
                     Page::kTypeBroot, PageManager::kClearWithZero);
 
   // initialize the new page
@@ -133,7 +133,7 @@ BtreeIndex::find_child(Page *page, const ham_key_t *key,
   if (idxptr)
     *idxptr = slot;
 
-  return (m_db->get_local_env()->get_page_manager()->fetch_page(m_db,
+  return (m_db->get_local_env()->get_page_manager()->fetch(m_db,
                     record_id, page_manager_flags));
 }
 

@@ -367,6 +367,9 @@ class Page {
       m_node_proxy = proxy;
     }
 
+    // tracks number of flushed pages
+    static uint64_t ms_page_count_flushed;
+
   private:
     friend class PageCollection;
 

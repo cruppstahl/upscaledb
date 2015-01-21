@@ -19,8 +19,8 @@
  * list of all pages (free and not free), and maps their virtual ID to
  * their physical address in the file.
  *
- * @exception_safe: n/a
- * @thread_safe: n/a
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_PAGE_MANAGER_STATE_H
@@ -31,6 +31,7 @@
 #include <map>
 
 // Always verify that a file of level N does not include headers > N!
+#include "2config/env_config.h"
 #include "3cache/cache.h"
 
 #ifndef HAM_ROOT_H
@@ -39,6 +40,9 @@
 
 namespace hamsterdb {
 
+class Changeset;
+class Device;
+class EnvironmentHeader;
 class LocalDatabase;
 class LocalEnvironment;
 
@@ -50,10 +54,22 @@ struct PageManagerState
   // The freelist maps page-id to number of free pages (usually 1)
   typedef std::map<uint64_t, size_t> FreeMap;
 
-  PageManagerState(LocalEnvironment *env = 0, uint64_t cache_size = 0);
+  PageManagerState(LocalEnvironment *env);
 
-  // The current Environment handle
+  // The Environment
   LocalEnvironment *env;
+
+  // Copy of the Environment's configuration
+  const EnvironmentConfiguration config;
+
+  // The Environment's header
+  EnvironmentHeader *header;
+
+  // The Device
+  Device *device;
+
+  // The Changeset
+  Changeset *changeset;
 
   // The cache
   Cache cache;
@@ -76,9 +92,6 @@ struct PageManagerState
 
   // tracks number of fetched pages
   uint64_t page_count_fetched;
-
-  // tracks number of flushed pages
-  uint64_t page_count_flushed;
 
   // tracks number of index pages
   uint64_t page_count_index;

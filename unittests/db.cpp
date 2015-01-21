@@ -124,7 +124,7 @@ struct DbFixture {
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
     PageManagerTestGateway test(pm);
 
-    REQUIRE((page = pm->alloc_page(m_dbp, 0)));
+    REQUIRE((page = pm->alloc(m_dbp, 0)));
 
     REQUIRE(m_dbp == page->get_db());
     p = page->get_payload();
@@ -136,7 +136,7 @@ struct DbFixture {
     test.remove_page(page);
     delete page;
 
-    REQUIRE((page = pm->fetch_page(m_dbp, address)));
+    REQUIRE((page = pm->fetch(m_dbp, address)));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
     test.remove_page(page);

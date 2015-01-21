@@ -212,7 +212,7 @@ struct BlobManagerFixture {
 
     /* verify the freelist information */
     if (!m_inmemory) {
-      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+      Page *page = lenv->get_page_manager()->fetch(ldb,
                       (blobid / lenv->get_page_size()) * lenv->get_page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->get_page_size() == 1024 * 16) {
@@ -237,7 +237,7 @@ struct BlobManagerFixture {
     if (!m_inmemory) {
       REQUIRE(blobid2 == blobid);
 
-      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+      Page *page = lenv->get_page_manager()->fetch(ldb,
                       (blobid / lenv->get_page_size()) * lenv->get_page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->get_page_size() == 1024 * 16) {
@@ -254,7 +254,7 @@ struct BlobManagerFixture {
 
     /* once more check the freelist */
     if (!m_inmemory) {
-      Page *page = lenv->get_page_manager()->fetch_page(ldb,
+      Page *page = lenv->get_page_manager()->fetch(ldb,
                       (blobid / lenv->get_page_size()) * lenv->get_page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->get_page_size() == 1024 * 16) {

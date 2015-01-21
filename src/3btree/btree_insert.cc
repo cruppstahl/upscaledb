@@ -118,7 +118,7 @@ class BtreeInsertAction : public BtreeUpdateAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      page = env->get_page_manager()->fetch_page(db,
+      page = env->get_page_manager()->fetch(db,
                     m_hints.leaf_page_addr, PageManager::kOnlyFromCache);
       /* if the page is not in cache: do a regular insert */
       if (!page)

@@ -49,7 +49,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
   LocalDatabase *db = m_btree->get_db();
   LocalEnvironment *env = db->get_local_env();
 
-  Page *page = env->get_page_manager()->fetch_page(db,
+  Page *page = env->get_page_manager()->fetch(db,
                 m_btree->get_root_address());
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -86,7 +86,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         && child_node->is_leaf()
         && child_node->requires_merge()
         && child_node->get_right() != 0) {
-      sib_page = env->get_page_manager()->fetch_page(db,
+      sib_page = env->get_page_manager()->fetch(db,
                             child_node->get_right(),
                         PageManager::kOnlyFromCache);
       if (sib_page != 0) {
@@ -109,7 +109,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         && child_node->is_leaf()
         && child_node->requires_merge()
         && child_node->get_left() != 0) {
-      sib_page = env->get_page_manager()->fetch_page(db,
+      sib_page = env->get_page_manager()->fetch(db,
                             child_node->get_left(),
                             PageManager::kOnlyFromCache);
       if (sib_page != 0) {
@@ -154,7 +154,7 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
   // fix the linked list
   node->set_right(sib_node->get_right());
   if (node->get_right()) {
-    Page *new_right = env->get_page_manager()->fetch_page(db,
+    Page *new_right = env->get_page_manager()->fetch(db,
                           node->get_right());
     BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
     new_right_node->set_left(page->get_address());
@@ -163,7 +163,7 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 
   m_btree->get_statistics()->reset_page(sibling);
   m_btree->get_statistics()->reset_page(page);
-  env->get_page_manager()->add_to_freelist(sibling);
+  env->get_page_manager()->del(sibling);
 
   BtreeIndex::ms_btree_smo_merge++;
   return (page);
@@ -179,10 +179,10 @@ BtreeUpdateAction::collapse_root(Page *root_page)
   m_btree->get_statistics()->reset_page(root_page);
   m_btree->set_root_address(node->get_ptr_down());
 
-  Page *new_root = env->get_page_manager()->fetch_page(root_page->get_db(),
+  Page *new_root = env->get_page_manager()->fetch(root_page->get_db(),
                     m_btree->get_root_address());
   new_root->set_type(Page::kTypeBroot);
-  env->get_page_manager()->add_to_freelist(root_page);
+  env->get_page_manager()->del(root_page);
   return (new_root);
 }
 
@@ -198,8 +198,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   BtreeNodeProxy *old_node = m_btree->get_node_from_page(old_page);
 
   /* allocate a new page and initialize it */
-  Page *new_page = env->get_page_manager()->alloc_page(db,
-                                Page::kTypeBindex);
+  Page *new_page = env->get_page_manager()->alloc(db, Page::kTypeBindex);
   {
     PBtreeNode *node = PBtreeNode::from_page(new_page);
     node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
@@ -265,7 +264,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
   /* fix the double-linked list of pages, and mark the pages as dirty */
   if (old_node->get_right()) {
-    Page *sib_page = env->get_page_manager()->fetch_page(db,
+    Page *sib_page = env->get_page_manager()->fetch(db,
                     old_node->get_right());
     BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
     sib_node->set_left(new_page->get_address());
@@ -291,7 +290,7 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
   LocalDatabase *db = m_btree->get_db();
   LocalEnvironment *env = db->get_local_env();
 
-  Page *new_root = env->get_page_manager()->alloc_page(db, Page::kTypeBroot);
+  Page *new_root = env->get_page_manager()->alloc(db, Page::kTypeBroot);
 
   /* insert the pivot element and set ptr_down */
   BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);

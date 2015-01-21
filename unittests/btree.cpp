@@ -258,7 +258,7 @@ struct BtreeFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)env;
 
     Page *page;
-    REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
+    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
                         1024 * 16)));
     PBtreeNode *node = PBtreeNode::from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
@@ -288,7 +288,7 @@ struct BtreeFixture {
     g_BTREE_INSERT_SPLIT_HOOK = split_hook;
 
     // check if the root page proxy was created correctly (it's a leaf)
-    REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
+    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
                     1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
@@ -320,7 +320,7 @@ struct BtreeFixture {
     }
 
     // now check the leaf page (same as the previous root page)
-    REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
+    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
                         1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
@@ -334,7 +334,7 @@ struct BtreeFixture {
 #endif
 
     // check the other leaf
-    REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
+    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
                         2 * 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
@@ -348,7 +348,7 @@ struct BtreeFixture {
 #endif
 
     // and the new root page (must be an internal page)
-    REQUIRE((page = lenv->get_page_manager()->fetch_page((LocalDatabase *)db,
+    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
                         3 * 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);

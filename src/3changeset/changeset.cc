@@ -122,7 +122,7 @@ Changeset::flush(uint64_t lsn)
     Page *p = visitor.pages[i];
     if (p->is_without_header() == false)
       p->set_lsn(lsn);
-    m_env->get_page_manager()->flush_page(p);
+    p->flush();
 
     HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
   }

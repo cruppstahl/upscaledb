@@ -60,7 +60,7 @@ struct BtreeInsertFixture {
   Page *fetch_page(uint64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
     PageManager *pm = db->get_local_env()->get_page_manager();
-    return (pm->fetch_page(db, address));
+    return (pm->fetch(db, address));
   }
 
   void defaultPivotTest() {

@@ -714,7 +714,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         p->value = 0;
-        page = get_local_env()->get_page_manager()->fetch_page(this,
+        page = get_local_env()->get_page_manager()->fetch(this,
                         m_btree_index->get_root_address(),
                         PageManager::kReadOnly);
         if (page) {

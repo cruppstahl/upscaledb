@@ -64,11 +64,11 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull)) != 0);
+    REQUIRE((page = pm->fetch(0, 16 * 1024ull)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
-    REQUIRE((page = pm->fetch_page(0, 16 * 1024ull,
+    REQUIRE((page = pm->fetch(0, 16 * 1024ull,
                     PageManager::kOnlyFromCache)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
     REQUIRE(page != 0);
@@ -79,7 +79,7 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->alloc_page(0, Page::kTypePageManager,
+    REQUIRE((page = pm->alloc(0, Page::kTypePageManager,
                             PageManager::kClearWithZero)) != 0);
     if (m_inmemory == false)
       REQUIRE(page->get_address() == 2 * 16 * 1024ull);
@@ -213,7 +213,7 @@ struct PageManagerFixture {
       p->assign_allocated_buffer(&pers, i + 1);
       v.push_back(p);
       test.store_page(p);
-      REQUIRE(false == test.cache_is_full());
+      REQUIRE(false == test.is_cache_full());
     }
 
     for (unsigned int i = 0; i < 5; i++) {
@@ -222,11 +222,11 @@ struct PageManagerFixture {
       p->assign_allocated_buffer(&pers, i + 15 + 1);
       v.push_back(p);
       test.store_page(p);
-      REQUIRE(true == test.cache_is_full());
+      REQUIRE(true == test.is_cache_full());
     }
 
     for (unsigned int i = 0; i < 5; i++) {
-      REQUIRE(true == test.cache_is_full());
+      REQUIRE(true == test.is_cache_full());
       Page *p = v.back();
       v.pop_back();
       test.remove_page(p);
@@ -238,17 +238,18 @@ struct PageManagerFixture {
       Page *p = v.back();
       v.pop_back();
       test.remove_page(p);
-      REQUIRE(false == test.cache_is_full());
+      REQUIRE(false == test.is_cache_full());
       p->set_data(0);
       delete p;
     }
 
-    REQUIRE(false == test.cache_is_full());
+    REQUIRE(false == test.is_cache_full());
   }
 
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
+    PageManagerTestGateway test(pm);
     uint32_t page_size = lenv->get_page_size();
 
     // fill with freelist pages and blob pages
@@ -256,7 +257,7 @@ struct PageManagerFixture {
       pm->m_state.free_pages[page_size * (i + 100)] = 1;
 
     pm->m_state.needs_flush = true;
-    REQUIRE(pm->store_state() == page_size * 2);
+    REQUIRE(test.store_state() == page_size * 2);
 
     // reopen the database
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
@@ -283,19 +284,19 @@ struct PageManagerFixture {
     pm->m_state.needs_flush = true;
     // pretend there is data to write, otherwise store_state() is a nop
     pm->m_state.free_pages[page_size] = 0;
-    pm->store_state();
+    test.store_state();
     pm->m_state.free_pages.clear(); // clean up again
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
-      REQUIRE((page[i] = pm->alloc_page(0, 0)) != 0);
+      REQUIRE((page[i] = pm->alloc(0, 0)) != 0);
       REQUIRE(page[i]->get_address() == (3 + i) * page_size);
     }
 
     // free the last 3 of them and move them to the freelist (and verify with
     // is_page_free())
     for (int i = 2; i < 5; i++) {
-      pm->add_to_freelist(page[i]);
+      pm->del(page[i]);
       REQUIRE(true == test.is_page_free(page[i]->get_address()));
     }
     for (int i = 0; i < 2; i++) {
@@ -325,6 +326,7 @@ struct PageManagerFixture {
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
+    PageManagerTestGateway test(pm);
     uint32_t page_size = lenv->get_page_size();
 
     for (int i = 1; i <= 150; i++)
@@ -332,12 +334,12 @@ struct PageManagerFixture {
 
     // store the state on disk
     pm->m_state.needs_flush = true;
-    uint64_t page_id = pm->store_state();
+    uint64_t page_id = test.store_state();
 
-    pm->flush_all_pages();
+    pm->flush();
     pm->m_state.free_pages.clear();
 
-    pm->load_state(page_id);
+    pm->initialize(page_id);
 
     REQUIRE(10 == pm->m_state.free_pages.size());
     for (int i = 1; i < 10; i++)
@@ -356,6 +358,7 @@ struct PageManagerFixture {
   void storeBigStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->get_page_manager();
+    PageManagerTestGateway test(pm);
     uint32_t page_size = lenv->get_page_size();
 
     pm->m_state.last_blob_page_id = page_size * 100;
@@ -367,13 +370,13 @@ struct PageManagerFixture {
 
     // store the state on disk
     pm->m_state.needs_flush = true;
-    uint64_t page_id = pm->store_state();
+    uint64_t page_id = test.store_state();
 
-    pm->flush_all_pages();
+    pm->flush();
     pm->m_state.free_pages.clear();
     pm->m_state.last_blob_page_id = 0;
 
-    pm->load_state(page_id);
+    pm->initialize(page_id);
 
     REQUIRE(pm->m_state.last_blob_page_id == page_size * 100);
 
@@ -391,15 +394,15 @@ struct PageManagerFixture {
     PageManager *pm = lenv->get_page_manager();
     uint32_t page_size = lenv->get_page_size();
 
-    Page *head = pm->alloc_multiple_blob_pages(0, 10);
+    Page *head = pm->alloc_multiple_blob_pages(10);
     REQUIRE(head != 0);
-    pm->add_to_freelist(head, 10);
+    pm->del(head, 10);
 
-    Page *page1 = pm->alloc_multiple_blob_pages(0, 2);
+    Page *page1 = pm->alloc_multiple_blob_pages(2);
     REQUIRE(page1 != 0);
     REQUIRE(page1->get_address() == head->get_address());
 
-    Page *page2 = pm->alloc_multiple_blob_pages(0, 8);
+    Page *page2 = pm->alloc_multiple_blob_pages(8);
     REQUIRE(page2 != 0);
     REQUIRE(page2->get_address() == page1->get_address() + page_size * 2);
   }

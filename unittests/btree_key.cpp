@@ -49,9 +49,8 @@ struct BtreeKeyFixture {
 
     m_dbp = (LocalDatabase *)m_db;
 
-    m_page = m_dbp->get_local_env()->get_page_manager()->alloc_page(m_dbp,
-                    Page::kTypeBindex,
-                    PageManager::kClearWithZero);
+    m_page = m_dbp->get_local_env()->get_page_manager()->alloc(m_dbp,
+                    Page::kTypeBindex, PageManager::kClearWithZero);
 
     // this is a leaf page! internal pages cause different behavior... 
     PBtreeNode *node = PBtreeNode::from_page(m_page);
@@ -204,10 +203,9 @@ struct BtreeKeyFixture {
 
   void resetPage() {
     PageManager *pm = m_dbp->get_local_env()->get_page_manager();
-    pm->add_to_freelist(m_page);
+    pm->del(m_page);
 
-    m_page = pm->alloc_page(m_dbp, Page::kTypeBindex,
-                    PageManager::kClearWithZero);
+    m_page = pm->alloc(m_dbp, Page::kTypeBindex, PageManager::kClearWithZero);
     PBtreeNode *node = PBtreeNode::from_page(m_page);
     node->set_flags(PBtreeNode::kLeafNode);
   }
