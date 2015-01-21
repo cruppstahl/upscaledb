@@ -212,11 +212,6 @@ class Journal
     // all others are automatically aborted
     void recover();
 
-    // Returns the next lsn
-    uint64_t get_incremented_lsn() {
-      return (m_lsn++);
-    }
-
     // Fills the metrics
     void get_metrics(ham_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_count_bytes_flushed;
@@ -342,9 +337,6 @@ class Journal
 
     // For counting all closed transactions in the files
     size_t m_closed_txn[2];
-
-    // The last used lsn
-    uint64_t m_lsn;
 
     // The lsn of the previous checkpoint
     uint64_t m_last_cp_lsn;

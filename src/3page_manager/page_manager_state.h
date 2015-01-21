@@ -45,6 +45,7 @@ class Device;
 class EnvironmentHeader;
 class LocalDatabase;
 class LocalEnvironment;
+class LsnManager;
 
 /*
  * The internal state of the PageManager
@@ -55,9 +56,6 @@ struct PageManagerState
   typedef std::map<uint64_t, size_t> FreeMap;
 
   PageManagerState(LocalEnvironment *env);
-
-  // The Environment
-  LocalEnvironment *env;
 
   // Copy of the Environment's configuration
   const EnvironmentConfiguration config;
@@ -70,6 +68,9 @@ struct PageManagerState
 
   // The Changeset
   Changeset *changeset;
+
+  // The lsn manager
+  LsnManager *lsn_manager;
 
   // The cache
   Cache cache;

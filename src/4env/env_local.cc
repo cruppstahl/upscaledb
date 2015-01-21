@@ -797,14 +797,4 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
   metrics->simd_lane_width = os_get_simd_lane_width();
 }
 
-uint64_t
-LocalEnvironment::get_incremented_lsn()
-{
-  Journal *j = get_journal();
-  if (j)
-    return (j->get_incremented_lsn());
-  LocalTransactionManager *ltm = (LocalTransactionManager *)get_txn_manager();
-  return (ltm->get_incremented_lsn());
-}
-
 } // namespace hamsterdb

@@ -522,16 +522,6 @@ class LocalTransactionManager : public TransactionManager
       m_txn_id = id;
     }
 
-    // Increments the lsn and returns the new value. The lsn in the
-    // TransactionManager is only used if there's no journal (i.e.
-    // because Journalling is disabled)! Otherwise the journal's lsn
-    // is used.
-    //
-    // TODO completely remove the lsn from the journal
-    uint64_t get_incremented_lsn() {
-      return (++m_lsn);
-    }
-
   private:
     // Flushes a single committed Transaction; returns the lsn of the
     // last operation in this transaction
@@ -548,9 +538,6 @@ class LocalTransactionManager : public TransactionManager
 
     // The current transaction ID
     uint64_t m_txn_id;
-
-    // The current lsn
-    uint64_t m_lsn;
 
     // Number of Transactions waiting to be flushed
     int m_queued_txn_for_flush;

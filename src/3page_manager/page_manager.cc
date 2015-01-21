@@ -597,7 +597,7 @@ close_database_impl(PageManagerState &state, LocalDatabase *db)
     state.last_blob_page_id = state.last_blob_page->get_address();
     state.last_blob_page = 0;
   }
-  state.cache.purge_if(db_close_callback, state.env, db, 0);
+  state.cache.purge_if(db_close_callback, 0, db, 0);
 
   state.changeset->clear();
 }
@@ -629,7 +629,7 @@ close_impl(PageManagerState &state)
     reclaim_space_impl(state);
 
     if (state.config.flags & HAM_ENABLE_RECOVERY)
-      state.changeset->flush(state.env->get_incremented_lsn());
+      state.changeset->flush(state.lsn_manager->next());
   }
 
   // flush all dirty pages to disk, then delete them
@@ -680,8 +680,9 @@ set_last_blob_page_impl(PageManagerState &state, Page *page)
 
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
-  : env(env), config(env->get_config()), header(env->get_header()),
+  : config(env->get_config()), header(env->get_header()),
     device(env->get_device()), changeset(&env->get_changeset()),
+    lsn_manager(env->get_lsn_manager()),
     cache(env, config.flags & HAM_CACHE_UNLIMITED
                           ? 0xffffffffffffffffull
                           : config.cache_size_bytes),

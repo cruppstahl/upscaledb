@@ -40,9 +40,8 @@
 namespace hamsterdb {
 
 Journal::Journal(LocalEnvironment *env)
-  : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
-    m_threshold(kSwitchTxnThreshold), m_disable_logging(false),
-    m_count_bytes_flushed(0)
+  : m_env(env), m_current_fd(0), m_threshold(kSwitchTxnThreshold),
+    m_disable_logging(false), m_count_bytes_flushed(0)
 {
   m_open_txn[0] = 0;
   m_open_txn[1] = 0;
@@ -491,8 +490,6 @@ Journal::recover()
 {
   // first re-apply the last changeset
   uint64_t start_lsn = recover_changeset();
-  if (start_lsn > m_lsn)
-    m_lsn = start_lsn;
 
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
@@ -769,9 +766,6 @@ Journal::recover_journal(uint64_t start_lsn)
 
       if (st)
         goto bail;
-
-      if (m_lsn < entry.lsn)
-        m_lsn = entry.lsn;
   } while (1);
 
 bail:

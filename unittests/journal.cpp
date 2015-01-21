@@ -19,6 +19,8 @@
 #include "os.hpp"
 #include "utils.h"
 
+#include "2lsn_manager/lsn_manager.h"
+#include "2lsn_manager/lsn_manager_test.h"
 #include "3journal/journal.h"
 #include "4txn/txn.h"
 #include "4env/env_local.h"
@@ -93,6 +95,11 @@ struct JournalFixture {
     teardown();
   }
 
+  uint64_t get_lsn() {
+    LsnManagerTestGateway test(((LocalEnvironment *)m_env)->get_lsn_manager());
+    return (test.lsn());
+  }
+
   void setup(bool flush_when_committed = true) {
     (void)os::unlink(Utils::opath(".test"));
 
@@ -135,7 +142,6 @@ struct JournalFixture {
   void createCloseTest() {
     Journal *j = disconnect_and_create_new_journal();
 
-    REQUIRE((uint64_t)1 == j->m_lsn);
     /* TODO make sure that the two files exist and
      * contain only the header */
 
@@ -196,7 +202,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)3 == get_lsn());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -212,7 +218,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)3 == get_lsn());
     REQUIRE((uint32_t)1 == j->m_open_txn[0]);
     REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
     REQUIRE((uint32_t)0 == j->m_open_txn[1]);
@@ -221,7 +227,7 @@ struct JournalFixture {
     uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
     REQUIRE((uint32_t)0 == j->m_open_txn[0]);
     REQUIRE((uint32_t)1 == j->m_closed_txn[0]);
     REQUIRE((uint32_t)0 == j->m_open_txn[1]);
@@ -241,7 +247,7 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)3 == get_lsn());
     REQUIRE((uint32_t)1 == j->m_open_txn[0]);
     REQUIRE((uint32_t)0 == j->m_closed_txn[0]);
     REQUIRE((uint32_t)0 == j->m_open_txn[1]);
@@ -252,7 +258,7 @@ struct JournalFixture {
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
     j->transaction_flushed((LocalTransaction *)txn);
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
     REQUIRE((uint32_t)0 == j->m_open_txn[0]);
     REQUIRE((uint32_t)1 == j->m_closed_txn[0]);
     REQUIRE((uint32_t)0 == j->m_open_txn[1]);
@@ -275,7 +281,7 @@ struct JournalFixture {
     uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn);
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
 
@@ -286,7 +292,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((uint64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
     REQUIRE(5 == ins->key_size);
     REQUIRE(5u == ins->record_size);
@@ -315,7 +321,7 @@ struct JournalFixture {
     uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn);
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
 
@@ -326,7 +332,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((uint64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
     REQUIRE(auxbuffer.get_size() == sizeof(PJournalEntryInsert) - 1
                                     + ins->key_size + ins->record_partial_size);
@@ -351,7 +357,7 @@ struct JournalFixture {
 
     uint64_t lsn = m_lenv->get_incremented_lsn();
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
 
@@ -362,7 +368,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the erase
-    REQUIRE((uint64_t)2 == entry.lsn);
+    REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.get_ptr();
     REQUIRE(5 == er->key_size);
     REQUIRE(0u == er->erase_flags);
@@ -383,18 +389,18 @@ struct JournalFixture {
     j->flush_buffer(1);
 
     REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)3 == get_lsn());
 
     j->clear();
     REQUIRE(true == j->is_empty());
-    REQUIRE((uint64_t)2 == j->m_lsn);
+    REQUIRE((uint64_t)3 == get_lsn());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
 
     j->close();
     j->open();
-    REQUIRE((uint64_t)3 == j->m_lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
   }
 
   void iterateOverEmptyLogTest() {
@@ -413,12 +419,12 @@ struct JournalFixture {
   void iterateOverLogOneEntryTest() {
     ham_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(1ull == j->m_lsn);
+    REQUIRE(2ull == get_lsn());
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((LocalTransaction *)txn, 0, j->m_lsn);
+    j->append_txn_begin((LocalTransaction *)txn, 0, get_lsn());
     j->close(true);
     j->open();
-    REQUIRE(2ull == j->m_lsn);
+    REQUIRE(3ull == get_lsn());
 
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
@@ -426,7 +432,7 @@ struct JournalFixture {
     PJournalEntry entry;
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer);
-    REQUIRE((uint64_t)1 == entry.lsn);
+    REQUIRE((uint64_t)2 == entry.lsn);
     REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((uint64_t)1 == entry.txn_id);
     REQUIRE(0 == auxbuffer.get_size());
@@ -492,9 +498,9 @@ struct JournalFixture {
       char name[16];
       sprintf(name, "name%d", i);
       REQUIRE(0 == ham_txn_begin(&txn, m_env, name, 0, 0));
-      vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::kEntryTypeTxnBegin, 0, &name[0]);
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+              Journal::kEntryTypeTxnBegin, 0, &name[0]);
+      vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
       REQUIRE(0 == ham_txn_abort(txn, 0));
     }
@@ -520,9 +526,9 @@ struct JournalFixture {
 
     for (int i = 0; i <= 7; i++) {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-      vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::kEntryTypeTxnBegin, 0);
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+              Journal::kEntryTypeTxnBegin, 0);
+      vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
       REQUIRE(0 == ham_txn_abort(txn, 0));
     }
@@ -550,9 +556,9 @@ struct JournalFixture {
     for (int i = 0; i <= 10; i++) {
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
       if (i >= 5) {
-        vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
-              Journal::kEntryTypeTxnBegin, 0);
         vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+              Journal::kEntryTypeTxnBegin, 0);
+        vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
       }
       REQUIRE(0 == ham_txn_abort(txn, 0));
@@ -618,7 +624,7 @@ struct JournalFixture {
     /* verify the lsn */
     //Journal *j = m_lenv->get_journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
-    // REQUIRE(12ull == j->m_lsn);
+    // REQUIRE(12ull == get_lsn());
     REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->get_txn_manager()))->test_get_txn_id());
 
     /* create another transaction and make sure that the transaction

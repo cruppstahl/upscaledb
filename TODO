@@ -1107,8 +1107,8 @@ PageManagerFactory::create(...)
         x alloc_multiple_blob_pages
         x del
         x has
-    o Move lsn handling to its own object, clean up
-        o PM: remove dependency to Environment
+    x Move lsn handling to its own object, clean up
+        x PM: remove dependency to Environment
     Cache neu schreiben
         o selbe regeln wie oben
         o get

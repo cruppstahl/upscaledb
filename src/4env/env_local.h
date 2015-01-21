@@ -28,6 +28,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
+#include "2lsn_manager/lsn_manager.h"
 #include "3changeset/changeset.h"
 #include "3journal/journal.h"
 #include "4env/env.h"
@@ -86,6 +87,11 @@ class LocalEnvironment : public Environment
       return (m_journal.get());
     }
 
+    // Returns the lsn manager
+    LsnManager *get_lsn_manager() {
+      return (&m_lsn_manager);
+    }
+
     // Sets the Journal; only for testing!
     void test_set_journal(Journal *journal) {
       m_journal.reset(journal);
@@ -93,7 +99,9 @@ class LocalEnvironment : public Environment
 
     // Increments the lsn and returns the incremented value. If the journal
     // is disabled then a dummy value |1| is returned.
-    uint64_t get_incremented_lsn();
+    uint64_t get_incremented_lsn() {
+      return (m_lsn_manager.next());
+    }
 
     // Returns the page_size as specified in ham_env_create
     uint32_t get_page_size() const {
@@ -184,6 +192,9 @@ class LocalEnvironment : public Environment
 
     // The worker thread
     ScopedPtr<Worker> m_worker;
+
+    // The lsn manager
+    LsnManager m_lsn_manager;
 };
 
 } // namespace hamsterdb
