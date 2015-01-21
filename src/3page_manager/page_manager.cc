@@ -211,14 +211,14 @@ maybe_store_state(PageManagerState &state, bool force = false)
 static Page *
 fetch_page_from_cache(PageManagerState &state, uint64_t id)
 {
-  return (state.cache.get_page(id));
+  return (state.cache.get(id));
 }
 
 // Stores a page in the cache
 static void
 store_page_in_cache(PageManagerState &state, Page *page, uint32_t flags = 0)
 {
-  state.cache.put_page(page);
+  state.cache.put(page);
 
   /* write to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
@@ -230,31 +230,8 @@ store_page_in_cache(PageManagerState &state, Page *page, uint32_t flags = 0)
 static bool
 is_cache_full_impl(const PageManagerState &state)
 {
-  return (state.cache.get_allocated_elements() * state.config.page_size_bytes
-            > state.cache.get_capacity());
-}
-
-static bool
-flush_all_pages_callback(Page *page, LocalEnvironment *env,
-                LocalDatabase *db, uint32_t flags)
-{
-  page->flush();
-  return (false);
-}
-
-// callback for purging pages
-static void
-purge_callback(Page *page, PageManager *pm)
-{
-  BtreeCursor::uncouple_all_cursors(page);
-
-  if (pm->m_state.last_blob_page == page) {
-    pm->m_state.last_blob_page_id = pm->m_state.last_blob_page->get_address();
-    pm->m_state.last_blob_page = 0;
-  }
-
-  page->flush();
-  delete page;
+  return (state.cache.allocated_elements() * state.config.page_size_bytes
+                    > state.cache.capacity());
 }
 
 static void
@@ -320,7 +297,7 @@ fill_metrics_impl(const PageManagerState &state, ham_env_metrics_t *metrics)
   metrics->page_count_type_page_manager = state.page_count_page_manager;
   metrics->freelist_hits = state.freelist_hits;
   metrics->freelist_misses = state.freelist_misses;
-  state.cache.get_metrics(metrics);
+  state.cache.fill_metrics(metrics);
 }
 
 static Page *
@@ -328,7 +305,7 @@ fetch_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
                 uint32_t flags)
 {
   /* fetch the page from the cache */
-  Page *page = state.cache.get_page(address);
+  Page *page = state.cache.get(address);
   if (page) {
     ham_assert(page->get_data());
     if (flags & PageManager::kNoHeader)
@@ -519,30 +496,49 @@ alloc_multiple_blob_pages_impl(PageManagerState &state, size_t num_pages)
   return (page);
 }
 
-static bool
-db_close_callback(Page *page, LocalEnvironment *env,
-                LocalDatabase *db, uint32_t flags)
+struct FlushAllPagesPurger
 {
-  if (page->get_db() == db && page->get_address() != 0) {
-    ham_assert(page->get_cursor_list() == 0);
+  bool operator()(Page *page) {
     page->flush();
-    return (true);
+    return (false);
   }
-
-  return (false);
-}
+};
 
 static void
 flush_impl(PageManagerState &state)
 {
-  state.cache.purge_if(flush_all_pages_callback, 0, 0, 0);
+  FlushAllPagesPurger purger;
+  state.cache.purge_if(purger);
 
   if (state.state_page)
     state.state_page->flush();
 }
 
+// callback for purging pages
+struct Purger
+{
+  Purger(PageManager *page_manager)
+    : m_page_manager(page_manager) {
+  }
+
+  void operator()(Page *page) {
+    BtreeCursor::uncouple_all_cursors(page);
+
+    if (m_page_manager->m_state.last_blob_page == page) {
+      m_page_manager->m_state.last_blob_page_id
+              = m_page_manager->m_state.last_blob_page->get_address();
+      m_page_manager->m_state.last_blob_page = 0;
+    }
+
+    page->flush();
+    delete page;
+  }
+
+  PageManager *m_page_manager;
+};
+
 static void
-purge_cache_impl(PageManagerState &state, PageManager *pm)
+purge_cache_impl(PageManagerState &state, PageManager *page_manager)
 {
   // in-memory-db: don't remove the pages or they would be lost
   if (state.config.flags & HAM_IN_MEMORY || !is_cache_full_impl(state))
@@ -550,7 +546,8 @@ purge_cache_impl(PageManagerState &state, PageManager *pm)
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  state.cache.purge(purge_callback, pm);
+  Purger purger(page_manager);
+  state.cache.purge(purger);
 }
 
 static void
@@ -570,9 +567,9 @@ reclaim_space_impl(PageManagerState &state)
     PageManagerState::FreeMap::iterator fit =
                 state.free_pages.find(file_size - page_size);
     if (fit != state.free_pages.end()) {
-      Page *page = state.cache.get_page(fit->first);
+      Page *page = state.cache.get(fit->first);
       if (page) {
-        state.cache.remove_page(page);
+        state.cache.del(page);
         delete page;
       }
       file_size -= page_size;
@@ -590,6 +587,24 @@ reclaim_space_impl(PageManagerState &state)
   }
 }
 
+struct DbClosePurger
+{
+  DbClosePurger(LocalDatabase *db)
+    : m_db(db) {
+  }
+
+  bool operator()(Page *page) {
+    if (page->get_db() == m_db && page->get_address() != 0) {
+      ham_assert(page->get_cursor_list() == 0);
+      page->flush();
+      return (true);
+    }
+    return (false);
+  }
+
+  LocalDatabase *m_db;
+};
+
 static void
 close_database_impl(PageManagerState &state, LocalDatabase *db)
 {
@@ -597,7 +612,8 @@ close_database_impl(PageManagerState &state, LocalDatabase *db)
     state.last_blob_page_id = state.last_blob_page->get_address();
     state.last_blob_page = 0;
   }
-  state.cache.purge_if(db_close_callback, 0, db, 0);
+  DbClosePurger purger(db);
+  state.cache.purge_if(purger);
 
   state.changeset->clear();
 }
@@ -682,10 +698,7 @@ set_last_blob_page_impl(PageManagerState &state, Page *page)
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->get_config()), header(env->get_header()),
     device(env->get_device()), changeset(&env->get_changeset()),
-    lsn_manager(env->get_lsn_manager()),
-    cache(env, config.flags & HAM_CACHE_UNLIMITED
-                          ? 0xffffffffffffffffull
-                          : config.cache_size_bytes),
+    lsn_manager(env->get_lsn_manager()), cache(CacheState(changeset, config)),
     needs_flush(false), state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0),
     page_count_blob(0), page_count_page_manager(0), cache_hits(0),
@@ -781,7 +794,7 @@ PageManager::set_last_blob_page(Page *page)
 static void
 remove_page_impl(PageManagerState &state, Page *page)
 {
-  state.cache.remove_page(page);
+  state.cache.del(page);
   state.changeset->clear();
 }
 

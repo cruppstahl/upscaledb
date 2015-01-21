@@ -1109,16 +1109,23 @@ PageManagerFactory::create(...)
         x has
     x Move lsn handling to its own object, clean up
         x PM: remove dependency to Environment
-    Cache neu schreiben
-        o selbe regeln wie oben
-        o get
-        o put
-        o del
-        o has
-        o use Functor interface in PM
+    x Cache neu schreiben
+        x del
+        x put
+        x get
+        x use Functor interface in PM
+        x selbe regeln wie oben
     Changeset
+    Device
+      Implementation class uses template specialization:
+        fetch_page_impl<InMemoryState>...
+        fetch_page_impl<DiskState>...
+        o rename to fetch/flush/alloc etc
+        o flush() is not required?
+    Page
     BlobManager - remove dependencies to env
     BtreeActions - remove dependencies to env
+    Btree
     Environment neu schreiben
     Database neu schreiben
 
