@@ -287,7 +287,7 @@ struct DupeCursorFixture {
      * fail. The changeset was filled in be->insert(0, but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset()->clear();
 
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
@@ -312,7 +312,7 @@ struct DupeCursorFixture {
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     ham_status_t st =  be->insert(0, &k, &r, flags);
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset()->clear();
     return (st);
   }
 
@@ -2529,7 +2529,7 @@ struct DupeCursorFixture {
 
     /* flush the transaction to disk */
     REQUIRE(0 == ham_cursor_close(m_cursor));
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset()->clear();
     REQUIRE(0 == ham_txn_commit(m_txn, 0));
 
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
@@ -3184,7 +3184,7 @@ TEST_CASE("Cursor/issue41", "")
   REQUIRE(*(uint64_t *)k.data == 5);
   REQUIRE(*(uint64_t *)r.data == 5);
 
-  ((LocalEnvironment *)env)->get_changeset().clear();
+  ((LocalEnvironment *)env)->get_changeset()->clear();
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
@@ -3235,6 +3235,6 @@ TEST_CASE("Cursor/erlangTest", "")
   REQUIRE(0 == ham_cursor_get_record_size(cursor, &size));
   REQUIRE(size == 6ull);
 
-  ((LocalEnvironment *)env)->get_changeset().clear();
+  ((LocalEnvironment *)env)->get_changeset()->clear();
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }

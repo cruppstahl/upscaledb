@@ -49,7 +49,7 @@ struct ChangesetFixture {
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
-      ch.add_page(page[i]);
+      ch.put(page[i]);
 
     REQUIRE(page[1] ==
         page[2]->get_next(Page::kListChangeset));
@@ -76,11 +76,11 @@ struct ChangesetFixture {
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
-      ch.add_page(page[i]);
+      ch.put(page[i]);
   
     for (int i = 0; i < 3; i++)
-      REQUIRE(page[i] == ch.get_page(page[i]->get_address()));
-    REQUIRE((Page *)NULL == ch.get_page(999));
+      REQUIRE(page[i] == ch.get(page[i]->get_address()));
+    REQUIRE((Page *)NULL == ch.get(999));
 
     for (int i = 0; i < 3; i++)
       delete page[i];
@@ -112,14 +112,14 @@ TEST_CASE("Changeset/clear",
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
-    ch.add_page(page[i]);
+    ch.put(page[i]);
 
   REQUIRE(false == ch.is_empty());
   ch.clear();
   REQUIRE(true == ch.is_empty());
 
   for (int i = 0; i < 3; i++)
-    REQUIRE((Page *)NULL == ch.get_page(page[i]->get_address()));
+    REQUIRE((Page *)NULL == ch.get(page[i]->get_address()));
 
   for (int i = 0; i < 3; i++)
     delete page[i];

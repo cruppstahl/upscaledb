@@ -565,7 +565,7 @@ LocalTransactionManager::flush_committed_txns()
   /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(get_local_env()->get_changeset().is_empty());
+    ham_assert(get_local_env()->get_changeset()->is_empty());
 #endif
 
   /* always get the oldest transaction; if it was committed: flush
@@ -605,9 +605,9 @@ LocalTransactionManager::flush_committed_txns()
 
   /* now flush the changeset and write the modified pages to disk */
   if (highest_lsn && m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    get_local_env()->get_changeset().flush(highest_lsn);
+    get_local_env()->get_changeset()->flush(highest_lsn);
 
-  ham_assert(get_local_env()->get_changeset().is_empty());
+  ham_assert(get_local_env()->get_changeset()->is_empty());
 }
 
 uint64_t

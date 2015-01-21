@@ -82,7 +82,7 @@ class PageCollection {
       while (page) {
         Page *next = page->get_next(m_id);
         if (visitor(page)) {
-          remove_impl(page);
+          del_impl(page);
         }
         page = next;
       }
@@ -93,22 +93,13 @@ class PageCollection {
       Page *page = m_head;
       while (page) {
         Page *next = page->get_next(m_id);
-        remove_impl(page);
+        del_impl(page);
         page = next;
       }
 
       ham_assert(m_head == 0);
       ham_assert(m_tail == 0);
       ham_assert(m_size == 0);
-    }
-
-    // Returns a page from the collection
-    Page *get(uint64_t address) const {
-      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
-        if (p->get_address() == address)
-          return (p);
-      }
-      return (0);
     }
 
     // Returns the head
@@ -121,11 +112,20 @@ class PageCollection {
       return (m_tail);
     }
 
+    // Returns a page from the collection
+    Page *get(uint64_t address) const {
+      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
+        if (p->get_address() == address)
+          return (p);
+      }
+      return (0);
+    }
+
     // Removes a page from the collection. Returns true if the page was removed,
     // otherwise false (if the page was not in the list)
-    bool remove(Page *page) {
-      if (contains(page)) {
-        remove_impl(page);
+    bool del(Page *page) {
+      if (has(page)) {
+        del_impl(page);
         return (true);
       }
       return (false);
@@ -134,8 +134,8 @@ class PageCollection {
     // Adds a new page at the head of the list. Returns true if the page was
     // added, otherwise false (that's the case if the page is already part of
     // the list)
-    bool add(Page *page) {
-      if (!contains(page)) {
+    bool put(Page *page) {
+      if (!has(page)) {
         m_head = page->list_insert(m_head, m_id);
         if (!m_tail)
           m_tail = page;
@@ -146,18 +146,18 @@ class PageCollection {
     }
 
     // Returns true if a page with the |address| is already stored.
-    bool contains(uint64_t address) const {
+    bool has(uint64_t address) const {
       return (get(address) != 0);
     }
 
     // Returns true if the |page| is already stored. This is much faster
-    // than contains(uint64_t address).
-    bool contains(Page *page) const {
+    // than has(uint64_t address).
+    bool has(Page *page) const {
       return (page->is_in_list(m_head, m_id));
     }
     
   private:
-    void remove_impl(Page *page) {
+    void del_impl(Page *page) {
       // First update the tail because Page::list_remove() will change the
       // pointers!
       if (m_tail == page)

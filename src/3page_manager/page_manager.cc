@@ -68,7 +68,7 @@ store_state_impl(PageManagerState &state)
 
   /* store the page in the changeset if recovery is enabled */
   if (state.config.flags & HAM_ENABLE_RECOVERY)
-    state.changeset->add_page(state.state_page);
+    state.changeset->put(state.state_page);
 
   uint32_t page_size = state.config.page_size_bytes;
 
@@ -202,7 +202,7 @@ maybe_store_state(PageManagerState &state, bool force = false)
       state.header->get_header_page()->set_dirty(true);
       /* store the page in the changeset if recovery is enabled */
       if (state.config.flags & HAM_ENABLE_RECOVERY)
-        state.changeset->add_page(state.header->get_header_page());
+        state.changeset->put(state.header->get_header_page());
     }
   }
 }
@@ -313,7 +313,7 @@ fetch_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
     /* store the page in the changeset if recovery is enabled */
     if (!(flags & PageManager::kReadOnly)
             && state.config.flags & HAM_ENABLE_RECOVERY)
-      state.changeset->add_page(page);
+      state.changeset->put(page);
     return (page);
   }
 
@@ -341,7 +341,7 @@ fetch_impl(PageManagerState &state, LocalDatabase *db, uint64_t address,
   /* store the page in the changeset */
   if (!(flags & PageManager::kReadOnly)
           && state.config.flags & HAM_ENABLE_RECOVERY)
-    state.changeset->add_page(page);
+    state.changeset->put(page);
 
   state.page_count_fetched++;
   return (page);
@@ -412,7 +412,7 @@ done:
 
   /* an allocated page is always flushed if recovery is enabled */
   if (state.config.flags & HAM_ENABLE_RECOVERY)
-    state.changeset->add_page(page);
+    state.changeset->put(page);
 
   /* store the page in the cache */
   store_page_in_cache(state, page, flags);
@@ -697,7 +697,7 @@ set_last_blob_page_impl(PageManagerState &state, Page *page)
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->get_config()), header(env->get_header()),
-    device(env->get_device()), changeset(&env->get_changeset()),
+    device(env->get_device()), changeset(env->get_changeset()),
     lsn_manager(env->get_lsn_manager()), cache(CacheState(changeset, config)),
     needs_flush(false), state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0),

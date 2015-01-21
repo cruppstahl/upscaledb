@@ -1115,14 +1115,15 @@ PageManagerFactory::create(...)
         x get
         x use Functor interface in PM
         x selbe regeln wie oben
-    Changeset
+    x Changeset
+        x del/put/get/has/...
+        x selbe regeln wie oben
     Device
       Implementation class uses template specialization:
         fetch_page_impl<InMemoryState>...
         fetch_page_impl<DiskState>...
         o rename to fetch/flush/alloc etc
         o flush() is not required?
-    Page
     BlobManager - remove dependencies to env
     BtreeActions - remove dependencies to env
     Btree

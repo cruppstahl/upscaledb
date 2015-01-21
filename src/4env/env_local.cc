@@ -50,7 +50,7 @@ LocalEnvironment::get_btree_descriptor(int i)
 }
 
 LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
-  : Environment(config), m_changeset(this)
+  : Environment(config), m_changeset(new Changeset(ChangesetState(this)))
 {
 }
 
@@ -215,7 +215,7 @@ fail_with_fake_cleansing:
   if (m_header->get_page_manager_blobid() != 0) {
     m_page_manager->initialize(m_header->get_page_manager_blobid());
     if (get_flags() & HAM_ENABLE_RECOVERY)
-      get_changeset().clear();
+      m_changeset->clear();
   }
 
   /* last step: start the worker thread */
@@ -262,7 +262,7 @@ LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 
   /* flush the header page if logging is enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    get_changeset().flush(get_incremented_lsn());
+    m_changeset->flush(get_incremented_lsn());
 
   return (st);
 }
@@ -300,7 +300,7 @@ LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
   /* logging enabled? then the changeset HAS to be empty */
 #ifdef HAM_DEBUG
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(get_changeset().is_empty());
+    ham_assert(m_changeset->is_empty());
 #endif
 
   /*
@@ -326,7 +326,7 @@ LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
   /* if logging is enabled: flush the changeset because the header page
    * was modified */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    get_changeset().flush(get_incremented_lsn());
+    m_changeset->flush(get_incremented_lsn());
 
   (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
@@ -632,7 +632,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
   /* logging enabled? then the changeset HAS to be empty */
 #ifdef HAM_DEBUG
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(get_changeset().is_empty());
+    ham_assert(m_changeset->is_empty());
 #endif
 
   /* initialize the Database */
@@ -646,7 +646,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
 
   /* if logging is enabled: flush the changeset and the header page */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
-    get_changeset().flush(get_incremented_lsn());
+    m_changeset->flush(get_incremented_lsn());
 
   /*
    * on success: store the open database in the environment's list of

@@ -68,7 +68,7 @@ struct BlobManagerFixture {
   ~BlobManagerFixture() {
     /* clear the changeset, otherwise ham_db_close will complain */
     if (!m_inmemory && m_env)
-      ((LocalEnvironment *)m_env)->get_changeset().clear();
+      ((LocalEnvironment *)m_env)->get_changeset()->clear();
     if (m_env)
         REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }

@@ -68,8 +68,8 @@ class LocalEnvironment : public Environment
 
     // Returns the current changeset (stores all modified pages of the current
     // btree modification)
-    Changeset &get_changeset() {
-      return (m_changeset);
+    Changeset *get_changeset() {
+      return (m_changeset.get());
     }
 
     // Returns the blob manager
@@ -120,7 +120,7 @@ class LocalEnvironment : public Environment
       Page *page = m_header->get_header_page();
       page->set_dirty(true);
       if (get_flags() & HAM_ENABLE_RECOVERY)
-        m_changeset.add_page(page);
+        m_changeset->put(page);
     }
 
     // Get the private data of the specified database stored at index |i|;
@@ -179,7 +179,7 @@ class LocalEnvironment : public Environment
 
     // The changeset - a list of all pages that were modified during
     // the current database operation
-    Changeset m_changeset;
+    ScopedPtr<Changeset> m_changeset;
 
     // The BlobManager instance
     ScopedPtr<BlobManager> m_blob_manager;

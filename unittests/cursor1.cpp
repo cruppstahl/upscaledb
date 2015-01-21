@@ -60,7 +60,7 @@ struct BaseCursorFixture {
      * fail. The changeset was filled in be->insert(0, but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset()->clear();
 
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));

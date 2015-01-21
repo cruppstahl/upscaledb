@@ -30,8 +30,7 @@
 #include <stdlib.h>
 
 // Always verify that a file of level N does not include headers > N!
-#include "2page/page.h"
-#include "2page/page_collection.h"
+#include "3changeset/changeset_state.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -39,59 +38,39 @@
 
 namespace hamsterdb {
 
-class LocalEnvironment;
-
-/**
- * The changeset class
- */
-class Changeset
+struct Changeset
 {
-    enum {
-      kDummyLsn = 1
-    };
+  Changeset(ChangesetState state)
+    : m_state(state) {
+  }
 
-  public:
-    Changeset(LocalEnvironment *env)
-      : m_env(env), m_collection(Page::kListChangeset) {
-    }
+  /*
+   * Returns a page from the changeset, or NULL if the page is not part
+   * of the changeset
+   */
+  Page *get(uint64_t address);
 
-    /* Returns true if the changeset is empty */
-    bool is_empty() const {
-      return (m_collection.is_empty());
-    }
+  /* Append a new page to the changeset */
+  void put(Page *page);
 
-    /* Append a new page to the changeset */
-    void add_page(Page *page);
+  /* Check if the page is already part of the changeset */
+  bool has(Page *page) const;
 
-    /*
-     * Returns a page from the changeset.
-     * Returns NULL if the page is not part of the changeset
-     */
-    Page *get_page(uint64_t pageid);
+  /* Returns true if the changeset is empty */
+  bool is_empty() const;
 
-    /* Removes all pages from the changeset */
-    void clear();
+  /* Removes all pages from the changeset */
+  void clear();
 
-    /*
-     * Flush all pages in the changeset - first write them to the log, then
-     * write them to the disk.
-     * On success: will clear the changeset and the journal
-     */
-    void flush(uint64_t lsn = kDummyLsn);
+  /*
+   * Flush all pages in the changeset - first write them to the log, then
+   * write them to the disk.
+   * On success: will clear the changeset and the journal
+   */
+  void flush(uint64_t lsn);
 
-    /* Check if the page is already part of the changeset */
-    bool contains(Page *page) const {
-      return (m_collection.contains(page->get_address()));
-    }
-
-  private:
-    friend struct ChangesetFixture;
-
-    /* The Environment which created this Changeset */
-    LocalEnvironment *m_env;
-
-    /* The pages which were added to this Changeset */
-    PageCollection m_collection;
+  // The mutable state
+  ChangesetState m_state;
 };
 
 } // namespace hamsterdb

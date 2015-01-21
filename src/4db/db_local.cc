@@ -1818,21 +1818,23 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 ham_status_t
 LocalDatabase::finalize(ham_status_t status, Transaction *local_txn)
 {
+  LocalEnvironment *env = get_local_env();
+
   if (status) {
     if (local_txn) {
-      get_local_env()->get_changeset().clear();
-      get_local_env()->get_txn_manager()->abort(local_txn);
+      env->get_changeset()->clear();
+      env->get_txn_manager()->abort(local_txn);
     }
     return (status);
   }
 
   if (local_txn) {
-    get_local_env()->get_changeset().clear();
-    get_local_env()->get_txn_manager()->commit(local_txn);
+    env->get_changeset()->clear();
+    env->get_txn_manager()->commit(local_txn);
   }
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    get_local_env()->get_changeset().flush();
+  else if (env->get_flags() & HAM_ENABLE_RECOVERY
+      && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    env->get_changeset()->flush(env->get_incremented_lsn());
   }
   return (0);
 }

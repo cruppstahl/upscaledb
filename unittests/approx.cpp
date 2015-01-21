@@ -66,7 +66,7 @@ struct ApproxFixture {
 
   void teardown() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    lenv->get_changeset().clear();
+    lenv->get_changeset()->clear();
 
     if (m_txn) {
       REQUIRE(0 == ham_txn_abort(m_txn, 0));

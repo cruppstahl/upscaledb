@@ -307,7 +307,7 @@ struct PageManagerFixture {
     REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->get_file_size());
 
     // reopen the file
-    lenv->get_changeset().clear();
+    lenv->get_changeset()->clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 

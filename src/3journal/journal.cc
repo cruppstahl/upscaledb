@@ -466,7 +466,7 @@ Journal::close_all_databases()
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
       if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-        m_env->get_changeset().clear();
+        m_env->get_changeset()->clear();
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
@@ -499,7 +499,7 @@ Journal::recover()
   if (page_manager_blobid != 0) {
     m_env->get_page_manager()->initialize(page_manager_blobid);
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      m_env->get_changeset().clear();
+      m_env->get_changeset()->clear();
   }
 
   // then start the normal recovery
