@@ -197,17 +197,12 @@ namespace Unittests
             byte[] r2 = new byte[5]; r2[0] = 2;
             db.Insert(k1, r1);
             db.Insert(k2, r2);
-            bool ok;
-            c.TryFind(k1, out ok);
-            Assert.IsTrue(ok);
-            byte[] f = c.GetRecord();
+            var f = c.TryFind(k1);
             checkEqual(r1, f);
-            c.TryFind(k2, out ok);
-            Assert.IsTrue(ok);
-            byte[] g = c.GetRecord();
+            var g = c.TryFind(k2);
             checkEqual(r2, g);
-            c.TryFind(k3, out ok);
-            Assert.IsFalse(ok);
+            var h = c.TryFind(k3);
+            Assert.IsNull(h);
         }
 
         private void Insert() {

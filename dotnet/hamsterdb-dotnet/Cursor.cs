@@ -355,21 +355,20 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Searches a key and points the Cursor to this key
+    /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
     /// This method wraps the native ham_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
-    /// item. If the item could not be found, the Cursor is not modified.
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
     /// <br />
     /// If the key has multiple duplicates, the Cursor is positioned
     /// on the first duplicate.
     /// </remarks>
     /// <param name="key">The key to search for</param>
     /// <param name="flags">The flags, can be zero</param>
-    /// <param name="ok">Set to true if the key was found, false otherwise</param>
-    public byte[] TryFind(ref byte[] key, int flags, out bool ok)
+    public byte[] TryFind(ref byte[] key, int flags)
     {
         int st;
         byte[] record = null;
@@ -377,47 +376,44 @@ namespace Hamster
         {
             st = NativeMethods.CursorFind(handle, ref key, ref record, flags);
         }
-        ok = (st == 0);
         return record;
     }
 
     /// <summary>
-    /// Searches a key and points the Cursor to this key
+    /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
     /// This method wraps the native ham_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
-    /// item. If the item could not be found, the Cursor is not modified.
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
     /// <br />
     /// If the key has multiple duplicates, the Cursor is positioned
     /// on the first duplicate.
     /// </remarks>
     /// <param name="key">The key to search for</param>
     /// <param name="flags">The flags, can be zero</param>
-    /// <param name="ok">Set to true if the key was found, false otherwise</param>
-    public byte[] TryFind(byte[] key, int flags, out bool ok)
+    public byte[] TryFind(byte[] key, int flags)
     {
-        return TryFind(ref key, flags, out ok);
+        return TryFind(ref key, flags);
     }
 
     /// <summary>
-    /// Searches a key and points the Cursor to this key
+    /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
     /// This method wraps the native ham_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
-    /// item. If the item could not be found, the Cursor is not modified.
+    /// item. If the item could not be found, the Cursor is not modified and the return value is null.
     /// <br />
     /// If the key has multiple duplicates, the Cursor is positioned
     /// on the first duplicate.
     /// </remarks>
     /// <param name="key">The key to search for</param>
-    /// <param name="ok">Set to true if the key was found, false otherwise</param>
-    public byte[] TryFind(byte[] key, out bool ok)
+    public byte[] TryFind(byte[] key)
     {
-        return TryFind(ref key, 0, out ok);
+        return TryFind(ref key, 0);
     }
 
     /// <summary>
