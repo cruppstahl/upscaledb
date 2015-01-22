@@ -1230,7 +1230,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
     if (!__prepare_key(key))
       return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error(db->erase(txn, key, flags)));
+    return (db->set_error(db->erase(0, txn, key, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1694,7 +1694,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
       return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    return (db->set_error(db->cursor_erase(cursor, flags)));
+    return (db->set_error(db->erase(cursor, cursor->get_txn(), 0, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);

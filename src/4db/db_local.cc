@@ -336,10 +336,85 @@ retry:
       cursor->get_txn_cursor()->copy_coupled_record(record);
   }
 
-<<<<<<< HEAD
-bail:
-  get_local_env()->get_changeset().clear();
+ham_status_t
+LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
+                uint32_t flags)
+{
+  ham_status_t st = 0;
+  LocalTransaction *local_txn = 0;
 
+  if (cursor) {
+    if (cursor->is_nil())
+      throw Exception(HAM_CURSOR_IS_NIL);
+    if (cursor->is_coupled_to_txnop()) // TODO rewrite the next line, it's ugly
+      key = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+    else // cursor->is_coupled_to_btree()
+      key = 0;
+  }
+
+  if (key) {
+    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+        && key->size != m_config.key_size) {
+      ham_trace(("invalid key size (%u instead of %u)",
+            key->size, m_config.key_size));
+      return (HAM_INV_KEY_SIZE);
+    }
+  }
+
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                        0, HAM_TXN_TEMPORARY);
+    txn = local_txn;
+  }
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+  return (erase_impl(cursor, txn, key, flags));
+}
+
+ham_status_t
+LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
+            ham_record_t *record, uint32_t flags)
+{
+  ham_status_t st = 0;
+  LocalTransaction *local_txn = 0;
+
+  /* Duplicates AND Transactions require a Cursor because only
+   * Cursors can build lists of duplicates.
+   * TODO not exception safe - if find() throws then the cursor is not closed
+   */
+  if (!cursor && txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    Cursor *c = cursor_create(txn, 0);
+    st = find(c, txn, key, record, flags);
+    cursor_close(c);
+    return (st);
+  }
+
+  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
+    ham_trace(("invalid key size (%u instead of %u)",
+          key->size, m_config.key_size));
+    return (HAM_INV_KEY_SIZE);
+  }
+
+  // cursor: reset the dupecache, set to nil
+  // TODO merge both calls, only set to nil if find() was successful
+  if (cursor) {
+    cursor->clear_dupecache();
+    cursor->set_to_nil(Cursor::kBoth);
+  }
+
+  // create a temporary transaction, if necessary
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                        0, HAM_TXN_TEMPORARY);
+    txn = local_txn;
+  }
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+  st = find_impl(cursor, (LocalTransaction *)txn, key, record, flags);
+>>>>>>> Merging Database::erase and Database::cursor_erase
   if (st)
     return (st);
 
@@ -918,26 +993,8 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                 uint32_t flags)
 {
   ham_status_t st = 0;
-  LocalTransaction *local_txn = 0;
 
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (key) {
-    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-        && key->size != m_config.key_size) {
-      ham_trace(("invalid key size (%u instead of %u)",
-            key->size, m_config.key_size));
-      return (HAM_INV_KEY_SIZE);
-    }
-  }
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
-  }
-
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
 
   /*
    * if transactions are enabled: append a 'erase key' operation into

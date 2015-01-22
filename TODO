@@ -559,8 +559,8 @@ o Concurrency: move "purge cache" to background
                     cursor?
                 x merge remote requests
 
+            x merge ham_db_erase/ham_cursor_erase
             o merge ham_db_insert/ham_cursor_insert
-            o merge ham_db_erase/ham_cursor_erase
 
             o add the caller's parameters to the Operation:
                 Operation<InsertParameters>,

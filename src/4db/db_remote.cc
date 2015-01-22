@@ -204,9 +204,21 @@ RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
+RemoteDatabase::erase(Cursor *cursor, Transaction *htxn, ham_key_t *key,
             uint32_t flags)
 {
+  if (cursor) {
+    SerializedWrapper request;
+    request.id = kCursorEraseRequest;
+    request.cursor_erase_request.cursor_handle = cursor->get_remote_handle();
+    request.cursor_erase_request.flags = flags;
+
+    SerializedWrapper reply;
+    get_remote_env()->perform_request(&request, &reply);
+    ham_assert(reply.id == kCursorEraseReply);
+    return (reply.cursor_erase_reply.status);
+  }
+
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
@@ -411,20 +423,6 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   return (0);
-}
-
-ham_status_t
-RemoteDatabase::cursor_erase(Cursor *cursor, uint32_t flags)
-{
-  SerializedWrapper request;
-  request.id = kCursorEraseRequest;
-  request.cursor_erase_request.cursor_handle = cursor->get_remote_handle();
-  request.cursor_erase_request.flags = flags;
-
-  SerializedWrapper reply;
-  get_remote_env()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorEraseReply);
-  return (reply.cursor_erase_reply.status);
 }
 
 uint32_t

@@ -103,8 +103,8 @@ class Database
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, uint32_t flags) = 0;
 
-    // Erase a key/value pair (ham_db_erase)
-    virtual ham_status_t erase(Transaction *txn, ham_key_t *key,
+    // Erase a key/value pair (ham_db_erase, ham_cursor_erase)
+    virtual ham_status_t erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
                     uint32_t flags) = 0;
 
     // Lookup of a key/value pair (ham_db_find, ham_cursor_find)
@@ -120,9 +120,6 @@ class Database
     // Inserts a key with a cursor (ham_cursor_insert)
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags) = 0;
-
-    // Erases the key of a cursor (ham_cursor_erase)
-    virtual ham_status_t cursor_erase(Cursor *cursor, uint32_t flags) = 0;
 
     // Returns number of duplicates (ham_cursor_get_record_count)
     virtual uint32_t cursor_get_record_count(Cursor *cursor,
