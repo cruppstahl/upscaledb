@@ -51,197 +51,18 @@ x refactoring: the ByteArray should be non-copyable, or at least
     review its uses, try to figure out how it can be improved. Should it be a
     DynamicArray<uint8_t>?
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-o fix MacOS compiler issue reported by Daniel Lemire
-
-o improve the webpage documentation
-    o document the various btree formats on the webpage, with images
-        o variable length keys (w/ extended keys)
-        o POD keys
-        o default records
-        o inline records
-        o fixed-length records
-        o duplicates (w/ overflow tables)
-        o PRO: compressed keys
-        o PRO: compressed records
-
-<<<<<<< HEAD
-o refactoring: make journal stateless and exception safe
-
-o refactoring: make changeset stateless and exception safe
-    o don't store reference to m_env (violates layering)
-    o make non-mutable functions "const"
-    o identify mutable state
-
-o refactoring: make BlobManager stateless and exception safe
-
-x #42: approx. matching: cursor returns wrong key when using transactions
-    x create a unittest to reproduce this
-    x the fix should be that ham_cursor_find calls ham_db_find(..., cursor)
-
-x cherry-pick the following commits on the master branch
-    1447ba4eb217532e8fb49c4a84a0dc3b982a3ffe
-    6a8dd20ec9bd2ec718d1136db7667e0e58911003
-
-x Thomas Fähnle: create new parameter for fadvise configuration
-    x implement for file-based (w and w/o memory mapping) devices 
-    x need to check for the function in configure.ac
-    x return flag with ham_env_get_parameter (not documented)
-    x create a unittest to make sure that the parameter is not persisted
-    x create a new parameter for ham_bench
-
-x A few things to refactor in the btree
-    x the BtreeAction classes do not need a Transaction pointer as an argument!
-    x actually NO part of the Btree should EVER access a Transaction...
-    x btree_visitor.h has a structure called ScanVisitor, and BtreeVisitor is
-        in btree_index.h. Can both be combined?
-
-x Introduce new option for record numbers (HAM_RECORD_NUMBER32,
-    HAM_RECORD_NUMBER64), deprecate the old one. Use 32bit whenever possible!
-    x introduce a new flag; the old one uses 64bit. all tests must work
-    x implement (local)
-    x implement (server)
-    x implement (remote)
-    x verify with ham_dump/ham_info
-    x add unittests
-        x re-use existing tests
-        x also for remote!
-        x check for overflows!
-    x add to ham_bench
-    x fix documentation
-        x samples
-        x header file
-
-x implement Cursor::get_record_size for remote access
-
-o Zint32: add compression based on bit-packing
-    -> https://github.com/lemire/simdcomp/blob/master/include/simdintegratedbitpacking.h
-    x add parameter to header file
-    x support in ham_bench
-    x update IndexFactory for the new KeyList
-    x move block/index related functionality to a base class BlockKeyList
-        (w/ template parameter for the block structure)
-    x integrate Daniel's sources as a library
-        x add a unittest to compress/decompress
-    x implement the compression
-        x don't use index->used_size, it's not required
-        x don't use index->block_size; it's always static
-        x use delta-encoding to have better compression
-        x fill in the implementation
-        x add unittests (similar to zint32)
-    x add monster tests (similar to zint32/varbyte)
-    x don't calculate bitwidth if index->bits is already maxxed out (32)
-    x there is no vacuumize prior to a split. The vacuumize is cancelled
-        immediately because it is always "internal".
-    x don't split blocks in the middle if the new key is appended
-    x don't split blocks in the middle if the new key is prepended
-    x test with bulk-erase and deltas of size 1, no records
-        -> no delete stability!
-    x erase: only calculate bits of the new delta, not of the whole block
-    o fix the remaining TODOs
-        x improve vacuumize_impl() performance by allocating multiple
-            blocks at once
-        o add functions for simdcomp library to deal with underfilled blocks
-    . improve copy_to() performance by allocating multiple blocks at once
-    o add more unittests for delete stability
-
-x issue43: fix segfault
-    it seems that a node is removed which is not in the rb-tree. the node
-    used to be there, but got dropped when another node was removed.
-
-x Remove requirement for "delete stability" when erasing keys
-    x Introduce generic BtreeUpdateAction which handles merges and splits
-    x when erasing a key: also expect splits; in case of a split the
-        BtreeEraseAction has to retry the operation - either with the old
-        or the new node!
-
-x hamsterdb-erlang: add support for HAM_RECORD_NUMBER32
-
-o Concurrency: move "purge cache" to background
-    1) page list is not modified while it is traversed/modified
-        - the purger will traverse the list only from back to front
-        - the list's operation are only atomic regarding back to front
-            traversals, not reverse
-        - the purger must not modify the list; it will only unmap/free the
-            page buffer!
-    2) it must be an atomic operation to lock the page as "in use" and to
-        check this lock!
-    3) PageManager: when fetching a page that is currently flushed to disk:
-        wait till flush is finished, then return the page
-    - Alternatively, reorg the hash table. All buckets are in serial memory.
-        This requires a few allocations, but reduces cache misses because
-        there's no "jumping" from page to page. Such a bucket can be replaced
-        atomically with CAS (hazard pointer!) and appended w/o locking. And
-        it avoids frequent calls to remove_from_list/insert_to_list to push
-        the used pages to the front. As a consequence, a new purge mechanism
-        is required to identify "old" pages. These pages then could even be
-        sorted before they are flushed.
-
-    o Create a background thread
-    o Join thread when closing the Environment
-    o create a non-blocking queue for passing data to the thread
-    o add a flag to disable background operations (why?)
-
-    o Get rid of the page lists. Have a generic "PageCollection" class
-        with atomic updates. Use this in the Changeset and the Cache buckets.
-        o use a DynamicArray<std::pair<uint64_t, Page *>> for memory
-        o whenever the array grows:
-            1) grow into a copy
-            2) perform "compactions" if too many elements were deleted
-            3) perform CAS with the old pointer
-        o assert that there is only 1 writer at a time (i.e. use a mutex)
-        o when inserting: set the pointer, then increment the counter
-        o when deleting: simply set to zero
-        o never use a lock when reading
-        o use hazard pointers; auto-delete them after 1 second
-            (pass them to the thread for management)
-
-    o have a Facade for the thread. If threading is enabled then store the
-        message in the message-queue; otherwise perform the request while
-        blocking
-        o but don't add the same request twice if it's still in the queue
-
-    o get rid of the Page-List (use a generic visitor for the Cache)
-    o purger thread periodically walks over the list, purges
-        o can be woken up by the main thread
-    o if a page is deleted or closed: let purger thread clean up the pages
-    o page must not be purged while it's "in use"
-    o mark page as "in use" during purge
-    o run performance tests
-    o and run the leveldb benchmarks
-    o extend monster tests
-    o use valgrind to check for race conditions etc 
-
-=======
->>>>>>> More refactorings, no functional changes
-=======
->>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
-=======
-o Zint32: still has a few bugs when running unittests because
-=======
 x Zint32: still has a few bugs when running unittests because
->>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
     index->used_size is miscalculated
     gdb --args ./test Zint*
     b zint32.cpp:66
     b hamsterdb::Zint32::Zint32KeyList::copy_to
     x then once more check the monster tests
 
-<<<<<<< HEAD
->>>>>>> Refactoring of LocalDatabase::find, cursor_find (wip)
-=======
 x remove dependency to malloc.h, use stdlib.h instead
 
 x add patches from Thomas Fähnle
 
-<<<<<<< HEAD
->>>>>>> Fixed large file support on linux
-o refactoring: clean up the whole Database code; it's too much and too
-=======
 x refactoring: clean up the whole Database code; it's too much and too
->>>>>>> Fixing a regression
     complex; there must be an absolutely clear border between Btree and
     Transaction related code.
     -> should we move the transactional implementations to their own
@@ -391,6 +212,20 @@ x Mail from Joel: approx. matching returns wrong key
             find_txn then moves to the next node, which is null
             segfault when accessing *node
 
+x PRO: add Group Varint-based integer encoding
+    x add parameter to header file
+    x support in ham_bench
+    x update IndexFactory for the new KeyList
+    x integrate Daniel's sources as a library
+    x implement the compression
+        x add unittests (similar to zint32)
+    x add monster tests (similar to zint32/varbyte)
+    x don't split blocks in the middle if the new key is appended
+    x don't split blocks in the middle if the new key is prepended
+    x tests fail if kMaxGroupVarintsPerBlock is set to 4
+        x also try larger values
+    x reduce index size by setting the correct bit widths
+
 o Crash when opening env and Journal is applied
     starting w/ key 1104669304804000000, the blob 729496 (and all following
     60 blobs on page 720896) are missing (= their blob headers are empty).
@@ -411,33 +246,6 @@ o Crash when opening env and Journal is applied
             broken prior to recovery
         2) might be a crash during recovery which resulted in an invalid state
 
-o PRO: add Group Varint-based integer encoding
-    x add parameter to header file
-    x support in ham_bench
-    x update IndexFactory for the new KeyList
-    x integrate Daniel's sources as a library
-    x implement the compression
-        x add unittests (similar to zint32)
-    x add monster tests (similar to zint32/varbyte)
-    x don't split blocks in the middle if the new key is appended
-    x don't split blocks in the middle if the new key is prepended
-    o tests fail if kMaxGroupVarintsPerBlock is set to 4
-        o also try larger values
-    o run ham_bench with different values for kMaxGroupVarintsPerBlock
-        (see mail to Daniel)
-    o reduce index size by setting the correct bit widths
-    o vacuumize (internal == false): merge two blocks if they're underfilled?
-        we have to reduce the number of indices
-        o also for varbyte?
-
-o PRO: retrieve better statistics regarding compression/overhead/payload
-    -> extend ham_info
-    o for each page retrieve those statistics and print them 
-
-o PRO: zint32 - can we find an encoding which gets rid of the block index?
-    -> verify by dumping statistics
-    o come up with suggestions
-
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
@@ -453,42 +261,186 @@ o Concurrency: move "purge cache" to background
       means there can be multiple threads performing I/O without
       blocking each other.
 
-    o Get rid of the page lists. Have a generic "PageCollection" class
-        with atomic updates. Use this in the Changeset and the Cache buckets.
-        o use a DynamicArray<std::pair<uint64_t, Page *>> for memory
-        o whenever the array grows:
+    x on a new branch! topic/thread
+
+    x Create a generic "PageCollection" class with atomic updates
+        x use static memory as default, but replace w/ dynamic memory if
+            capacity is not enough
+        x need a very fast spinlock for writing
+        x whenever the array grows:
             1) grow into a copy
-            2) perform "compactions" if too many elements were deleted
-            3) perform CAS with the old pointer
-        o assert that there is only 1 writer at a time (i.e. use a mutex)
-        o when inserting: set the pointer, then atomically increment the counter
-        o when deleting: simply set to zero
-        o never use a lock when reading
-        o use hazard pointers; auto-delete them after 1 second
-            (pass them to the thread for management)
+            2) perform CAS with the old pointer
+            3) old pointer can be discarded after 1 second
+        x assert that there is only 1 writer at a time (i.e. use a mutex)
+        x when inserting: set the pointer, then atomically increment the counter
+        x when deleting: simply set to zero
+        x never use a lock when reading
 
-    o Create a background thread (use boost::thread)
-    o Join thread when closing the Environment
-    o create a non-blocking queue for passing data to the thread
+    x rewrite PageCollection
+        x use a single linked list (intrusive, just like now)
+        x use a Spinlock for reads *and* writes
+        . in the future, we can still add a bloom filter to check whether
+            a page exists or not
 
-    o have a Facade for the thread which handles sending/receiving the
-        messages.
-        o but don't add the same request twice if it's still in the queue
-        o remember that there can be multiple consumer threads
+    x Use PageCollection in the Changeset
+    x Make sure that extracting the pages is an atomic operation (locked!)
+        -> PageCollection::for_each(Visitor &visitor);
+        x Use this in the Changeset
 
-    o get rid of the Page-List (use a generic visitor for the Cache)
-    o purger thread periodically walks over the list, purges
-        o can be woken up by the main thread
-    o if a page is deleted or closed: let purger thread clean up the pages
-    o page must not be purged while it's "in use"
-    o mark page as "in use" during purge
-    o run performance tests
+    x Use PageCollection for the Page list
+    x Use PageCollection for the Cache buckets
+        x must keep track of the *tail* as well!
+        x if the Cache is thread safe - should the PageCollection also be
+            thread safe?? - no, not required
+        x fix the TODOs
+        x Cache::m_cur_elements no longer required (use totallist.size)
+        x Cache must be thread-safe
+    x the PageManager must be thread-safe - no, it's enough if
+        PageManager::purge_cache is thread-safe (that's the case)
+
+    x Create a background thread (use boost::thread)
+        x make sure that configure.ac checks for boost::thread
+    x Join thread when closing the Environment
+    x thread should sleep till it's woken up, either by a new
+        message or by shutdown
+    x need a fast double-linked message queue
+    x wake up thread when new messages arrive
+    x thread skips all non-mandatory messages when shutting down
+
+    x Run performance tests
+        The cache evicts too fast, i.e. 2.1.9 page_count_fetched 0 -> 9998088
+        x --seed=12345 --stop-ops=10000000 --key=uint16
+        x --seed=12345 --stop-ops=50000 --key=uint16
+        x --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        x --seed=1380279291 --stop-ops=1000000 --distribution=ascending
+        x --seed=1380279291 --stop-ops=1000000 --key=uint16
+
+    o move page flush in background
+        -> A page is in use when it's added to a Changeset. However, pages that
+            are fetched read-only are never added. Have to find a solution
+            for them.
+        x wrap Changeset::flush and Changeset::clear into
+            LocalEnvironment::finalize_operation(abort/commit)
+        x make sure this is called after every operation (exception safe!)
+            -> use BOOST_SCOPE_EXIT
+
+        x always add a page to the Changeset, even if in-memory or
+            recovery is disabled
+
+        o Right now only the Cache uses a mutex. But we need to know
+            whether a page is in use (= in a changelog) or if it's purged.
+            x add a spinlock to the page
+            o Cache::get acquires the lock
+                o PageManager must deal with flushed pages (pers == 0)
+            o when removing from the changelog: unlock
+            o when writing to disk: acquire the lock; when flushing: set the
+                pers-pointer to null
+                o if enough pages were flushed: remove empty stubs from
+                    the list
+
+===============================================================
+in a perfect world...
+- there is a separation between
+    o mutable database state
+        btree nodes
+        blobs
+        env header
+        journal
+    o immutable database state
+        static parameters
+    o operation state (parameters)
+        insert
+        erase...
+    o the code
+- immutable state can be accessed concurrently, w/o locking and blocking.
+- mutable state is synchronized on the lowest level, with very short locks
+
+how can we get there?
+    - extract static database/environment state
+        (mostly done, but clean up the use of the header page)
+    - extract operation state/user parameters into separate structures
+        MutableOperation<State> -> insert, erase...
+        ImmutableOperation<State> -> lookups, get_parameters, ...
+        - create/abort/commit temp transactions in Operation
+        - flush/clear changeset in Operation
+        - make BtreeActions state-less and const
+            ("const BtreeFindAction bfa(...)");
+        - use "const" pages for immutable operations
+
+struct PageManager:
+    only public functions    
+struct PageManagerState:
+    state data w/ getters, setters (if required)
+page_manager.cc:
+    static functions w/ logic
+    PageManager implementation calls static functions
+PageManagerFactory::create(...)
+
+- branch topic/perfect-world
+    x PageManager neu schreiben - perfekt machen!!
+        x Factory
+        x move test functions to PageManagerTestGateway(state)
+        x split into multiple files
+        x can we remove dependency to Environment? - no... (but nearly)
+            x const ref to Environment::m_config
+        x fill_metrics
+        x fetch
+        x alloc
+        x alloc_multiple_blob_pages
+        x del
+        x has
+    x Move lsn handling to its own object, clean up
+        x PM: remove dependency to Environment
+    x Cache neu schreiben
+        x del
+        x put
+        x get
+        x use Functor interface in PM
+        x selbe regeln wie oben
+    x Changeset
+        x del/put/get/has/...
+        x selbe regeln wie oben
+    Device
+      Implementation class uses template specialization:
+        fetch_page_impl<InMemoryState>...
+        fetch_page_impl<DiskState>...
+        o rename to fetch/flush/alloc etc
+        o flush() is not required?
+    BlobManager - remove dependencies to env
+    BtreeActions - remove dependencies to env
+    Btree
+    Environment neu schreiben
+    Database neu schreiben
+
+===============================================================
+
+        o wake up thread if cache is full
+        o some tasks should only exist once, i.e. purging the cache. no need to
+            add it to the queue multiple times
+
+    o run performance tests again
+        o also for > 10 million inserts
+
     o and run the leveldb benchmarks
-    o extend monster tests
     o use valgrind to check for race conditions etc 
 
-    o if a database is deleted: move job to background thread
-    o if a database is closed: move job to background thread
+    o review comment in Cache::purge and rewrite if necessary
+        o but run performance tests
+
+    o run monster tests
+
+o PRO: retrieve better statistics regarding compression/overhead/payload
+    o for each page retrieve those statistics and print them 
+    o extend ham_info
+        o by default, no new stats are printed
+        o a new option for brief, consolidated statistics
+        o a new option for long, extensive statistics
+
+o PRO: add more simdcomp related functions for blocks < 128 integers
+    o for compression
+    o for decompression
+    o review once more
+    o send push request to Daniel
 
 o refactoring: make EnvironmentHeader stateless and exception safe
     o transform to struct instead of class
@@ -508,11 +460,6 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then
     discard if the real page_size is a different one
     o deal with databases < 16kb?
-
-o support multiple worker threads which perform I/O
-    o create 1 thread for hdds
-    o create N threads for ssds, depending on number of controllers
-    -> make overwritable by parameter
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
@@ -565,9 +512,50 @@ o More things to refactor in the btree
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
+o refactoring: reduce complexities by introducing "Operations". Each
+    operation (ham_env_create_db, ham_db_insert, etc) is an Operation.
+    At start, they perform sanity checks (i.e. verifying that the
+    changeset is empty). They create and manage local Transactions if
+    necessary. In the destructor they flush or clear the Changeset
+    and perform cleanups. The changeset is part of the operation.
+    Later, they will also store the caller's data in an Update structure.
+
+    Every operation returns a filled Changeset, and the Operation will
+    then proceed to work with it afterwards: either by ignoring/clearing
+    it or by flushing it.
+
+    This is the flow of ham_env_erase_db:
+        op = Operation<EraseDbState>(env); // locks env.mutex
+        op.state.db = db;
+        op.state.flags = flags;
+        st = env->erase(op);
+        if (st == 0)
+          op.commit()
+        else
+          op.abort()
+
+    This is the flow of ham_db_insert:
+        op = Operation<Update>(env); // locks env.mutex
+        op.state.db = db;
+        op.state.txn = txn;
+        op.state.key = key;
+        op.state.record = record;
+        op.state.flags = flags;
+        if (txn == 0)
+          op.state.txn = ham_txn_begin(...);
+        st = db->insert(op);
+        if (st == 0)
+          op.commit() // also commits local_txn
+        else
+          op.abort() // also aborts local_txn
+
 o refactoring: db_local.cc has so many TODOs!
-    o erase_impl: move cursor-related code to the caller
-    o erase_impl: move sanity checks about key->size to erase()
+    o each operation should follow this pattern:
+        1. perform db- or cursor-specific parameter checks
+        2. perform db- or cursor-specific logic
+        3. create local transaction (if required)
+        4. call _impl method
+        5. call finalize (BOOST_SCOPE_EXIT)
 
 . refactor LocalDatabase::cursor_insert: when done, the duplicate index is
     updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
@@ -589,301 +577,26 @@ o refactoring: db_local.cc has so many TODOs!
     o review if the Cursor class has access to any shared resource; what
         about the cursor list??
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-o refactoring: make AES Encryption stateless and exception safe
-
-o refactoring: make Btree Actions stateless and exception safe
-
-o LocalEnvironment::open creates a "fakepage" to find out the page_size;
-    just assume the default page size of 16kb and read the first page. Then
-    discard if the real page_size is a different one
-    o deal with databases < 16kb?
-
-o refactoring: improve the code separation of cursor and txn_cursor, i.e.
-    in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-    -> clean up the whole Cursor stuff
-=======
-o refactoring: create a Update structure whenever a database is modified;
-    it consists of the operation type, key, record (optional), operation flags,
-    ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
-    class.
-    This structure is then forwarded to the journal, and to all BtreeActions.
-    The BtreeActions no longer require state (at least large parts of it).
-    This structure will also be used for the DeltaUpdates and for batched
-    updates later on.
-    o insert: create such a structure in ham_db_insert, forward it to the
-        lower layers
-    o erase: create such a structure in ham_db_erase, forward it to the
-        lower layers
-    o same for cursor functions
-    o same for ham_cursor_overwrite
-    o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
-
-=======
->>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
-o move "purge cache" to background
-    1) page list is not modified while it is traversed/modified
-        - the purger will traverse the list only from back to front
-        - the list's operation are only atomic regarding back to front
-            traversals, not reverse
-        - the purger must not modify the list; it will only unmap/free the
-            page buffer!
-    2) it must be an atomic operation to lock the page as "in use" and to
-        check this lock!
-    3) PageManager: when fetching a page that is currently flushed to disk:
-        wait till flush is finished, then return the page
-    o add a flag to disable background operations
-    o create a new thread; use libuv
-    o rewrite Page-list to be atomic (at least forward-only)
-    o purger thread periodically walks over the list, purges
-        o can be waken up by the main thread
-    o page must not be purged while it's "in use"
-    o mark page as "in use" during purge
-    o afterwards once more run the leveldb benchmarks
-
-=======
->>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
-o check recovery.pl - extended_tests are failing on PRO because the
-    error inducer hits too early
-=======
->>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
-
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-o refactoring: make journal stateless and exception safe
-    (if it makes sense)
->>>>>>> Refactoring Cursor class; no functional changes
-
-o refactoring: make changeset stateless and exception safe
-    (if it makes sense)
-
-o refactoring: make BlobManager stateless and exception safe
-    (if it makes sense)
-=======
-o reduce record IDs in internal nodes to 32bit; this is enough, and allows
-    32bit compression with grouped varints and/or binary packing
-    o can we do this without breaking backwards compatibility of the file
-        format?
->>>>>>> Cleaning up LocalDatabase::insert/cursor_insert
-
-o support multiple worker threads which perform I/O
-    o how many threads should be created??
-
-o reserve file size upon creation, then map the whole range
-    o needs new parameter HAM_PARAM_ALLOCATE_FILE_BYTES
-    o support in ham_bench
-    o monster tests and performance tests
-    o also for java
-    o also for dotnet
-    o also for python
-    o also for erlang
-=======
->>>>>>> Refactoring: btree-layer no longer accesses Transaction objects
-
-<<<<<<< HEAD
-o bulk updates/batched updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort, but
-        fail hard if the sort order is violated
-    - add those delta updates to the txn-trees or to the btree node,
-        simply transfer ownership of the memory
-    - can contain inserts or deletes
-    o the Update structure, which describes a single update, can also
-        be used internally to pass all parameters to the Btree actions;
-        they would then be completely stateless
-    o also for remote, transfer in a single message
-    o also for .NET
-    o also for java
-    o also for erlang
-    o also for python
-
-o If mmap is enabled then keys and records don't have to be copied as long
-    as they point into the mapped area!
-    - If a key is in a mapped page (w/o extended key) then simply return a
-        pointer
-    - If a record is in a mapped page then simply return a
-        pointer
-
-
-
-
-
-o migrate to libuv 1.0, it has a stable API
-    http://docs.libuv.org/en/latest/migration_010_100.html
-    o also for windows!
-
-o More things to refactor in the btree
-    o PageManager::fetch_page should be available in a const version
-        (fetch_const_page) which sets a flag in the page ("kIsImmutable").
-        the NodeProxy must test this flag whenever it modifies a page!
-        (debug only)
-    o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
-        -> use a common behaviour/indexing
-    o EraseAction line 71: if the node is empty then it should be merged and
-        moved to the freelist!
-
-o when splitting and HAM_HINT_APPEND is set, the new page is appended.
-    do the same for prepend!
-
-o refactor LocalDatabase::cursor_insert: when done, the duplicate index is
-    updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
-    but it's unclear whether the duplicate index is ever required. Better
-    use a logical index ("kLastDuplicate") and lazily calculate the actual
-    position when it's required.
-
-o refactoring: db_local.cc has so many TODOs!
-
-o refactoring: improve the code separation of cursor, btree_cursor
-    and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-    o the whole cursor state is messed up. there should be 3 states:
-        - nil
-        - coupled to btree
-        - coupled to txn
-        and nothing else!
-    o there should be a get_key() and a get_record() method; the caller should
-        not get access to txn_cursor/btree_cursor etc
-    o cursor.cc has so many TODOs!
-    o review if the Cursor class has access to any shared resource; what
-        about the cursor list??
-
 o continue with concurrency...
     next stage: flush changesets in background. this should work whenever
     recovery is enabled (with and without transactions)!
-
-o improve the webpage documentation
-    o document the various btree formats on the webpage, with images
-        o variable length keys (w/ extended keys)
-        o POD keys
-        o default records
-        o inline records
-        o fixed-length records
-        o duplicates (w/ overflow tables)
-        o PRO: compressed keys
-        o PRO: compressed records
-
-o internal nodes should use 32bit page IDs!
-
-
-o look into dynomite, spark, mongodb and mariadb integration
-    https://github.com/Netflix/dynomite
-    -> like MapReduce, Spark requires an InputFormat class; templates are 
-        available here:
-        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
-        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
-
-    -> would be an interesting market with requirements for column store
-        storage
-    -> how does the integration look like?
-    -> has TPC-benchmarks and other benchmarks ready
-    o write down everything i find, collect information and estimate
-        efforts/gains (will do the same for mysql, R and mongodb later); this
-        task is not about writing code!
-    o come up with priorities, estimates
-
-    o dynomite: requires C interface and C marshalling code. rewrite C++
-        marshalling routines to C
-    o dynomite: send a patch to support more backends
-    o dynomite: send a patch to separate existing backends into their own file
-
-o First steps towards concurrency; target is having one lock per db
-    o create coding rules which help for thread-safety
-        o make members const whenever possible
-        o non-const members need to lock or be atomic
-        o if a class is deliberately NOT threadsafe (i.e. ByteArray) then
-            document as annotation, and create a special profile build
-            which verifies that all non-const members are accessed synchronized
-
-        class SingleThreadedGuard {
-          SingleThreadedGuard() {
-            if (atomic_inc(foo) != 1) 
-              throw ...;
-          }
-
-          ~SingleThreadedGuard() {
-            if (atomic_dec(foo) > 0)
-              throw ...;
-          }
-        };
-    o can we also utilize valgrind macros?
-    o need to compile this with -O3, release builds!
-    o perform this for layers 1 - 3
-    o and also for layer 4 - make sure that the code separation is clear
-        -> especially between btree and transactions
-    o how do we deal with temporary data that is returned to the caller?
-        (i.e. record->data) - use tls? or simply allocate the pointer when
-        it's required? but who will free the pointer then?
-    o define the locking behaviour of all classes/logical modules
-    o verify this behaviour in the code 
-    o define which public API function locks what
-    o split the big lock and create one lock per database
-    o perform excessive testing
-
-o Next steps towards concurrency: flush caches asynchronously,
-    use non-blocking writes (with libuv)
-    o when splitting pages: keep the old copies instead of blocking?
-    o or have a separate thread perform purges, flushes with libuv
-    o ... and prefetches (when opening a database with HAM_PREFETCH_INDEX)
-
-o Next steps towards concurrency; target is having one writer per db, but
-        multiple readers
-    o move flushing of transactions into background
-    o move cache purging into background
-    o background operations should be disabled with flags
-    o perform excessive testing
-
-o Final steps towards concurrency; multiple writers, multiple readers
-    o requires delta updates
-
-
-o bulk updates/batched updates
-    - give users API to allocate memory for keys/records
-    - if user says that data is already sorted then do not re-sort, but
-        fail hard if the sort order is violated
-    - add those delta updates to the txn-trees or to the btree node,
-        simply transfer ownership of the memory
-    - can contain inserts or deletes
-    o the Update structure, which describes a single update, can also
-        be used internally to pass all parameters to the Btree actions;
-        they would then be completely stateless
-    o also for remote, transfer in a single message
-    o also for .NET
-    o also for java
-    o also for erlang
-    o also for python
-
-o look into dynomite, spark, mongodb and mariadb integration
-    https://github.com/Netflix/dynomite
-    -> like MapReduce, Spark requires an InputFormat class; templates are 
-        available here:
-        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapreduce/InputFormat.java
-        https://github.com/hypertable/hypertable/blob/master/src/java/MapReduce/org/hypertable/hadoop/mapred/TextTableInputFormat.java (streaming)
-    -> https://developer.yahoo.com/hadoop/tutorial/module5.html#fileformat
-=======
-=======
->>>>>>> Removing requirement for 'delete stability' - btree can now grow when keys are deleted
-o continue with concurrency...
-<<<<<<< HEAD
->>>>>>> More refactorings, no functional changes
-=======
-    next stage: flush changesets in background. this should work whenever
-    recovery is enabled (with and without transactions)!
-<<<<<<< HEAD
->>>>>>> Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
-
-
-=======
     Also, try to handle blob pages separately from the rest - at least if blobs
         are allocated and not overwritten! then the leaf operations would
         maybe become atomic. -> needs more thinking
->>>>>>> Updated TODO file
+    . support multiple worker threads which perform I/O
+        o create 1 thread for hdds
+        o create N threads for ssds, depending on number of controllers
+        -> make overwritable by parameter
 
+o investigate "pointer swizzling": internal btree nodes should store "hints"
+    to the actual Page, not the Page IDs, as soon as the Page was loaded for
+    the first time. This could circumvent the buffer cache and increase
+    performance.
+    How to invalidate those hints or discover that a page was evicted from
+    cache?
+    - Eviction could only free the persistent part of a page, and not the
+        stub.
+    - Could also use reference counting for the page
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
@@ -907,6 +620,12 @@ o PRO: additional zint32 TODOs for simdcomp
     o improve copy_to() performance by allocating multiple blocks at once
     o rewrite remainding simdcomp functions to accept a "length" parameter
     o add more unittests for delete stability
+
+o PRO: Group Varint-related improvements
+    o will currently not work with pages > 16kb
+    o vacuumize (internal == false): merge two blocks if they're underfilled?
+        we have to reduce the number of indices
+        o also for varbyte?
 
 o PRO: allow compression of 32bit record numbers
 
@@ -956,7 +675,8 @@ o PRO: use compression also for duplicate records
 
 
 o refactoring: create a Update structure whenever a database is modified;
-    it consists of the operation type, key, record (optional), operation flags,
+    -> Also see "DeltaUpdate" story; it will use an identical structure.
+    It consists of the operation type, key, record (optional), operation flags,
     ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
     class.
     This structure is then forwarded to the journal, and to all BtreeActions.
@@ -972,21 +692,18 @@ o refactoring: create a Update structure whenever a database is modified;
     o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
 
 o delta updates managed in the BtreeNode
-    the operations are attached to the node, but as soon as the node
-    is accessed for a lookup or a scan, or immediately before the node
-    is flushed, the deltas are merged into the node. So far this does not
-    sound too efficient, but the bulk updates in combination with the
-    key compression (i.e. for prefix compression) will benefit a lot.
+    Updates are attached to a node. A background thread can merge them.
+    At runtime, they're consolidated. An Update can be part of a Transaction.
+    The existing TransactionOperation structure is replaced. The whole
+    Transaction handling will be rewritten. Instead of using separate
+    TransactionTrees, the Updates are attached to the node.
 
-    Also, they are really required for concurrency and to allow multiple
-    writers in parallel.
+    Updates are a sorted linked list. Prior to merge, those Updates that delete
+    keys will be applied.
 
-    these DUs are *very* similar to TransactionOperations; can both be
-    combined? We already consolidate Txns with the Btree. If the Txns are
-    based on DUs and attached to the BtreeNode (instead to a separate TxnTree)
-    then both can be consolidated in a single sweep. Committing/Aborting
-    becomes O(1), and the background thread can then flush them do disk.
-
+    When pages are merged or split then the delta updates are moved to the
+    new page. They are not merged immediately.
+       
     -> Flushes/Merges happen in background
     -> Transactions, Commits and Btree operations are completely decoupled.
         This requires a new recovery/logging strategy!
@@ -994,19 +711,15 @@ o delta updates managed in the BtreeNode
         compactions in the background
     -> Needs more research...
 
-    x perform a benchmark/profiling: random inserts vs. ascending inserts;
-        the difference should be caused by memcopy/memmove (is it?)
-        x PAX
-            -> absolutely worth the effort, about 60% are spent in memmove
-        x Default
-            -> also worth the effort, about 15% are spent in memmove
+    o rename TransactionOperation to Update, decouple code from txn
+    o The BtreeNodeProxy manages a (single) linked list of Updates
+    o New Updates are added at the front
+    o Make sure that all node-operations take the Updates into account
+        o first stage: merge them (sort, remove Erase-Updates, apply Inserts)
+        o second stage: consolidate the Updates and avoid merges
+        o insert: take delta updates into account when splitting pages
+        o when splitting pages: re-distribute the Updates, don't apply them
 
-    o need a flag to disable DeltaUpdates
-        o add flag to ham_bench
-    o rename TransactionOperation to DeltaUpdate, decouple code from txn
-    o totally transparent to the caller, handled in the proxy
-    o only add deltas to leaf nodes; internal nodes have too many read
-        operations and would anyway require immediate flushes
     o DeltaUpdate objects from a txn-flush should directly go down to
         the node (detach from txn, attach to node)
     o should the the insert + set_record operations be combined into a
@@ -1025,6 +738,9 @@ o delta updates managed in the BtreeNode
     o now run tests: should every update be stored as a DeltaUpdate? If not
         then disable them by default, unless Transactions are used (and unless
         bulk updates are used)
+    . Add deltas to leaf nodes, but not to internal nodes; internal nodes
+        have too many read operations and would anyway require immediate
+        flushes (really?)
 
 
 
