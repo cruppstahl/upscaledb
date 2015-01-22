@@ -304,7 +304,7 @@ struct PageManagerFixture {
     }
 
     // verify file size
-    REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->get_file_size());
+    REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->file_size());
 
     // reopen the file
     lenv->get_changeset()->clear();
@@ -319,7 +319,7 @@ struct PageManagerFixture {
 
     // verify file size
 #ifndef WIN32
-    REQUIRE((uint64_t)(page_size * 6) == lenv->get_device()->get_file_size());
+    REQUIRE((uint64_t)(page_size * 6) == lenv->get_device()->file_size());
 #endif
   }
 

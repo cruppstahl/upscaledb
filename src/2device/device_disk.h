@@ -108,6 +108,11 @@ class DiskDevice : public Device {
       std::swap(m_state, state);
     }
 
+    // returns true if the device is open
+    virtual bool is_open() {
+      return (m_state.file.is_open());
+    }
+
     // closes the device
     virtual void close() {
       State state = m_state;
@@ -131,13 +136,8 @@ class DiskDevice : public Device {
       m_state.file_size = new_file_size;
     }
 
-    // returns true if the device is open
-    virtual bool is_open() {
-      return (m_state.file.is_open());
-    }
-
     // get the current file/storage size
-    virtual size_t get_file_size() {
+    virtual size_t file_size() {
       ham_assert(m_state.file_size == m_state.file.get_file_size());
       return (m_state.file_size);
     }

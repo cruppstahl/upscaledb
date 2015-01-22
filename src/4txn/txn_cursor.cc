@@ -74,10 +74,8 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
 }
 
 ham_status_t
-TransactionCursor::overwrite(ham_record_t *record)
+TransactionCursor::overwrite(LocalTransaction *txn, ham_record_t *record)
 {
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
-
   if (is_nil())
     return (HAM_CURSOR_IS_NIL);
 
@@ -89,8 +87,8 @@ TransactionCursor::overwrite(ham_record_t *record)
 
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
-  return (((LocalDatabase *)get_db())->insert_txn(txn,
-          node->get_key(), record, HAM_OVERWRITE, this));
+  return (((LocalDatabase *)get_db())->insert_txn(txn, node->get_key(),
+                          record, HAM_OVERWRITE, this));
 }
 
 ham_status_t

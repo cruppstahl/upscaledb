@@ -67,8 +67,6 @@ enum {
   kCursorInsertReply,
   kCursorEraseRequest,
   kCursorEraseReply,
-  kCursorFindRequest,
-  kCursorFindReply,
   kCursorGetRecordCountRequest,
   kCursorGetRecordCountReply,
   kCursorGetRecordSizeRequest,
@@ -173,6 +171,7 @@ MESSAGE_END
 MESSAGE_BEGIN(DbFindRequest)
   uint64 db_handle;
   uint64 txn_handle;
+  uint64 cursor_handle;
   uint32 flags;
   Key key;
   optional Record record;
@@ -231,19 +230,6 @@ MESSAGE_END
 
 MESSAGE_BEGIN(CursorEraseReply)
   sint32 status;
-MESSAGE_END
-
-MESSAGE_BEGIN(CursorFindRequest)
-  uint64 cursor_handle;
-  uint32 flags;
-  Key key;
-  optional Record record;
-MESSAGE_END
-
-MESSAGE_BEGIN(CursorFindReply)
-  sint32 status;
-  optional Key key;
-  optional Record record;
 MESSAGE_END
 
 MESSAGE_BEGIN(CursorGetRecordCountRequest)
@@ -325,8 +311,6 @@ MESSAGE_BEGIN(Wrapper)
   CursorInsertReply cursor_insert_reply;
   CursorEraseRequest cursor_erase_request;
   CursorEraseReply cursor_erase_reply;
-  CursorFindRequest cursor_find_request;
-  CursorFindReply cursor_find_reply;
   CursorGetRecordCountRequest cursor_get_record_count_request;
   CursorGetRecordCountReply cursor_get_record_count_reply;
   CursorGetRecordSizeRequest cursor_get_record_size_request;
@@ -399,10 +383,6 @@ MESSAGE_BEGIN(Wrapper)
         return (s + cursor_erase_request.get_size());
       case kCursorEraseReply: 
         return (s + cursor_erase_reply.get_size());
-      case kCursorFindRequest: 
-        return (s + cursor_find_request.get_size());
-      case kCursorFindReply: 
-        return (s + cursor_find_reply.get_size());
       case kCursorGetRecordCountRequest: 
         return (s + cursor_get_record_count_request.get_size());
       case kCursorGetRecordCountReply: 
@@ -506,12 +486,6 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorEraseReply: 
         cursor_erase_reply.serialize(pptr, psize);
-        break;
-      case kCursorFindRequest: 
-        cursor_find_request.serialize(pptr, psize);
-        break;
-      case kCursorFindReply: 
-        cursor_find_reply.serialize(pptr, psize);
         break;
       case kCursorGetRecordCountRequest: 
         cursor_get_record_count_request.serialize(pptr, psize);
@@ -625,12 +599,6 @@ MESSAGE_BEGIN(Wrapper)
         break;
       case kCursorEraseReply: 
         cursor_erase_reply.deserialize(pptr, psize);
-        break;
-      case kCursorFindRequest: 
-        cursor_find_request.deserialize(pptr, psize);
-        break;
-      case kCursorFindReply: 
-        cursor_find_reply.deserialize(pptr, psize);
         break;
       case kCursorGetRecordCountRequest: 
         cursor_get_record_count_request.deserialize(pptr, psize);

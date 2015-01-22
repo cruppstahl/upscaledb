@@ -230,15 +230,19 @@ RemoteDatabase::erase(Transaction *htxn, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
+RemoteDatabase::find(Cursor *cursor, Transaction *htxn, ham_key_t *key,
               ham_record_t *record, uint32_t flags)
 {
+  if (cursor && !htxn)
+    htxn = cursor->get_txn();
+
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
   SerializedWrapper request;
   request.id = kDbFindRequest;
   request.db_find_request.db_handle = get_remote_handle();
+  request.db_find_request.cursor_handle = cursor ? cursor->get_remote_handle() : 0;
   request.db_find_request.txn_handle = txn ? txn->get_remote_handle() : 0;
   request.db_find_request.flags = flags;
   request.db_find_request.key.has_data = true;
@@ -278,16 +282,17 @@ RemoteDatabase::find(Transaction *htxn, ham_key_t *key,
         key_arena->resize(key->size);
         key->data = key_arena->get_ptr();
       }
-      memcpy(key->data, (void *)reply.db_find_reply.key.data.value, key->size);
+      ::memcpy(key->data, (void *)reply.db_find_reply.key.data.value,
+                      key->size);
     }
-    if (reply.db_find_reply.has_record) {
+    if (record && reply.db_find_reply.has_record) {
       record->size = reply.db_find_reply.record.data.size;
       if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
         rec_arena->resize(record->size);
         record->data = rec_arena->get_ptr();
       }
-      memcpy(record->data, (void *)reply.db_find_reply.record.data.value,
-                record->size);
+      ::memcpy(record->data, (void *)reply.db_find_reply.record.data.value,
+                      record->size);
     }
   }
 
@@ -420,66 +425,6 @@ RemoteDatabase::cursor_erase(Cursor *cursor, uint32_t flags)
   get_remote_env()->perform_request(&request, &reply);
   ham_assert(reply.id == kCursorEraseReply);
   return (reply.cursor_erase_reply.status);
-}
-
-ham_status_t
-RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
-              ham_record_t *record, uint32_t flags)
-{
-  RemoteEnvironment *env = get_remote_env();
-
-  SerializedWrapper request;
-  request.id = kCursorFindRequest;
-  request.cursor_find_request.cursor_handle = cursor->get_remote_handle();
-  request.cursor_find_request.flags = flags;
-  if (key->size > 0) {
-    request.cursor_find_request.key.has_data = true;
-    request.cursor_find_request.key.data.size = key->size;
-    request.cursor_find_request.key.data.value = (uint8_t *)key->data;
-  }
-  request.cursor_find_request.key.flags = key->flags;
-  request.cursor_find_request.key.intflags = key->_flags;
-  if (record) {
-    request.cursor_find_request.has_record = true;
-    if (record->size > 0) {
-      request.cursor_find_request.record.has_data = true;
-      request.cursor_find_request.record.data.size = record->size;
-      request.cursor_find_request.record.data.value = (uint8_t *)record->data;
-    }
-    request.cursor_find_request.record.flags = record->flags;
-    request.cursor_find_request.record.partial_size = record->partial_size;
-    request.cursor_find_request.record.partial_offset = record->partial_offset;
-  }
-
-  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(cursor->get_txn());
-
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &get_record_arena()
-                : &txn->get_record_arena();
-
-
-  SerializedWrapper reply;
-  env->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorFindReply);
-
-  ham_status_t st = reply.cursor_find_reply.status;
-  if (st == 0) {
-    /* approx. matching: need to copy the _flags! */
-    if (reply.cursor_find_reply.has_key)
-      key->_flags = reply.cursor_find_reply.key.intflags;
-    if (reply.cursor_find_reply.has_record) {
-      ham_assert(record);
-      record->size = reply.cursor_find_reply.record.data.size;
-      if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        arena->resize(record->size);
-        record->data = arena->get_ptr();
-      }
-      memcpy(record->data, reply.cursor_find_reply.record.data.value,
-              record->size);
-    }
-  }
-
-  return (st);
 }
 
 uint32_t

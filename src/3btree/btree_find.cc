@@ -159,7 +159,6 @@ class BtreeFindAction
 
       /* set the cursor-position to this key */
       if (m_cursor) {
-        ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
         m_cursor->couple_to_page(page, slot, 0);
       }
 

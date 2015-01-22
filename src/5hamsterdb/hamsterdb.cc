@@ -59,7 +59,7 @@ filename_is_local(const char *filename)
 
 ham_status_t
 ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
-            void *, uint32_t flags)
+                void *, uint32_t flags)
 {
   Transaction **txn = (Transaction **)htxn;
 
@@ -298,8 +298,7 @@ __prepare_record(ham_record_t *record)
 }
 
 void HAM_CALLCONV
-ham_get_version(uint32_t *major, uint32_t *minor,
-        uint32_t *revision)
+ham_get_version(uint32_t *major, uint32_t *minor, uint32_t *revision)
 {
   if (major)
     *major = HAM_VERSION_MAJ;
@@ -311,7 +310,7 @@ ham_get_version(uint32_t *major, uint32_t *minor,
 
 ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t **henv, const char *filename,
-        uint32_t flags, uint32_t mode, const ham_parameter_t *param)
+                uint32_t flags, uint32_t mode, const ham_parameter_t *param)
 {
   EnvironmentConfiguration config;
   config.filename = filename ? filename : "";
@@ -473,7 +472,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
 ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
-        uint32_t flags, const ham_parameter_t *param)
+                uint32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
@@ -525,7 +524,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
 
 ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
-        uint32_t flags, const ham_parameter_t *param)
+                uint32_t flags, const ham_parameter_t *param)
 {
   ham_status_t st;
   Environment *env = (Environment *)henv;
@@ -583,7 +582,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
 
 ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
-            const ham_parameter_t *param)
+                const ham_parameter_t *param)
 {
   EnvironmentConfiguration config;
   config.filename = filename ? filename : "";
@@ -715,7 +714,7 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
 
 ham_status_t HAM_CALLCONV
 ham_env_rename_db(ham_env_t *henv, uint16_t oldname, uint16_t newname,
-            uint32_t flags)
+                uint32_t flags)
 {
   Environment *env = (Environment *)henv;
   if (!env) {
@@ -981,7 +980,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 
 ham_status_t HAM_CALLCONV
 ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-        ham_record_t *record, uint32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1051,7 +1050,7 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
       return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error(db->find(txn, key, record, flags)));
+    return (db->set_error(db->find(0, txn, key, record, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1071,7 +1070,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
 
 ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
-            ham_record_t *record, uint32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1319,7 +1318,7 @@ ham_db_close(ham_db_t *hdb, uint32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
-            uint32_t flags)
+                uint32_t flags)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1391,7 +1390,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
-        uint32_t flags)
+                uint32_t flags)
 {
   Database *db;
 
@@ -1432,7 +1431,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
-        ham_record_t *record, uint32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   Database *db;
   Environment *env;
@@ -1490,7 +1489,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
-        uint32_t flags)
+                uint32_t flags)
 {
   Database *db;
   Environment *env;
@@ -1548,7 +1547,8 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     if (record && !__prepare_record(record))
       return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error(db->cursor_find(cursor, key, record, flags)));
+    return (db->set_error(db->find(cursor, cursor->get_txn(),
+                                    key, record, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1557,7 +1557,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
-        uint32_t flags)
+                uint32_t flags)
 {
   Database *db;
 
@@ -1734,8 +1734,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_duplicate_position(ham_cursor_t *hcursor,
-            uint32_t *position)
+ham_cursor_get_duplicate_position(ham_cursor_t *hcursor, uint32_t *position)
 {
   Database *db;
 
@@ -1892,7 +1891,7 @@ ham_db_get_env(ham_db_t *hdb)
 
 ham_status_t HAM_CALLCONV
 ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
-      uint64_t *keycount)
+                uint64_t *keycount)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;

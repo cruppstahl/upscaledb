@@ -560,7 +560,7 @@ reclaim_space_impl(PageManagerState &state)
   ham_assert(!(state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL));
 
   bool do_truncate = false;
-  size_t file_size = state.device->get_file_size();
+  size_t file_size = state.device->file_size();
   uint32_t page_size = state.config.page_size_bytes;
 
   while (state.free_pages.size() > 1) {

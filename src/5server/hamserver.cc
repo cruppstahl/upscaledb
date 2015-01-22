@@ -740,6 +740,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
 
   Transaction *txn = 0;
   Database *db = 0;
+  Cursor *cursor = 0;
 
   if (request->db_find_request().txn_handle()) {
     txn = srv->get_txn(request->db_find_request().txn_handle());
@@ -747,30 +748,46 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
       st = HAM_INV_PARAMETER;
   }
 
-  if (st == 0) {
+  if (st == 0 && request->db_find_request().cursor_handle()) {
+    cursor = srv->get_cursor(request->db_find_request().cursor_handle());
+    if (!cursor)
+      st = HAM_INV_PARAMETER;
+  }
+
+  if (st == 0 && request->db_find_request().db_handle()) {
     db = srv->get_db(request->db_find_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
-    else {
-      key.data = (void *)&request->db_find_request().key().data()[0];
-      key.size = (uint16_t)request->db_find_request().key().data().size();
-      key.flags = request->db_find_request().key().flags()
-                  & (~HAM_KEY_USER_ALLOC);
+  }
 
+  if (st == 0) {
+    key.data = (void *)&request->db_find_request().key().data()[0];
+    key.size = (uint16_t)request->db_find_request().key().data().size();
+    key.flags = request->db_find_request().key().flags()
+                & (~HAM_KEY_USER_ALLOC);
+
+    if (request->db_find_request().has_record()) {
       rec.data = (void *)&request->db_find_request().record().data()[0];
       rec.size = (uint32_t)request->db_find_request().record().data().size();
       rec.partial_size = request->db_find_request().record().partial_size();
       rec.partial_offset = request->db_find_request().record().partial_offset();
       rec.flags = request->db_find_request().record().flags()
                   & (~HAM_RECORD_USER_ALLOC);
+    }
 
+    if (cursor)
+      st = ham_cursor_find((ham_cursor_t *)cursor, &key,
+                      request->db_find_request().has_record()
+                          ? &rec
+                          : 0,
+                      request->db_find_request().flags());
+    else
       st = ham_db_find((ham_db_t *)db, (ham_txn_t *)txn, &key,
-              &rec, request->db_find_request().flags());
-      if (st == 0) {
-        /* approx matching: key->_flags was modified! */
-        if (key._flags)
-          send_key = true;
-      }
+                      &rec, request->db_find_request().flags());
+    if (st == 0) {
+      /* approx matching: key->_flags was modified! */
+      if (key._flags)
+        send_key = true;
     }
   }
 
@@ -792,8 +809,10 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   ham_key_t key = {0};
   ham_record_t rec = {0};
   bool send_key = false;
+
   Transaction *txn = 0;
   Database *db = 0;
+  Cursor *cursor = 0;
 
   if (request->db_find_request.txn_handle) {
     txn = srv->get_txn(request->db_find_request.txn_handle);
@@ -801,30 +820,46 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
       st = HAM_INV_PARAMETER;
   }
 
-  if (st == 0) {
+  if (st == 0 && request->db_find_request.cursor_handle) {
+    cursor = srv->get_cursor(request->db_find_request.cursor_handle);
+    if (!cursor)
+      st = HAM_INV_PARAMETER;
+  }
+
+  if (st == 0 && request->db_find_request.db_handle) {
     db = srv->get_db(request->db_find_request.db_handle);
     if (!db)
       st = HAM_INV_PARAMETER;
-    else {
-      key.data = (void *)request->db_find_request.key.data.value;
-      key.size = (uint16_t)request->db_find_request.key.data.size;
-      key.flags = request->db_find_request.key.flags
-                    & (~HAM_KEY_USER_ALLOC);
+  }
 
+  if (st == 0) {
+    key.data = (void *)request->db_find_request.key.data.value;
+    key.size = (uint16_t)request->db_find_request.key.data.size;
+    key.flags = request->db_find_request.key.flags
+                  & (~HAM_KEY_USER_ALLOC);
+
+    if (request->db_find_request.has_record) {
       rec.data = (void *)request->db_find_request.record.data.value;
       rec.size = (uint32_t)request->db_find_request.record.data.size;
       rec.partial_size = request->db_find_request.record.partial_size;
       rec.partial_offset = request->db_find_request.record.partial_offset;
       rec.flags = request->db_find_request.record.flags
                     & (~HAM_RECORD_USER_ALLOC);
+    }
 
+    if (cursor)
+      st = ham_cursor_find((ham_cursor_t *)cursor, &key,
+                    request->db_find_request.has_record
+                        ? &rec
+                        : 0,
+                    request->db_find_request.flags);
+    else
       st = ham_db_find((ham_db_t *)db, (ham_txn_t *)txn, &key,
-              &rec, request->db_find_request.flags);
-      if (st == 0) {
-        /* approx matching: key->_flags was modified! */
-        if (key._flags)
-          send_key = true;
-      }
+                    &rec, request->db_find_request.flags);
+    if (st == 0) {
+      /* approx matching: key->_flags was modified! */
+      if (key._flags)
+        send_key = true;
     }
   }
 
@@ -1383,126 +1418,6 @@ handle_cursor_erase(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
-handle_cursor_find(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
-{
-  ham_key_t key = {0};
-  ham_record_t rec = {0};
-  ham_status_t st = 0;
-  bool send_key = false;
-  bool send_rec = false;
-
-  ham_assert(request != 0);
-  ham_assert(request->has_cursor_find_request());
-
-  Cursor *cursor = srv->get_cursor(request->cursor_find_request().cursor_handle());
-  if (!cursor) {
-    st = HAM_INV_PARAMETER;
-    goto bail;
-  }
-
-  key.data = (void *)&request->cursor_find_request().key().data()[0];
-  key.size = (uint16_t)request->cursor_find_request().key().data().size();
-  key.flags = request->cursor_find_request().key().flags()
-              & (~HAM_KEY_USER_ALLOC);
-
-  if (request->cursor_find_request().has_record()) {
-    send_rec = true;
-
-    rec.data = (void *)&request->cursor_find_request().record().data()[0];
-    rec.size = (uint32_t)request->cursor_find_request().record().data().size();
-    rec.partial_size = request->cursor_find_request().record().partial_size();
-    rec.partial_offset = request->cursor_find_request().record().partial_offset();
-    rec.flags = request->cursor_find_request().record().flags()
-                & (~HAM_RECORD_USER_ALLOC);
-  }
-
-  st = ham_cursor_find((ham_cursor_t *)cursor, &key, send_rec ? &rec : 0,
-                request->cursor_find_request().flags());
-  if (st==0) {
-    /* approx matching: key->_flags was modified! */
-    if (key._flags)
-      send_key = true;
-  }
-
-bail:
-  Protocol reply(Protocol::CURSOR_FIND_REPLY);
-  reply.mutable_cursor_find_reply()->set_status(st);
-  if (send_key)
-    Protocol::assign_key(reply.mutable_cursor_find_reply()->mutable_key(),
-                    &key);
-  if (send_rec)
-    Protocol::assign_record(reply.mutable_cursor_find_reply()->mutable_record(),
-                    &rec);
-
-  send_wrapper(srv, tcp, &reply);
-}
-
-static void
-handle_cursor_find(ServerContext *srv, uv_stream_t *tcp,
-                SerializedWrapper *request)
-{
-  ham_key_t key = {0};
-  ham_record_t rec = {0};
-  ham_status_t st = 0;
-  bool send_key = false;
-  bool send_rec = false;
-
-  Cursor *cursor = srv->get_cursor(request->cursor_find_request.cursor_handle);
-  if (!cursor) {
-    st = HAM_INV_PARAMETER;
-    goto bail;
-  }
-
-  key.data = request->cursor_find_request.key.data.value;
-  key.size = (uint16_t)request->cursor_find_request.key.data.size;
-  key.flags = request->cursor_find_request.key.flags
-              & (~HAM_KEY_USER_ALLOC);
-
-  if (request->cursor_find_request.has_record) {
-    send_rec = true;
-
-    rec.data = request->cursor_find_request.record.data.value;
-    rec.size = (uint32_t)request->cursor_find_request.record.data.size;
-    rec.partial_size = request->cursor_find_request.record.partial_size;
-    rec.partial_offset = request->cursor_find_request.record.partial_offset;
-    rec.flags = request->cursor_find_request.record.flags
-                & (~HAM_RECORD_USER_ALLOC);
-  }
-
-  st = ham_cursor_find((ham_cursor_t *)cursor, &key, send_rec ? &rec : 0,
-                request->cursor_find_request.flags);
-  if (st==0) {
-    /* approx matching: key->_flags was modified! */
-    if (key._flags)
-      send_key = true;
-  }
-
-bail:
-  SerializedWrapper reply;
-  reply.id = kCursorFindReply;
-  reply.cursor_find_reply.status = st;
-  if (send_key) {
-    reply.cursor_find_reply.has_key = true;
-    reply.cursor_find_reply.key.has_data = true;
-    reply.cursor_find_reply.key.data.size = key.size;
-    reply.cursor_find_reply.key.data.value = (uint8_t *)key.data;
-    reply.cursor_find_reply.key.flags = key.flags;
-    reply.cursor_find_reply.key.intflags = key._flags;
-  }
-  if (send_rec) {
-    reply.cursor_find_reply.has_record = true;
-    reply.cursor_find_reply.record.has_data = true;
-    reply.cursor_find_reply.record.data.size = rec.size;
-    reply.cursor_find_reply.record.data.value = (uint8_t *)rec.data;
-    reply.cursor_find_reply.record.flags = rec.flags;
-    reply.cursor_find_reply.record.partial_offset = rec.partial_offset;
-    reply.cursor_find_reply.record.partial_size = rec.partial_size;
-  }
-
-  send_wrapper(srv, tcp, &reply);
-}
-
-static void
 handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
@@ -1844,9 +1759,6 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
       case kCursorEraseRequest:
         handle_cursor_erase(srv, tcp, &request);
         break;
-      case kCursorFindRequest:
-        handle_cursor_find(srv, tcp, &request);
-        break;
       case kCursorGetRecordCountRequest:
         handle_cursor_get_record_count(srv, tcp, &request);
         break;
@@ -1951,9 +1863,6 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
       break;
     case ProtoWrapper_Type_CURSOR_ERASE_REQUEST:
       handle_cursor_erase(srv, tcp, wrapper);
-      break;
-    case ProtoWrapper_Type_CURSOR_FIND_REQUEST:
-      handle_cursor_find(srv, tcp, wrapper);
       break;
     case ProtoWrapper_Type_CURSOR_GET_RECORD_COUNT_REQUEST:
       handle_cursor_get_record_count(srv, tcp, wrapper);

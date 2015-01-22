@@ -575,7 +575,7 @@ Journal::recover_changeset()
     uint32_t page_size = m_env->get_page_size();
     ByteArray arena(page_size);
 
-    size_t file_size = m_env->get_device()->get_file_size();
+    size_t file_size = m_env->get_device()->file_size();
 
     // for each page in this changeset...
     for (uint32_t i = 0; i < changeset.num_pages; i++) {

@@ -538,102 +538,66 @@ o Concurrency: move "purge cache" to background
 
     o move page flush in background
         -> A page is in use when it's added to a Changeset. However, pages that
-            are fetched read-only are never added. Have to find a solution
-            for them.
+            are fetched read-only are never added. And if recovery is disabled
+            then it's not possible to figure out when a page is no longer used.
         x wrap Changeset::flush and Changeset::clear into
             LocalEnvironment::finalize_operation(abort/commit)
         x make sure this is called after every operation (exception safe!)
             -> use BOOST_SCOPE_EXIT
 
-        x always add a page to the Changeset, even if in-memory or
+        o every operation stores its state in an Operation structure, which
+            also contains a Changeset
+            x ham_db_find/ham_cursor_find
+                x unify Database::find and Database::cursor_find,
+                    remove cursor_find
+                x move creation of temp. txn to Database::find, then call
+                    (virtual) LocalDatabase::find_impl()
+                x find_impl should not have cursor-specific logic
+                x LocalDatabase::find will then take care of the changeset
+                    and call finalize()
+                x when creating a local txn: does it have to be stored in the
+                    cursor?
+                x merge remote requests
+
+            o merge ham_db_insert/ham_cursor_insert
+            o merge ham_db_erase/ham_cursor_erase
+
+            o add the caller's parameters to the Operation:
+                Operation<InsertParameters>,
+                Operation<FindParameters>...
+
+            o ---- now remove the changeset from the Environment, and see where
+                    it goes
+
+            o ham_db_check_integrity
+            o ham_db_get_parameters
+            o ham_db_close
+            o ham_db_get_key_count
+            o ham_cursor_overwrite
+            o ham_cursor_move
+            o ham_cursor_get_duplicate_count
+            o ham_cursor_get_duplicate_position
+            o ham_cursor_get_record_size
+
+            o ham_env_create
+            o ham_env_open
+            o ham_env_close
+            o ham_env_create_db
+            o ham_env_open_db
+        o always add a page to the Changeset, even if in-memory or
             recovery is disabled
+        o when going out of scope: clear the changeset or flush it
 
         o Right now only the Cache uses a mutex. But we need to know
             whether a page is in use (= in a changelog) or if it's purged.
-            x add a spinlock to the page
-            o Cache::get acquires the lock
+            o add a spinlock to the page
+            o acquire the log when storing the page in the Changeset
                 o PageManager must deal with flushed pages (pers == 0)
             o when removing from the changelog: unlock
             o when writing to disk: acquire the lock; when flushing: set the
                 pers-pointer to null
                 o if enough pages were flushed: remove empty stubs from
                     the list
-
-===============================================================
-in a perfect world...
-- there is a separation between
-    o mutable database state
-        btree nodes
-        blobs
-        env header
-        journal
-    o immutable database state
-        static parameters
-    o operation state (parameters)
-        insert
-        erase...
-    o the code
-- immutable state can be accessed concurrently, w/o locking and blocking.
-- mutable state is synchronized on the lowest level, with very short locks
-
-how can we get there?
-    - extract static database/environment state
-        (mostly done, but clean up the use of the header page)
-    - extract operation state/user parameters into separate structures
-        MutableOperation<State> -> insert, erase...
-        ImmutableOperation<State> -> lookups, get_parameters, ...
-        - create/abort/commit temp transactions in Operation
-        - flush/clear changeset in Operation
-        - make BtreeActions state-less and const
-            ("const BtreeFindAction bfa(...)");
-        - use "const" pages for immutable operations
-
-struct PageManager:
-    only public functions    
-struct PageManagerState:
-    state data w/ getters, setters (if required)
-page_manager.cc:
-    static functions w/ logic
-    PageManager implementation calls static functions
-PageManagerFactory::create(...)
-
-- branch topic/perfect-world
-    x PageManager neu schreiben - perfekt machen!!
-        x Factory
-        x move test functions to PageManagerTestGateway(state)
-        x split into multiple files
-        x can we remove dependency to Environment? - no... (but nearly)
-            x const ref to Environment::m_config
-        x fill_metrics
-        x fetch
-        x alloc
-        x alloc_multiple_blob_pages
-        x del
-        x has
-    x Move lsn handling to its own object, clean up
-        x PM: remove dependency to Environment
-    x Cache neu schreiben
-        x del
-        x put
-        x get
-        x use Functor interface in PM
-        x selbe regeln wie oben
-    x Changeset
-        x del/put/get/has/...
-        x selbe regeln wie oben
-    Device
-      Implementation class uses template specialization:
-        fetch_page_impl<InMemoryState>...
-        fetch_page_impl<DiskState>...
-        o rename to fetch/flush/alloc etc
-        o flush() is not required?
-    BlobManager - remove dependencies to env
-    BtreeActions - remove dependencies to env
-    Btree
-    Environment neu schreiben
-    Database neu schreiben
-
-===============================================================
 
         o wake up thread if cache is full
         o some tasks should only exist once, i.e. purging the cache. no need to
@@ -649,6 +613,48 @@ PageManagerFactory::create(...)
         o but run performance tests
 
     o run monster tests
+
+o improve separation between logic and state; make state immutable and
+    thread-safe/exception safe. Ultimately, there should be a separation
+    between...
+    - mutable database state
+        btree nodes, blobs...
+    - immutable database state
+        static parameters
+    - operation state (parameters)
+        insert, erase...
+    - the code
+    Immutable state can be accessed concurrently, w/o locking and blocking.
+    Mutable state is synchronized on the lowest level, with very short locks
+
+    o Rewrite the code
+        - remove dependencies to upper layers, i.e. to the Environment
+        - change function names, if necessary
+        - move implementation to Impl namespace and separate file
+        - separate state from the code
+        x PageManager
+        x Move lsn handling to its own object, clean up
+        x Cache
+        x Changeset
+        o Device
+            Implementation class uses template specialization:
+                fetch_page_impl<InMemoryState>...
+                fetch_page_impl<DiskState>...
+        o BlobManager
+        o EnvironmentHeader
+        o Journal
+        o BtreeActions
+        o Btree
+        o Environment
+        o Database
+    o extract operation state/user parameters into separate structures
+        - MutableOperation<State> -> insert, erase...
+        - ImmutableOperation<State> -> lookups, get_parameters, ...
+        o create/abort/commit temp transactions in Operation
+        o flush/clear changeset in Operation
+        o make BtreeActions state-less and const
+            ("const BtreeFindAction bfa(...)");
+        o use "const" pages for immutable operations
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     o for each page retrieve those statistics and print them 

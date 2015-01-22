@@ -51,60 +51,59 @@ class Device {
     virtual ~Device() {
     }
 
-    // Returns the Environment's configuration
-    const EnvironmentConfiguration &get_config() const {
-      return (m_config);
+    // Returns the current page size
+    size_t page_size() const {
+      return (m_config.page_size_bytes);
     }
 
     // Create a new device - called in ham_env_create
     virtual void create() = 0;
 
-    // opens an existing device - called in ham_env_open
+    // Opens an existing device - called in ham_env_open
     virtual void open() = 0;
 
-    // closes the device - called in ham_env_close
-    virtual void close() = 0;
-
-    // flushes the device - called in ham_env_flush
-    virtual void flush() = 0;
-
-    // truncate/resize the device
-    virtual void truncate(size_t newsize) = 0;
-
-    // returns true if the device is open
+    // Returns true if the device is open
     virtual bool is_open() = 0;
 
-    // get the current file/storage size
-    virtual size_t get_file_size() = 0;
+    // Closes the device - called in ham_env_close
+    virtual void close() = 0;
 
-    // seek position in a file
+    // Flushes the device - called in ham_env_flush
+    virtual void flush() = 0;
+
+    // Truncate/resize the device
+    virtual void truncate(size_t new_size) = 0;
+
+    // Returns the current file/storage size
+    virtual size_t file_size() = 0;
+
+    // Seek position in a file
     virtual void seek(uint64_t offset, int whence) = 0;
 
-    // tell the position in a file
+    // Tell the position in a file
     virtual uint64_t tell() = 0;
 
-    // reads from the device; this function does not use mmap
+    // Reads from the device; this function does not use mmap
     virtual void read(uint64_t offset, void *buffer, size_t len) = 0;
 
-    // writes to the device; this function does not use mmap
+    // Writes to the device; this function does not use mmap
     virtual void write(uint64_t offset, void *buffer, size_t len) = 0;
 
-    // allocate storage from this device; this function
+    // Allocate storage from this device; this function
     // will *NOT* use mmap. returns the offset of the allocated storage.
     virtual uint64_t alloc(size_t len) = 0;
 
-    // reads a page from the device; this function CAN use mmap
+    // Reads a page from the device; this function CAN use mmap
     virtual void read_page(Page *page, uint64_t address) = 0;
 
-    // allocate storage for a page from this device; this function
+    // Writes a page to the device
+    virtual void write_page(Page *page) = 0;
+
+    // Allocate storage for a page from this device; this function
     // can use mmap if available
     virtual void alloc_page(Page *page) = 0;
 
-    // writes a page to the device
-    virtual void write_page(Page *page) = 0;
-
-    // frees a page on the device
-    //
+    // Frees a page on the device.
     // The caller is responsible for flushing the page; the @ref free_page
     // function will assert that the page is not dirty.
     virtual void free_page(Page *page) = 0;

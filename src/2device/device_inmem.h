@@ -68,6 +68,11 @@ class InMemoryDevice : public Device {
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
+    // returns true if the device is open 
+    virtual bool is_open() {
+      return (m_state.is_open);
+    }
+
     // closes the device 
     virtual void close() {
       ham_assert(m_state.is_open);
@@ -82,13 +87,8 @@ class InMemoryDevice : public Device {
     virtual void truncate(size_t newsize) {
     }
 
-    // returns true if the device is open 
-    virtual bool is_open() {
-      return (m_state.is_open);
-    }
-
     // get the current file/storage size 
-    virtual size_t get_file_size() {
+    virtual size_t file_size() {
       ham_assert(!"this operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }

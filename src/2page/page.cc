@@ -56,7 +56,7 @@ Page::allocate(uint32_t type, uint32_t flags)
   m_device->alloc_page(this);
 
   if (flags & kInitializeWithZeroes) {
-    size_t page_size = m_device->get_config().page_size_bytes;
+    size_t page_size = m_device->page_size();
     memset(get_raw_payload(), 0, page_size);
   }
 

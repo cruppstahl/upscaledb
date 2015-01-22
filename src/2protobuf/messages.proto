@@ -56,8 +56,6 @@ message ProtoWrapper {
     CURSOR_INSERT_REPLY = 231;
     CURSOR_ERASE_REQUEST = 240;
     CURSOR_ERASE_REPLY = 241;
-    CURSOR_FIND_REQUEST = 250;
-    CURSOR_FIND_REPLY = 251;
     CURSOR_GET_RECORD_COUNT_REQUEST = 260;
     CURSOR_GET_RECORD_COUNT_REPLY = 261;
     CURSOR_GET_DUPLICATE_POSITION_REQUEST = 262;
@@ -120,8 +118,6 @@ message ProtoWrapper {
   optional CursorInsertReply cursor_insert_reply = 231;
   optional CursorEraseRequest cursor_erase_request = 240;
   optional CursorEraseReply cursor_erase_reply = 241;
-  optional CursorFindRequest cursor_find_request = 250;
-  optional CursorFindReply cursor_find_reply = 251;
   optional CursorGetRecordCountRequest cursor_get_record_count_request = 260;
   optional CursorGetRecordCountReply cursor_get_record_count_reply = 261;
   optional CursorGetDuplicatePositionRequest cursor_get_duplicate_position_request = 262;
@@ -348,9 +344,10 @@ message DbEraseReply {
 message DbFindRequest {
   required uint64 db_handle = 1;
   required uint64 txn_handle = 2;
-  required Key key = 3;
-  optional Record record = 4;
-  required uint32 flags = 5;
+  required uint64 cursor_handle = 3;
+  required Key key = 4;
+  optional Record record = 5;
+  required uint32 flags = 6;
 };
 
 message DbFindReply {
@@ -406,19 +403,6 @@ message CursorEraseRequest {
 
 message CursorEraseReply {
   required sint32 status = 1;
-};
-
-message CursorFindRequest {
-  required uint64 cursor_handle = 1;
-  required Key key = 2;
-  optional Record record = 3;
-  required uint32 flags = 4;
-};
-
-message CursorFindReply {
-  required sint32 status = 1;
-  optional Key key = 2;
-  optional Record record = 3;
 };
 
 message CursorGetRecordCountRequest {

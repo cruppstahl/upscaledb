@@ -64,8 +64,6 @@ enum {
   kCursorInsertReply,
   kCursorEraseRequest,
   kCursorEraseReply,
-  kCursorFindRequest,
-  kCursorFindReply,
   kCursorGetRecordCountRequest,
   kCursorGetRecordCountReply,
   kCursorGetRecordSizeRequest,
@@ -735,6 +733,7 @@ struct SerializedDbEraseReply {
 struct SerializedDbFindRequest {
   SerializedUint64 db_handle;
   SerializedUint64 txn_handle;
+  SerializedUint64 cursor_handle;
   SerializedUint32 flags;
   SerializedKey key;
   SerializedBool has_record;
@@ -748,6 +747,7 @@ struct SerializedDbFindRequest {
     return (
           db_handle.get_size() + 
           txn_handle.get_size() + 
+          cursor_handle.get_size() + 
           flags.get_size() + 
           key.get_size() + 
           has_record.get_size() + 
@@ -758,6 +758,7 @@ struct SerializedDbFindRequest {
   void clear() {
     db_handle.clear();
     txn_handle.clear();
+    cursor_handle.clear();
     flags.clear();
     key.clear();
     has_record = false;
@@ -767,6 +768,7 @@ struct SerializedDbFindRequest {
   void serialize(unsigned char **pptr, int *psize) const {
     db_handle.serialize(pptr, psize);
     txn_handle.serialize(pptr, psize);
+    cursor_handle.serialize(pptr, psize);
     flags.serialize(pptr, psize);
     key.serialize(pptr, psize);
     has_record.serialize(pptr, psize);
@@ -776,6 +778,7 @@ struct SerializedDbFindRequest {
   void deserialize(unsigned char **pptr, int *psize) {
     db_handle.deserialize(pptr, psize);
     txn_handle.deserialize(pptr, psize);
+    cursor_handle.deserialize(pptr, psize);
     flags.deserialize(pptr, psize);
     key.deserialize(pptr, psize);
     has_record.deserialize(pptr, psize);
@@ -1149,98 +1152,6 @@ struct SerializedCursorEraseReply {
   }
 };
 
-struct SerializedCursorFindRequest {
-  SerializedUint64 cursor_handle;
-  SerializedUint32 flags;
-  SerializedKey key;
-  SerializedBool has_record;
-  SerializedRecord record;
-
-  SerializedCursorFindRequest() {
-    clear();
-  }
-
-  size_t get_size() const {
-    return (
-          cursor_handle.get_size() + 
-          flags.get_size() + 
-          key.get_size() + 
-          has_record.get_size() + 
-          (has_record.value ? record.get_size() : 0) + 
-          0);
-  }
-
-  void clear() {
-    cursor_handle.clear();
-    flags.clear();
-    key.clear();
-    has_record = false;
-    record.clear();
-  }
-
-  void serialize(unsigned char **pptr, int *psize) const {
-    cursor_handle.serialize(pptr, psize);
-    flags.serialize(pptr, psize);
-    key.serialize(pptr, psize);
-    has_record.serialize(pptr, psize);
-    if (has_record.value) record.serialize(pptr, psize);
-  }
-
-  void deserialize(unsigned char **pptr, int *psize) {
-    cursor_handle.deserialize(pptr, psize);
-    flags.deserialize(pptr, psize);
-    key.deserialize(pptr, psize);
-    has_record.deserialize(pptr, psize);
-    if (has_record.value) record.deserialize(pptr, psize);
-  }
-};
-
-struct SerializedCursorFindReply {
-  SerializedSint32 status;
-  SerializedBool has_key;
-  SerializedKey key;
-  SerializedBool has_record;
-  SerializedRecord record;
-
-  SerializedCursorFindReply() {
-    clear();
-  }
-
-  size_t get_size() const {
-    return (
-          status.get_size() + 
-          has_key.get_size() + 
-          (has_key.value ? key.get_size() : 0) + 
-          has_record.get_size() + 
-          (has_record.value ? record.get_size() : 0) + 
-          0);
-  }
-
-  void clear() {
-    status.clear();
-    has_key = false;
-    key.clear();
-    has_record = false;
-    record.clear();
-  }
-
-  void serialize(unsigned char **pptr, int *psize) const {
-    status.serialize(pptr, psize);
-    has_key.serialize(pptr, psize);
-    if (has_key.value) key.serialize(pptr, psize);
-    has_record.serialize(pptr, psize);
-    if (has_record.value) record.serialize(pptr, psize);
-  }
-
-  void deserialize(unsigned char **pptr, int *psize) {
-    status.deserialize(pptr, psize);
-    has_key.deserialize(pptr, psize);
-    if (has_key.value) key.deserialize(pptr, psize);
-    has_record.deserialize(pptr, psize);
-    if (has_record.value) record.deserialize(pptr, psize);
-  }
-};
-
 struct SerializedCursorGetRecordCountRequest {
   SerializedUint64 cursor_handle;
   SerializedUint32 flags;
@@ -1594,8 +1505,6 @@ struct SerializedWrapper {
   SerializedCursorInsertReply cursor_insert_reply;
   SerializedCursorEraseRequest cursor_erase_request;
   SerializedCursorEraseReply cursor_erase_reply;
-  SerializedCursorFindRequest cursor_find_request;
-  SerializedCursorFindReply cursor_find_reply;
   SerializedCursorGetRecordCountRequest cursor_get_record_count_request;
   SerializedCursorGetRecordCountReply cursor_get_record_count_reply;
   SerializedCursorGetRecordSizeRequest cursor_get_record_size_request;
@@ -1671,10 +1580,6 @@ struct SerializedWrapper {
         return (s + cursor_erase_request.get_size());
       case kCursorEraseReply: 
         return (s + cursor_erase_reply.get_size());
-      case kCursorFindRequest: 
-        return (s + cursor_find_request.get_size());
-      case kCursorFindReply: 
-        return (s + cursor_find_reply.get_size());
       case kCursorGetRecordCountRequest: 
         return (s + cursor_get_record_count_request.get_size());
       case kCursorGetRecordCountReply: 
@@ -1778,12 +1683,6 @@ struct SerializedWrapper {
         break;
       case kCursorEraseReply: 
         cursor_erase_reply.serialize(pptr, psize);
-        break;
-      case kCursorFindRequest: 
-        cursor_find_request.serialize(pptr, psize);
-        break;
-      case kCursorFindReply: 
-        cursor_find_reply.serialize(pptr, psize);
         break;
       case kCursorGetRecordCountRequest: 
         cursor_get_record_count_request.serialize(pptr, psize);
@@ -1897,12 +1796,6 @@ struct SerializedWrapper {
         break;
       case kCursorEraseReply: 
         cursor_erase_reply.deserialize(pptr, psize);
-        break;
-      case kCursorFindRequest: 
-        cursor_find_request.deserialize(pptr, psize);
-        break;
-      case kCursorFindReply: 
-        cursor_find_reply.deserialize(pptr, psize);
         break;
       case kCursorGetRecordCountRequest: 
         cursor_get_record_count_request.deserialize(pptr, psize);
