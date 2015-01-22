@@ -1178,7 +1178,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
       }
     }
 
-    return (db->set_error(db->insert(txn, key, record, flags)));
+    return (db->set_error(db->insert(0, txn, key, record, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1657,7 +1657,8 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
       }
     }
 
-    return (db->set_error(db->cursor_insert(cursor, key, record, flags)));
+    return (db->set_error(db->insert(cursor, cursor->get_txn(), key,
+                                    record, flags)));
   }
   catch (Exception &ex) {
     return (ex.code);

@@ -136,9 +136,12 @@ RemoteDatabase::count(Transaction *htxn, bool distinct)
 }
 
 ham_status_t
-RemoteDatabase::insert(Transaction *htxn, ham_key_t *key,
+RemoteDatabase::insert(Cursor *cursor, Transaction *htxn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  if (cursor)
+    return (cursor_insert(cursor, key, record, flags));
+
   RemoteEnvironment *env = get_remote_env();
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 

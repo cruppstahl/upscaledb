@@ -105,9 +105,9 @@ class LocalDatabase : public Database {
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
                     bool distinct);
 
-    // Inserts a key/value pair (ham_db_insert)
-    virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
+    virtual ham_status_t insert(Cursor *cursor, Transaction *txn,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Erase a key/value pair (ham_db_erase, ham_cursor_erase)
     virtual ham_status_t erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
@@ -115,10 +115,6 @@ class LocalDatabase : public Database {
 
     // Lookup of a key/value pair (ham_db_find, ham_cursor_find)
     virtual ham_status_t find(Cursor *cursor, Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
-
-    // Inserts a key with a cursor (ham_cursor_insert)
-    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // Returns number of duplicates (ham_cursor_get_record_count)
@@ -196,8 +192,8 @@ class LocalDatabase : public Database {
     friend class RecordNumberFixture<uint64_t>;
 
     // The actual implementation of insert()
-    ham_status_t insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    ham_status_t insert_impl(Cursor *cursor, LocalTransaction *txn,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of find()
     ham_status_t find_impl(Cursor *cursor, LocalTransaction *txn,

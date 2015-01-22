@@ -68,9 +68,9 @@ class RemoteDatabase : public Database
       throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
-    // Inserts a key/value pair (ham_db_insert)
-    virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
+    virtual ham_status_t insert(Cursor *cursor, Transaction *txn,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Erase a key/value pair (ham_db_erase, ham_cursor_erase)
     virtual ham_status_t erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
@@ -78,10 +78,6 @@ class RemoteDatabase : public Database
 
     // Lookup of a key/value pair (ham_db_find, ham_cursor_find)
     virtual ham_status_t find(Cursor *cursor, Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
-
-    // Inserts a key with a cursor (ham_cursor_insert)
-    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // Returns number of duplicates (ham_cursor_get_record_count)
@@ -127,6 +123,10 @@ class RemoteDatabase : public Database
     virtual ham_status_t close_impl(uint32_t flags);
 
   private:
+    // Insert implementation
+    ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags);
+
     // the remote database handle
     uint64_t m_remote_handle;
 };

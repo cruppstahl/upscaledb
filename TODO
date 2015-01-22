@@ -560,11 +560,12 @@ o Concurrency: move "purge cache" to background
                 x merge remote requests
 
             x merge ham_db_erase/ham_cursor_erase
-            o merge ham_db_insert/ham_cursor_insert
+            x merge ham_db_insert/ham_cursor_insert
 
             o add the caller's parameters to the Operation:
                 Operation<InsertParameters>,
                 Operation<FindParameters>...
+                Operation<EraseParameters>
 
             o ---- now remove the changeset from the Environment, and see where
                     it goes

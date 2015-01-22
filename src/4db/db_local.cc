@@ -336,6 +336,117 @@ retry:
       cursor->get_txn_cursor()->copy_coupled_record(record);
   }
 
+<<<<<<< HEAD
+=======
+bail:
+  cursor_close(cursor);
+}
+
+ham_status_t
+LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
+            ham_record_t *record, uint32_t flags)
+{
+  if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
+    if (key->size == 0 && key->data == 0) {
+      // ok!
+    }
+    else if (key->size == 0 && key->data != 0) {
+      ham_trace(("for record number keys set key size to 0, "
+                             "key->data to null"));
+      return (HAM_INV_PARAMETER);
+    }
+    else if (key->size != m_config.key_size) {
+      ham_trace(("invalid key size (%u instead of %u)",
+            key->size, m_config.key_size));
+      return (HAM_INV_KEY_SIZE);
+    }
+  }
+  else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+      && key->size != m_config.key_size) {
+    ham_trace(("invalid key size (%u instead of %u)",
+          key->size, m_config.key_size));
+    return (HAM_INV_KEY_SIZE);
+  }
+  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
+      && record->size != m_config.record_size) {
+    ham_trace(("invalid record size (%u instead of %u)",
+          record->size, m_config.record_size));
+    return (HAM_INV_RECORD_SIZE);
+  }
+
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+            ? &get_key_arena()
+            : &txn->get_key_arena();
+
+  /*
+   * record number: make sure that we have a valid key structure,
+   * and lazy load the last used record number
+   *
+   * TODO TODO
+   * too much duplicated code
+   */
+  uint64_t recno = 0;
+  if (get_rt_flags() & HAM_RECORD_NUMBER64) {
+    if (flags & HAM_OVERWRITE) {
+      ham_assert(key->size == sizeof(uint64_t));
+      ham_assert(key->data != 0);
+      recno = *(uint64_t *)key->data;
+    }
+    else {
+      /* get the record number and increment it */
+      recno = get_incremented_recno();
+    }
+
+    /* allocate memory for the key */
+    if (!key->data) {
+      arena->resize(sizeof(uint64_t));
+      key->data = arena->get_ptr();
+    }
+    key->size = sizeof(uint64_t);
+    *(uint64_t *)key->data = recno;
+
+    /* A recno key is always appended sequentially */
+    flags |= HAM_HINT_APPEND;
+  }
+  else if (get_rt_flags() & HAM_RECORD_NUMBER32) {
+    if (flags & HAM_OVERWRITE) {
+      ham_assert(key->size == sizeof(uint32_t));
+      ham_assert(key->data != 0);
+      recno = *(uint32_t *)key->data;
+    }
+    else {
+      /* get the record number and increment it */
+      recno = get_incremented_recno();
+    }
+
+    /* allocate memory for the key */
+    if (!key->data) {
+      arena->resize(sizeof(uint32_t));
+      key->data = arena->get_ptr();
+    }
+    key->size = sizeof(uint32_t);
+    *(uint32_t *)key->data = recno;
+
+    /* A recno key is always appended sequentially */
+    flags |= HAM_HINT_APPEND;
+  }
+
+  ham_status_t st = 0;
+  LocalTransaction *local_txn = 0;
+
+  /* purge cache if necessary */
+  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                        0, HAM_TXN_TEMPORARY);
+    txn = local_txn;
+  }
+
+  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+  return (insert_impl(cursor, (LocalTransaction *)txn, key, record, flags));
+}
+
+>>>>>>> Merging Database::insert and Database:cursor_insert
 ham_status_t
 LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
                 uint32_t flags)
@@ -438,14 +549,6 @@ Cursor *
 LocalDatabase::cursor_clone_impl(Cursor *src)
 {
   return (new Cursor(*src));
-}
-
-ham_status_t
-LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
-        ham_record_t *record, uint32_t flags)
-{
-  return (insert_impl(cursor, cursor->get_txn(), key, record, flags));
->>>>>>> Merging Database::find and Database::cursor_find
 }
 
 uint32_t
@@ -806,109 +909,12 @@ LocalDatabase::erase_me()
 }
 
 ham_status_t
-LocalDatabase::insert_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
-            ham_record_t *record, uint32_t flags)
+LocalDatabase::insert_impl(Cursor *cursor, LocalTransaction *txn,
+                ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
-  LocalTransaction *local_txn = 0;
 
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
-    if (key->size == 0 && key->data == 0) {
-      // ok!
-    }
-    else if (key->size == 0 && key->data != 0) {
-      ham_trace(("for record number keys set key size to 0, "
-                             "key->data to null"));
-      return (HAM_INV_PARAMETER);
-    }
-    else if (key->size != m_config.key_size) {
-      ham_trace(("invalid key size (%u instead of %u)",
-            key->size, m_config.key_size));
-      return (HAM_INV_KEY_SIZE);
-    }
-  }
-  else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
-      && record->size != m_config.record_size) {
-    ham_trace(("invalid record size (%u instead of %u)",
-          record->size, m_config.record_size));
-    return (HAM_INV_RECORD_SIZE);
-  }
-
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &get_key_arena()
-            : &txn->get_key_arena();
-
-  /*
-   * record number: make sure that we have a valid key structure,
-   * and lazy load the last used record number
-   *
-   * TODO TODO
-   * too much duplicated code
-   */
-  uint64_t recno = 0;
-  if (get_rt_flags() & HAM_RECORD_NUMBER64) {
-    if (flags & HAM_OVERWRITE) {
-      ham_assert(key->size == sizeof(uint64_t));
-      ham_assert(key->data != 0);
-      recno = *(uint64_t *)key->data;
-    }
-    else {
-      /* get the record number and increment it */
-      recno = get_incremented_recno();
-    }
-
-    /* allocate memory for the key */
-    if (!key->data) {
-      arena->resize(sizeof(uint64_t));
-      key->data = arena->get_ptr();
-    }
-    key->size = sizeof(uint64_t);
-    *(uint64_t *)key->data = recno;
-
-    /* A recno key is always appended sequentially */
-    flags |= HAM_HINT_APPEND;
-  }
-  else if (get_rt_flags() & HAM_RECORD_NUMBER32) {
-    if (flags & HAM_OVERWRITE) {
-      ham_assert(key->size == sizeof(uint32_t));
-      ham_assert(key->data != 0);
-      recno = *(uint32_t *)key->data;
-    }
-    else {
-      /* get the record number and increment it */
-      recno = get_incremented_recno();
-    }
-
-    /* allocate memory for the key */
-    if (!key->data) {
-      arena->resize(sizeof(uint32_t));
-      key->data = arena->get_ptr();
-    }
-    key->size = sizeof(uint32_t);
-    *(uint32_t *)key->data = recno;
-
-    /* A recno key is always appended sequentially */
-    flags |= HAM_HINT_APPEND;
-  }
-
-  /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache();
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
-  }
-
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
 
   /*
    * if transactions are enabled: only insert the key/record pair into

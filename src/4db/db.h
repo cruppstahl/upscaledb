@@ -99,9 +99,9 @@ class Database
     virtual void scan(Transaction *txn, ScanVisitor *visitor,
                     bool distinct) = 0;
 
-    // Inserts a key/value pair (ham_db_insert)
-    virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags) = 0;
+    // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
+    virtual ham_status_t insert(Cursor *cursor, Transaction *txn,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags) = 0;
 
     // Erase a key/value pair (ham_db_erase, ham_cursor_erase)
     virtual ham_status_t erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
@@ -116,10 +116,6 @@ class Database
 
     // Clones a cursor (ham_cursor_clone)
     virtual Cursor *cursor_clone(Cursor *src);
-
-    // Inserts a key with a cursor (ham_cursor_insert)
-    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags) = 0;
 
     // Returns number of duplicates (ham_cursor_get_record_count)
     virtual uint32_t cursor_get_record_count(Cursor *cursor,
