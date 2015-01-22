@@ -562,13 +562,12 @@ o Concurrency: move "purge cache" to background
             x merge ham_db_erase/ham_cursor_erase
             x merge ham_db_insert/ham_cursor_insert
 
-            o add the caller's parameters to the Operation:
-                Operation<InsertParameters>,
-                Operation<FindParameters>...
-                Operation<EraseParameters>
-
+========================================================
             o ---- now remove the changeset from the Environment, and see where
                     it goes
+                o PageManager::kReadOnly is not required if the Context
+                    knows whether it's read-only or not
+========================================================
 
             o ham_db_check_integrity
             o ham_db_get_parameters
@@ -614,6 +613,10 @@ o Concurrency: move "purge cache" to background
         o but run performance tests
 
     o run monster tests
+
+. Refactoring: would it make sense if each Database has its own BlobManager?
+    Then ham_env_erase_db would be much faster, and if each Database has its
+    own lock then the blob pages would not block each other
 
 o improve separation between logic and state; make state immutable and
     thread-safe/exception safe. Ultimately, there should be a separation
@@ -665,6 +668,7 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         o a new option for long, extensive statistics
 
 o PRO: add more simdcomp related functions for blocks < 128 integers
+    o update Daniel's code - the repository has new patches
     o for compression
     o for decompression
     o review once more

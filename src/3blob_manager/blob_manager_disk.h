@@ -132,28 +132,28 @@ class DiskBlobManager : public BlobManager
   protected:
     // allocate/create a blob
     // returns the blob-id (the start address of the blob header)
-    virtual uint64_t do_allocate(LocalDatabase *db, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
                     uint32_t flags);
 
     // reads a blob and stores the data in |record|. The pointer |record.data|
     // is backed by the |arena|, unless |HAM_RECORD_USER_ALLOC| is set.
     // flags: either 0 or HAM_DIRECT_ACCESS
-    virtual void do_read(LocalDatabase *db, uint64_t blobid,
+    virtual void do_read(Context *context, uint64_t blobid,
                     ham_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(LocalDatabase *db, uint64_t blobid);
+    virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid);
 
     // overwrite an existing blob
     //
     // will return an error if the blob does not exist
     // returns the blob-id (the start address of the blob header) in |blobid|
-    virtual uint64_t do_overwrite(LocalDatabase *db, uint64_t old_blobid,
+    virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
                     ham_record_t *record, uint32_t flags);
 
     // delete an existing blob
-    virtual void do_erase(LocalDatabase *db, uint64_t blobid,
+    virtual void do_erase(Context *context, uint64_t blobid,
                     Page *page = 0, uint32_t flags = 0);
 
   private:
@@ -164,13 +164,13 @@ class DiskBlobManager : public BlobManager
     //
     // The chunks are assumed to be stored in sequential order, adjacent
     // to each other, i.e. as one long data strip.
-    void write_chunks(LocalDatabase *db, Page *page, uint64_t addr,
+    void write_chunks(Context *context, Page *page, uint64_t addr,
                     uint8_t **chunk_data, uint32_t *chunk_size,
                     uint32_t chunks);
 
     // same as above, but for reading chunks from the file
-    void read_chunk(Page *page, Page **fpage, uint64_t addr,
-                    LocalDatabase *db, uint8_t *data, uint32_t size,
+    void read_chunk(Context *context, Page *page, Page **fpage,
+                    uint64_t addr, uint8_t *data, uint32_t size,
                     bool fetch_read_only);
 
     // adds a free chunk to the freelist

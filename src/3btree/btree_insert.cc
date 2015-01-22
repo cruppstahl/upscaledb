@@ -49,11 +49,11 @@ namespace hamsterdb {
 class BtreeInsertAction : public BtreeUpdateAction
 {
   public:
-    BtreeInsertAction(BtreeIndex *btree, Cursor *cursor,
+    BtreeInsertAction(BtreeIndex *btree, Context *context, Cursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags)
-      : BtreeUpdateAction(btree, cursor
-                                    ? cursor->get_btree_cursor()
-                                    : 0, 0),
+      : BtreeUpdateAction(btree, context, cursor
+                                            ? cursor->get_btree_cursor()
+                                            : 0, 0),
         m_key(key), m_record(record), m_flags(flags) {
       if (m_cursor)
         m_duplicate_index = m_cursor->get_duplicate_index();
@@ -118,7 +118,7 @@ class BtreeInsertAction : public BtreeUpdateAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      page = env->get_page_manager()->fetch(db,
+      page = env->get_page_manager()->fetch(m_context,
                     m_hints.leaf_page_addr, PageManager::kOnlyFromCache);
       /* if the page is not in cache: do a regular insert */
       if (!page)
@@ -134,7 +134,7 @@ class BtreeInsertAction : public BtreeUpdateAction
        */
       if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
               || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
-              || node->requires_split(m_key))
+              || node->requires_split(m_context, m_key))
         return (insert());
 
       /*
@@ -143,7 +143,7 @@ class BtreeInsertAction : public BtreeUpdateAction
        */
       if (node->get_count() != 0) {
         if (m_hints.flags & HAM_HINT_APPEND) {
-          int cmp_hi = node->compare(m_key, node->get_count() - 1);
+          int cmp_hi = node->compare(m_context, m_key, node->get_count() - 1);
           /* key is at the end */
           if (cmp_hi > 0) {
             ham_assert(node->get_right() == 0);
@@ -201,10 +201,10 @@ class BtreeInsertAction : public BtreeUpdateAction
 };
 
 ham_status_t
-BtreeIndex::insert(Cursor *cursor, ham_key_t *key, ham_record_t *record,
-                uint32_t flags)
+BtreeIndex::insert(Context *context, Cursor *cursor, ham_key_t *key,
+                ham_record_t *record, uint32_t flags)
 {
-  BtreeInsertAction bia(this, cursor, key, record, flags);
+  BtreeInsertAction bia(this, context, cursor, key, record, flags);
   return (bia.run());
 }
 

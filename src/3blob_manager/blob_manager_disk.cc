@@ -33,7 +33,7 @@
 using namespace hamsterdb;
 
 uint64_t
-DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
+DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
                 uint32_t flags)
 {
   uint8_t *chunk_data[2];
@@ -44,7 +44,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_env->get_page_manager()->get_last_blob_page();
+  Page *page = m_env->get_page_manager()->get_last_blob_page(context);
 
   PBlobPageHeader *header = 0;
   uint64_t address = 0;
@@ -67,7 +67,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
-    page = m_env->get_page_manager()->alloc_multiple_blob_pages(num_pages);
+    page = m_env->get_page_manager()->alloc_multiple_blob_pages(context, num_pages);
     ham_assert(page->is_without_header() == false);
 
     // initialize the PBlobPageHeader
@@ -114,7 +114,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     // first: write the header
     chunk_data[0] = (uint8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    write_chunks(db, page, address, chunk_data, chunk_size, 1);
+    write_chunks(context, page, address, chunk_data, chunk_size, 1);
 
     address += sizeof(blob_header);
 
@@ -126,7 +126,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
                           : gapsize;
       chunk_data[0] = (uint8_t *)zeroes.resize(size, 0);
       chunk_size[0] = size;
-      write_chunks(db, page, address, chunk_data, chunk_size, 1);
+      write_chunks(context, page, address, chunk_data, chunk_size, 1);
       gapsize -= size;
       address += size;
     }
@@ -135,7 +135,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
     chunk_data[0] = (uint8_t *)record->data;
     chunk_size[0] = record->partial_size;
 
-    write_chunks(db, page, address, chunk_data, chunk_size, 1);
+    write_chunks(context, page, address, chunk_data, chunk_size, 1);
     address += record->partial_size;
   }
   else {
@@ -147,7 +147,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
                         ? record->partial_size
                         : record->size;
 
-    write_chunks(db, page, address, chunk_data, chunk_size, 2);
+    write_chunks(context, page, address, chunk_data, chunk_size, 2);
     address += chunk_size[0] + chunk_size[1];
   }
 
@@ -175,7 +175,7 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
                             : gapsize;
         chunk_data[0] = (uint8_t *)zeroes.resize(size, 0);
         chunk_size[0] = size;
-        write_chunks(db, page, address, chunk_data, chunk_size, 1);
+        write_chunks(context, page, address, chunk_data, chunk_size, 1);
         gapsize -= size;
         address += size;
       }
@@ -188,14 +188,14 @@ DiskBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 }
 
 void
-DiskBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
+DiskBlobManager::do_read(Context *context, uint64_t blobid,
                 ham_record_t *record, uint32_t flags, ByteArray *arena)
 {
   Page *page;
 
   // first step: read the blob header
   PBlobHeader blob_header;
-  read_chunk(0, &page, blobid, db, (uint8_t *)&blob_header,
+  read_chunk(context, 0, &page, blobid, (uint8_t *)&blob_header,
           sizeof(blob_header), true);
 
   // sanity check
@@ -232,19 +232,19 @@ DiskBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
   }
 
   // third step: read the blob data
-  read_chunk(page, 0,
+  read_chunk(context, page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
-                  db, (uint8_t *)record->data, blobsize, true);
+                  (uint8_t *)record->data, blobsize, true);
 }
 
 uint64_t
-DiskBlobManager::do_get_blob_size(LocalDatabase *db, uint64_t blobid)
+DiskBlobManager::do_get_blob_size(Context *context, uint64_t blobid)
 {
   // read the blob header
   PBlobHeader blob_header;
-  read_chunk(0, 0, blobid, db, (uint8_t *)&blob_header,
+  read_chunk(context, 0, 0, blobid, (uint8_t *)&blob_header,
           sizeof(blob_header), true);
 
   if (blob_header.get_self() != blobid)
@@ -254,7 +254,7 @@ DiskBlobManager::do_get_blob_size(LocalDatabase *db, uint64_t blobid)
 }
 
 uint64_t
-DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
+DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                 ham_record_t *record, uint32_t flags)
 {
   PBlobHeader old_blob_header, new_blob_header;
@@ -265,7 +265,7 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
   // first, read the blob header; if the new blob fits into the
   // old blob, we overwrite the old blob (and add the remaining
   // space to the freelist, if there is any)
-  read_chunk(0, &page, old_blobid, db, (uint8_t *)&old_blob_header,
+  read_chunk(context, 0, &page, old_blobid, (uint8_t *)&old_blob_header,
           sizeof(old_blob_header), false);
 
   // sanity check
@@ -293,12 +293,12 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
     if ((flags & HAM_PARTIAL) && (record->partial_offset)) {
       chunk_data[0] = (uint8_t *)&new_blob_header;
       chunk_size[0] = sizeof(new_blob_header);
-      write_chunks(db, page, new_blob_header.get_self(),
+      write_chunks(context, page, new_blob_header.get_self(),
                       chunk_data, chunk_size, 1);
 
       chunk_data[0] = (uint8_t *)record->data;
       chunk_size[0] = record->partial_size;
-      write_chunks(db, page, new_blob_header.get_self()
+      write_chunks(context, page, new_blob_header.get_self()
                     + sizeof(new_blob_header) + record->partial_offset,
                       chunk_data, chunk_size, 1);
     }
@@ -310,7 +310,7 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
                           ? record->partial_size
                           : record->size;
 
-      write_chunks(db, page, new_blob_header.get_self(),
+      write_chunks(context, page, new_blob_header.get_self(),
                       chunk_data, chunk_size, 2);
     }
 
@@ -330,19 +330,19 @@ DiskBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
 
   // if the new data is larger: allocate a fresh space for it
   // and discard the old; 'overwrite' has become (delete + insert) now.
-  uint64_t new_blobid = allocate(db, record, flags);
-  erase(db, old_blobid, 0, 0);
+  uint64_t new_blobid = allocate(context, record, flags);
+  erase(context, old_blobid, 0, 0);
 
   return (new_blobid);
 }
 
 void
-DiskBlobManager::do_erase(LocalDatabase *db, uint64_t blobid, Page *page,
+DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
                 uint32_t flags)
 {
   // fetch the blob header
   PBlobHeader blob_header;
-  read_chunk(0, &page, blobid, db, (uint8_t *)&blob_header,
+  read_chunk(context, 0, &page, blobid, (uint8_t *)&blob_header,
                   sizeof(blob_header), false);
 
   // sanity check
@@ -372,7 +372,7 @@ DiskBlobManager::do_erase(LocalDatabase *db, uint64_t blobid, Page *page,
 
 bool
 DiskBlobManager::alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
-                    uint64_t *poffset)
+                uint64_t *poffset)
 {
   ham_assert(check_integrity(header));
 
@@ -520,8 +520,9 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
 }
 
 void
-DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, uint64_t address,
-            uint8_t **chunk_data, uint32_t *chunk_size, uint32_t chunks)
+DiskBlobManager::write_chunks(Context *context, Page *page,
+                uint64_t address, uint8_t **chunk_data, uint32_t *chunk_size,
+                uint32_t chunks)
 {
   uint32_t page_size = m_env->get_page_size();
 
@@ -539,7 +540,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, uint64_t address,
       if (page && page->get_address() != pageid)
         page = 0;
       if (!page)
-        page = m_env->get_page_manager()->fetch(db, pageid,
+        page = m_env->get_page_manager()->fetch(context, pageid,
                         PageManager::kNoHeader);
 
       uint32_t write_start = (uint32_t)(address - page->get_address());
@@ -558,9 +559,9 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, uint64_t address,
 }
 
 void
-DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
-            LocalDatabase *db, uint8_t *data, uint32_t size,
-            bool fetch_read_only)
+DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
+                uint64_t address, uint8_t *data, uint32_t size,
+                bool fetch_read_only)
 {
   uint32_t page_size = m_env->get_page_size();
 
@@ -573,7 +574,7 @@ DiskBlobManager::read_chunk(Page *page, Page **ppage, uint64_t address,
     if (page && page->get_address() != pageid)
       page = 0;
     if (!page)
-      page = m_env->get_page_manager()->fetch(db, pageid,
+      page = m_env->get_page_manager()->fetch(context, pageid,
                         fetch_read_only ? PageManager::kReadOnly : 0);
 
     // now read the data from the page

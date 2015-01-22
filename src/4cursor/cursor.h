@@ -106,6 +106,8 @@ struct ham_cursor_t
 
 namespace hamsterdb {
 
+class Context;
+
 // A single line in the dupecache structure - can reference a btree
 // record or a txn-op
 class DupeCacheLine
@@ -309,24 +311,25 @@ class Cursor
     }
 
     // Retrieves the number of duplicates of the current key
-    uint32_t get_record_count(uint32_t flags);
+    uint32_t get_record_count(Context *context, uint32_t flags);
 
     // Retrieves the duplicate position of a cursor
     uint32_t get_duplicate_position();
 
     // Retrieves the size of the current record
-    uint64_t get_record_size();
+    uint64_t get_record_size(Context *context);
 
     // Overwrites the record of the current key
     //
     // The Transaction is passed as a separate pointer since it might be a
     // local/temporary Transaction that was created only for this single
     // operation.
-    ham_status_t overwrite(Transaction *txn, ham_record_t *record,
-                    uint32_t flags);
+    ham_status_t overwrite(Context *context, Transaction *txn,
+                    ham_record_t *record, uint32_t flags);
 
     // Moves a Cursor (ham_cursor_move)
-    ham_status_t move(ham_key_t *key, ham_record_t *record, uint32_t flags);
+    ham_status_t move(Context *context, ham_key_t *key, ham_record_t *record,
+                    uint32_t flags);
 
     // Closes an existing cursor (ham_cursor_close)
     void close();
@@ -335,10 +338,11 @@ class Cursor
     //
     // The |what| parameter specifies if the dupecache is initialized from
     // btree (kBtree), from txn (kTxn) or both.
-    void update_dupecache(uint32_t what);
+    void update_dupecache(Context *context, uint32_t what);
 
     // Appends the duplicates of the BtreeCursor to the duplicate cache.
-    void append_btree_duplicates(BtreeCursor *btc, DupeCache *dc);
+    void append_btree_duplicates(Context *context, BtreeCursor *btc,
+                    DupeCache *dc);
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
     void clear_dupecache() {
@@ -359,19 +363,19 @@ class Cursor
     // If both are nil, or both are valid, then nothing happens
     //
     // |equal_key| is set to true if the keys in both cursors are equal.
-    void sync(uint32_t flags, bool *equal_keys);
+    void sync(Context *context, uint32_t flags, bool *equal_keys);
 
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
-    uint32_t get_dupecache_count() {
+    uint32_t get_dupecache_count(Context *context) {
       if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
         return (0);
 
       TransactionCursor *txnc = get_txn_cursor();
       if (txnc->get_coupled_op())
-        update_dupecache(kBtree | kTxn);
+        update_dupecache(context, kBtree | kTxn);
       else
-        update_dupecache(kBtree);
+        update_dupecache(context, kBtree);
       return (m_dupecache.get_count());
     }
 
@@ -458,10 +462,10 @@ class Cursor
     //
     // This is needed when moving the cursor backwards/forwards
     // and consolidating the btree and the txn-tree
-    ham_status_t check_if_btree_key_is_erased_or_overwritten();
+    ham_status_t check_if_btree_key_is_erased_or_overwritten(Context *context);
 
     // Compares btree and txn-cursor; stores result in lastcmp
-    int compare();
+    int compare(Context *context);
 
     // Returns true if this key has duplicates
     bool has_duplicates() const {
@@ -469,40 +473,40 @@ class Cursor
     }
 
     // Moves cursor to the first duplicate
-    ham_status_t move_first_dupe();
+    ham_status_t move_first_dupe(Context *context);
 
     // Moves cursor to the last duplicate
-    ham_status_t move_last_dupe();
+    ham_status_t move_last_dupe(Context *context);
 
     // Moves cursor to the next duplicate
-    ham_status_t move_next_dupe();
+    ham_status_t move_next_dupe(Context *context);
 
     // Moves cursor to the previous duplicate
-    ham_status_t move_previous_dupe();
+    ham_status_t move_previous_dupe(Context *context);
 
     // Moves cursor to the first key
-    ham_status_t move_first_key(uint32_t flags);
+    ham_status_t move_first_key(Context *context, uint32_t flags);
 
     // Moves cursor to the last key
-    ham_status_t move_last_key(uint32_t flags);
+    ham_status_t move_last_key(Context *context, uint32_t flags);
 
     // Moves cursor to the next key
-    ham_status_t move_next_key(uint32_t flags);
+    ham_status_t move_next_key(Context *context, uint32_t flags);
 
     // Moves cursor to the previous key
-    ham_status_t move_previous_key(uint32_t flags);
+    ham_status_t move_previous_key(Context *context, uint32_t flags);
 
     // Moves cursor to the first key - helper function
-    ham_status_t move_first_key_singlestep();
+    ham_status_t move_first_key_singlestep(Context *context);
 
     // Moves cursor to the last key - helper function
-    ham_status_t move_last_key_singlestep();
+    ham_status_t move_last_key_singlestep(Context *context);
 
     // Moves cursor to the next key - helper function
-    ham_status_t move_next_key_singlestep();
+    ham_status_t move_next_key_singlestep(Context *context);
 
     // Moves cursor to the previous key - helper function
-    ham_status_t move_previous_key_singlestep();
+    ham_status_t move_previous_key_singlestep(Context *context);
 
     // Pointer to the Database object
     LocalDatabase *m_db;

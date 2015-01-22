@@ -37,7 +37,7 @@
 
 namespace hamsterdb {
 
-class LocalDatabase;
+class Context;
 class LocalEnvironment;
 
 #include "1base/packstart.h"
@@ -150,27 +150,25 @@ class BlobManager
     // header)
     //
     // |flags| can be HAM_PARTIAL, kDisableCompression
-    uint64_t allocate(LocalDatabase *db, ham_record_t *record,
-                    uint32_t flags);
+    uint64_t allocate(Context *context, ham_record_t *record, uint32_t flags);
 
     // Reads a blob and stores the data in @a record.
     // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    void read(LocalDatabase *db, uint64_t blob_id,
-                    ham_record_t *record, uint32_t flags,
-                    ByteArray *arena);
+    void read(Context *context, uint64_t blob_id, ham_record_t *record,
+                    uint32_t flags, ByteArray *arena);
 
     // Retrieves the size of a blob
-    uint64_t get_blob_size(LocalDatabase *db, uint64_t blob_id);
+    uint64_t get_blob_size(Context *context, uint64_t blob_id);
 
     // Overwrites an existing blob
     //
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
-    uint64_t overwrite(LocalDatabase *db, uint64_t old_blob_id,
+    uint64_t overwrite(Context *context, uint64_t old_blob_id,
                     ham_record_t *record, uint32_t flags);
 
     // Deletes an existing blob
-    void erase(LocalDatabase *db, uint64_t blob_id, Page *page = 0,
+    void erase(Context *context, uint64_t blob_id, Page *page = 0,
                     uint32_t flags = 0);
 
     // Fills in the current metrics
@@ -185,28 +183,28 @@ class BlobManager
     // Allocates/create a new blob.
     // This function returns the blob-id (the start address of the blob
     // header)
-    virtual uint64_t do_allocate(LocalDatabase *db, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
                     uint32_t flags) = 0;
 
     // Reads a blob and stores the data in @a record.
     // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    virtual void do_read(LocalDatabase *db, uint64_t blob_id,
+    virtual void do_read(Context *context, uint64_t blob_id,
                     ham_record_t *record, uint32_t flags,
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(LocalDatabase *db,
+    virtual uint64_t do_get_blob_size(Context *context,
                     uint64_t blob_id) = 0;
 
     // Overwrites an existing blob
     //
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
-    virtual uint64_t do_overwrite(LocalDatabase *db, uint64_t old_blob_id,
+    virtual uint64_t do_overwrite(Context *context, uint64_t old_blob_id,
                     ham_record_t *record, uint32_t flags) = 0;
 
     // Deletes an existing blob
-    virtual void do_erase(LocalDatabase *db, uint64_t blob_id,
+    virtual void do_erase(Context *context, uint64_t blob_id,
                     Page *page = 0, uint32_t flags = 0) = 0;
 
     // The Environment which created this BlobManager

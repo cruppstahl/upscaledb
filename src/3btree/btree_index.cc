@@ -51,12 +51,13 @@ BtreeIndex::BtreeIndex(LocalDatabase *db, uint32_t descriptor, uint32_t flags,
 }
 
 void
-BtreeIndex::create(uint16_t key_type, uint32_t key_size, uint32_t rec_size)
+BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
+                uint32_t rec_size)
 {
   ham_assert(key_size != 0);
 
   /* allocate a new root page */
-  Page *root = m_db->get_local_env()->get_page_manager()->alloc(m_db,
+  Page *root = m_db->get_local_env()->get_page_manager()->alloc(context,
                     Page::kTypeBroot, PageManager::kClearWithZero);
 
   // initialize the new page
@@ -118,7 +119,7 @@ BtreeIndex::flush_descriptor()
 }
 
 Page *
-BtreeIndex::find_child(Page *page, const ham_key_t *key,
+BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
                 uint32_t page_manager_flags, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
@@ -128,18 +129,18 @@ BtreeIndex::find_child(Page *page, const ham_key_t *key,
   ham_assert(node->get_ptr_down() != 0);
 
   uint64_t record_id;
-  int slot = node->find_child((ham_key_t *)key, &record_id);
+  int slot = node->find_child(context, (ham_key_t *)key, &record_id);
 
   if (idxptr)
     *idxptr = slot;
 
-  return (m_db->get_local_env()->get_page_manager()->fetch(m_db,
+  return (m_db->get_local_env()->get_page_manager()->fetch(context,
                     record_id, page_manager_flags));
 }
 
 int
-BtreeIndex::find_leaf(Page *page, ham_key_t *key, uint32_t flags,
-                uint32_t *approx_match)
+BtreeIndex::find_leaf(Context *context, Page *page, ham_key_t *key,
+                uint32_t flags, uint32_t *approx_match)
 {
   *approx_match = 0;
 
@@ -149,7 +150,7 @@ BtreeIndex::find_leaf(Page *page, ham_key_t *key, uint32_t flags,
     return (-1);
 
   int cmp;
-  int slot = node->find_child(key, 0, &cmp);
+  int slot = node->find_child(context, key, 0, &cmp);
 
   /* successfull match */
   if (cmp == 0 && (flags == 0 || flags & HAM_FIND_EXACT_MATCH))
@@ -194,7 +195,7 @@ class CalcKeysVisitor : public BtreeVisitor {
       return (true);
     }
 
-    virtual void operator()(BtreeNodeProxy *node) {
+    virtual void operator()(Context *context, BtreeNodeProxy *node) {
       size_t node_count = node->get_count();
 
       if (m_distinct
@@ -204,7 +205,7 @@ class CalcKeysVisitor : public BtreeVisitor {
       }
 
       for (size_t i = 0; i < node_count; i++)
-        m_count += node->get_record_count(i);
+        m_count += node->get_record_count(context, i);
     }
 
     uint64_t get_result() const {
@@ -218,10 +219,10 @@ class CalcKeysVisitor : public BtreeVisitor {
 };
 
 uint64_t
-BtreeIndex::count(bool distinct)
+BtreeIndex::count(Context *context, bool distinct)
 {
   CalcKeysVisitor visitor(m_db, distinct);
-  visit_nodes(visitor, false);
+  visit_nodes(context, visitor, false);
   return (visitor.get_result());
 }
 
@@ -230,8 +231,8 @@ BtreeIndex::count(bool distinct)
 ///
 class FreeBlobsVisitor : public BtreeVisitor {
   public:
-    virtual void operator()(BtreeNodeProxy *node) {
-      node->remove_all_entries();
+    virtual void operator()(Context *context, BtreeNodeProxy *node) {
+      node->remove_all_entries(context);
     }
 
     virtual bool is_read_only() const {
@@ -240,10 +241,10 @@ class FreeBlobsVisitor : public BtreeVisitor {
 };
 
 void
-BtreeIndex::release()
+BtreeIndex::release(Context *context)
 {
   FreeBlobsVisitor visitor;
-  visit_nodes(visitor, true);
+  visit_nodes(context, visitor, true);
 }
 
 } // namespace hamsterdb

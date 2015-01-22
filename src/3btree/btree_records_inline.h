@@ -90,19 +90,21 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Returns the record counter of a key
-    int get_record_count(int slot) const {
+    int get_record_count(Context *context, int slot) const {
       return (1);
     }
 
     // Returns the record size
-    uint64_t get_record_size(int slot, int duplicate_index = 0) const {
+    uint64_t get_record_size(Context *context, int slot,
+                    int duplicate_index = 0) const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    uint32_t flags, int duplicate_index) const {
+    void get_record(Context *context, int slot, ByteArray *arena,
+                    ham_record_t *record, uint32_t flags,
+                    int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       if (flags & HAM_PARTIAL) {
@@ -128,7 +130,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Updates the record of a key
-    void set_record(int slot, int duplicate_index,
+    void set_record(Context *context, int slot, int duplicate_index,
                 ham_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
       ham_assert(record->size == m_record_size);
@@ -138,14 +140,14 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(int slot, int duplicate_index = 0,
+    void erase_record(Context *context, int slot, int duplicate_index = 0,
                     bool all_duplicates = true) {
       if (m_record_size)
         memset(&m_data[m_record_size * slot], 0, m_record_size);
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase(size_t node_count, int slot) {
+    void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[m_record_size * slot],
                         &m_data[m_record_size * (slot + 1)],
@@ -153,7 +155,7 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Creates space for one additional record
-    void insert(size_t node_count, int slot) {
+    void insert(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count) {
         memmove(&m_data[m_record_size * (slot + 1)],
                         &m_data[m_record_size * slot],
@@ -199,8 +201,8 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(int slot, std::stringstream &out) const {
-      out << "(" << get_record_size(slot) << " bytes)";
+    void print(Context *context, int slot, std::stringstream &out) const {
+      out << "(" << get_record_size(context, slot) << " bytes)";
     }
 
   private:

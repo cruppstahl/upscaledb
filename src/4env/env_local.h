@@ -68,7 +68,7 @@ class LocalEnvironment : public Environment
 
     // Returns the current changeset (stores all modified pages of the current
     // btree modification)
-    Changeset *get_changeset() {
+    Changeset *xget_changeset() {
       return (m_changeset.get());
     }
 

@@ -15,39 +15,38 @@
  */
 
 /*
- * The state of the Changeset
- *
  * @exception_safe: nothrow
  * @thread_safe: no
  */
 
-#ifndef HAM_CHANGESET_STATE_H
-#define HAM_CHANGESET_STATE_H
+#ifndef HAM_CONTEXT_H
+#define HAM_CONTEXT_H
 
 #include "0root/root.h"
 
-// Always verify that a file of level N does not include headers > N!
-#include "2page/page_collection.h"
-
-#ifndef HAM_ROOT_H
-#  error "root.h was not included"
-#endif
+#include "3changeset/changeset.h"
 
 namespace hamsterdb {
 
+class Cursor;
+class LocalDatabase;
 class LocalEnvironment;
+class LocalTransaction;
 
-struct ChangesetState
+struct Context
 {
-  ChangesetState(LocalEnvironment *env = 0);
+  Context(LocalEnvironment *env, LocalTransaction *txn, LocalDatabase *db)
+    : env(env), txn(txn), db(db), changeset(ChangesetState(env)) {
+  }
 
-  /* The Environment */
   LocalEnvironment *env;
+  LocalTransaction *txn;
+  LocalDatabase *db;
 
-  /* The pages which were added to this Changeset */
-  PageCollection collection;
+  // Each operation has its own changeset which stores all locked pages
+  Changeset changeset;
 };
 
 } // namespace hamsterdb
 
-#endif /* HAM_CHANGESET_STATE_H */
+#endif /* HAM_CONTEXT_H */

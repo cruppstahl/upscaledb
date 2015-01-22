@@ -41,17 +41,17 @@ class InMemoryBlobManager : public BlobManager {
     // Allocates/create a new blob
     // This function returns the blob-id (the start address of the blob
     // header)
-    virtual uint64_t do_allocate(LocalDatabase *db, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
                     uint32_t flags);
 
     // Reads a blob and stores the data in |record|
     // |flags|: either 0 or HAM_DIRECT_ACCESS
-    virtual void do_read(LocalDatabase *db, uint64_t blobid,
+    virtual void do_read(Context *context, uint64_t blobid,
                     ham_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // Retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(LocalDatabase *db, uint64_t blobid) {
+    virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid) {
       PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
       return ((uint32_t)blob_header->get_size());
     }
@@ -60,11 +60,11 @@ class InMemoryBlobManager : public BlobManager {
     //
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header) 
-    virtual uint64_t do_overwrite(LocalDatabase *db, uint64_t old_blobid,
+    virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
                     ham_record_t *record, uint32_t flags);
 
     // Deletes an existing blob
-    virtual void do_erase(LocalDatabase *db, uint64_t blobid,
+    virtual void do_erase(Context *context, uint64_t blobid,
                     Page *page = 0, uint32_t flags = 0) {
       Memory::release((void *)U64_TO_PTR(blobid));
     }

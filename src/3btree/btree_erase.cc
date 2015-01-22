@@ -43,11 +43,11 @@ namespace hamsterdb {
 class BtreeEraseAction : public BtreeUpdateAction
 {
   public:
-    BtreeEraseAction(BtreeIndex *btree, Cursor *cursor, ham_key_t *key,
-            int duplicate_index = 0, uint32_t flags = 0)
-      : BtreeUpdateAction(btree, cursor
-                                    ? cursor->get_btree_cursor()
-                                    : 0, duplicate_index),
+    BtreeEraseAction(BtreeIndex *btree, Context *context, Cursor *cursor,
+                    ham_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
+      : BtreeUpdateAction(btree, context, cursor
+                                            ? cursor->get_btree_cursor()
+                                            : 0, duplicate_index),
         m_key(key), m_flags(flags) {
       if (m_cursor)
         m_duplicate_index = m_cursor->get_duplicate_index() + 1;
@@ -80,7 +80,7 @@ class BtreeEraseAction : public BtreeUpdateAction
           return (0);
 
 fall_through:
-          m_cursor->uncouple_from_page();
+          m_cursor->uncouple_from_page(m_context);
         }
 
         if (m_cursor->get_state() == BtreeCursor::kStateUncoupled)
@@ -99,7 +99,7 @@ fall_through:
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       // we have reached the leaf; search the leaf for the key
-      int slot = node->find_exact(m_key);
+      int slot = node->find_exact(m_context, m_key);
       if (slot < 0) {
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
@@ -123,10 +123,10 @@ fall_through:
       if (node->is_leaf()) {
         // only delete a duplicate?
         if (m_duplicate_index > 0)
-          node->erase_record(slot, m_duplicate_index - 1, false,
+          node->erase_record(m_context, slot, m_duplicate_index - 1, false,
                         &has_duplicates_left);
         else
-          node->erase_record(slot, 0, true, 0);
+          node->erase_record(m_context, slot, 0, true, 0);
       }
 
       page->set_dirty(true);
@@ -148,7 +148,7 @@ fall_through:
             next = cursors->get_btree_cursor();
           }
 
-          if (btcur != m_cursor && btcur->points_to(page, slot)) {
+          if (btcur != m_cursor && btcur->points_to(m_context, page, slot)) {
             if (btcur->get_duplicate_index() == duplicate_index)
                 btcur->set_to_nil();
             else if (btcur->get_duplicate_index() > duplicate_index)
@@ -177,7 +177,7 @@ fall_through:
             cursors = cursors->get_next();
             next = cursors->get_btree_cursor();
           }
-          if (btcur != m_cursor && cur->points_to(page, slot))
+          if (btcur != m_cursor && cur->points_to(m_context, page, slot))
             cur->set_to_nil();
           else if (btcur != m_cursor
                   && (cur->get_state() & BtreeCursor::kStateCoupled)) {
@@ -185,7 +185,7 @@ fall_through:
             int coupled_slot;
             cur->get_coupled_key(&coupled_page, &coupled_slot);
             if (coupled_page == page && coupled_slot > slot)
-              cur->uncouple_from_page();
+              cur->uncouple_from_page(m_context);
           }
           btcur = next;
         }
@@ -197,7 +197,7 @@ fall_through:
       // We've reached the leaf; it's still possible that we have to
       // split the page, therefore this case has to be handled
       try {
-        node->erase(slot);
+        node->erase(m_context, slot);
       }
       catch (Exception &ex) {
         if (ex.code != HAM_LIMITS_REACHED)
@@ -221,9 +221,10 @@ fall_through:
 };
 
 ham_status_t
-BtreeIndex::erase(Cursor *cursor, ham_key_t *key, int duplicate, uint32_t flags)
+BtreeIndex::erase(Context *context, Cursor *cursor, ham_key_t *key,
+                int duplicate, uint32_t flags)
 {
-  BtreeEraseAction bea(this, cursor, key, duplicate, flags);
+  BtreeEraseAction bea(this, context, cursor, key, duplicate, flags);
   return (bea.run());
 }
 

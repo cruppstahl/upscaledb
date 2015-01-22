@@ -43,12 +43,13 @@ namespace hamsterdb {
 class BtreeFindAction
 {
   public:
-    BtreeFindAction(BtreeIndex *btree, Cursor *cursor,
+    BtreeFindAction(BtreeIndex *btree, Context *context, Cursor *cursor,
                     ham_key_t *key, ByteArray *key_arena,
                     ham_record_t *record, ByteArray *record_arena,
                     uint32_t flags)
-      : m_btree(btree), m_cursor(0), m_key(key), m_record(record),
-        m_flags(flags), m_key_arena(key_arena), m_record_arena(record_arena) {
+      : m_btree(btree), m_context(context), m_cursor(0), m_key(key),
+        m_record(record), m_flags(flags), m_key_arena(key_arena),
+        m_record_arena(record_arena) {
       if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
     }
@@ -72,7 +73,7 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        page = env->get_page_manager()->fetch(db, hints.leaf_page_addr,
+        page = env->get_page_manager()->fetch(m_context, hints.leaf_page_addr,
                                             PageManager::kOnlyFromCache
                                             | PageManager::kReadOnly);
         if (page) {
@@ -80,7 +81,8 @@ class BtreeFindAction
           ham_assert(node->is_leaf());
 
           uint32_t approx_match;
-          slot = m_btree->find_leaf(page, m_key, m_flags, &approx_match);
+          slot = m_btree->find_leaf(m_context, page, m_key, m_flags,
+                                &approx_match);
 
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
@@ -99,13 +101,14 @@ class BtreeFindAction
 
       if (slot == -1) {
         /* load the root page */
-        page = env->get_page_manager()->fetch(db,
+        page = env->get_page_manager()->fetch(m_context,
                         m_btree->get_root_address(), PageManager::kReadOnly);
 
         /* now traverse the root to the leaf nodes till we find a leaf */
         node = m_btree->get_node_from_page(page);
         while (!node->is_leaf()) {
-          page = m_btree->find_child(page, m_key, PageManager::kReadOnly, 0);
+          page = m_btree->find_child(m_context, page, m_key,
+                                PageManager::kReadOnly, 0);
           if (!page) {
             stats->find_failed();
             return (HAM_KEY_NOT_FOUND);
@@ -116,7 +119,7 @@ class BtreeFindAction
 
         /* check the leaf page for the key (shortcut w/o approx. matching) */
         if (m_flags == 0) {
-          slot = node->find_exact(m_key);
+          slot = node->find_exact(m_context, m_key);
           if (slot == -1) {
             stats->find_failed();
             return (HAM_KEY_NOT_FOUND);
@@ -125,13 +128,14 @@ class BtreeFindAction
 
         /* check the leaf page for the key (long path w/ approx. matching),
          * then fall through */
-        slot = m_btree->find_leaf(page, m_key, m_flags, &approx_match);
+        slot = m_btree->find_leaf(m_context, page, m_key, m_flags,
+                                &approx_match);
       }
 
       if (slot == -1) {
         // find the left sibling
         if (node->get_left() > 0) {
-          page = env->get_page_manager()->fetch(db, node->get_left(),
+          page = env->get_page_manager()->fetch(m_context, node->get_left(),
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = node->get_count() - 1;
@@ -141,7 +145,7 @@ class BtreeFindAction
       else if (slot >= (int)node->get_count()) {
         // find the right sibling
         if (node->get_right() > 0) {
-          page = env->get_page_manager()->fetch(db, node->get_right(),
+          page = env->get_page_manager()->fetch(m_context, node->get_right(),
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = 0;
@@ -170,11 +174,11 @@ class BtreeFindAction
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
       if (m_key && approx_match && !(m_flags & Cursor::kSyncDontLoadKey)) {
-        node->get_key(slot, m_key_arena, m_key);
+        node->get_key(m_context, slot, m_key_arena, m_key);
       }
 
       if (m_record) {
-        node->get_record(slot, m_record_arena, m_record, m_flags);
+        node->get_record(m_context, slot, m_record_arena, m_record, m_flags);
       }
 
       return (0);
@@ -183,6 +187,9 @@ class BtreeFindAction
   private:
     // the current btree
     BtreeIndex *m_btree;
+
+    // The caller's Context
+    Context *m_context;
 
     // the current cursor
     BtreeCursor *m_cursor;
@@ -204,10 +211,11 @@ class BtreeFindAction
 };
 
 ham_status_t
-BtreeIndex::find(Cursor *cursor, ham_key_t *key, ByteArray *key_arena,
-                ham_record_t *record, ByteArray *record_arena, uint32_t flags)
+BtreeIndex::find(Context *context, Cursor *cursor, ham_key_t *key,
+                ByteArray *key_arena, ham_record_t *record,
+                ByteArray *record_arena, uint32_t flags)
 {
-  BtreeFindAction bfa(this, cursor, key, key_arena, record,
+  BtreeFindAction bfa(this, context, cursor, key, key_arena, record,
                   record_arena, flags);
   return (bfa.run());
 }

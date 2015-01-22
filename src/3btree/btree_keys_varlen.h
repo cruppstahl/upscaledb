@@ -156,7 +156,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) {
       ham_key_t tmp;
       uint32_t offset = m_index.get_chunk_offset(slot);
@@ -164,7 +164,7 @@ class VariableLengthKeyList : public BaseKeyList
 
       if (unlikely(*p & BtreeKey::kExtendedKey)) {
         memset(&tmp, 0, sizeof(tmp));
-        get_extended_key(get_extended_blob_id(slot), &tmp);
+        get_extended_key(context, get_extended_blob_id(slot), &tmp);
       }
       else {
         tmp.size = get_key_size(slot);
@@ -207,18 +207,19 @@ class VariableLengthKeyList : public BaseKeyList
     // this KeyList implementation. For variable length keys, the caller
     // must iterate over all keys. The |scan()| interface is only implemented
     // for PAX style layouts.
-    void scan(ScanVisitor *visitor, size_t node_count, uint32_t start) {
+    void scan(Context *context, ScanVisitor *visitor, size_t node_count,
+                    uint32_t start) {
       ham_assert(!"shouldn't be here");
       throw Exception(HAM_INTERNAL_ERROR);
     }
 
     // Erases a key's payload. Does NOT remove the chunk from the UpfrontIndex
     // (see |erase()|).
-    void erase_extended_key(int slot) {
+    void erase_extended_key(Context *context, int slot) {
       uint8_t flags = get_key_flags(slot);
       if (flags & BtreeKey::kExtendedKey) {
         // delete the extended key from the cache
-        erase_extended_key(get_extended_blob_id(slot));
+        erase_extended_key(context, get_extended_blob_id(slot));
         // and transform into a key which is non-extended and occupies
         // the same space as before, when it was extended
         set_key_flags(slot, flags & (~BtreeKey::kExtendedKey));
@@ -227,15 +228,16 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Erases a key, including extended blobs
-    void erase(size_t node_count, int slot) {
-      erase_extended_key(slot);
+    void erase(Context *context, size_t node_count, int slot) {
+      erase_extended_key(context, slot);
       m_index.erase(node_count, slot);
     }
 
     // Inserts the |key| at the position identified by |slot|.
     // This method cannot fail; there MUST be sufficient free space in the
     // node (otherwise the caller would have split the node).
-    void insert(size_t node_count, int slot, const ham_key_t *key) {
+    void insert(Context *context, size_t node_count, int slot,
+                    const ham_key_t *key) {
       m_index.insert(node_count, slot);
 
       // now there's one additional slot
@@ -253,7 +255,7 @@ class VariableLengthKeyList : public BaseKeyList
         memcpy(p + 1, key->data, key->size); // and data
       }
       else {
-        uint64_t blob_id = add_extended_key(key);
+        uint64_t blob_id = add_extended_key(context, key);
         m_index.allocate_space(node_count, slot, 8 + 1);
         set_extended_blob_id(slot, blob_id);
         set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
@@ -315,7 +317,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
-    void check_integrity(size_t node_count) const {
+    void check_integrity(Context *context, size_t node_count) const {
       ByteArray arena;
 
       // verify that the offsets and sizes are not overlapping
@@ -339,7 +341,7 @@ class VariableLengthKeyList : public BaseKeyList
 
           // make sure that the extended blob can be loaded
           ham_record_t record = {0};
-          m_db->get_local_env()->get_blob_manager()->read(m_db, blobid,
+          m_db->get_local_env()->get_blob_manager()->read(context, blobid,
                           &record, 0, &arena);
 
           // compare it to the cached key (if there is one)
@@ -394,10 +396,10 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(int slot, std::stringstream &out) {
+    void print(Context *context, int slot, std::stringstream &out) {
       ham_key_t tmp = {0};
       if (get_key_flags(slot) & BtreeKey::kExtendedKey) {
-        get_extended_key(get_extended_blob_id(slot), &tmp);
+        get_extended_key(context, get_extended_blob_id(slot), &tmp);
       }
       else {
         tmp.size = get_key_size(slot);
@@ -454,8 +456,8 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Erases an extended key from disk and from the cache
-    void erase_extended_key(uint64_t blobid) {
-      m_db->get_local_env()->get_blob_manager()->erase(m_db, blobid);
+    void erase_extended_key(Context *context, uint64_t blobid) {
+      m_db->get_local_env()->get_blob_manager()->erase(context, blobid);
       if (m_extkey_cache) {
         ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
         if (it != m_extkey_cache->end())
@@ -465,7 +467,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Retrieves the extended key at |blobid| and stores it in |key|; will
     // use the cache.
-    void get_extended_key(uint64_t blob_id, ham_key_t *key) {
+    void get_extended_key(Context *context, uint64_t blob_id, ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
       else {
@@ -479,7 +481,7 @@ class VariableLengthKeyList : public BaseKeyList
 
       ByteArray arena;
       ham_record_t record = {0};
-      m_db->get_local_env()->get_blob_manager()->read(m_db, blob_id, &record,
+      m_db->get_local_env()->get_blob_manager()->read(context, blob_id, &record,
                       0, &arena);
       (*m_extkey_cache)[blob_id] = arena;
       arena.disown();
@@ -488,7 +490,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Allocates an extended key and stores it in the cache
-    uint64_t add_extended_key(const ham_key_t *key) {
+    uint64_t add_extended_key(Context *context, const ham_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
 
@@ -497,7 +499,7 @@ class VariableLengthKeyList : public BaseKeyList
       rec.size = key->size;
 
       uint64_t blob_id = m_db->get_local_env()->get_blob_manager()->allocate(
-                                            m_db, &rec, 0);
+                                            context, &rec, 0);
       ham_assert(blob_id != 0);
       ham_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
 

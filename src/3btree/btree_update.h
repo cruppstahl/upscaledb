@@ -34,6 +34,7 @@
 
 namespace hamsterdb {
 
+class Context;
 class BtreeIndex;
 class BtreeCursor;
 
@@ -44,9 +45,9 @@ class BtreeUpdateAction
 {
   public:
     // Constructor
-    BtreeUpdateAction(BtreeIndex *btree, BtreeCursor *cursor,
+    BtreeUpdateAction(BtreeIndex *btree, Context *context, BtreeCursor *cursor,
                     uint32_t duplicate_index)
-      : m_btree(btree), m_cursor(cursor),
+      : m_btree(btree), m_context(context), m_cursor(cursor),
         m_duplicate_index(duplicate_index) {
     }
 
@@ -87,6 +88,9 @@ class BtreeUpdateAction
   protected:
     // the current btree
     BtreeIndex *m_btree;
+
+    // The caller's Context
+    Context *m_context;
 
     // the current cursor
     BtreeCursor *m_cursor;

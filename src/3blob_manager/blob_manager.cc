@@ -26,7 +26,7 @@
 using namespace hamsterdb;
 
 uint64_t
-BlobManager::allocate(LocalDatabase *db, ham_record_t *record,
+BlobManager::allocate(Context *context, ham_record_t *record,
             uint32_t flags)
 {
   // PARTIAL WRITE
@@ -41,22 +41,21 @@ BlobManager::allocate(LocalDatabase *db, ham_record_t *record,
 
   m_metric_total_allocated++;
 
-  return (do_allocate(db, record, flags));
+  return (do_allocate(context, record, flags));
 }
 
 void
-BlobManager::read(LocalDatabase *db, uint64_t blobid,
-                    ham_record_t *record, uint32_t flags,
-                    ByteArray *arena)
+BlobManager::read(Context *context, uint64_t blobid, ham_record_t *record,
+                uint32_t flags, ByteArray *arena)
 {
   m_metric_total_read++;
 
-  return (do_read(db, blobid, record, flags, arena));
+  return (do_read(context, blobid, record, flags, arena));
 }
 
 uint64_t
-BlobManager::overwrite(LocalDatabase *db, uint64_t old_blobid,
-                    ham_record_t *record, uint32_t flags)
+BlobManager::overwrite(Context *context, uint64_t old_blobid,
+                ham_record_t *record, uint32_t flags)
 {
   // PARTIAL WRITE
   //
@@ -68,19 +67,19 @@ BlobManager::overwrite(LocalDatabase *db, uint64_t old_blobid,
       flags &= ~HAM_PARTIAL;
   }
 
-  return (do_overwrite(db, old_blobid, record, flags));
+  return (do_overwrite(context, old_blobid, record, flags));
 }
 
 uint64_t
-BlobManager::get_blob_size(LocalDatabase *db, uint64_t blob_id)
+BlobManager::get_blob_size(Context *context, uint64_t blob_id)
 {
-  return (do_get_blob_size(db, blob_id));
+  return (do_get_blob_size(context, blob_id));
 }
 
 void
-BlobManager::erase(LocalDatabase *db, uint64_t blob_id, Page *page,
-                    uint32_t flags)
+BlobManager::erase(Context *context, uint64_t blob_id, Page *page,
+                uint32_t flags)
 {
-  return (do_erase(db, blob_id, page, flags));
+  return (do_erase(context, blob_id, page, flags));
 }
 

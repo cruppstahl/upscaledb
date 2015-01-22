@@ -40,6 +40,8 @@
 
 namespace hamsterdb {
 
+class Context;
+
 #include "1base/packstart.h"
 
 //
@@ -206,8 +208,8 @@ class BtreeIndex
     };
 
     // Constructor; creates and initializes a new btree
-    BtreeIndex(LocalDatabase *db, uint32_t descriptor, uint32_t flags,
-                    uint32_t key_type, uint32_t key_size);
+    BtreeIndex(LocalDatabase *db, uint32_t descriptor,
+                    uint32_t flags, uint32_t key_type, uint32_t key_size);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -255,7 +257,8 @@ class BtreeIndex
     //
     // This function is called after the ham_db_t structure was allocated
     // and the file was opened
-    void create(uint16_t key_type, uint32_t key_size, uint32_t rec_size);
+    void create(Context *context, uint16_t key_type, uint32_t key_size,
+                    uint32_t rec_size);
 
     // Opens and initializes the btree
     //
@@ -264,33 +267,34 @@ class BtreeIndex
     void open();
 
     // Lookup a key in the index (ham_db_find)
-    ham_status_t find(Cursor *cursor, ham_key_t *key, ByteArray *key_arena,
-                    ham_record_t *record, ByteArray *record_arena,
-                    uint32_t flags);
+    ham_status_t find(Context *context, Cursor *cursor, ham_key_t *key,
+                    ByteArray *key_arena, ham_record_t *record,
+                    ByteArray *record_arena, uint32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
-    ham_status_t insert(Cursor *cursor, ham_key_t *key,
+    ham_status_t insert(Context *context, Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // Erases a key/record from the index (ham_db_erase).
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
-    ham_status_t erase(Cursor *cursor, ham_key_t *key,
+    ham_status_t erase(Context *context, Cursor *cursor, ham_key_t *key,
                     int duplicate_index, uint32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node
-    void visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes);
+    void visit_nodes(Context *context, BtreeVisitor &visitor,
+                    bool visit_internal_nodes);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
-    void check_integrity(uint32_t flags);
+    void check_integrity(Context *context, uint32_t flags);
 
     // Counts the keys in the btree
-    uint64_t count(bool distinct);
+    uint64_t count(Context *context, bool distinct);
 
     // Erases all records, overflow areas, extended keys etc from the index;
     // used to avoid memory leaks when closing in-memory Databases and to
     // clean up when deleting on-disk Databases.
-    void release();
+    void release(Context *context);
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
@@ -374,7 +378,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_child(Page *parent, const ham_key_t *key,
+    Page *find_child(Context *context, Page *parent, const ham_key_t *key,
                     uint32_t page_manager_flags, int *idxptr);
 
     // Searches a leaf node for a key.
@@ -384,7 +388,7 @@ class BtreeIndex
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    int find_leaf(Page *page, ham_key_t *key, uint32_t flags,
+    int find_leaf(Context *context, Page *page, ham_key_t *key, uint32_t flags,
                     uint32_t *approx_match);
 
     // pointer to the database object

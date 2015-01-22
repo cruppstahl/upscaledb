@@ -48,8 +48,8 @@ class BtreeCheckAction
 {
   public:
     // Constructor
-    BtreeCheckAction(BtreeIndex *btree, uint32_t flags)
-      : m_btree(btree), m_flags(flags) {
+    BtreeCheckAction(BtreeIndex *btree, Context *context, uint32_t flags)
+      : m_btree(btree), m_context(context), m_flags(flags) {
     }
 
     // This is the main method; it starts the verification.
@@ -62,7 +62,7 @@ class BtreeCheckAction
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      page = env->get_page_manager()->fetch(db,
+      page = env->get_page_manager()->fetch(m_context,
                     m_btree->get_root_address(), PageManager::kReadOnly);
 
 #if HAM_DEBUG
@@ -91,7 +91,7 @@ class BtreeCheckAction
 
         // follow the pointer to the smallest child
         if (ptr_down)
-          page = env->get_page_manager()->fetch(db, ptr_down,
+          page = env->get_page_manager()->fetch(m_context, ptr_down,
                                 PageManager::kReadOnly);
         else
           page = 0;
@@ -140,8 +140,8 @@ class BtreeCheckAction
         // follow the right sibling
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         if (node->get_right())
-          child = env->get_page_manager()->fetch(db, node->get_right(),
-                                            PageManager::kReadOnly);
+          child = env->get_page_manager()->fetch(m_context,
+                          node->get_right(), PageManager::kReadOnly);
         else
           child = 0;
 
@@ -195,8 +195,8 @@ class BtreeCheckAction
         if (!node->is_leaf()) {
           for (uint32_t i = 0; i < node->get_count(); i++) {
             m_graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
-                    << node->get_record_id(i) << "\":fd [" << std::endl
-                    << "  ];" << std::endl;
+                    << node->get_record_id(m_context, i) << "\":fd ["
+                    << std::endl << "  ];" << std::endl;
           }
         }
       }
@@ -222,11 +222,12 @@ class BtreeCheckAction
         ham_key_t key1 = {0};
         ham_key_t key2 = {0};
 
-        node->check_integrity();
+        node->check_integrity(m_context);
 
         if (node->get_count() > 0 && sibnode->get_count() > 0) {
-          sibnode->get_key(sibnode->get_count() - 1, &m_barray1, &key1);
-          node->get_key(0, &m_barray2, &key2);
+          sibnode->get_key(m_context, sibnode->get_count() - 1,
+                          &m_barray1, &key1);
+          node->get_key(m_context, 0, &m_barray2, &key2);
 
           int cmp = node->compare(&key1, &key2);
           if (cmp >= 0) {
@@ -241,7 +242,7 @@ class BtreeCheckAction
       if (node->get_count() == 1)
         return;
 
-      node->check_integrity();
+      node->check_integrity(m_context);
 
       if (node->get_count() > 0) {
         for (uint32_t i = 0; i < node->get_count() - 1; i++) {
@@ -264,7 +265,7 @@ class BtreeCheckAction
         m_children.insert(node->get_ptr_down());
 
         for (uint32_t i = 0; i < node->get_count(); i++) {
-          uint64_t child_id = node->get_record_id(i);
+          uint64_t child_id = node->get_record_id(m_context, i);
           if (m_children.find(child_id) != m_children.end()) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is not unique", page->get_address(), i));
@@ -286,14 +287,17 @@ class BtreeCheckAction
       ham_key_t key1 = {0};
       ham_key_t key2 = {0};
 
-      node->get_key(lhs, &m_barray1, &key1);
-      node->get_key(rhs, &m_barray2, &key2);
+      node->get_key(m_context, lhs, &m_barray1, &key1);
+      node->get_key(m_context, rhs, &m_barray2, &key2);
 
       return (node->compare(&key1, &key2));
     }
 
     // The BtreeIndex on which we operate
     BtreeIndex *m_btree;
+
+    // The current Context
+    Context *m_context;
 
     // The flags as specified when calling ham_db_check_integrity
     uint32_t m_flags;
@@ -312,9 +316,9 @@ class BtreeCheckAction
 };
 
 void
-BtreeIndex::check_integrity(uint32_t flags)
+BtreeIndex::check_integrity(Context *context, uint32_t flags)
 {
-  BtreeCheckAction bta(this, flags);
+  BtreeCheckAction bta(this, context, flags);
   bta.run();
 }
 

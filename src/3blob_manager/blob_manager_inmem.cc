@@ -29,8 +29,8 @@
 using namespace hamsterdb;
 
 uint64_t
-InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
-            uint32_t flags)
+InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
+                uint32_t flags)
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
@@ -62,9 +62,9 @@ InMemoryBlobManager::do_allocate(LocalDatabase *db, ham_record_t *record,
 }
 
 void
-InMemoryBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
-                    ham_record_t *record, uint32_t flags,
-                    ByteArray *arena)
+InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
+                ham_record_t *record, uint32_t flags,
+                ByteArray *arena)
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob is stored
@@ -118,8 +118,8 @@ InMemoryBlobManager::do_read(LocalDatabase *db, uint64_t blobid,
 }
 
 uint64_t
-InMemoryBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
-                    ham_record_t *record, uint32_t flags)
+InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
+                ham_record_t *record, uint32_t flags)
 {
   // free the old blob, allocate a new blob (but if both sizes are equal,
   // just overwrite the data)
@@ -137,8 +137,8 @@ InMemoryBlobManager::do_overwrite(LocalDatabase *db, uint64_t old_blobid,
     return ((uint64_t)PTR_TO_U64(phdr));
   }
   else {
-    uint64_t new_blobid = m_env->get_blob_manager()->allocate(db, record,
-            flags);
+    uint64_t new_blobid = m_env->get_blob_manager()->allocate(context,
+                    record, flags);
 
     InMemoryDevice *dev = (InMemoryDevice *)m_env->get_device();
     dev->release(phdr, (size_t)phdr->get_alloc_size());

@@ -49,7 +49,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
   LocalDatabase *db = m_btree->get_db();
   LocalEnvironment *env = db->get_local_env();
 
-  Page *page = env->get_page_manager()->fetch(db,
+  Page *page = env->get_page_manager()->fetch(m_context,
                 m_btree->get_root_address());
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
@@ -66,14 +66,14 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
   // now walk down the tree
   while (!node->is_leaf()) {
     // is a split required?
-    if (node->requires_split()) {
+    if (node->requires_split(m_context)) {
       page = split_page(page, *parent, key, hints);
       node = m_btree->get_node_from_page(page);
     }
 
     // get the child page
     Page *sib_page = 0;
-    Page *child_page = m_btree->find_child(page, key, 0, &slot);
+    Page *child_page = m_btree->find_child(m_context, page, key, 0, &slot);
     BtreeNodeProxy *child_node = m_btree->get_node_from_page(child_page);
 
     // We can merge this child with the RIGHT sibling iff...
@@ -86,7 +86,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         && child_node->is_leaf()
         && child_node->requires_merge()
         && child_node->get_right() != 0) {
-      sib_page = env->get_page_manager()->fetch(db,
+      sib_page = env->get_page_manager()->fetch(m_context,
                             child_node->get_right(),
                         PageManager::kOnlyFromCache);
       if (sib_page != 0) {
@@ -94,7 +94,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         if (sib_node->requires_merge()) {
           merge_page(child_page, sib_page);
           // also remove the link to the sibling from the parent
-          node->erase(slot + 1);
+          node->erase(m_context, slot + 1);
           page->set_dirty(true);
         }
       }
@@ -109,7 +109,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         && child_node->is_leaf()
         && child_node->requires_merge()
         && child_node->get_left() != 0) {
-      sib_page = env->get_page_manager()->fetch(db,
+      sib_page = env->get_page_manager()->fetch(m_context,
                             child_node->get_left(),
                             PageManager::kOnlyFromCache);
       if (sib_page != 0) {
@@ -117,7 +117,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
         if (sib_node->requires_merge()) {
           merge_page(sib_page, child_page);
           // also remove the link to the sibling from the parent
-          node->erase(slot);
+          node->erase(m_context, slot);
           page->set_dirty(true);
           // continue traversal with the sibling
           child_page = sib_page;
@@ -146,15 +146,15 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
   BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sibling);
 
   if (sib_node->is_leaf())
-    BtreeCursor::uncouple_all_cursors(sibling, 0);
+    BtreeCursor::uncouple_all_cursors(m_context, sibling, 0);
 
-  node->merge_from(sib_node);
+  node->merge_from(m_context, sib_node);
   page->set_dirty(true);
 
   // fix the linked list
   node->set_right(sib_node->get_right());
   if (node->get_right()) {
-    Page *new_right = env->get_page_manager()->fetch(db,
+    Page *new_right = env->get_page_manager()->fetch(m_context,
                           node->get_right());
     BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
     new_right_node->set_left(page->get_address());
@@ -179,8 +179,8 @@ BtreeUpdateAction::collapse_root(Page *root_page)
   m_btree->get_statistics()->reset_page(root_page);
   m_btree->set_root_address(node->get_ptr_down());
 
-  Page *new_root = env->get_page_manager()->fetch(root_page->get_db(),
-                    m_btree->get_root_address());
+  Page *new_root = env->get_page_manager()->fetch(m_context,
+                        m_btree->get_root_address());
   new_root->set_type(Page::kTypeBroot);
   env->get_page_manager()->del(root_page);
   return (new_root);
@@ -198,7 +198,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   BtreeNodeProxy *old_node = m_btree->get_node_from_page(old_page);
 
   /* allocate a new page and initialize it */
-  Page *new_page = env->get_page_manager()->alloc(db, Page::kTypeBindex);
+  Page *new_page = env->get_page_manager()->alloc(m_context, Page::kTypeBindex);
   {
     PBtreeNode *node = PBtreeNode::from_page(new_page);
     node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
@@ -218,7 +218,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
    * a new page and insert the new key. */
   int pivot = 0;
   if (hints.flags & HAM_HINT_APPEND && old_node->is_leaf()) {
-    int cmp = old_node->compare(key, old_node->get_count() - 1);
+    int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
     if (cmp == +1) {
       to_return = new_page;
       pivot_key = *key;
@@ -231,18 +231,18 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
     pivot = get_pivot(old_node, key, hints);
 
     /* and store the pivot key for later */
-    old_node->get_key(pivot, &pivot_key_arena, &pivot_key);
+    old_node->get_key(m_context, pivot, &pivot_key_arena, &pivot_key);
 
     /* leaf page: uncouple all cursors */
     if (old_node->is_leaf())
-      BtreeCursor::uncouple_all_cursors(old_page, pivot);
+      BtreeCursor::uncouple_all_cursors(m_context, old_page, pivot);
     /* internal page: fix the ptr_down of the new page
      * (it must point to the ptr of the pivot key) */
     else
-      new_node->set_ptr_down(old_node->get_record_id(pivot));
+      new_node->set_ptr_down(old_node->get_record_id(m_context, pivot));
 
     /* now move some of the key/rid-tuples to the new page */
-    old_node->split(new_node, pivot);
+    old_node->split(m_context, new_node, pivot);
 
     // if the new key is >= the pivot key then continue with the right page,
     // otherwise continue with the left page
@@ -264,7 +264,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
   /* fix the double-linked list of pages, and mark the pages as dirty */
   if (old_node->get_right()) {
-    Page *sib_page = env->get_page_manager()->fetch(db,
+    Page *sib_page = env->get_page_manager()->fetch(m_context,
                     old_node->get_right());
     BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
     sib_node->set_left(new_page->get_address());
@@ -290,7 +290,7 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
   LocalDatabase *db = m_btree->get_db();
   LocalEnvironment *env = db->get_local_env();
 
-  Page *new_root = env->get_page_manager()->alloc(db, Page::kTypeBroot);
+  Page *new_root = env->get_page_manager()->alloc(m_context, Page::kTypeBroot);
 
   /* insert the pivot element and set ptr_down */
   BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);
@@ -313,7 +313,7 @@ BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ham_key_t *key,
   if (hints.flags & HAM_HINT_APPEND && hints.append_count > 5)
     pivot_at_end = true;
   else if (old_node->get_right() == 0) {
-    int cmp = old_node->compare(key, old_node->get_count() - 1);
+    int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
     if (cmp > 0)
       pivot_at_end = true;
   }
@@ -353,7 +353,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
   if (force_append)
     flags |= PBtreeNode::kInsertAppend;
 
-  PBtreeNode::InsertResult result = node->insert(key, flags);
+  PBtreeNode::InsertResult result = node->insert(m_context, key, flags);
   switch (result.status) {
     case HAM_DUPLICATE_KEY:
       if (hints.flags & HAM_OVERWRITE) {
@@ -377,7 +377,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
   if (exists) {
     if (node->is_leaf()) {
       // overwrite record blob
-      node->set_record(result.slot, record, m_duplicate_index,
+      node->set_record(m_context, result.slot, record, m_duplicate_index,
                       hints.flags, &new_duplicate_id);
 
       hints.processed_leaf_page = page;
@@ -386,7 +386,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
     else {
       // overwrite record id
       ham_assert(record->size == sizeof(uint64_t));
-      node->set_record_id(result.slot, *(uint64_t *)record->data);
+      node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
     }
   }
   // key does not exist and has to be inserted or appended
@@ -394,7 +394,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
     try {
       if (node->is_leaf()) {
         // allocate record id
-        node->set_record(result.slot, record, m_duplicate_index,
+        node->set_record(m_context, result.slot, record, m_duplicate_index,
                         hints.flags, &new_duplicate_id);
 
         hints.processed_leaf_page = page;
@@ -403,14 +403,14 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
       else {
         // set the internal record id
         ham_assert(record->size == sizeof(uint64_t));
-        node->set_record_id(result.slot, *(uint64_t *)record->data);
+        node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
       }
     }
     // In case of an error: undo the insert. This happens very rarely but
     // it's possible, i.e. if the BlobManager fails to allocate storage.
     catch (Exception &ex) {
       if (result.slot < (int)node->get_count())
-        node->erase(result.slot);
+        node->erase(m_context, result.slot);
       throw ex;
     }
   }

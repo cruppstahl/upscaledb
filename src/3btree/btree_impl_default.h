@@ -122,30 +122,28 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     DefaultNodeImpl(Page *page)
       : BaseNodeImpl<KeyList, RecordList>(page) {
       initialize();
-#ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count());
-#endif
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
-    virtual void check_integrity() const {
+    virtual void check_integrity(Context *context) const {
       size_t node_count = P::m_node->get_count();
       if (node_count == 0)
         return;
 
-      check_index_integrity(node_count);
+      check_index_integrity(context, node_count);
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, uint32_t start, bool distinct) {
+    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
+                    bool distinct) {
 #ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count());
+      check_index_integrity(context, P::m_node->get_count());
 #endif
 
       // a distinct scan over fixed-length keys can be moved to the KeyList
       if (KeyList::kSupportsBlockScans && distinct) {
-        P::m_keys.scan(visitor, start, P::m_node->get_count() - start);
+        P::m_keys.scan(context, visitor, start, P::m_node->get_count() - start);
         return;
       }
 
@@ -155,51 +153,54 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       size_t node_count = P::m_node->get_count() - start;
 
       for (size_t i = start; i < node_count; i++) {
-        P::m_keys.get_key(i, &arena, &key, false);
-        (*visitor)(key.data, key.size, distinct ? 1 : P::get_record_count(i));
+        P::m_keys.get_key(context, i, &arena, &key, false);
+        (*visitor)(key.data, key.size, distinct
+                                          ? 1
+                                          : P::get_record_count(context, i));
       }
     }
 
     // Returns the full record and stores it in |dest|
-    void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    uint32_t flags, int duplicate_index) {
+    void get_record(Context *context, int slot, ByteArray *arena,
+                    ham_record_t *record, uint32_t flags, int duplicate_index) {
 #ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count());
+      check_index_integrity(context, P::m_node->get_count());
 #endif
-      P::get_record(slot, arena, record, flags, duplicate_index);
+      P::get_record(context, slot, arena, record, flags, duplicate_index);
     }
 
     // Updates the record of a key
-    void set_record(int slot, ham_record_t *record,
+    void set_record(Context *context, int slot, ham_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) {
-      P::set_record(slot, record, duplicate_index, flags, new_duplicate_index);
+      P::set_record(context, slot, record, duplicate_index,
+                      flags, new_duplicate_index);
 #ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count());
+      check_index_integrity(context, P::m_node->get_count());
 #endif
     }
 
     // Erases the record
-    void erase_record(int slot, int duplicate_index,
+    void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates) {
-      P::erase_record(slot, duplicate_index, all_duplicates);
+      P::erase_record(context, slot, duplicate_index, all_duplicates);
 #ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count());
+      check_index_integrity(context, P::m_node->get_count());
 #endif
     }
 
     // Erases a key
-    void erase(int slot) {
-      P::erase(slot);
+    void erase(Context *context, int slot) {
+      P::erase(context, slot);
 #ifdef HAM_DEBUG
-      check_index_integrity(P::m_node->get_count() - 1);
+      check_index_integrity(context, P::m_node->get_count() - 1);
 #endif
     }
 
     // Returns true if |key| cannot be inserted because a split is required.
     // This function will try to re-arrange the node in order for the new
     // key to fit in.
-    bool requires_split(const ham_key_t *key) {
+    bool requires_split(Context *context, const ham_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
       // the node is empty? that's either because nothing was inserted yet,
@@ -235,13 +236,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // now adjust the ranges and the capacity
       if (adjust_capacity(key, keys_require_split, records_require_split)) {
 #ifdef HAM_DEBUG
-        check_index_integrity(node_count);
+        check_index_integrity(context, node_count);
 #endif
         return (false);
       }
 
 #ifdef HAM_DEBUG
-      check_index_integrity(node_count);
+      check_index_integrity(context, node_count);
 #endif
 
       // still here? then there's no way to avoid the split
@@ -254,42 +255,42 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Splits this node and moves some/half of the keys to |other|
-    void split(DefaultNodeImpl *other, int pivot) {
+    void split(Context *context, DefaultNodeImpl *other, int pivot) {
       size_t node_count = P::m_node->get_count();
 
 #ifdef HAM_DEBUG
-      check_index_integrity(node_count);
+      check_index_integrity(context, node_count);
       ham_assert(other->m_node->get_count() == 0);
 #endif
 
       // make sure that the other node has enough free space
       other->initialize(this);
 
-      P::split(other, pivot);
+      P::split(context, other, pivot);
 
       P::m_keys.vacuumize(pivot, true);
       P::m_records.vacuumize(pivot, true);
 
 #ifdef HAM_DEBUG
-      check_index_integrity(pivot);
+      check_index_integrity(context, pivot);
       if (P::m_node->is_leaf())
-        other->check_index_integrity(node_count - pivot);
+        other->check_index_integrity(context, node_count - pivot);
       else
-        other->check_index_integrity(node_count - pivot - 1);
+        other->check_index_integrity(context, node_count - pivot - 1);
 #endif
     }
 
     // Merges keys from |other| to this node
-    void merge_from(DefaultNodeImpl *other) {
+    void merge_from(Context *context, DefaultNodeImpl *other) {
       size_t node_count = P::m_node->get_count();
 
       P::m_keys.vacuumize(node_count, true);
       P::m_records.vacuumize(node_count, true);
 
-      P::merge_from(other);
+      P::merge_from(context, other);
 
 #ifdef HAM_DEBUG
-      check_index_integrity(node_count + other->m_node->get_count());
+      check_index_integrity(context, node_count + other->m_node->get_count());
 #endif
     }
 
@@ -497,9 +498,9 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Checks the integrity of the key- and record-ranges. Throws an exception
     // if there's a problem.
-    void check_index_integrity(size_t node_count) const {
-      P::m_keys.check_integrity(node_count);
-      P::m_records.check_integrity(node_count);
+    void check_index_integrity(Context *context, size_t node_count) const {
+      P::m_keys.check_integrity(context, node_count);
+      P::m_records.check_integrity(context, node_count);
     }
 
     // Returns the usable page size that can be used for actually

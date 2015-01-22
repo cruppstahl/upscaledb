@@ -27,6 +27,7 @@
 #include "2device/device.h"
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
+#include "4context/context.h"
 #include "4db/db.h"
 #include "4txn/txn_local.h"
 #include "4env/env_local.h"
@@ -465,8 +466,6 @@ Journal::close_all_databases()
     Environment::DatabaseMap::iterator it2 = it; it++;
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
-      if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-        m_env->get_changeset()->clear();
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
@@ -488,6 +487,8 @@ Journal::abort_uncommitted_txns()
 void
 Journal::recover()
 {
+  Context context(m_env, 0, 0);
+
   // first re-apply the last changeset
   uint64_t start_lsn = recover_changeset();
 
@@ -497,9 +498,7 @@ Journal::recover()
   uint64_t page_manager_blobid
           = m_env->get_header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
-    m_env->get_page_manager()->initialize(page_manager_blobid);
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      m_env->get_changeset()->clear();
+    m_env->get_page_manager()->initialize(&context, page_manager_blobid);
   }
 
   // then start the normal recovery

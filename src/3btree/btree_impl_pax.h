@@ -99,12 +99,13 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, uint32_t start, bool distinct) {
-      P::m_keys.scan(visitor, start, P::m_node->get_count() - start);
+    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
+                    bool distinct) {
+      P::m_keys.scan(context, visitor, start, P::m_node->get_count() - start);
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(const ham_key_t *key) const {
+    bool requires_split(Context *context, const ham_key_t *key) const {
       return (P::m_node->get_count() >= P::m_estimated_capacity);
     }
 

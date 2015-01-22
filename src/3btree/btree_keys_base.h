@@ -46,12 +46,12 @@ struct BaseKeyList
   }
 
   // Erases the extended part of a key; nothing to do here
-  void erase_extended_key(int slot) const {
+  void erase_extended_key(Context *context, int slot) const {
   }
 
   // Checks the integrity of this node. Throws an exception if there is a
   // violation.
-  void check_integrity(size_t node_count) const {
+  void check_integrity(Context *context, size_t node_count) const {
   }
 
   // Rearranges the list

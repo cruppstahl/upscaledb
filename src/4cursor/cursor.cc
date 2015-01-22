@@ -60,15 +60,16 @@ Cursor::Cursor(Cursor &other)
 }
 
 void
-Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
+Cursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
+                DupeCache *dc)
 {
-  uint32_t count = btc->get_record_count(0);
+  uint32_t count = btc->get_record_count(context, 0);
   for (uint32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 }
 
 void
-Cursor::update_dupecache(uint32_t what)
+Cursor::update_dupecache(Context *context, uint32_t what)
 {
   if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
     return;
@@ -81,7 +82,7 @@ Cursor::update_dupecache(uint32_t what)
   if ((what & kBtree) && (what & kTxn)) {
     if (is_nil(kBtree) && !is_nil(kTxn)) {
       bool equal_keys;
-      sync(0, &equal_keys);
+      sync(context, 0, &equal_keys);
       if (!equal_keys)
         set_to_nil(kBtree);
     }
@@ -90,7 +91,7 @@ Cursor::update_dupecache(uint32_t what)
   /* first collect all duplicates from the btree. They're already sorted,
    * therefore we can just append them to our duplicate-cache. */
   if ((what & kBtree) && !is_nil(kBtree))
-    append_btree_duplicates(&m_btree_cursor, &m_dupecache);
+    append_btree_duplicates(context, &m_btree_cursor, &m_dupecache);
 
   /* read duplicates from the txn-cursor? */
   if ((what & kTxn) && !is_nil(kTxn)) {
@@ -194,7 +195,7 @@ Cursor::couple_to_dupe(uint32_t dupe_id)
 }
 
 ham_status_t
-Cursor::check_if_btree_key_is_erased_or_overwritten()
+Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
 {
   ham_key_t key = {0};
   TransactionOperation *op;
@@ -205,7 +206,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
                     || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
                ? &get_db()->get_key_arena()
                : &get_txn()->get_key_arena();
-  st = m_btree_cursor.move(&key, key_arena, 0, 0, 0);
+  st = m_btree_cursor.move(context, &key, key_arena, 0, 0, 0);
   if (st) {
     get_db()->cursor_close(clone);
     return (st);
@@ -225,7 +226,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
 }
 
 void
-Cursor::sync(uint32_t flags, bool *equal_keys)
+Cursor::sync(Context *context, uint32_t flags, bool *equal_keys)
 {
   if (equal_keys)
     *equal_keys = false;
@@ -241,7 +242,7 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
                 : HAM_FIND_LEQ_MATCH);
     /* the flag |kSyncDontLoadKey| does not load the key if there's an
      * approx match - it only positions the cursor */
-    ham_status_t st = m_btree_cursor.find(key, 0, 0, 0,
+    ham_status_t st = m_btree_cursor.find(context, key, 0, 0, 0,
                             kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
      * set |equal_keys| to false; otherwise Cursor::move()
@@ -251,7 +252,7 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
   }
   else if (is_nil(kTxn)) {
     Cursor *clone = get_db()->cursor_clone(this);
-    clone->m_btree_cursor.uncouple_from_page();
+    clone->m_btree_cursor.uncouple_from_page(context);
     ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
     if (!(flags & kSyncOnlyEqualKeys))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
@@ -268,7 +269,7 @@ Cursor::sync(uint32_t flags, bool *equal_keys)
 }
 
 ham_status_t
-Cursor::move_next_dupe()
+Cursor::move_next_dupe(Context *context)
 {
   if (get_dupecache_index()) {
     if (get_dupecache_index() < m_dupecache.get_count()) {
@@ -281,7 +282,7 @@ Cursor::move_next_dupe()
 }
 
 ham_status_t
-Cursor::move_previous_dupe()
+Cursor::move_previous_dupe(Context *context)
 {
   if (get_dupecache_index()) {
     if (get_dupecache_index() > 1) {
@@ -294,7 +295,7 @@ Cursor::move_previous_dupe()
 }
 
 ham_status_t
-Cursor::move_first_dupe()
+Cursor::move_first_dupe(Context *context)
 {
   if (m_dupecache.get_count()) {
     set_dupecache_index(1);
@@ -305,7 +306,7 @@ Cursor::move_first_dupe()
 }
 
 ham_status_t
-Cursor::move_last_dupe()
+Cursor::move_last_dupe(Context *context)
 {
   if (m_dupecache.get_count()) {
     set_dupecache_index(m_dupecache.get_count());
@@ -325,7 +326,7 @@ __txn_cursor_is_erase(TransactionCursor *txnc)
 }
 
 int
-Cursor::compare()
+Cursor::compare(Context *context)
 {
   BtreeCursor *btrc = get_btree_cursor();
   BtreeIndex *btree = get_db()->get_btree_index();
@@ -340,7 +341,7 @@ Cursor::compare()
     Page *page;
     int slot;
     btrc->get_coupled_key(&page, &slot, 0);
-    m_last_cmp = btree->get_node_from_page(page)->compare(txnk, slot);
+    m_last_cmp = btree->get_node_from_page(page)->compare(context, txnk, slot);
 
     // need to fix the sort order - we compare txnk vs page[slot], but the
     // caller expects m_last_cmp to be the comparison of page[slot] vs txnk
@@ -361,7 +362,7 @@ Cursor::compare()
 }
 
 ham_status_t
-Cursor::move_next_key_singlestep()
+Cursor::move_next_key_singlestep(Context *context)
 {
   ham_status_t st = 0;
   BtreeCursor *btrc = get_btree_cursor();
@@ -369,7 +370,8 @@ Cursor::move_next_key_singlestep()
   /* if both cursors point to the same key: move next with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
+      st = btrc->move(context, 0, 0, 0, 0,
+                    HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
       if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
         if (m_txn_cursor.is_nil())
@@ -390,7 +392,7 @@ Cursor::move_next_key_singlestep()
           couple_to_btree();
           m_last_cmp = -1;
 
-          ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten();
+          ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
           if (st2 == HAM_TXN_CONFLICT)
             st = st2;
         }
@@ -399,7 +401,7 @@ Cursor::move_next_key_singlestep()
   }
   /* if the btree-key is smaller: move it next */
   else if (m_last_cmp < 0) {
-    st = btrc->move(0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
+    st = btrc->move(context, 0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
     if (st == HAM_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
@@ -408,7 +410,7 @@ Cursor::move_next_key_singlestep()
       m_last_cmp = +1;
     }
     else {
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten();
+      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
       if (st2 == HAM_TXN_CONFLICT)
         st = st2;
     }
@@ -432,41 +434,41 @@ Cursor::move_next_key_singlestep()
 
   /* compare keys again */
   if (!is_nil(kBtree) && !m_txn_cursor.is_nil())
-    compare();
+    compare(context);
 
   /* if there's a txn conflict: move next */
   if (st == HAM_TXN_CONFLICT)
-    return (move_next_key_singlestep());
+    return (move_next_key_singlestep(context));
 
   /* btree-key is smaller */
   if (m_last_cmp < 0 || m_txn_cursor.is_nil()) {
     couple_to_btree();
-    update_dupecache(kBtree);
+    update_dupecache(context, kBtree);
     return (0);
   }
   /* txn-key is smaller */
   else if (m_last_cmp > 0 || btrc->get_state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
-    update_dupecache(kTxn);
+    update_dupecache(context, kTxn);
     return (0);
   }
   /* both keys are equal */
   else {
     couple_to_txnop();
-    update_dupecache(kTxn | kBtree);
+    update_dupecache(context, kTxn | kBtree);
     return (0);
   }
 }
 
 ham_status_t
-Cursor::move_next_key(uint32_t flags)
+Cursor::move_next_key(Context *context, uint32_t flags)
 {
   ham_status_t st;
 
   /* are we in the middle of a duplicate list? if yes then move to the
    * next duplicate */
   if (get_dupecache_index() > 0 && !(flags & HAM_SKIP_DUPLICATES)) {
-    st = move_next_dupe();
+    st = move_next_dupe(context);
     if (st != HAM_LIMITS_REACHED)
       return (st);
     else if (st == HAM_LIMITS_REACHED && (flags & HAM_ONLY_DUPLICATES))
@@ -478,7 +480,7 @@ Cursor::move_next_key(uint32_t flags)
   /* either there were no duplicates or we've reached the end of the
    * duplicate list. move next till we found a new candidate */
   while (1) {
-    st = move_next_key_singlestep();
+    st = move_next_key_singlestep(context);
     if (st)
       return (st);
 
@@ -491,7 +493,7 @@ Cursor::move_next_key(uint32_t flags)
         continue;
 
       /* otherwise move to the first duplicate */
-      return (move_first_dupe());
+      return (move_first_dupe(context));
     }
 
     /* no duplicates - make sure that we've not coupled to an erased
@@ -503,7 +505,7 @@ Cursor::move_next_key(uint32_t flags)
         return (0);
     }
     if (is_coupled_to_btree()) {
-      st = check_if_btree_key_is_erased_or_overwritten();
+      st = check_if_btree_key_is_erased_or_overwritten(context);
       if (st == HAM_KEY_ERASED_IN_TXN)
         continue;
       else if (st == 0) {
@@ -524,7 +526,7 @@ Cursor::move_next_key(uint32_t flags)
 }
 
 ham_status_t
-Cursor::move_previous_key_singlestep()
+Cursor::move_previous_key_singlestep(Context *context)
 {
   ham_status_t st = 0;
   BtreeCursor *btrc = get_btree_cursor();
@@ -532,7 +534,8 @@ Cursor::move_previous_key_singlestep()
   /* if both cursors point to the same key: move previous with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(0, 0, 0, 0, HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
+      st = btrc->move(context, 0, 0, 0, 0,
+                    HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
       if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
         if (m_txn_cursor.is_nil())
@@ -558,7 +561,8 @@ Cursor::move_previous_key_singlestep()
   }
   /* if the btree-key is greater: move previous */
   else if (m_last_cmp > 0) {
-    st = btrc->move(0, 0, 0, 0, HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
+    st = btrc->move(context, 0, 0, 0, 0,
+                    HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
     if (st == HAM_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
@@ -567,7 +571,7 @@ Cursor::move_previous_key_singlestep()
       m_last_cmp = -1;
     }
     else {
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten();
+      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
       if (st2 == HAM_TXN_CONFLICT)
         st = st2;
     }
@@ -585,7 +589,7 @@ Cursor::move_previous_key_singlestep()
       couple_to_btree();
       m_last_cmp = 1;
 
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten();
+      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
       if (st2 == HAM_TXN_CONFLICT)
         st = st2;
     }
@@ -595,41 +599,41 @@ Cursor::move_previous_key_singlestep()
 
   /* compare keys again */
   if (!is_nil(kBtree) && !m_txn_cursor.is_nil())
-    compare();
+    compare(context);
 
   /* if there's a txn conflict: move previous */
   if (st == HAM_TXN_CONFLICT)
-    return (move_previous_key_singlestep());
+    return (move_previous_key_singlestep(context));
 
   /* btree-key is greater */
   if (m_last_cmp > 0 || m_txn_cursor.is_nil()) {
     couple_to_btree();
-    update_dupecache(kBtree);
+    update_dupecache(context, kBtree);
     return (0);
   }
   /* txn-key is greater */
   else if (m_last_cmp < 0 || btrc->get_state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
-    update_dupecache(kTxn);
+    update_dupecache(context, kTxn);
     return (0);
   }
   /* both keys are equal */
   else {
     couple_to_txnop();
-    update_dupecache(kTxn | kBtree);
+    update_dupecache(context, kTxn | kBtree);
     return (0);
   }
 }
 
 ham_status_t
-Cursor::move_previous_key(uint32_t flags)
+Cursor::move_previous_key(Context *context, uint32_t flags)
 {
   ham_status_t st;
 
   /* are we in the middle of a duplicate list? if yes then move to the
    * previous duplicate */
   if (get_dupecache_index() > 0 && !(flags & HAM_SKIP_DUPLICATES)) {
-    st = move_previous_dupe();
+    st = move_previous_dupe(context);
     if (st != HAM_LIMITS_REACHED)
       return (st);
     else if (st == HAM_LIMITS_REACHED && (flags & HAM_ONLY_DUPLICATES))
@@ -641,7 +645,7 @@ Cursor::move_previous_key(uint32_t flags)
   /* either there were no duplicates or we've reached the end of the
    * duplicate list. move previous till we found a new candidate */
   while (!is_nil(kBtree) || !m_txn_cursor.is_nil()) {
-    st = move_previous_key_singlestep();
+    st = move_previous_key_singlestep(context);
     if (st)
       return (st);
 
@@ -654,7 +658,7 @@ Cursor::move_previous_key(uint32_t flags)
         continue;
 
       /* otherwise move to the last duplicate */
-      return (move_last_dupe());
+      return (move_last_dupe(context));
     }
 
     /* no duplicates - make sure that we've not coupled to an erased
@@ -666,7 +670,7 @@ Cursor::move_previous_key(uint32_t flags)
         return (0);
     }
     if (is_coupled_to_btree()) {
-      st = check_if_btree_key_is_erased_or_overwritten();
+      st = check_if_btree_key_is_erased_or_overwritten(context);
       if (st == HAM_KEY_ERASED_IN_TXN)
         continue;
       else if (st == 0) {
@@ -686,7 +690,7 @@ Cursor::move_previous_key(uint32_t flags)
 }
 
 ham_status_t
-Cursor::move_first_key_singlestep()
+Cursor::move_first_key_singlestep(Context *context)
 {
   ham_status_t btrs, txns;
   BtreeCursor *btrc = get_btree_cursor();
@@ -694,7 +698,8 @@ Cursor::move_first_key_singlestep()
   /* fetch the smallest key from the transaction tree. */
   txns = m_txn_cursor.move(HAM_CURSOR_FIRST);
   /* fetch the smallest key from the btree tree. */
-  btrs = btrc->move(0, 0, 0, 0, HAM_CURSOR_FIRST | HAM_SKIP_DUPLICATES);
+  btrs = btrc->move(context, 0, 0, 0, 0,
+                HAM_CURSOR_FIRST | HAM_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
   if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
     return (HAM_KEY_NOT_FOUND);
@@ -704,13 +709,13 @@ Cursor::move_first_key_singlestep()
     if (txns == HAM_TXN_CONFLICT)
       return (txns);
     couple_to_txnop();
-    update_dupecache(kTxn);
+    update_dupecache(context, kTxn);
     return (0);
   }
   /* if txn-tree is empty but btree is not: couple to btree */
   else if (txns == HAM_KEY_NOT_FOUND && btrs != HAM_KEY_NOT_FOUND) {
     couple_to_btree();
-    update_dupecache(kBtree);
+    update_dupecache(context, kBtree);
     return (0);
   }
   /* if both trees are not empty then compare them and couple to the
@@ -719,7 +724,7 @@ Cursor::move_first_key_singlestep()
     ham_assert(btrs == 0 && (txns == 0
         || txns == HAM_KEY_ERASED_IN_TXN
         || txns == HAM_TXN_CONFLICT));
-    compare();
+    compare(context);
 
     /* both keys are equal - couple to txn; it's chronologically
      * newer */
@@ -727,31 +732,31 @@ Cursor::move_first_key_singlestep()
       if (txns && txns != HAM_KEY_ERASED_IN_TXN)
         return (txns);
       couple_to_txnop();
-      update_dupecache(kBtree | kTxn);
+      update_dupecache(context, kBtree | kTxn);
     }
     /* couple to txn */
     else if (m_last_cmp > 0) {
       if (txns && txns != HAM_KEY_ERASED_IN_TXN)
         return (txns);
       couple_to_txnop();
-      update_dupecache(kTxn);
+      update_dupecache(context, kTxn);
     }
     /* couple to btree */
     else {
       couple_to_btree();
-      update_dupecache(kBtree);
+      update_dupecache(context, kBtree);
     }
     return (0);
   }
 }
 
 ham_status_t
-Cursor::move_first_key(uint32_t flags)
+Cursor::move_first_key(Context *context, uint32_t flags)
 {
   ham_status_t st = 0;
 
   /* move to the very very first key */
-  st = move_first_key_singlestep();
+  st = move_first_key_singlestep(context);
   if (st)
     return (st);
 
@@ -761,24 +766,24 @@ Cursor::move_first_key(uint32_t flags)
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
-      return (move_next_key(flags));
+      return (move_next_key(context, flags));
 
     /* otherwise move to the first duplicate */
-    return (move_first_dupe());
+    return (move_first_dupe(context));
   }
 
   /* no duplicates - make sure that we've not coupled to an erased
    * item */
   if (is_coupled_to_txnop()) {
     if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_next_key(flags));
+      return (move_next_key(context, flags));
     else
       return (0);
   }
   if (is_coupled_to_btree()) {
-    st = check_if_btree_key_is_erased_or_overwritten();
+    st = check_if_btree_key_is_erased_or_overwritten(context);
     if (st == HAM_KEY_ERASED_IN_TXN)
-      return (move_next_key(flags));
+      return (move_next_key(context, flags));
     else if (st == 0) {
       couple_to_txnop();
       return (0);
@@ -793,7 +798,7 @@ Cursor::move_first_key(uint32_t flags)
 }
 
 ham_status_t
-Cursor::move_last_key_singlestep()
+Cursor::move_last_key_singlestep(Context *context)
 {
   ham_status_t btrs, txns;
   BtreeCursor *btrc = get_btree_cursor();
@@ -801,7 +806,7 @@ Cursor::move_last_key_singlestep()
   /* fetch the largest key from the transaction tree. */
   txns = m_txn_cursor.move(HAM_CURSOR_LAST);
   /* fetch the largest key from the btree tree. */
-  btrs = btrc->move(0, 0, 0, 0, HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
+  btrs = btrc->move(context, 0, 0, 0, 0, HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
   if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
     return (HAM_KEY_NOT_FOUND);
@@ -811,13 +816,13 @@ Cursor::move_last_key_singlestep()
     if (txns == HAM_TXN_CONFLICT)
       return (txns);
     couple_to_txnop();
-    update_dupecache(kTxn);
+    update_dupecache(context, kTxn);
     return (0);
   }
   /* if txn-tree is empty but btree is not: couple to btree */
   else if (txns == HAM_KEY_NOT_FOUND && btrs != HAM_KEY_NOT_FOUND) {
     couple_to_btree();
-    update_dupecache(kBtree);
+    update_dupecache(context, kBtree);
     return (0);
   }
   /* if both trees are not empty then compare them and couple to the
@@ -826,7 +831,7 @@ Cursor::move_last_key_singlestep()
     ham_assert(btrs == 0 && (txns == 0
         || txns == HAM_KEY_ERASED_IN_TXN
         || txns == HAM_TXN_CONFLICT));
-    compare();
+    compare(context);
 
     /* both keys are equal - couple to txn; it's chronologically
      * newer */
@@ -834,31 +839,31 @@ Cursor::move_last_key_singlestep()
       if (txns && txns != HAM_KEY_ERASED_IN_TXN)
         return (txns);
       couple_to_txnop();
-      update_dupecache(kBtree | kTxn);
+      update_dupecache(context, kBtree | kTxn);
     }
     /* couple to txn */
     else if (m_last_cmp < 1) {
       if (txns && txns != HAM_KEY_ERASED_IN_TXN)
         return (txns);
       couple_to_txnop();
-      update_dupecache(kTxn);
+      update_dupecache(context, kTxn);
     }
     /* couple to btree */
     else {
       couple_to_btree();
-      update_dupecache(kBtree);
+      update_dupecache(context, kBtree);
     }
     return (0);
   }
 }
 
 ham_status_t
-Cursor::move_last_key(uint32_t flags)
+Cursor::move_last_key(Context *context, uint32_t flags)
 {
   ham_status_t st = 0;
 
   /* move to the very very last key */
-  st = move_last_key_singlestep();
+  st = move_last_key_singlestep(context);
   if (st)
     return (st);
 
@@ -868,24 +873,24 @@ Cursor::move_last_key(uint32_t flags)
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
-      return (move_previous_key(flags));
+      return (move_previous_key(context, flags));
 
     /* otherwise move to the last duplicate */
-    return (move_last_dupe());
+    return (move_last_dupe(context));
   }
 
   /* no duplicates - make sure that we've not coupled to an erased
    * item */
   if (is_coupled_to_txnop()) {
     if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_previous_key(flags));
+      return (move_previous_key(context, flags));
     else
       return (0);
   }
   if (is_coupled_to_btree()) {
-    st = check_if_btree_key_is_erased_or_overwritten();
+    st = check_if_btree_key_is_erased_or_overwritten(context);
     if (st == HAM_KEY_ERASED_IN_TXN)
-      return (move_previous_key(flags));
+      return (move_previous_key(context, flags));
     else if (st == 0) {
       couple_to_txnop();
       return (0);
@@ -900,7 +905,8 @@ Cursor::move_last_key(uint32_t flags)
 }
 
 ham_status_t
-Cursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
+Cursor::move(Context *context, ham_key_t *key, ham_record_t *record,
+                uint32_t flags)
 {
   ham_status_t st = 0;
   bool changed_dir = false;
@@ -923,29 +929,29 @@ Cursor::move(ham_key_t *key, ham_record_t *record, uint32_t flags)
       set_to_nil(kBtree);
     else
       set_to_nil(kTxn);
-    (void)sync(flags, 0);
+    (void)sync(context, flags, 0);
 
     if (!m_txn_cursor.is_nil() && !is_nil(kBtree))
-      compare();
+      compare(context);
   }
 
   /* we have either skipped duplicates or reached the end of the duplicate
    * list. btree cursor and txn cursor are synced and as close to
    * each other as possible. Move the cursor in the requested direction. */
   if (flags & HAM_CURSOR_NEXT) {
-    st = move_next_key(flags);
+    st = move_next_key(context, flags);
   }
   else if (flags & HAM_CURSOR_PREVIOUS) {
-    st = move_previous_key(flags);
+    st = move_previous_key(context, flags);
   }
   else if (flags & HAM_CURSOR_FIRST) {
     clear_dupecache();
-    st = move_first_key(flags);
+    st = move_first_key(context, flags);
   }
   else {
     ham_assert(flags & HAM_CURSOR_LAST);
     clear_dupecache();
-    st = move_last_key(flags);
+    st = move_last_key(context, flags);
   }
 
   if (st)
@@ -980,7 +986,7 @@ retrieve_key_and_record:
                    ? &get_db()->get_record_arena()
                    : &get_txn()->get_record_arena();
 
-      st = btrc->move(key, key_arena, record, record_arena, 0);
+      st = btrc->move(context, key, key_arena, record, record_arena, 0);
     }
   }
 
@@ -1024,7 +1030,7 @@ Cursor::set_to_nil(int what)
 }
 
 uint32_t
-Cursor::get_record_count(uint32_t flags)
+Cursor::get_record_count(Context *context, uint32_t flags)
 {
   if (is_nil())
     throw Exception(HAM_CURSOR_IS_NIL);
@@ -1032,8 +1038,8 @@ Cursor::get_record_count(uint32_t flags)
   if (m_txn) {
     if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
-      sync(0, &dummy);
-      update_dupecache(kTxn | kBtree);
+      sync(context, 0, &dummy);
+      update_dupecache(context, kTxn | kBtree);
       return (m_dupecache.get_count());
     }
     else {
@@ -1042,11 +1048,11 @@ Cursor::get_record_count(uint32_t flags)
     }
   }
 
-  return (m_btree_cursor.get_record_count(flags));
+  return (m_btree_cursor.get_record_count(context, flags));
 }
 
 uint64_t
-Cursor::get_record_size()
+Cursor::get_record_size(Context *context)
 {
   if (is_nil())
     return (HAM_CURSOR_IS_NIL);
@@ -1054,7 +1060,7 @@ Cursor::get_record_size()
   if (is_coupled_to_txnop())
     return (m_txn_cursor.get_record_size());
   else
-    return (m_btree_cursor.get_record_size());
+    return (m_btree_cursor.get_record_size(context));
 }
 
 uint32_t
@@ -1072,7 +1078,8 @@ Cursor::get_duplicate_position()
 }
 
 ham_status_t
-Cursor::overwrite(Transaction *htxn, ham_record_t *record, uint32_t flags)
+Cursor::overwrite(Context *context, Transaction *htxn,
+                ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
@@ -1088,8 +1095,8 @@ Cursor::overwrite(Transaction *htxn, ham_record_t *record, uint32_t flags)
    */
   if (txn) {
     if (m_txn_cursor.is_nil() && !(is_nil(0))) {
-      m_btree_cursor.uncouple_from_page();
-      st = m_db->insert_txn(txn,
+      m_btree_cursor.uncouple_from_page(context);
+      st = m_db->insert_txn(context, txn,
                   m_btree_cursor.get_uncoupled_key(),
                   record, flags | HAM_OVERWRITE, get_txn_cursor());
     }
@@ -1101,7 +1108,7 @@ Cursor::overwrite(Transaction *htxn, ham_record_t *record, uint32_t flags)
       couple_to_txnop();
   }
   else {
-    m_btree_cursor.overwrite(record, flags);
+    m_btree_cursor.overwrite(context, record, flags);
     couple_to_btree();
   }
 

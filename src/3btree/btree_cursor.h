@@ -56,6 +56,7 @@
 
 namespace hamsterdb {
 
+class Context;
 class Cursor;
 class BtreeIndex;
 class Page;
@@ -142,36 +143,36 @@ class BtreeCursor
     }
 
     // Uncouples the cursor
-    void uncouple_from_page();
+    void uncouple_from_page(Context *context);
 
     // Returns true if a cursor points to this btree key
-    bool points_to(Page *page, int slot);
+    bool points_to(Context *context, Page *page, int slot);
 
     // Returns true if a cursor points to this external key
-    bool points_to(ham_key_t *key);
+    bool points_to(Context *context, ham_key_t *key);
 
     // Moves the btree cursor to the next page
-    ham_status_t move_to_next_page();
+    ham_status_t move_to_next_page(Context *context);
 
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
-    ham_status_t find(ham_key_t *key, ByteArray *key_arena,
+    ham_status_t find(Context *context, ham_key_t *key, ByteArray *key_arena,
                     ham_record_t *record, ByteArray *record_arena,
                     uint32_t flags);
 
     // Moves the cursor to the first, last, next or previous element
-    ham_status_t move(ham_key_t *key, ByteArray *key_arena,
+    ham_status_t move(Context *context, ham_key_t *key, ByteArray *key_arena,
                     ham_record_t *record, ByteArray *record_arena,
                     uint32_t flags);
 
     // Returns the number of records of the referenced key
-    int get_record_count(uint32_t flags);
+    int get_record_count(Context *context, uint32_t flags);
 
     // Overwrite the record of this cursor
-    void overwrite(ham_record_t *record, uint32_t flags);
+    void overwrite(Context *context, ham_record_t *record, uint32_t flags);
 
     // retrieves the record size of the current record
-    uint64_t get_record_size();
+    uint64_t get_record_size(Context *context);
 
     // Closes the cursor
     void close() {
@@ -180,7 +181,8 @@ class BtreeCursor
 
     // Uncouples all cursors from a page
     // This method is called whenever the page is deleted or becomes invalid
-    static void uncouple_all_cursors(Page *page, int start = 0);
+    static void uncouple_all_cursors(Context *context, Page *page,
+                    int start = 0);
 
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
@@ -193,19 +195,19 @@ class BtreeCursor
     // Couples the cursor to the current page/key
     // Asserts that the cursor is uncoupled. After this call the cursor
     // will be coupled.
-    void couple();
+    void couple(Context *context);
 
     // move cursor to the very first key
-    ham_status_t move_first(uint32_t flags);
+    ham_status_t move_first(Context *context, uint32_t flags);
 
     // move cursor to the very last key
-    ham_status_t move_last(uint32_t flags);
+    ham_status_t move_last(Context *context, uint32_t flags);
 
     // move cursor to the next key
-    ham_status_t move_next(uint32_t flags);
+    ham_status_t move_next(Context *context, uint32_t flags);
 
     // move cursor to the previous key
-    ham_status_t move_previous(uint32_t flags);
+    ham_status_t move_previous(Context *context, uint32_t flags);
 
     // the parent cursor
     Cursor *m_parent;

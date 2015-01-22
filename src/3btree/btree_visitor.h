@@ -61,7 +61,7 @@ struct BtreeVisitor {
   virtual bool is_read_only() const = 0;
 
   // called for each node
-  virtual void operator()(BtreeNodeProxy *node) = 0;
+  virtual void operator()(Context *context, BtreeNodeProxy *node) = 0;
 };
 
 } // namespace hamsterdb

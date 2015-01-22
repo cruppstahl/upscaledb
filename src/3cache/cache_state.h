@@ -54,9 +54,8 @@ struct CacheState
   };
 
   // The default constructor
-  CacheState(Changeset *changeset, const EnvironmentConfiguration &config)
-    : changeset(changeset),
-      capacity_bytes(config.flags & HAM_CACHE_UNLIMITED
+  CacheState(const EnvironmentConfiguration &config)
+    : capacity_bytes(config.flags & HAM_CACHE_UNLIMITED
                             ? 0xffffffffffffffffull
                             : config.cache_size_bytes),
       page_size_bytes(config.page_size_bytes),

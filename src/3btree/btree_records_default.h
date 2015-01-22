@@ -111,27 +111,28 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record counter of a key
-    int get_record_count(int slot) const {
+    int get_record_count(Context *context, int slot) const {
       if (unlikely(!is_record_inline(slot) && get_record_id(slot) == 0))
         return (0);
       return (1);
     }
 
     // Returns the record size
-    uint64_t get_record_size(int slot,
+    uint64_t get_record_size(Context *context, int slot,
                     int duplicate_index = 0) const {
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));
 
       LocalEnvironment *env = m_db->get_local_env();
-      return (env->get_blob_manager()->get_blob_size(m_db,
+      return (env->get_blob_manager()->get_blob_size(context,
                               get_record_id(slot)));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(int slot, ByteArray *arena, ham_record_t *record,
-                    uint32_t flags, int duplicate_index) const {
+    void get_record(Context *context, int slot, ByteArray *arena,
+                    ham_record_t *record, uint32_t flags,
+                    int duplicate_index) const {
       bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
@@ -160,12 +161,12 @@ class DefaultRecordList : public BaseRecordList
 
       // the record is stored as a blob
       LocalEnvironment *env = m_db->get_local_env();
-      env->get_blob_manager()->read(m_db, get_record_id(slot), record,
+      env->get_blob_manager()->read(context, get_record_id(slot), record,
                       flags, arena);
     }
 
     // Updates the record of a key
-    void set_record(int slot, int duplicate_index,
+    void set_record(Context *context, int slot, int duplicate_index,
                 ham_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
       uint64_t ptr = get_record_id(slot);
@@ -179,7 +180,7 @@ class DefaultRecordList : public BaseRecordList
         }
         // a new (non-inline) key is inserted
         else {
-          ptr = env->get_blob_manager()->allocate(m_db, record, flags);
+          ptr = env->get_blob_manager()->allocate(context, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -198,7 +199,7 @@ class DefaultRecordList : public BaseRecordList
         }
         // ... or with a (non-inline) key
         else {
-          ptr = env->get_blob_manager()->allocate(m_db, record, flags);
+          ptr = env->get_blob_manager()->allocate(context, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -208,12 +209,12 @@ class DefaultRecordList : public BaseRecordList
       if (ptr) {
         // ... and is overwritten by a inline key
         if (record->size <= sizeof(uint64_t)) {
-          env->get_blob_manager()->erase(m_db, ptr);
+          env->get_blob_manager()->erase(context, ptr);
           set_record_data(slot, record->data, record->size);
         }
         // ... and is overwritten by a (non-inline) key
         else {
-          ptr = env->get_blob_manager()->overwrite(m_db, ptr, record, flags);
+          ptr = env->get_blob_manager()->overwrite(context, ptr, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -224,7 +225,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Erases the record
-    void erase_record(int slot, int duplicate_index = 0,
+    void erase_record(Context *context, int slot, int duplicate_index = 0,
                     bool all_duplicates = true) {
       if (is_record_inline(slot)) {
         remove_inline_record(slot);
@@ -232,13 +233,13 @@ class DefaultRecordList : public BaseRecordList
       }
 
       // now erase the blob
-      m_db->get_local_env()->get_blob_manager()->erase(m_db,
+      m_db->get_local_env()->get_blob_manager()->erase(context,
                       get_record_id(slot), 0);
       set_record_id(slot, 0);
     }
 
     // Erases a whole slot by shifting all larger records to the "left"
-    void erase(size_t node_count, int slot) {
+    void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1) {
         if (m_flags)
           memmove(&m_flags[slot], &m_flags[slot + 1], node_count - slot - 1);
@@ -248,7 +249,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Creates space for one additional record
-    void insert(size_t node_count, int slot) {
+    void insert(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count) {
         if (m_flags)
           memmove(&m_flags[slot + 1], &m_flags[slot], node_count - slot);
@@ -321,8 +322,8 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(int slot, std::stringstream &out) const {
-      out << "(" << get_record_size(slot) << " bytes)";
+    void print(Context *context, int slot, std::stringstream &out) const {
+      out << "(" << get_record_size(context, slot) << " bytes)";
     }
 
   private:

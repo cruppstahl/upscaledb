@@ -35,9 +35,9 @@ namespace hamsterdb {
 class BtreeVisitAction
 {
   public:
-    BtreeVisitAction(BtreeIndex *btree, BtreeVisitor &visitor,
+    BtreeVisitAction(BtreeIndex *btree, Context *context, BtreeVisitor &visitor,
                     bool visit_internal_nodes)
-      : m_btree(btree), m_visitor(visitor),
+      : m_btree(btree), m_context(context), m_visitor(visitor),
         m_visit_internal_nodes(visit_internal_nodes) {
       ham_assert(m_btree->get_root_address() != 0);
     }
@@ -51,7 +51,7 @@ class BtreeVisitAction
         pm_flags = PageManager::kReadOnly;
 
       // get the root page of the tree
-      Page *page = env->get_page_manager()->fetch(db,
+      Page *page = env->get_page_manager()->fetch(m_context,
                     m_btree->get_root_address(), pm_flags);
 
       // go down to the leaf
@@ -63,12 +63,12 @@ class BtreeVisitAction
         if (ptr_down != 0 && m_visit_internal_nodes) {
           while (page) {
             node = m_btree->get_node_from_page(page);
-            m_visitor(node);
+            m_visitor(m_context, node);
 
             // load the right sibling
             uint64_t right = node->get_right();
             if (right)
-              page = env->get_page_manager()->fetch(db, right, pm_flags);
+              page = env->get_page_manager()->fetch(m_context, right, pm_flags);
             else
               page = 0;
           }
@@ -76,7 +76,7 @@ class BtreeVisitAction
 
         // follow the pointer to the smallest child
         if (ptr_down)
-          page = env->get_page_manager()->fetch(db, ptr_down, pm_flags);
+          page = env->get_page_manager()->fetch(m_context, ptr_down, pm_flags);
         else
           break;
       }
@@ -88,11 +88,11 @@ class BtreeVisitAction
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         uint64_t right = node->get_right();
 
-        m_visitor(node);
+        m_visitor(m_context, node);
 
         /* follow the pointer to the right sibling */
         if (right)
-          page = env->get_page_manager()->fetch(db, right, pm_flags);
+          page = env->get_page_manager()->fetch(m_context, right, pm_flags);
         else
           break;
       }
@@ -100,14 +100,16 @@ class BtreeVisitAction
 
   private:
     BtreeIndex *m_btree;
+    Context *m_context;
     BtreeVisitor &m_visitor;
     bool m_visit_internal_nodes;
 };
 
 void
-BtreeIndex::visit_nodes(BtreeVisitor &visitor, bool visit_internal_nodes)
+BtreeIndex::visit_nodes(Context *context, BtreeVisitor &visitor,
+                bool visit_internal_nodes)
 {
-  BtreeVisitAction bva(this, visitor, visit_internal_nodes);
+  BtreeVisitAction bva(this, context, visitor, visit_internal_nodes);
   bva.run();
 }
 

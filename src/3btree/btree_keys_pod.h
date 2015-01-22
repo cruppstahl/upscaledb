@@ -101,7 +101,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) const {
       dest->size = sizeof(T);
       if (deep_copy == false) {
@@ -135,19 +135,21 @@ class PodKeyList : public BaseKeyList
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(ScanVisitor *visitor, uint32_t start, size_t length) {
+    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
+                    size_t length) {
       (*visitor)(&m_data[start], length);
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
-    void erase(size_t node_count, int slot) {
+    void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
         memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(T) * (node_count - slot - 1));
     }
 
     // Inserts a key
-    void insert(size_t node_count, int slot, const ham_key_t *key) {
+    void insert(Context *context, size_t node_count, int slot,
+                    const ham_key_t *key) {
       if (node_count > (size_t)slot)
         memmove(&m_data[slot + 1], &m_data[slot],
                         sizeof(T) * (node_count - slot));
@@ -175,7 +177,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Prints a slot to |out| (for debugging)
-    void print(int slot, std::stringstream &out) const {
+    void print(Context *context, int slot, std::stringstream &out) const {
       out << m_data[slot];
     }
 

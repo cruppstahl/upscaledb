@@ -771,6 +771,9 @@ LocalEnvironment::recover(uint32_t flags)
   }
 
 bail:
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    m_changeset->clear();
+
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
     m_journal->close(true);

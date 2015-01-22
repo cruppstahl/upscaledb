@@ -40,7 +40,6 @@
 
 namespace hamsterdb {
 
-class Changeset;
 class Device;
 class EnvironmentHeader;
 class LocalDatabase;
@@ -65,9 +64,6 @@ struct PageManagerState
 
   // The Device
   Device *device;
-
-  // The Changeset
-  Changeset *changeset;
 
   // The lsn manager
   LsnManager *lsn_manager;

@@ -39,6 +39,7 @@
 
 namespace hamsterdb {
 
+class Context;
 class LocalDatabase;
 class LocalEnvironment;
 
@@ -68,7 +69,7 @@ struct PageManager
   };
 
   // Loads the state from a blob
-  void initialize(uint64_t blobid);
+  void initialize(Context *context, uint64_t blobid);
 
   // Fills in the current metrics for the PageManager, the Cache and the
   // Freelist
@@ -76,28 +77,31 @@ struct PageManager
 
   // Fetches a page from disk. |flags| are bitwise OR'd: kOnlyFromCache,
   // kReadOnly, kNoHeader...
-  Page *fetch(LocalDatabase *db, uint64_t address, uint32_t flags = 0);
+  // The page is locked and stored in |context->changeset|.
+  Page *fetch(Context *context, uint64_t address, uint32_t flags = 0);
 
   // Allocates a new page. |page_type| is one of Page::kType* in page.h.
   // |flags| are either 0 or kClearWithZero
-  Page *alloc(LocalDatabase *db, uint32_t page_type, uint32_t flags = 0);
+  // The page is locked and stored in |context->changeset|.
+  Page *alloc(Context *context, uint32_t page_type, uint32_t flags = 0);
 
   // Allocates multiple adjacent pages.
   // Used by the BlobManager to store blobs that span multiple pages
   // Returns the first page in the list of pages
-  Page *alloc_multiple_blob_pages(size_t num_pages);
+  // The pages are locked and stored in |context->changeset|.
+  Page *alloc_multiple_blob_pages(Context *context, size_t num_pages);
 
   // Flushes all pages to disk
   void flush();
 
   // Purges the cache if the cache limits are exceeded
-  void purge_cache();
+  void purge_cache(Context *context);
 
   // Reclaim file space; truncates unused file space at the end of the file.
-  void reclaim_space();
+  void reclaim_space(Context *context);
 
   // Flushes and closes all pages of a database
-  void close_database(LocalDatabase *db);
+  void close_database(Context *context, LocalDatabase *db);
 
   // Schedules one (or many sequential) pages for deletion and adds them
   // to the Freelist. Will not do anything if the Environment is in-memory.
@@ -107,7 +111,7 @@ struct PageManager
   void close();
 
   // Returns the Page pointer where we can add more blobs
-  Page *get_last_blob_page();
+  Page *get_last_blob_page(Context *context);
 
   // Sets the Page pointer where we can add more blobs
   void set_last_blob_page(Page *page);

@@ -46,6 +46,7 @@
 
 namespace hamsterdb {
 
+class Context;
 struct ScanVisitor;
 
 //
@@ -139,57 +140,60 @@ class BtreeNodeProxy
 
     // Checks the integrity of the node. Throws an exception if it is
     // not. Called by ham_db_check_integrity().
-    virtual void check_integrity() const = 0;
+    virtual void check_integrity(Context *context) const = 0;
 
     // Iterates all keys, calls the |visitor| on each
-    virtual void scan(ScanVisitor *visitor, size_t start, bool distinct) = 0;
+    virtual void scan(Context *context, ScanVisitor *visitor,
+                    size_t start, bool distinct) = 0;
 
     // Compares the two keys. Returns 0 if both are equal, otherwise -1 (if
     // |lhs| is greater) or +1 (if |rhs| is greater).
     virtual int compare(const ham_key_t *lhs, const ham_key_t *rhs) const = 0;
 
     // Compares a public key and an internal key
-    virtual int compare(const ham_key_t *lhs, int rhs) = 0;
+    virtual int compare(Context *context, const ham_key_t *lhs, int rhs) = 0;
 
     // Returns true if the public key (|lhs|) and an internal key (slot
     // |rhs|) are equal
-    virtual bool equals(const ham_key_t *lhs, int rhs) = 0;
+    virtual bool equals(Context *context, const ham_key_t *lhs, int rhs) = 0;
 
     // Searches the node for the |key|, and returns the slot of this key.
     // If |record_id| is not null then it will store the result of the last
     // compare operation.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(ham_key_t *key, uint64_t *record_id = 0,
-                    int *pcmp = 0) = 0;
+    virtual int find_child(Context *context, ham_key_t *key,
+                    uint64_t *record_id = 0, int *pcmp = 0) = 0;
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find_exact(ham_key_t *key) = 0;
+    virtual int find_exact(Context *context, ham_key_t *key) = 0;
 
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags.
-    virtual void get_key(int slot, ByteArray *arena, ham_key_t *dest) = 0;
+    virtual void get_key(Context *context, int slot, ByteArray *arena,
+                    ham_key_t *dest) = 0;
 
     // Returns the number of records of a key at the given |slot|. This is
     // either 1 or higher, but only if duplicate keys exist.
-    virtual int get_record_count(int slot) = 0;
+    virtual int get_record_count(Context *context, int slot) = 0;
 
     // Returns the record size of a key or one of its duplicates.
-    virtual uint64_t get_record_size(int slot, int duplicate_index) = 0;
+    virtual uint64_t get_record_size(Context *context, int slot,
+                    int duplicate_index) = 0;
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual uint64_t get_record_id(int slot) const = 0;
+    virtual uint64_t get_record_id(Context *context, int slot) const = 0;
 
     // Sets the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual void set_record_id(int slot, uint64_t id) = 0;
+    virtual void set_record_id(Context *context, int slot, uint64_t id) = 0;
 
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual void get_record(int slot, ByteArray *arena,
+    virtual void get_record(Context *context, int slot, ByteArray *arena,
                     ham_record_t *record, uint32_t flags,
                     int duplicate_index = 0) = 0;
 
@@ -200,7 +204,7 @@ class BtreeNodeProxy
     // - HAM_DUPLICATE*
     //
     // a previously existing blob will be deleted if necessary
-    virtual void set_record(int slot, ham_record_t *record,
+    virtual void set_record(Context *context, int slot, ham_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) = 0;
 
@@ -208,23 +212,24 @@ class BtreeNodeProxy
     // If |all_duplicates| is set then all duplicates of this key are deleted.
     // |has_duplicates_left| will return true if there are more duplicates left
     // after the current one was deleted.
-    virtual void erase_record(int slot, int duplicate_index,
+    virtual void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates, bool *has_duplicates_left) = 0;
 
     // High level function to remove an existing entry
-    virtual void erase(int slot) = 0;
+    virtual void erase(Context *context, int slot) = 0;
 
     // Erases all extended keys, overflow areas and records that are
     // linked from this page; usually called when the Database is deleted
     // or an In-Memory Database is freed
-    virtual void remove_all_entries() = 0;
+    virtual void remove_all_entries(Context *context) = 0;
 
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
-    virtual PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags) = 0;
+    virtual PBtreeNode::InsertResult insert(Context *context, ham_key_t *key,
+                    uint32_t flags) = 0;
 
     // Returns true if a node requires a split to insert a new |key|
-    virtual bool requires_split(const ham_key_t *key = 0) = 0;
+    virtual bool requires_split(Context *context, const ham_key_t *key = 0) = 0;
 
     // Returns true if a node requires a merge or a shift
     virtual bool requires_merge() const = 0;
@@ -233,13 +238,13 @@ class BtreeNodeProxy
     // to the |other| page. If the node is a leaf node then the pivot element
     // is also copied, otherwise it is not because it will be propagated
     // to the parent node instead (by the caller).
-    virtual void split(BtreeNodeProxy *other, int pivot) = 0;
+    virtual void split(Context *context, BtreeNodeProxy *other, int pivot) = 0;
 
     // Merges all keys from the |other| node to this node
-    virtual void merge_from(BtreeNodeProxy *other) = 0;
+    virtual void merge_from(Context *context, BtreeNodeProxy *other) = 0;
 
     // Prints the node to stdout. Only for testing and debugging!
-    virtual void print(size_t node_count = 0) = 0;
+    virtual void print(Context *context, size_t node_count = 0) = 0;
 
     // Returns the class name. Only for testing! Uses the functions exported
     // by abi.h, which are only available on assorted platforms. Other
@@ -353,13 +358,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Checks the integrity of the node
-    virtual void check_integrity() const {
-      m_impl.check_integrity();
+    virtual void check_integrity(Context *context) const {
+      m_impl.check_integrity(context);
     }
 
     // Iterates all keys, calls the |visitor| on each
-    virtual void scan(ScanVisitor *visitor, size_t start, bool distinct) {
-      m_impl.scan(visitor, start, distinct);
+    virtual void scan(Context *context, ScanVisitor *visitor,
+                    size_t start, bool distinct) {
+      m_impl.scan(context, visitor, start, distinct);
     }
 
     // Compares two internal keys using the supplied comparator
@@ -369,21 +375,21 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Compares a public key and an internal key
-    virtual int compare(const ham_key_t *lhs, int rhs) {
+    virtual int compare(Context *context, const ham_key_t *lhs, int rhs) {
       Comparator cmp(m_page->get_db());
-      return (m_impl.compare(lhs, rhs, cmp));
+      return (m_impl.compare(context, lhs, rhs, cmp));
     }
 
     // Returns true if the public key and an internal key are equal
-    virtual bool equals(const ham_key_t *lhs, int rhs) {
-      return (0 == compare(lhs, rhs));
+    virtual bool equals(Context *context, const ham_key_t *lhs, int rhs) {
+      return (0 == compare(context, lhs, rhs));
     }
 
     // Searches the node for the key and returns the slot of this key.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(ham_key_t *key, uint64_t *precord_id = 0,
-                    int *pcmp = 0) {
+    virtual int find_child(Context *context, ham_key_t *key,
+                    uint64_t *precord_id = 0, int *pcmp = 0) {
       int dummy;
       if (get_count() == 0) {
         if (pcmp)
@@ -393,74 +399,76 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         return (-1);
       }
       Comparator cmp(m_page->get_db());
-      return (m_impl.find_child(key, cmp,
+      return (m_impl.find_child(context, key, cmp,
                               precord_id ? precord_id : 0,
                               pcmp ? pcmp : &dummy));
     }
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find_exact(ham_key_t *key) {
+    virtual int find_exact(Context *context, ham_key_t *key) {
       if (get_count() == 0)
         return (-1);
       Comparator cmp(m_page->get_db());
-      return (m_impl.find_exact(key, cmp));
+      return (m_impl.find_exact(context, key, cmp));
     }
 
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags.
-    virtual void get_key(int slot, ByteArray *arena, ham_key_t *dest) {
-      m_impl.get_key(slot, arena, dest);
+    virtual void get_key(Context *context, int slot, ByteArray *arena,
+                    ham_key_t *dest) {
+      m_impl.get_key(context, slot, arena, dest);
     }
 
     // Returns the number of records of a key at the given |slot|
-    virtual int get_record_count(int slot) {
+    virtual int get_record_count(Context *context, int slot) {
       ham_assert(slot < (int)get_count());
-      return (m_impl.get_record_count(slot));
+      return (m_impl.get_record_count(context, slot));
     }
 
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
     // correctly, as well as HAM_DIRECT_ACCESS.
-    virtual void get_record(int slot, ByteArray *arena,
+    virtual void get_record(Context *context, int slot, ByteArray *arena,
                     ham_record_t *record, uint32_t flags,
                     int duplicate_index = 0) {
       ham_assert(slot < (int)get_count());
-      m_impl.get_record(slot, arena, record, flags, duplicate_index);
+      m_impl.get_record(context, slot, arena, record, flags, duplicate_index);
     }
 
-    virtual void set_record(int slot, ham_record_t *record,
+    virtual void set_record(Context *context, int slot, ham_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) {
-      m_impl.set_record(slot, record, duplicate_index, flags,
+      m_impl.set_record(context, slot, record, duplicate_index, flags,
                       new_duplicate_index);
     }
 
     // Returns the record size of a key or one of its duplicates
-    virtual uint64_t get_record_size(int slot, int duplicate_index) {
+    virtual uint64_t get_record_size(Context *context, int slot,
+                    int duplicate_index) {
       ham_assert(slot < (int)get_count());
-      return (m_impl.get_record_size(slot, duplicate_index));
+      return (m_impl.get_record_size(context, slot, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual uint64_t get_record_id(int slot) const {
+    virtual uint64_t get_record_id(Context *context, int slot) const {
       ham_assert(slot < (int)get_count());
-      return (m_impl.get_record_id(slot));
+      return (m_impl.get_record_id(context, slot));
     }
 
     // Sets the record id of the key at the given |slot|
     // Only for internal nodes!
-    virtual void set_record_id(int slot, uint64_t id) {
-      return (m_impl.set_record_id(slot, id));
+    virtual void set_record_id(Context *context, int slot, uint64_t id) {
+      return (m_impl.set_record_id(context, slot, id));
     }
 
     // High level function to remove an existing entry. Will call
     // |erase_extended_key| to clean up (a potential) extended key,
     // and |erase_record| on each record that is associated with the key.
-    virtual void erase(int slot) {
+    virtual void erase(Context *context, int slot) {
       ham_assert(slot < (int)get_count());
-      m_impl.erase(slot);
+      m_impl.erase(context, slot);
       set_count(get_count() - 1);
     }
 
@@ -468,49 +476,50 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // If |all_duplicates| is set then all duplicates of this key are deleted.
     // |has_duplicates_left| will return true if there are more duplicates left
     // after the current one was deleted.
-    virtual void erase_record(int slot, int duplicate_index,
+    virtual void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates, bool *has_duplicates_left) {
       ham_assert(slot < (int)get_count());
-      m_impl.erase_record(slot, duplicate_index, all_duplicates);
+      m_impl.erase_record(context, slot, duplicate_index, all_duplicates);
       if (has_duplicates_left)
-        *has_duplicates_left = get_record_count(slot) > 0;
+        *has_duplicates_left = get_record_count(context, slot) > 0;
     }
 
     // Erases all extended keys, overflow areas and records that are
     // linked from this page; usually called when the Database is deleted
     // or an In-Memory Database is closed
-    virtual void remove_all_entries() {
+    virtual void remove_all_entries(Context *context) {
       size_t node_count = get_count();
       for (size_t i = 0; i < node_count; i++) {
-        m_impl.erase_extended_key(i);
+        m_impl.erase_extended_key(context, i);
 
         // If we're in the leaf page, delete the associated record. (Only
         // leaf nodes have records; internal nodes have record IDs that
         // reference other pages, and these pages must not be deleted.)
         if (is_leaf())
-          erase_record(i, 0, true, 0);
+          erase_record(context, i, 0, true, 0);
       }
     }
 
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
-    virtual PBtreeNode::InsertResult insert(ham_key_t *key, uint32_t flags) {
+    virtual PBtreeNode::InsertResult insert(Context *context,
+                    ham_key_t *key, uint32_t flags) {
       PBtreeNode::InsertResult result = {0, 0};
-      if (m_impl.requires_split(key)) {
+      if (m_impl.requires_split(context, key)) {
         result.status = HAM_LIMITS_REACHED;
         return (result);
       }
 
       Comparator cmp(m_page->get_db());
-      result = m_impl.insert(key, flags, cmp);
+      result = m_impl.insert(context, key, flags, cmp);
       if (result.status == HAM_SUCCESS)
         set_count(get_count() + 1);
       return (result);
     }
 
     // Returns true if a node requires a split to insert |key|
-    virtual bool requires_split(const ham_key_t *key = 0) {
-      return (m_impl.requires_split(key));
+    virtual bool requires_split(Context *context, const ham_key_t *key = 0) {
+      return (m_impl.requires_split(context, key));
     }
 
     // Returns true if a node requires a merge or a shift
@@ -519,11 +528,12 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Splits the node
-    virtual void split(BtreeNodeProxy *other_node, int pivot) {
+    virtual void split(Context *context, BtreeNodeProxy *other_node,
+                    int pivot) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
       ham_assert(other != 0);
 
-      m_impl.split(&other->m_impl, pivot);
+      m_impl.split(context, &other->m_impl, pivot);
 
       size_t node_count = get_count();
       set_count(pivot);
@@ -535,18 +545,18 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Merges all keys from the |other| node into this node
-    virtual void merge_from(BtreeNodeProxy *other_node) {
+    virtual void merge_from(Context *context, BtreeNodeProxy *other_node) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
       ham_assert(other != 0);
 
-      m_impl.merge_from(&other->m_impl);
+      m_impl.merge_from(context, &other->m_impl);
 
       set_count(get_count() + other->get_count());
       other->set_count(0);
     }
 
     // Prints the node to stdout (for debugging)
-    virtual void print(size_t node_count = 0) {
+    virtual void print(Context *context, size_t node_count = 0) {
       std::cout << "page " << m_page->get_address() << ": " << get_count()
           << " elements (leaf: " << (is_leaf() ? 1 : 0) << ", left: "
           << get_left() << ", right: " << get_right() << ", ptr_down: "
@@ -554,7 +564,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       if (!node_count)
         node_count = get_count();
       for (size_t i = 0; i < node_count; i++)
-        m_impl.print(i);
+        m_impl.print(context, i);
     }
 
     // Returns the class name. Only for testing! Uses the functions exported
