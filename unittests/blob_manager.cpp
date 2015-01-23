@@ -64,7 +64,7 @@ struct BlobManagerFixture {
             0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_blob_manager = ((LocalEnvironment *)m_env)->get_blob_manager();
+    m_blob_manager = ((LocalEnvironment *)m_env)->blob_manager();
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
@@ -121,10 +121,10 @@ struct BlobManagerFixture {
     blobid = m_blob_manager->allocate(m_context.get(), &record, 0);
     REQUIRE(blobid != 0ull);
 
-    uint64_t page_id = (blobid / lenv->get_page_size())
-                            * lenv->get_page_size();
+    uint64_t page_id = (blobid / lenv->page_size())
+                            * lenv->page_size();
 
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
     REQUIRE(test.is_page_free(page_id) == false);
 
     m_blob_manager->erase(m_context.get(), blobid, 0);
@@ -210,10 +210,10 @@ struct BlobManagerFixture {
 
     /* verify the freelist information */
     if (!m_inmemory) {
-      Page *page = lenv->get_page_manager()->fetch(m_context.get(),
-                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      Page *page = lenv->page_manager()->fetch(m_context.get(),
+                      (blobid / lenv->page_size()) * lenv->page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
-      if (lenv->get_page_size() == 1024 * 16) {
+      if (lenv->page_size() == 1024 * 16) {
         REQUIRE(header->get_free_bytes() == 3666);
         REQUIRE(header->get_freelist_size(0) == 3666);
       }
@@ -234,10 +234,10 @@ struct BlobManagerFixture {
     if (!m_inmemory) {
       REQUIRE(blobid2 == blobid);
 
-      Page *page = lenv->get_page_manager()->fetch(m_context.get(),
-                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      Page *page = lenv->page_manager()->fetch(m_context.get(),
+                      (blobid / lenv->page_size()) * lenv->page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
-      if (lenv->get_page_size() == 1024 * 16) {
+      if (lenv->page_size() == 1024 * 16) {
         REQUIRE(header->get_free_bytes() == 3666 - 64);
         REQUIRE(header->get_freelist_size(0) == 3666);
       }
@@ -251,10 +251,10 @@ struct BlobManagerFixture {
 
     /* once more check the freelist */
     if (!m_inmemory) {
-      Page *page = lenv->get_page_manager()->fetch(m_context.get(),
-                      (blobid / lenv->get_page_size()) * lenv->get_page_size());
+      Page *page = lenv->page_manager()->fetch(m_context.get(),
+                      (blobid / lenv->page_size()) * lenv->page_size());
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
-      if (lenv->get_page_size() == 1024 * 16) {
+      if (lenv->page_size() == 1024 * 16) {
         REQUIRE(header->get_free_bytes() == 3758);
         REQUIRE(header->get_freelist_size(0) == 3666);
       }
@@ -263,7 +263,7 @@ struct BlobManagerFixture {
 
   void replaceBiggerAndBiggerTest() {
     const int BLOCKS = 32;
-    unsigned ps = ((LocalEnvironment *)m_env)->get_page_size();
+    unsigned ps = ((LocalEnvironment *)m_env)->page_size();
     uint8_t *buffer = (uint8_t *)malloc(ps * BLOCKS * 2);
     uint64_t blobid, blobid2;
     ham_record_t record;

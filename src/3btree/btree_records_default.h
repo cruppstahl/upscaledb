@@ -124,8 +124,7 @@ class DefaultRecordList : public BaseRecordList
         return (get_inline_record_size(slot));
 
       LocalEnvironment *env = m_db->get_local_env();
-      return (env->get_blob_manager()->get_blob_size(context,
-                              get_record_id(slot)));
+      return (env->blob_manager()->get_blob_size(context, get_record_id(slot)));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
@@ -161,7 +160,7 @@ class DefaultRecordList : public BaseRecordList
 
       // the record is stored as a blob
       LocalEnvironment *env = m_db->get_local_env();
-      env->get_blob_manager()->read(context, get_record_id(slot), record,
+      env->blob_manager()->read(context, get_record_id(slot), record,
                       flags, arena);
     }
 
@@ -180,7 +179,7 @@ class DefaultRecordList : public BaseRecordList
         }
         // a new (non-inline) key is inserted
         else {
-          ptr = env->get_blob_manager()->allocate(context, record, flags);
+          ptr = env->blob_manager()->allocate(context, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -199,7 +198,7 @@ class DefaultRecordList : public BaseRecordList
         }
         // ... or with a (non-inline) key
         else {
-          ptr = env->get_blob_manager()->allocate(context, record, flags);
+          ptr = env->blob_manager()->allocate(context, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -209,12 +208,12 @@ class DefaultRecordList : public BaseRecordList
       if (ptr) {
         // ... and is overwritten by a inline key
         if (record->size <= sizeof(uint64_t)) {
-          env->get_blob_manager()->erase(context, ptr);
+          env->blob_manager()->erase(context, ptr);
           set_record_data(slot, record->data, record->size);
         }
         // ... and is overwritten by a (non-inline) key
         else {
-          ptr = env->get_blob_manager()->overwrite(context, ptr, record, flags);
+          ptr = env->blob_manager()->overwrite(context, ptr, record, flags);
           set_record_id(slot, ptr);
         }
         return;
@@ -233,7 +232,7 @@ class DefaultRecordList : public BaseRecordList
       }
 
       // now erase the blob
-      m_db->get_local_env()->get_blob_manager()->erase(context,
+      m_db->get_local_env()->blob_manager()->erase(context,
                       get_record_id(slot), 0);
       set_record_id(slot, 0);
     }

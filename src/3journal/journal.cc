@@ -295,7 +295,7 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   append_entry(m_current_fd, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
-  size_t page_size = m_env->get_page_size();
+  size_t page_size = m_env->page_size();
   for (int i = 0; i < num_pages; i++) {
     entry.followup_size += append_changeset_page(pages[i], page_size);
   }
@@ -495,10 +495,9 @@ Journal::recover()
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
   // recover_changeset()
-  uint64_t page_manager_blobid
-          = m_env->get_header()->get_page_manager_blobid();
+  uint64_t page_manager_blobid = m_env->header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
-    m_env->get_page_manager()->initialize(page_manager_blobid);
+    m_env->page_manager()->initialize(page_manager_blobid);
   }
 
   // then start the normal recovery
@@ -571,10 +570,10 @@ Journal::recover_changeset()
     m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
     position += sizeof(changeset);
 
-    uint32_t page_size = m_env->get_page_size();
+    uint32_t page_size = m_env->page_size();
     ByteArray arena(page_size);
 
-    size_t file_size = m_env->get_device()->file_size();
+    size_t file_size = m_env->device()->file_size();
 
     // for each page in this changeset...
     for (uint32_t i = 0; i < changeset.num_pages; i++) {
@@ -590,18 +589,18 @@ Journal::recover_changeset()
       if (page_header.address == file_size) {
         file_size += page_size;
 
-        page = new Page(m_env->get_device());
+        page = new Page(m_env->device());
         page->allocate(0);
       }
       else if (page_header.address > file_size) {
         file_size = (size_t)page_header.address + page_size;
-        m_env->get_device()->truncate(file_size);
+        m_env->device()->truncate(file_size);
 
-        page = new Page(m_env->get_device());
+        page = new Page(m_env->device());
         page->fetch(page_header.address);
       }
       else {
-        page = new Page(m_env->get_device());
+        page = new Page(m_env->device());
         page->fetch(page_header.address);
       }
 

@@ -1160,8 +1160,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        uint64_t blob_id = env->get_blob_manager()->allocate(&context,
-                        &record, 0);
+        uint64_t blob_id = env->blob_manager()->allocate(&context, &record, 0);
         *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
 
@@ -1183,8 +1182,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        uint64_t blob_id = env->get_blob_manager()->allocate(&context,
-                       &record, 0);
+        uint64_t blob_id = env->blob_manager()->allocate(&context, &record, 0);
         *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
 

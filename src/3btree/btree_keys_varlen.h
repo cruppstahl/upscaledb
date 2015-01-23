@@ -103,7 +103,7 @@ class VariableLengthKeyList : public BaseKeyList
     // Constructor
     VariableLengthKeyList(LocalDatabase *db)
       : m_db(db), m_index(db), m_data(0) {
-      size_t page_size = db->get_local_env()->get_page_size();
+      size_t page_size = db->get_local_env()->page_size();
       if (Globals::ms_extended_threshold)
         m_extkey_threshold = Globals::ms_extended_threshold;
       else {
@@ -341,7 +341,7 @@ class VariableLengthKeyList : public BaseKeyList
 
           // make sure that the extended blob can be loaded
           ham_record_t record = {0};
-          m_db->get_local_env()->get_blob_manager()->read(context, blobid,
+          m_db->get_local_env()->blob_manager()->read(context, blobid,
                           &record, 0, &arena);
 
           // compare it to the cached key (if there is one)
@@ -457,7 +457,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Erases an extended key from disk and from the cache
     void erase_extended_key(Context *context, uint64_t blobid) {
-      m_db->get_local_env()->get_blob_manager()->erase(context, blobid);
+      m_db->get_local_env()->blob_manager()->erase(context, blobid);
       if (m_extkey_cache) {
         ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
         if (it != m_extkey_cache->end())
@@ -481,7 +481,7 @@ class VariableLengthKeyList : public BaseKeyList
 
       ByteArray arena;
       ham_record_t record = {0};
-      m_db->get_local_env()->get_blob_manager()->read(context, blob_id, &record,
+      m_db->get_local_env()->blob_manager()->read(context, blob_id, &record,
                       0, &arena);
       (*m_extkey_cache)[blob_id] = arena;
       arena.disown();
@@ -498,7 +498,7 @@ class VariableLengthKeyList : public BaseKeyList
       rec.data = key->data;
       rec.size = key->size;
 
-      uint64_t blob_id = m_db->get_local_env()->get_blob_manager()->allocate(
+      uint64_t blob_id = m_db->get_local_env()->blob_manager()->allocate(
                                             context, &rec, 0);
       ham_assert(blob_id != 0);
       ham_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());

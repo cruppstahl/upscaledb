@@ -73,7 +73,7 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        page = env->get_page_manager()->fetch(m_context, hints.leaf_page_addr,
+        page = env->page_manager()->fetch(m_context, hints.leaf_page_addr,
                                             PageManager::kOnlyFromCache
                                             | PageManager::kReadOnly);
         if (page) {
@@ -101,7 +101,7 @@ class BtreeFindAction
 
       if (slot == -1) {
         /* load the root page */
-        page = env->get_page_manager()->fetch(m_context,
+        page = env->page_manager()->fetch(m_context,
                         m_btree->get_root_address(), PageManager::kReadOnly);
 
         /* now traverse the root to the leaf nodes till we find a leaf */
@@ -135,7 +135,7 @@ class BtreeFindAction
       if (slot == -1) {
         // find the left sibling
         if (node->get_left() > 0) {
-          page = env->get_page_manager()->fetch(m_context, node->get_left(),
+          page = env->page_manager()->fetch(m_context, node->get_left(),
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = node->get_count() - 1;
@@ -145,7 +145,7 @@ class BtreeFindAction
       else if (slot >= (int)node->get_count()) {
         // find the right sibling
         if (node->get_right() > 0) {
-          page = env->get_page_manager()->fetch(m_context, node->get_right(),
+          page = env->page_manager()->fetch(m_context, node->get_right(),
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = 0;

@@ -688,8 +688,8 @@ set_last_blob_page_impl(PageManagerState &state, Page *page)
 
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
-  : config(env->get_config()), header(env->get_header()),
-    device(env->get_device()), lsn_manager(env->get_lsn_manager()),
+  : config(env->get_config()), header(env->header()),
+    device(env->device()), lsn_manager(env->lsn_manager()),
     cache(CacheState(config)), needs_flush(false), state_page(0),
     last_blob_page(0), last_blob_page_id(0), page_count_fetched(0),
     page_count_index(0), page_count_blob(0), page_count_page_manager(0),

@@ -115,7 +115,7 @@ flush(ChangesetState &state, uint64_t lsn)
   // If more than one page is modified then the modification is no longer
   // atomic. All dirty pages are written to the log.
   if (visitor.num_pages > 1) {
-    state.env->get_journal()->append_changeset((const Page **)visitor.pages,
+    state.env->journal()->append_changeset((const Page **)visitor.pages,
                         visitor.num_pages, lsn);
   }
 
@@ -139,7 +139,7 @@ flush(ChangesetState &state, uint64_t lsn)
 
   /* flush the file handle (if required) */
   if (state.env->get_flags() & HAM_ENABLE_FSYNC)
-    state.env->get_device()->flush();
+    state.env->device()->flush();
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 }

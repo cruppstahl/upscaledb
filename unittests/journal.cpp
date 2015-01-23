@@ -96,7 +96,7 @@ struct JournalFixture {
   }
 
   uint64_t get_lsn() {
-    LsnManagerTestGateway test(((LocalEnvironment *)m_env)->get_lsn_manager());
+    LsnManagerTestGateway test(((LocalEnvironment *)m_env)->lsn_manager());
     return (test.lsn());
   }
 
@@ -129,7 +129,7 @@ struct JournalFixture {
      * setting the journal to NULL calls close() and deletes the
      * old journal
      */
-    j = m_lenv->get_journal();
+    j = m_lenv->journal();
     m_lenv->test_set_journal(NULL);
 
     j = new Journal(m_lenv);
@@ -579,7 +579,7 @@ struct JournalFixture {
   void verifyJournalIsEmpty() {
     uint64_t size;
     m_lenv = (LocalEnvironment *)m_env;
-    Journal *j = m_lenv->get_journal();
+    Journal *j = m_lenv->journal();
     REQUIRE(j);
     size = j->m_files[0].get_file_size();
     REQUIRE(0 == size);
@@ -622,7 +622,7 @@ struct JournalFixture {
     verifyJournalIsEmpty();
 
     /* verify the lsn */
-    //Journal *j = m_lenv->get_journal();
+    //Journal *j = m_lenv->journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == get_lsn());
     REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->get_txn_manager()))->test_get_txn_id());
@@ -714,8 +714,8 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnvironment *)m_env;
-    m_lenv->get_journal()->flush_buffer(0);
-    m_lenv->get_journal()->flush_buffer(1);
+    m_lenv->journal()->flush_buffer(0);
+    m_lenv->journal()->flush_buffer(1);
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -785,8 +785,8 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnvironment *)m_env;
-    m_lenv->get_journal()->flush_buffer(0);
-    m_lenv->get_journal()->flush_buffer(1);
+    m_lenv->journal()->flush_buffer(0);
+    m_lenv->journal()->flush_buffer(1);
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -835,7 +835,7 @@ struct JournalFixture {
     unsigned p = 0;
     ham_key_t key = {};
     ham_record_t rec = {};
-    Journal *j = m_lenv->get_journal();
+    Journal *j = m_lenv->journal();
     uint64_t lsn = 2;
 
     /* create two transactions which insert a key, but only flush the
@@ -1464,7 +1464,7 @@ struct JournalFixture {
 
     // verify threshold in the Journal object
     m_lenv = (LocalEnvironment *)m_env;
-    Journal *j = m_lenv->get_journal();
+    Journal *j = m_lenv->journal();
     REQUIRE(j->m_threshold == 33);
 
     // open w/o parameter

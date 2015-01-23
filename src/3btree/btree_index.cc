@@ -57,7 +57,7 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
   ham_assert(key_size != 0);
 
   /* allocate a new root page */
-  Page *root = m_db->get_local_env()->get_page_manager()->alloc(context,
+  Page *root = m_db->get_local_env()->page_manager()->alloc(context,
                     Page::kTypeBroot, PageManager::kClearWithZero);
 
   // initialize the new page
@@ -69,7 +69,7 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
   m_rec_size = rec_size;
   m_root_address = root->get_address();
 
-  flush_descriptor();
+  flush_descriptor(context);
 }
 
 void
@@ -99,7 +99,7 @@ BtreeIndex::open()
 }
 
 void
-BtreeIndex::flush_descriptor()
+BtreeIndex::flush_descriptor(Context *context)
 {
   if (m_db->get_rt_flags() & HAM_READ_ONLY)
     return;
@@ -115,7 +115,7 @@ BtreeIndex::flush_descriptor()
   desc->set_root_address(get_root_address());
   desc->set_flags(get_flags());
 
-  env->mark_header_page_dirty();
+  env->mark_header_page_dirty(context);
 }
 
 Page *
@@ -134,7 +134,7 @@ BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
   if (idxptr)
     *idxptr = slot;
 
-  return (m_db->get_local_env()->get_page_manager()->fetch(context,
+  return (m_db->get_local_env()->page_manager()->fetch(context,
                     record_id, page_manager_flags));
 }
 

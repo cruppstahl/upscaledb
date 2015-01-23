@@ -52,7 +52,7 @@ struct BtreeKeyFixture {
     m_dbp = (LocalDatabase *)m_db;
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
 
-    m_page = m_dbp->get_local_env()->get_page_manager()->alloc(m_context.get(),
+    m_page = m_dbp->get_local_env()->page_manager()->alloc(m_context.get(),
                     Page::kTypeBindex, PageManager::kClearWithZero);
 
     // this is a leaf page! internal pages cause different behavior... 
@@ -205,7 +205,7 @@ struct BtreeKeyFixture {
   }
 
   void resetPage() {
-    PageManager *pm = m_dbp->get_local_env()->get_page_manager();
+    PageManager *pm = m_dbp->get_local_env()->page_manager();
     pm->del(m_page);
 
     m_page = pm->alloc(m_context.get(), Page::kTypeBindex,

@@ -146,7 +146,7 @@ class Environment
     virtual ham_status_t close(uint32_t flags) = 0;
 
     // Fills in the current metrics
-    virtual void get_metrics(ham_env_metrics_t *metrics) const { };
+    virtual void fill_metrics(ham_env_metrics_t *metrics) const { };
 
     // The transaction manager
     TransactionManager *get_txn_manager() {

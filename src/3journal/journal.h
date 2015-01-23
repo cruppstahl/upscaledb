@@ -214,7 +214,7 @@ class Journal
     void recover();
 
     // Fills the metrics
-    void get_metrics(ham_env_metrics_t *metrics) {
+    void fill_metrics(ham_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_count_bytes_flushed;
     }
 

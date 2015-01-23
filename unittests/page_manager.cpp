@@ -61,7 +61,7 @@ struct PageManagerFixture {
   }
 
   void fetchPageTest() {
-    PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
+    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
     Page *page;
 
     page = 0;
@@ -76,7 +76,7 @@ struct PageManagerFixture {
   }
 
   void allocPageTest() {
-    PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
+    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
     Page *page;
 
     page = 0;
@@ -132,12 +132,12 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv->get_device());
+    Page *page = new Page(lenv->device());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -152,12 +152,12 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv->get_device());
+    Page *page = new Page(lenv->device());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -171,10 +171,10 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     Page *page[20];
     PPageData pers[20];
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
 
     for (int i = 0; i < 20; i++) {
-      page[i] = new Page(lenv->get_device());
+      page[i] = new Page(lenv->device());
       memset(&pers[i], 0, sizeof(pers[i]));
       page[i]->set_without_header(true);
       page[i]->set_address(i + 1);
@@ -194,7 +194,7 @@ struct PageManagerFixture {
 
   void cacheNegativeGets() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
 
     for (int i = 0; i < 20; i++)
       REQUIRE((Page *)0 == test.fetch_page(i + 1));
@@ -202,14 +202,14 @@ struct PageManagerFixture {
 
   void cacheFullTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test(lenv->get_page_manager());
+    PageManagerTestGateway test(lenv->page_manager());
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
     std::vector<Page *> v;
 
     for (unsigned int i = 0; i < 15; i++) {
-      Page *p = new Page(lenv->get_device());
+      Page *p = new Page(lenv->device());
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 1);
       v.push_back(p);
@@ -218,7 +218,7 @@ struct PageManagerFixture {
     }
 
     for (unsigned int i = 0; i < 5; i++) {
-      Page *p = new Page(lenv->get_device());
+      Page *p = new Page(lenv->device());
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 15 + 1);
       v.push_back(p);
@@ -249,9 +249,9 @@ struct PageManagerFixture {
 
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
+    PageManager *pm = lenv->page_manager();
     PageManagerTestGateway test(pm);
-    uint32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->page_size();
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
@@ -265,7 +265,7 @@ struct PageManagerFixture {
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
-    pm = lenv->get_page_manager();
+    pm = lenv->page_manager();
 
     // and check again - the entries must be collapsed
     PageManagerState::FreeMap::iterator it = pm->m_state.free_pages.begin();
@@ -275,9 +275,9 @@ struct PageManagerFixture {
 
   void reclaimTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
+    PageManager *pm = lenv->page_manager();
     PageManagerTestGateway test(pm);
-    uint32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->page_size();
     Page *page[5] = {0};
 
     // force-flush the state of the PageManager; otherwise it will be
@@ -305,29 +305,29 @@ struct PageManagerFixture {
     }
 
     // verify file size
-    REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->file_size());
+    REQUIRE((uint64_t)(page_size * 8) == lenv->device()->file_size());
 
     // reopen the file
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
-    pm = lenv->get_page_manager();
+    pm = lenv->page_manager();
 
     for (int i = 0; i < 2; i++)
       REQUIRE(false == test.is_page_free((3 + i) * page_size));
 
     // verify file size
 #ifndef WIN32
-    REQUIRE((uint64_t)(page_size * 6) == lenv->get_device()->file_size());
+    REQUIRE((uint64_t)(page_size * 6) == lenv->device()->file_size());
 #endif
   }
 
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
+    PageManager *pm = lenv->page_manager();
     PageManagerTestGateway test(pm);
-    uint32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->page_size();
 
     for (int i = 1; i <= 150; i++)
       pm->m_state.free_pages[page_size * i] = 1;
@@ -357,9 +357,9 @@ struct PageManagerFixture {
 
   void storeBigStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
+    PageManager *pm = lenv->page_manager();
     PageManagerTestGateway test(pm);
-    uint32_t page_size = lenv->get_page_size();
+    uint32_t page_size = lenv->page_size();
 
     pm->m_state.last_blob_page_id = page_size * 100;
 
@@ -391,8 +391,8 @@ struct PageManagerFixture {
 
   void allocMultiBlobs() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->get_page_manager();
-    uint32_t page_size = lenv->get_page_size();
+    PageManager *pm = lenv->page_manager();
+    uint32_t page_size = lenv->page_size();
 
     Context context(lenv, 0, 0);
 

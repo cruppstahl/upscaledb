@@ -172,7 +172,7 @@ class BlobManager
                     uint32_t flags = 0);
 
     // Fills in the current metrics
-    void get_metrics(ham_env_metrics_t *metrics) const {
+    void fill_metrics(ham_env_metrics_t *metrics) const {
       metrics->blob_total_allocated = m_metric_total_allocated;
       metrics->blob_total_read = m_metric_total_read;
       metrics->record_bytes_before_compression = m_metric_before_compression;

@@ -134,7 +134,7 @@ class EnvironmentHeader
     }
 
     // Returns the page size from the header page
-    uint32_t get_page_size() {
+    uint32_t page_size() {
       return (get_header()->_page_size);
     }
 

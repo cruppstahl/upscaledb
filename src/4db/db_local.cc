@@ -236,7 +236,7 @@ LocalDatabase::insert_txn(Context *context, LocalTransaction *txn,
   // append journal entry
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    Journal *j = get_local_env()->get_journal();
+    Journal *j = get_local_env()->journal();
     j->append_insert(this, txn, key, record,
               flags & HAM_DUPLICATE ? flags : flags | HAM_OVERWRITE,
               op->get_lsn());
@@ -525,7 +525,7 @@ LocalDatabase::erase_txn(Context *context, LocalTransaction *txn,
   /* append journal entry */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    Journal *j = get_local_env()->get_journal();
+    Journal *j = get_local_env()->journal();
     j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
               op->get_lsn());
   }
@@ -568,7 +568,7 @@ LocalDatabase::create(uint16_t descriptor)
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED) {
-    if (get_local_env()->get_page_size() / (m_config.key_size + 8) < 10) {
+    if (get_local_env()->page_size() / (m_config.key_size + 8) < 10) {
       ham_trace(("key size too large; either increase page_size or decrease "
                 "key size"));
       return (HAM_INV_KEY_SIZE);
@@ -583,7 +583,7 @@ LocalDatabase::create(uint16_t descriptor)
   if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED) {
     if (m_config.record_size <= 8
         || (m_config.record_size <= kInlineRecordThreshold
-          && get_local_env()->get_page_size()
+          && get_local_env()->page_size()
             / (m_config.key_size + m_config.record_size) > 500)) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
       m_config.flags |= HAM_FORCE_RECORDS_INLINE;
@@ -700,7 +700,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         p->value = 0;
-        page = get_local_env()->get_page_manager()->fetch(&context,
+        page = get_local_env()->page_manager()->fetch(&context,
                         m_btree_index->get_root_address(),
                         PageManager::kReadOnly);
         if (page) {
@@ -728,7 +728,7 @@ LocalDatabase::check_integrity(uint32_t flags)
   Context context(get_local_env(), 0, this);
 
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(&context);
+  get_local_env()->page_manager()->purge_cache(&context);
 
   /* call the btree function */
   m_btree_index->check_integrity(&context, flags);
@@ -745,7 +745,7 @@ LocalDatabase::count(Transaction *htxn, bool distinct)
   Context context(get_local_env(), txn, this);
 
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(&context);
+  get_local_env()->page_manager()->purge_cache(&context);
 
   /*
    * call the btree function - this will retrieve the number of keys
@@ -771,7 +771,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
   ham_key_t key = {0};
 
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(&context);
+  get_local_env()->page_manager()->purge_cache(&context);
 
   /* create a cursor, move it to the first key */
   Cursor *cursor = cursor_create(txn, 0);
@@ -1177,7 +1177,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(&context);
+  get_local_env()->page_manager()->purge_cache(&context);
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -1210,7 +1210,7 @@ LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(context);
+  get_local_env()->page_manager()->purge_cache(context);
 
   /*
    * if the cursor was never used before and the user requests a NEXT then
@@ -1311,7 +1311,7 @@ LocalDatabase::close_impl(uint32_t flags)
    * flush all pages of this database (but not the header page,
    * it's still required and will be flushed below)
    */
-  get_local_env()->get_page_manager()->close_database(&context, this);
+  get_local_env()->page_manager()->close_database(&context, this);
 
   return (0);
 }
@@ -1528,7 +1528,7 @@ LocalDatabase::insert_impl(Context *context, Cursor *cursor,
 {
   ham_status_t st = 0;
 
-  get_local_env()->get_page_manager()->purge_cache(context);
+  get_local_env()->page_manager()->purge_cache(context);
 
   /*
    * if transactions are enabled: only insert the key/record pair into
@@ -1590,7 +1590,7 @@ LocalDatabase::find_impl(Context *context, Cursor *cursor,
                 uint32_t flags)
 {
   /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache(context);
+  get_local_env()->page_manager()->purge_cache(context);
 
   /*
    * if transactions are enabled: read keys from transaction trees,

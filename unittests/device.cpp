@@ -38,7 +38,7 @@ struct DeviceFixture
             inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_dev = ((LocalEnvironment *)m_env)->get_device();
+    m_dev = ((LocalEnvironment *)m_env)->device();
   }
 
   ~DeviceFixture() {
@@ -76,12 +76,12 @@ struct DeviceFixture
     for (i = 0; i < 10; i++) {
       address = m_dev->alloc(1024);
       REQUIRE(address ==
-                (((LocalEnvironment *)m_env)->get_page_size() * 2) + 1024 * i);
+                (((LocalEnvironment *)m_env)->page_size() * 2) + 1024 * i);
     }
   }
 
   void allocFreeTest() {
-    Page page(((LocalEnvironment *)m_env)->get_device());
+    Page page(((LocalEnvironment *)m_env)->device());
     page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
@@ -170,7 +170,7 @@ struct DeviceFixture
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);
     for (i = 0; i < 2; i++) {
-      pages[i] = new Page(((LocalEnvironment *)m_env)->get_device());
+      pages[i] = new Page(((LocalEnvironment *)m_env)->device());
       pages[i]->set_address(ps * i);
       m_dev->read_page(pages[i], ps * i);
     }
@@ -185,7 +185,7 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       char temp[HAM_DEFAULT_PAGE_SIZE];
       memset(temp, i + 1, sizeof(temp));
-      REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->get_device())));
+      REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->device())));
       pages[i]->set_address(ps * i);
       m_dev->read_page(pages[i], ps * i);
       REQUIRE(0 == memcmp(pages[i]->get_payload(), temp,

@@ -63,7 +63,7 @@ struct BtreeInsertFixture {
 
   Page *fetch_page(uint64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
-    PageManager *pm = db->get_local_env()->get_page_manager();
+    PageManager *pm = db->get_local_env()->page_manager();
     return (pm->fetch(m_context.get(), address));
   }
 
@@ -88,17 +88,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 1)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(7 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 2)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(5 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 3)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 3)));
     REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
@@ -125,17 +125,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 3)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
@@ -162,17 +162,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 1)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 2)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->get_count());
 
-    REQUIRE((page = fetch_page(m_environ->get_page_size() * 3)));
+    REQUIRE((page = fetch_page(m_environ->page_size() * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());

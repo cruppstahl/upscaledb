@@ -34,7 +34,7 @@ InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
-  uint8_t *p = (uint8_t *)m_env->get_device()->alloc(record->size
+  uint8_t *p = (uint8_t *)m_env->device()->alloc(record->size
                   + sizeof(PBlobHeader));
 
   // initialize the header
@@ -137,10 +137,10 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     return ((uint64_t)PTR_TO_U64(phdr));
   }
   else {
-    uint64_t new_blobid = m_env->get_blob_manager()->allocate(context,
+    uint64_t new_blobid = m_env->blob_manager()->allocate(context,
                     record, flags);
 
-    InMemoryDevice *dev = (InMemoryDevice *)m_env->get_device();
+    InMemoryDevice *dev = (InMemoryDevice *)m_env->device();
     dev->release(phdr, (size_t)phdr->get_alloc_size());
     return (new_blobid);
   }

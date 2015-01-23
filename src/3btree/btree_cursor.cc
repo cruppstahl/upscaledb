@@ -219,7 +219,7 @@ BtreeCursor::move_to_next_page(Context *context)
     return (HAM_KEY_NOT_FOUND);
   }
 
-  Page *page = env->get_page_manager()->fetch(context, node->get_right(),
+  Page *page = env->page_manager()->fetch(context, node->get_right(),
                         PageManager::kReadOnly);
   couple_to_page(page, 0, 0);
   return (0);
@@ -284,13 +284,13 @@ BtreeCursor::move_first(Context *context, uint32_t flags)
   set_to_nil();
 
   // get the root page
-  Page *page = env->get_page_manager()->fetch(context,
+  Page *page = env->page_manager()->fetch(context,
                 m_btree->get_root_address(), PageManager::kReadOnly);
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
-    page = env->get_page_manager()->fetch(context, node->get_ptr_down(),
+    page = env->page_manager()->fetch(context, node->get_ptr_down(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
@@ -299,7 +299,7 @@ BtreeCursor::move_first(Context *context, uint32_t flags)
   while (node->get_count() == 0) {
     if (node->get_right() == 0)
       return (HAM_KEY_NOT_FOUND);
-    page = env->get_page_manager()->fetch(context, node->get_right(),
+    page = env->page_manager()->fetch(context, node->get_right(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
@@ -348,7 +348,7 @@ BtreeCursor::move_next(Context *context, uint32_t flags)
   if (!node->get_right())
     return (HAM_KEY_NOT_FOUND);
 
-  Page *page = env->get_page_manager()->fetch(context, node->get_right(),
+  Page *page = env->page_manager()->fetch(context, node->get_right(),
                     PageManager::kReadOnly);
   node = m_btree->get_node_from_page(page);
 
@@ -357,7 +357,7 @@ BtreeCursor::move_next(Context *context, uint32_t flags)
   while (node->get_count() == 0) {
     if (!node->get_right())
       return (HAM_KEY_NOT_FOUND);
-    page = env->get_page_manager()->fetch(context, node->get_right(),
+    page = env->page_manager()->fetch(context, node->get_right(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
@@ -402,7 +402,7 @@ BtreeCursor::move_previous(Context *context, uint32_t flags)
     if (!node->get_left())
       return (HAM_KEY_NOT_FOUND);
 
-    Page *page = env->get_page_manager()->fetch(context, node->get_left(),
+    Page *page = env->page_manager()->fetch(context, node->get_left(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
 
@@ -411,7 +411,7 @@ BtreeCursor::move_previous(Context *context, uint32_t flags)
     while (node->get_count() == 0) {
       if (!node->get_left())
         return (HAM_KEY_NOT_FOUND);
-      page = env->get_page_manager()->fetch(context, node->get_left(),
+      page = env->page_manager()->fetch(context, node->get_left(),
                     PageManager::kReadOnly);
       node = m_btree->get_node_from_page(page);
     }
@@ -441,17 +441,17 @@ BtreeCursor::move_last(Context *context, uint32_t flags)
   if (!m_btree->get_root_address())
     return (HAM_KEY_NOT_FOUND);
 
-  Page *page = env->get_page_manager()->fetch(context,
+  Page *page = env->page_manager()->fetch(context,
                 m_btree->get_root_address(), PageManager::kReadOnly);
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
     if (node->get_count() == 0)
-      page = env->get_page_manager()->fetch(context, node->get_ptr_down(),
+      page = env->page_manager()->fetch(context, node->get_ptr_down(),
                     PageManager::kReadOnly);
     else
-      page = env->get_page_manager()->fetch(context,
+      page = env->page_manager()->fetch(context,
                         node->get_record_id(context, node->get_count() - 1),
                         PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
@@ -461,7 +461,7 @@ BtreeCursor::move_last(Context *context, uint32_t flags)
   while (node->get_count() == 0) {
     if (node->get_left() == 0)
       return (HAM_KEY_NOT_FOUND);
-    page = env->get_page_manager()->fetch(context, node->get_left(),
+    page = env->page_manager()->fetch(context, node->get_left(),
                         PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }

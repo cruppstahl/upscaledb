@@ -35,7 +35,8 @@ class LocalTransaction;
 
 struct Context
 {
-  Context(LocalEnvironment *env, LocalTransaction *txn, LocalDatabase *db)
+  Context(LocalEnvironment *env, LocalTransaction *txn = 0,
+                  LocalDatabase *db = 0)
     : env(env), txn(txn), db(db), changeset(ChangesetState(env)) {
   }
 

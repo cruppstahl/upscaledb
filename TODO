@@ -545,8 +545,7 @@ o Concurrency: move "purge cache" to background
         x make sure this is called after every operation (exception safe!)
             -> use BOOST_SCOPE_EXIT
 
-        o every operation stores its state in an Operation structure, which
-            also contains a Changeset
+        x every operation stores its state in its own Changeset
             x ham_db_find/ham_cursor_find
                 x unify Database::find and Database::cursor_find,
                     remove cursor_find
@@ -563,13 +562,29 @@ o Concurrency: move "purge cache" to background
             x merge ham_db_insert/ham_cursor_insert
 
 ========================================================
-            o ---- now remove the changeset from the Environment, and see where
-                    it goes
-                o PageManager::kReadOnly is not required if the Context
-                    knows whether it's read-only or not
-                o LocalDatabase::finalize is not working
+            o now remove the changeset from the Environment, and see how it goes
                 o review: every public method in Environment, Database and
                     TransactionManager creates a context
+                    o LocalEnvironment::XXX creates Context
+                        passes it to XXX_impl
+                        catches all exceptions
+                        flushes/clears Context
+                        passes Exception to caller; the caller (hamsterdb.cc)
+                            no longer needs to check for exceptions
+                    o LocalDatabase
+                        same as above
+                        remove finalize()
+                    o LocalTransactionManager
+                        same as above
+            o unittests: create base class w/ functions like
+                txn()
+                page_manager()
+                context()
+                ...
+            o once more go over the refactored classes:
+                1. Struct Impl::XXX(State)
+                2. Struct XXX : public Impl::XXX -> hides State (private)
+                3. Struct XXXTest(XXX *) -> state() returns State
 ========================================================
 
             o ham_db_check_integrity

@@ -164,6 +164,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 #include "1base/packstop.h"
 
+class Context;
 class LocalDatabase;
 class BtreeNodeProxy;
 struct PDupeEntry;
@@ -321,7 +322,7 @@ class BtreeIndex
     }
 
     // Returns the usage metrics
-    static void get_metrics(ham_env_metrics_t *metrics) {
+    static void fill_metrics(ham_env_metrics_t *metrics) {
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->extended_keys = Globals::ms_extended_keys;
@@ -363,13 +364,13 @@ class BtreeIndex
     }
 
     // Sets the address of the root page
-    void set_root_address(uint64_t address) {
+    void set_root_address(Context *context, uint64_t address) {
       m_root_address = address;
-      flush_descriptor();
+      flush_descriptor(context);
     }
 
     // Flushes the PBtreeHeader to the Environment's header page
-    void flush_descriptor();
+    void flush_descriptor(Context *context);
 
     // Searches |parent| page for key |key| and returns the child
     // page in |child|.

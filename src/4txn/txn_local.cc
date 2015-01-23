@@ -250,7 +250,7 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
   if (env->get_flags() & HAM_ENABLE_RECOVERY
       && env->get_flags() & HAM_ENABLE_TRANSACTIONS
       && !(flags & HAM_TXN_TEMPORARY)) {
-    env->get_journal()->append_txn_begin(this, name,
+    env->journal()->append_txn_begin(this, name,
             env->get_incremented_lsn());
   }
 }
@@ -515,7 +515,7 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
       && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-    get_local_env()->get_journal()->append_txn_commit(txn,
+    get_local_env()->journal()->append_txn_commit(txn,
                     get_local_env()->get_incremented_lsn());
 
   /* flush committed transactions */
@@ -537,7 +537,7 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY
       && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
       && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-    get_local_env()->get_journal()->append_txn_abort(txn,
+    get_local_env()->journal()->append_txn_abort(txn,
                     get_local_env()->get_incremented_lsn());
 
   /* flush committed transactions; while this one was not committed,
@@ -574,7 +574,7 @@ void
 LocalTransactionManager::flush_committed_txns_impl(Context *context)
 {
   LocalTransaction *oldest;
-  Journal *journal = get_local_env()->get_journal();
+  Journal *journal = get_local_env()->journal();
   uint64_t highest_lsn = 0;
 
   ham_assert(context->changeset.is_empty());

@@ -1952,7 +1952,7 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
   // fill in memory metrics
   Memory::get_global_metrics(metrics);
   // ... and everything else
-  env->get_metrics(metrics);
+  env->fill_metrics(metrics);
 
   return (0);
 }

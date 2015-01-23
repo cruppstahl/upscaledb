@@ -62,8 +62,8 @@ class BtreeCheckAction
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      page = env->get_page_manager()->fetch(m_context,
-                    m_btree->get_root_address(), PageManager::kReadOnly);
+      page = env->page_manager()->fetch(m_context, m_btree->get_root_address(),
+                                    PageManager::kReadOnly);
 
 #if HAM_DEBUG
       if (m_flags & HAM_PRINT_GRAPH) {
@@ -91,7 +91,7 @@ class BtreeCheckAction
 
         // follow the pointer to the smallest child
         if (ptr_down)
-          page = env->get_page_manager()->fetch(m_context, ptr_down,
+          page = env->page_manager()->fetch(m_context, ptr_down,
                                 PageManager::kReadOnly);
         else
           page = 0;
@@ -140,7 +140,7 @@ class BtreeCheckAction
         // follow the right sibling
         BtreeNodeProxy *node = m_btree->get_node_from_page(page);
         if (node->get_right())
-          child = env->get_page_manager()->fetch(m_context,
+          child = env->page_manager()->fetch(m_context,
                           node->get_right(), PageManager::kReadOnly);
         else
           child = 0;
@@ -271,7 +271,7 @@ class BtreeCheckAction
                     "#%d is not unique", page->get_address(), i));
             throw Exception(HAM_INTEGRITY_VIOLATED);
           }
-          PageManagerTestGateway test(env->get_page_manager());
+          PageManagerTestGateway test(env->page_manager());
           if (test.is_page_free(child_id)) {
             ham_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->get_address(), i));

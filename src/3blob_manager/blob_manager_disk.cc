@@ -38,13 +38,13 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
 {
   uint8_t *chunk_data[2];
   uint32_t chunk_size[2];
-  uint32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->page_size();
 
   PBlobHeader blob_header;
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_env->get_page_manager()->get_last_blob_page(context);
+  Page *page = m_env->page_manager()->get_last_blob_page(context);
 
   PBlobPageHeader *header = 0;
   uint64_t address = 0;
@@ -67,7 +67,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
 
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
-    page = m_env->get_page_manager()->alloc_multiple_blob_pages(context, num_pages);
+    page = m_env->page_manager()->alloc_multiple_blob_pages(context, num_pages);
     ham_assert(page->is_without_header() == false);
 
     // initialize the PBlobPageHeader
@@ -95,9 +95,9 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
 
   // store the page id if it still has space left
   if (header->get_free_bytes())
-    m_env->get_page_manager()->set_last_blob_page(page);
+    m_env->page_manager()->set_last_blob_page(page);
   else
-    m_env->get_page_manager()->set_last_blob_page(0);
+    m_env->page_manager()->set_last_blob_page(0);
 
   // initialize the blob header
   blob_header.set_alloc_size(alloc_size);
@@ -358,9 +358,9 @@ DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
   // if the page is now completely empty (all blobs were erased) then move
   // it to the freelist
   if (header->get_free_bytes() == (header->get_num_pages()
-              * m_env->get_page_size()) - kPageOverhead) {
-    m_env->get_page_manager()->set_last_blob_page(0);
-    m_env->get_page_manager()->del(page, header->get_num_pages());
+              * m_env->page_size()) - kPageOverhead) {
+    m_env->page_manager()->set_last_blob_page(0);
+    m_env->page_manager()->del(page, header->get_num_pages());
     header->initialize();
     return;
   }
@@ -466,7 +466,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   ham_assert(header->get_num_pages() > 0);
 
   if (header->get_free_bytes() + kPageOverhead
-        > (m_env->get_page_size() * header->get_num_pages())) {
+        > (m_env->page_size() * header->get_num_pages())) {
     ham_trace(("integrity violated: free bytes exceeds page boundary"));
     return (false);
   }
@@ -502,7 +502,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   if (!ranges.empty()) {
     for (uint32_t i = 0; i < ranges.size() - 1; i++) {
       if (ranges[i].first + ranges[i].second
-          > m_env->get_page_size() * header->get_num_pages()) {
+          > m_env->page_size() * header->get_num_pages()) {
         ham_trace(("integrity violated: freelist slot %u/%u exceeds page",
                     ranges[i].first, ranges[i].second));
         return (false);
@@ -524,7 +524,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
                 uint64_t address, uint8_t **chunk_data, uint32_t *chunk_size,
                 uint32_t chunks)
 {
-  uint32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->page_size();
 
   // for each chunk...
   for (uint32_t i = 0; i < chunks; i++) {
@@ -540,7 +540,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
       if (page && page->get_address() != pageid)
         page = 0;
       if (!page)
-        page = m_env->get_page_manager()->fetch(context, pageid,
+        page = m_env->page_manager()->fetch(context, pageid,
                         PageManager::kNoHeader);
 
       uint32_t write_start = (uint32_t)(address - page->get_address());
@@ -563,7 +563,7 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
                 uint64_t address, uint8_t *data, uint32_t size,
                 bool fetch_read_only)
 {
-  uint32_t page_size = m_env->get_page_size();
+  uint32_t page_size = m_env->page_size();
 
   while (size) {
     // get the page-id from this chunk
@@ -574,7 +574,7 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
     if (page && page->get_address() != pageid)
       page = 0;
     if (!page)
-      page = m_env->get_page_manager()->fetch(context, pageid,
+      page = m_env->page_manager()->fetch(context, pageid,
                         fetch_read_only ? PageManager::kReadOnly : 0);
 
     // now read the data from the page

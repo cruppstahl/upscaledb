@@ -60,19 +60,18 @@ struct DbFixture {
 
   void headerTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    lenv->get_header()->set_magic('1', '2', '3', '4');
-    REQUIRE(true ==
-        lenv->get_header()->verify_magic('1', '2', '3', '4'));
+    lenv->header()->set_magic('1', '2', '3', '4');
+    REQUIRE(true == lenv->header()->verify_magic('1', '2', '3', '4'));
 
-    lenv->get_header()->set_version(1, 2, 3, 4);
-    REQUIRE((uint8_t)1 == lenv->get_header()->get_version(0));
-    REQUIRE((uint8_t)2 == lenv->get_header()->get_version(1));
-    REQUIRE((uint8_t)3 == lenv->get_header()->get_version(2));
-    REQUIRE((uint8_t)4 == lenv->get_header()->get_version(3));
+    lenv->header()->set_version(1, 2, 3, 4);
+    REQUIRE((uint8_t)1 == lenv->header()->get_version(0));
+    REQUIRE((uint8_t)2 == lenv->header()->get_version(1));
+    REQUIRE((uint8_t)3 == lenv->header()->get_version(2));
+    REQUIRE((uint8_t)4 == lenv->header()->get_version(3));
   }
 
   void structureTest() {
-    REQUIRE(((LocalEnvironment *)m_env)->get_header()->get_header_page() != 0);
+    REQUIRE(((LocalEnvironment *)m_env)->header()->get_header_page() != 0);
 
     REQUIRE(0 == m_dbp->get_error());
     m_dbp->set_error(HAM_IO_ERROR);
@@ -80,10 +79,10 @@ struct DbFixture {
 
     REQUIRE(m_dbp->get_btree_index()); // already initialized
 
-    ((LocalEnvironment *)m_env)->get_header()->get_header_page()->set_dirty(false);
-    REQUIRE(!((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
-    ((LocalEnvironment *)m_env)->mark_header_page_dirty();
-    REQUIRE(((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
+    ((LocalEnvironment *)m_env)->header()->get_header_page()->set_dirty(false);
+    REQUIRE(!((LocalEnvironment *)m_env)->header()->get_header_page()->is_dirty());
+    ((LocalEnvironment *)m_env)->mark_header_page_dirty(m_context.get());
+    REQUIRE(((LocalEnvironment *)m_env)->header()->get_header_page()->is_dirty());
 
     REQUIRE(0 != m_dbp->get_rt_flags());
 
@@ -124,7 +123,7 @@ struct DbFixture {
     uint64_t address;
     uint8_t *p;
 
-    PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
+    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
     PageManagerTestGateway test(pm);
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));

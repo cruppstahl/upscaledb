@@ -41,17 +41,8 @@ using namespace hamsterdb;
 
 namespace hamsterdb {
 
-PBtreeHeader *
-LocalEnvironment::get_btree_descriptor(int i)
-{
-  PBtreeHeader *d = (PBtreeHeader *)
-        (m_header->get_header_page()->get_payload()
-            + sizeof(PEnvironmentHeader));
-  return (d + i);
-}
-
 LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
-  : Environment(config), m_changeset(new Changeset(ChangesetState(this)))
+  : Environment(config)
 {
 }
 
@@ -71,7 +62,7 @@ LocalEnvironment::create()
   m_device->create();
 
   /* allocate the header page */
-  Page *page = new Page(this->get_device());
+  Page *page = new Page(m_device.get());
   page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
   ::memset(page->get_data(), 0, m_config.page_size_bytes);
   page->set_type(Page::kTypeHeader);
@@ -111,6 +102,7 @@ LocalEnvironment::create()
 ham_status_t
 LocalEnvironment::open()
 {
+  Context context(this);
   ham_status_t st = 0;
 
   /* Initialize the device if it does not yet exist. The page size will
@@ -156,7 +148,7 @@ LocalEnvironment::open()
      */
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
-    m_config.page_size_bytes = m_header->get_page_size();
+    m_config.page_size_bytes = m_header->page_size();
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -196,7 +188,7 @@ fail_with_fake_cleansing:
     }
 
     /* now read the "real" header page and store it in the Environment */
-    page = new Page(this->get_device());
+    page = new Page(m_device.get());
     page->fetch(0);
     m_header.reset(new EnvironmentHeader(page));
   }
@@ -215,8 +207,6 @@ fail_with_fake_cleansing:
   /* load the state of the PageManager */
   if (m_header->get_page_manager_blobid() != 0) {
     m_page_manager->initialize(m_header->get_page_manager_blobid());
-    if (get_flags() & HAM_ENABLE_RECOVERY)
-      m_changeset->clear();
   }
 
   /* last step: start the worker thread */
@@ -228,6 +218,7 @@ fail_with_fake_cleansing:
 ham_status_t
 LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
+  Context context(this);
   ham_status_t st = 0;
 
   /*
@@ -250,7 +241,7 @@ LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 
   /* replace the database name with the new name */
   get_btree_descriptor(slot)->set_dbname(newname);
-  mark_header_page_dirty();
+  mark_header_page_dirty(&context);
 
   /* if the database with the old name is currently open: notify it */
   Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
@@ -261,16 +252,14 @@ LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
     get_database_map().insert(DatabaseMap::value_type(newname, db));
   }
 
-  /* flush the header page if logging is enabled */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_changeset->flush(get_incremented_lsn());
-
   return (st);
 }
 
 ham_status_t
 LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
 {
+  Context context(this);
+
   /* check if this database is still open */
   if (get_database_map().find(name) != get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
@@ -298,12 +287,6 @@ LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
   if (st)
     return (st);
 
-  /* logging enabled? then the changeset HAS to be empty */
-#ifdef HAM_DEBUG
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(m_changeset->is_empty());
-#endif
-
   /*
    * delete all blobs and extended keys, also from the cache and
    * the extkey-cache
@@ -322,12 +305,7 @@ LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
     }
   }
 
-  mark_header_page_dirty();
-
-  /* if logging is enabled: flush the changeset because the header page
-   * was modified */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_changeset->flush(get_incremented_lsn());
+  mark_header_page_dirty(&context);
 
   (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
@@ -363,10 +341,9 @@ LocalEnvironment::get_database_names(uint16_t *names, uint32_t *count)
 ham_status_t
 LocalEnvironment::close(uint32_t flags)
 {
-  Context context(this, 0, 0);
+  Context context(this);
 
   ham_status_t st;
-  Device *device = get_device();
 
   /* wait for the worker thread to stop */
   if (m_worker.get())
@@ -402,27 +379,26 @@ LocalEnvironment::close(uint32_t flags)
    * and the dirty-flag is true: flush the page-header to disk
    */
   if (m_header && m_header->get_header_page() && !(get_flags() & HAM_IN_MEMORY)
-      && get_device() && get_device()->is_open()
-      && (!(get_flags() & HAM_READ_ONLY))) {
+        && m_device.get() && m_device.get()->is_open()
+        && (!(get_flags() & HAM_READ_ONLY))) {
     m_header->get_header_page()->flush();
   }
 
   /* close the header page */
   if (m_header && m_header->get_header_page()) {
     Page *page = m_header->get_header_page();
-    ham_assert(device);
     if (page->get_data())
-      device->free_page(page);
+      m_device->free_page(page);
     delete page;
     m_header.reset();
   }
 
   /* close the device */
-  if (device) {
-    if (device->is_open()) {
+  if (m_device) {
+    if (m_device->is_open()) {
       if (!(get_flags() & HAM_READ_ONLY))
-        device->flush();
-      device->close();
+        m_device->flush();
+      m_device->close();
     }
   }
 
@@ -491,7 +467,6 @@ ham_status_t
 LocalEnvironment::flush(uint32_t flags)
 {
   Context context(this, 0, 0);
-  Device *device = get_device();
 
   /* never flush an in-memory-database */
   if (get_flags() & HAM_IN_MEMORY)
@@ -508,7 +483,7 @@ LocalEnvironment::flush(uint32_t flags)
   m_page_manager->flush();
 
   /* flush the device - this usually causes a fsync() */
-  device->flush();
+  m_device->flush();
 
   return (HAM_SUCCESS);
 }
@@ -523,6 +498,8 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     ham_trace(("cannot create database in a read-only environment"));
     return (HAM_WRITE_PROTECTED);
   }
+
+  Context context(this);
 
   if (param) {
     for (; param->name; param++) {
@@ -634,12 +611,6 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     return (HAM_LIMITS_REACHED);
   }
 
-  /* logging enabled? then the changeset HAS to be empty */
-#ifdef HAM_DEBUG
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(m_changeset->is_empty());
-#endif
-
   /* initialize the Database */
   ham_status_t st = db->create(dbi);
   if (st) {
@@ -647,11 +618,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     return (st);
   }
 
-  mark_header_page_dirty();
-
-  /* if logging is enabled: flush the changeset and the header page */
-  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
-    m_changeset->flush(get_incremented_lsn());
+  mark_header_page_dirty(&context);
 
   /*
    * on success: store the open database in the environment's list of
@@ -701,7 +668,6 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   /* create a new Database object */
   LocalDatabase *db = new LocalDatabase(this, config);
 
-  ham_assert(get_device());
   ham_assert(0 != m_header->get_header_page());
 
   /* search for a database with this name */
@@ -747,6 +713,8 @@ LocalEnvironment::txn_begin(const char *name, uint32_t flags)
 void
 LocalEnvironment::recover(uint32_t flags)
 {
+  Context context(this);
+
   ham_status_t st = 0;
   m_journal.reset(new Journal(this));
 
@@ -776,9 +744,6 @@ LocalEnvironment::recover(uint32_t flags)
   }
 
 bail:
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_changeset->clear();
-
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
     m_journal->close(true);
@@ -790,19 +755,28 @@ bail:
 }
 
 void
-LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
+LocalEnvironment::fill_metrics(ham_env_metrics_t *metrics) const
 {
   // PageManager metrics (incl. cache and freelist)
   m_page_manager->fill_metrics(metrics);
   // the BlobManagers
-  m_blob_manager->get_metrics(metrics);
+  m_blob_manager->fill_metrics(metrics);
   // the Journal (if available)
   if (m_journal)
-    m_journal->get_metrics(metrics);
+    m_journal->fill_metrics(metrics);
   // and of the btrees
-  BtreeIndex::get_metrics(metrics);
+  BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?
   metrics->simd_lane_width = os_get_simd_lane_width();
+}
+
+PBtreeHeader *
+LocalEnvironment::get_btree_descriptor(int i)
+{
+  PBtreeHeader *d = (PBtreeHeader *)
+        (m_header->get_header_page()->get_payload()
+            + sizeof(PEnvironmentHeader));
+  return (d + i);
 }
 
 } // namespace hamsterdb

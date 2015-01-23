@@ -76,7 +76,7 @@ class Worker
           }
           delete message;
         }
-        //m_env->get_page_manager()->purge_cache();
+        //m_env->page_manager()->purge_cache();
         //boost::this_thread::yield();
       }
     }

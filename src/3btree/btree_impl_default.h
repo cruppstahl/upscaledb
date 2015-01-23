@@ -298,7 +298,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Initializes the node
     void initialize(NodeType *other = 0) {
       LocalDatabase *db = P::m_page->get_db();
-      size_t usable_page_size = get_usable_page_size();
+      size_t usable_size = usable_range_size();
 
       // initialize this page in the same way as |other| was initialized
       if (other) {
@@ -312,7 +312,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         // create the KeyList and RecordList
         P::m_keys.create(p, key_range_size);
         P::m_records.create(p + key_range_size,
-                        usable_page_size - key_range_size);
+                        usable_size - key_range_size);
       }
       // initialize a new page from scratch
       else if ((P::m_node->get_count() == 0
@@ -329,20 +329,20 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         if (key_range_size == 0) {
           // no records? then assign the full range to the KeyList
           if (P::m_records.get_full_record_size() == 0) {
-            key_range_size = usable_page_size;
+            key_range_size = usable_size;
           }
           // Otherwise split the range between both lists
           else {
-            size_t capacity = usable_page_size
+            size_t capacity = usable_size
                     / (P::m_keys.get_full_key_size(0) +
                                   P::m_records.get_full_record_size());
             key_range_size = capacity * P::m_keys.get_full_key_size(0);
           }
         }
 
-        record_range_size = usable_page_size - key_range_size;
+        record_range_size = usable_size - key_range_size;
 
-        ham_assert(key_range_size + record_range_size <= usable_page_size);
+        ham_assert(key_range_size + record_range_size <= usable_size);
 
         // persist the key range size
         store_range_size(key_range_size);
@@ -359,7 +359,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // open a page; read initialization parameters from persisted storage
       else {
         size_t key_range_size = load_range_size();
-        size_t record_range_size = usable_page_size - key_range_size;
+        size_t record_range_size = usable_size - key_range_size;
         uint8_t *p = P::m_node->get_data();
         p += sizeof(uint32_t);
 
@@ -391,7 +391,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       size_t old_key_range_size = load_range_size();
       size_t key_range_size, record_range_size;
       size_t required_key_range, required_record_range;
-      size_t usable_page_size = get_usable_page_size();
+      size_t usable_size = usable_range_size();
       required_key_range = P::m_keys.get_required_range_size(node_count)
                                 + P::m_keys.get_full_key_size(key);
       required_record_range = P::m_records.get_required_range_size(node_count)
@@ -403,14 +403,14 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // no records? then there's no way to change the ranges. but maybe we
       // can increase the capacity
       if (required_record_range == 0) {
-        if (required_key_range > usable_page_size)
+        if (required_key_range > usable_size)
           return (false);
-        P::m_keys.change_range_size(node_count, p, usable_page_size,
+        P::m_keys.change_range_size(node_count, p, usable_size,
                         node_count + 5);
         return (!P::m_keys.requires_split(node_count, key));
       }
 
-      int remainder = usable_page_size
+      int remainder = usable_size
                             - (required_key_range + required_record_range); 
       if (remainder < 0)
         return (false);
@@ -424,18 +424,18 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       key_range_size = required_key_range + additional_capacity
               * P::m_keys.get_full_key_size(0);
-      record_range_size = usable_page_size - key_range_size;
+      record_range_size = usable_size - key_range_size;
 
-      ham_assert(key_range_size + record_range_size <= usable_page_size);
+      ham_assert(key_range_size + record_range_size <= usable_size);
 
       // Check if the required record space is large enough, and make sure
       // there is enough room for a new item
-      if (key_range_size > usable_page_size
-          || record_range_size > usable_page_size
+      if (key_range_size > usable_size
+          || record_range_size > usable_size
           || key_range_size == old_key_range_size
           || key_range_size < required_key_range
           || record_range_size < required_record_range
-          || key_range_size + record_range_size > usable_page_size)
+          || key_range_size + record_range_size > usable_size)
         return (false);
 
       capacity_hint = get_capacity_hint(key_range_size, record_range_size);
@@ -462,7 +462,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // beginning of the RecordList.
       if (key_range_size > old_key_range_size) {
         P::m_records.change_range_size(node_count, p + key_range_size,
-                        usable_page_size - key_range_size,
+                        usable_size - key_range_size,
                         capacity_hint);
         P::m_keys.change_range_size(node_count, p, key_range_size,
                         capacity_hint);
@@ -472,7 +472,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         P::m_keys.change_range_size(node_count, p, key_range_size,
                         capacity_hint);
         P::m_records.change_range_size(node_count, p + key_range_size,
-                        usable_page_size - key_range_size,
+                        usable_size - key_range_size,
                         capacity_hint);
       }
       
@@ -505,8 +505,8 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns the usable page size that can be used for actually
     // storing the data
-    size_t get_usable_page_size() const {
-      return (P::m_page->get_db()->get_local_env()->get_usable_page_size()
+    size_t usable_range_size() const {
+      return (P::m_page->get_db()->get_local_env()->usable_page_size()
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
                     - sizeof(uint32_t));
