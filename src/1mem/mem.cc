@@ -65,6 +65,8 @@ Memory::release_to_system()
   MallocExtension::instance()->ReleaseFreeMemory();
 #elif WIN32
   // TODO
+#elif __FreeBSD__
+  // TODO
 #elif __APPLE__
   // TODO
 #elif __GNUC__
