@@ -503,51 +503,63 @@ LocalTransactionManager::begin(const char *name, uint32_t flags)
   return (txn);
 }
 
-void 
+ham_status_t 
 LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   Context context(get_local_env(), txn, 0);
 
-  txn->commit(flags);
+  try {
+    txn->commit(flags);
 
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-    get_local_env()->journal()->append_txn_commit(txn,
-                    get_local_env()->get_incremented_lsn());
+    /* append journal entry */
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+        && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+        && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+      get_local_env()->journal()->append_txn_commit(txn,
+                      get_local_env()->get_incremented_lsn());
 
-  /* flush committed transactions */
-  m_queued_txn_for_flush++;
-  m_queued_ops_for_flush += txn->get_op_counter();
-  m_queued_bytes_for_flush += txn->get_accum_data_size();
-  maybe_flush_committed_txns(&context);
+    /* flush committed transactions */
+    m_queued_txn_for_flush++;
+    m_queued_ops_for_flush += txn->get_op_counter();
+    m_queued_bytes_for_flush += txn->get_accum_data_size();
+    maybe_flush_committed_txns(&context);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
-void 
+ham_status_t 
 LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
   Context context(get_local_env(), txn, 0);
 
-  txn->abort(flags);
+  try {
+    txn->abort(flags);
 
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-    get_local_env()->journal()->append_txn_abort(txn,
-                    get_local_env()->get_incremented_lsn());
+    /* append journal entry */
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+        && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
+        && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+      get_local_env()->journal()->append_txn_abort(txn,
+                      get_local_env()->get_incremented_lsn());
 
-  /* flush committed transactions; while this one was not committed,
-   * we might have cleared the way now to flush other committed
-   * transactions */
-  m_queued_txn_for_flush++;
+    /* flush committed transactions; while this one was not committed,
+     * we might have cleared the way now to flush other committed
+     * transactions */
+    m_queued_txn_for_flush++;
 
-  /* no need to increment m_queued_{ops,bytes}_for_flush because this
-   * operation does no longer contain any operations */
-  maybe_flush_committed_txns(&context);
+    /* no need to increment m_queued_{ops,bytes}_for_flush because this
+     * operation does no longer contain any operations */
+    maybe_flush_committed_txns(&context);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
 void

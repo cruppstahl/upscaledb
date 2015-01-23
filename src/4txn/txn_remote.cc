@@ -109,23 +109,34 @@ RemoteTransactionManager::begin(const char *name, uint32_t flags)
   return (txn);
 }
 
-void 
-RemoteTransactionManager::commit(Transaction *txn,
-                uint32_t flags)
+ham_status_t 
+RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
 {
-  txn->commit(flags);
+  try {
+    txn->commit(flags);
 
-  /* "flush" (remove) committed and aborted transactions */
-  flush_committed_txns();
+    /* "flush" (remove) committed and aborted transactions */
+    flush_committed_txns();
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
-void 
+ham_status_t 
 RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
 {
-  txn->abort(flags);
+  try {
+    txn->abort(flags);
 
-  /* "flush" (remove) committed and aborted transactions */
-  flush_committed_txns();
+    /* "flush" (remove) committed and aborted transactions */
+    flush_committed_txns();
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
 void 

@@ -672,323 +672,356 @@ LocalDatabase::open(uint16_t descriptor)
   return (0);
 }
 
-void
+ham_status_t
 LocalDatabase::get_parameters(ham_parameter_t *param)
 {
-  Context context(get_local_env(), 0, this);
+  try {
+    Context context(get_local_env(), 0, this);
 
-  Page *page = 0;
-  ham_parameter_t *p = param;
+    Page *page = 0;
+    ham_parameter_t *p = param;
 
-  if (p) {
-    for (; p->name; p++) {
-      switch (p->name) {
-      case HAM_PARAM_KEY_SIZE:
-        p->value = m_config.key_size;
-        break;
-      case HAM_PARAM_KEY_TYPE:
-        p->value = m_config.key_type;
-        break;
-      case HAM_PARAM_RECORD_SIZE:
-        p->value = m_config.record_size;
-        break;
-      case HAM_PARAM_FLAGS:
-        p->value = (uint64_t)get_rt_flags();
-        break;
-      case HAM_PARAM_DATABASE_NAME:
-        p->value = (uint64_t)get_name();
-        break;
-      case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        p->value = 0;
-        page = get_local_env()->page_manager()->fetch(&context,
-                        m_btree_index->get_root_address(),
+    if (p) {
+      for (; p->name; p++) {
+        switch (p->name) {
+        case HAM_PARAM_KEY_SIZE:
+          p->value = m_config.key_size;
+          break;
+        case HAM_PARAM_KEY_TYPE:
+          p->value = m_config.key_type;
+          break;
+        case HAM_PARAM_RECORD_SIZE:
+          p->value = m_config.record_size;
+          break;
+        case HAM_PARAM_FLAGS:
+          p->value = (uint64_t)get_rt_flags();
+          break;
+        case HAM_PARAM_DATABASE_NAME:
+          p->value = (uint64_t)get_name();
+          break;
+        case HAM_PARAM_MAX_KEYS_PER_PAGE:
+          p->value = 0;
+          page = get_local_env()->page_manager()->fetch(&context,
+                          m_btree_index->get_root_address(),
                         PageManager::kReadOnly);
-        if (page) {
-          BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
-          p->value = node->estimate_capacity();
+          if (page) {
+            BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+            p->value = node->estimate_capacity();
+          }
+          break;
+        case HAM_PARAM_RECORD_COMPRESSION:
+          p->value = 0;
+          break;
+        case HAM_PARAM_KEY_COMPRESSION:
+          p->value = 0;
+          break;
+        default:
+          ham_trace(("unknown parameter %d", (int)p->name));
+          throw Exception(HAM_INV_PARAMETER);
         }
-        break;
-      case HAM_PARAM_RECORD_COMPRESSION:
-        p->value = 0;
-        break;
-      case HAM_PARAM_KEY_COMPRESSION:
-        p->value = 0;
-        break;
-      default:
-        ham_trace(("unknown parameter %d", (int)p->name));
-        throw Exception(HAM_INV_PARAMETER);
       }
     }
   }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
-void
+ham_status_t
 LocalDatabase::check_integrity(uint32_t flags)
 {
-  Context context(get_local_env(), 0, this);
+  try {
+    Context context(get_local_env(), 0, this);
 
-  /* purge cache if necessary */
-  get_local_env()->page_manager()->purge_cache(&context);
+    /* purge cache if necessary */
+    get_local_env()->page_manager()->purge_cache(&context);
 
-  /* call the btree function */
-  m_btree_index->check_integrity(&context, flags);
+    /* call the btree function */
+    m_btree_index->check_integrity(&context, flags);
 
-  /* call the txn function */
-  //m_txn_index->check_integrity(flags);
+    /* call the txn function */
+    //m_txn_index->check_integrity(flags);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
-uint64_t
-LocalDatabase::count(Transaction *htxn, bool distinct)
+ham_status_t
+LocalDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
 
-  Context context(get_local_env(), txn, this);
+  try {
+    Context context(get_local_env(), txn, this);
 
-  /* purge cache if necessary */
-  get_local_env()->page_manager()->purge_cache(&context);
+    /* purge cache if necessary */
+    get_local_env()->page_manager()->purge_cache(&context);
 
-  /*
-   * call the btree function - this will retrieve the number of keys
-   * in the btree
-   */
-  uint64_t keycount = m_btree_index->count(&context, distinct);
+    /*
+     * call the btree function - this will retrieve the number of keys
+     * in the btree
+     */
+    uint64_t keycount = m_btree_index->count(&context, distinct);
 
-  /*
-   * if transactions are enabled, then also sum up the number of keys
-   * from the transaction tree
-   */
-  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
-    keycount += m_txn_index->count(&context, txn, distinct);
-  return (keycount);
+    /*
+     * if transactions are enabled, then also sum up the number of keys
+     * from the transaction tree
+     */
+    if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
+      keycount += m_txn_index->count(&context, txn, distinct);
+
+    *pcount = keycount;
+    return (0);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
-void
+ham_status_t
 LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
-  Context context(get_local_env(), (LocalTransaction *)txn, this);
+  ham_status_t st = 0;
 
-  Page *page;
-  ham_key_t key = {0};
+  try {
+    Context context(get_local_env(), (LocalTransaction *)txn, this);
 
-  /* purge cache if necessary */
-  get_local_env()->page_manager()->purge_cache(&context);
+    Page *page;
+    ham_key_t key = {0};
 
-  /* create a cursor, move it to the first key */
-  Cursor *cursor = cursor_create(txn, 0);
+    /* purge cache if necessary */
+    get_local_env()->page_manager()->purge_cache(&context);
 
-  ham_status_t st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
-  if (st) {
-    cursor_close(cursor);
-    throw Exception(st);
-  }
+    /* create a cursor, move it to the first key */
+    Cursor *cursor = cursor_create_impl(txn, 0);
 
-  /* only transaction keys? then use a regular cursor */
-  if (!cursor->is_coupled_to_btree()) {
-    do {
-      /* process the key */
-      (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(&context, 0)
-                                        : 1);
-    } while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
-    goto bail;
-  }
+    st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
+    if (st)
+      goto bail;
 
-  /* only btree keys? then traverse page by page */
-  if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    ham_assert(cursor->is_coupled_to_btree());
-
-    do {
-      // get the coupled page
-      cursor->get_btree_cursor()->get_coupled_key(&page);
-      BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
-      // and let the btree node perform the remaining work
-      node->scan(&context, visitor, 0, distinct);
-
-    } while (cursor->get_btree_cursor()->move_to_next_page(&context) == 0);
-
-    goto bail;
-  }
-
-  /* mixed txn/btree load? if there are btree nodes which are NOT modified
-   * in transactions then move the scan to the btree node. Otherwise use
-   * a regular cursor */
-  while (true) {
-    if (!cursor->is_coupled_to_btree())
-      break;
-
-    int slot;
-    cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
-    BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
-
-    /* are transactions present? then check if the next txn key is >= btree[0]
-     * and <= btree[n] */
-    ham_key_t *txnkey = 0;
-    if (cursor->get_txn_cursor()->get_coupled_op())
-      txnkey = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
-    // no (more) transactional keys left - process the current key, then
-    // scan the remaining keys directly in the btree
-    if (!txnkey) {
-      /* process the key */
-      (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(&context, 0)
-                                        : 1);
-      break;
-    }
-
-    /* if yes: use the cursor to traverse the page */
-    if (node->compare(&context, txnkey, 0) >= 0
-        && node->compare(&context, txnkey, node->get_count() - 1) <= 0) {
+    /* only transaction keys? then use a regular cursor */
+    if (!cursor->is_coupled_to_btree()) {
       do {
-        Page *new_page = 0;
-        if (cursor->is_coupled_to_btree())
-          cursor->get_btree_cursor()->get_coupled_key(&new_page);
-        /* break the loop if we've reached the next page */
-        if (new_page && new_page != page) {
-          page = new_page;
-          break;
-        }
         /* process the key */
         (*visitor)(key.data, key.size, distinct
                                         ? cursor->get_record_count(&context, 0)
                                         : 1);
-      } while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
+      } while ((st = cursor_move_impl(&context, cursor, &key,
+                            0, HAM_CURSOR_NEXT)) == 0);
+      goto bail;
+    }
 
-      if (st == HAM_KEY_NOT_FOUND)
-        goto bail;
-      if (st != HAM_SUCCESS) {
-        cursor_close(cursor);
-        throw Exception(st);
+    /* only btree keys? then traverse page by page */
+    if (!(get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      ham_assert(cursor->is_coupled_to_btree());
+
+      do {
+        // get the coupled page
+        cursor->get_btree_cursor()->get_coupled_key(&page);
+        BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+        // and let the btree node perform the remaining work
+        node->scan(&context, visitor, 0, distinct);
+      } while (cursor->get_btree_cursor()->move_to_next_page(&context) == 0);
+
+      goto bail;
+    }
+
+    /* mixed txn/btree load? if there are btree nodes which are NOT modified
+     * in transactions then move the scan to the btree node. Otherwise use
+     * a regular cursor */
+    while (true) {
+      if (!cursor->is_coupled_to_btree())
+        break;
+
+      int slot;
+      cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
+      BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+
+      /* are transactions present? then check if the next txn key is >= btree[0]
+       * and <= btree[n] */
+      ham_key_t *txnkey = 0;
+      if (cursor->get_txn_cursor()->get_coupled_op())
+        txnkey = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+      // no (more) transactional keys left - process the current key, then
+      // scan the remaining keys directly in the btree
+      if (!txnkey) {
+        /* process the key */
+        (*visitor)(key.data, key.size, distinct
+                                        ? cursor->get_record_count(&context, 0)
+                                        : 1);
+        break;
+      }
+
+      /* if yes: use the cursor to traverse the page */
+      if (node->compare(&context, txnkey, 0) >= 0
+          && node->compare(&context, txnkey, node->get_count() - 1) <= 0) {
+        do {
+          Page *new_page = 0;
+          if (cursor->is_coupled_to_btree())
+            cursor->get_btree_cursor()->get_coupled_key(&new_page);
+          /* break the loop if we've reached the next page */
+          if (new_page && new_page != page) {
+            page = new_page;
+            break;
+          }
+          /* process the key */
+          (*visitor)(key.data, key.size, distinct
+                                        ? cursor->get_record_count(&context, 0)
+                                        : 1);
+        } while ((st = cursor_move_impl(&context, cursor, &key,
+                                0, HAM_CURSOR_NEXT)) == 0);
+
+        if (st != HAM_SUCCESS)
+          goto bail;
+      }
+      else {
+        /* Otherwise traverse directly in the btree page. This is the fastest
+         * code path. */
+        node->scan(&context, visitor, slot, distinct);
+        /* and then move to the next page */
+        if (cursor->get_btree_cursor()->move_to_next_page(&context) != 0)
+          break;
       }
     }
-    else {
-      /* Otherwise traverse directly in the btree page. This is the fastest
-       * code path. */
-      node->scan(&context, visitor, slot, distinct);
-      /* and then move to the next page */
-      if (cursor->get_btree_cursor()->move_to_next_page(&context) != 0)
-        break;
-    }
-  }
 
-  /* pick up the remaining transactional keys */
-  while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
-    (*visitor)(key.data, key.size, distinct
+    /* pick up the remaining transactional keys */
+    while ((st = cursor_move_impl(&context, cursor, &key,
+                            0, HAM_CURSOR_NEXT)) == 0) {
+      (*visitor)(key.data, key.size, distinct
                                      ? cursor->get_record_count(&context, 0)
                                      : 1);
+<<<<<<< HEAD
 >>>>>>> Removing changeset from Enviroment (wip)
   }
+=======
+    }
+>>>>>>> Moving exception handling to implementation classes
 
 <<<<<<< HEAD
 =======
 bail:
-  cursor_close(cursor);
+    if (cursor)
+      cursor_close(cursor);
+    return (st);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
 ham_status_t
 LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  Context context(get_local_env(), (LocalTransaction *)txn, this);
+  try {
+    Context context(get_local_env(), (LocalTransaction *)txn, this);
 
-  if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
-    if (key->size == 0 && key->data == 0) {
-      // ok!
+    if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
+      if (key->size == 0 && key->data == 0) {
+        // ok!
+      }
+      else if (key->size == 0 && key->data != 0) {
+        ham_trace(("for record number keys set key size to 0, "
+                               "key->data to null"));
+        return (HAM_INV_PARAMETER);
+      }
+      else if (key->size != m_config.key_size) {
+        ham_trace(("invalid key size (%u instead of %u)",
+              key->size, m_config.key_size));
+        return (HAM_INV_KEY_SIZE);
+      }
     }
-    else if (key->size == 0 && key->data != 0) {
-      ham_trace(("for record number keys set key size to 0, "
-                             "key->data to null"));
-      return (HAM_INV_PARAMETER);
-    }
-    else if (key->size != m_config.key_size) {
+    else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+        && key->size != m_config.key_size) {
       ham_trace(("invalid key size (%u instead of %u)",
             key->size, m_config.key_size));
       return (HAM_INV_KEY_SIZE);
     }
-  }
-  else if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-  if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
-      && record->size != m_config.record_size) {
-    ham_trace(("invalid record size (%u instead of %u)",
-          record->size, m_config.record_size));
-    return (HAM_INV_RECORD_SIZE);
-  }
-
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &get_key_arena()
-            : &txn->get_key_arena();
-
-  /*
-   * record number: make sure that we have a valid key structure,
-   * and lazy load the last used record number
-   *
-   * TODO TODO
-   * too much duplicated code
-   */
-  uint64_t recno = 0;
-  if (get_rt_flags() & HAM_RECORD_NUMBER64) {
-    if (flags & HAM_OVERWRITE) {
-      ham_assert(key->size == sizeof(uint64_t));
-      ham_assert(key->data != 0);
-      recno = *(uint64_t *)key->data;
-    }
-    else {
-      /* get the record number and increment it */
-      recno = get_incremented_recno();
+    if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED
+        && record->size != m_config.record_size) {
+      ham_trace(("invalid record size (%u instead of %u)",
+            record->size, m_config.record_size));
+      return (HAM_INV_RECORD_SIZE);
     }
 
-    /* allocate memory for the key */
-    if (!key->data) {
-      arena->resize(sizeof(uint64_t));
-      key->data = arena->get_ptr();
-    }
-    key->size = sizeof(uint64_t);
-    *(uint64_t *)key->data = recno;
+    ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+              ? &get_key_arena()
+              : &txn->get_key_arena();
 
-    /* A recno key is always appended sequentially */
-    flags |= HAM_HINT_APPEND;
+    /*
+     * record number: make sure that we have a valid key structure,
+     * and lazy load the last used record number
+     *
+     * TODO TODO
+     * too much duplicated code
+     */
+    uint64_t recno = 0;
+    if (get_rt_flags() & HAM_RECORD_NUMBER64) {
+      if (flags & HAM_OVERWRITE) {
+        ham_assert(key->size == sizeof(uint64_t));
+        ham_assert(key->data != 0);
+        recno = *(uint64_t *)key->data;
+      }
+      else {
+        /* get the record number and increment it */
+        recno = get_incremented_recno();
+      }
+
+      /* allocate memory for the key */
+      if (!key->data) {
+        arena->resize(sizeof(uint64_t));
+        key->data = arena->get_ptr();
+      }
+      key->size = sizeof(uint64_t);
+      *(uint64_t *)key->data = recno;
+
+      /* A recno key is always appended sequentially */
+      flags |= HAM_HINT_APPEND;
+    }
+    else if (get_rt_flags() & HAM_RECORD_NUMBER32) {
+      if (flags & HAM_OVERWRITE) {
+        ham_assert(key->size == sizeof(uint32_t));
+        ham_assert(key->data != 0);
+        recno = *(uint32_t *)key->data;
+      }
+      else {
+        /* get the record number and increment it */
+        recno = get_incremented_recno();
+      }
+  
+      /* allocate memory for the key */
+      if (!key->data) {
+        arena->resize(sizeof(uint32_t));
+        key->data = arena->get_ptr();
+      }
+      key->size = sizeof(uint32_t);
+      *(uint32_t *)key->data = recno;
+
+      /* A recno key is always appended sequentially */
+      flags |= HAM_HINT_APPEND;
+    }
+
+    ham_status_t st = 0;
+    LocalTransaction *local_txn = 0;
+
+    /* purge cache if necessary */
+    if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                          0, HAM_TXN_TEMPORARY);
+      txn = local_txn;
+    }
+
+    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+    return (insert_impl(&context, cursor, (LocalTransaction *)txn, key,
+                        record, flags));
   }
-  else if (get_rt_flags() & HAM_RECORD_NUMBER32) {
-    if (flags & HAM_OVERWRITE) {
-      ham_assert(key->size == sizeof(uint32_t));
-      ham_assert(key->data != 0);
-      recno = *(uint32_t *)key->data;
-    }
-    else {
-      /* get the record number and increment it */
-      recno = get_incremented_recno();
-    }
-
-    /* allocate memory for the key */
-    if (!key->data) {
-      arena->resize(sizeof(uint32_t));
-      key->data = arena->get_ptr();
-    }
-    key->size = sizeof(uint32_t);
-    *(uint32_t *)key->data = recno;
-
-    /* A recno key is always appended sequentially */
-    flags |= HAM_HINT_APPEND;
+  catch (Exception &ex) {
+    return (ex.code);
   }
-
-  ham_status_t st = 0;
-  LocalTransaction *local_txn = 0;
-
-  /* purge cache if necessary */
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
-  }
-
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-  return (insert_impl(&context, cursor, (LocalTransaction *)txn, key,
-              record, flags));
 }
 
 >>>>>>> Merging Database::insert and Database:cursor_insert
@@ -996,83 +1029,90 @@ ham_status_t
 LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
                 uint32_t flags)
 {
-  Context context(get_local_env(), (LocalTransaction *)txn, this);
+  try {
+    Context context(get_local_env(), (LocalTransaction *)txn, this);
 
-  ham_status_t st = 0;
-  LocalTransaction *local_txn = 0;
+    ham_status_t st = 0;
+    LocalTransaction *local_txn = 0;
 
-  if (cursor) {
-    if (cursor->is_nil())
-      throw Exception(HAM_CURSOR_IS_NIL);
-    if (cursor->is_coupled_to_txnop()) // TODO rewrite the next line, it's ugly
-      key = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
-    else // cursor->is_coupled_to_btree()
-      key = 0;
-  }
-
-  if (key) {
-    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-        && key->size != m_config.key_size) {
-      ham_trace(("invalid key size (%u instead of %u)",
-            key->size, m_config.key_size));
-      return (HAM_INV_KEY_SIZE);
+    if (cursor) {
+      if (cursor->is_nil())
+        throw Exception(HAM_CURSOR_IS_NIL);
+      if (cursor->is_coupled_to_txnop()) // TODO rewrite the next line, it's ugly
+        key = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+      else // cursor->is_coupled_to_btree()
+        key = 0;
     }
+
+    if (key) {
+      if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+          && key->size != m_config.key_size) {
+        ham_trace(("invalid key size (%u instead of %u)",
+              key->size, m_config.key_size));
+        return (HAM_INV_KEY_SIZE);
+      }
+    }
+
+    if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                          0, HAM_TXN_TEMPORARY);
+      txn = local_txn;
+    }
+
+    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+    return (erase_impl(&context, cursor, txn, key, flags));
   }
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
+  catch (Exception &ex) {
+    return (ex.code);
   }
-
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-  return (erase_impl(&context, cursor, txn, key, flags));
 }
 
 ham_status_t
 LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  Context context(get_local_env(), (LocalTransaction *)txn, this);
-
   ham_status_t st = 0;
   LocalTransaction *local_txn = 0;
 
-  /* Duplicates AND Transactions require a Cursor because only
-   * Cursors can build lists of duplicates.
-   * TODO not exception safe - if find() throws then the cursor is not closed
-   */
-  if (!cursor && txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    Cursor *c = cursor_create(txn, 0);
-    st = find(c, txn, key, record, flags);
-    cursor_close(c);
-    return (st);
-  }
+  try {
+    Context context(get_local_env(), (LocalTransaction *)txn, this);
 
-  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
+    /* Duplicates AND Transactions require a Cursor because only
+     * Cursors can build lists of duplicates.
+     * TODO not exception safe - if find() throws then the cursor is not closed
+     */
+    if (!cursor && txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+      Cursor *c = cursor_create_impl(txn, 0);
+      st = find(c, txn, key, record, flags);
+      cursor_close(c);
+      return (st);
+    }
 
-  // cursor: reset the dupecache, set to nil
-  // TODO merge both calls, only set to nil if find() was successful
-  if (cursor) {
-    cursor->clear_dupecache();
-    cursor->set_to_nil(Cursor::kBoth);
-  }
+    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
+        && key->size != m_config.key_size) {
+      ham_trace(("invalid key size (%u instead of %u)",
+            key->size, m_config.key_size));
+      return (HAM_INV_KEY_SIZE);
+    }
 
-  // create a temporary transaction, if necessary
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    txn = local_txn;
-  }
+    // cursor: reset the dupecache, set to nil
+    // TODO merge both calls, only set to nil if find() was successful
+    if (cursor) {
+      cursor->clear_dupecache();
+      cursor->set_to_nil(Cursor::kBoth);
+    }
 
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+    // create a temporary transaction, if necessary
+    if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+                          0, HAM_TXN_TEMPORARY);
+      txn = local_txn;
+    }
 
+    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+<<<<<<< HEAD
 <<<<<<< HEAD
   st = find_impl(cursor, (LocalTransaction *)txn, key, record, flags);
 >>>>>>> Merging Database::erase and Database::cursor_erase
@@ -1087,48 +1127,64 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
   st = find_impl(&context, cursor, (LocalTransaction *)txn, key, record, flags);
   if (st)
     return (st);
+=======
+    st = find_impl(&context, cursor, (LocalTransaction *)txn, key,
+                    record, flags);
+    if (st)
+      return (st);
+>>>>>>> Moving exception handling to implementation classes
 
-  if (cursor) {
-    // make sure that txn-cursor and btree-cursor point to the same keys
-    if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
-      bool is_equal;
-      (void)cursor->sync(&context, Cursor::kSyncOnlyEqualKeys, &is_equal);
-      if (!is_equal && cursor->is_coupled_to_txnop())
-        cursor->set_to_nil(Cursor::kBtree);
-    }
+    if (cursor) {
+      // make sure that txn-cursor and btree-cursor point to the same keys
+      if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
+        bool is_equal;
+        (void)cursor->sync(&context, Cursor::kSyncOnlyEqualKeys, &is_equal);
+        if (!is_equal && cursor->is_coupled_to_txnop())
+          cursor->set_to_nil(Cursor::kBtree);
+      }
 
-    /* if the key has duplicates: build a duplicate table, then couple to the
-     * first/oldest duplicate */
-    if (get_rt_flags() & HAM_ENABLE_DUPLICATES)
-      cursor->clear_dupecache();
+      /* if the key has duplicates: build a duplicate table, then couple to the
+       * first/oldest duplicate */
+      if (get_rt_flags() & HAM_ENABLE_DUPLICATES)
+        cursor->clear_dupecache();
 
-    if (cursor->get_dupecache_count(&context)) {
-      DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
-      if (e->use_btree())
-        cursor->couple_to_btree();
-      else
-        cursor->couple_to_txnop();
-      cursor->couple_to_dupe(1); // 1-based index!
-      if (record) { // TODO don't copy record if it was already
-                    // copied in find_impl
-        if (cursor->is_coupled_to_txnop())
-          cursor->get_txn_cursor()->copy_coupled_record(record);
-        else {
-          Transaction *txn = cursor->get_txn();
-          ByteArray *record_arena = (txn == 0
-                        || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                     ? &get_record_arena()
-                     : &txn->get_record_arena();
-          st = cursor->get_btree_cursor()->move(&context, 0, 0, record,
-                        record_arena, 0);
+      if (cursor->get_dupecache_count(&context)) {
+        DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
+        if (e->use_btree())
+          cursor->couple_to_btree();
+        else
+          cursor->couple_to_txnop();
+        cursor->couple_to_dupe(1); // 1-based index!
+        if (record) { // TODO don't copy record if it was already
+                      // copied in find_impl
+          if (cursor->is_coupled_to_txnop())
+            cursor->get_txn_cursor()->copy_coupled_record(record);
+          else {
+            Transaction *txn = cursor->get_txn();
+            ByteArray *record_arena = (txn == 0
+                          || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                       ? &get_record_arena()
+                       : &txn->get_record_arena();
+            st = cursor->get_btree_cursor()->move(&context, 0, 0, record,
+                          record_arena, 0);
+          }
         }
       }
-    }
 
+<<<<<<< HEAD
     /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::kLookupOrInsert);
 >>>>>>> Removing changeset from Enviroment (wip)
+=======
+      /* set a flag that the cursor just completed an Insert-or-find
+       * operation; this information is needed in ham_cursor_move */
+      cursor->set_lastop(Cursor::kLookupOrInsert);
+    }
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+>>>>>>> Moving exception handling to implementation classes
   }
 #endif
 =======
@@ -1147,62 +1203,94 @@ LocalDatabase::cursor_clone_impl(Cursor *src)
   return (new Cursor(*src));
 }
 
-uint32_t
-LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags)
+ham_status_t
+LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags,
+                    uint32_t *pcount)
 {
-  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
-  return (cursor->get_record_count(&context, flags));
+  try {
+    Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(),
+            this);
+    *pcount = cursor->get_record_count(&context, flags);
+    return (0);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
-uint32_t
-LocalDatabase::cursor_get_duplicate_position(Cursor *cursor)
+ham_status_t
+LocalDatabase::cursor_get_duplicate_position(Cursor *cursor,
+                    uint32_t *pposition)
 {
-  return (cursor->get_duplicate_position());
+  try {
+    *pposition = cursor->get_duplicate_position();
+    return (0);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
-uint64_t
-LocalDatabase::cursor_get_record_size(Cursor *cursor)
+ham_status_t
+LocalDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *psize)
 {
-  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
-  return (cursor->get_record_size(&context));
+  try {
+    Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(),
+            this);
+    *psize = cursor->get_record_size(&context);
+    return (0);
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
 ham_status_t
 LocalDatabase::cursor_overwrite(Cursor *cursor,
                 ham_record_t *record, uint32_t flags)
 {
-  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
-
   ham_status_t st = 0;
   Transaction *local_txn = 0;
 
-  /* purge cache if necessary */
-  get_local_env()->page_manager()->purge_cache(&context);
+  try {
+    Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(),
+                    this);
 
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+    /* purge cache if necessary */
+    get_local_env()->page_manager()->purge_cache(&context);
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+    }
+
+    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
+
+    /* this function will do all the work */
+    return (cursor->overwrite(&context, cursor->get_txn()
+                                          ? cursor->get_txn()
+                                          : local_txn,
+                              record, flags));
   }
-
-  FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-  /* this function will do all the work */
-  st = cursor->overwrite(&context, cursor->get_txn()
-                                        ? cursor->get_txn()
-                                        : local_txn,
-                            record, flags);
-
-  return (st);
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
 ham_status_t
 LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
-  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
+  try {
+    Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(),
+            this);
 
-  return (cursor_move_impl(&context, cursor, key, record, flags));
+    return (cursor_move_impl(&context, cursor, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  } 
 }
 
 ham_status_t

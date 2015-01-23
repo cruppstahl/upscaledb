@@ -140,7 +140,8 @@ class Environment
                     const ham_parameter_t *param) = 0;
 
     // Begins a new transaction (ham_txn_begin)
-    virtual Transaction *txn_begin(const char *name, uint32_t flags) = 0;
+    virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
+                    uint32_t flags) = 0;
 
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(uint32_t flags) = 0;

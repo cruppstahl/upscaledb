@@ -93,16 +93,17 @@ class LocalDatabase : public Database {
     void erase_me();
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual void get_parameters(ham_parameter_t *param);
+    virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual void check_integrity(uint32_t flags);
+    virtual ham_status_t check_integrity(uint32_t flags);
 
     // Returns the number of keys
-    virtual uint64_t count(Transaction *txn, bool distinct);
+    virtual ham_status_t count(Transaction *txn, bool distinct,
+                    uint64_t *pcount);
 
     // Scans the whole database, applies a processor function
-    virtual void scan(Transaction *txn, ScanVisitor *visitor,
+    virtual ham_status_t scan(Transaction *txn, ScanVisitor *visitor,
                     bool distinct);
 
     // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
@@ -118,13 +119,16 @@ class LocalDatabase : public Database {
                     ham_record_t *record, uint32_t flags);
 
     // Returns number of duplicates (ham_cursor_get_record_count)
-    virtual uint32_t cursor_get_record_count(Cursor *cursor, uint32_t flags);
+    virtual ham_status_t cursor_get_record_count(Cursor *cursor, uint32_t flags,
+                    uint32_t *pcount);
 
     // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    virtual uint32_t cursor_get_duplicate_position(Cursor *cursor);
+    virtual ham_status_t cursor_get_duplicate_position(Cursor *cursor,
+                    uint32_t *pposition);
 
     // Get current record size (ham_cursor_get_record_size)
-    virtual uint64_t cursor_get_record_size(Cursor *cursor);
+    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
+                    uint64_t *psize);
 
     // Overwrites the record of a cursor (ham_cursor_overwrite)
     virtual ham_status_t cursor_overwrite(Cursor *cursor,
@@ -168,6 +172,8 @@ class LocalDatabase : public Database {
                     TransactionOperation *op);
 
   protected:
+    friend class Cursor;
+
     // Copies the ham_record_t structure from |op| into |record|
     static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
                     TransactionOperation *op, ham_record_t *record);

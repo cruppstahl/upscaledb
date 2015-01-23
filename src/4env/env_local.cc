@@ -49,52 +49,57 @@ LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
 ham_status_t
 LocalEnvironment::create()
 {
-  if (m_config.flags & HAM_IN_MEMORY)
-    m_config.flags |= HAM_DISABLE_RECLAIM_INTERNAL;
+  try {
+    if (m_config.flags & HAM_IN_MEMORY)
+      m_config.flags |= HAM_DISABLE_RECLAIM_INTERNAL;
 
-  /* initialize the device if it does not yet exist */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
-  m_device.reset(DeviceFactory::create(m_config));
-  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTransactionManager(this));
+    /* initialize the device if it does not yet exist */
+    m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+    m_device.reset(DeviceFactory::create(m_config));
+    if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
+      m_txn_manager.reset(new LocalTransactionManager(this));
 
-  /* create the file */
-  m_device->create();
+    /* create the file */
+    m_device->create();
 
-  /* allocate the header page */
-  Page *page = new Page(m_device.get());
-  page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
-  ::memset(page->get_data(), 0, m_config.page_size_bytes);
-  page->set_type(Page::kTypeHeader);
-  page->set_dirty(true);
+    /* allocate the header page */
+    Page *page = new Page(m_device.get());
+    page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
+    ::memset(page->get_data(), 0, m_config.page_size_bytes);
+    page->set_type(Page::kTypeHeader);
+    page->set_dirty(true);
 
-  m_header.reset(new EnvironmentHeader(page));
+    m_header.reset(new EnvironmentHeader(page));
 
-  /* initialize the header */
-  m_header->set_magic('H', 'A', 'M', '\0');
-  m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
-          HAM_FILE_VERSION);
-  m_header->set_page_size(m_config.page_size_bytes);
-  m_header->set_max_databases(m_config.max_databases);
+    /* initialize the header */
+    m_header->set_magic('H', 'A', 'M', '\0');
+    m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
+            HAM_FILE_VERSION);
+    m_header->set_page_size(m_config.page_size_bytes);
+    m_header->set_max_databases(m_config.max_databases);
 
-  /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this));
+    /* load page manager after setting up the blobmanager and the device! */
+    m_page_manager.reset(PageManagerFactory::create(this));
 
-  /* create a logfile and a journal (if requested) */
-  if (get_flags() & HAM_ENABLE_RECOVERY) {
-    m_journal.reset(new Journal(this));
-    m_journal->create();
-    if (m_config.journal_switch_threshold)
-      m_journal->set_switch_threshold(m_config.journal_switch_threshold);
+    /* create a logfile and a journal (if requested) */
+    if (get_flags() & HAM_ENABLE_RECOVERY) {
+      m_journal.reset(new Journal(this));
+      m_journal->create();
+      if (m_config.journal_switch_threshold)
+        m_journal->set_switch_threshold(m_config.journal_switch_threshold);
+    }
+
+    /* flush the header page - this will write through disk if logging is
+     * enabled */
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      m_header->get_header_page()->flush();
+
+    /* last step: start the worker thread */
+    m_worker.reset(new Worker(this));
   }
-
-  /* flush the header page - this will write through disk if logging is
-   * enabled */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_header->get_header_page()->flush();
-
-  /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 
   return (0);
 }
@@ -102,115 +107,116 @@ LocalEnvironment::create()
 ham_status_t
 LocalEnvironment::open()
 {
-  Context context(this);
   ham_status_t st = 0;
 
-  /* Initialize the device if it does not yet exist. The page size will
-   * be filled in later (at this point in time, it's still unknown) */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
-  m_device.reset(DeviceFactory::create(m_config));
+  try {
+    Context context(this);
 
-  /* open the file */
-  m_device->open();
+    /* Initialize the device if it does not yet exist. The page size will
+     * be filled in later (at this point in time, it's still unknown) */
+    m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+    m_device.reset(DeviceFactory::create(m_config));
 
-  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTransactionManager(this));
+    /* open the file */
+    m_device->open();
 
-  /*
-   * read the database header
-   *
-   * !!!
-   * now this is an ugly problem - the database header spans one page, but
-   * what's the size of this page? chances are good that it's the default
-   * page-size, but we really can't be sure.
-   *
-   * read 512 byte and extract the "real" page size, then read
-   * the real page.
-   */
-  {
-    Page *page = 0;
-    uint8_t hdrbuf[512];
+    if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
+      m_txn_manager.reset(new LocalTransactionManager(this));
 
     /*
-     * in here, we're going to set up a faked headerpage for the
-     * duration of this call; BE VERY CAREFUL: we MUST clean up
-     * at the end of this section or we'll be in BIG trouble!
+     * read the database header
+     *
+     * !!!
+     * now this is an ugly problem - the database header spans one page, but
+     * what's the size of this page? chances are good that it's the default
+     * page-size, but we really can't be sure.
+     *
+     * read 512 byte and extract the "real" page size, then read
+     * the real page.
      */
-    Page fakepage(m_device.get());
-    fakepage.set_data((PPageData *)hdrbuf);
+    {
+      Page *page = 0;
+      uint8_t hdrbuf[512];
 
-    /* create the configuration object */
-    m_header.reset(new EnvironmentHeader(&fakepage));
+      /*
+       * in here, we're going to set up a faked headerpage for the
+       * duration of this call; BE VERY CAREFUL: we MUST clean up
+       * at the end of this section or we'll be in BIG trouble!
+       */
+      Page fakepage(m_device.get());
+      fakepage.set_data((PPageData *)hdrbuf);
 
-    /*
-     * now fetch the header data we need to get an estimate of what
-     * the database is made of really.
-     */
-    m_device->read(0, hdrbuf, sizeof(hdrbuf));
+      /* create the configuration object */
+      m_header.reset(new EnvironmentHeader(&fakepage));
 
-    m_config.page_size_bytes = m_header->page_size();
+      /*
+       * now fetch the header data we need to get an estimate of what
+       * the database is made of really.
+       */
+      m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
-    /** check the file magic */
-    if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
-      ham_log(("invalid file type"));
-      st  =  HAM_INV_FILE_HEADER;
-      goto fail_with_fake_cleansing;
-    }
+      m_config.page_size_bytes = m_header->page_size();
 
-    /* check the database version; everything with a different file version
-     * is incompatible */
-    if (m_header->get_version(3) != HAM_FILE_VERSION) {
-      ham_log(("invalid file version"));
-      st = HAM_INV_FILE_VERSION;
-      goto fail_with_fake_cleansing;
-    }
-    else if (m_header->get_version(0) == 1 &&
-      m_header->get_version(1) == 0 &&
-      m_header->get_version(2) <= 9) {
-      ham_log(("invalid file version; < 1.0.9 is not supported"));
-      st = HAM_INV_FILE_VERSION;
-      goto fail_with_fake_cleansing;
-    }
+      /** check the file magic */
+      if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
+        ham_log(("invalid file type"));
+        st =  HAM_INV_FILE_HEADER;
+        goto fail_with_fake_cleansing;
+      }
 
-    st = 0;
+      /* check the database version; everything with a different file version
+       * is incompatible */
+      if (m_header->get_version(3) != HAM_FILE_VERSION) {
+        ham_log(("invalid file version"));
+        st = HAM_INV_FILE_VERSION;
+        goto fail_with_fake_cleansing;
+      }
+      else if (m_header->get_version(0) == 1 &&
+        m_header->get_version(1) == 0 &&
+        m_header->get_version(2) <= 9) {
+        ham_log(("invalid file version; < 1.0.9 is not supported"));
+        st = HAM_INV_FILE_VERSION;
+        goto fail_with_fake_cleansing;
+      }
+
+      st = 0;
 
 fail_with_fake_cleansing:
 
-    /* undo the headerpage fake first! */
-    fakepage.set_data(0);
-    m_header.reset(0);
+      /* undo the headerpage fake first! */
+      fakepage.set_data(0);
+      m_header.reset(0);
 
-    /* exit when an error was signaled */
-    if (st) {
-      if (m_device->is_open())
-        m_device->close();
-      return (st);
+      /* exit when an error was signaled */
+      if (st) {
+        if (m_device->is_open())
+          m_device->close();
+        return (st);
+      }
+
+      /* now read the "real" header page and store it in the Environment */
+      page = new Page(m_device.get());
+      page->fetch(0);
+      m_header.reset(new EnvironmentHeader(page));
     }
 
-    /* now read the "real" header page and store it in the Environment */
-    page = new Page(m_device.get());
-    page->fetch(0);
-    m_header.reset(new EnvironmentHeader(page));
+    /* load page manager after setting up the blobmanager and the device! */
+    m_page_manager.reset(PageManagerFactory::create(this));
+
+    /* check if recovery is required */
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      recover(m_config.flags);
+
+    /* load the state of the PageManager */
+    if (m_header->get_page_manager_blobid() != 0)
+      m_page_manager->initialize(m_header->get_page_manager_blobid());
+
+    /* last step: start the worker thread */
+    m_worker.reset(new Worker(this));
   }
-
-  /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this));
-
-  /*
-   * open the logfile and check if we need recovery. first open the
-   * (physical) log and re-apply it. afterwards to the same with the
-   * (logical) journal.
-   */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    recover(m_config.flags);
-
-  /* load the state of the PageManager */
-  if (m_header->get_page_manager_blobid() != 0) {
-    m_page_manager->initialize(m_header->get_page_manager_blobid());
+  catch (Exception &ex) {
+    return (ex.code);
   }
-
-  /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -218,38 +224,44 @@ fail_with_fake_cleansing:
 ham_status_t
 LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
-  Context context(this);
   ham_status_t st = 0;
 
-  /*
-   * check if a database with the new name already exists; also search
-   * for the database with the old name
-   */
-  uint16_t max = m_header->get_max_databases();
-  uint16_t slot = max;
-  ham_assert(max > 0);
-  for (uint16_t dbi = 0; dbi < max; dbi++) {
-    uint16_t name = get_btree_descriptor(dbi)->get_dbname();
-    if (name == newname)
-      return (HAM_DATABASE_ALREADY_EXISTS);
-    if (name == oldname)
-      slot = dbi;
+  try {
+    Context context(this);
+
+    /*
+     * check if a database with the new name already exists; also search
+     * for the database with the old name
+     */
+    uint16_t max = m_header->get_max_databases();
+    uint16_t slot = max;
+    ham_assert(max > 0);
+    for (uint16_t dbi = 0; dbi < max; dbi++) {
+      uint16_t name = get_btree_descriptor(dbi)->get_dbname();
+      if (name == newname)
+        return (HAM_DATABASE_ALREADY_EXISTS);
+      if (name == oldname)
+        slot = dbi;
+    }
+
+    if (slot == max)
+      return (HAM_DATABASE_NOT_FOUND);
+
+    /* replace the database name with the new name */
+    get_btree_descriptor(slot)->set_dbname(newname);
+    mark_header_page_dirty(&context);
+
+    /* if the database with the old name is currently open: notify it */
+    Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
+    if (it != get_database_map().end()) {
+      Database *db = it->second;
+      it->second->set_name(newname);
+      get_database_map().erase(oldname);
+      get_database_map().insert(DatabaseMap::value_type(newname, db));
+    }
   }
-
-  if (slot == max)
-    return (HAM_DATABASE_NOT_FOUND);
-
-  /* replace the database name with the new name */
-  get_btree_descriptor(slot)->set_dbname(newname);
-  mark_header_page_dirty(&context);
-
-  /* if the database with the old name is currently open: notify it */
-  Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
-  if (it != get_database_map().end()) {
-    Database *db = it->second;
-    it->second->set_name(newname);
-    get_database_map().erase(oldname);
-    get_database_map().insert(DatabaseMap::value_type(newname, db));
+  catch (Exception &ex) {
+    return (ex.code);
   }
 
   return (st);
@@ -258,56 +270,61 @@ LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 ham_status_t
 LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
 {
-  Context context(this);
+  try {
+    Context context(this);
 
-  /* check if this database is still open */
-  if (get_database_map().find(name) != get_database_map().end())
-    return (HAM_DATABASE_ALREADY_OPEN);
+    /* check if this database is still open */
+    if (get_database_map().find(name) != get_database_map().end())
+      return (HAM_DATABASE_ALREADY_OPEN);
 
-  /*
-   * if it's an in-memory environment then it's enough to purge the
-   * database from the environment header
-   */
-  if (get_flags() & HAM_IN_MEMORY) {
+    /*
+     * if it's an in-memory environment then it's enough to purge the
+     * database from the environment header
+     */
+    if (get_flags() & HAM_IN_MEMORY) {
+      for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+        PBtreeHeader *desc = get_btree_descriptor(dbi);
+        if (name == desc->get_dbname()) {
+          desc->set_dbname(0);
+          return (0);
+        }
+      }
+      return (HAM_DATABASE_NOT_FOUND);
+    }
+
+    /* temporarily load the database */
+    LocalDatabase *db;
+    DatabaseConfiguration config;
+    config.db_name = name;
+    ham_status_t st = open_db((Database **)&db, config, 0);
+    if (st)
+      return (st);
+
+    /*
+     * delete all blobs and extended keys, also from the cache and
+     * the extkey-cache
+     *
+     * also delete all pages and move them to the freelist; if they're
+     * cached, delete them from the cache
+     */
+    db->erase_me();
+
+    /* now set database name to 0 and set the header page to dirty */
     for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
       PBtreeHeader *desc = get_btree_descriptor(dbi);
       if (name == desc->get_dbname()) {
         desc->set_dbname(0);
-        return (0);
+        break;
       }
     }
-    return (HAM_DATABASE_NOT_FOUND);
+
+    mark_header_page_dirty(&context);
+
+    (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
   }
-
-  /* temporarily load the database */
-  LocalDatabase *db;
-  DatabaseConfiguration config;
-  config.db_name = name;
-  ham_status_t st = open_db((Database **)&db, config, 0);
-  if (st)
-    return (st);
-
-  /*
-   * delete all blobs and extended keys, also from the cache and
-   * the extkey-cache
-   *
-   * also delete all pages and move them to the freelist; if they're
-   * cached, delete them from the cache
-   */
-  db->erase_me();
-
-  /* now set database name to 0 and set the header page to dirty */
-  for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-    PBtreeHeader *desc = get_btree_descriptor(dbi);
-    if (name == desc->get_dbname()) {
-      desc->set_dbname(0);
-      break;
-    }
+  catch (Exception &ex) {
+    return (ex.code);
   }
-
-  mark_header_page_dirty(&context);
-
-  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
   return (0);
 }
@@ -341,70 +358,74 @@ LocalEnvironment::get_database_names(uint16_t *names, uint32_t *count)
 ham_status_t
 LocalEnvironment::close(uint32_t flags)
 {
-  Context context(this);
+  ham_status_t st = 0;
 
-  ham_status_t st;
+  try {
+    Context context(this);
 
-  /* wait for the worker thread to stop */
-  if (m_worker.get())
-    m_worker->stop_and_join();
+    /* wait for the worker thread to stop */
+    if (m_worker.get())
+      m_worker->stop_and_join();
 
-  /* flush all committed transactions */
-  if (get_txn_manager())
-    get_txn_manager()->flush_committed_txns(&context);
+    /* flush all committed transactions */
+    if (get_txn_manager())
+      get_txn_manager()->flush_committed_txns(&context);
 
-  /* close all databases */
-  Environment::DatabaseMap::iterator it = get_database_map().begin();
-  while (it != get_database_map().end()) {
-    Environment::DatabaseMap::iterator it2 = it; it++;
-    Database *db = it2->second;
-    if (flags & HAM_AUTO_CLEANUP)
-      st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
-    else
-      st = db->close(flags);
-    if (st)
-      return (st);
-  }
-
-  /* flush all committed transactions */
-  // TODO again?
-  if (m_txn_manager)
-    get_txn_manager()->flush_committed_txns(&context);
-
-  /* flush all pages and the freelist, reduce the file size */
-  if (m_page_manager)
-    m_page_manager->close();
-
-  /* if we're not in read-only mode, and not an in-memory-database,
-   * and the dirty-flag is true: flush the page-header to disk
-   */
-  if (m_header && m_header->get_header_page() && !(get_flags() & HAM_IN_MEMORY)
-        && m_device.get() && m_device.get()->is_open()
-        && (!(get_flags() & HAM_READ_ONLY))) {
-    m_header->get_header_page()->flush();
-  }
-
-  /* close the header page */
-  if (m_header && m_header->get_header_page()) {
-    Page *page = m_header->get_header_page();
-    if (page->get_data())
-      m_device->free_page(page);
-    delete page;
-    m_header.reset();
-  }
-
-  /* close the device */
-  if (m_device) {
-    if (m_device->is_open()) {
-      if (!(get_flags() & HAM_READ_ONLY))
-        m_device->flush();
-      m_device->close();
+    /* close all databases */
+    Environment::DatabaseMap::iterator it = get_database_map().begin();
+    while (it != get_database_map().end()) {
+      Environment::DatabaseMap::iterator it2 = it; it++;
+      Database *db = it2->second;
+      if (flags & HAM_AUTO_CLEANUP)
+        st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
+      else
+        st = db->close(flags);
+      if (st)
+        return (st);
     }
-  }
 
-  /* close the log and the journal */
-  if (m_journal)
-    m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
+    /* flush all committed transactions */
+    // TODO again?
+    if (m_txn_manager)
+      get_txn_manager()->flush_committed_txns(&context);
+
+    /* flush all pages and the freelist, reduce the file size */
+    if (m_page_manager)
+      m_page_manager->close();
+
+    /* if we're not in read-only mode, and not an in-memory-database,
+     * and the dirty-flag is true: flush the page-header to disk */
+    if (m_header && m_header->get_header_page() && !(get_flags() & HAM_IN_MEMORY)
+          && m_device.get() && m_device.get()->is_open()
+          && (!(get_flags() & HAM_READ_ONLY))) {
+      m_header->get_header_page()->flush();
+    }
+
+    /* close the header page */
+    if (m_header && m_header->get_header_page()) {
+      Page *page = m_header->get_header_page();
+      if (page->get_data())
+        m_device->free_page(page);
+      delete page;
+      m_header.reset();
+    }
+
+    /* close the device */
+    if (m_device) {
+      if (m_device->is_open()) {
+        if (!(get_flags() & HAM_READ_ONLY))
+          m_device->flush();
+        m_device->close();
+      }
+    }
+
+    /* close the log and the journal */
+    if (m_journal)
+      m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 
   return (0);
 }
@@ -466,167 +487,176 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
 ham_status_t
 LocalEnvironment::flush(uint32_t flags)
 {
-  Context context(this, 0, 0);
+  try {
+    Context context(this, 0, 0);
 
-  /* never flush an in-memory-database */
-  if (get_flags() & HAM_IN_MEMORY)
-    return (0);
+    /* never flush an in-memory-database */
+    if (get_flags() & HAM_IN_MEMORY)
+      return (0);
 
-  /* flush all committed transactions */
-  if (get_txn_manager())
-    get_txn_manager()->flush_committed_txns(&context);
+    /* flush all committed transactions */
+    if (get_txn_manager())
+      get_txn_manager()->flush_committed_txns(&context);
 
-  /* flush the header page */
-  m_header->get_header_page()->flush();
+    /* flush the header page */
+    m_header->get_header_page()->flush();
 
-  /* flush all open pages to disk */
-  m_page_manager->flush();
+    /* flush all open pages to disk */
+    m_page_manager->flush();
 
-  /* flush the device - this usually causes a fsync() */
-  m_device->flush();
+    /* flush the device - this usually causes a fsync() */
+    m_device->flush();
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 
-  return (HAM_SUCCESS);
+  return (0);
 }
 
 ham_status_t
 LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
-            const ham_parameter_t *param)
+                const ham_parameter_t *param)
 {
-  *pdb = 0;
+  try {
+    Context context(this);
 
-  if (get_flags() & HAM_READ_ONLY) {
-    ham_trace(("cannot create database in a read-only environment"));
-    return (HAM_WRITE_PROTECTED);
-  }
+    if (get_flags() & HAM_READ_ONLY) {
+      ham_trace(("cannot create database in a read-only environment"));
+      return (HAM_WRITE_PROTECTED);
+    }
 
-  Context context(this);
-
-  if (param) {
-    for (; param->name; param++) {
-      switch (param->name) {
-        case HAM_PARAM_RECORD_COMPRESSION:
-          ham_trace(("Record compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
-        case HAM_PARAM_KEY_COMPRESSION:
-          ham_trace(("Key compression is only available in hamsterdb pro"));
-          return (HAM_NOT_IMPLEMENTED);
-        case HAM_PARAM_KEY_TYPE:
-          config.key_type = (uint16_t)param->value;
-          break;
-        case HAM_PARAM_KEY_SIZE:
-          if (param->value != 0) {
-            if (param->value > 0xffff) {
-              ham_trace(("invalid key size %u - must be < 0xffff"));
-              return (HAM_INV_KEY_SIZE);
-            }
-            if (config.flags & HAM_RECORD_NUMBER32) {
-              if (param->value > 0 && param->value != sizeof(uint32_t)) {
-                ham_trace(("invalid key size %u - must be 4 for "
-                           "HAM_RECORD_NUMBER32 databases",
-                           (unsigned)param->value));
+    if (param) {
+      for (; param->name; param++) {
+        switch (param->name) {
+          case HAM_PARAM_RECORD_COMPRESSION:
+            ham_trace(("Record compression is only available in hamsterdb pro"));
+            return (HAM_NOT_IMPLEMENTED);
+          case HAM_PARAM_KEY_COMPRESSION:
+            ham_trace(("Key compression is only available in hamsterdb pro"));
+            return (HAM_NOT_IMPLEMENTED);
+          case HAM_PARAM_KEY_TYPE:
+            config.key_type = (uint16_t)param->value;
+            break;
+          case HAM_PARAM_KEY_SIZE:
+            if (param->value != 0) {
+              if (param->value > 0xffff) {
+                ham_trace(("invalid key size %u - must be < 0xffff"));
                 return (HAM_INV_KEY_SIZE);
               }
-            }
-            if (config.flags & HAM_RECORD_NUMBER64) {
-              if (param->value > 0 && param->value != sizeof(uint64_t)) {
-                ham_trace(("invalid key size %u - must be 8 for "
-                           "HAM_RECORD_NUMBER64 databases",
-                           (unsigned)param->value));
-                return (HAM_INV_KEY_SIZE);
+              if (config.flags & HAM_RECORD_NUMBER32) {
+                if (param->value > 0 && param->value != sizeof(uint32_t)) {
+                  ham_trace(("invalid key size %u - must be 4 for "
+                             "HAM_RECORD_NUMBER32 databases",
+                             (unsigned)param->value));
+                  return (HAM_INV_KEY_SIZE);
+                }
               }
+              if (config.flags & HAM_RECORD_NUMBER64) {
+                if (param->value > 0 && param->value != sizeof(uint64_t)) {
+                  ham_trace(("invalid key size %u - must be 8 for "
+                             "HAM_RECORD_NUMBER64 databases",
+                             (unsigned)param->value));
+                  return (HAM_INV_KEY_SIZE);
+                }
+              }
+              config.key_size = (uint16_t)param->value;
             }
-            config.key_size = (uint16_t)param->value;
-          }
-          break;
-        case HAM_PARAM_RECORD_SIZE:
-          config.record_size = (uint32_t)param->value;
-          break;
-        default:
-          ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
-          return (HAM_INV_PARAMETER);
+            break;
+          case HAM_PARAM_RECORD_SIZE:
+            config.record_size = (uint32_t)param->value;
+            break;
+          default:
+            ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
+            return (HAM_INV_PARAMETER);
+        }
       }
     }
-  }
 
-  if (config.flags & HAM_RECORD_NUMBER32) {
-    if (config.key_type == HAM_TYPE_UINT8
-        || config.key_type == HAM_TYPE_UINT16
-        || config.key_type == HAM_TYPE_UINT64
-        || config.key_type == HAM_TYPE_REAL32
-        || config.key_type == HAM_TYPE_REAL64) {
-      ham_trace(("HAM_RECORD_NUMBER32 not allowed in combination with "
-                      "fixed length type"));
+    if (config.flags & HAM_RECORD_NUMBER32) {
+      if (config.key_type == HAM_TYPE_UINT8
+          || config.key_type == HAM_TYPE_UINT16
+          || config.key_type == HAM_TYPE_UINT64
+          || config.key_type == HAM_TYPE_REAL32
+          || config.key_type == HAM_TYPE_REAL64) {
+        ham_trace(("HAM_RECORD_NUMBER32 not allowed in combination with "
+                        "fixed length type"));
+        return (HAM_INV_PARAMETER);
+      }
+      config.key_type = HAM_TYPE_UINT32;
+    }
+    else if (config.flags & HAM_RECORD_NUMBER64) {
+      if (config.key_type == HAM_TYPE_UINT8
+          || config.key_type == HAM_TYPE_UINT16
+          || config.key_type == HAM_TYPE_UINT32
+          || config.key_type == HAM_TYPE_REAL32
+          || config.key_type == HAM_TYPE_REAL64) {
+        ham_trace(("HAM_RECORD_NUMBER64 not allowed in combination with "
+                        "fixed length type"));
+        return (HAM_INV_PARAMETER);
+      }
+      config.key_type = HAM_TYPE_UINT64;
+    }
+
+    uint32_t mask = HAM_FORCE_RECORDS_INLINE
+                      | HAM_FLUSH_WHEN_COMMITTED
+                      | HAM_ENABLE_DUPLICATE_KEYS
+                      | HAM_RECORD_NUMBER32
+                      | HAM_RECORD_NUMBER64;
+    if (config.flags & ~mask) {
+      ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
       return (HAM_INV_PARAMETER);
     }
-    config.key_type = HAM_TYPE_UINT32;
-  }
-  else if (config.flags & HAM_RECORD_NUMBER64) {
-    if (config.key_type == HAM_TYPE_UINT8
-        || config.key_type == HAM_TYPE_UINT16
-        || config.key_type == HAM_TYPE_UINT32
-        || config.key_type == HAM_TYPE_REAL32
-        || config.key_type == HAM_TYPE_REAL64) {
-      ham_trace(("HAM_RECORD_NUMBER64 not allowed in combination with "
-                      "fixed length type"));
-      return (HAM_INV_PARAMETER);
+
+    /* create a new Database object */
+    LocalDatabase *db = new LocalDatabase(this, config);
+
+    /* check if this database name is unique */
+    uint16_t dbi;
+    for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
+      uint16_t name = get_btree_descriptor(i)->get_dbname();
+      if (!name)
+        continue;
+      if (name == config.db_name) {
+        delete db;
+        return (HAM_DATABASE_ALREADY_EXISTS);
+      }
     }
-    config.key_type = HAM_TYPE_UINT64;
-  }
 
-  uint32_t mask = HAM_FORCE_RECORDS_INLINE
-                    | HAM_FLUSH_WHEN_COMMITTED
-                    | HAM_ENABLE_DUPLICATE_KEYS
-                    | HAM_RECORD_NUMBER32
-                    | HAM_RECORD_NUMBER64;
-  if (config.flags & ~mask) {
-    ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
-    return (HAM_INV_PARAMETER);
-  }
-
-  /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, config);
-
-  /* check if this database name is unique */
-  uint16_t dbi;
-  for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
-    uint16_t name = get_btree_descriptor(i)->get_dbname();
-    if (!name)
-      continue;
-    if (name == config.db_name) {
+    /* find a free slot in the PBtreeHeader array and store the name */
+    for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+      uint16_t name = get_btree_descriptor(dbi)->get_dbname();
+      if (!name) {
+        get_btree_descriptor(dbi)->set_dbname(config.db_name);
+        break;
+      }
+    }
+    if (dbi == m_header->get_max_databases()) {
       delete db;
-      return (HAM_DATABASE_ALREADY_EXISTS);
+      return (HAM_LIMITS_REACHED);
     }
-  }
 
-  /* find a free slot in the PBtreeHeader array and store the name */
-  for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-    uint16_t name = get_btree_descriptor(dbi)->get_dbname();
-    if (!name) {
-      get_btree_descriptor(dbi)->set_dbname(config.db_name);
-      break;
+    /* initialize the Database */
+    ham_status_t st = db->create(dbi);
+    if (st) {
+      delete db;
+      return (st);
     }
+
+    mark_header_page_dirty(&context);
+
+    /*
+     * on success: store the open database in the environment's list of
+     * opened databases
+     */
+    get_database_map()[config.db_name] = db;
+
+    *pdb = db;
   }
-  if (dbi == m_header->get_max_databases()) {
-    delete db;
-    return (HAM_LIMITS_REACHED);
+  catch (Exception &ex) {
+    *pdb = 0;
+    return (ex.code);
   }
-
-  /* initialize the Database */
-  ham_status_t st = db->create(dbi);
-  if (st) {
-    delete db;
-    return (st);
-  }
-
-  mark_header_page_dirty(&context);
-
-  /*
-   * on success: store the open database in the environment's list of
-   * opened databases
-   */
-  get_database_map()[config.db_name] = db;
-
-  *pdb = db;
   
   return (0);
 }
@@ -704,10 +734,17 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   return (0);
 }
 
-Transaction *
-LocalEnvironment::txn_begin(const char *name, uint32_t flags)
+ham_status_t
+LocalEnvironment::txn_begin(Transaction **ptxn, const char *name,
+                    uint32_t flags)
 {
-  return (m_txn_manager->begin(name, flags));
+  try {
+    *ptxn = m_txn_manager->begin(name, flags);
+  }
+  catch (Exception ex) {
+    return (ex.code);
+  }
+  return (0);
 }
 
 void

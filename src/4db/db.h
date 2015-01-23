@@ -88,16 +88,17 @@ class Database
     }
 
     // Returns Database parameters (ham_db_get_parameters)
-    virtual void get_parameters(ham_parameter_t *param) = 0;
+    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
     // Checks Database integrity (ham_db_check_integrity)
-    virtual void check_integrity(uint32_t flags) = 0;
+    virtual ham_status_t check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ham_db_get_key_count)
-    virtual uint64_t count(Transaction *txn, bool distinct) = 0;
+    virtual ham_status_t count(Transaction *txn, bool distinct,
+                    uint64_t *pcount) = 0;
 
     // Scans the whole database, applies a processor function
-    virtual void scan(Transaction *txn, ScanVisitor *visitor,
+    virtual ham_status_t scan(Transaction *txn, ScanVisitor *visitor,
                     bool distinct) = 0;
 
     // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
@@ -113,20 +114,23 @@ class Database
                     ham_record_t *record, uint32_t flags) = 0;
 
     // Creates a cursor (ham_cursor_create)
-    virtual Cursor *cursor_create(Transaction *txn, uint32_t flags);
+    virtual ham_status_t cursor_create(Cursor **pcursor, Transaction *txn,
+                    uint32_t flags);
 
     // Clones a cursor (ham_cursor_clone)
-    virtual Cursor *cursor_clone(Cursor *src);
+    virtual ham_status_t cursor_clone(Cursor **pdest, Cursor *src);
 
     // Returns number of duplicates (ham_cursor_get_record_count)
-    virtual uint32_t cursor_get_record_count(Cursor *cursor,
-                    uint32_t flags) = 0;
+    virtual ham_status_t cursor_get_record_count(Cursor *cursor,
+                    uint32_t flags, uint32_t *pcount) = 0;
 
     // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    virtual uint32_t cursor_get_duplicate_position(Cursor *cursor) = 0;
+    virtual ham_status_t cursor_get_duplicate_position(Cursor *cursor,
+                    uint32_t *pposition) = 0;
 
     // Get current record size (ham_cursor_get_record_size)
-    virtual uint64_t cursor_get_record_size(Cursor *cursor) = 0;
+    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
+                    uint64_t *psize) = 0;
 
     // Overwrites the record of a cursor (ham_cursor_overwrite)
     virtual ham_status_t cursor_overwrite(Cursor *cursor,
@@ -137,7 +141,7 @@ class Database
                     ham_record_t *record, uint32_t flags) = 0;
 
     // Closes a cursor (ham_cursor_close)
-    void cursor_close(Cursor *cursor);
+    ham_status_t cursor_close(Cursor *cursor);
 
     // Closes the Database (ham_db_close)
     ham_status_t close(uint32_t flags);

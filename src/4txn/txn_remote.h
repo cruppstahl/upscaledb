@@ -85,11 +85,11 @@ class RemoteTransactionManager : public TransactionManager
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void commit(Transaction *txn, uint32_t flags = 0);
+    virtual ham_status_t commit(Transaction *txn, uint32_t flags = 0);
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual void abort(Transaction *txn, uint32_t flags = 0);
+    virtual ham_status_t abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns(Context *context = 0);

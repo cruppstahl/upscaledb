@@ -571,14 +571,26 @@ o Concurrency: move "purge cache" to background
                         flushes/clears Context
                         passes Exception to caller; the caller (hamsterdb.cc)
                             no longer needs to check for exceptions
+                        remove ALL functions that are not used in hamsterdb.cc
+                            from the public interface!!
                     o LocalDatabase
-                        same as above
+                      x same as above
+                        flushes/clears Context
                         remove finalize()
+                        remove ALL functions that are not used in hamsterdb.cc
+                            from the public interface!!
                     o LocalTransactionManager
+                      x same as above
+                        remove ALL functions that are not used in hamsterdb.cc
+                            from the public interface!!
+                    x hola
                         same as above
             o unittests: create base class w/ functions like
-                txn()
+                lenv()
+                ldb()
+                ltxn()
                 page_manager()
+                cache()
                 context()
                 ...
             o once more go over the refactored classes:
@@ -686,6 +698,8 @@ o improve separation between logic and state; make state immutable and
         o make BtreeActions state-less and const
             ("const BtreeFindAction bfa(...)");
         o use "const" pages for immutable operations
+
+o rebase against v2!!
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     o for each page retrieve those statistics and print them 

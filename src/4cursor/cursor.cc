@@ -200,7 +200,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
   ham_key_t key = {0};
   TransactionOperation *op;
   ham_status_t st;
-  Cursor *clone = get_db()->cursor_clone(this);
+  Cursor *clone = get_db()->cursor_clone_impl(this);
 
   ByteArray *key_arena = (get_txn() == 0
                     || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
@@ -251,7 +251,7 @@ Cursor::sync(Context *context, uint32_t flags, bool *equal_keys)
       *equal_keys = true;
   }
   else if (is_nil(kTxn)) {
-    Cursor *clone = get_db()->cursor_clone(this);
+    Cursor *clone = get_db()->cursor_clone_impl(this);
     clone->m_btree_cursor.uncouple_from_page(context);
     ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
     if (!(flags & kSyncOnlyEqualKeys))

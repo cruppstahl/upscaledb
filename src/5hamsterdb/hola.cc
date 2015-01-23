@@ -48,15 +48,8 @@ hola_count(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-
-    result->u.result_u64 = db->count(txn, false);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  ScopedLock lock(db->get_env()->get_mutex());
+  return (db->set_error(db->count(txn, false, &result->u.result_u64)));
 }
 
 //
@@ -194,15 +187,11 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), false);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
 
 ham_status_t HAM_CALLCONV
@@ -223,15 +212,8 @@ hola_count_distinct(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-
-    result->u.result_u64 = db->count(txn, true);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  ScopedLock lock(db->get_env()->get_mutex());
+  return (db->set_error(db->count(txn, true, &result->u.result_u64)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -290,15 +272,11 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), true);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), true);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
 
 //
@@ -393,15 +371,11 @@ hola_average(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), false);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
 
 //
@@ -509,15 +483,11 @@ hola_average_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), false);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
 
 //
@@ -622,15 +592,11 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), false);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
 
 //
@@ -730,13 +696,9 @@ hola_sum_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  try {
-    ScopedLock lock(db->get_env()->get_mutex());
-    db->scan((Transaction *)txn, visitor.get(), false);
+  ScopedLock lock(db->get_env()->get_mutex());
+  ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
+  if (st == 0)
     visitor->assign_result(result);
-    return (db->set_error(0));
-  }
-  catch (Exception &ex) {
-    return (db->set_error(ex.code));
-  }
+  return (db->set_error(st));
 }
