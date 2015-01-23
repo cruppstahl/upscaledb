@@ -28,6 +28,7 @@
 #include "3btree/btree_cursor.h"
 #include "4db/db.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 #include "4env/env.h"
 #include "4env/env_local.h"
 
@@ -38,6 +39,7 @@ struct DuplicateFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   std::vector<std::string> m_data;
+  ScopedPtr<Context> m_context;
 
   DuplicateFixture(uint32_t flags = 0)
     : m_flags(flags) {
@@ -49,6 +51,7 @@ struct DuplicateFixture {
           HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     m_data.resize(0);
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   ~DuplicateFixture() {
@@ -576,25 +579,24 @@ struct DuplicateFixture {
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     REQUIRE((page = ((LocalEnvironment *)m_env)->get_page_manager()->fetch(
-                            (LocalDatabase *)m_db,
-                            be->get_root_address())));
+                            m_context.get(), be->get_root_address())));
 
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_NEXT,   0, "aaaaaaaaaa");
-    BtreeCursor::uncouple_all_cursors(page);
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_NEXT,   0, "1111111111");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
     ham_cursor_close(c);
@@ -631,7 +633,7 @@ struct DuplicateFixture {
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page();
+    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
     REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
     REQUIRE(!((Cursor *)c2)->is_nil(Cursor::kBtree));
@@ -897,8 +899,8 @@ struct DuplicateFixture {
         ham_cursor_move(c2, &key, &rec, 0));
     REQUIRE(1 == *(int *)rec.data);
 
-    ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page();
-    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page();
+    ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
     REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
     REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
@@ -1005,8 +1007,8 @@ struct DuplicateFixture {
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page();
-    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page();
+    ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
     REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
     REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
@@ -1527,7 +1529,7 @@ struct DuplicateFixture {
 
     insertData(0, "3333333333");
     checkData(c, HAM_CURSOR_NEXT,   0, "3333333333");
-    ((Cursor *)c)->get_btree_cursor()->uncouple_from_page();
+    ((Cursor *)c)->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)3 == count);
 

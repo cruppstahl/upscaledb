@@ -658,7 +658,7 @@ LocalDatabase::open(uint16_t descriptor)
   if ((get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
     ham_key_t key = {};
     Cursor *c = new Cursor(this, 0, 0);
-    ham_status_t st = cursor_move(&context, c, &key, 0, HAM_CURSOR_LAST);
+    ham_status_t st = cursor_move_impl(&context, c, &key, 0, HAM_CURSOR_LAST);
     cursor_close(c);
     if (st)
       return (st == HAM_KEY_NOT_FOUND ? 0 : st);
@@ -758,7 +758,7 @@ LocalDatabase::count(Transaction *htxn, bool distinct)
    * from the transaction tree
    */
   if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)
-    keycount += m_txn_index->count(txn, distinct);
+    keycount += m_txn_index->count(&context, txn, distinct);
   return (keycount);
 }
 
@@ -776,7 +776,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
   /* create a cursor, move it to the first key */
   Cursor *cursor = cursor_create(txn, 0);
 
-  ham_status_t st = cursor_move(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
+  ham_status_t st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
   if (st) {
     cursor_close(cursor);
     throw Exception(st);
@@ -789,7 +789,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       (*visitor)(key.data, key.size, distinct
                                         ? cursor->get_record_count(&context, 0)
                                         : 1);
-    } while ((st = cursor_move(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
+    } while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
     goto bail;
   }
 
@@ -851,7 +851,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
         (*visitor)(key.data, key.size, distinct
                                         ? cursor->get_record_count(&context, 0)
                                         : 1);
-      } while ((st = cursor_move(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
+      } while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0);
 
       if (st == HAM_KEY_NOT_FOUND)
         goto bail;
@@ -871,7 +871,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
   }
 
   /* pick up the remaining transactional keys */
-  while ((st = cursor_move(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
+  while ((st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_NEXT)) == 0) {
     (*visitor)(key.data, key.size, distinct
                                      ? cursor->get_record_count(&context, 0)
                                      : 1);
@@ -1197,8 +1197,17 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
 }
 
 ham_status_t
-LocalDatabase::cursor_move(Context *context, Cursor *cursor, ham_key_t *key,
+LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
+{
+  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
+
+  return (cursor_move_impl(&context, cursor, key, record, flags));
+}
+
+ham_status_t
+LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
+                ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
   get_local_env()->get_page_manager()->purge_cache(context);
@@ -1292,7 +1301,7 @@ LocalDatabase::close_impl(uint32_t flags)
 
   /* flush all committed transactions */
   if (get_local_env()->get_txn_manager())
-    get_local_env()->get_txn_manager()->flush_committed_txns();
+    get_local_env()->get_txn_manager()->flush_committed_txns(&context);
 
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY)
@@ -1675,14 +1684,14 @@ LocalDatabase::finalize(ham_status_t status, Transaction *local_txn)
   if (status) {
     if (local_txn) {
       //env->get_changeset()->clear();
-      env->get_txn_manager()->abort(local_txn);
+      //env->get_txn_manager()->abort(local_txn);
     }
     return (status);
   }
 
   if (local_txn) {
     //env->get_changeset()->clear();
-    env->get_txn_manager()->commit(local_txn);
+    //env->get_txn_manager()->commit(local_txn);
   }
   else if (env->get_flags() & HAM_ENABLE_RECOVERY
       && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {

@@ -47,6 +47,7 @@
 namespace hamsterdb {
 
 class Cursor;
+class Context;
 
 //
 // An cursor which can iterate over Transaction nodes
@@ -110,7 +111,8 @@ class TransactionCursor
     ham_status_t move(uint32_t flags);
 
     // Overwrites the record of a cursor
-    ham_status_t overwrite(LocalTransaction *txn, ham_record_t *record);
+    ham_status_t overwrite(Context *context, LocalTransaction *txn,
+                    ham_record_t *record);
 
     // Looks up an item, places the cursor
     ham_status_t find(ham_key_t *key, uint32_t flags);

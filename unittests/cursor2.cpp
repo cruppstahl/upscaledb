@@ -22,6 +22,7 @@
 #include "3btree/btree_cursor.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 
 using namespace hamsterdb;
 
@@ -267,6 +268,7 @@ struct DupeCursorFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   ham_txn_t *m_txn;
+  ScopedPtr<Context> m_context;
 
   DupeCursorFixture() {
     REQUIRE(0 ==
@@ -276,6 +278,9 @@ struct DupeCursorFixture {
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, m_txn, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env,
+                            (LocalTransaction *)m_txn,
+                            (LocalDatabase *)m_db));
   }
 
   ~DupeCursorFixture() {
@@ -283,12 +288,6 @@ struct DupeCursorFixture {
   }
 
   void teardown() {
-    /* we have to manually clear the changeset, otherwise ham_db_close will
-     * fail. The changeset was filled in be->insert(0, but this is an
-     * internal function which will not clear it. All other functions fail
-     * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset()->clear();
-
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
       m_cursor = 0;
@@ -311,8 +310,7 @@ struct DupeCursorFixture {
     r.size = rec ? strlen(rec) + 1 : 0;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    ham_status_t st =  be->insert(0, &k, &r, flags);
-    ((LocalEnvironment *)m_env)->get_changeset()->clear();
+    ham_status_t st =  be->insert(m_context.get(), 0, &k, &r, flags);
     return (st);
   }
 
@@ -392,7 +390,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == move     ("33333", "aaaac", HAM_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", HAM_CURSOR_NEXT));
     REQUIRE(4u ==
-          ((Cursor *)m_cursor)->get_dupecache_count());
+          ((Cursor *)m_cursor)->get_dupecache_count(m_context.get()));
     REQUIRE(HAM_KEY_NOT_FOUND == move(0, 0, HAM_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", HAM_CURSOR_LAST));
     REQUIRE(0 == move     ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
@@ -2529,7 +2527,6 @@ struct DupeCursorFixture {
 
     /* flush the transaction to disk */
     REQUIRE(0 == ham_cursor_close(m_cursor));
-    ((LocalEnvironment *)m_env)->get_changeset()->clear();
     REQUIRE(0 == ham_txn_commit(m_txn, 0));
 
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
@@ -3184,7 +3181,6 @@ TEST_CASE("Cursor/issue41", "")
   REQUIRE(*(uint64_t *)k.data == 5);
   REQUIRE(*(uint64_t *)r.data == 5);
 
-  ((LocalEnvironment *)env)->get_changeset()->clear();
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
 
@@ -3235,6 +3231,5 @@ TEST_CASE("Cursor/erlangTest", "")
   REQUIRE(0 == ham_cursor_get_record_size(cursor, &size));
   REQUIRE(size == 6ull);
 
-  ((LocalEnvironment *)env)->get_changeset()->clear();
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }

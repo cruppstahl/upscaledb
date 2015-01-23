@@ -21,6 +21,7 @@
 #include "1base/error.h"
 #include "1os/os.h"
 #include "2page/page.h"
+#include "4context/context.h"
 #include "4cursor/cursor.h"
 #include "4db/db.h"
 #include "4env/env.h"
@@ -33,6 +34,7 @@ struct TxnCursorFixture {
   ham_cursor_t *m_cursor;
   ham_db_t *m_db;
   ham_env_t *m_env;
+  ScopedPtr<Context> m_context;
 
   TxnCursorFixture()
     : m_cursor(0), m_db(0), m_env(0) {
@@ -42,6 +44,7 @@ struct TxnCursorFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   ~TxnCursorFixture() {
@@ -306,7 +309,9 @@ struct TxnCursorFixture {
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (cursor->overwrite((LocalTransaction *)cursor->get_parent()->get_txn(), &r));
+    return (cursor->overwrite(m_context.get(),
+                        (LocalTransaction *)cursor->get_parent()->get_txn(),
+                        &r));
   }
 
   ham_status_t erase(ham_txn_t *txn, const char *key) {

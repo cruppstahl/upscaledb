@@ -27,10 +27,10 @@
 #include "2device/device.h"
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
-#include "4context/context.h"
 #include "4db/db.h"
 #include "4txn/txn_local.h"
 #include "4env/env_local.h"
+#include "4context/context.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -498,12 +498,12 @@ Journal::recover()
   uint64_t page_manager_blobid
           = m_env->get_header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
-    m_env->get_page_manager()->initialize(&context, page_manager_blobid);
+    m_env->get_page_manager()->initialize(page_manager_blobid);
   }
 
   // then start the normal recovery
   if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
-    recover_journal(start_lsn);
+    recover_journal(&context, start_lsn);
 }
 
 uint64_t 
@@ -638,7 +638,7 @@ Journal::recover_changeset()
 }
 
 void
-Journal::recover_journal(uint64_t start_lsn)
+Journal::recover_journal(Context *context, uint64_t start_lsn)
 {
   ham_status_t st = 0;
   Iterator it;
@@ -776,7 +776,7 @@ bail:
 
   // flush all committed transactions
   if (st == 0)
-    m_env->get_txn_manager()->flush_committed_txns();
+    m_env->get_txn_manager()->flush_committed_txns(context);
 
   // re-enable the logging
   m_disable_logging = false;

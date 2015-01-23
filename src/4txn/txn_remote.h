@@ -35,6 +35,8 @@
 
 namespace hamsterdb {
 
+class Context;
+
 //
 // A remote Transaction
 //
@@ -90,7 +92,7 @@ class RemoteTransactionManager : public TransactionManager
     virtual void abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
-    virtual void flush_committed_txns();
+    virtual void flush_committed_txns(Context *context = 0);
 };
 
 } // namespace hamsterdb

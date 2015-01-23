@@ -567,6 +567,9 @@ o Concurrency: move "purge cache" to background
                     it goes
                 o PageManager::kReadOnly is not required if the Context
                     knows whether it's read-only or not
+                o LocalDatabase::finalize is not working
+                o review: every public method in Environment, Database and
+                    TransactionManager creates a context
 ========================================================
 
             o ham_db_check_integrity
@@ -613,6 +616,15 @@ o Concurrency: move "purge cache" to background
         o but run performance tests
 
     o run monster tests
+
+o Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
 
 . Refactoring: would it make sense if each Database has its own BlobManager?
     Then ham_env_erase_db would be much faster, and if each Database has its

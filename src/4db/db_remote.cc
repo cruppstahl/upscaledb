@@ -521,7 +521,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
 
 ham_status_t
 RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
-            ham_record_t *record, uint32_t flags)
+                ham_record_t *record, uint32_t flags)
 {
   RemoteEnvironment *env = get_remote_env();
 

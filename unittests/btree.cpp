@@ -24,6 +24,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "3btree/btree_impl_default.h"
 #include "4env/env_local.h"
+#include "4context/context.h"
 
 namespace hamsterdb {
 
@@ -256,10 +257,10 @@ struct BtreeFixture {
     REQUIRE(0 == ham_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
     LocalEnvironment *lenv = (LocalEnvironment *)env;
+    Context context(lenv, 0, 0);
 
     Page *page;
-    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
-                        1024 * 16)));
+    REQUIRE((page = lenv->get_page_manager()->fetch(&context, 1024 * 16)));
     PBtreeNode *node = PBtreeNode::from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
@@ -284,12 +285,12 @@ struct BtreeFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)env;
     LocalDatabase *ldb = (LocalDatabase *)db;
+    Context context(lenv, 0, 0);
 
     g_BTREE_INSERT_SPLIT_HOOK = split_hook;
 
     // check if the root page proxy was created correctly (it's a leaf)
-    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
-                    1024 * 16)));
+    REQUIRE((page = lenv->get_page_manager()->fetch(&context, 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
@@ -320,8 +321,7 @@ struct BtreeFixture {
     }
 
     // now check the leaf page (same as the previous root page)
-    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
-                        1024 * 16)));
+    REQUIRE((page = lenv->get_page_manager()->fetch(&context, 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
@@ -334,8 +334,7 @@ struct BtreeFixture {
 #endif
 
     // check the other leaf
-    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
-                        2 * 1024 * 16)));
+    REQUIRE((page = lenv->get_page_manager()->fetch(&context, 2 * 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
@@ -348,8 +347,7 @@ struct BtreeFixture {
 #endif
 
     // and the new root page (must be an internal page)
-    REQUIRE((page = lenv->get_page_manager()->fetch((LocalDatabase *)db,
-                        3 * 1024 * 16)));
+    REQUIRE((page = lenv->get_page_manager()->fetch(&context, 3 * 1024 * 16)));
     node = ldb->get_btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);
 #ifdef HAVE_GCC_ABI_DEMANGLE

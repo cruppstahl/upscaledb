@@ -23,6 +23,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_node.h"
 #include "3page_manager/page_manager.h"
+#include "4context/context.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
@@ -32,6 +33,7 @@ struct BtreeInsertFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   LocalEnvironment *m_environ;
+  ScopedPtr<Context> m_context;
 
   BtreeInsertFixture()
     : m_db(0), m_env(0), m_environ(0) {
@@ -50,6 +52,8 @@ struct BtreeInsertFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
     m_environ = (LocalEnvironment *)m_env;
+
+    m_context.reset(new Context(m_environ, 0, 0));
   }
 
   ~BtreeInsertFixture() {
@@ -60,7 +64,7 @@ struct BtreeInsertFixture {
   Page *fetch_page(uint64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
     PageManager *pm = db->get_local_env()->get_page_manager();
-    return (pm->fetch(db, address));
+    return (pm->fetch(m_context.get(), address));
   }
 
   void defaultPivotTest() {

@@ -24,6 +24,7 @@
 #include "4txn/txn_local.h"
 #include "4env/env.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -74,7 +75,8 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
 }
 
 ham_status_t
-TransactionCursor::overwrite(LocalTransaction *txn, ham_record_t *record)
+TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
+                ham_record_t *record)
 {
   if (is_nil())
     return (HAM_CURSOR_IS_NIL);
@@ -87,7 +89,7 @@ TransactionCursor::overwrite(LocalTransaction *txn, ham_record_t *record)
 
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
-  return (((LocalDatabase *)get_db())->insert_txn(txn, node->get_key(),
+  return (((LocalDatabase *)get_db())->insert_txn(context, txn, node->get_key(),
                           record, HAM_OVERWRITE, this));
 }
 
@@ -344,8 +346,9 @@ TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
                 uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
+  Context context(get_db()->get_local_env(), txn, get_db());
 
-  return (get_db()->insert_txn(txn, key, record, flags, this));
+  return (get_db()->insert_txn(&context, txn, key, record, flags, this));
 }
 
 bool

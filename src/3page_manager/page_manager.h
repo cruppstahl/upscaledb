@@ -69,7 +69,7 @@ struct PageManager
   };
 
   // Loads the state from a blob
-  void initialize(Context *context, uint64_t blobid);
+  void initialize(uint64_t blobid);
 
   // Fills in the current metrics for the PageManager, the Cache and the
   // Freelist

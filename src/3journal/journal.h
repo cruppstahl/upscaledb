@@ -90,6 +90,7 @@
 
 namespace hamsterdb {
 
+class Context;
 class Page;
 class Database;
 class Transaction;
@@ -252,7 +253,7 @@ class Journal
     uint64_t scan_for_newest_changeset(File *file, uint64_t *position);
 
     // Recovers the logical journal
-    void recover_journal(uint64_t start_lsn);
+    void recover_journal(Context *context, uint64_t start_lsn);
 
     // Switches the log file if necessary; returns the new log descriptor in the
     // transaction

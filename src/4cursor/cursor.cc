@@ -1101,7 +1101,7 @@ Cursor::overwrite(Context *context, Transaction *htxn,
                   record, flags | HAM_OVERWRITE, get_txn_cursor());
     }
     else {
-      st = m_txn_cursor.overwrite(txn, record);
+      st = m_txn_cursor.overwrite(context, txn, record);
     }
 
     if (st == 0)

@@ -22,6 +22,7 @@
 #include "os.hpp"
 
 #include "3btree/btree_index.h"
+#include "4context/context.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
@@ -116,10 +117,10 @@ struct HolaFixture {
     k.size = sizeof(key);
     ham_record_t r = {0};
 
+    Context context((LocalEnvironment *)m_env, 0, 0);
+
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    ham_status_t st = be->insert(0, &k, &r, 0);
-    ((LocalEnvironment *)m_env)->get_changeset()->clear();
-    return (st);
+    return (be->insert(&context, 0, &k, &r, 0));
   }
 
   ham_status_t insertTxn(ham_txn_t *txn, uint32_t key) {

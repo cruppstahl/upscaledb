@@ -20,6 +20,7 @@
 
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
+#include "4context/context.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
 
@@ -35,6 +36,7 @@ struct BaseCursorFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   ham_txn_t *m_txn;
+  ScopedPtr<Context> m_context;
 
   BaseCursorFixture()
     : m_cursor(0), m_db(0), m_env(0), m_txn(0) {
@@ -53,15 +55,11 @@ struct BaseCursorFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
+
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   virtual void teardown() {
-    /* we have to manually clear the changeset, otherwise ham_db_close will
-     * fail. The changeset was filled in be->insert(0, but this is an
-     * internal function which will not clear it. All other functions fail
-     * and therefore do not touch the changeset. */
-    ((LocalEnvironment *)m_env)->get_changeset()->clear();
-
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
       m_cursor = 0;
@@ -157,7 +155,7 @@ struct BaseCursorFixture {
     REQUIRE(0 ==
           ham_cursor_move(m_cursor, &key, &rec, 0));
     REQUIRE(1u ==
-          ((Cursor *)m_cursor)->get_dupecache_count());
+          ((Cursor *)m_cursor)->get_dupecache_count(m_context.get()));
   }
 
   void insertFindMultipleCursorsTest(void)
@@ -257,7 +255,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     ham_cursor_t *clone;
 
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page();
+    c->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ham_cursor_clone(m_cursor, &clone));
 
     ham_key_t *k1 = c->get_btree_cursor()->get_uncoupled_key();
@@ -278,7 +276,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     Cursor *c = (Cursor *)m_cursor;
 
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page();
+    c->get_btree_cursor()->uncouple_from_page(m_context.get());
 
     /* will close in teardown() */
   }
@@ -493,7 +491,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this looks up a key in an empty Transaction but with the btree */
     REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
@@ -513,15 +511,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* overwrite it in the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
 
     /* retrieve key and compare record */
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
     REQUIRE(0 == strcmp("12345", (char *)key.data));
     REQUIRE(0 == strcmp("22222", (char *)rec.data));
   }
@@ -558,22 +554,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* couple the cursor to this key */
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
 
     /* erase it in the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* key is now nil */
     REQUIRE(true == cursor_is_nil((Cursor *)m_cursor, Cursor::kBtree));
 
     /* retrieve key - must fail */
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_find(m_cursor, &key, 0, 0));
   }
 
   void eraseInTxnKeyFromTxnTest() {
@@ -623,8 +616,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    REQUIRE(HAM_CURSOR_IS_NIL ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL == ham_cursor_erase(m_cursor, 0));
 
     /* insert a key into the Transaction */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
@@ -654,16 +646,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this looks up a key in an empty Transaction but with the btree */
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
 
-    REQUIRE(0 ==
-          ham_cursor_overwrite(m_cursor, &rec2, 0));
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(m_cursor, &rec2, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
 
     REQUIRE(0 == strcmp("12345", (char *)key.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
@@ -680,12 +669,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec2.size = 6;
 
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ham_cursor_overwrite(m_cursor, &rec2, 0));
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(m_cursor, &rec2, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
 
     REQUIRE(0 == strcmp("12345", (char *)key.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
@@ -701,10 +687,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     ham_cursor_t *clone;
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ham_cursor_clone(m_cursor, &clone));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_clone(m_cursor, &clone));
 
     Cursor *c = (Cursor *)m_cursor;
     Cursor *cl = (Cursor *)clone;
@@ -742,11 +726,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("12345", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -762,7 +745,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
@@ -779,12 +762,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("12345", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -799,12 +780,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp(ext, (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -819,19 +798,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert the same key into the Transaction */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("12345", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
 
     /* make sure that the cursor is coupled to the txn-op */
-    Cursor *c=(Cursor *)m_cursor;
+    Cursor *c = (Cursor *)m_cursor;
     REQUIRE(c->is_coupled_to_txnop());
   }
 
@@ -845,7 +823,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)"11111";
@@ -853,8 +831,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
@@ -871,7 +848,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)ext1;
@@ -879,8 +856,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp(ext1, (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
@@ -895,7 +871,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
@@ -920,7 +896,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)ext2;
@@ -943,7 +919,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
@@ -967,7 +943,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)ext1;
@@ -990,7 +966,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
@@ -1001,8 +977,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("10101", (char *)rec2.data));
   }
@@ -1017,24 +992,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* erase the smaller item */
     key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* this moves the cursor to the second item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1051,7 +1022,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
@@ -1070,7 +1041,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
@@ -1105,12 +1076,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp(ext, (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -1125,15 +1094,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert the same key into the Transaction */
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("12345", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
 
@@ -1151,17 +1118,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -1178,17 +1143,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)ext1;
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp(ext2, (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
@@ -1203,17 +1166,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
@@ -1230,17 +1191,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)ext2;
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp(ext2, (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
@@ -1255,14 +1214,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* this moves the cursor to the last item, but it was erased
      * and therefore this fails */
@@ -1281,14 +1238,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)ext1;
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* this moves the cursor to the last item, but it was erased
      * and therefore this fails */
@@ -1306,23 +1261,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* re-insert it */
     rec.data = (void *)"10101";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("10101", (char *)rec2.data));
   }
@@ -1337,24 +1288,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* erase the smaller item */
     key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
 
     /* this moves the cursor to the second item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
@@ -1369,25 +1316,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1403,16 +1347,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1446,15 +1387,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1471,20 +1410,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1500,51 +1436,42 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few "small" keys into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("44444", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("55555", (char *)key2.data));
     REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     REQUIRE(0 == strcmp("66666", (char *)key2.data));
     REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1561,26 +1488,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1621,18 +1545,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_erase(m_db, m_txn, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1657,13 +1580,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1708,16 +1631,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1770,13 +1693,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1826,16 +1749,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* overwrite all keys but the last */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1885,13 +1808,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 ==
@@ -1945,7 +1868,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     r.size = rec ? strlen(rec) + 1 : 0;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert(0, &k, &r, flags));
+    return (be->insert(m_context.get(), 0, &k, &r, flags));
   }
 
   ham_status_t insertTxn(const char *key, const char *rec,
@@ -2141,13 +2064,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2218,7 +2141,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2243,7 +2166,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2286,13 +2209,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2333,13 +2256,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -2393,13 +2316,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2429,13 +2352,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2480,16 +2403,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2542,13 +2465,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2598,16 +2521,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     /* skip the last key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2657,13 +2580,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));

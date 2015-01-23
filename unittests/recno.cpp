@@ -23,6 +23,7 @@
 
 #include "3btree/btree_index.h"
 #include "3page_manager/page_manager.h"
+#include "4context/context.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
@@ -34,6 +35,7 @@ class RecordNumberFixture
   uint32_t m_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
+  ScopedPtr<Context> m_context;
 
 public:
   RecordNumberFixture(uint32_t flags = 0)
@@ -44,6 +46,8 @@ public:
       REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, HAM_RECORD_NUMBER32, 0));
     else
       REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, HAM_RECORD_NUMBER64, 0));
+
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   ~RecordNumberFixture() {
@@ -499,9 +503,9 @@ public:
     BtreeIndex *be = db->get_btree_index();
     Page *page;
     PageManager *pm = db->get_local_env()->get_page_manager();
-    REQUIRE((page = pm->fetch(db, be->get_root_address())) != 0);
+    REQUIRE((page = pm->fetch(m_context.get(), be->get_root_address())) != 0);
     REQUIRE(page != 0);
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page, 0);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));

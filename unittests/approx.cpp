@@ -28,6 +28,7 @@
 #include "4db/db.h"
 #include "4cursor/cursor.h"
 #include "4env/env_local.h"
+#include "4context/context.h"
 
 using namespace hamsterdb;
 
@@ -65,9 +66,6 @@ struct ApproxFixture {
   }
 
   void teardown() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    lenv->get_changeset()->clear();
-
     if (m_txn) {
       REQUIRE(0 == ham_txn_abort(m_txn, 0));
       m_txn = 0;
@@ -83,8 +81,10 @@ struct ApproxFixture {
     r.data = k.data;
     r.size = k.size;
 
+    Context context((LocalEnvironment *)m_env, 0, 0);
+
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert(0, &k, &r, 0));
+    return (be->insert(&context, 0, &k, &r, 0));
   }
 
   ham_status_t insertTxn(const char *s, uint32_t flags = 0) {

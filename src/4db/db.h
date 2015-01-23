@@ -45,6 +45,7 @@ struct ham_db_t {
 namespace hamsterdb {
 
 class Cursor;
+class Context;
 struct ScanVisitor;
 
 /*
@@ -132,8 +133,8 @@ class Database
                     ham_record_t *record, uint32_t flags) = 0;
 
     // Moves a cursor, returns key and/or record (ham_cursor_move)
-    virtual ham_status_t cursor_move(Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags) = 0;
+    virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags) = 0;
 
     // Closes a cursor (ham_cursor_close)
     void cursor_close(Cursor *cursor);

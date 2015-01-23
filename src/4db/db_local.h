@@ -131,8 +131,8 @@ class LocalDatabase : public Database {
                     ham_record_t *record, uint32_t flags);
 
     // Moves a cursor, returns key and/or record (ham_cursor_move)
-    virtual ham_status_t cursor_move(Context *context, Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags);
+    virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags);
 
     // Inserts a key/record pair in a txn node; if cursor is not NULL it will
     // be attached to the new txn_op structure
@@ -190,6 +190,10 @@ class LocalDatabase : public Database {
     friend struct ExtendedKeyFixture;
     friend class RecordNumberFixture<uint32_t>;
     friend class RecordNumberFixture<uint64_t>;
+
+    // Moves a cursor, returns key and/or record (ham_cursor_move)
+    ham_status_t cursor_move_impl(Context *context, Cursor *cursor,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of insert()
     ham_status_t insert_impl(Context *context, Cursor *cursor,

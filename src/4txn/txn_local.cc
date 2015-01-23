@@ -24,6 +24,7 @@
 #include "4txn/txn_cursor.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -391,12 +392,13 @@ TransactionIndex::get_last()
 }
 
 void
-TransactionIndex::enumerate(TransactionIndex::Visitor *visitor)
+TransactionIndex::enumerate(Context *context,
+                TransactionIndex::Visitor *visitor)
 {
   TransactionNode *node = rbt_first(this);
 
   while (node) {
-    visitor->visit(node);
+    visitor->visit(context, node);
     node = rbt_next(this, node);
   }
 }
@@ -407,7 +409,7 @@ struct KeyCounter : public TransactionIndex::Visitor
     : counter(0), distinct(_distinct), txn(_txn), db(_db) {
   }
 
-  void visit(TransactionNode *node) {
+  void visit(Context *context, TransactionNode *node) {
     BtreeIndex *be = db->get_btree_index();
     TransactionOperation *op;
 
@@ -444,13 +446,13 @@ struct KeyCounter : public TransactionIndex::Visitor
             || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
           // check if the key already exists in the btree - if yes,
           // we do not count it (it will be counted later)
-          if (HAM_KEY_NOT_FOUND == be->find(0, node->get_key(), 0, 0, 0, 0))
+          if (HAM_KEY_NOT_FOUND == be->find(context, 0, node->get_key(), 0, 0, 0, 0))
             counter++;
           return;
         }
         else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
           // check if btree has other duplicates
-          if (0 == be->find(0, node->get_key(), 0, 0, 0, 0)) {
+          if (0 == be->find(context, 0, node->get_key(), 0, 0, 0, 0)) {
             // yes, there's another one
             if (distinct)
               return;
@@ -483,10 +485,10 @@ struct KeyCounter : public TransactionIndex::Visitor
 };
 
 uint64_t
-TransactionIndex::count(LocalTransaction *txn, bool distinct)
+TransactionIndex::count(Context *context, LocalTransaction *txn, bool distinct)
 {
   KeyCounter k(m_db, txn, distinct);
-  enumerate(&k);
+  enumerate(context, &k);
   return (k.counter);
 }
 
@@ -505,6 +507,7 @@ void
 LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+  Context context(get_local_env(), txn, 0);
 
   txn->commit(flags);
 
@@ -519,13 +522,14 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
   m_queued_txn_for_flush++;
   m_queued_ops_for_flush += txn->get_op_counter();
   m_queued_bytes_for_flush += txn->get_accum_data_size();
-  maybe_flush_committed_txns();
+  maybe_flush_committed_txns(&context);
 }
 
 void 
 LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+  Context context(get_local_env(), txn, 0);
 
   txn->abort(flags);
 
@@ -543,30 +547,37 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 
   /* no need to increment m_queued_{ops,bytes}_for_flush because this
    * operation does no longer contain any operations */
-  maybe_flush_committed_txns();
+  maybe_flush_committed_txns(&context);
 }
 
 void
-LocalTransactionManager::maybe_flush_committed_txns()
+LocalTransactionManager::maybe_flush_committed_txns(Context *context)
 {
   if (m_queued_txn_for_flush > m_txn_threshold
       || m_queued_ops_for_flush > m_ops_threshold
       || m_queued_bytes_for_flush > m_bytes_threshold)
-    flush_committed_txns();
+    flush_committed_txns_impl(context);
 }
 
 void 
-LocalTransactionManager::flush_committed_txns()
+LocalTransactionManager::flush_committed_txns(Context *context /* = 0 */)
+{
+  if (!context) {
+    Context new_context(get_local_env(), 0, 0);
+    flush_committed_txns_impl(&new_context);
+  }
+  else
+    flush_committed_txns_impl(context);
+}
+
+void 
+LocalTransactionManager::flush_committed_txns_impl(Context *context)
 {
   LocalTransaction *oldest;
   Journal *journal = get_local_env()->get_journal();
   uint64_t highest_lsn = 0;
 
-  /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    ham_assert(get_local_env()->get_changeset()->is_empty());
-#endif
+  ham_assert(context->changeset.is_empty());
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
@@ -576,7 +587,7 @@ LocalTransactionManager::flush_committed_txns()
       ham_assert(m_queued_ops_for_flush >= 0);
       m_queued_bytes_for_flush -= oldest->get_accum_data_size();
       ham_assert(m_queued_bytes_for_flush >= 0);
-      uint64_t lsn = flush_txn((LocalTransaction *)oldest);
+      uint64_t lsn = flush_txn(context, (LocalTransaction *)oldest);
       if (lsn > highest_lsn)
         highest_lsn = lsn;
 
@@ -605,13 +616,13 @@ LocalTransactionManager::flush_committed_txns()
 
   /* now flush the changeset and write the modified pages to disk */
   if (highest_lsn && m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    get_local_env()->get_changeset()->flush(highest_lsn);
+    context->changeset.flush(highest_lsn);
 
-  ham_assert(get_local_env()->get_changeset()->is_empty());
+  ham_assert(context->changeset.is_empty());
 }
 
 uint64_t
-LocalTransactionManager::flush_txn(LocalTransaction *txn)
+LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
 {
   TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;
@@ -624,7 +635,7 @@ LocalTransactionManager::flush_txn(LocalTransaction *txn)
       goto next_op;
 
     // perform the actual operation in the btree
-    node->get_db()->flush_txn_operation(txn, op);
+    node->get_db()->flush_txn_operation(context, txn, op);
 
     /*
      * this op is about to be flushed!

@@ -29,6 +29,7 @@
 #include "4txn/txn_local.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 #include "4txn/txn_cursor.h"
 #include "4worker/worker.h"
 
@@ -362,6 +363,8 @@ LocalEnvironment::get_database_names(uint16_t *names, uint32_t *count)
 ham_status_t
 LocalEnvironment::close(uint32_t flags)
 {
+  Context context(this, 0, 0);
+
   ham_status_t st;
   Device *device = get_device();
 
@@ -371,7 +374,7 @@ LocalEnvironment::close(uint32_t flags)
 
   /* flush all committed transactions */
   if (get_txn_manager())
-    get_txn_manager()->flush_committed_txns();
+    get_txn_manager()->flush_committed_txns(&context);
 
   /* close all databases */
   Environment::DatabaseMap::iterator it = get_database_map().begin();
@@ -387,8 +390,9 @@ LocalEnvironment::close(uint32_t flags)
   }
 
   /* flush all committed transactions */
+  // TODO again?
   if (m_txn_manager)
-    get_txn_manager()->flush_committed_txns();
+    get_txn_manager()->flush_committed_txns(&context);
 
   /* flush all pages and the freelist, reduce the file size */
   if (m_page_manager)
@@ -486,6 +490,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
 ham_status_t
 LocalEnvironment::flush(uint32_t flags)
 {
+  Context context(this, 0, 0);
   Device *device = get_device();
 
   /* never flush an in-memory-database */
@@ -494,7 +499,7 @@ LocalEnvironment::flush(uint32_t flags)
 
   /* flush all committed transactions */
   if (get_txn_manager())
-    get_txn_manager()->flush_committed_txns();
+    get_txn_manager()->flush_committed_txns(&context);
 
   /* flush the header page */
   m_header->get_header_page()->flush();

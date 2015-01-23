@@ -71,6 +71,7 @@ struct ham_txn_t
 
 namespace hamsterdb {
 
+class Context;
 class Environment;
 
 //
@@ -242,7 +243,7 @@ class TransactionManager
     virtual void abort(Transaction *txn, uint32_t flags = 0) = 0;
 
     // Flushes committed (queued) transactions
-    virtual void flush_committed_txns() = 0;
+    virtual void flush_committed_txns(Context *context = 0) = 0;
 
     // Returns the oldest transaction which not yet flushed to disk
     Transaction *get_oldest_txn() {

@@ -23,6 +23,7 @@
 #include "2device/device.h"
 #include "3page_manager/page_manager.h"
 #include "3page_manager/page_manager_test.h"
+#include "4context/context.h"
 #include "4env/env_local.h"
 #include "4txn/txn.h"
 
@@ -307,7 +308,6 @@ struct PageManagerFixture {
     REQUIRE((uint64_t)(page_size * 8) == lenv->get_device()->file_size());
 
     // reopen the file
-    lenv->get_changeset()->clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
@@ -394,15 +394,17 @@ struct PageManagerFixture {
     PageManager *pm = lenv->get_page_manager();
     uint32_t page_size = lenv->get_page_size();
 
-    Page *head = pm->alloc_multiple_blob_pages(10);
+    Context context(lenv, 0, 0);
+
+    Page *head = pm->alloc_multiple_blob_pages(&context, 10);
     REQUIRE(head != 0);
     pm->del(head, 10);
 
-    Page *page1 = pm->alloc_multiple_blob_pages(2);
+    Page *page1 = pm->alloc_multiple_blob_pages(&context, 2);
     REQUIRE(page1 != 0);
     REQUIRE(page1->get_address() == head->get_address());
 
-    Page *page2 = pm->alloc_multiple_blob_pages(8);
+    Page *page2 = pm->alloc_multiple_blob_pages(&context, 8);
     REQUIRE(page2 != 0);
     REQUIRE(page2->get_address() == page1->get_address() + page_size * 2);
   }

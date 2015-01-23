@@ -110,7 +110,8 @@ RemoteTransactionManager::begin(const char *name, uint32_t flags)
 }
 
 void 
-RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
+RemoteTransactionManager::commit(Transaction *txn,
+                uint32_t flags)
 {
   txn->commit(flags);
 
@@ -128,7 +129,7 @@ RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
 }
 
 void 
-RemoteTransactionManager::flush_committed_txns()
+RemoteTransactionManager::flush_committed_txns(Context *context /* = 0 */)
 {
   Transaction *oldest;
 

@@ -23,6 +23,7 @@
 #include "2page/page.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
+#include "4context/context.h"
 #include "4db/db_local.h"
 #include "4env/env.h"
 
@@ -33,6 +34,7 @@ struct MiscFixture {
   ham_env_t *m_env;
   LocalDatabase *m_dbp;
   BtreeIndex *m_btree;
+  ScopedPtr<Context> m_context;
 
   MiscFixture() {
     ham_parameter_t p[] = { { HAM_PARAM_PAGESIZE, 4096 }, { 0, 0 } };
@@ -44,6 +46,7 @@ struct MiscFixture {
 
     m_dbp = (LocalDatabase *)m_db;
     m_btree = m_dbp->get_btree_index();
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 
   ~MiscFixture() {
@@ -59,11 +62,11 @@ struct MiscFixture {
 
     ham_key_t key = {0};
 
-    node->insert(&key, PBtreeNode::kInsertPrepend);
+    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(0, &arena, &key);
+    node->get_key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 0);
     REQUIRE(key.data == 0);
 
@@ -81,11 +84,11 @@ struct MiscFixture {
     key.data = (void *)"a";
     key.size = 1;
 
-    node->insert(&key, PBtreeNode::kInsertPrepend);
+    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(0, &arena, &key);
+    node->get_key(m_context.get(), 0, &arena, &key);
     REQUIRE(1 == key.size);
     REQUIRE('a' == ((char *)key.data)[0]);
 
@@ -103,11 +106,11 @@ struct MiscFixture {
     key.data = (void *)"1234567\0";
     key.size = 8;
 
-    node->insert(&key, PBtreeNode::kInsertPrepend);
+    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(0, &arena, &key);
+    node->get_key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 8);
     REQUIRE(0 == ::strcmp((char *)key.data, "1234567\0"));
 
@@ -125,11 +128,11 @@ struct MiscFixture {
     key.data = (void *)"123456781234567\0";
     key.size = 16;
 
-    node->insert(&key, PBtreeNode::kInsertPrepend);
+    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(0, &arena, &key);
+    node->get_key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 16);
     REQUIRE(0 == ::strcmp((char *)key.data, "123456781234567\0"));
 

@@ -703,9 +703,10 @@ PageManager::PageManager(PageManagerState state)
 }
 
 void
-PageManager::initialize(Context *context, uint64_t pageid)
+PageManager::initialize(uint64_t pageid)
 {
-  initialize_impl(m_state, context, pageid);
+  Context context(0, 0, 0);
+  initialize_impl(m_state, &context, pageid);
 }
 
 void

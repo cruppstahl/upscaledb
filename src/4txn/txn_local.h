@@ -34,6 +34,7 @@
 
 namespace hamsterdb {
 
+class Context;
 class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
@@ -333,7 +334,7 @@ class TransactionIndex
   public:
     // Traverses a TransactionIndex; for each node, a callback is executed
     struct Visitor {
-      virtual void visit(TransactionNode *node) = 0;
+      virtual void visit(Context *context, TransactionNode *node) = 0;
     };
 
     // Constructor
@@ -349,7 +350,7 @@ class TransactionIndex
     void remove(TransactionNode *node);
 
     // Visits every node in the TransactionTree
-    void enumerate(Visitor *visitor);
+    void enumerate(Context *context, Visitor *visitor);
 
     // Returns an opnode for an optree; if a node with this
     // key already exists then the existing node is returned, otherwise NULL.
@@ -365,7 +366,7 @@ class TransactionIndex
     TransactionNode *get_last();
 
     // Returns the key count of this index
-    uint64_t count(LocalTransaction *txn, bool distinct);
+    uint64_t count(Context *context, LocalTransaction *txn, bool distinct);
 
  // private: //TODO re-enable this; currently disabled because rb.h needs it
     // the Database for all operations in this tree
@@ -504,7 +505,7 @@ class LocalTransactionManager : public TransactionManager
     virtual void abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
-    virtual void flush_committed_txns();
+    virtual void flush_committed_txns(Context *context = 0);
 
     // Increments the global transaction ID and returns the new value. 
     uint64_t get_incremented_txn_id() {
@@ -523,9 +524,11 @@ class LocalTransactionManager : public TransactionManager
     }
 
   private:
+    void flush_committed_txns_impl(Context *context);
+
     // Flushes a single committed Transaction; returns the lsn of the
     // last operation in this transaction
-    uint64_t flush_txn(LocalTransaction *txn);
+    uint64_t flush_txn(Context *context, LocalTransaction *txn);
 
     // Casts m_env to a LocalEnvironment
     LocalEnvironment *get_local_env() {
@@ -534,7 +537,7 @@ class LocalTransactionManager : public TransactionManager
 
     // Flushes committed transactions if there are enough committed
     // transactions waiting to be flushed, or if other conditions apply
-    void maybe_flush_committed_txns();
+    void maybe_flush_committed_txns(Context *context);
 
     // The current transaction ID
     uint64_t m_txn_id;

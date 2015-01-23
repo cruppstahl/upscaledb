@@ -27,6 +27,7 @@
 #include "4db/db.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor.h"
+#include "4context/context.h"
 
 namespace hamsterdb {
 
@@ -35,6 +36,7 @@ struct BtreeCursorFixture {
   ham_env_t *m_env;
   bool m_inmemory;
   uint32_t m_page_size;
+  ScopedPtr<Context> m_context;
 
   BtreeCursorFixture(bool inmemory = false, uint32_t page_size = 0)
     : m_db(0), m_inmemory(inmemory), m_page_size(page_size) {
@@ -52,6 +54,8 @@ struct BtreeCursorFixture {
               m_inmemory ? HAM_IN_MEMORY : 0, 0664, params));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
+
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   ~BtreeCursorFixture() {
@@ -101,10 +105,9 @@ struct BtreeCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     Page *page;
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
-    REQUIRE((page = pm->fetch((LocalDatabase *)m_db,
-                            be->get_root_address())));
+    REQUIRE((page = pm->fetch(m_context.get(), be->get_root_address())));
     REQUIRE(page != 0);
-    BtreeCursor::uncouple_all_cursors(page);
+    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
 
     REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 

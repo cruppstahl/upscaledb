@@ -26,11 +26,12 @@
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
 #include "3page_manager/page_manager_test.h"
+#include "3btree/btree_node.h"
+#include "4context/context.h"
 #include "4txn/txn.h"
 #include "4db/db.h"
 #include "4env/env.h"
 #include "4env/env_header.h"
-#include "3btree/btree_node.h"
 
 namespace hamsterdb {
 
@@ -39,6 +40,7 @@ struct DbFixture {
   LocalDatabase *m_dbp;
   ham_env_t *m_env;
   bool m_inmemory;
+  ScopedPtr<Context> m_context;
 
   DbFixture(bool inmemory = false)
     : m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory) {
@@ -49,6 +51,7 @@ struct DbFixture {
         ham_env_create_db(m_env, &m_db, 13,
             HAM_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDatabase *)m_db;
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 
   ~DbFixture() {
@@ -124,7 +127,7 @@ struct DbFixture {
     PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
     PageManagerTestGateway test(pm);
 
-    REQUIRE((page = pm->alloc(m_dbp, 0)));
+    REQUIRE((page = pm->alloc(m_context.get(), 0)));
 
     REQUIRE(m_dbp == page->get_db());
     p = page->get_payload();
@@ -136,7 +139,7 @@ struct DbFixture {
     test.remove_page(page);
     delete page;
 
-    REQUIRE((page = pm->fetch(m_dbp, address)));
+    REQUIRE((page = pm->fetch(m_context.get(), address)));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
     test.remove_page(page);
