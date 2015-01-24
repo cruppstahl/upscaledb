@@ -1387,10 +1387,6 @@ LocalDatabase::close_impl(uint32_t flags)
     }
   }
 
-  /* flush all committed transactions */
-  if (get_local_env()->txn_manager())
-    get_local_env()->txn_manager()->flush_committed_txns(&context);
-
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY)
    m_btree_index->release(&context);

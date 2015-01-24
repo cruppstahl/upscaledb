@@ -31,12 +31,20 @@ namespace hamsterdb {
 ham_status_t
 Environment::close_db(Database *db, uint32_t flags)
 {
+  ham_status_t st = 0;
+
   try {
     uint16_t dbname = db->get_name();
 
-    ham_status_t st = db->close(flags);
+    // flush committed Transactions
+    st = flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
     if (st)
       return (st);
+
+    st = db->close(flags);
+    if (st)
+      return (st);
+
     m_database_map.erase(dbname);
     return (0);
   }

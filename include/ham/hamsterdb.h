@@ -971,6 +971,9 @@ ham_env_rename_db(ham_env_t *env, uint16_t oldname,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, uint16_t name, uint32_t flags);
 
+/* internal flag - only flush committed transactions, not the btree pages */
+#define HAM_FLUSH_COMMITTED_TRANSACTIONS    1
+
 /**
  * Flushes the Environment
  *

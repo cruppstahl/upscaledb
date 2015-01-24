@@ -498,6 +498,9 @@ LocalEnvironment::flush(uint32_t flags)
     if (m_txn_manager)
       m_txn_manager->flush_committed_txns(&context);
 
+    if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS)
+      return (0);
+
     /* flush the header page */
     m_header->get_header_page()->flush();
 
@@ -772,7 +775,7 @@ LocalEnvironment::recover(uint32_t flags)
   /* success - check if we need recovery */
   if (!m_journal->is_empty()) {
     if (flags & HAM_AUTO_RECOVERY) {
-      m_journal->recover();
+      m_journal->recover((LocalTransactionManager *)m_txn_manager.get());
     }
     else {
       st = HAM_NEED_RECOVERY;

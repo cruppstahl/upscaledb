@@ -97,6 +97,7 @@ class Database;
 class Transaction;
 class LocalEnvironment;
 class LocalTransaction;
+class LocalTransactionManager;
 
 #include "1base/packstart.h"
 
@@ -212,7 +213,7 @@ class Journal
 
     // Performs the recovery! All committed Transactions will be re-applied,
     // all others are automatically aborted
-    void recover();
+    void recover(LocalTransactionManager *txn_manager);
 
     // Fills the metrics
     void fill_metrics(ham_env_metrics_t *metrics) {
@@ -232,13 +233,13 @@ class Journal
     Database *get_db(uint16_t dbname);
 
     // Returns a pointer to a Transaction object.
-    Transaction *get_txn(uint64_t txn_id);
+    Transaction *get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id);
 
     // Closes all databases.
     void close_all_databases();
 
     // Aborts all transactions which are still active.
-    void abort_uncommitted_txns();
+    void abort_uncommitted_txns(LocalTransactionManager *txn_manager);
 
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression
@@ -254,7 +255,8 @@ class Journal
     uint64_t scan_for_newest_changeset(File *file, uint64_t *position);
 
     // Recovers the logical journal
-    void recover_journal(Context *context, uint64_t start_lsn);
+    void recover_journal(Context *context,
+                    LocalTransactionManager *txn_manager, uint64_t start_lsn);
 
     // Switches the log file if necessary; returns the new log descriptor in the
     // transaction

@@ -446,9 +446,9 @@ Journal::get_db(uint16_t dbname)
 }
 
 Transaction *
-Journal::get_txn(uint64_t txn_id)
+Journal::get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id)
 {
-  Transaction *txn = m_env->txn_manager()->get_oldest_txn();
+  Transaction *txn = txn_manager->get_oldest_txn();
   while (txn) {
     if (txn->get_id() == txn_id)
       return (txn);
@@ -476,9 +476,9 @@ Journal::close_all_databases()
 }
 
 void
-Journal::abort_uncommitted_txns()
+Journal::abort_uncommitted_txns(LocalTransactionManager *txn_manager)
 {
-  Transaction *txn = m_env->txn_manager()->get_oldest_txn();
+  Transaction *txn = txn_manager->get_oldest_txn();
 
   while (txn) {
     if (!txn->is_committed())
@@ -488,7 +488,7 @@ Journal::abort_uncommitted_txns()
 }
 
 void
-Journal::recover()
+Journal::recover(LocalTransactionManager *txn_manager)
 {
   Context context(m_env, 0, 0);
 
@@ -505,7 +505,7 @@ Journal::recover()
 
   // then start the normal recovery
   if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
-    recover_journal(&context, start_lsn);
+    recover_journal(&context, txn_manager, start_lsn);
 }
 
 uint64_t 
@@ -640,7 +640,8 @@ Journal::recover_changeset()
 }
 
 void
-Journal::recover_journal(Context *context, uint64_t start_lsn)
+Journal::recover_journal(Context *context,
+                LocalTransactionManager *txn_manager, uint64_t start_lsn)
 {
   ham_status_t st = 0;
   Iterator it;
@@ -659,7 +660,7 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  ham_assert(m_env->txn_manager()->get_oldest_txn() == 0);
+  ham_assert(txn_manager->get_oldest_txn() == 0);
   ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
@@ -685,19 +686,17 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
         // on success: patch the txn ID
         if (st == 0) {
           txn->set_id(entry.txn_id);
-          LocalTransactionManager *ltm
-                  = (LocalTransactionManager *)m_env->txn_manager();
-          ltm->set_txn_id(entry.txn_id);
+          txn_manager->set_txn_id(entry.txn_id);
         }
         break;
       }
       case kEntryTypeTxnAbort: {
-        Transaction *txn = get_txn(entry.txn_id);
+        Transaction *txn = get_txn(txn_manager, entry.txn_id);
         st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
       case kEntryTypeTxnCommit: {
-        Transaction *txn = get_txn(entry.txn_id);
+        Transaction *txn = get_txn(txn_manager, entry.txn_id);
         st = ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
@@ -723,7 +722,7 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
         record.partial_size = ins->record_partial_size;
         record.partial_offset = ins->record_partial_offset;
         if (entry.txn_id)
-          txn = get_txn(entry.txn_id);
+          txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);
         st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, 
                     &key, &record, ins->insert_flags | HAM_DONT_LOCK);
@@ -744,7 +743,7 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
           continue;
 
         if (entry.txn_id)
-          txn = get_txn(entry.txn_id);
+          txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);
         key.data = e->get_key_data();
         key.size = e->key_size;
@@ -771,14 +770,14 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
 
 bail:
   // all transactions which are not yet committed will be aborted
-  abort_uncommitted_txns();
+  abort_uncommitted_txns(txn_manager);
 
   // also close and delete all open databases - they were created in get_db()
   close_all_databases();
 
   // flush all committed transactions
   if (st == 0)
-    m_env->txn_manager()->flush_committed_txns(context);
+    st = m_env->flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
 
   // re-enable the logging
   m_disable_logging = false;

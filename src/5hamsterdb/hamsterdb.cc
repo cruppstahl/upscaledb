@@ -762,7 +762,7 @@ ham_env_flush(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  if (flags) {
+  if (flags && flags != HAM_FLUSH_COMMITTED_TRANSACTIONS) {
     ham_trace(("parameter 'flags' is unused, set to 0"));
     return (HAM_INV_PARAMETER);
   }

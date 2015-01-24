@@ -571,8 +571,13 @@ o Concurrency: move "purge cache" to background
                         flushes/clears Context
                         passes Exception to caller; the caller (hamsterdb.cc)
                             no longer needs to check for exceptions
+===================================
                         remove ALL functions that are not used in hamsterdb.cc
                             from the public interface!!
+            only 1 left: txn_manager(); remove from db_local.cc,
+            txn_local.cc, hamsterdb.cc:
+                make it private, call through Environment!
+===================================
                     o LocalDatabase
                       x same as above
                         flushes/clears Context
