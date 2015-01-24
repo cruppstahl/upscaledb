@@ -116,7 +116,7 @@ ham_txn_commit(ham_txn_t *htxn, uint32_t flags)
   if (!(flags & HAM_DONT_LOCK))
     lock = ScopedLock(env->get_mutex());
 
-  return (env->get_txn_manager()->commit(txn, flags));
+  return (env->txn_manager()->commit(txn, flags));
 }
 
 ham_status_t
@@ -134,7 +134,7 @@ ham_txn_abort(ham_txn_t *htxn, uint32_t flags)
   if (!(flags & HAM_DONT_LOCK))
     lock = ScopedLock(env->get_mutex());
 
-  return (env->get_txn_manager()->abort(txn, flags));
+  return (env->txn_manager()->abort(txn, flags));
 }
 
 const char * HAM_CALLCONV
@@ -788,19 +788,19 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
     ScopedLock lock = ScopedLock(env->get_mutex());
 
     /* auto-abort (or commit) all pending transactions */
-    if (env->get_txn_manager()) {
+    if (env->txn_manager()) {
       Transaction *t;
 
-      while ((t = env->get_txn_manager()->get_oldest_txn())) {
+      while ((t = env->txn_manager()->get_oldest_txn())) {
         if (!t->is_aborted() && !t->is_committed()) {
           if (flags & HAM_TXN_AUTO_COMMIT)
-            env->get_txn_manager()->commit(t, 0);
+            env->txn_manager()->commit(t, 0);
           else /* if (flags & HAM_TXN_AUTO_ABORT) */
-            env->get_txn_manager()->abort(t, 0);
+            env->txn_manager()->abort(t, 0);
         }
-      }
 
-      env->get_txn_manager()->flush_committed_txns();
+        env->txn_manager()->flush_committed_txns();
+      }
     }
 
     /* close the environment */
@@ -1162,7 +1162,7 @@ ham_db_close(ham_db_t *hdb, uint32_t flags)
     lock = ScopedLock(env->get_mutex());
 
   /* the function pointer will do the actual implementation */
-  st = db->close(flags);
+  st = env->close_db(db, flags);
   if (st)
     return (db->set_error(st));
 

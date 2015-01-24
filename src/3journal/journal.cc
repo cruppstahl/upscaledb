@@ -430,23 +430,25 @@ Database *
 Journal::get_db(uint16_t dbname)
 {
   // first check if the Database is already open
-  Environment::DatabaseMap::iterator it
-          = m_env->get_database_map().find(dbname);
-  if (it != m_env->get_database_map().end())
+  DatabaseMap::iterator it = m_database_map.find(dbname);
+  if (it != m_database_map.end())
     return (it->second);
 
   // not found - open it
   Database *db = 0;
   DatabaseConfiguration config;
   config.db_name = dbname;
-  m_env->open_db(&db, config, 0);
+  ham_status_t st = m_env->open_db(&db, config, 0);
+  if (st)
+    throw Exception(st);
+  m_database_map[dbname] = db;
   return (db);
 }
 
 Transaction *
 Journal::get_txn(uint64_t txn_id)
 {
-  Transaction *txn = m_env->get_txn_manager()->get_oldest_txn();
+  Transaction *txn = m_env->txn_manager()->get_oldest_txn();
   while (txn) {
     if (txn->get_id() == txn_id)
       return (txn);
@@ -461,21 +463,22 @@ Journal::close_all_databases()
 {
   ham_status_t st = 0;
 
-  Environment::DatabaseMap::iterator it = m_env->get_database_map().begin();
-  while (it != m_env->get_database_map().end()) {
-    Environment::DatabaseMap::iterator it2 = it; it++;
+  DatabaseMap::iterator it = m_database_map.begin();
+  while (it != m_database_map.end()) {
+    DatabaseMap::iterator it2 = it; it++;
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
   }
+  m_database_map.clear();
 }
 
 void
 Journal::abort_uncommitted_txns()
 {
-  Transaction *txn = m_env->get_txn_manager()->get_oldest_txn();
+  Transaction *txn = m_env->txn_manager()->get_oldest_txn();
 
   while (txn) {
     if (!txn->is_committed())
@@ -656,7 +659,7 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  ham_assert(m_env->get_txn_manager()->get_oldest_txn() == 0);
+  ham_assert(m_env->txn_manager()->get_oldest_txn() == 0);
   ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
@@ -683,7 +686,7 @@ Journal::recover_journal(Context *context, uint64_t start_lsn)
         if (st == 0) {
           txn->set_id(entry.txn_id);
           LocalTransactionManager *ltm
-                  = (LocalTransactionManager *)m_env->get_txn_manager();
+                  = (LocalTransactionManager *)m_env->txn_manager();
           ltm->set_txn_id(entry.txn_id);
         }
         break;
@@ -775,7 +778,7 @@ bail:
 
   // flush all committed transactions
   if (st == 0)
-    m_env->get_txn_manager()->flush_committed_txns(context);
+    m_env->txn_manager()->flush_committed_txns(context);
 
   // re-enable the logging
   m_disable_logging = false;

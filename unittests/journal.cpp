@@ -625,7 +625,7 @@ struct JournalFixture {
     //Journal *j = m_lenv->journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == get_lsn());
-    REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->get_txn_manager()))->test_get_txn_id());
+    REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->txn_manager()))->test_get_txn_id());
 
     /* create another transaction and make sure that the transaction
      * IDs and the lsn's continue seamlessly */

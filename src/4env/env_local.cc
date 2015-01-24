@@ -252,12 +252,12 @@ LocalEnvironment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
     mark_header_page_dirty(&context);
 
     /* if the database with the old name is currently open: notify it */
-    Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
-    if (it != get_database_map().end()) {
+    Environment::DatabaseMap::iterator it = m_database_map.find(oldname);
+    if (it != m_database_map.end()) {
       Database *db = it->second;
       it->second->set_name(newname);
-      get_database_map().erase(oldname);
-      get_database_map().insert(DatabaseMap::value_type(newname, db));
+      m_database_map.erase(oldname);
+      m_database_map.insert(DatabaseMap::value_type(newname, db));
     }
   }
   catch (Exception &ex) {
@@ -274,7 +274,7 @@ LocalEnvironment::erase_db(uint16_t name, uint32_t flags)
     Context context(this);
 
     /* check if this database is still open */
-    if (get_database_map().find(name) != get_database_map().end())
+    if (m_database_map.find(name) != m_database_map.end())
       return (HAM_DATABASE_ALREADY_OPEN);
 
     /*
@@ -368,12 +368,12 @@ LocalEnvironment::close(uint32_t flags)
       m_worker->stop_and_join();
 
     /* flush all committed transactions */
-    if (get_txn_manager())
-      get_txn_manager()->flush_committed_txns(&context);
+    if (m_txn_manager)
+      m_txn_manager->flush_committed_txns(&context);
 
     /* close all databases */
-    Environment::DatabaseMap::iterator it = get_database_map().begin();
-    while (it != get_database_map().end()) {
+    Environment::DatabaseMap::iterator it = m_database_map.begin();
+    while (it != m_database_map.end()) {
       Environment::DatabaseMap::iterator it2 = it; it++;
       Database *db = it2->second;
       if (flags & HAM_AUTO_CLEANUP)
@@ -387,7 +387,7 @@ LocalEnvironment::close(uint32_t flags)
     /* flush all committed transactions */
     // TODO again?
     if (m_txn_manager)
-      get_txn_manager()->flush_committed_txns(&context);
+      m_txn_manager->flush_committed_txns(&context);
 
     /* flush all pages and the freelist, reduce the file size */
     if (m_page_manager)
@@ -495,8 +495,8 @@ LocalEnvironment::flush(uint32_t flags)
       return (0);
 
     /* flush all committed transactions */
-    if (get_txn_manager())
-      get_txn_manager()->flush_committed_txns(&context);
+    if (m_txn_manager)
+      m_txn_manager->flush_committed_txns(&context);
 
     /* flush the header page */
     m_header->get_header_page()->flush();
@@ -649,7 +649,7 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    get_database_map()[config.db_name] = db;
+    m_database_map[config.db_name] = db;
 
     *pdb = db;
   }
@@ -692,7 +692,7 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* make sure that this database is not yet open */
-  if (get_database_map().find(config.db_name) != get_database_map().end())
+  if (m_database_map.find(config.db_name) != m_database_map.end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
   /* create a new Database object */
@@ -727,7 +727,7 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  get_database_map()[config.db_name] = db;
+  m_database_map[config.db_name] = db;
 
   *pdb = db;
 

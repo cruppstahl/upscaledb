@@ -116,35 +116,28 @@ Database::cursor_close(Cursor *cursor)
   }
 }
 
+// No need to catch Exceptions - they're caught in Environment::close_db
 ham_status_t
 Database::close(uint32_t flags)
 {
-  try {
-    // auto-cleanup cursors?
-    if (flags & HAM_AUTO_CLEANUP) {
-      Cursor *cursor;
-      while ((cursor = m_cursor_list))
-        cursor_close(cursor);
-    }
-    else if (m_cursor_list) {
-      ham_trace(("cannot close Database if Cursors are still open"));
-      return (set_error(HAM_CURSOR_STILL_OPEN));
-    }
-
-    // the derived classes can now do the bulk of the work
-    ham_status_t st = close_impl(flags);
-    if (st)
-      return (set_error(st));
-
-    // remove from the Environment's list
-    m_env->get_database_map().erase(m_config.db_name);
-
-    m_env = 0;
-    return (0);
+  // auto-cleanup cursors?
+  if (flags & HAM_AUTO_CLEANUP) {
+    Cursor *cursor;
+    while ((cursor = m_cursor_list))
+      cursor_close(cursor);
   }
-  catch (Exception &ex) {
-    return (ex.code);
+  else if (m_cursor_list) {
+    ham_trace(("cannot close Database if Cursors are still open"));
+    return (set_error(HAM_CURSOR_STILL_OPEN));
   }
+
+  // the derived classes can now do the bulk of the work
+  ham_status_t st = close_impl(flags);
+  if (st)
+    return (set_error(st));
+
+  m_env = 0;
+  return (0);
 }
 
 } // namespace hamsterdb

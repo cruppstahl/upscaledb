@@ -60,16 +60,11 @@ class Transaction;
 class Environment
 {
   public:
-    // A map of all opened Databases
-    typedef std::map<uint16_t, Database *> DatabaseMap;
-
     // Constructor
     Environment(EnvironmentConfiguration &config)
-      : m_config(config), m_context(0) {
+      : m_config(config), m_context_data(0) {
     }
 
-    // Must provide virtual destructor to avoid undefined behaviour (according
-    // to g++)
     virtual ~Environment() {
     }
 
@@ -90,12 +85,12 @@ class Environment
 
     // Returns the user-provided context pointer (ham_env_get_context_data)
     void *get_context_data() {
-      return (m_context);
+      return (m_context_data);
     }
 
     // Sets the user-provided context pointer (ham_env_set_context_data)
     void set_context_data(void *ctxt) {
-      m_context = ctxt;
+      m_context_data = ctxt;
     }
 
     // Returns this Environment's mutex
@@ -103,23 +98,11 @@ class Environment
       return (m_mutex);
     }
 
-    // Returns the Database Map
-    DatabaseMap &get_database_map() {
-      return (m_database_map);
-    }
-
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create() = 0;
 
     // Opens a new Environment (ham_env_open)
     virtual ham_status_t open() = 0;
-
-    // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
-                    uint32_t flags) = 0;
-
-    // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t erase_db(uint16_t name, uint32_t flags) = 0;
 
     // Returns all database names (ham_env_get_database_names)
     virtual ham_status_t get_database_names(uint16_t *names,
@@ -139,6 +122,16 @@ class Environment
     virtual ham_status_t open_db(Database **db, DatabaseConfiguration &config,
                     const ham_parameter_t *param) = 0;
 
+    // Renames a database in the Environment (ham_env_rename_db)
+    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
+                    uint32_t flags) = 0;
+
+    // Erases (deletes) a database from the Environment (ham_env_erase_db)
+    virtual ham_status_t erase_db(uint16_t name, uint32_t flags) = 0;
+
+    // Opens an existing database in the environment (ham_env_open_db)
+    virtual ham_status_t close_db(Database *db, uint32_t flags);
+
     // Begins a new transaction (ham_txn_begin)
     virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
                     uint32_t flags) = 0;
@@ -150,7 +143,7 @@ class Environment
     virtual void fill_metrics(ham_env_metrics_t *metrics) const { };
 
     // The transaction manager
-    TransactionManager *get_txn_manager() {
+    TransactionManager *txn_manager() {
       return (m_txn_manager.get());
     }
 
@@ -164,11 +157,11 @@ class Environment
     // The Transaction manager; can be 0
     ScopedPtr<TransactionManager> m_txn_manager;
 
-  private:
     // The user-provided context data
-    void *m_context;
+    void *m_context_data;
 
     // A map of all opened Databases
+    typedef std::map<uint16_t, Database *> DatabaseMap;
     DatabaseMap m_database_map;
 };
 

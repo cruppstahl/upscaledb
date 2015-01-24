@@ -1009,7 +1009,7 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
     /* purge cache if necessary */
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
                           0, HAM_TXN_TEMPORARY);
       txn = local_txn;
     }
@@ -1054,7 +1054,7 @@ LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
     }
 
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
                           0, HAM_TXN_TEMPORARY);
       txn = local_txn;
     }
@@ -1105,7 +1105,7 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
     // create a temporary transaction, if necessary
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
+      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
                           0, HAM_TXN_TEMPORARY);
       txn = local_txn;
     }
@@ -1262,7 +1262,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = get_local_env()->get_txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+      local_txn = get_local_env()->txn_manager()->begin(0, HAM_TXN_TEMPORARY);
     }
 
     FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
@@ -1388,8 +1388,8 @@ LocalDatabase::close_impl(uint32_t flags)
   }
 
   /* flush all committed transactions */
-  if (get_local_env()->get_txn_manager())
-    get_local_env()->get_txn_manager()->flush_committed_txns(&context);
+  if (get_local_env()->txn_manager())
+    get_local_env()->txn_manager()->flush_committed_txns(&context);
 
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY)
@@ -1772,14 +1772,14 @@ LocalDatabase::finalize(ham_status_t status, Transaction *local_txn)
   if (status) {
     if (local_txn) {
       //env->get_changeset()->clear();
-      //env->get_txn_manager()->abort(local_txn);
+      //env->txn_manager()->abort(local_txn);
     }
     return (status);
   }
 
   if (local_txn) {
     //env->get_changeset()->clear();
-    //env->get_txn_manager()->commit(local_txn);
+    //env->txn_manager()->commit(local_txn);
   }
   else if (env->get_flags() & HAM_ENABLE_RECOVERY
       && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {

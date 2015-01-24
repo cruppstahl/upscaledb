@@ -357,7 +357,7 @@ RemoteEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    get_database_map()[config.db_name] = *pdb;
+    m_database_map[config.db_name] = *pdb;
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -372,7 +372,7 @@ RemoteEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
 {
   try {
     /* make sure that this database is not yet open */
-    if (get_database_map().find(config.db_name) != get_database_map().end())
+    if (m_database_map.find(config.db_name) != m_database_map.end())
       return (HAM_DATABASE_ALREADY_OPEN);
 
     Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
@@ -403,7 +403,7 @@ RemoteEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
 
     // on success: store the open database in the environment's list of
     // opened databases
-    get_database_map()[config.db_name] = *pdb;
+    m_database_map[config.db_name] = *pdb;
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -419,8 +419,8 @@ RemoteEnvironment::close(uint32_t flags)
 
   try {
     /* close all databases */
-    Environment::DatabaseMap::iterator it = get_database_map().begin();
-    while (it != get_database_map().end()) {
+    Environment::DatabaseMap::iterator it = m_database_map.begin();
+    while (it != m_database_map.end()) {
       Environment::DatabaseMap::iterator it2 = it; it++;
       Database *db = it2->second;
       if (flags & HAM_AUTO_CLEANUP)

@@ -71,6 +71,7 @@
 
 #include "0root/root.h"
 
+#include <map>
 #include <cstdio>
 #include <string>
 
@@ -351,6 +352,10 @@ class Journal
 
     // Counting the flushed bytes (for ham_env_get_metrics)
     uint64_t m_count_bytes_flushed;
+
+    // A map of all opened Databases
+    typedef std::map<uint16_t, Database *> DatabaseMap;
+    DatabaseMap m_database_map;
 };
 
 #include "1base/packstop.h"

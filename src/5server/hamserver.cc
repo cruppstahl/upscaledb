@@ -321,8 +321,7 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
-handle_env_open_db(ServerContext *srv, uv_stream_t *tcp,
-                Protocol *request)
+handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ham_db_t *db = 0;
   uint64_t db_handle = 0;
@@ -348,19 +347,6 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp,
   Handle<Database> handle = srv->get_db_by_name(dbname);
   db = (ham_db_t *)handle.object;
   db_handle = handle.index;
-
-  /* if not found: check if the Database was opened by another
-   * connection
-   * TODO this is not thread safe! - not really a problem because the server
-   * is currently single-threaded, though
-   */
-  if (!db) {
-    Environment::DatabaseMap::iterator it
-            = env->get_database_map().find(dbname);
-    if (it != env->get_database_map().end())
-      db = (ham_db_t *)it->second;
-    db_handle = srv->allocate_handle((Database *)db);
-  }
 
   if (!db) {
     /* still not found: open the database */

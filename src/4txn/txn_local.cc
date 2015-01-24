@@ -243,7 +243,7 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
     m_newest_op(0), m_op_counter(0), m_accum_data_size(0)
 {
   LocalTransactionManager *ltm = 
-        (LocalTransactionManager *)env->get_txn_manager();
+        (LocalTransactionManager *)env->txn_manager();
   m_id = ltm->get_incremented_txn_id();
 
   /* append journal entry */
