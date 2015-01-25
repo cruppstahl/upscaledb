@@ -84,10 +84,10 @@ class LocalDatabase : public Database {
     }
 
     // Creates a new Database
-    virtual ham_status_t create(uint16_t descriptor);
+    virtual ham_status_t create(Context *context, uint16_t descriptor);
 
     // Opens an existing Database
-    virtual ham_status_t open(uint16_t descriptor);
+    virtual ham_status_t open(Context *context, uint16_t descriptor);
 
     // Erases this Database
     void erase_me();
@@ -218,7 +218,8 @@ class LocalDatabase : public Database {
     // Finalizes an operation by committing or aborting the |local_txn|
     // and clearing or flushing the Changeset.
     // Returns |status|.
-    ham_status_t finalize(ham_status_t status, Transaction *local_txn);
+    ham_status_t finalize(Context *context, ham_status_t status,
+                    Transaction *local_txn);
 
     // returns the next record number
     uint64_t get_incremented_recno() {

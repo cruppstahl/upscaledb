@@ -152,7 +152,7 @@ class BtreeInsertAction : public BtreeUpdateAction
         }
 
         if (m_hints.flags & HAM_HINT_PREPEND) {
-          int cmp_lo = node->compare(m_key, 0);
+          int cmp_lo = node->compare(m_context, m_key, 0);
           /* key is at the start of page */
           if (cmp_lo < 0) {
             ham_assert(node->get_left() == 0);
@@ -204,6 +204,8 @@ ham_status_t
 BtreeIndex::insert(Context *context, Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
+  context->db = get_db();
+
   BtreeInsertAction bia(this, context, cursor, key, record, flags);
   return (bia.run());
 }

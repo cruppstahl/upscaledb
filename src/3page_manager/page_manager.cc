@@ -609,6 +609,9 @@ close_database_impl(PageManagerState &state, Context *context,
     state.last_blob_page_id = state.last_blob_page->get_address();
     state.last_blob_page = 0;
   }
+
+  context->changeset.clear();
+
   DbClosePurger purger(db);
   state.cache.purge_if(purger);
 }

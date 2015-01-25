@@ -224,6 +224,8 @@ ham_status_t
 BtreeIndex::erase(Context *context, Cursor *cursor, ham_key_t *key,
                 int duplicate, uint32_t flags)
 {
+  context->db = get_db();
+
   BtreeEraseAction bea(this, context, cursor, key, duplicate, flags);
   return (bea.run());
 }

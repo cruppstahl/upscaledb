@@ -40,12 +40,6 @@
 #  error "root.h was not included"
 #endif
 
-#define FINALIZE_ON_SCOPE_EXIT(db, st, txn)                 \
-  LocalDatabase *db__ = db;                                 \
-  BOOST_SCOPE_EXIT(db__, st, txn) {                         \
-    db__->finalize(st, txn);                                \
-  } BOOST_SCOPE_EXIT_END
-
 namespace hamsterdb {
 
 ham_status_t
@@ -535,10 +529,8 @@ LocalDatabase::erase_txn(Context *context, LocalTransaction *txn,
 }
 
 ham_status_t
-LocalDatabase::create(uint16_t descriptor)
+LocalDatabase::create(Context *context, uint16_t descriptor)
 {
-  Context context(get_local_env(), 0, this);
-
   /* set the flags; strip off run-time (per session) flags for the btree */
   uint32_t persistent_flags = get_rt_flags();
   persistent_flags &= ~(HAM_CACHE_UNLIMITED
@@ -595,20 +587,18 @@ LocalDatabase::create(uint16_t descriptor)
                         m_config.key_type, m_config.key_size));
 
   /* initialize the btree */
-  m_btree_index->create(&context, m_config.key_type, m_config.key_size,
+  m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size);
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));
 
-  return (0);
+  return (finalize(context, 0, 0));
 }
 
 ham_status_t
-LocalDatabase::open(uint16_t descriptor)
+LocalDatabase::open(Context *context, uint16_t descriptor)
 {
-  Context context(get_local_env(), 0, this);
-
   /*
    * set the database flags; strip off the persistent flags that may have been
    * set by the caller, before mixing in the persistent flags as obtained
@@ -658,7 +648,7 @@ LocalDatabase::open(uint16_t descriptor)
   if ((get_rt_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
     ham_key_t key = {};
     Cursor *c = new Cursor(this, 0, 0);
-    ham_status_t st = cursor_move_impl(&context, c, &key, 0, HAM_CURSOR_LAST);
+    ham_status_t st = cursor_move_impl(context, c, &key, 0, HAM_CURSOR_LAST);
     cursor_close(c);
     if (st)
       return (st == HAM_KEY_NOT_FOUND ? 0 : st);
@@ -669,7 +659,7 @@ LocalDatabase::open(uint16_t descriptor)
       m_recno = *(uint64_t *)key.data;
   }
 
-  return (0);
+  return (finalize(context, 0, 0));
 }
 
 ham_status_t
@@ -893,15 +883,8 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       (*visitor)(key.data, key.size, distinct
                                      ? cursor->get_record_count(&context, 0)
                                      : 1);
-<<<<<<< HEAD
->>>>>>> Removing changeset from Enviroment (wip)
-  }
-=======
     }
->>>>>>> Moving exception handling to implementation classes
 
-<<<<<<< HEAD
-=======
 bail:
     if (cursor)
       cursor_close(cursor);
@@ -916,8 +899,8 @@ ham_status_t
 LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  Context context(get_local_env(), (LocalTransaction *)txn, this);
   try {
-    Context context(get_local_env(), (LocalTransaction *)txn, this);
 
     if (m_config.flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
       if (key->size == 0 && key->data == 0) {
@@ -1014,12 +997,12 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
       txn = local_txn;
     }
 
-    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-    return (insert_impl(&context, cursor, (LocalTransaction *)txn, key,
-                        record, flags));
+    st = insert_impl(&context, cursor, (LocalTransaction *)txn, key,
+                        record, flags);
+    return (finalize(&context, st, local_txn));
   }
   catch (Exception &ex) {
+    context.changeset.clear();
     return (ex.code);
   }
 }
@@ -1029,9 +1012,9 @@ ham_status_t
 LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
                 uint32_t flags)
 {
-  try {
-    Context context(get_local_env(), (LocalTransaction *)txn, this);
+  Context context(get_local_env(), (LocalTransaction *)txn, this);
 
+  try {
     ham_status_t st = 0;
     LocalTransaction *local_txn = 0;
 
@@ -1059,11 +1042,11 @@ LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
       txn = local_txn;
     }
 
-    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-    return (erase_impl(&context, cursor, txn, key, flags));
+    st = erase_impl(&context, cursor, txn, key, flags);
+    return (finalize(&context, st, local_txn));
   }
   catch (Exception &ex) {
+    context.changeset.clear();
     return (ex.code);
   }
 }
@@ -1072,11 +1055,11 @@ ham_status_t
 LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st = 0;
-  LocalTransaction *local_txn = 0;
+  Context context(get_local_env(), (LocalTransaction *)txn, this);
 
   try {
-    Context context(get_local_env(), (LocalTransaction *)txn, this);
+    ham_status_t st = 0;
+    LocalTransaction *local_txn = 0;
 
     /* Duplicates AND Transactions require a Cursor because only
      * Cursors can build lists of duplicates.
@@ -1110,29 +1093,10 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
       txn = local_txn;
     }
 
-    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  st = find_impl(cursor, (LocalTransaction *)txn, key, record, flags);
->>>>>>> Merging Database::erase and Database::cursor_erase
-  if (st)
-    return (st);
-
-  /* approximate matching? then also copy the key */
-  if (ham_key_get_intflags(key) & BtreeKey::kApproximate) {
-    if (cursor->is_coupled_to_txnop())
-      cursor->get_txn_cursor()->copy_coupled_key(key);
-=======
-  st = find_impl(&context, cursor, (LocalTransaction *)txn, key, record, flags);
-  if (st)
-    return (st);
-=======
     st = find_impl(&context, cursor, (LocalTransaction *)txn, key,
                     record, flags);
     if (st)
       return (st);
->>>>>>> Moving exception handling to implementation classes
 
     if (cursor) {
       // make sure that txn-cursor and btree-cursor point to the same keys
@@ -1171,24 +1135,17 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
         }
       }
 
-<<<<<<< HEAD
-    /* set a flag that the cursor just completed an Insert-or-find
-     * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(Cursor::kLookupOrInsert);
->>>>>>> Removing changeset from Enviroment (wip)
-=======
       /* set a flag that the cursor just completed an Insert-or-find
        * operation; this information is needed in ham_cursor_move */
       cursor->set_lastop(Cursor::kLookupOrInsert);
     }
+
+    return (finalize(&context, st, local_txn));
   }
   catch (Exception &ex) {
+    context.changeset.clear();
     return (ex.code);
->>>>>>> Moving exception handling to implementation classes
   }
-#endif
-=======
-  return (st);
 }
 
 Cursor *
@@ -1249,12 +1206,11 @@ ham_status_t
 LocalDatabase::cursor_overwrite(Cursor *cursor,
                 ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st = 0;
-  Transaction *local_txn = 0;
+  Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(), this);
 
   try {
-    Context context(get_local_env(), (LocalTransaction *)cursor->get_txn(),
-                    this);
+    ham_status_t st = 0;
+    Transaction *local_txn = 0;
 
     /* purge cache if necessary */
     get_local_env()->page_manager()->purge_cache(&context);
@@ -1265,15 +1221,15 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
       local_txn = get_local_env()->txn_manager()->begin(0, HAM_TXN_TEMPORARY);
     }
 
-    FINALIZE_ON_SCOPE_EXIT(this, st, local_txn);
-
     /* this function will do all the work */
-    return (cursor->overwrite(&context, cursor->get_txn()
-                                          ? cursor->get_txn()
-                                          : local_txn,
-                              record, flags));
+    st = cursor->overwrite(&context, cursor->get_txn()
+                                        ? cursor->get_txn()
+                                        : local_txn,
+                            record, flags);
+    return (finalize(&context, st, local_txn));
   }
   catch (Exception &ex) {
+    context.changeset.clear();
     return (ex.code);
   }
 }
@@ -1761,25 +1717,26 @@ LocalDatabase::erase_impl(Context *context, Cursor *cursor, Transaction *htxn,
 }
 
 ham_status_t
-LocalDatabase::finalize(ham_status_t status, Transaction *local_txn)
+LocalDatabase::finalize(Context *context, ham_status_t status,
+                Transaction *local_txn)
 {
   LocalEnvironment *env = get_local_env();
 
   if (status) {
     if (local_txn) {
-      //env->get_changeset()->clear();
-      //env->txn_manager()->abort(local_txn);
+      context->changeset.clear();
+      env->txn_manager()->abort(local_txn);
     }
     return (status);
   }
 
   if (local_txn) {
-    //env->get_changeset()->clear();
-    //env->txn_manager()->commit(local_txn);
+    context->changeset.clear();
+    env->txn_manager()->commit(local_txn);
   }
   else if (env->get_flags() & HAM_ENABLE_RECOVERY
       && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    //env->get_changeset()->flush(env->get_incremented_lsn());
+    context->changeset.flush(env->get_incremented_lsn());
   }
   return (0);
 }

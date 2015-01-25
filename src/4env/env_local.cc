@@ -639,14 +639,18 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
       return (HAM_LIMITS_REACHED);
     }
 
-    /* initialize the Database */
-    ham_status_t st = db->create(dbi);
+    mark_header_page_dirty(&context);
+
+    /* initialize the Database; this will flush the context */
+    ham_status_t st = db->create(&context, dbi);
     if (st) {
       delete db;
       return (st);
     }
 
-    mark_header_page_dirty(&context);
+    /* force-flush the changeset */
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      context.changeset.flush(get_incremented_lsn());
 
     /*
      * on success: store the open database in the environment's list of
@@ -698,6 +702,8 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   if (m_database_map.find(config.db_name) != m_database_map.end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
+  Context context(this);
+
   /* create a new Database object */
   LocalDatabase *db = new LocalDatabase(this, config);
 
@@ -719,7 +725,7 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* open the database */
-  ham_status_t st = db->open(dbi);
+  ham_status_t st = db->open(&context, dbi);
   if (st) {
     delete db;
     ham_trace(("Database could not be opened"));
