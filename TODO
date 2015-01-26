@@ -629,6 +629,10 @@ o improve separation between logic and state; make state immutable and
         x Move lsn handling to its own object, clean up
         x Cache
         x Changeset
+        o Environment - not virtual, has pimpl for local and remote
+                implementation 
+            o Environment: has common code, takes care of exceptions
+                and Context related stuff
         o Journal
         o Device
             Implementation class uses template specialization:

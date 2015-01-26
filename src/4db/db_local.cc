@@ -1184,6 +1184,7 @@ LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags,
     return (0);
   }
   catch (Exception &ex) {
+    *pcount = 0;
     return (ex.code);
   }
 }

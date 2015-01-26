@@ -124,7 +124,7 @@ struct DbFixture {
     uint8_t *p;
 
     PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
-    PageManagerTestGateway test(pm);
+    PageManagerTestGateway test = pm->test();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
 

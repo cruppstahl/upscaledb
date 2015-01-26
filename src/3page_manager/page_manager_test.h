@@ -40,7 +40,7 @@ class Page;
 struct PageManagerTestGateway
 {
   // Constructor
-  PageManagerTestGateway(PageManager *page_manager);
+  PageManagerTestGateway(PageManagerState *state);
 
   // Stores the local PageManager state to disk; returns the blob id
   uint64_t store_state();
@@ -61,8 +61,11 @@ struct PageManagerTestGateway
   // Returns true if the cache is full
   bool is_cache_full();
 
+  // Returns the state
+  PageManagerState *state() { return (m_state); }
+
   // Reference of the original state
-  PageManagerState &m_state;
+  PageManagerState *m_state;
 };
 
 } // namespace hamsterdb

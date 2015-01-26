@@ -38,39 +38,41 @@
 
 namespace hamsterdb {
 
-struct Changeset
+class Changeset
 {
-  Changeset(ChangesetState state)
-    : m_state(state) {
-  }
+  public:
+    Changeset(const ChangesetState &state)
+      : m_state(state) {
+    }
 
-  /*
-   * Returns a page from the changeset, or NULL if the page is not part
-   * of the changeset
-   */
-  Page *get(uint64_t address);
+    /*
+     * Returns a page from the changeset, or NULL if the page is not part
+     * of the changeset
+     */
+    Page *get(uint64_t address);
 
-  /* Append a new page to the changeset */
-  void put(Page *page);
+    /* Append a new page to the changeset */
+    void put(Page *page);
 
-  /* Check if the page is already part of the changeset */
-  bool has(Page *page) const;
+    /* Check if the page is already part of the changeset */
+    bool has(Page *page) const;
 
-  /* Returns true if the changeset is empty */
-  bool is_empty() const;
+    /* Returns true if the changeset is empty */
+    bool is_empty() const;
 
-  /* Removes all pages from the changeset */
-  void clear();
+    /* Removes all pages from the changeset */
+    void clear();
 
-  /*
-   * Flush all pages in the changeset - first write them to the log, then
-   * write them to the disk.
-   * On success: will clear the changeset and the journal
-   */
-  void flush(uint64_t lsn);
+    /*
+     * Flush all pages in the changeset - first write them to the log, then
+     * write them to the disk.
+     * On success: will clear the changeset and the journal
+     */
+    void flush(uint64_t lsn);
 
-  // The mutable state
-  ChangesetState m_state;
+  private:
+    // The mutable state
+    ChangesetState m_state;
 };
 
 } // namespace hamsterdb

@@ -368,9 +368,11 @@ LocalEnvironment::close(uint32_t flags)
       while ((t = m_txn_manager->get_oldest_txn())) {
         if (!t->is_aborted() && !t->is_committed()) {
           if (flags & HAM_TXN_AUTO_COMMIT)
-            m_txn_manager->commit(t, 0);
+            st = m_txn_manager->commit(t, 0);
           else /* if (flags & HAM_TXN_AUTO_ABORT) */
-            m_txn_manager->abort(t, 0);
+            st = m_txn_manager->abort(t, 0);
+          if (st)
+            return (st);
         }
 
         m_txn_manager->flush_committed_txns();

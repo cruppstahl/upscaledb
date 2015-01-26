@@ -477,9 +477,12 @@ RemoteDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags,
     ham_status_t st = reply.cursor_get_record_count_reply.status;
     if (st == 0)
       *pcount = reply.cursor_get_record_count_reply.count;
+    else
+      *pcount = 0;
     return (st);
   }
   catch (Exception &ex) {
+    *pcount = 0;
     return (ex.code);
   }
 }

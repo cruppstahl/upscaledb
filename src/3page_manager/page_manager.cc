@@ -204,92 +204,12 @@ maybe_store_state(PageManagerState &state, Context *context, bool force)
   }
 }
 
-// Fetches a page from the cache
-static Page *
-fetch_page_from_cache(PageManagerState &state, uint64_t id)
-{
-  return (state.cache.get(id));
-}
-
-// Stores a page in the cache
-static void
-store_page_in_cache(PageManagerState &state, Page *page, uint32_t flags = 0)
-{
-  state.cache.put(page);
-}
-
 /* returns true if the cache is full */
 static bool
 is_cache_full_impl(const PageManagerState &state)
 {
   return (state.cache.allocated_elements() * state.config.page_size_bytes
                     > state.cache.capacity());
-}
-
-static void
-initialize_impl(PageManagerState &state, Context *context, uint64_t pageid)
-{
-  state.free_pages.clear();
-  if (state.state_page)
-    delete state.state_page;
-  state.state_page = new Page(state.device);
-  state.state_page->fetch(pageid);
-
-  Page *page = state.state_page;
-  uint32_t page_size = state.config.page_size_bytes;
-
-  // the first page stores the page ID of the last blob
-  state.last_blob_page_id = *(uint64_t *)page->get_payload();
-
-  while (1) {
-    ham_assert(page->get_type() == Page::kTypePageManager);
-    uint8_t *p = page->get_payload();
-    // skip state.last_blob_page_id?
-    if (page == state.state_page)
-      p += sizeof(uint64_t);
-
-    // get the overflow address
-    uint64_t overflow = *(uint64_t *)p;
-    p += 8;
-
-    // get the number of stored elements
-    uint32_t counter = *(uint32_t *)p;
-    p += 4;
-
-    // now read all pages
-    for (uint32_t i = 0; i < counter; i++) {
-      // 4 bits page_counter, 4 bits for number of following bytes
-      int page_counter = (*p & 0xf0) >> 4;
-      int num_bytes = *p & 0x0f;
-      ham_assert(page_counter > 0);
-      ham_assert(num_bytes <= 8);
-      p += 1;
-
-      uint64_t id = Pickle::decode_u64(num_bytes, p);
-      p += num_bytes;
-
-      state.free_pages[id * page_size] = page_counter;
-    }
-
-    // load the overflow page
-    if (overflow)
-      page = fetch_impl(state, context, overflow, 0);
-    else
-      break;
-  }
-}
-
-static void
-fill_metrics_impl(const PageManagerState &state, ham_env_metrics_t *metrics)
-{
-  metrics->page_count_fetched = state.page_count_fetched;
-  metrics->page_count_flushed = Page::ms_page_count_flushed;
-  metrics->page_count_type_index = state.page_count_index;
-  metrics->page_count_type_blob = state.page_count_blob;
-  metrics->page_count_type_page_manager = state.page_count_page_manager;
-  metrics->freelist_hits = state.freelist_hits;
-  metrics->freelist_misses = state.freelist_misses;
-  state.cache.fill_metrics(metrics);
 }
 
 static Page *
@@ -322,7 +242,7 @@ fetch_impl(PageManagerState &state, Context *context, uint64_t address,
   ham_assert(page->get_data());
 
   /* store the page in the list */
-  store_page_in_cache(state, page, flags);
+  state.cache.put(page);
 
   /* write to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
@@ -360,7 +280,7 @@ alloc_impl(PageManagerState &state, Context *context, uint32_t page_type,
     state.freelist_hits++;
 
     /* try to fetch the page from the cache */
-    page = fetch_page_from_cache(state, address);
+    page = state.cache.get(address);
     if (page)
       goto done;
     /* allocate a new page structure and read the page from disk */
@@ -403,7 +323,7 @@ done:
   context->changeset.put(page);
 
   /* store the page in the cache */
-  store_page_in_cache(state, page, flags);
+  state.cache.put(page);
 
   /* write to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
@@ -532,57 +452,6 @@ struct Purger
   PageManager *m_page_manager;
 };
 
-static void
-purge_cache_impl(PageManagerState &state, Context *context,
-                PageManager *page_manager)
-{
-  // in-memory-db: don't remove the pages or they would be lost
-  if (state.config.flags & HAM_IN_MEMORY || !is_cache_full_impl(state))
-    return;
-
-  // Purge as many pages as possible to get memory usage down to the
-  // cache's limit.
-  Purger purger(context, page_manager);
-  state.cache.purge(context, purger);
-}
-
-static void
-reclaim_space_impl(PageManagerState &state, Context *context)
-{
-  if (state.last_blob_page) {
-    state.last_blob_page_id = state.last_blob_page->get_address();
-    state.last_blob_page = 0;
-  }
-  ham_assert(!(state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL));
-
-  bool do_truncate = false;
-  size_t file_size = state.device->file_size();
-  uint32_t page_size = state.config.page_size_bytes;
-
-  while (state.free_pages.size() > 1) {
-    PageManagerState::FreeMap::iterator fit =
-                state.free_pages.find(file_size - page_size);
-    if (fit != state.free_pages.end()) {
-      Page *page = state.cache.get(fit->first);
-      if (page) {
-        state.cache.del(page);
-        delete page;
-      }
-      file_size -= page_size;
-      do_truncate = true;
-      state.free_pages.erase(fit);
-      continue;
-    }
-    break;
-  }
-
-  if (do_truncate) {
-    state.needs_flush = true;
-    maybe_store_state(state, context, true);
-    state.device->truncate(file_size);
-  }
-}
-
 struct DbClosePurger
 {
   DbClosePurger(LocalDatabase *db)
@@ -601,98 +470,6 @@ struct DbClosePurger
   LocalDatabase *m_db;
 };
 
-static void
-close_database_impl(PageManagerState &state, Context *context,
-                LocalDatabase *db)
-{
-  if (state.last_blob_page) {
-    state.last_blob_page_id = state.last_blob_page->get_address();
-    state.last_blob_page = 0;
-  }
-
-  context->changeset.clear();
-
-  DbClosePurger purger(db);
-  state.cache.purge_if(purger);
-}
-
-static void
-close_impl(PageManagerState &state, Context *context)
-{
-  // store the state of the PageManager
-  if ((state.config.flags & HAM_IN_MEMORY) == 0
-      && (state.config.flags & HAM_READ_ONLY) == 0) {
-    maybe_store_state(state, context, true);
-  }
-
-  // reclaim unused disk space
-  // if logging is enabled: also flush the changeset to write back the
-  // modified freelist pages
-  bool try_reclaim = state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL
-                ? false
-                : true;
-
-#ifdef WIN32
-  // Win32: it's not possible to truncate the file while there's an active
-  // mapping, therefore only reclaim if memory mapped I/O is disabled
-  if (!(state.config.flags & HAM_DISABLE_MMAP))
-    try_reclaim = false;
-#endif
-
-  if (try_reclaim) {
-    reclaim_space_impl(state, context);
-  }
-
-  // clear the Changeset because flush_impl() will delete all Page pointers
-  context->changeset.clear();
-
-  // flush all dirty pages to disk, then delete them
-  flush_impl(state);
-
-  delete state.state_page;
-  state.state_page = 0;
-  state.last_blob_page = 0;
-}
-
-static void
-del_impl(PageManagerState &state, Page *page, size_t page_count)
-{
-  ham_assert(page_count > 0);
-
-  if (state.config.flags & HAM_IN_MEMORY)
-    return;
-
-  state.needs_flush = true;
-  state.free_pages[page->get_address()] = page_count;
-  ham_assert(page->get_address() % state.config.page_size_bytes == 0);
-
-  if (page->get_node_proxy()) {
-    delete page->get_node_proxy();
-    page->set_node_proxy(0);
-  }
-
-  // do not call maybe_store_state() - this change in the state is not
-  // relevant for logging.
-}
-
-static Page *
-get_last_blob_page_impl(PageManagerState &state, Context *context)
-{
-  if (state.last_blob_page)
-    return (state.last_blob_page);
-  if (state.last_blob_page_id)
-    return (fetch_impl(state, context, state.last_blob_page_id, 0));
-  return (0);
-}
-
-static void 
-set_last_blob_page_impl(PageManagerState &state, Page *page)
-{
-  state.last_blob_page_id = 0;
-  state.last_blob_page = page;
-}
-
-
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->get_config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
@@ -703,7 +480,7 @@ PageManagerState::PageManagerState(LocalEnvironment *env)
 {
 }
 
-PageManager::PageManager(PageManagerState state)
+PageManager::PageManager(const PageManagerState &state)
   : m_state(state)
 {
 }
@@ -712,13 +489,68 @@ void
 PageManager::initialize(uint64_t pageid)
 {
   Context context(0, 0, 0);
-  initialize_impl(m_state, &context, pageid);
+
+  m_state.free_pages.clear();
+  if (m_state.state_page)
+    delete m_state.state_page;
+  m_state.state_page = new Page(m_state.device);
+  m_state.state_page->fetch(pageid);
+
+  Page *page = m_state.state_page;
+  uint32_t page_size = m_state.config.page_size_bytes;
+
+  // the first page stores the page ID of the last blob
+  m_state.last_blob_page_id = *(uint64_t *)page->get_payload();
+
+  while (1) {
+    ham_assert(page->get_type() == Page::kTypePageManager);
+    uint8_t *p = page->get_payload();
+    // skip m_state.last_blob_page_id?
+    if (page == m_state.state_page)
+      p += sizeof(uint64_t);
+
+    // get the overflow address
+    uint64_t overflow = *(uint64_t *)p;
+    p += 8;
+
+    // get the number of stored elements
+    uint32_t counter = *(uint32_t *)p;
+    p += 4;
+
+    // now read all pages
+    for (uint32_t i = 0; i < counter; i++) {
+      // 4 bits page_counter, 4 bits for number of following bytes
+      int page_counter = (*p & 0xf0) >> 4;
+      int num_bytes = *p & 0x0f;
+      ham_assert(page_counter > 0);
+      ham_assert(num_bytes <= 8);
+      p += 1;
+
+      uint64_t id = Pickle::decode_u64(num_bytes, p);
+      p += num_bytes;
+
+      m_state.free_pages[id * page_size] = page_counter;
+    }
+
+    // load the overflow page
+    if (overflow)
+      page = fetch_impl(m_state, &context, overflow, 0);
+    else
+      break;
+  }
 }
 
 void
 PageManager::fill_metrics(ham_env_metrics_t *metrics) const
 {
-  fill_metrics_impl(m_state, metrics);
+  metrics->page_count_fetched = m_state.page_count_fetched;
+  metrics->page_count_flushed = Page::ms_page_count_flushed;
+  metrics->page_count_type_index = m_state.page_count_index;
+  metrics->page_count_type_blob = m_state.page_count_blob;
+  metrics->page_count_type_page_manager = m_state.page_count_page_manager;
+  metrics->freelist_hits = m_state.freelist_hits;
+  metrics->freelist_misses = m_state.freelist_misses;
+  m_state.cache.fill_metrics(metrics);
 }
 
 Page *
@@ -748,62 +580,151 @@ PageManager::flush()
 void
 PageManager::purge_cache(Context *context)
 {
-  purge_cache_impl(m_state, context, this);
+  // in-memory-db: don't remove the pages or they would be lost
+  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full_impl(m_state))
+    return;
+
+  // Purge as many pages as possible to get memory usage down to the
+  // cache's limit.
+  Purger purger(context, this);
+  m_state.cache.purge(context, purger);
 }
 
 void
 PageManager::reclaim_space(Context *context)
 {
-  reclaim_space_impl(m_state, context);
+  if (m_state.last_blob_page) {
+    m_state.last_blob_page_id = m_state.last_blob_page->get_address();
+    m_state.last_blob_page = 0;
+  }
+  ham_assert(!(m_state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL));
+
+  bool do_truncate = false;
+  size_t file_size = m_state.device->file_size();
+  uint32_t page_size = m_state.config.page_size_bytes;
+
+  while (m_state.free_pages.size() > 1) {
+    PageManagerState::FreeMap::iterator fit =
+                m_state.free_pages.find(file_size - page_size);
+    if (fit != m_state.free_pages.end()) {
+      Page *page = m_state.cache.get(fit->first);
+      if (page) {
+        m_state.cache.del(page);
+        delete page;
+      }
+      file_size -= page_size;
+      do_truncate = true;
+      m_state.free_pages.erase(fit);
+      continue;
+    }
+    break;
+  }
+
+  if (do_truncate) {
+    m_state.needs_flush = true;
+    maybe_store_state(m_state, context, true);
+    m_state.device->truncate(file_size);
+  }
 }
 
 void
 PageManager::close_database(Context *context, LocalDatabase *db)
 {
-  close_database_impl(m_state, context, db);
+  if (m_state.last_blob_page) {
+    m_state.last_blob_page_id = m_state.last_blob_page->get_address();
+    m_state.last_blob_page = 0;
+  }
+
+  context->changeset.clear();
+
+  DbClosePurger purger(db);
+  m_state.cache.purge_if(purger);
 }
 
 void
 PageManager::del(Page *page, size_t page_count)
 {
-  del_impl(m_state, page, page_count);
+  ham_assert(page_count > 0);
+
+  if (m_state.config.flags & HAM_IN_MEMORY)
+    return;
+
+  m_state.needs_flush = true;
+  m_state.free_pages[page->get_address()] = page_count;
+  ham_assert(page->get_address() % m_state.config.page_size_bytes == 0);
+
+  if (page->get_node_proxy()) {
+    delete page->get_node_proxy();
+    page->set_node_proxy(0);
+  }
+
+  // do not call maybe_store_state() - this change in the m_state is not
+  // relevant for logging.
 }
 
 void
 PageManager::close(Context *context)
 {
-  close_impl(m_state, context);
+  // store the state of the PageManager
+  if ((m_state.config.flags & HAM_IN_MEMORY) == 0
+      && (m_state.config.flags & HAM_READ_ONLY) == 0) {
+    maybe_store_state(m_state, context, true);
+  }
+
+  // reclaim unused disk space
+  // if logging is enabled: also flush the changeset to write back the
+  // modified freelist pages
+  bool try_reclaim = m_state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL
+                ? false
+                : true;
+
+#ifdef WIN32
+  // Win32: it's not possible to truncate the file while there's an active
+  // mapping, therefore only reclaim if memory mapped I/O is disabled
+  if (!(m_state.config.flags & HAM_DISABLE_MMAP))
+    try_reclaim = false;
+#endif
+
+  if (try_reclaim) {
+    reclaim_space(context);
+  }
+
+  // clear the Changeset because flush_impl() will delete all Page pointers
+  context->changeset.clear();
+
+  // flush all dirty pages to disk, then delete them
+  flush();
+
+  delete m_state.state_page;
+  m_state.state_page = 0;
+  m_state.last_blob_page = 0;
 }
 
 Page *
 PageManager::get_last_blob_page(Context *context)
 {
-  return (get_last_blob_page_impl(m_state, context));
+  if (m_state.last_blob_page)
+    return (m_state.last_blob_page);
+  if (m_state.last_blob_page_id)
+    return (fetch(context, m_state.last_blob_page_id, 0));
+  return (0);
 }
 
 void 
 PageManager::set_last_blob_page(Page *page)
 {
-  set_last_blob_page_impl(m_state, page);
+  m_state.last_blob_page_id = 0;
+  m_state.last_blob_page = page;
 }
 
-
-
-static void
-remove_page_impl(PageManagerState &state, Page *page)
+PageManagerTestGateway
+PageManager::test()
 {
-  state.cache.del(page);
+  return (PageManagerTestGateway(&m_state));
 }
 
-static bool
-is_page_free_impl(const PageManagerState &state, uint64_t pageid)
-{
-  PageManagerState::FreeMap::const_iterator it = state.free_pages.find(pageid);
-  return (it != state.free_pages.end());
-}
-
-PageManagerTestGateway::PageManagerTestGateway(PageManager *page_manager)
-  : m_state(page_manager->m_state)
+PageManagerTestGateway::PageManagerTestGateway(PageManagerState *state)
+  : m_state(state)
 {
 }
 
@@ -811,37 +732,37 @@ uint64_t
 PageManagerTestGateway::store_state()
 {
   Context context(0, 0, 0);
-  return (store_state_impl(m_state, &context));
+  return (store_state_impl(*m_state, &context));
 }
 
 void
 PageManagerTestGateway::remove_page(Page *page)
 {
-  remove_page_impl(m_state, page);
+  m_state->cache.del(page);
 }
 
 bool
 PageManagerTestGateway::is_page_free(uint64_t pageid)
 {
-  return (is_page_free_impl(m_state, pageid));
+  return (m_state->free_pages.find(pageid) != m_state->free_pages.end());
 }
 
 Page *
 PageManagerTestGateway::fetch_page(uint64_t id)
 {
-  return (fetch_page_from_cache(m_state, id));
+  return (m_state->cache.get(id));
 }
 
 void
 PageManagerTestGateway::store_page(Page *page)
 {
-  store_page_in_cache(m_state, page);
+  m_state->cache.put(page);
 }
 
 bool
 PageManagerTestGateway::is_cache_full()
 {
-  return (is_cache_full_impl(m_state));
+  return (is_cache_full_impl(*m_state));
 }
 
 } // namespace hamsterdb

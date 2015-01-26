@@ -142,7 +142,7 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test(lenv->page_manager());
+    PageManagerTestGateway test = lenv->page_manager()->test();
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -162,7 +162,7 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test(lenv->page_manager());
+    PageManagerTestGateway test = lenv->page_manager()->test();
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -176,7 +176,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     Page *page[20];
     PPageData pers[20];
-    PageManagerTestGateway test(lenv->page_manager());
+    PageManagerTestGateway test = lenv->page_manager()->test();
 
     for (int i = 0; i < 20; i++) {
       page[i] = new Page(lenv->device());
@@ -199,7 +199,7 @@ struct PageManagerFixture {
 
   void cacheNegativeGets() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test(lenv->page_manager());
+    PageManagerTestGateway test = lenv->page_manager()->test();
 
     for (int i = 0; i < 20; i++)
       REQUIRE((Page *)0 == test.fetch_page(i + 1));
@@ -207,7 +207,7 @@ struct PageManagerFixture {
 
   void cacheFullTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test(lenv->page_manager());
+    PageManagerTestGateway test = lenv->page_manager()->test();
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
@@ -254,15 +254,14 @@ struct PageManagerFixture {
 
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test(pm);
+    PageManagerTestGateway test = lenv->page_manager()->test();
     uint32_t page_size = lenv->page_size();
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
-      pm->m_state.free_pages[page_size * (i + 100)] = 1;
+      test.state()->free_pages[page_size * (i + 100)] = 1;
 
-    pm->m_state.needs_flush = true;
+    test.state()->needs_flush = true;
     REQUIRE(test.store_state() == page_size * 2);
 
     // reopen the database
@@ -270,10 +269,10 @@ struct PageManagerFixture {
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
-    pm = lenv->page_manager();
+    test = lenv->page_manager()->test();
 
     // and check again - the entries must be collapsed
-    PageManagerState::FreeMap::iterator it = pm->m_state.free_pages.begin();
+    PageManagerState::FreeMap::iterator it = test.state()->free_pages.begin();
     REQUIRE(it->first == page_size * 100);
     REQUIRE(it->second == 10);
   }
@@ -281,17 +280,17 @@ struct PageManagerFixture {
   void reclaimTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test(pm);
+    PageManagerTestGateway test = lenv->page_manager()->test();
     uint32_t page_size = lenv->page_size();
     Page *page[5] = {0};
 
     // force-flush the state of the PageManager; otherwise it will be
     // written AFTER the allocated pages, and disable the reclaim
-    pm->m_state.needs_flush = true;
+    test.state()->needs_flush = true;
     // pretend there is data to write, otherwise store_state() is a nop
-    pm->m_state.free_pages[page_size] = 0;
+    test.state()->free_pages[page_size] = 0;
     test.store_state();
-    pm->m_state.free_pages.clear(); // clean up again
+    test.state()->free_pages.clear(); // clean up again
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
@@ -322,7 +321,7 @@ struct PageManagerFixture {
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->page_manager();
 
-    PageManagerTestGateway test2(pm);
+    PageManagerTestGateway test2 = pm->test();
     for (int i = 0; i < 2; i++)
       REQUIRE(false == test2.is_page_free((3 + i) * page_size));
 
@@ -335,24 +334,24 @@ struct PageManagerFixture {
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test(pm);
+    PageManagerTestGateway test = pm->test();
     uint32_t page_size = lenv->page_size();
 
     for (int i = 1; i <= 150; i++)
-      pm->m_state.free_pages[page_size * i] = 1;
+      test.state()->free_pages[page_size * i] = 1;
 
     // store the state on disk
-    pm->m_state.needs_flush = true;
+    test.state()->needs_flush = true;
     uint64_t page_id = test.store_state();
 
     pm->flush();
-    pm->m_state.free_pages.clear();
+    test.state()->free_pages.clear();
 
     pm->initialize(page_id);
 
-    REQUIRE(10 == pm->m_state.free_pages.size());
+    REQUIRE(10 == test.state()->free_pages.size());
     for (int i = 1; i < 10; i++)
-      REQUIRE(pm->m_state.free_pages[page_size * (1 + i * 15)] == 15);
+      REQUIRE(test.state()->free_pages[page_size * (1 + i * 15)] == 15);
   }
 
   void encodeDecodeTest() {
@@ -367,35 +366,35 @@ struct PageManagerFixture {
   void storeBigStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test(pm);
+    PageManagerTestGateway test = pm->test();
     uint32_t page_size = lenv->page_size();
 
-    pm->m_state.last_blob_page_id = page_size * 100;
+    test.state()->last_blob_page_id = page_size * 100;
 
     for (int i = 1; i <= 30000; i++) {
       if (i & 1) // only store every 2nd page to avoid collapsing
-        pm->m_state.free_pages[page_size * i] = 1;
+        test.state()->free_pages[page_size * i] = 1;
     }
 
     // store the state on disk
-    pm->m_state.needs_flush = true;
+    test.state()->needs_flush = true;
     uint64_t page_id = test.store_state();
 
     pm->flush();
-    pm->m_state.free_pages.clear();
-    pm->m_state.last_blob_page_id = 0;
+    test.state()->free_pages.clear();
+    test.state()->last_blob_page_id = 0;
 
     pm->initialize(page_id);
 
-    REQUIRE(pm->m_state.last_blob_page_id == page_size * 100);
+    REQUIRE(test.state()->last_blob_page_id == page_size * 100);
 
-    REQUIRE(15000 == pm->m_state.free_pages.size());
+    REQUIRE(15000 == test.state()->free_pages.size());
     for (int i = 1; i <= 30000; i++) {
       if (i & 1)
-        REQUIRE(pm->m_state.free_pages[page_size * i] == 1);
+        REQUIRE(test.state()->free_pages[page_size * i] == 1);
     }
 
-    REQUIRE(pm->m_state.page_count_page_manager == 4u);
+    REQUIRE(test.state()->page_count_page_manager == 4u);
   }
 
   void allocMultiBlobs() {
