@@ -543,7 +543,7 @@ purge_cache_impl(PageManagerState &state, Context *context,
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
   Purger purger(context, page_manager);
-  state.cache.purge(purger);
+  state.cache.purge(context, purger);
 }
 
 static void
@@ -642,6 +642,9 @@ close_impl(PageManagerState &state, Context *context)
   if (try_reclaim) {
     reclaim_space_impl(state, context);
   }
+
+  // clear the Changeset because flush_impl() will delete all Page pointers
+  context->changeset.clear();
 
   // flush all dirty pages to disk, then delete them
   flush_impl(state);
@@ -767,10 +770,9 @@ PageManager::del(Page *page, size_t page_count)
 }
 
 void
-PageManager::close()
+PageManager::close(Context *context)
 {
-  Context context(0, 0, 0);
-  close_impl(m_state, &context);
+  close_impl(m_state, context);
 }
 
 Page *

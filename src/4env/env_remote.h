@@ -85,6 +85,12 @@ class RemoteEnvironment : public Environment
     virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
                     uint32_t flags);
 
+    // Commits a transaction (ham_txn_commit)
+    virtual ham_status_t txn_commit(Transaction *txn, uint32_t flags);
+
+    // Commits a transaction (ham_txn_abort)
+    virtual ham_status_t txn_abort(Transaction *txn, uint32_t flags);
+
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(uint32_t flags);
 

@@ -78,6 +78,8 @@ ham_status_t
 TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
                 ham_record_t *record)
 {
+  ham_assert(context->txn == txn);
+
   if (is_nil())
     return (HAM_CURSOR_IS_NIL);
 
@@ -89,7 +91,7 @@ TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
 
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
-  return (((LocalDatabase *)get_db())->insert_txn(context, txn, node->get_key(),
+  return (((LocalDatabase *)get_db())->insert_txn(context, node->get_key(),
                           record, HAM_OVERWRITE, this));
 }
 
@@ -348,7 +350,7 @@ TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
   Context context(get_db()->get_local_env(), txn, get_db());
 
-  return (get_db()->insert_txn(&context, txn, key, record, flags, this));
+  return (get_db()->insert_txn(&context, key, record, flags, this));
 }
 
 bool

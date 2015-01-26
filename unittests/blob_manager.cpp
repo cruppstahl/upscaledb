@@ -56,19 +56,22 @@ struct BlobManagerFixture {
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Utils::opath(".test"),
-          (m_inmemory
-            ? HAM_IN_MEMORY
-            : (m_use_txn
-              ? HAM_ENABLE_TRANSACTIONS
-              : 0)),
+            (m_inmemory
+                ? HAM_IN_MEMORY
+                : (m_use_txn
+                    ? HAM_ENABLE_TRANSACTIONS
+                    : 0)),
             0644, &params[0]));
-    REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     m_blob_manager = ((LocalEnvironment *)m_env)->blob_manager();
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+                            (LocalDatabase *)m_db));
   }
 
   ~BlobManagerFixture() {
+    m_context->changeset.clear();
+
     if (m_env)
         REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }

@@ -309,9 +309,9 @@ struct TxnCursorFixture {
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (cursor->overwrite(m_context.get(),
-                        (LocalTransaction *)cursor->get_parent()->get_txn(),
-                        &r));
+
+    m_context->txn = (LocalTransaction *)cursor->get_parent()->get_txn();
+    return (cursor->overwrite(m_context.get(), m_context->txn, &r));
   }
 
   ham_status_t erase(ham_txn_t *txn, const char *key) {

@@ -45,7 +45,6 @@ struct ham_db_t {
 namespace hamsterdb {
 
 class Cursor;
-class Context;
 struct ScanVisitor;
 
 /*

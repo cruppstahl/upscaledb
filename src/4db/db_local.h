@@ -141,15 +141,15 @@ class LocalDatabase : public Database {
     // Inserts a key/record pair in a txn node; if cursor is not NULL it will
     // be attached to the new txn_op structure
     // TODO this should be private
-    ham_status_t insert_txn(Context *context, LocalTransaction *txn,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags,
+    ham_status_t insert_txn(Context *context, ham_key_t *key,
+                    ham_record_t *record, uint32_t flags,
                     TransactionCursor *cursor);
 
     // Erases a key/record pair from a txn; on success, cursor will be set to
     // nil
     // TODO should be private
-    ham_status_t erase_txn(Context *context, LocalTransaction *txn,
-                    ham_key_t *key, uint32_t flags, TransactionCursor *cursor);
+    ham_status_t erase_txn(Context *context, ham_key_t *key, uint32_t flags,
+                    TransactionCursor *cursor);
 
     // Returns the default comparison function
     ham_compare_func_t get_compare_func() {
@@ -203,17 +203,15 @@ class LocalDatabase : public Database {
 
     // The actual implementation of insert()
     ham_status_t insert_impl(Context *context, Cursor *cursor,
-                    LocalTransaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of find()
     ham_status_t find_impl(Context *context, Cursor *cursor,
-                    LocalTransaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of erase()
     ham_status_t erase_impl(Context *context, Cursor *cursor,
-                    Transaction *htxn, ham_key_t *key, uint32_t flags);
+                    ham_key_t *key, uint32_t flags);
 
     // Finalizes an operation by committing or aborting the |local_txn|
     // and clearing or flushing the Changeset.
@@ -234,13 +232,13 @@ class LocalDatabase : public Database {
 
     // Checks if an insert operation conflicts with another txn; this is the
     // case if the same key is modified by another active txn.
-    ham_status_t check_insert_conflicts(Context *context, LocalTransaction *txn,
-                    TransactionNode *node, ham_key_t *key, uint32_t flags);
+    ham_status_t check_insert_conflicts(Context *context, TransactionNode *node,
+                    ham_key_t *key, uint32_t flags);
 
     // Checks if an erase operation conflicts with another txn; this is the
     // case if the same key is modified by another active txn.
-    ham_status_t check_erase_conflicts(Context *context, LocalTransaction *txn,
-                    TransactionNode *node, ham_key_t *key, uint32_t flags);
+    ham_status_t check_erase_conflicts(Context *context, TransactionNode *node,
+                    ham_key_t *key, uint32_t flags);
 
     // Increments dupe index of all cursors with a dupe index > |start|;
     // only cursor |skip| is ignored
@@ -259,8 +257,7 @@ class LocalDatabase : public Database {
     // if transactions are disabled/not successful; copies the
     // record into |record|. Also performs approx. matching.
     ham_status_t find_txn(Context *context, Cursor *cursor,
-                    LocalTransaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // the current record number
     uint64_t m_recno;

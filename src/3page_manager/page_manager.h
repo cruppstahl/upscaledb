@@ -108,7 +108,7 @@ struct PageManager
   void del(Page *page, size_t page_count = 1);
 
   // Closes the PageManager; flushes all dirty pages
-  void close();
+  void close(Context *context);
 
   // Returns the Page pointer where we can add more blobs
   Page *get_last_blob_page(Context *context);

@@ -94,7 +94,7 @@ class Environment
     }
 
     // Returns this Environment's mutex
-    Mutex &get_mutex() {
+    Mutex &mutex() {
       return (m_mutex);
     }
 
@@ -136,16 +136,17 @@ class Environment
     virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
                     uint32_t flags) = 0;
 
+    // Commits a transaction (ham_txn_commit)
+    virtual ham_status_t txn_commit(Transaction *txn, uint32_t flags) = 0;
+
+    // Commits a transaction (ham_txn_abort)
+    virtual ham_status_t txn_abort(Transaction *txn, uint32_t flags) = 0;
+
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(uint32_t flags) = 0;
 
     // Fills in the current metrics
     virtual void fill_metrics(ham_env_metrics_t *metrics) const { };
-
-    // The transaction manager
-    TransactionManager *txn_manager() {
-      return (m_txn_manager.get());
-    }
 
   protected:
     // A mutex to serialize access to this Environment

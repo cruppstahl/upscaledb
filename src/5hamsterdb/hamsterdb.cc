@@ -79,7 +79,7 @@ ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   if (!(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
@@ -96,7 +96,7 @@ ham_txn_get_name(ham_txn_t *htxn)
   if (!txn)
     return (0);
 
-  ScopedLock lock(txn->get_env()->get_mutex());
+  ScopedLock lock(txn->get_env()->mutex());
   const std::string &name = txn->get_name();
   return (name.empty() ? 0 : name.c_str());
 }
@@ -114,9 +114,9 @@ ham_txn_commit(ham_txn_t *htxn, uint32_t flags)
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
-  return (env->txn_manager()->commit(txn, flags));
+  return (env->txn_commit(txn, flags));
 }
 
 ham_status_t
@@ -132,9 +132,9 @@ ham_txn_abort(ham_txn_t *htxn, uint32_t flags)
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
-  return (env->txn_manager()->abort(txn, flags));
+  return (env->txn_abort(txn, flags));
 }
 
 const char * HAM_CALLCONV
@@ -461,7 +461,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
   config.db_name = db_name;
   config.flags = flags;
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   /* the function handler will do the rest */
   st = env->create_db((Database **)hdb, config, param);
@@ -518,7 +518,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   /* the function handler will do the rest */
   st = env->open_db((Database **)hdb, config, param);
@@ -683,7 +683,7 @@ ham_env_rename_db(ham_env_t *henv, uint16_t oldname, uint16_t newname,
   if (oldname == newname)
     return (0);
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   /* rename the database */
   return (env->rename_db(oldname, newname, flags));
@@ -703,7 +703,7 @@ ham_env_erase_db(ham_env_t *henv, uint16_t name, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   /* erase the database */
   return (env->erase_db(name, flags));
@@ -727,7 +727,7 @@ ham_env_get_database_names(ham_env_t *henv, uint16_t *names, uint32_t *count)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   /* get all database names */
   return (env->get_database_names(names, count));
@@ -747,7 +747,7 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   /* get the parameters */
   return (env->get_parameters(param));
@@ -767,7 +767,7 @@ ham_env_flush(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock = ScopedLock(env->get_mutex());
+  ScopedLock lock = ScopedLock(env->mutex());
 
   /* flush the Environment */
   return (env->flush(flags));
@@ -785,23 +785,7 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
   }
 
   try {
-    ScopedLock lock = ScopedLock(env->get_mutex());
-
-    /* auto-abort (or commit) all pending transactions */
-    if (env->txn_manager()) {
-      Transaction *t;
-
-      while ((t = env->txn_manager()->get_oldest_txn())) {
-        if (!t->is_aborted() && !t->is_committed()) {
-          if (flags & HAM_TXN_AUTO_COMMIT)
-            env->txn_manager()->commit(t, 0);
-          else /* if (flags & HAM_TXN_AUTO_ABORT) */
-            env->txn_manager()->abort(t, 0);
-        }
-
-        env->txn_manager()->flush_committed_txns();
-      }
-    }
+    ScopedLock lock = ScopedLock(env->mutex());
 
     /* close the environment */
     st = env->close(flags);
@@ -832,7 +816,7 @@ ham_db_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
     return HAM_INV_PARAMETER;
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   /* get the parameters */
   return (db->set_error(db->get_parameters(param)));
@@ -849,7 +833,7 @@ ham_db_get_error(ham_db_t *hdb)
 
   ScopedLock lock;
   if (db->get_env())
-    lock = ScopedLock(db->get_env()->get_mutex());
+    lock = ScopedLock(db->get_env()->mutex());
 
   return (db->get_error());
 }
@@ -873,7 +857,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
     return (HAM_INV_PARAMETER); 
   }
 
-  ScopedLock lock(ldb->get_env()->get_mutex());
+  ScopedLock lock(ldb->get_env()->mutex());
 
   /* set the compare functions */
   return (ldb->set_error(ldb->set_compare_func(foo)));
@@ -893,7 +877,7 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
   }
   env = db->get_env();
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
 
   if (!key) {
     ham_trace(("parameter 'key' must not be NULL"));
@@ -975,7 +959,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   if (!key) {
     ham_trace(("parameter 'key' must not be NULL"));
@@ -1081,7 +1065,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   if (!key) {
     ham_trace(("parameter 'key' must not be NULL"));
@@ -1123,7 +1107,7 @@ ham_db_check_integrity(ham_db_t *hdb, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->check_integrity(flags)));
 }
@@ -1159,7 +1143,7 @@ ham_db_close(ham_db_t *hdb, uint32_t flags)
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   /* the function pointer will do the actual implementation */
   st = env->close_db(db, flags);
@@ -1199,7 +1183,7 @@ ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   return (db->set_error(db->cursor_create(cursor, txn, flags)));
 }
@@ -1224,7 +1208,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 
   db = src->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->cursor_clone(dest, src)));
 }
@@ -1244,7 +1228,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (flags) {
     ham_trace(("function does not support a non-zero flags value; "
@@ -1281,7 +1265,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if ((flags & HAM_ONLY_DUPLICATES) && (flags & HAM_SKIP_DUPLICATES)) {
     ham_trace(("combination of HAM_ONLY_DUPLICATES and "
@@ -1337,7 +1321,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->get_mutex());
+    lock = ScopedLock(env->mutex());
 
   if (!key) {
     ham_trace(("parameter 'key' must not be NULL"));
@@ -1396,7 +1380,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (!key) {
     ham_trace(("parameter 'key' must not be NULL"));
@@ -1499,7 +1483,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (db->get_rt_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot erase from a read-only database"));
@@ -1532,7 +1516,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (!count) {
     ham_trace(("parameter 'count' must not be NULL"));
@@ -1556,7 +1540,7 @@ ham_cursor_get_duplicate_position(ham_cursor_t *hcursor, uint32_t *position)
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (!position) {
     ham_trace(("parameter 'position' must not be NULL"));
@@ -1580,7 +1564,7 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   if (!size) {
     ham_trace(("parameter 'size' must not be NULL"));
@@ -1604,7 +1588,7 @@ ham_cursor_close(ham_cursor_t *hcursor)
 
   db = cursor->get_db();
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->cursor_close(cursor)));
 }
@@ -1617,7 +1601,7 @@ ham_set_context_data(ham_db_t *hdb, void *data)
   if (!db)
     return;
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   db->set_context_data(data);
 }
 
@@ -1631,7 +1615,7 @@ ham_get_context_data(ham_db_t *hdb, ham_bool_t dont_lock)
   if (dont_lock)
     return (db->get_context_data());
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   return (db->get_context_data());
 }
 
@@ -1642,7 +1626,7 @@ ham_env_set_context_data(ham_env_t *henv, void *data)
   if (!env)
     return;
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
   env->set_context_data(data);
 }
 
@@ -1653,7 +1637,7 @@ ham_env_get_context_data(ham_env_t *henv)
   if (!env)
     return (0);
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
   return (env->get_context_data());
 }
 
@@ -1699,7 +1683,7 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->count(txn, (flags & HAM_SKIP_DUPLICATES) != 0,
                   keycount)));
@@ -1730,7 +1714,7 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
   memset(metrics, 0, sizeof(ham_env_metrics_t));
   metrics->version = HAM_METRICS_VERSION;
 
-  ScopedLock lock(env->get_mutex());
+  ScopedLock lock(env->mutex());
   // fill in memory metrics
   Memory::get_global_metrics(metrics);
   // ... and everything else

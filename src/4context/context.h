@@ -40,6 +40,10 @@ struct Context
     : env(env), txn(txn), db(db), changeset(ChangesetState(env)) {
   }
 
+  ~Context() {
+    changeset.clear();
+  }
+
   LocalEnvironment *env;
   LocalTransaction *txn;
   LocalDatabase *db;

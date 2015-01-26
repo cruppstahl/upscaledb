@@ -336,12 +336,11 @@ RemoteDatabase::find(Cursor *cursor, Transaction *htxn, ham_key_t *key,
                         record->size);
       }
     }
+    return (st);
   }
   catch (Exception &ex) {
     return (ex.code);
   }
-
-  return (0);
 }
 
 Cursor *

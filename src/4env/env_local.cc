@@ -361,6 +361,22 @@ LocalEnvironment::close(uint32_t flags)
   ham_status_t st = 0;
 
   try {
+    /* auto-abort (or commit) all pending transactions */
+    if (m_txn_manager.get()) {
+      Transaction *t;
+
+      while ((t = m_txn_manager->get_oldest_txn())) {
+        if (!t->is_aborted() && !t->is_committed()) {
+          if (flags & HAM_TXN_AUTO_COMMIT)
+            m_txn_manager->commit(t, 0);
+          else /* if (flags & HAM_TXN_AUTO_ABORT) */
+            m_txn_manager->abort(t, 0);
+        }
+
+        m_txn_manager->flush_committed_txns();
+      }
+    }
+
     Context context(this);
 
     /* wait for the worker thread to stop */
@@ -391,7 +407,7 @@ LocalEnvironment::close(uint32_t flags)
 
     /* flush all pages and the freelist, reduce the file size */
     if (m_page_manager)
-      m_page_manager->close();
+      m_page_manager->close(&context);
 
     /* if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk */
@@ -522,8 +538,6 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
                 const ham_parameter_t *param)
 {
   try {
-    Context context(this);
-
     if (get_flags() & HAM_READ_ONLY) {
       ham_trace(("cannot create database in a read-only environment"));
       return (HAM_WRITE_PROTECTED);
@@ -614,6 +628,8 @@ LocalEnvironment::create_db(Database **pdb, DatabaseConfiguration &config,
     /* create a new Database object */
     LocalDatabase *db = new LocalDatabase(this, config);
 
+    Context context(this, 0, db);
+
     /* check if this database name is unique */
     uint16_t dbi;
     for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
@@ -702,10 +718,10 @@ LocalEnvironment::open_db(Database **pdb, DatabaseConfiguration &config,
   if (m_database_map.find(config.db_name) != m_database_map.end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
-  Context context(this);
-
   /* create a new Database object */
   LocalDatabase *db = new LocalDatabase(this, config);
+
+  Context context(this, 0, db);
 
   ham_assert(0 != m_header->get_header_page());
 
@@ -756,6 +772,28 @@ LocalEnvironment::txn_begin(Transaction **ptxn, const char *name,
   return (0);
 }
 
+ham_status_t
+LocalEnvironment::txn_commit(Transaction *txn, uint32_t flags)
+{
+  try {
+    return (m_txn_manager->commit(txn, flags));
+  }
+  catch (Exception ex) {
+    return (ex.code);
+  }
+}
+
+ham_status_t
+LocalEnvironment::txn_abort(Transaction *txn, uint32_t flags)
+{
+  try {
+    return (m_txn_manager->abort(txn, flags));
+  }
+  catch (Exception ex) {
+    return (ex.code);
+  }
+}
+
 void
 LocalEnvironment::recover(uint32_t flags)
 {
@@ -797,7 +835,7 @@ bail:
   }
 
   /* reset the page manager */
-  m_page_manager->close();
+  m_page_manager->close(&context);
 }
 
 void

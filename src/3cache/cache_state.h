@@ -34,7 +34,6 @@
 #include "1base/spinlock.h"
 #include "2page/page_collection.h"
 #include "2config/env_config.h"
-#include "3changeset/changeset.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -67,9 +66,6 @@ struct CacheState
 
   // A fast spinlock
   Spinlock mutex;
-
-  // The Changeset
-  Changeset *changeset;
 
   // the capacity (in bytes)
   uint64_t capacity_bytes;

@@ -430,6 +430,7 @@ o Crash when opening env and Journal is applied
         2) might be a crash during recovery which resulted in an invalid state
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 o crash when env is opened
     insert w/ overwrite: 1104669304804000000
     txn id = 1333
@@ -452,6 +453,16 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
 
 =======
 >>>>>>> Fixing a performance regression/bug in PageCollection
+=======
+x Remove the changeset from the Environment, and see how it goes
+    x review: every public method in Environment, Database and
+        TransactionManager creates a context
+    x remove ALL functions that are not used in hamsterdb.cc from
+        the public interface!!
+        -> only 1 left: make txn_manager() private
+    x LocalDatabase: flushes/clears Context
+
+>>>>>>> Fixed all regressions
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
@@ -561,71 +572,13 @@ o Concurrency: move "purge cache" to background
             x merge ham_db_erase/ham_cursor_erase
             x merge ham_db_insert/ham_cursor_insert
 
-========================================================
-            o now remove the changeset from the Environment, and see how it goes
-                o review: every public method in Environment, Database and
-                    TransactionManager creates a context
-                    o LocalEnvironment::XXX creates Context
-                        passes it to XXX_impl
-                        catches all exceptions
-                        flushes/clears Context
-                        passes Exception to caller; the caller (hamsterdb.cc)
-                            no longer needs to check for exceptions
-===================================
-                        remove ALL functions that are not used in hamsterdb.cc
-                            from the public interface!!
-            only 1 left: txn_manager(); remove from db_local.cc,
-            txn_local.cc, hamsterdb.cc:
-                make it private, call through Environment!
-===================================
-                    o LocalDatabase
-                      x same as above
-                        flushes/clears Context
-                        remove finalize()
-                        remove ALL functions that are not used in hamsterdb.cc
-                            from the public interface!!
-                    o LocalTransactionManager
-                      x same as above
-                        remove ALL functions that are not used in hamsterdb.cc
-                            from the public interface!!
-                    x hola
-                        same as above
-            o unittests: create base class w/ functions like
-                lenv()
-                ldb()
-                ltxn()
-                page_manager()
-                cache()
-                context()
-                ...
-            o once more go over the refactored classes:
-                1. Struct Impl::XXX(State)
-                2. Struct XXX : public Impl::XXX -> hides State (private)
-                3. Struct XXXTest(XXX *) -> state() returns State
-========================================================
-
-            o ham_db_check_integrity
-            o ham_db_get_parameters
-            o ham_db_close
-            o ham_db_get_key_count
-            o ham_cursor_overwrite
-            o ham_cursor_move
-            o ham_cursor_get_duplicate_count
-            o ham_cursor_get_duplicate_position
-            o ham_cursor_get_record_size
-
-            o ham_env_create
-            o ham_env_open
-            o ham_env_close
-            o ham_env_create_db
-            o ham_env_open_db
-        o always add a page to the Changeset, even if in-memory or
+        x always add a page to the Changeset, even if in-memory or
             recovery is disabled
-        o when going out of scope: clear the changeset or flush it
+        x when going out of scope: clear the changeset or flush it
 
         o Right now only the Cache uses a mutex. But we need to know
             whether a page is in use (= in a changelog) or if it's purged.
-            o add a spinlock to the page
+            o add a spinlock to the Page
             o acquire the log when storing the page in the Changeset
                 o PageManager must deal with flushed pages (pers == 0)
             o when removing from the changelog: unlock
@@ -649,18 +602,7 @@ o Concurrency: move "purge cache" to background
 
     o run monster tests
 
-o Refactoring: all unittest fixtures should derive from a BaseFixture,
-    which creates an Environment, creates a list of databases (w/ parameters),
-    and if required also a cursor, a transaction and a context
-    o include additional management functions
-    o what else?
-    o then reorganize the tests
-        - public API
-        - internal modules
-
-. Refactoring: would it make sense if each Database has its own BlobManager?
-    Then ham_env_erase_db would be much faster, and if each Database has its
-    own lock then the blob pages would not block each other
+o rebase against v2!!
 
 o improve separation between logic and state; make state immutable and
     thread-safe/exception safe. Ultimately, there should be a separation
@@ -680,21 +622,25 @@ o improve separation between logic and state; make state immutable and
         - change function names, if necessary
         - move implementation to Impl namespace and separate file
         - separate state from the code
+        1. Struct Impl::XXX -> has State
+        2. Struct XXX : public Impl::XXX -> hides State (private)
+        3. Struct XXXTest(XXX *) -> state() returns State
         x PageManager
         x Move lsn handling to its own object, clean up
         x Cache
         x Changeset
+        o Journal
         o Device
             Implementation class uses template specialization:
                 fetch_page_impl<InMemoryState>...
                 fetch_page_impl<DiskState>...
         o BlobManager
         o EnvironmentHeader
-        o Journal
         o BtreeActions
         o Btree
         o Environment
         o Database
+
     o extract operation state/user parameters into separate structures
         - MutableOperation<State> -> insert, erase...
         - ImmutableOperation<State> -> lookups, get_parameters, ...
@@ -704,7 +650,19 @@ o improve separation between logic and state; make state immutable and
             ("const BtreeFindAction bfa(...)");
         o use "const" pages for immutable operations
 
-o rebase against v2!!
+o Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions like lenv(), ldb(), ltxn(),
+        page_manager(), cache(), context()...
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
+
+. Refactoring: would it make sense if each Database has its own BlobManager?
+    Then ham_env_erase_db would be much faster, and if each Database has its
+    own lock then the blob pages would not block each other
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     o for each page retrieve those statistics and print them 

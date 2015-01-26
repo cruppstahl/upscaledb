@@ -35,6 +35,7 @@ struct PageManagerFixture {
   ham_env_t *m_env;
   bool m_inmemory;
   Device *m_device;
+  ScopedPtr<Context> m_context;
 
   PageManagerFixture(bool inmemorydb = false, uint32_t cachesize = 0)
       : m_db(0), m_inmemory(inmemorydb), m_device(0) {
@@ -54,9 +55,13 @@ struct PageManagerFixture {
                 0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
+
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+                            (LocalDatabase *)m_db));
   }
 
   ~PageManagerFixture() {
+    m_context->changeset.clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
@@ -65,11 +70,11 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->fetch(0, 16 * 1024ull)) != 0);
+    REQUIRE((page = pm->fetch(m_context.get(), 16 * 1024ull)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
-    REQUIRE((page = pm->fetch(0, 16 * 1024ull,
+    REQUIRE((page = pm->fetch(m_context.get(), 16 * 1024ull,
                     PageManager::kOnlyFromCache)) != 0);
     REQUIRE(page->get_address() == 16 * 1024ull);
     REQUIRE(page != 0);
@@ -80,12 +85,12 @@ struct PageManagerFixture {
     Page *page;
 
     page = 0;
-    REQUIRE((page = pm->alloc(0, Page::kTypePageManager,
+    REQUIRE((page = pm->alloc(m_context.get(), Page::kTypePageManager,
                             PageManager::kClearWithZero)) != 0);
     if (m_inmemory == false)
       REQUIRE(page->get_address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
-    REQUIRE(!page->get_db());
+    REQUIRE(page->get_db() == ((LocalDatabase *)m_db));
   }
 
   void setCacheSizeEnvCreate() {
@@ -290,7 +295,7 @@ struct PageManagerFixture {
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
-      REQUIRE((page[i] = pm->alloc(0, 0)) != 0);
+      REQUIRE((page[i] = pm->alloc(m_context.get(), 0)) != 0);
       REQUIRE(page[i]->get_address() == (3 + i) * page_size);
     }
 
@@ -308,14 +313,18 @@ struct PageManagerFixture {
     REQUIRE((uint64_t)(page_size * 8) == lenv->device()->file_size());
 
     // reopen the file
+    m_context->changeset.clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+                            (LocalDatabase *)m_db));
 
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->page_manager();
 
+    PageManagerTestGateway test2(pm);
     for (int i = 0; i < 2; i++)
-      REQUIRE(false == test.is_page_free((3 + i) * page_size));
+      REQUIRE(false == test2.is_page_free((3 + i) * page_size));
 
     // verify file size
 #ifndef WIN32

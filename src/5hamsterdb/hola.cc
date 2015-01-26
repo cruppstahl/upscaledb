@@ -48,7 +48,7 @@ hola_count(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   return (db->set_error(db->count(txn, false, &result->u.result_u64)));
 }
 
@@ -187,7 +187,7 @@ hola_count_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
@@ -212,7 +212,7 @@ hola_count_distinct(ham_db_t *hdb, ham_txn_t *htxn, hola_result_t *result)
   result->type = HAM_TYPE_UINT64;
   result->u.result_u64 = 0;
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   return (db->set_error(db->count(txn, true, &result->u.result_u64)));
 }
 
@@ -272,7 +272,7 @@ hola_count_distinct_if(ham_db_t *hdb, ham_txn_t *txn,
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), true);
   if (st == 0)
     visitor->assign_result(result);
@@ -371,7 +371,7 @@ hola_average(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
@@ -483,7 +483,7 @@ hola_average_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
@@ -592,7 +592,7 @@ hola_sum(ham_db_t *hdb, ham_txn_t *txn, hola_result_t *result)
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
@@ -696,7 +696,7 @@ hola_sum_if(ham_db_t *hdb, ham_txn_t *txn, hola_bool_predicate_t *pred,
       return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->get_mutex());
+  ScopedLock lock(db->get_env()->mutex());
   ham_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);

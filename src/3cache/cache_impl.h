@@ -32,6 +32,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "3cache/cache_state.h"
+#include "4context/context.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -48,21 +49,21 @@ del_unlocked(CacheState &state, Page *page);
 // a changeset) and not have cursors attached
 struct PurgeSelector
 {
-  PurgeSelector(Changeset *changeset)
-  : m_changeset(changeset) {
+  PurgeSelector(Context *context)
+  : m_context(context) {
   }
 
   bool operator()(Page *page) {
   if (page->is_allocated() == false)
     return (false);
-  if (m_changeset->has(page))
+  if (m_context->changeset.has(page))
     return (false);
   if (page->get_cursor_list() != 0)
     return (false);
   return (true);
   }
 
-  Changeset *m_changeset;
+  Context *m_context;
 };
 
 template<typename Purger>
@@ -166,14 +167,14 @@ del(CacheState &state, Page *page)
 
 template<typename Purger>
 inline void
-purge(CacheState &state, Purger &purger)
+purge(CacheState &state, Context *context, Purger &purger)
 {
   size_t limit = state.totallist.size()
             - (state.capacity_bytes / state.page_size_bytes);
   if (limit < CacheState::kPurgeAtLeast)
     limit = CacheState::kPurgeAtLeast;
 
-  PurgeSelector selector(state.changeset);
+  PurgeSelector selector(context);
 
   for (size_t i = 0; i < limit; i++) {
     // The lock is permanently re-acquired so other threads don't starve

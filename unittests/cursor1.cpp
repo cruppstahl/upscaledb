@@ -60,6 +60,9 @@ struct BaseCursorFixture {
   }
 
   virtual void teardown() {
+    if (m_context.get())
+      m_context->changeset.clear();
+
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
       m_cursor = 0;
@@ -475,6 +478,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == createCursor(&m_cursor));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
 
   virtual ham_status_t createCursor(ham_cursor_t **p) {

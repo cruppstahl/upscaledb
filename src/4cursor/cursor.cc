@@ -199,14 +199,14 @@ Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
 {
   ham_key_t key = {0};
   TransactionOperation *op;
-  ham_status_t st;
+  // TODO not threadsafe - will leak if an exception is thrown
   Cursor *clone = get_db()->cursor_clone_impl(this);
 
   ByteArray *key_arena = (get_txn() == 0
                     || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
                ? &get_db()->get_key_arena()
                : &get_txn()->get_key_arena();
-  st = m_btree_cursor.move(context, &key, key_arena, 0, 0, 0);
+  ham_status_t st = m_btree_cursor.move(context, &key, key_arena, 0, 0, 0);
   if (st) {
     get_db()->cursor_close(clone);
     return (st);
@@ -214,14 +214,16 @@ Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
 
   st = clone->m_txn_cursor.find(&key, 0);
   if (st) {
-    get_db()->cursor_close(clone);
+    get_db()->cursor_close_impl(clone);
+    delete clone;
     return (st);
   }
 
   op = clone->m_txn_cursor.get_coupled_op();
   if (op->get_flags() & TransactionOperation::kInsertDuplicate)
     st = HAM_KEY_NOT_FOUND;
-  get_db()->cursor_close(clone);
+  get_db()->cursor_close_impl(clone);
+  delete clone;
   return (st);
 }
 
@@ -251,6 +253,7 @@ Cursor::sync(Context *context, uint32_t flags, bool *equal_keys)
       *equal_keys = true;
   }
   else if (is_nil(kTxn)) {
+    // TODO not threadsafe - will leak if an exception is thrown
     Cursor *clone = get_db()->cursor_clone_impl(this);
     clone->m_btree_cursor.uncouple_from_page(context);
     ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
@@ -258,13 +261,15 @@ Cursor::sync(Context *context, uint32_t flags, bool *equal_keys)
       flags = flags | ((flags & HAM_CURSOR_NEXT)
           ? HAM_FIND_GEQ_MATCH
           : HAM_FIND_LEQ_MATCH);
+
     ham_status_t st = m_txn_cursor.find(key, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
     * set |equal_keys| to false; otherwise Cursor::move()
     * will move the btree cursor again */
     if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(key))
       *equal_keys = true;
-    get_db()->cursor_close(clone);
+    get_db()->cursor_close_impl(clone);
+    delete clone;
   }
 }
 
@@ -1083,6 +1088,7 @@ Cursor::overwrite(Context *context, Transaction *htxn,
 {
   ham_status_t st = 0;
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
+  ham_assert(context->txn == txn);
 
   /*
    * if we're in transactional mode then just append an "insert/OW" operation
@@ -1096,7 +1102,7 @@ Cursor::overwrite(Context *context, Transaction *htxn,
   if (txn) {
     if (m_txn_cursor.is_nil() && !(is_nil(0))) {
       m_btree_cursor.uncouple_from_page(context);
-      st = m_db->insert_txn(context, txn,
+      st = m_db->insert_txn(context,
                   m_btree_cursor.get_uncoupled_key(),
                   record, flags | HAM_OVERWRITE, get_txn_cursor());
     }

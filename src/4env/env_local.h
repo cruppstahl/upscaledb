@@ -156,11 +156,22 @@ class LocalEnvironment : public Environment
     virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
                     uint32_t flags);
 
+    // Commits a transaction (ham_txn_commit)
+    virtual ham_status_t txn_commit(Transaction *txn, uint32_t flags);
+
+    // Commits a transaction (ham_txn_abort)
+    virtual ham_status_t txn_abort(Transaction *txn, uint32_t flags);
+
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(uint32_t flags);
 
     // Fills in the current metrics
     virtual void fill_metrics(ham_env_metrics_t *metrics) const;
+
+    // The transaction manager
+    TransactionManager *txn_manager() {
+      return (m_txn_manager.get());
+    }
 
   private:
     // Runs the recovery process

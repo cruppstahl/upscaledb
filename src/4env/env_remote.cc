@@ -418,6 +418,22 @@ RemoteEnvironment::close(uint32_t flags)
   ham_status_t st = 0;
 
   try {
+    /* auto-abort (or commit) all pending transactions */
+    if (m_txn_manager.get()) {
+      Transaction *t;
+
+      while ((t = m_txn_manager->get_oldest_txn())) {
+        if (!t->is_aborted() && !t->is_committed()) {
+          if (flags & HAM_TXN_AUTO_COMMIT)
+            m_txn_manager->commit(t, 0);
+          else /* if (flags & HAM_TXN_AUTO_ABORT) */
+            m_txn_manager->abort(t, 0);
+        }
+
+        m_txn_manager->flush_committed_txns();
+      }
+    }
+
     /* close all databases */
     Environment::DatabaseMap::iterator it = m_database_map.begin();
     while (it != m_database_map.end()) {
@@ -459,6 +475,28 @@ RemoteEnvironment::txn_begin(Transaction **ptxn, const char *name,
     return (ex.code);
   }
   return (0);
+}
+
+ham_status_t
+RemoteEnvironment::txn_commit(Transaction *txn, uint32_t flags)
+{
+  try {
+    return (m_txn_manager->commit(txn, flags));
+  }
+  catch (Exception ex) {
+    return (ex.code);
+  }
+}
+
+ham_status_t
+RemoteEnvironment::txn_abort(Transaction *txn, uint32_t flags)
+{
+  try {
+    return (m_txn_manager->abort(txn, flags));
+  }
+  catch (Exception ex) {
+    return (ex.code);
+  }
 }
 
 } // namespace hamsterdb

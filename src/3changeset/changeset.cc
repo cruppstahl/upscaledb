@@ -50,7 +50,7 @@ put(ChangesetState &state, Page *page)
 static bool
 has(const ChangesetState &state, Page *page)
 {
-  return (state.collection.has(page->get_address()));
+  return (state.collection.has(page));
 }
 
 static bool

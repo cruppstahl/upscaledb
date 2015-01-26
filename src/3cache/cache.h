@@ -81,8 +81,8 @@ struct Cache
   // Tries to purge at least 20 pages. In benchmarks this has proven to
   // be a good limit.
   template<typename Purger>
-  void purge(Purger &purger) {
-    CacheImpl::purge<Purger>(m_state, purger);
+  void purge(Context *context, Purger &purger) {
+    CacheImpl::purge<Purger>(m_state, context, purger);
   }
 
   // Visits all pages in the "totallist". If |cb| returns true then the

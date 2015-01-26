@@ -50,7 +50,7 @@ struct BtreeKeyFixture {
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, flags, 0));
 
     m_dbp = (LocalDatabase *)m_db;
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
 
     m_page = m_dbp->get_local_env()->page_manager()->alloc(m_context.get(),
                     Page::kTypeBindex, PageManager::kClearWithZero);
@@ -61,6 +61,8 @@ struct BtreeKeyFixture {
   }
 
   ~BtreeKeyFixture() {
+    m_context->changeset.clear();
+
     if (m_env)
 	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }

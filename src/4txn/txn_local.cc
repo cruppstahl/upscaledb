@@ -629,6 +629,8 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   /* now flush the changeset and write the modified pages to disk */
   if (highest_lsn && m_env->get_flags() & HAM_ENABLE_RECOVERY)
     context->changeset.flush(highest_lsn);
+  else
+    context->changeset.clear();
 
   ham_assert(context->changeset.is_empty());
 }
