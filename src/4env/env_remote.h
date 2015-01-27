@@ -50,18 +50,13 @@ class RemoteEnvironment : public Environment
     // Constructor
     RemoteEnvironment(EnvironmentConfiguration config);
 
-    // Sends |request| to the remote server and blocks till the reply
-    // was fully received; returns the reply structure
+    // Sends a |request| message with the Google Protocol Buffers API. Blocks
+    // till the reply was fully received. Returns the reply structure.
     Protocol *perform_request(Protocol *request);
 
-    // Sends |request| to the remote server and blocks till the reply
-    // was fully received
+    // Sends |request| message with the builtin Serde API. Blocks till the
+    // reply was fully received. Fills |reply| with the received data.
     void perform_request(SerializedWrapper *request, SerializedWrapper *reply);
-
-    // Returns the remote handle
-    uint64_t get_remote_handle() const {
-      return (m_remote_handle);
-    }
 
   protected:
     // Creates a new Environment (ham_env_create)
@@ -98,8 +93,7 @@ class RemoteEnvironment : public Environment
     virtual ham_status_t do_erase_db(uint16_t name, uint32_t flags);
 
     // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t do_txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags);
+    virtual Transaction *do_txn_begin(const char *name, uint32_t flags);
 
     // Commits a transaction (ham_txn_commit)
     virtual ham_status_t do_txn_commit(Transaction *txn, uint32_t flags);

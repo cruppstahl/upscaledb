@@ -45,7 +45,8 @@ class RemoteTransaction : public Transaction
   public:
     // Constructor; "begins" the Transaction
     // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
-    RemoteTransaction(Environment *env, const char *name, uint32_t flags);
+    RemoteTransaction(Environment *env, const char *name, uint32_t flags,
+                    uint64_t remote_handle);
 
     // Commits the Transaction
     virtual void commit(uint32_t flags = 0);
@@ -56,11 +57,6 @@ class RemoteTransaction : public Transaction
     // Returns the remote Transaction handle
     uint64_t get_remote_handle() const {
       return (m_remote_handle);
-    }
-
-    // Sets the remote Transaction handle
-    void set_remote_handle(uint64_t handle) {
-      m_remote_handle = handle;
     }
 
   private:
@@ -81,7 +77,7 @@ class RemoteTransactionManager : public TransactionManager
     }
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, uint32_t flags);
+    virtual void begin(Transaction *txn);
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory

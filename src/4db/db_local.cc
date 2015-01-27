@@ -1008,8 +1008,7 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
     /* purge cache if necessary */
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
-                          0, HAM_TXN_TEMPORARY);
+      local_txn = begin_temp_txn();
       context.txn = local_txn;
     }
 
@@ -1051,8 +1050,7 @@ LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
     }
 
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
-                          0, HAM_TXN_TEMPORARY);
+      local_txn = begin_temp_txn();
       context.txn = local_txn;
     }
 
@@ -1102,8 +1100,7 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
     // create a temporary transaction, if necessary
     if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = (LocalTransaction *)get_local_env()->txn_manager()->begin(
-                          0, HAM_TXN_TEMPORARY);
+      local_txn = begin_temp_txn();
       context.txn = local_txn;
       txn = local_txn;
     }
@@ -1232,7 +1229,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = get_local_env()->txn_manager()->begin(0, HAM_TXN_TEMPORARY);
+      local_txn = begin_temp_txn();
       context.txn = (LocalTransaction *)local_txn;
     }
 
@@ -1922,6 +1919,17 @@ LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     get_local_env()->get_changeset().flush();
 
   return (0);
+}
+
+LocalTransaction *
+LocalDatabase::begin_temp_txn()
+{
+  LocalTransaction *txn;
+  ham_status_t st = get_local_env()->txn_begin((Transaction **)&txn, 0,
+                        HAM_TXN_TEMPORARY | HAM_DONT_LOCK);
+  if (st)
+    throw Exception(st);
+  return (txn);
 }
 
 } // namespace hamsterdb

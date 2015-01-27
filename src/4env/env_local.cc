@@ -637,7 +637,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   LocalDatabase *db;
   DatabaseConfiguration config;
   config.db_name = name;
-  ham_status_t st = open_db((Database **)&db, config, 0);
+  ham_status_t st = do_open_db((Database **)&db, config, 0);
   if (st)
     return (st);
 
@@ -666,12 +666,12 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   return (0);
 }
 
-ham_status_t
-LocalEnvironment::do_txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags)
+Transaction *
+LocalEnvironment::do_txn_begin(const char *name, uint32_t flags)
 {
-  *ptxn = m_txn_manager->begin(name, flags);
-  return (0);
+  Transaction *txn = new LocalTransaction(this, name, flags);
+  m_txn_manager->begin(txn);
+  return (txn);
 }
 
 ham_status_t

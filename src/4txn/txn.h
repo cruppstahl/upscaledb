@@ -232,7 +232,7 @@ class TransactionManager
     virtual ~TransactionManager() { }
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, uint32_t flags) = 0;
+    virtual void begin(Transaction *txn) = 0;
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory

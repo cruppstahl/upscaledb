@@ -32,81 +32,30 @@
 namespace hamsterdb {
 
 RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
-                uint32_t flags)
-  : Transaction(env, name, flags), m_remote_handle(0)
+                uint32_t flags, uint64_t remote_handle)
+  : Transaction(env, name, flags), m_remote_handle(remote_handle)
 {
-  RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
-
-  SerializedWrapper request;
-  request.id = kTxnBeginRequest;
-  request.txn_begin_request.env_handle = renv->get_remote_handle();
-  request.txn_begin_request.flags = flags;
-  if (name) {
-    request.txn_begin_request.name.value = (uint8_t *)name;
-    request.txn_begin_request.name.size = strlen(name) + 1;
-  }
-
-  SerializedWrapper reply;
-  renv->perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnBeginReply);
-
-  ham_status_t st = reply.txn_begin_reply.status;
-  if (st)
-    throw Exception(st);
-
-  /* this transaction is now committed! */
-  m_flags |= kStateCommitted;
-
-  set_remote_handle(reply.txn_begin_reply.txn_handle);
 }
 
 void
 RemoteTransaction::commit(uint32_t flags)
 {
-  RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
-
-  SerializedWrapper request;
-  request.id = kTxnCommitRequest;
-  request.txn_commit_request.txn_handle = get_remote_handle();
-  request.txn_commit_request.flags = flags;
-
-  SerializedWrapper reply;
-  renv->perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnCommitReply);
-
-  ham_status_t st = reply.txn_commit_reply.status;
-  if (st)
-    throw Exception(st);
-
-  /* this transaction is now aborted! */
+  /* There's nothing else to do for this Transaction, therefore set it
+   * to 'aborted' (although it was committed) */
   m_flags |= kStateAborted;
 }
 
 void
 RemoteTransaction::abort(uint32_t flags)
 {
-  RemoteEnvironment *renv = dynamic_cast<RemoteEnvironment *>(m_env);
-
-  SerializedWrapper request;
-  request.id = kTxnAbortRequest;
-  request.txn_abort_request.txn_handle = get_remote_handle();
-  request.txn_abort_request.flags = flags;
-
-  SerializedWrapper reply;
-  renv->perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnAbortReply);
-  ham_status_t st = reply.txn_abort_reply.status;
-  if (st)
-    throw Exception(st);
+  /* this transaction is now aborted! */
+  m_flags |= kStateAborted;
 }
 
-Transaction *
-RemoteTransactionManager::begin(const char *name, uint32_t flags)
+void
+RemoteTransactionManager::begin(Transaction *txn)
 {
-  Transaction *txn = new RemoteTransaction(m_env, name, flags);
-
   append_txn_at_tail(txn);
-  return (txn);
 }
 
 ham_status_t 

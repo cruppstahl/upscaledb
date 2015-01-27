@@ -494,7 +494,7 @@ class LocalTransactionManager : public TransactionManager
     LocalTransactionManager(Environment *env);
 
     // Begins a new Transaction
-    virtual Transaction *begin(const char *name, uint32_t flags);
+    virtual void begin(Transaction *txn);
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory

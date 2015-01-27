@@ -153,9 +153,10 @@ struct JournalFixture {
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config().filename;
-    m_lenv->test_set_filename("/::asdf");
+    EnvironmentTest test = m_lenv->test();
+    test.set_filename("/::asdf");
     REQUIRE_CATCH(j->create(), HAM_IO_ERROR);
-    m_lenv->test_set_filename(oldfilename);
+    test.set_filename(oldfilename);
     j->close();
     delete (j);
   }
@@ -163,7 +164,8 @@ struct JournalFixture {
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config().filename;
-    m_lenv->test_set_filename("xxx$$test");
+    EnvironmentTest test = m_lenv->test();
+    test.set_filename("xxx$$test");
     REQUIRE_CATCH(j->open(), HAM_FILE_NOT_FOUND);
 
     /* if journal::open() fails, it will call journal::close()
@@ -174,9 +176,9 @@ struct JournalFixture {
     f.pwrite(0, (void *)"x", 1);
     f.close();
 
-    m_lenv->test_set_filename("data/log-broken-magic");
+    test.set_filename("data/log-broken-magic");
     REQUIRE_CATCH(j->open(), HAM_LOG_INV_FILE_HEADER);
-    m_lenv->test_set_filename(oldfilename);
+    test.set_filename(oldfilename);
     j->close();
     delete j;
   }

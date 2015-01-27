@@ -219,6 +219,9 @@ class LocalDatabase : public Database {
     ham_status_t finalize(Context *context, ham_status_t status,
                     Transaction *local_txn);
 
+    // Begins a new temporary Transaction
+    LocalTransaction *begin_temp_txn();
+
     // returns the next record number
     uint64_t get_incremented_recno() {
       m_recno++;

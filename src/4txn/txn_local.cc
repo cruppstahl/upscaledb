@@ -492,15 +492,10 @@ TransactionIndex::count(Context *context, LocalTransaction *txn, bool distinct)
   return (k.counter);
 }
 
-Transaction *
-LocalTransactionManager::begin(const char *name, uint32_t flags)
+void
+LocalTransactionManager::begin(Transaction *txn)
 {
-  Transaction *txn = new LocalTransaction(get_local_env(), name, flags);
-
-  /* link this txn with the Environment */
   append_txn_at_tail(txn);
-
-  return (txn);
 }
 
 ham_status_t 

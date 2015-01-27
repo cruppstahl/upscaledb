@@ -15,8 +15,8 @@
  */
 
 /*
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: nothrow
+ * @thread_safe: yes
  */
 
 #ifndef HAM_ENV_H
@@ -36,6 +36,7 @@
 #include "2config/db_config.h"
 #include "2config/env_config.h"
 #include "4txn/txn.h"
+#include "4env/env_test.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -57,6 +58,9 @@ class Transaction;
 // The Environment is the "root" of all hamsterdb objects. It's a container
 // for multiple databases and transactions.
 //
+// This class provides exception handling and locking mechanisms, then
+// dispatches all calls to LocalEnvironment or RemoteEnvironment.
+//
 class Environment
 {
   public:
@@ -76,11 +80,6 @@ class Environment
     // Returns the Environment's configuration
     const EnvironmentConfiguration &config() const {
       return (m_config);
-    }
-
-    // Sets the filename of the Environment; only for testing!
-    void test_set_filename(const std::string &filename) {
-      m_config.filename = filename;
     }
 
     // Returns this Environment's mutex
@@ -124,6 +123,9 @@ class Environment
     ham_status_t txn_begin(Transaction **ptxn, const char *name,
                     uint32_t flags);
 
+    // Returns the name of a Transaction
+    std::string txn_get_name(Transaction *txn);
+
     // Commits a transaction (ham_txn_commit)
     ham_status_t txn_commit(Transaction *txn, uint32_t flags);
 
@@ -134,7 +136,10 @@ class Environment
     ham_status_t close(uint32_t flags);
 
     // Fills in the current metrics
-    ham_status_t fill_metrics(ham_env_metrics_t *metrics) const;
+    ham_status_t fill_metrics(ham_env_metrics_t *metrics);
+
+    // Returns a test object
+    EnvironmentTest test();
 
   protected:
     // Creates a new Environment (ham_env_create)
@@ -171,8 +176,7 @@ class Environment
     virtual ham_status_t do_erase_db(uint16_t name, uint32_t flags) = 0;
 
     // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t do_txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags) = 0;
+    virtual Transaction *do_txn_begin(const char *name, uint32_t flags) = 0;
 
     // Commits a transaction (ham_txn_commit)
     virtual ham_status_t do_txn_commit(Transaction *txn, uint32_t flags) = 0;

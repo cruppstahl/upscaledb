@@ -54,6 +54,7 @@ ham_status_t
 Environment::get_database_names(uint16_t *names, uint32_t *count)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_get_database_names(names, count));
   }
   catch (Exception &ex) {
@@ -65,6 +66,7 @@ ham_status_t
 Environment::get_parameters(ham_parameter_t *param)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_get_parameters(param));
   }
   catch (Exception &ex) {
@@ -76,6 +78,7 @@ ham_status_t
 Environment::flush(uint32_t flags)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_flush(flags));
   }
   catch (Exception &ex) {
@@ -88,12 +91,23 @@ Environment::create_db(Database **pdb, DatabaseConfiguration &config,
                     const ham_parameter_t *param)
 {
   try {
+    ScopedLock lock(m_mutex);
+
     ham_status_t st = do_create_db(pdb, config, param);
 
     // on success: store the open database in the environment's list of
     // opened databases
-    if (st == 0)
+    if (st == 0) {
       m_database_map[config.db_name] = *pdb;
+      /* flush the environment to make sure that the header page is written
+       * to disk */
+      if (st == 0)
+        st = do_flush(0);
+    }
+    else {
+      if (*pdb)
+        (void)ham_db_close((ham_db_t *)*pdb, HAM_DONT_LOCK);
+    }
     return (st);
   }
   catch (Exception &ex) {
@@ -106,6 +120,8 @@ Environment::open_db(Database **pdb, DatabaseConfiguration &config,
                     const ham_parameter_t *param)
 {
   try {
+    ScopedLock lock(m_mutex);
+
     /* make sure that this database is not yet open */
     if (m_database_map.find(config.db_name) != m_database_map.end())
       return (HAM_DATABASE_ALREADY_OPEN);
@@ -116,6 +132,10 @@ Environment::open_db(Database **pdb, DatabaseConfiguration &config,
     // opened databases
     if (st == 0)
       m_database_map[config.db_name] = *pdb;
+    else {
+      if (*pdb)
+        (void)ham_db_close((ham_db_t *)*pdb, HAM_DONT_LOCK);
+    }
     return (st);
   }
   catch (Exception &ex) {
@@ -127,6 +147,7 @@ ham_status_t
 Environment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_rename_db(oldname, newname, flags));
   }
   catch (Exception &ex) {
@@ -138,6 +159,7 @@ ham_status_t
 Environment::erase_db(uint16_t dbname, uint32_t flags)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_erase_db(dbname, flags));
   }
   catch (Exception &ex) {
@@ -151,10 +173,14 @@ Environment::close_db(Database *db, uint32_t flags)
   ham_status_t st = 0;
 
   try {
+    ScopedLock lock;
+    if (!(flags & HAM_DONT_LOCK))
+      lock = ScopedLock(m_mutex);
+
     uint16_t dbname = db->get_name();
 
     // flush committed Transactions
-    st = flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
+    st = do_flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
     if (st)
       return (st);
 
@@ -163,6 +189,12 @@ Environment::close_db(Database *db, uint32_t flags)
       return (st);
 
     m_database_map.erase(dbname);
+    delete db;
+
+    /* in-memory database: make sure that a database with the same name
+     * can be re-created */
+    if (m_config.flags & HAM_IN_MEMORY)
+      do_erase_db(dbname, 0);
     return (0);
   }
   catch (Exception &ex) {
@@ -174,7 +206,17 @@ ham_status_t
 Environment::txn_begin(Transaction **ptxn, const char *name, uint32_t flags)
 {
   try {
-    return (do_txn_begin(ptxn, name, flags));
+    ScopedLock lock;
+    if (!(flags & HAM_DONT_LOCK))
+      lock = ScopedLock(m_mutex);
+
+    if (!(m_config.flags & HAM_ENABLE_TRANSACTIONS)) {
+      ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
+      return (HAM_INV_PARAMETER);
+    }
+
+    *ptxn = do_txn_begin(name, flags);
+    return (0);
   }
   catch (Exception &ex) {
     *ptxn = 0;
@@ -182,10 +224,23 @@ Environment::txn_begin(Transaction **ptxn, const char *name, uint32_t flags)
   }
 }
 
+std::string
+Environment::txn_get_name(Transaction *txn)
+{
+  try {
+    ScopedLock lock(m_mutex);
+    return (txn->get_name());
+  }
+  catch (Exception &ex) {
+    return ("");
+  }
+}
+
 ham_status_t
 Environment::txn_commit(Transaction *txn, uint32_t flags)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_txn_commit(txn, flags));
   }
   catch (Exception &ex) {
@@ -197,6 +252,7 @@ ham_status_t
 Environment::txn_abort(Transaction *txn, uint32_t flags)
 {
   try {
+    ScopedLock lock(m_mutex);
     return (do_txn_abort(txn, flags));
   }
   catch (Exception &ex) {
@@ -210,6 +266,8 @@ Environment::close(uint32_t flags)
   ham_status_t st = 0;
 
   try {
+    ScopedLock lock(m_mutex);
+
     /* auto-abort (or commit) all pending transactions */
     if (m_txn_manager.get()) {
       Transaction *t;
@@ -234,7 +292,7 @@ Environment::close(uint32_t flags)
       Environment::DatabaseMap::iterator it2 = it; it++;
       Database *db = it2->second;
       if (flags & HAM_AUTO_CLEANUP)
-        st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
+        st = close_db(db, flags | HAM_DONT_LOCK);
       else
         st = db->close(flags);
       if (st)
@@ -250,15 +308,22 @@ Environment::close(uint32_t flags)
 }
 
 ham_status_t
-Environment::fill_metrics(ham_env_metrics_t *metrics) const
+Environment::fill_metrics(ham_env_metrics_t *metrics)
 {
   try {
+    ScopedLock lock(m_mutex);
     do_fill_metrics(metrics);
     return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
   }
+}
+
+EnvironmentTest
+Environment::test()
+{
+  return (EnvironmentTest(m_config));
 }
 
 } // namespace hamsterdb

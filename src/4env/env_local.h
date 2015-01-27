@@ -161,8 +161,7 @@ class LocalEnvironment : public Environment
     virtual ham_status_t do_erase_db(uint16_t name, uint32_t flags);
 
     // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t do_txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags);
+    virtual Transaction *do_txn_begin(const char *name, uint32_t flags);
 
     // Commits a transaction (ham_txn_commit)
     virtual ham_status_t do_txn_commit(Transaction *txn, uint32_t flags);

@@ -631,14 +631,13 @@ o improve separation between logic and state; make state immutable and
         x Changeset
         x Journal
         x remove Journal::set_switch_threshold
-        o Environment - not virtual, has pimpl for local and remote
+        x Environment - not virtual, has pimpl for local and remote
                 implementation 
             x Environment: has common code, takes care of exceptions etc
             x *context_data -> move to LocalEnvironment
-            o move Mutex handling to env.cc (as much as possible)
-            o create separate EnvironmentTest class
-            o remove/hide all other functions and members
-        o RemoveEnvironment
+            x move Mutex handling to env.cc (as much as possible)
+            x create separate EnvironmentTest class
+        o RemoteEnvironment
             o make all other functions private
         o LocalEnvironment
             o clean up

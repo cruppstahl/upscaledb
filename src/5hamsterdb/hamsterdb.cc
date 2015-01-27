@@ -77,15 +77,6 @@ ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
 
   Environment *env = (Environment *)henv;
 
-  ScopedLock lock;
-  if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->mutex());
-
-  if (!(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
-    return (HAM_INV_PARAMETER);
-  }
-
   return (env->txn_begin(ptxn, name, flags));
 }
 
@@ -96,8 +87,7 @@ ham_txn_get_name(ham_txn_t *htxn)
   if (!txn)
     return (0);
 
-  ScopedLock lock(txn->get_env()->mutex());
-  const std::string &name = txn->get_name();
+  const std::string &name = txn->get_env()->txn_get_name(txn);
   return (name.empty() ? 0 : name.c_str());
 }
 
@@ -112,10 +102,6 @@ ham_txn_commit(ham_txn_t *htxn, uint32_t flags)
 
   Environment *env = txn->get_env();
 
-  ScopedLock lock;
-  if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->mutex());
-
   return (env->txn_commit(txn, flags));
 }
 
@@ -129,10 +115,6 @@ ham_txn_abort(ham_txn_t *htxn, uint32_t flags)
   }
 
   Environment *env = txn->get_env();
-
-  ScopedLock lock;
-  if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->mutex());
 
   return (env->txn_abort(txn, flags));
 }
@@ -438,7 +420,6 @@ ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
                 uint32_t flags, const ham_parameter_t *param)
 {
-  ham_status_t st;
   Environment *env = (Environment *)henv;
   DatabaseConfiguration config;
 
@@ -461,31 +442,13 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
   config.db_name = db_name;
   config.flags = flags;
 
-  ScopedLock lock(env->mutex());
-
-  /* the function handler will do the rest */
-  st = env->create_db((Database **)hdb, config, param);
-
-  /* flush the environment to make sure that the header page is written
-   * to disk */
-  if (st == 0)
-    st = env->flush(0);
-
-  if (st) {
-    if (*hdb)
-      (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
-    *hdb = 0;
-    return (st);
-  }
-
-  return (0);
+  return (env->create_db((Database **)hdb, config, param));
 }
 
 ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
                 uint32_t flags, const ham_parameter_t *param)
 {
-  ham_status_t st;
   Environment *env = (Environment *)henv;
   DatabaseConfiguration config;
 
@@ -516,22 +479,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
   config.flags = flags;
   config.db_name = db_name;
 
-  ScopedLock lock;
-  if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->mutex());
-
-  /* the function handler will do the rest */
-  st = env->open_db((Database **)hdb, config, param);
-
-  /* TODO move cleanup code to Environment::open_db() */
-  if (st) {
-    if (*hdb)
-      (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
-    *hdb = 0;
-    return (st);
-  }
-
-  return (0);
+  return (env->open_db((Database **)hdb, config, param));
 }
 
 ham_status_t HAM_CALLCONV
@@ -683,8 +631,6 @@ ham_env_rename_db(ham_env_t *henv, uint16_t oldname, uint16_t newname,
   if (oldname == newname)
     return (0);
 
-  ScopedLock lock(env->mutex());
-
   /* rename the database */
   return (env->rename_db(oldname, newname, flags));
 }
@@ -702,8 +648,6 @@ ham_env_erase_db(ham_env_t *henv, uint16_t name, uint32_t flags)
     ham_trace(("parameter 'name' must not be 0"));
     return (HAM_INV_PARAMETER);
   }
-
-  ScopedLock lock(env->mutex());
 
   /* erase the database */
   return (env->erase_db(name, flags));
@@ -727,8 +671,6 @@ ham_env_get_database_names(ham_env_t *henv, uint16_t *names, uint32_t *count)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock(env->mutex());
-
   /* get all database names */
   return (env->get_database_names(names, count));
 }
@@ -746,8 +688,6 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
     ham_trace(("parameter 'param' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
-
-  ScopedLock lock(env->mutex());
 
   /* get the parameters */
   return (env->get_parameters(param));
@@ -767,8 +707,6 @@ ham_env_flush(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  ScopedLock lock = ScopedLock(env->mutex());
-
   /* flush the Environment */
   return (env->flush(flags));
 }
@@ -785,14 +723,10 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
   }
 
   try {
-    ScopedLock lock = ScopedLock(env->mutex());
-
     /* close the environment */
     st = env->close(flags);
     if (st)
       return (st);
-
-    lock.unlock();
 
     delete env;
     return (0);
@@ -822,7 +756,7 @@ ham_db_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
   return (db->set_error(db->get_parameters(param)));
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_error(ham_db_t *hdb)
 {
   Database *db = (Database *)hdb;
@@ -838,7 +772,7 @@ ham_db_get_error(ham_db_t *hdb)
   return (db->get_error());
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 {
   Database *db = (Database *)hdb;
@@ -863,7 +797,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
   return (ldb->set_error(ldb->set_compare_func(foo)));
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
@@ -932,7 +866,7 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
   return (db->set_error(db->find(0, txn, key, record, flags)));
 }
 
-int HAM_CALLCONV
+HAM_EXPORT int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
   if (key && (ham_key_get_intflags(key) & BtreeKey::kApproximate)) {
@@ -943,7 +877,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
   return (0);
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
@@ -1050,7 +984,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
   return (db->set_error(db->insert(0, txn, key, record, flags)));
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
 {
   Database *db = (Database *)hdb;
@@ -1092,7 +1026,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
   return (db->set_error(db->erase(0, txn, key, flags)));
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_check_integrity(ham_db_t *hdb, uint32_t flags)
 {
   Database *db = (Database *)hdb;
@@ -1112,15 +1046,10 @@ ham_db_check_integrity(ham_db_t *hdb, uint32_t flags)
   return (db->set_error(db->check_integrity(flags)));
 }
 
-/*
- * always shut down entirely, even when a page flush or other
- * 'non-essential' element of the process fails.
- */
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_close(ham_db_t *hdb, uint32_t flags)
 {
   Database *db = (Database *)hdb;
-  ham_status_t st = HAM_SUCCESS;
 
   if (!db) {
     ham_trace(("parameter 'db' must not be NULL"));
@@ -1141,26 +1070,10 @@ ham_db_close(ham_db_t *hdb, uint32_t flags)
     return (0);
   }
 
-  ScopedLock lock;
-  if (!(flags & HAM_DONT_LOCK))
-    lock = ScopedLock(env->mutex());
-
-  /* the function pointer will do the actual implementation */
-  st = env->close_db(db, flags);
-  if (st)
-    return (db->set_error(st));
-
-  uint16_t dbname = db->get_name();
-  delete db;
-
-  /* in-memory database: make sure that a database with the same name
-   * can be re-created */
-  if (env->get_flags() & HAM_IN_MEMORY)
-    (void)env->erase_db(dbname, 0);
-  return (0);
+  return (env->close_db(db, flags));
 }
 
-ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
                 uint32_t flags)
 {
@@ -1691,7 +1604,6 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
   memset(metrics, 0, sizeof(ham_env_metrics_t));
   metrics->version = HAM_METRICS_VERSION;
 
-  ScopedLock lock(env->mutex());
   // fill in memory metrics
   Memory::get_global_metrics(metrics);
   // ... and everything else

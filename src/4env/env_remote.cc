@@ -352,23 +352,70 @@ RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   return (reply->env_erase_db_reply().status());
 }
 
-ham_status_t
-RemoteEnvironment::do_txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags)
+Transaction *
+RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
 {
-  *ptxn = m_txn_manager->begin(name, flags);
-  return (0);
+  SerializedWrapper request;
+  request.id = kTxnBeginRequest;
+  request.txn_begin_request.env_handle = m_remote_handle;
+  request.txn_begin_request.flags = flags;
+  if (name) {
+    request.txn_begin_request.name.value = (uint8_t *)name;
+    request.txn_begin_request.name.size = strlen(name) + 1;
+  }
+
+  SerializedWrapper reply;
+  perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnBeginReply);
+
+  ham_status_t st = reply.txn_begin_reply.status;
+  if (st)
+    throw Exception(st);
+
+  Transaction *txn = new RemoteTransaction(this, name, flags,
+                  reply.txn_begin_reply.txn_handle);
+  m_txn_manager->begin(txn);
+  return (txn);
 }
 
 ham_status_t
 RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 {
+  RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
+
+  SerializedWrapper request;
+  request.id = kTxnCommitRequest;
+  request.txn_commit_request.txn_handle = rtxn->get_remote_handle();
+  request.txn_commit_request.flags = flags;
+
+  SerializedWrapper reply;
+  perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnCommitReply);
+
+  ham_status_t st = reply.txn_commit_reply.status;
+  if (st)
+    return (st);
+
   return (m_txn_manager->commit(txn, flags));
 }
 
 ham_status_t
 RemoteEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
 {
+  RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
+
+  SerializedWrapper request;
+  request.id = kTxnAbortRequest;
+  request.txn_abort_request.txn_handle = rtxn->get_remote_handle();
+  request.txn_abort_request.flags = flags;
+
+  SerializedWrapper reply;
+  perform_request(&request, &reply);
+  ham_assert(reply.id == kTxnAbortReply);
+  ham_status_t st = reply.txn_abort_reply.status;
+  if (st)
+    return (st);
+
   return (m_txn_manager->abort(txn, flags));
 }
 
