@@ -1024,7 +1024,6 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
   }
 }
 
->>>>>>> Merging Database::insert and Database:cursor_insert
 ham_status_t
 LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
                 uint32_t flags)
@@ -1111,7 +1110,7 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
     st = find_impl(&context, cursor, key, record, flags);
     if (st)
-      return (st);
+      return (finalize(&context, st, local_txn));
 
     if (cursor) {
       // make sure that txn-cursor and btree-cursor point to the same keys
@@ -1750,178 +1749,6 @@ LocalDatabase::finalize(Context *context, ham_status_t status,
       && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     context->changeset.flush(env->next_lsn());
   }
-  return (0);
-}
-
-ham_status_t
-LocalDatabase::find_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
-            ham_record_t *record, uint32_t flags)
-{
-  ham_status_t st;
-  LocalTransaction *local_txn = 0;
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-      && key->size != m_config.key_size) {
-    ham_trace(("invalid key size (%u instead of %u)",
-          key->size, m_config.key_size));
-    return (HAM_INV_KEY_SIZE);
-  }
-
-  /* purge cache if necessary */
-  get_local_env()->get_page_manager()->purge_cache();
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    if (cursor)
-      cursor->set_txn(local_txn);
-    txn = local_txn;
-  }
-
-#if 0
-  /* if this database has duplicates, then we use ham_cursor_find
-   * because we have to build a duplicate list, and this is currently
-   * only available in ham_cursor_find
-   *
-   * TODO create cursor on the stack and avoid the memory allocation!
-   * TODO or move this to 5hamsterdb/hamsterdb.cc?
-   */
-  if (txn && get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    Cursor *c;
-    st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
-            (ham_txn_t *)txn, HAM_DONT_LOCK);
-    if (st)
-      return (st);
-    st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
-    cursor_close(c);
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-#endif
-
-  /*
-   * if transactions are enabled: read keys from transaction trees,
-   * otherwise read immediately from disk
-   */
-  if (txn)
-    st = find_txn(cursor, txn, key, record, flags);
-  else
-    st = m_btree_index->find(0, cursor, key, record, flags);
-
-  if (local_txn) {
-    get_local_env()->get_txn_manager()->abort(local_txn);
-    if (cursor)
-      cursor->set_txn(0);
-  }
-  get_local_env()->get_changeset().clear();
-
-  return (st);
-}
-
-ham_status_t
-LocalDatabase::erase_impl(Cursor *cursor, Transaction *htxn, ham_key_t *key,
-                uint32_t flags)
-{
-  LocalTransaction *local_txn = 0;
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-
-  if (key) {
-    if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED
-        && key->size != m_config.key_size) {
-      ham_trace(("invalid key size (%u instead of %u)",
-            key->size, m_config.key_size));
-      return (HAM_INV_KEY_SIZE);
-    }
-
-    /* record number: make sure that we have a valid key structure */
-    if (get_rt_flags() & HAM_RECORD_NUMBER) {
-      if (key->size != sizeof(uint64_t) || !key->data) {
-        ham_trace(("key->size must be 8, key->data must not be NULL"));
-        return (HAM_INV_PARAMETER);
-      }
-    }
-  }
-
-  if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    local_txn = (LocalTransaction *)get_local_env()->get_txn_manager()->begin(
-                        0, HAM_TXN_TEMPORARY);
-    if (cursor)
-      cursor->set_txn(local_txn);
-    txn = local_txn;
-  }
-
-  /*
-   * if transactions are enabled: append a 'erase key' operation into
-   * the txn tree; otherwise immediately erase the key from disk
-   */
-  ham_status_t st;
-  if (txn == 0) {
-    st = m_btree_index->erase(txn, cursor, key, 0, flags);
-  }
-  else {
-    if (cursor) {
-      /*
-       * !!
-       * we have two cases:
-       *
-       * 1. the cursor is coupled to a btree item (or uncoupled, but not nil)
-       *    and the txn_cursor is nil; in that case, we have to
-       *    - uncouple the btree cursor
-       *    - insert the erase-op for the key which is used by the btree cursor
-       *
-       * 2. the cursor is coupled to a txn-op; in this case, we have to
-       *    - insert the erase-op for the key which is used by the txn-op
-       *
-       * TODO clean up this whole mess. code should be like
-       *
-       *   if (txn)
-       *     erase_txn(txn, cursor->get_key(), 0, cursor->get_txn_cursor());
-       */
-      /* case 1 described above */
-      if (cursor->is_coupled_to_btree()) {
-        cursor->set_to_nil(Cursor::kTxn);
-        cursor->get_btree_cursor()->uncouple_from_page();
-        st = erase_txn(txn, cursor->get_btree_cursor()->get_uncoupled_key(),
-                        0, cursor->get_txn_cursor());
-      }
-      /* case 2 described above */
-      else {
-        st = erase_txn(txn, cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key(),
-                        0, cursor->get_txn_cursor());
-      }
-
-      if (local_txn)
-        cursor->set_txn(0);
-    }
-    else {
-      st = erase_txn(txn, key, flags, 0);
-    }
-  }
-
-  /* on success: verify that cursor is now nil */
-  if (cursor && st == 0) {
-    cursor->set_to_nil(0);
-    cursor->couple_to_btree(); // TODO why?
-    ham_assert(cursor->get_txn_cursor()->is_nil());
-    ham_assert(cursor->is_nil(0));
-    cursor->clear_dupecache(); // TODO merge with set_to_nil()
-  }
-
-  if (st) {
-    if (local_txn)
-      get_local_env()->get_txn_manager()->abort(local_txn);
-
-    get_local_env()->get_changeset().clear();
-    return (st);
-  }
-
-  if (local_txn)
-    get_local_env()->get_txn_manager()->commit(local_txn);
-  else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
-    get_local_env()->get_changeset().flush();
-
   return (0);
 }
 
