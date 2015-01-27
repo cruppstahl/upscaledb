@@ -89,7 +89,7 @@ bail:
 }
 
 PBtreeHeader *
-LocalEnvironment::get_btree_descriptor(int i)
+LocalEnvironment::btree_header(int i)
 {
   PBtreeHeader *d = (PBtreeHeader *)
         (m_header->get_header_page()->get_payload()
@@ -273,7 +273,7 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   /* copy each database name to the array */
   ham_assert(m_header->get_max_databases() > 0);
   for (i = 0; i < m_header->get_max_databases(); i++) {
-    name = get_btree_descriptor(i)->get_dbname();
+    name = btree_header(i)->get_dbname();
     if (name == 0)
       continue;
 
@@ -466,7 +466,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   /* check if this database name is unique */
   uint16_t dbi;
   for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
-    uint16_t name = get_btree_descriptor(i)->get_dbname();
+    uint16_t name = btree_header(i)->get_dbname();
     if (!name)
       continue;
     if (name == config.db_name) {
@@ -477,9 +477,9 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   /* find a free slot in the PBtreeHeader array and store the name */
   for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-    uint16_t name = get_btree_descriptor(dbi)->get_dbname();
+    uint16_t name = btree_header(dbi)->get_dbname();
     if (!name) {
-      get_btree_descriptor(dbi)->set_dbname(config.db_name);
+      btree_header(dbi)->set_dbname(config.db_name);
       break;
     }
   }
@@ -491,7 +491,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   mark_header_page_dirty(&context);
 
   /* initialize the Database; this will flush the context */
-  ham_status_t st = db->create(&context, dbi);
+  ham_status_t st = db->create(&context, btree_header(dbi));
   if (st) {
     delete db;
     return (st);
@@ -499,7 +499,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   /* force-flush the changeset */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    context.changeset.flush(get_incremented_lsn());
+    context.changeset.flush(next_lsn());
 
   *pdb = db;
   return (0);
@@ -545,7 +545,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   /* search for a database with this name */
   uint16_t dbi;
   for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-    uint16_t name = get_btree_descriptor(dbi)->get_dbname();
+    uint16_t name = btree_header(dbi)->get_dbname();
     if (!name)
       continue;
     if (config.db_name == name)
@@ -558,7 +558,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* open the database */
-  ham_status_t st = db->open(&context, dbi);
+  ham_status_t st = db->open(&context, btree_header(dbi));
   if (st) {
     delete db;
     ham_trace(("Database could not be opened"));
@@ -583,7 +583,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
   uint16_t slot = max;
   ham_assert(max > 0);
   for (uint16_t dbi = 0; dbi < max; dbi++) {
-    uint16_t name = get_btree_descriptor(dbi)->get_dbname();
+    uint16_t name = btree_header(dbi)->get_dbname();
     if (name == newname)
       return (HAM_DATABASE_ALREADY_EXISTS);
     if (name == oldname)
@@ -594,7 +594,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
     return (HAM_DATABASE_NOT_FOUND);
 
   /* replace the database name with the new name */
-  get_btree_descriptor(slot)->set_dbname(newname);
+  btree_header(slot)->set_dbname(newname);
   mark_header_page_dirty(&context);
 
   /* if the database with the old name is currently open: notify it */
@@ -624,7 +624,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
    */
   if (get_flags() & HAM_IN_MEMORY) {
     for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-      PBtreeHeader *desc = get_btree_descriptor(dbi);
+      PBtreeHeader *desc = btree_header(dbi);
       if (name == desc->get_dbname()) {
         desc->set_dbname(0);
         return (0);
@@ -652,7 +652,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 
   /* now set database name to 0 and set the header page to dirty */
   for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
-    PBtreeHeader *desc = get_btree_descriptor(dbi);
+    PBtreeHeader *desc = btree_header(dbi);
     if (name == desc->get_dbname()) {
       desc->set_dbname(0);
       break;

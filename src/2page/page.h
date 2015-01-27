@@ -39,10 +39,6 @@ class LocalDatabase;
 /*
  * This header is only available if the (non-persistent) flag
  * kNpersNoHeader is not set! Blob pages do not have this header.
- *
- * !!
- * if this structure is changed, env->get_usable_page_size has
- * to be changed as well!
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
@@ -157,6 +153,13 @@ class Page {
     // flushes dirty pages to disk nor moves them to the freelist!
     // Asserts that no cursors are attached.
     ~Page();
+
+    // Returns the size of the usable persistent payload of a page
+    // (page_size minus the overhead of the page header)
+    static uint32_t usable_page_size(uint32_t raw_page_size) {
+      return (raw_page_size - Page::kSizeofPersistentHeader);
+    }
+
 
     // Returns the database which manages this page; can be NULL if this
     // page belongs to the Environment (i.e. for freelist-pages)

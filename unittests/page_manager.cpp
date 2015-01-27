@@ -255,7 +255,7 @@ struct PageManagerFixture {
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManagerTest test = lenv->page_manager()->test();
-    uint32_t page_size = lenv->page_size();
+    uint32_t page_size = lenv->config().page_size_bytes;
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
@@ -281,7 +281,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
     PageManagerTest test = lenv->page_manager()->test();
-    uint32_t page_size = lenv->page_size();
+    uint32_t page_size = lenv->config().page_size_bytes;
     Page *page[5] = {0};
 
     // force-flush the state of the PageManager; otherwise it will be
@@ -335,7 +335,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
     PageManagerTest test = pm->test();
-    uint32_t page_size = lenv->page_size();
+    uint32_t page_size = lenv->config().page_size_bytes;
 
     for (int i = 1; i <= 150; i++)
       test.state()->free_pages[page_size * i] = 1;
@@ -367,7 +367,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
     PageManagerTest test = pm->test();
-    uint32_t page_size = lenv->page_size();
+    uint32_t page_size = lenv->config().page_size_bytes;
 
     test.state()->last_blob_page_id = page_size * 100;
 
@@ -400,7 +400,7 @@ struct PageManagerFixture {
   void allocMultiBlobs() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    uint32_t page_size = lenv->page_size();
+    uint32_t page_size = lenv->config().page_size_bytes;
 
     Context context(lenv, 0, 0);
 

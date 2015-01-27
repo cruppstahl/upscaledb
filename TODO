@@ -637,10 +637,12 @@ o improve separation between logic and state; make state immutable and
             x *context_data -> move to LocalEnvironment
             x move Mutex handling to env.cc (as much as possible)
             x create separate EnvironmentTest class
-        o RemoteEnvironment
-            o make all other functions private
+        x RemoteEnvironment
+            x make all other functions private
         o LocalEnvironment
             o clean up
+        o HeaderPage - can it be treated like any other page, and moved
+            to the PageManager/Cache??
         o Device
             Implementation class uses template specialization:
                 fetch_page_impl<InMemoryState>...

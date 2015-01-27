@@ -506,7 +506,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Returns the usable page size that can be used for actually
     // storing the data
     size_t usable_range_size() const {
-      return (P::m_page->get_db()->get_local_env()->usable_page_size()
+      return (Page::usable_page_size(P::m_page->get_db()->get_local_env()->config().page_size_bytes)
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
                     - sizeof(uint32_t));

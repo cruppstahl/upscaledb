@@ -39,10 +39,10 @@ uint64_t BtreeIndex::ms_btree_smo_split = 0;
 uint64_t BtreeIndex::ms_btree_smo_merge = 0;
 uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 
-BtreeIndex::BtreeIndex(LocalDatabase *db, uint32_t descriptor, uint32_t flags,
-                uint32_t key_type, uint32_t key_size)
+BtreeIndex::BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
+                uint32_t flags, uint32_t key_type, uint32_t key_size)
   : m_db(db), m_key_size(0), m_key_type(key_type), m_rec_size(0),
-    m_descriptor_index(descriptor), m_flags(flags), m_root_address(0)
+    m_btree_header(btree_header), m_flags(flags), m_root_address(0)
 {
   m_leaf_traits = BtreeIndexFactory::create(db, flags, key_type,
                   key_size, true);
@@ -80,13 +80,12 @@ BtreeIndex::open()
   uint16_t key_type;
   uint32_t flags;
   uint32_t rec_size;
-  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
-  key_size = desc->get_key_size();
-  key_type = desc->get_key_type();
-  rec_size = desc->get_record_size();
-  rootadd = desc->get_root_address();
-  flags = desc->get_flags();
+  key_size = m_btree_header->get_key_size();
+  key_type = m_btree_header->get_key_type();
+  rec_size = m_btree_header->get_record_size();
+  rootadd = m_btree_header->get_root_address();
+  flags = m_btree_header->get_flags();
 
   ham_assert(key_size > 0);
   ham_assert(rootadd > 0);
@@ -104,18 +103,12 @@ BtreeIndex::flush_descriptor(Context *context)
   if (m_db->get_rt_flags() & HAM_READ_ONLY)
     return;
 
-  LocalEnvironment *env = m_db->get_local_env();
-
-  PBtreeHeader *desc = env->get_btree_descriptor(m_descriptor_index);
-
-  desc->set_dbname(m_db->get_name());
-  desc->set_key_size(get_key_size());
-  desc->set_rec_size(get_record_size());
-  desc->set_key_type(get_key_type());
-  desc->set_root_address(get_root_address());
-  desc->set_flags(get_flags());
-
-  env->mark_header_page_dirty(context);
+  m_btree_header->set_dbname(m_db->get_name());
+  m_btree_header->set_key_size(get_key_size());
+  m_btree_header->set_rec_size(get_record_size());
+  m_btree_header->set_key_type(get_key_type());
+  m_btree_header->set_root_address(get_root_address());
+  m_btree_header->set_flags(get_flags());
 }
 
 Page *

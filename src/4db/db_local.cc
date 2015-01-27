@@ -210,7 +210,7 @@ LocalDatabase::insert_txn(Context *context, ham_key_t *key,
                     : (flags & HAM_OVERWRITE)
                         ? TransactionOperation::kInsertOverwrite
                         : TransactionOperation::kInsert),
-                get_local_env()->get_incremented_lsn(), key, record);
+                get_local_env()->next_lsn(), key, record);
 
   // if there's a cursor then couple it to the op; also store the
   // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
@@ -515,7 +515,7 @@ LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
 
   /* append a new operation to this node */
   op = node->append(context->txn, flags, TransactionOperation::kErase,
-                  get_local_env()->get_incremented_lsn(), key, 0);
+                  get_local_env()->next_lsn(), key, 0);
 
   /* is this function called through ham_cursor_erase? then add the
    * duplicate ID */
@@ -545,7 +545,7 @@ LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
 }
 
 ham_status_t
-LocalDatabase::create(Context *context, uint16_t descriptor)
+LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   uint32_t persistent_flags = get_rt_flags();
@@ -576,7 +576,8 @@ LocalDatabase::create(Context *context, uint16_t descriptor)
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (m_config.key_size != HAM_KEY_SIZE_UNLIMITED) {
-    if (get_local_env()->page_size() / (m_config.key_size + 8) < 10) {
+    if (get_local_env()->config().page_size_bytes
+                    / (m_config.key_size + 8) < 10) {
       ham_trace(("key size too large; either increase page_size or decrease "
                 "key size"));
       return (HAM_INV_KEY_SIZE);
@@ -591,20 +592,24 @@ LocalDatabase::create(Context *context, uint16_t descriptor)
   if (m_config.record_size != HAM_RECORD_SIZE_UNLIMITED) {
     if (m_config.record_size <= 8
         || (m_config.record_size <= kInlineRecordThreshold
-          && get_local_env()->page_size()
-            / (m_config.key_size + m_config.record_size) > 500)) {
+          && get_local_env()->config().page_size_bytes
+                / (m_config.key_size + m_config.record_size) > 500)) {
       persistent_flags |= HAM_FORCE_RECORDS_INLINE;
       m_config.flags |= HAM_FORCE_RECORDS_INLINE;
     }
   }
 
   // create the btree
-  m_btree_index.reset(new BtreeIndex(this, descriptor, persistent_flags,
+  m_btree_index.reset(new BtreeIndex(this, btree_header, persistent_flags,
                         m_config.key_type, m_config.key_size));
 
   /* initialize the btree */
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size);
+
+  /* the header page is now dirty */
+  Page *header = get_local_env()->page_manager()->fetch(context, 0);
+  header->set_dirty(true);
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));
@@ -613,7 +618,7 @@ LocalDatabase::create(Context *context, uint16_t descriptor)
 }
 
 ham_status_t
-LocalDatabase::open(Context *context, uint16_t descriptor)
+LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
 {
   /*
    * set the database flags; strip off the persistent flags that may have been
@@ -629,15 +634,14 @@ LocalDatabase::open(Context *context, uint16_t descriptor)
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
-  PBtreeHeader *desc = get_local_env()->get_btree_descriptor(descriptor);
-
-  m_config.key_type = desc->get_key_type();
-  m_config.key_size = desc->get_key_size();
+  m_config.key_type = btree_header->get_key_type();
+  m_config.key_size = btree_header->get_key_size();
 
   /* create the BtreeIndex */
-  m_btree_index.reset(new BtreeIndex(this, descriptor,
-                            flags | desc->get_flags(),
-                            desc->get_key_type(), desc->get_key_size()));
+  m_btree_index.reset(new BtreeIndex(this, btree_header,
+                            flags | btree_header->get_flags(),
+                            btree_header->get_key_type(),
+                            btree_header->get_key_size()));
 
   ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
   ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
@@ -1744,7 +1748,7 @@ LocalDatabase::finalize(Context *context, ham_status_t status,
   }
   else if (env->get_flags() & HAM_ENABLE_RECOVERY
       && !(env->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    context->changeset.flush(env->get_incremented_lsn());
+    context->changeset.flush(env->next_lsn());
   }
   return (0);
 }

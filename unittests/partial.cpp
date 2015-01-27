@@ -216,17 +216,17 @@ struct PartialWriteFixture {
   }
 
   void insertGapsTestPagesize() {
-    uint32_t ps = ((LocalEnvironment *)m_env)->page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
     insertGaps(ps, ps, ps * 2);
   }
 
   void insertGapsTestPagesize2() {
-    uint32_t ps = ((LocalEnvironment *)m_env)->page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
     insertGaps(ps * 2, ps * 2, ps * 4);
   }
 
   void insertGapsTestPagesize4() {
-    uint32_t ps = ((LocalEnvironment *)m_env)->page_size();
+    uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
     insertGaps(ps * 4, ps * 4, ps * 8);
   }
 };

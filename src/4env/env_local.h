@@ -86,44 +86,24 @@ class LocalEnvironment : public Environment
       return (&m_lsn_manager);
     }
 
+    // The transaction manager
+    TransactionManager *txn_manager() {
+      return (m_txn_manager.get());
+    }
+
     // Sets the Journal; only for testing!
     void test_set_journal(Journal *journal) {
       m_journal.reset(journal);
     }
 
-    // Increments the lsn and returns the incremented value. If the journal
-    // is disabled then a dummy value |1| is returned.
-    uint64_t get_incremented_lsn() {
+    // Increments the lsn and returns the incremented value
+    uint64_t next_lsn() {
       return (m_lsn_manager.next());
     }
 
     // Returns the page_size as specified in ham_env_create
-    uint32_t page_size() const {
+    uint32_t xpage_size() const {
       return ((uint32_t)m_config.page_size_bytes);
-    }
-
-    // Returns the size of the usable persistent payload of a page
-    // (page_size minus the overhead of the page header)
-    uint32_t usable_page_size() const {
-      return (page_size() - Page::kSizeofPersistentHeader);
-    }
-
-    // Sets the dirty-flag of the header page and adds the header page
-    // to the Changelog (if recovery is enabled)
-    void mark_header_page_dirty(Context *context) {
-      Page *page = m_header->get_header_page();
-      page->set_dirty(true);
-      if (get_flags() & HAM_ENABLE_RECOVERY)
-        context->changeset.put(page);
-    }
-
-    // Get the private data of the specified database stored at index |i|;
-    // interpretation of the data is up to the Btree.
-    PBtreeHeader *get_btree_descriptor(int i);
-
-    // The transaction manager
-    TransactionManager *txn_manager() {
-      return (m_txn_manager.get());
     }
 
   protected:
@@ -176,8 +156,23 @@ class LocalEnvironment : public Environment
     virtual void do_fill_metrics(ham_env_metrics_t *metrics) const;
 
   private:
+    friend struct DbFixture;
+
     // Runs the recovery process
     void recover(uint32_t flags);
+
+    // Get the btree configuration of the database #i, where |i| is a
+    // zero-based index
+    PBtreeHeader *btree_header(int i);
+
+    // Sets the dirty-flag of the header page and adds the header page
+    // to the Changeset (if recovery is enabled)
+    void mark_header_page_dirty(Context *context) {
+      Page *page = m_header->get_header_page();
+      page->set_dirty(true);
+      if (get_flags() & HAM_ENABLE_RECOVERY)
+        context->changeset.put(page);
+    }
 
     // The Environment's header page/configuration
     ScopedPtr<EnvironmentHeader> m_header;

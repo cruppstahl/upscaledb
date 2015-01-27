@@ -177,6 +177,8 @@ BtreeUpdateAction::collapse_root(Page *root_page)
 
   m_btree->get_statistics()->reset_page(root_page);
   m_btree->set_root_address(m_context, node->get_ptr_down());
+  Page *header = env->page_manager()->fetch(m_context, 0);
+  header->set_dirty(true);
 
   Page *new_root = env->page_manager()->fetch(m_context,
                         m_btree->get_root_address());
@@ -296,6 +298,9 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
   new_node->set_ptr_down(old_root->get_address());
 
   m_btree->set_root_address(m_context, new_root->get_address());
+  Page *header = env->page_manager()->fetch(m_context, 0);
+  header->set_dirty(true);
+
   old_root->set_type(Page::kTypeBindex);
 
   return (new_root);

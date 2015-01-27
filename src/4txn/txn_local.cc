@@ -251,7 +251,7 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
       && env->get_flags() & HAM_ENABLE_TRANSACTIONS
       && !(flags & HAM_TXN_TEMPORARY)) {
     env->journal()->append_txn_begin(this, name,
-            env->get_incremented_lsn());
+            env->next_lsn());
   }
 }
 
@@ -512,7 +512,7 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
         && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
         && !(txn->get_flags() & HAM_TXN_TEMPORARY))
       get_local_env()->journal()->append_txn_commit(txn,
-                      get_local_env()->get_incremented_lsn());
+                      get_local_env()->next_lsn());
 
     /* flush committed transactions */
     m_queued_txn_for_flush++;
@@ -540,7 +540,7 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
         && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
         && !(txn->get_flags() & HAM_TXN_TEMPORARY))
       get_local_env()->journal()->append_txn_abort(txn,
-                      get_local_env()->get_incremented_lsn());
+                      get_local_env()->next_lsn());
 
     /* flush committed transactions; while this one was not committed,
      * we might have cleared the way now to flush other committed

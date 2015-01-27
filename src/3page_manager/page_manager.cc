@@ -217,7 +217,13 @@ fetch_impl(PageManagerState &state, Context *context, uint64_t address,
                 uint32_t flags)
 {
   /* fetch the page from the cache */
-  Page *page = state.cache.get(address);
+  Page *page;
+  
+  if (address == 0)
+    page = state.header->get_header_page();
+  else
+    page = state.cache.get(address);
+
   if (page) {
     ham_assert(page->get_data());
     if (flags & PageManager::kNoHeader)

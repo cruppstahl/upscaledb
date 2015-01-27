@@ -519,7 +519,7 @@ class DuplicateRecordList : public BaseRecordList
                     bool store_flags, size_t record_size)
       : m_db(db), m_node(node), m_index(db), m_data(0),
         m_store_flags(store_flags), m_record_size(record_size) {
-      size_t page_size = db->get_local_env()->page_size();
+      size_t page_size = db->get_local_env()->config().page_size_bytes;
       if (Globals::ms_duplicate_threshold)
         m_duptable_threshold = Globals::ms_duplicate_threshold;
       else {

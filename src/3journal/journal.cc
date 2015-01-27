@@ -291,7 +291,7 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   append_entry(m_state.current_fd, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
-  size_t page_size = m_state.env->page_size();
+  size_t page_size = m_state.env->config().page_size_bytes;
   for (int i = 0; i < num_pages; i++) {
     entry.followup_size += append_changeset_page(pages[i], page_size);
   }
@@ -570,7 +570,7 @@ Journal::recover_changeset()
                     sizeof(changeset));
     position += sizeof(changeset);
 
-    uint32_t page_size = m_state.env->page_size();
+    uint32_t page_size = m_state.env->config().page_size_bytes;
     ByteArray arena(page_size);
 
     size_t file_size = m_state.env->device()->file_size();

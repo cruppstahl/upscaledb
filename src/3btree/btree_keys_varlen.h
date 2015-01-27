@@ -103,7 +103,7 @@ class VariableLengthKeyList : public BaseKeyList
     // Constructor
     VariableLengthKeyList(LocalDatabase *db)
       : m_db(db), m_index(db), m_data(0) {
-      size_t page_size = db->get_local_env()->page_size();
+      size_t page_size = db->get_local_env()->config().page_size_bytes;
       if (Globals::ms_extended_threshold)
         m_extkey_threshold = Globals::ms_extended_threshold;
       else {

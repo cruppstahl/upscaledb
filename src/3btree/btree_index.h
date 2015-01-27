@@ -209,7 +209,7 @@ class BtreeIndex
     };
 
     // Constructor; creates and initializes a new btree
-    BtreeIndex(LocalDatabase *db, uint32_t descriptor,
+    BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
                     uint32_t flags, uint32_t key_type, uint32_t key_size);
 
     ~BtreeIndex() {
@@ -413,7 +413,7 @@ class BtreeIndex
     uint32_t m_rec_size;
 
     // the index of the PBtreeHeader in the Environment's header page
-    uint32_t m_descriptor_index;
+    PBtreeHeader *m_btree_header;
 
     // the persistent flags of this btree index
     uint32_t m_flags;

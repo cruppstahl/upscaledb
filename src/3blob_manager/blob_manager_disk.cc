@@ -38,7 +38,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
 {
   uint8_t *chunk_data[2];
   uint32_t chunk_size[2];
-  uint32_t page_size = m_env->page_size();
+  uint32_t page_size = m_env->config().page_size_bytes;
 
   PBlobHeader blob_header;
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
@@ -358,7 +358,7 @@ DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
   // if the page is now completely empty (all blobs were erased) then move
   // it to the freelist
   if (header->get_free_bytes() == (header->get_num_pages()
-              * m_env->page_size()) - kPageOverhead) {
+              * m_env->config().page_size_bytes) - kPageOverhead) {
     m_env->page_manager()->set_last_blob_page(0);
     m_env->page_manager()->del(page, header->get_num_pages());
     header->initialize();
@@ -466,7 +466,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   ham_assert(header->get_num_pages() > 0);
 
   if (header->get_free_bytes() + kPageOverhead
-        > (m_env->page_size() * header->get_num_pages())) {
+        > (m_env->config().page_size_bytes * header->get_num_pages())) {
     ham_trace(("integrity violated: free bytes exceeds page boundary"));
     return (false);
   }
@@ -502,7 +502,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   if (!ranges.empty()) {
     for (uint32_t i = 0; i < ranges.size() - 1; i++) {
       if (ranges[i].first + ranges[i].second
-          > m_env->page_size() * header->get_num_pages()) {
+          > m_env->config().page_size_bytes * header->get_num_pages()) {
         ham_trace(("integrity violated: freelist slot %u/%u exceeds page",
                     ranges[i].first, ranges[i].second));
         return (false);
@@ -524,7 +524,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
                 uint64_t address, uint8_t **chunk_data, uint32_t *chunk_size,
                 uint32_t chunks)
 {
-  uint32_t page_size = m_env->page_size();
+  uint32_t page_size = m_env->config().page_size_bytes;
 
   // for each chunk...
   for (uint32_t i = 0; i < chunks; i++) {
@@ -563,7 +563,7 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
                 uint64_t address, uint8_t *data, uint32_t size,
                 bool fetch_read_only)
 {
-  uint32_t page_size = m_env->page_size();
+  uint32_t page_size = m_env->config().page_size_bytes;
 
   while (size) {
     // get the page-id from this chunk

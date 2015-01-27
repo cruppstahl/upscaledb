@@ -76,7 +76,7 @@ struct DeviceFixture
     for (i = 0; i < 10; i++) {
       address = m_dev->alloc(1024);
       REQUIRE(address ==
-                (((LocalEnvironment *)m_env)->page_size() * 2) + 1024 * i);
+        (((LocalEnvironment *)m_env)->config().page_size_bytes * 2) + 1024 * i);
     }
   }
 

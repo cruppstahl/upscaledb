@@ -228,7 +228,7 @@ struct JournalFixture {
     REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
     REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
 
-    uint64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)4 == get_lsn());
@@ -258,7 +258,7 @@ struct JournalFixture {
     REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
     REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
 
-    uint64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_commit((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
@@ -283,7 +283,7 @@ struct JournalFixture {
     rec.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    uint64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->next_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
@@ -323,7 +323,7 @@ struct JournalFixture {
     rec.partial_offset = 10;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    uint64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->next_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
@@ -360,7 +360,7 @@ struct JournalFixture {
     key.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    uint64_t lsn = m_lenv->get_incremented_lsn();
+    uint64_t lsn = m_lenv->next_lsn();
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);

@@ -84,10 +84,10 @@ class LocalDatabase : public Database {
     }
 
     // Creates a new Database
-    virtual ham_status_t create(Context *context, uint16_t descriptor);
+    virtual ham_status_t create(Context *context, PBtreeHeader *btree_header);
 
     // Opens an existing Database
-    virtual ham_status_t open(Context *context, uint16_t descriptor);
+    virtual ham_status_t open(Context *context, PBtreeHeader *btree_header);
 
     // Erases this Database
     void erase_me();
