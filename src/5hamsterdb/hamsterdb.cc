@@ -1619,29 +1619,6 @@ ham_get_context_data(ham_db_t *hdb, ham_bool_t dont_lock)
   return (db->get_context_data());
 }
 
-void HAM_CALLCONV
-ham_env_set_context_data(ham_env_t *henv, void *data)
-{
-  Environment *env = (Environment *)henv;
-  if (!env)
-    return;
-
-  ScopedLock lock(env->mutex());
-  env->set_context_data(data);
-}
-
-void * HAM_CALLCONV
-ham_env_get_context_data(ham_env_t *henv)
-{
-  Environment *env = (Environment *)henv;
-  if (!env)
-    return (0);
-
-  ScopedLock lock(env->mutex());
-  return (env->get_context_data());
-}
-
-
 ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *hcursor)
 {

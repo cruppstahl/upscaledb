@@ -62,7 +62,7 @@ class Environment
   public:
     // Constructor
     Environment(EnvironmentConfiguration &config)
-      : m_config(config), m_context_data(0) {
+      : m_config(config) {
     }
 
     virtual ~Environment() {
@@ -81,16 +81,6 @@ class Environment
     // Sets the filename of the Environment; only for testing!
     void test_set_filename(const std::string &filename) {
       m_config.filename = filename;
-    }
-
-    // Returns the user-provided context pointer (ham_env_get_context_data)
-    void *get_context_data() {
-      return (m_context_data);
-    }
-
-    // Sets the user-provided context pointer (ham_env_set_context_data)
-    void set_context_data(void *ctxt) {
-      m_context_data = ctxt;
     }
 
     // Returns this Environment's mutex
@@ -205,9 +195,6 @@ class Environment
 
     // The Transaction manager; can be 0
     ScopedPtr<TransactionManager> m_txn_manager;
-
-    // The user-provided context data
-    void *m_context_data;
 
     // A map of all opened Databases
     typedef std::map<uint16_t, Database *> DatabaseMap;
