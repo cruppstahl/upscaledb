@@ -37,11 +37,11 @@ namespace hamsterdb {
 
 class Page;
 
-class PageManagerTestGateway
+class PageManagerTest
 {
   public:
     // Constructor
-    PageManagerTestGateway(PageManagerState *state);
+    PageManagerTest(PageManagerState *state);
 
     // Stores the local PageManager state to disk; returns the blob id
     uint64_t store_state();

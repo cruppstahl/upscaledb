@@ -57,8 +57,6 @@ struct JournalState
 
   JournalState(LocalEnvironment *env);
 
-  JournalState(const JournalState &state);
-
   // References the Environment this journal file is for
   LocalEnvironment *env;
 

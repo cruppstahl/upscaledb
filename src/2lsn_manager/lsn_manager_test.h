@@ -34,10 +34,10 @@
 
 namespace hamsterdb {
 
-struct LsnManagerTestGateway
+struct LsnManagerTest
 {
   // Constructor
-  LsnManagerTestGateway(LsnManager *lsn_manager)
+  LsnManagerTest(LsnManager *lsn_manager)
     : m_state(lsn_manager->m_state) {
   }
 

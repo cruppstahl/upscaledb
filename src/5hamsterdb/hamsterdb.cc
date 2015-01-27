@@ -1718,9 +1718,7 @@ ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
   // fill in memory metrics
   Memory::get_global_metrics(metrics);
   // ... and everything else
-  env->fill_metrics(metrics);
-
-  return (0);
+  return (env->fill_metrics(metrics));
 }
 
 ham_bool_t HAM_CALLCONV

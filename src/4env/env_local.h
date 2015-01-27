@@ -121,57 +121,60 @@ class LocalEnvironment : public Environment
     // interpretation of the data is up to the Btree.
     PBtreeHeader *get_btree_descriptor(int i);
 
-    // Creates a new Environment (ham_env_create)
-    virtual ham_status_t create();
-
-    // Opens a new Environment (ham_env_open)
-    virtual ham_status_t open();
-
-    // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t rename_db(uint16_t oldname, uint16_t newname,
-                    uint32_t flags);
-
-    // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t erase_db(uint16_t name, uint32_t flags);
-
-    // Returns all database names (ham_env_get_database_names)
-    virtual ham_status_t get_database_names(uint16_t *names,
-                    uint32_t *count);
-
-    // Returns environment parameters and flags (ham_env_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param);
-
-    // Flushes the environment and its databases to disk (ham_env_flush)
-    virtual ham_status_t flush(uint32_t flags);
-
-    // Creates a new database in the environment (ham_env_create_db)
-    virtual ham_status_t create_db(Database **db, DatabaseConfiguration &config,
-                    const ham_parameter_t *param);
-
-    // Opens an existing database in the environment (ham_env_open_db)
-    virtual ham_status_t open_db(Database **db, DatabaseConfiguration &config,
-                    const ham_parameter_t *param);
-
-    // Begins a new transaction (ham_txn_begin)
-    virtual ham_status_t txn_begin(Transaction **ptxn, const char *name,
-                    uint32_t flags);
-
-    // Commits a transaction (ham_txn_commit)
-    virtual ham_status_t txn_commit(Transaction *txn, uint32_t flags);
-
-    // Commits a transaction (ham_txn_abort)
-    virtual ham_status_t txn_abort(Transaction *txn, uint32_t flags);
-
-    // Closes the Environment (ham_env_close)
-    virtual ham_status_t close(uint32_t flags);
-
-    // Fills in the current metrics
-    virtual void fill_metrics(ham_env_metrics_t *metrics) const;
-
     // The transaction manager
     TransactionManager *txn_manager() {
       return (m_txn_manager.get());
     }
+
+  protected:
+    // Creates a new Environment (ham_env_create)
+    virtual ham_status_t do_create();
+
+    // Opens a new Environment (ham_env_open)
+    virtual ham_status_t do_open();
+
+    // Returns all database names (ham_env_get_database_names)
+    virtual ham_status_t do_get_database_names(uint16_t *names,
+                    uint32_t *count);
+
+    // Returns environment parameters and flags (ham_env_get_parameters)
+    virtual ham_status_t do_get_parameters(ham_parameter_t *param);
+
+    // Flushes the environment and its databases to disk (ham_env_flush)
+    virtual ham_status_t do_flush(uint32_t flags);
+
+    // Creates a new database in the environment (ham_env_create_db)
+    virtual ham_status_t do_create_db(Database **db,
+                    DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
+
+    // Opens an existing database in the environment (ham_env_open_db)
+    virtual ham_status_t do_open_db(Database **db,
+                    DatabaseConfiguration &config,
+                    const ham_parameter_t *param);
+
+    // Renames a database in the Environment (ham_env_rename_db)
+    virtual ham_status_t do_rename_db(uint16_t oldname, uint16_t newname,
+                    uint32_t flags);
+
+    // Erases (deletes) a database from the Environment (ham_env_erase_db)
+    virtual ham_status_t do_erase_db(uint16_t name, uint32_t flags);
+
+    // Begins a new transaction (ham_txn_begin)
+    virtual ham_status_t do_txn_begin(Transaction **ptxn, const char *name,
+                    uint32_t flags);
+
+    // Commits a transaction (ham_txn_commit)
+    virtual ham_status_t do_txn_commit(Transaction *txn, uint32_t flags);
+
+    // Commits a transaction (ham_txn_abort)
+    virtual ham_status_t do_txn_abort(Transaction *txn, uint32_t flags);
+
+    // Closes the Environment (ham_env_close)
+    virtual ham_status_t do_close(uint32_t flags);
+
+    // Fills in the current metrics
+    virtual void do_fill_metrics(ham_env_metrics_t *metrics) const;
 
   private:
     // Runs the recovery process

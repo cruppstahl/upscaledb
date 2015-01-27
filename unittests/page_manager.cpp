@@ -111,7 +111,7 @@ struct PageManagerFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
 
-    REQUIRE(102400ull == lenv->get_config().cache_size_bytes);
+    REQUIRE(102400ull == lenv->config().cache_size_bytes);
   }
 
   void setCacheSizeEnvOpen(uint64_t size) {
@@ -128,7 +128,7 @@ struct PageManagerFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
 
-    REQUIRE(size == lenv->get_config().cache_size_bytes);
+    REQUIRE(size == lenv->config().cache_size_bytes);
   }
 
   void cachePutGet() {
@@ -142,7 +142,7 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -162,7 +162,7 @@ struct PageManagerFixture {
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
     test.store_page(page);
     REQUIRE(page == test.fetch_page(0x123ull));
     test.remove_page(page);
@@ -176,7 +176,7 @@ struct PageManagerFixture {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     Page *page[20];
     PPageData pers[20];
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
 
     for (int i = 0; i < 20; i++) {
       page[i] = new Page(lenv->device());
@@ -199,7 +199,7 @@ struct PageManagerFixture {
 
   void cacheNegativeGets() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
 
     for (int i = 0; i < 20; i++)
       REQUIRE((Page *)0 == test.fetch_page(i + 1));
@@ -207,7 +207,7 @@ struct PageManagerFixture {
 
   void cacheFullTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
@@ -254,7 +254,7 @@ struct PageManagerFixture {
 
   void storeStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
     uint32_t page_size = lenv->page_size();
 
     // fill with freelist pages and blob pages
@@ -280,7 +280,7 @@ struct PageManagerFixture {
   void reclaimTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
     uint32_t page_size = lenv->page_size();
     Page *page[5] = {0};
 
@@ -321,7 +321,7 @@ struct PageManagerFixture {
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->page_manager();
 
-    PageManagerTestGateway test2 = pm->test();
+    PageManagerTest test2 = pm->test();
     for (int i = 0; i < 2; i++)
       REQUIRE(false == test2.is_page_free((3 + i) * page_size));
 
@@ -334,7 +334,7 @@ struct PageManagerFixture {
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test = pm->test();
+    PageManagerTest test = pm->test();
     uint32_t page_size = lenv->page_size();
 
     for (int i = 1; i <= 150; i++)
@@ -366,7 +366,7 @@ struct PageManagerFixture {
   void storeBigStateTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTestGateway test = pm->test();
+    PageManagerTest test = pm->test();
     uint32_t page_size = lenv->page_size();
 
     test.state()->last_blob_page_id = page_size * 100;

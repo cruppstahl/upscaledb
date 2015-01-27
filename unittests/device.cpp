@@ -137,7 +137,7 @@ struct DeviceFixture
     uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 
-    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
+    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
     cfg.flags |= HAM_DISABLE_MMAP;
 
     REQUIRE(true == m_dev->is_open());
@@ -164,7 +164,7 @@ struct DeviceFixture
     Page *pages[2];
     uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
 
-    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->get_config());
+    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
     cfg.flags |= HAM_DISABLE_MMAP;
 
     REQUIRE(1 == m_dev->is_open());

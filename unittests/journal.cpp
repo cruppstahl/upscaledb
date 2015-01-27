@@ -96,7 +96,7 @@ struct JournalFixture {
   }
 
   uint64_t get_lsn() {
-    LsnManagerTestGateway test(((LocalEnvironment *)m_env)->lsn_manager());
+    LsnManagerTest test(((LocalEnvironment *)m_env)->lsn_manager());
     return (test.lsn());
   }
 
@@ -152,7 +152,7 @@ struct JournalFixture {
 
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->get_config().filename;
+    std::string oldfilename = m_lenv->config().filename;
     m_lenv->test_set_filename("/::asdf");
     REQUIRE_CATCH(j->create(), HAM_IO_ERROR);
     m_lenv->test_set_filename(oldfilename);
@@ -162,7 +162,7 @@ struct JournalFixture {
 
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->get_config().filename;
+    std::string oldfilename = m_lenv->config().filename;
     m_lenv->test_set_filename("xxx$$test");
     REQUIRE_CATCH(j->open(), HAM_FILE_NOT_FOUND);
 
@@ -183,7 +183,7 @@ struct JournalFixture {
 
   void appendTxnBeginTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
     REQUIRE((uint32_t)0 == test.state()->open_txn[0]);
@@ -210,7 +210,7 @@ struct JournalFixture {
 
   void appendTxnAbortTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
     ham_txn_t *txn;
@@ -240,7 +240,7 @@ struct JournalFixture {
 
   void appendTxnCommitTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
     ham_txn_t *txn;
@@ -523,7 +523,7 @@ struct JournalFixture {
   void iterateOverLogMultipleEntrySwapTest() {
     ham_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     test.state()->threshold = 5;
     unsigned p = 0;
     LogEntry vec[20];
@@ -552,7 +552,7 @@ struct JournalFixture {
   void iterateOverLogMultipleEntrySwapTwiceTest() {
     ham_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     test.state()->threshold = 5;
 
     unsigned p = 0;
@@ -586,7 +586,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->journal();
     REQUIRE(j);
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     size = test.state()->files[0].get_file_size();
     REQUIRE(0 == size);
     size = test.state()->files[1].get_file_size();
@@ -1471,7 +1471,7 @@ struct JournalFixture {
     // verify threshold in the Journal object
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->journal();
-    JournalTestGateway test = j->test();
+    JournalTest test = j->test();
     test.state()->threshold = 5;
 
     // open w/o parameter

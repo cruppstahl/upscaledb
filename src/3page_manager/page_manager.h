@@ -116,7 +116,7 @@ class PageManager
     void set_last_blob_page(Page *page);
 
     // Returns additional testing interfaces
-    PageManagerTestGateway test();
+    PageManagerTest test();
 
   private:
     friend struct Purger;

@@ -813,21 +813,21 @@ Journal::get_path(int i)
 {
   std::string path;
 
-  if (m_state.env->get_config().log_filename.empty()) {
-    path = m_state.env->get_config().filename;
+  if (m_state.env->config().log_filename.empty()) {
+    path = m_state.env->config().filename;
   }
   else {
-    path = m_state.env->get_config().log_filename;
+    path = m_state.env->config().log_filename;
 #ifdef HAM_OS_WIN32
     path += "\\";
     char fname[_MAX_FNAME];
     char ext[_MAX_EXT];
-    _splitpath(m_state.env->get_config().filename.c_str(), 0, 0, fname, ext);
+    _splitpath(m_state.env->config().filename.c_str(), 0, 0, fname, ext);
     path += fname;
     path += ext;
 #else
     path += "/";
-    path += ::basename((char *)m_state.env->get_config().filename.c_str());
+    path += ::basename((char *)m_state.env->config().filename.c_str());
 #endif
   }
   if (i == 0)
@@ -839,16 +839,19 @@ Journal::get_path(int i)
   return (path);
 }
 
-JournalTestGateway
+JournalTest
 Journal::test()
 {
-  return (JournalTestGateway(&m_state));
+  return (JournalTest(&m_state));
 }
 
 JournalState::JournalState(LocalEnvironment *env)
-  : env(env), current_fd(0), threshold(kSwitchTxnThreshold),
+  : env(env), current_fd(0), threshold(env->config().journal_switch_threshold),
     disable_logging(false), count_bytes_flushed(0)
 {
+  if (threshold == 0)
+    threshold = kSwitchTxnThreshold;
+
   open_txn[0] = 0;
   open_txn[1] = 0;
   closed_txn[0] = 0;

@@ -630,10 +630,18 @@ o improve separation between logic and state; make state immutable and
         x Cache
         x Changeset
         x Journal
+        x remove Journal::set_switch_threshold
         o Environment - not virtual, has pimpl for local and remote
                 implementation 
-            o Environment: has common code, takes care of exceptions
-                and Context related stuff
+            x Environment: has common code, takes care of exceptions etc
+            o *context_data -> move to LocalEnvironment
+            o move Mutex handling to env.cc (as much as possible)
+            o create separate EnvironmentTest class
+            o remove/hide all other functions and members
+        o RemoveEnvironment
+            o make all other functions private
+        o LocalEnvironment
+            o clean up
         o Device
             Implementation class uses template specialization:
                 fetch_page_impl<InMemoryState>...

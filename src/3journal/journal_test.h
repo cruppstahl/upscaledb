@@ -38,10 +38,10 @@
 
 namespace hamsterdb {
 
-class JournalTestGateway
+class JournalTest
 {
   public:
-    JournalTestGateway(JournalState *state)
+    JournalTest(JournalState *state)
       : m_state(state) {
     }
 

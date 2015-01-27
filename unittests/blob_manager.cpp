@@ -127,7 +127,7 @@ struct BlobManagerFixture {
     uint64_t page_id = (blobid / lenv->page_size())
                             * lenv->page_size();
 
-    PageManagerTestGateway test = lenv->page_manager()->test();
+    PageManagerTest test = lenv->page_manager()->test();
     REQUIRE(test.is_page_free(page_id) == false);
 
     m_blob_manager->erase(m_context.get(), blobid, 0);

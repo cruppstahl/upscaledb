@@ -471,7 +471,7 @@ struct DbClosePurger
 };
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
-  : config(env->get_config()), header(env->header()),
+  : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
     cache(CacheState(config)), needs_flush(false), state_page(0),
     last_blob_page(0), last_blob_page_id(0), page_count_fetched(0),
@@ -717,50 +717,50 @@ PageManager::set_last_blob_page(Page *page)
   m_state.last_blob_page = page;
 }
 
-PageManagerTestGateway
+PageManagerTest
 PageManager::test()
 {
-  return (PageManagerTestGateway(&m_state));
+  return (PageManagerTest(&m_state));
 }
 
-PageManagerTestGateway::PageManagerTestGateway(PageManagerState *state)
+PageManagerTest::PageManagerTest(PageManagerState *state)
   : m_state(state)
 {
 }
 
 uint64_t
-PageManagerTestGateway::store_state()
+PageManagerTest::store_state()
 {
   Context context(0, 0, 0);
   return (store_state_impl(*m_state, &context));
 }
 
 void
-PageManagerTestGateway::remove_page(Page *page)
+PageManagerTest::remove_page(Page *page)
 {
   m_state->cache.del(page);
 }
 
 bool
-PageManagerTestGateway::is_page_free(uint64_t pageid)
+PageManagerTest::is_page_free(uint64_t pageid)
 {
   return (m_state->free_pages.find(pageid) != m_state->free_pages.end());
 }
 
 Page *
-PageManagerTestGateway::fetch_page(uint64_t id)
+PageManagerTest::fetch_page(uint64_t id)
 {
   return (m_state->cache.get(id));
 }
 
 void
-PageManagerTestGateway::store_page(Page *page)
+PageManagerTest::store_page(Page *page)
 {
   m_state->cache.put(page);
 }
 
 bool
-PageManagerTestGateway::is_cache_full()
+PageManagerTest::is_cache_full()
 {
   return (is_cache_full_impl(*m_state));
 }

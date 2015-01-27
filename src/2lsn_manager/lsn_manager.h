@@ -46,7 +46,7 @@ class LsnManager
     }
 
   private:
-    friend struct LsnManagerTestGateway;
+    friend struct LsnManagerTest;
 
     // the actual lsn
     uint64_t m_state;

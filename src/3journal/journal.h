@@ -214,13 +214,6 @@ class Journal
       metrics->journal_bytes_flushed = m_state.count_bytes_flushed;
     }
 
-    // Sets the switch threshold
-    void set_switch_threshold(size_t threshold) {
-      m_state.threshold = threshold
-                            ? threshold
-                            : JournalState::kSwitchTxnThreshold;
-    }
-
   private:
     friend struct JournalFixture;
 
@@ -322,7 +315,7 @@ class Journal
     void clear_file(int idx);
 
     // Returns the test object
-    JournalTestGateway test();
+    JournalTest test();
 
   private:
     // The mutable state

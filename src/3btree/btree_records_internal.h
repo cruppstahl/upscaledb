@@ -71,8 +71,8 @@ class InternalRecordList : public BaseRecordList
     // Constructor
     InternalRecordList(LocalDatabase *db, PBtreeNode *node)
       : m_db(db), m_data(0) {
-      m_page_size = m_db->get_local_env()->get_config().page_size_bytes;
-      m_store_raw_id = (m_db->get_local_env()->get_config().flags
+      m_page_size = m_db->get_local_env()->config().page_size_bytes;
+      m_store_raw_id = (m_db->get_local_env()->config().flags
                             & HAM_IN_MEMORY) == HAM_IN_MEMORY;
     }
 
