@@ -41,13 +41,8 @@
 namespace hamsterdb {
 
 Journal::Journal(LocalEnvironment *env)
-  : m_env(env), m_current_fd(0), m_threshold(kSwitchTxnThreshold),
-    m_disable_logging(false), m_count_bytes_flushed(0)
+  : m_state(env)
 {
-  m_open_txn[0] = 0;
-  m_open_txn[1] = 0;
-  m_closed_txn[0] = 0;
-  m_closed_txn[1] = 0;
 }
 
 void
@@ -56,7 +51,7 @@ Journal::create()
   // create the two files
   for (int i = 0; i < 2; i++) {
     std::string path = get_path(i);
-    m_files[i].create(path.c_str(), 0644);
+    m_state.files[i].create(path.c_str(), 0644);
   }
 }
 
@@ -66,13 +61,13 @@ Journal::open()
   // open the two files
   try {
     std::string path = get_path(0);
-    m_files[0].open(path.c_str(), false);
+    m_state.files[0].open(path.c_str(), false);
     path = get_path(1);
-    m_files[1].open(path.c_str(), 0);
+    m_state.files[1].open(path.c_str(), 0);
   }
   catch (Exception &ex) {
-    m_files[1].close();
-    m_files[0].close();
+    m_state.files[1].close();
+    m_state.files[0].close();
     throw ex;
   }
 }
@@ -80,30 +75,31 @@ Journal::open()
 int
 Journal::switch_files_maybe()
 {
-  int other = m_current_fd ? 0 : 1;
+  int other = m_state.current_fd ? 0 : 1;
 
   // determine the journal file which is used for this transaction 
   // if the "current" file is not yet full, continue to write to this file
-  if (m_open_txn[m_current_fd] + m_closed_txn[m_current_fd] < m_threshold)
-    return (m_current_fd);
+  if (m_state.open_txn[m_state.current_fd]
+                  + m_state.closed_txn[m_state.current_fd]
+              < m_state.threshold)
+    return (m_state.current_fd);
 
   // If the other file does no longer have open Transactions then
   // delete the other file and use the other file as the current file
-  if (m_open_txn[other] == 0) {
+  if (m_state.open_txn[other] == 0) {
     clear_file(other);
-    m_current_fd = other;
+    m_state.current_fd = other;
     // fall through
   }
 
   // Otherwise just continue using the current file
-  return (m_current_fd);
+  return (m_state.current_fd);
 }
 
 void
-Journal::append_txn_begin(LocalTransaction *txn, const char *name,
-                uint64_t lsn)
+Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
@@ -127,18 +123,18 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name,
     append_entry(cur, (uint8_t *)&entry, (uint32_t)sizeof(entry));
   maybe_flush_buffer(cur);
 
-  m_open_txn[cur]++;
+  m_state.open_txn[cur]++;
 
   // store the fp-index in the journal structure; it's needed for
   // journal_append_checkpoint() to quickly find out which file is
   // the newest
-  m_current_fd = cur;
+  m_state.current_fd = cur;
 }
 
 void
 Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
@@ -151,8 +147,8 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
 
   // update the transaction counters of this logfile
   idx = txn->get_log_desc();
-  m_open_txn[idx]--;
-  m_closed_txn[idx]++;
+  m_state.open_txn[idx]--;
+  m_state.closed_txn[idx]++;
 
   append_entry(idx, (uint8_t *)&entry, sizeof(entry));
   maybe_flush_buffer(idx);
@@ -162,7 +158,7 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
 void
 Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
@@ -180,7 +176,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   append_entry(idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
-  flush_buffer(idx, m_env->get_flags() & HAM_ENABLE_FSYNC);
+  flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
 }
 
 void
@@ -188,7 +184,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                 ham_key_t *key, ham_record_t *record, uint32_t flags,
                 uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   PJournalEntry entry;
@@ -209,7 +205,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {
     entry.txn_id = 0;
     idx = switch_files_maybe();
-    m_closed_txn[idx]++;
+    m_state.closed_txn[idx]++;
   }
   else {
     entry.txn_id = txn->get_id();
@@ -236,7 +232,7 @@ void
 Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
                 int duplicate_index, uint32_t flags, uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   PJournalEntry entry;
@@ -255,7 +251,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {
     entry.txn_id = 0;
     idx = switch_files_maybe();
-    m_closed_txn[idx]++;
+    m_state.closed_txn[idx]++;
   }
   else {
     entry.txn_id = txn->get_id();
@@ -272,7 +268,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 void
 Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
 {
-  if (m_disable_logging)
+  if (m_state.disable_logging)
     return;
 
   PJournalEntry entry;
@@ -289,13 +285,13 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
   // patched in later.
-  uint32_t entry_position = m_buffer[m_current_fd].get_size();
+  uint32_t entry_position = m_state.buffer[m_state.current_fd].get_size();
 
   // write the data to the file
-  append_entry(m_current_fd, (uint8_t *)&entry, sizeof(entry),
+  append_entry(m_state.current_fd, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
-  size_t page_size = m_env->page_size();
+  size_t page_size = m_state.env->page_size();
   for (int i = 0; i < num_pages; i++) {
     entry.followup_size += append_changeset_page(pages[i], page_size);
   }
@@ -303,19 +299,19 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // and patch in the followup-size
-  m_buffer[m_current_fd].overwrite(entry_position,
+  m_state.buffer[m_state.current_fd].overwrite(entry_position,
           (uint8_t *)&entry, sizeof(entry));
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // and flush the file
-  flush_buffer(m_current_fd, m_env->get_flags() & HAM_ENABLE_FSYNC);
+  flush_buffer(m_state.current_fd, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // if recovery is enabled (w/o transactions) then simulate a "commit" to
   // make sure that the log files are switched properly
-  m_closed_txn[m_current_fd]++;
+  m_state.closed_txn[m_state.current_fd]++;
   (void)switch_files_maybe();
 }
 
@@ -324,7 +320,7 @@ Journal::append_changeset_page(const Page *page, uint32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
 
-  append_entry(m_current_fd, (uint8_t *)&header, sizeof(header),
+  append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
                 page->get_raw_payload(), page_size);
   return (page_size + sizeof(header));
 }
@@ -333,13 +329,13 @@ void
 Journal::transaction_flushed(LocalTransaction *txn)
 {
   ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
-  if (m_disable_logging) // ignore this call during recovery
+  if (m_state.disable_logging) // ignore this call during recovery
     return;
 
   int idx = txn->get_log_desc();
-  ham_assert(m_open_txn[idx] > 0);
-  m_open_txn[idx]--;
-  m_closed_txn[idx]++;
+  ham_assert(m_state.open_txn[idx] > 0);
+  m_state.open_txn[idx]--;
+  m_state.closed_txn[idx]++;
 }
 
 void
@@ -356,20 +352,20 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   // NOT in current_fd).
   if (iter->offset == 0) {
     iter->fdstart = iter->fdidx =
-                        m_current_fd == 0
+                        m_state.current_fd == 0
                             ? 1
                             : 0;
   }
 
   // get the size of the journal file
-  filesize = m_files[iter->fdidx].get_file_size();
+  filesize = m_state.files[iter->fdidx].get_file_size();
 
   // reached EOF? then either skip to the next file or we're done
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
       iter->offset = 0;
-      filesize = m_files[iter->fdidx].get_file_size();
+      filesize = m_state.files[iter->fdidx].get_file_size();
     }
     else {
       entry->lsn = 0;
@@ -385,7 +381,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 
   // now try to read the next entry
   try {
-    m_files[iter->fdidx].pread(iter->offset, entry, sizeof(*entry));
+    m_state.files[iter->fdidx].pread(iter->offset, entry, sizeof(*entry));
 
     iter->offset += sizeof(*entry);
 
@@ -393,7 +389,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
     if (entry->followup_size) {
       auxbuffer->resize((uint32_t)entry->followup_size);
 
-      m_files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
+      m_state.files[iter->fdidx].pread(iter->offset, auxbuffer->get_ptr(),
                       (size_t)entry->followup_size);
       iter->offset += entry->followup_size;
     }
@@ -421,8 +417,8 @@ Journal::close(bool noclear)
     clear();
 
   for (i = 0; i < 2; i++) {
-    m_files[i].close();
-    m_buffer[i].clear();
+    m_state.files[i].close();
+    m_state.buffer[i].clear();
   }
 }
 
@@ -430,18 +426,18 @@ Database *
 Journal::get_db(uint16_t dbname)
 {
   // first check if the Database is already open
-  DatabaseMap::iterator it = m_database_map.find(dbname);
-  if (it != m_database_map.end())
+  JournalState::DatabaseMap::iterator it = m_state.database_map.find(dbname);
+  if (it != m_state.database_map.end())
     return (it->second);
 
   // not found - open it
   Database *db = 0;
   DatabaseConfiguration config;
   config.db_name = dbname;
-  ham_status_t st = m_env->open_db(&db, config, 0);
+  ham_status_t st = m_state.env->open_db(&db, config, 0);
   if (st)
     throw Exception(st);
-  m_database_map[dbname] = db;
+  m_state.database_map[dbname] = db;
   return (db);
 }
 
@@ -463,16 +459,16 @@ Journal::close_all_databases()
 {
   ham_status_t st = 0;
 
-  DatabaseMap::iterator it = m_database_map.begin();
-  while (it != m_database_map.end()) {
-    DatabaseMap::iterator it2 = it; it++;
+  JournalState::DatabaseMap::iterator it = m_state.database_map.begin();
+  while (it != m_state.database_map.end()) {
+    JournalState::DatabaseMap::iterator it2 = it; it++;
     st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       throw Exception(st);
     }
   }
-  m_database_map.clear();
+  m_state.database_map.clear();
 }
 
 void
@@ -490,7 +486,7 @@ Journal::abort_uncommitted_txns(LocalTransactionManager *txn_manager)
 void
 Journal::recover(LocalTransactionManager *txn_manager)
 {
-  Context context(m_env, 0, 0);
+  Context context(m_state.env, 0, 0);
 
   // first re-apply the last changeset
   uint64_t start_lsn = recover_changeset();
@@ -498,13 +494,13 @@ Journal::recover(LocalTransactionManager *txn_manager)
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
   // recover_changeset()
-  uint64_t page_manager_blobid = m_env->header()->get_page_manager_blobid();
+  uint64_t page_manager_blobid = m_state.env->header()->get_page_manager_blobid();
   if (page_manager_blobid != 0) {
-    m_env->page_manager()->initialize(page_manager_blobid);
+    m_state.env->page_manager()->initialize(page_manager_blobid);
   }
 
   // then start the normal recovery
-  if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
+  if (m_state.env->get_flags() & HAM_ENABLE_TRANSACTIONS)
     recover_journal(&context, txn_manager, start_lsn);
 }
 
@@ -549,41 +545,44 @@ Journal::recover_changeset()
 {
   // scan through both files, look for the file with the newest changeset
   uint64_t position0, position1, position;
-  uint64_t lsn1 = scan_for_newest_changeset(&m_files[0], &position0);
-  uint64_t lsn2 = scan_for_newest_changeset(&m_files[1], &position1);
+  uint64_t lsn1 = scan_for_newest_changeset(&m_state.files[0], &position0);
+  uint64_t lsn2 = scan_for_newest_changeset(&m_state.files[1], &position1);
 
   // both files are empty or do not contain a changeset?
   if (lsn1 == 0 && lsn2 == 0)
     return (0);
 
   // re-apply the newest changeset
-  m_current_fd = lsn1 > lsn2 ? 0 : 1;
+  m_state.current_fd = lsn1 > lsn2 ? 0 : 1;
   position = lsn1 > lsn2 ? position0 : position1;
 
   PJournalEntry entry;
   uint64_t start_lsn = 0;
 
   try {
-    m_files[m_current_fd].pread(position, &entry, sizeof(entry));
+    m_state.files[m_state.current_fd].pread(position, &entry, sizeof(entry));
     position += sizeof(entry);
     ham_assert(entry.type == kEntryTypeChangeset);
 
     // Read the Changeset header
     PJournalEntryChangeset changeset;
-    m_files[m_current_fd].pread(position, &changeset, sizeof(changeset));
+    m_state.files[m_state.current_fd].pread(position, &changeset,
+                    sizeof(changeset));
     position += sizeof(changeset);
 
-    uint32_t page_size = m_env->page_size();
+    uint32_t page_size = m_state.env->page_size();
     ByteArray arena(page_size);
 
-    size_t file_size = m_env->device()->file_size();
+    size_t file_size = m_state.env->device()->file_size();
 
     // for each page in this changeset...
     for (uint32_t i = 0; i < changeset.num_pages; i++) {
       PJournalEntryPageHeader page_header;
-      m_files[m_current_fd].pread(position, &page_header, sizeof(page_header));
+      m_state.files[m_state.current_fd].pread(position, &page_header,
+                      sizeof(page_header));
       position += sizeof(page_header);
-      m_files[m_current_fd].pread(position, arena.get_ptr(), page_size);
+      m_state.files[m_state.current_fd].pread(position, arena.get_ptr(),
+                      page_size);
       position += page_size;
 
       Page *page;
@@ -592,18 +591,18 @@ Journal::recover_changeset()
       if (page_header.address == file_size) {
         file_size += page_size;
 
-        page = new Page(m_env->device());
+        page = new Page(m_state.env->device());
         page->allocate(0);
       }
       else if (page_header.address > file_size) {
         file_size = (size_t)page_header.address + page_size;
-        m_env->device()->truncate(file_size);
+        m_state.env->device()->truncate(file_size);
 
-        page = new Page(m_env->device());
+        page = new Page(m_state.env->device());
         page->fetch(page_header.address);
       }
       else {
-        page = new Page(m_env->device());
+        page = new Page(m_state.env->device());
         page->fetch(page_header.address);
       }
 
@@ -661,11 +660,11 @@ Journal::recover_journal(Context *context,
   // make sure that there are no pending transactions - start with
   // a clean state!
   ham_assert(txn_manager->get_oldest_txn() == 0);
-  ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
-  ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
+  ham_assert(m_state.env->get_flags() & HAM_ENABLE_TRANSACTIONS);
+  ham_assert(m_state.env->get_flags() & HAM_ENABLE_RECOVERY);
 
   // do not append to the journal during recovery
-  m_disable_logging = true;
+  m_state.disable_logging = true;
 
   do {
     PJournalEntry entry;
@@ -681,7 +680,7 @@ Journal::recover_journal(Context *context,
     switch (entry.type) {
       case kEntryTypeTxnBegin: {
         Transaction *txn = 0;
-        st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env, 
+        st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_state.env, 
                 (const char *)buffer.get_ptr(), 0, HAM_DONT_LOCK);
         // on success: patch the txn ID
         if (st == 0) {
@@ -777,10 +776,10 @@ bail:
 
   // flush all committed transactions
   if (st == 0)
-    st = m_env->flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
+    st = m_state.env->flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
 
   // re-enable the logging
-  m_disable_logging = false;
+  m_state.disable_logging = false;
 
   if (st)
     throw Exception(st);
@@ -792,21 +791,21 @@ bail:
 void
 Journal::clear_file(int idx)
 {
-  if (m_files[idx].is_open()) {
-    m_files[idx].truncate(0);
+  if (m_state.files[idx].is_open()) {
+    m_state.files[idx].truncate(0);
 
     // after truncate, the file pointer is far beyond the new end of file;
     // reset the file pointer, or the next write will resize the file to
     // the original size
-    m_files[idx].seek(0, File::kSeekSet);
+    m_state.files[idx].seek(0, File::kSeekSet);
   }
 
   // clear the transaction counters
-  m_open_txn[idx] = 0;
-  m_closed_txn[idx] = 0;
+  m_state.open_txn[idx] = 0;
+  m_state.closed_txn[idx] = 0;
 
   // also clear the buffer with the outstanding data
-  m_buffer[idx].clear();
+  m_state.buffer[idx].clear();
 }
 
 std::string
@@ -814,21 +813,21 @@ Journal::get_path(int i)
 {
   std::string path;
 
-  if (m_env->get_config().log_filename.empty()) {
-    path = m_env->get_config().filename;
+  if (m_state.env->get_config().log_filename.empty()) {
+    path = m_state.env->get_config().filename;
   }
   else {
-    path = m_env->get_config().log_filename;
+    path = m_state.env->get_config().log_filename;
 #ifdef HAM_OS_WIN32
     path += "\\";
     char fname[_MAX_FNAME];
     char ext[_MAX_EXT];
-    _splitpath(m_env->get_config().filename.c_str(), 0, 0, fname, ext);
+    _splitpath(m_state.env->get_config().filename.c_str(), 0, 0, fname, ext);
     path += fname;
     path += ext;
 #else
     path += "/";
-    path += ::basename((char *)m_env->get_config().filename.c_str());
+    path += ::basename((char *)m_state.env->get_config().filename.c_str());
 #endif
   }
   if (i == 0)
@@ -838,6 +837,22 @@ Journal::get_path(int i)
   else
     ham_assert(!"invalid index");
   return (path);
+}
+
+JournalTestGateway
+Journal::test()
+{
+  return (JournalTestGateway(&m_state));
+}
+
+JournalState::JournalState(LocalEnvironment *env)
+  : env(env), current_fd(0), threshold(kSwitchTxnThreshold),
+    disable_logging(false), count_bytes_flushed(0)
+{
+  open_txn[0] = 0;
+  open_txn[1] = 0;
+  closed_txn[0] = 0;
+  closed_txn[1] = 0;
 }
 
 } // namespace hamsterdb

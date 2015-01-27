@@ -88,8 +88,10 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_visitor.h \
 	3btree/upfront_index.h \
 	3journal/journal.cc \
-	3journal/journal_entries.h \
 	3journal/journal.h \
+	3journal/journal_entries.h \
+	3journal/journal_state.h \
+	3journal/journal_test.h \
 	3page_manager/page_manager.cc \
 	3page_manager/page_manager.h \
 	3page_manager/page_manager_factory.h \

@@ -82,6 +82,8 @@
 #include "1errorinducer/errorinducer.h"
 #include "2page/page_collection.h"
 #include "3journal/journal_entries.h"
+#include "3journal/journal_state.h"
+#include "3journal/journal_test.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -106,14 +108,6 @@ class LocalTransactionManager;
 //
 class Journal
 {
-    enum {
-      // switch log file after |kSwitchTxnThreshold| transactions
-      kSwitchTxnThreshold = 32,
-
-      // flush buffers if this limit is exceeded
-      kBufferLimit = 1024 * 1024 // 1 mb
-    };
-
   public:
     enum {
       // marks the start of a new transaction
@@ -164,11 +158,11 @@ class Journal
 
     // Returns true if the journal is empty
     bool is_empty() {
-      if (!m_files[0].is_open() && !m_files[1].is_open())
+      if (!m_state.files[0].is_open() && !m_state.files[1].is_open())
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        uint64_t size = m_files[i].get_file_size();
+        uint64_t size = m_state.files[i].get_file_size();
         if (size > 0)
           return (false);
       }
@@ -217,12 +211,14 @@ class Journal
 
     // Fills the metrics
     void fill_metrics(ham_env_metrics_t *metrics) {
-      metrics->journal_bytes_flushed = m_count_bytes_flushed;
+      metrics->journal_bytes_flushed = m_state.count_bytes_flushed;
     }
 
     // Sets the switch threshold
     void set_switch_threshold(size_t threshold) {
-      m_threshold = threshold ? threshold : kSwitchTxnThreshold;
+      m_state.threshold = threshold
+                            ? threshold
+                            : JournalState::kSwitchTxnThreshold;
     }
 
   private:
@@ -284,80 +280,53 @@ class Journal
                 const uint8_t *ptr4 = 0, size_t ptr4_size = 0,
                 const uint8_t *ptr5 = 0, size_t ptr5_size = 0) {
       if (ptr1_size)
-        m_buffer[idx].append(ptr1, ptr1_size);
+        m_state.buffer[idx].append(ptr1, ptr1_size);
       if (ptr2_size)
-        m_buffer[idx].append(ptr2, ptr2_size);
+        m_state.buffer[idx].append(ptr2, ptr2_size);
       if (ptr3_size)
-        m_buffer[idx].append(ptr3, ptr3_size);
+        m_state.buffer[idx].append(ptr3, ptr3_size);
       if (ptr4_size)
-        m_buffer[idx].append(ptr4, ptr4_size);
+        m_state.buffer[idx].append(ptr4, ptr4_size);
       if (ptr5_size)
-        m_buffer[idx].append(ptr5, ptr5_size);
+        m_state.buffer[idx].append(ptr5, ptr5_size);
     }
 
     // flush buffer if size limit is exceeded
     void maybe_flush_buffer(int idx) {
-      if (m_buffer[idx].get_size() >= kBufferLimit)
+      if (m_state.buffer[idx].get_size() >= JournalState::kBufferLimit)
         flush_buffer(idx);
     }
 
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
-      if (m_buffer[idx].get_size() > 0) {
+      if (m_state.buffer[idx].get_size() > 0) {
         // error inducer? then write only a part of the buffer and return
         if (ErrorInducer::is_active()
               && ErrorInducer::get_instance()->induce(ErrorInducer::kChangesetFlush)) {
-          m_files[idx].write(m_buffer[idx].get_ptr(),
-                  m_buffer[idx].get_size() - 5);
+          m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
+                  m_state.buffer[idx].get_size() - 5);
           throw Exception(HAM_INTERNAL_ERROR);
         }
 
-        m_files[idx].write(m_buffer[idx].get_ptr(), m_buffer[idx].get_size());
-        m_count_bytes_flushed += m_buffer[idx].get_size();
+        m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
+                        m_state.buffer[idx].get_size());
+        m_state.count_bytes_flushed += m_state.buffer[idx].get_size();
 
-        m_buffer[idx].clear();
+        m_state.buffer[idx].clear();
         if (fsync)
-          m_files[idx].flush();
+          m_state.files[idx].flush();
       }
     }
 
     // Clears a single file
     void clear_file(int idx);
 
-    // References the Environment this journal file is for
-    LocalEnvironment *m_env;
+    // Returns the test object
+    JournalTestGateway test();
 
-    // The index of the file descriptor we are currently writing to (0 or 1)
-    uint32_t m_current_fd;
-
-    // The two file descriptors
-    File m_files[2];
-
-    // Buffers for writing data to the files
-    ByteArray m_buffer[2];
-
-    // For counting all open transactions in the files
-    size_t m_open_txn[2];
-
-    // For counting all closed transactions in the files
-    size_t m_closed_txn[2];
-
-    // The lsn of the previous checkpoint
-    uint64_t m_last_cp_lsn;
-
-    // When having more than these Transactions in one file, we
-    // swap the files
-    size_t m_threshold;
-
-    // Set to false to disable logging; used during recovery
-    bool m_disable_logging;
-
-    // Counting the flushed bytes (for ham_env_get_metrics)
-    uint64_t m_count_bytes_flushed;
-
-    // A map of all opened Databases
-    typedef std::map<uint16_t, Database *> DatabaseMap;
-    DatabaseMap m_database_map;
+  private:
+    // The mutable state
+    JournalState m_state;
 };
 
 #include "1base/packstop.h"

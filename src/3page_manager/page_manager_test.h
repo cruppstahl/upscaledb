@@ -37,35 +37,37 @@ namespace hamsterdb {
 
 class Page;
 
-struct PageManagerTestGateway
+class PageManagerTestGateway
 {
-  // Constructor
-  PageManagerTestGateway(PageManagerState *state);
+  public:
+    // Constructor
+    PageManagerTestGateway(PageManagerState *state);
 
-  // Stores the local PageManager state to disk; returns the blob id
-  uint64_t store_state();
+    // Stores the local PageManager state to disk; returns the blob id
+    uint64_t store_state();
 
-  // Removes a page from the list; only for testing.
-  void remove_page(Page *page);
+    // Removes a page from the list; only for testing.
+    void remove_page(Page *page);
 
-  // Returns true if a page is free. Ignores multi-pages; only for
-  // testing and integrity checks
-  bool is_page_free(uint64_t pageid);
+    // Returns true if a page is free. Ignores multi-pages; only for
+    // testing and integrity checks
+    bool is_page_free(uint64_t pageid);
 
-  // Fetches a page from the cache
-  Page *fetch_page(uint64_t id);
+    // Fetches a page from the cache
+    Page *fetch_page(uint64_t id);
 
-  // Stores a page in the cache
-  void store_page(Page *page);
+    // Stores a page in the cache
+    void store_page(Page *page);
 
-  // Returns true if the cache is full
-  bool is_cache_full();
+    // Returns true if the cache is full
+    bool is_cache_full();
 
-  // Returns the state
-  PageManagerState *state() { return (m_state); }
+    // Returns the state
+    PageManagerState *state() { return (m_state); }
 
-  // Reference of the original state
-  PageManagerState *m_state;
+  private:
+    // Reference of the original state
+    PageManagerState *m_state;
 };
 
 } // namespace hamsterdb
