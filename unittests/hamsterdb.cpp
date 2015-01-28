@@ -1157,7 +1157,7 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_env_create_db(env, &db, 111, 0, &params[0]));
 
     REQUIRE(0 == ham_db_set_compare_func(db, f));
-    REQUIRE(f == ((LocalDatabase *)db)->get_compare_func());
+    REQUIRE(f == ((LocalDatabase *)db)->compare_func());
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -1884,10 +1884,10 @@ struct HamsterdbFixture {
 
     // check if the flags and parameters were stored persistently
     LocalDatabase *ldb = (LocalDatabase *)db;
-    REQUIRE((ldb->get_rt_flags() & flags) == flags);
+    REQUIRE((ldb->get_flags() & flags) == flags);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string s = ldb->get_btree_index()->test_get_classname();
+    std::string s = ldb->btree_index()->test_get_classname();
     REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::CallbackCompare>");
 #endif
 

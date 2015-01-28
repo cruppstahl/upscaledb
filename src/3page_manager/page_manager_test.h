@@ -36,12 +36,13 @@
 namespace hamsterdb {
 
 class Page;
+class PageManager;
 
 class PageManagerTest
 {
   public:
     // Constructor
-    PageManagerTest(PageManagerState *state);
+    PageManagerTest(PageManager *page_manager);
 
     // Stores the local PageManager state to disk; returns the blob id
     uint64_t store_state();
@@ -63,11 +64,11 @@ class PageManagerTest
     bool is_cache_full();
 
     // Returns the state
-    PageManagerState *state() { return (m_state); }
+    PageManagerState *state();
 
   private:
-    // Reference of the original state
-    PageManagerState *m_state;
+    // Reference of the PageManager instance
+    PageManager *m_sut;
 };
 
 } // namespace hamsterdb

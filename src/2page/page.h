@@ -234,7 +234,7 @@ class Page {
     }
 
     // Returns the linked list of coupled cursors (can be NULL)
-    BtreeCursor *get_cursor_list() {
+    BtreeCursor *cursor_list() {
       return (m_cursor_list);
     }
 

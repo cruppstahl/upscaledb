@@ -76,27 +76,27 @@ struct DbFixture {
     key1.size = 3;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE( 0 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
+    REQUIRE( 0 == m_dbp->btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"ab";
     key1.size = 2;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)"bcd";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)0;
     key2.size = 0;
-    REQUIRE(+1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(+1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)0;
     key1.size = 0;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->get_btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
   }
 
   void flushPageTest() {

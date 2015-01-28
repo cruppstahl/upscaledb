@@ -39,7 +39,7 @@ BtreeCursor::BtreeCursor(Cursor *parent)
     m_previous_in_page(0)
 {
   memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
-  m_btree = parent->get_db()->get_btree_index();
+  m_btree = parent->get_db()->btree_index();
 }
 
 void
@@ -203,7 +203,7 @@ BtreeCursor::points_to(Context *context, ham_key_t *key)
 ham_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnvironment *env = m_parent->get_db()->get_local_env();
+  LocalEnvironment *env = m_parent->get_db()->lenv();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -278,7 +278,7 @@ ham_status_t
 BtreeCursor::move_first(Context *context, uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
   set_to_nil();
@@ -314,7 +314,7 @@ ham_status_t
 BtreeCursor::move_next(Context *context, uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -372,7 +372,7 @@ ham_status_t
 BtreeCursor::move_previous(Context *context, uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -432,7 +432,7 @@ ham_status_t
 BtreeCursor::move_last(Context *context, uint32_t flags)
 {
   LocalDatabase *db = m_parent->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
   set_to_nil();
@@ -492,10 +492,10 @@ BtreeCursor::couple_to_page(Page *page, uint32_t index)
   m_coupled_page = page;
 
   // add the cursor to the page
-  if (page->get_cursor_list()) {
-    m_next_in_page = page->get_cursor_list();
+  if (page->cursor_list()) {
+    m_next_in_page = page->cursor_list();
     m_previous_in_page = 0;
-    page->get_cursor_list()->m_previous_in_page = this;
+    page->cursor_list()->m_previous_in_page = this;
   }
   page->set_cursor_list(this);
 }
@@ -505,7 +505,7 @@ BtreeCursor::remove_cursor_from_page(Page *page)
 {
   BtreeCursor *n, *p;
 
-  if (this == page->get_cursor_list()) {
+  if (this == page->cursor_list()) {
     n = m_next_in_page;
     if (n)
       n->m_previous_in_page = 0;
@@ -529,8 +529,8 @@ void
 BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
 {
   bool skipped = false;
-  Cursor *cursors = page->get_cursor_list()
-          ? page->get_cursor_list()->get_parent()
+  Cursor *cursors = page->cursor_list()
+          ? page->cursor_list()->get_parent()
           : 0;
 
   while (cursors) {

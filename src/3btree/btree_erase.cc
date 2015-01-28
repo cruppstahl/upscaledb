@@ -132,8 +132,8 @@ fall_through:
       page->set_dirty(true);
 
       // still got duplicates left? then adjust all cursors
-      if (node->is_leaf() && has_duplicates_left && db->get_cursor_list()) {
-        Cursor *cursors = db->get_cursor_list();
+      if (node->is_leaf() && has_duplicates_left && db->cursor_list()) {
+        Cursor *cursors = db->cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
         int duplicate_index =
@@ -164,8 +164,8 @@ fall_through:
       // no duplicates left, the key was deleted; all cursors pointing to
       // this key are set to nil, all cursors pointing to a key in the same
       // page are adjusted, if necessary
-      if (node->is_leaf() && !has_duplicates_left && db->get_cursor_list()) {
-        Cursor *cursors = db->get_cursor_list();
+      if (node->is_leaf() && !has_duplicates_left && db->cursor_list()) {
+        Cursor *cursors = db->cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
         /* 'nil' every cursor which points to the deleted key, and adjust

@@ -314,7 +314,7 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
   if (db_handle) {
     reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
     reply.mutable_env_create_db_reply()->set_db_flags(
-        ((Database *)db)->get_rt_flags(true));
+        ((Database *)db)->config().flags);
   }
 
   send_wrapper(srv, tcp, &reply);
@@ -362,7 +362,7 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   if (st == 0) {
     reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
     reply.mutable_env_open_db_reply()->set_db_flags(
-        ((Database *)db)->get_rt_flags(true));
+        ((Database *)db)->config().flags);
   }
 
   send_wrapper(srv, tcp, &reply);
@@ -630,7 +630,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_rt_flags(true)
+          && (((Database *)db)->get_flags()
                   & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
         send_key = true;
       }
@@ -690,7 +690,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_rt_flags(true)
+          && (((Database *)db)->get_flags()
                   & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
         send_key = true;
       }
@@ -1287,7 +1287,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
   /* recno: return the modified key */
   if (st == 0) {
-    if (cursor->get_db()->get_rt_flags(true)
+    if (cursor->get_db()->get_flags()
                   & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
       send_key = true;
     }
@@ -1340,7 +1340,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp,
 
   /* recno: return the modified key */
   if (st == 0) {
-    if (cursor->get_db()->get_rt_flags(true)
+    if (cursor->get_db()->get_flags()
                   & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
       send_key = true;
     }

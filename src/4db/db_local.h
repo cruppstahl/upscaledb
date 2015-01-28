@@ -63,34 +63,29 @@ class LocalDatabase : public Database {
       : Database(env, config), m_recno(0), m_cmp_func(0) {
     }
 
-    // Returns the configuration object
-    const DatabaseConfiguration &get_config() const {
-      return (m_config);
-    }
-
     // Returns the btree index
-    BtreeIndex *get_btree_index() {
+    BtreeIndex *btree_index() {
       return (m_btree_index.get());
     }
 
     // Returns the transactional index
-    TransactionIndex *get_txn_index() {
+    TransactionIndex *txn_index() {
       return (m_txn_index.get());
     }
 
     // Returns the LocalEnvironment instance
-    LocalEnvironment *get_local_env() {
+    LocalEnvironment *lenv() {
       return ((LocalEnvironment *)m_env);
     }
 
     // Creates a new Database
-    virtual ham_status_t create(Context *context, PBtreeHeader *btree_header);
+    ham_status_t create(Context *context, PBtreeHeader *btree_header);
 
     // Opens an existing Database
-    virtual ham_status_t open(Context *context, PBtreeHeader *btree_header);
+    ham_status_t open(Context *context, PBtreeHeader *btree_header);
 
     // Erases this Database
-    void erase_me();
+    ham_status_t drop(Context *context);
 
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -145,14 +140,8 @@ class LocalDatabase : public Database {
                     ham_record_t *record, uint32_t flags,
                     TransactionCursor *cursor);
 
-    // Erases a key/record pair from a txn; on success, cursor will be set to
-    // nil
-    // TODO should be private
-    ham_status_t erase_txn(Context *context, ham_key_t *key, uint32_t flags,
-                    TransactionCursor *cursor);
-
     // Returns the default comparison function
-    ham_compare_func_t get_compare_func() {
+    ham_compare_func_t compare_func() {
       return (m_cmp_func);
     }
 
@@ -168,6 +157,7 @@ class LocalDatabase : public Database {
     }
 
     // Flushes a TransactionOperation to the btree
+    // TODO should be private
     ham_status_t flush_txn_operation(Context *context, LocalTransaction *txn,
                     TransactionOperation *op);
 
@@ -197,6 +187,17 @@ class LocalDatabase : public Database {
     friend class RecordNumberFixture<uint32_t>;
     friend class RecordNumberFixture<uint64_t>;
 
+    // Erases a key/record pair from a txn; on success, cursor will be set to
+    // nil
+    ham_status_t erase_txn(Context *context, ham_key_t *key, uint32_t flags,
+                    TransactionCursor *cursor);
+
+    // Lookup of a key/record pair in the Transaction index and in the btree,
+    // if transactions are disabled/not successful; copies the
+    // record into |record|. Also performs approx. matching.
+    ham_status_t find_txn(Context *context, Cursor *cursor,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
+
     // Moves a cursor, returns key and/or record (ham_cursor_move)
     ham_status_t cursor_move_impl(Context *context, Cursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
@@ -223,7 +224,7 @@ class LocalDatabase : public Database {
     LocalTransaction *begin_temp_txn();
 
     // returns the next record number
-    uint64_t get_incremented_recno() {
+    uint64_t next_record_number() {
       m_recno++;
       if (m_config.flags & HAM_RECORD_NUMBER32
             && m_recno > std::numeric_limits<uint32_t>::max())
@@ -255,12 +256,6 @@ class LocalDatabase : public Database {
     // Sets all cursors to nil if they point to |key| in the btree index
     void nil_all_cursors_in_btree(Context *context, Cursor *current,
                     ham_key_t *key);
-
-    // Lookup of a key/record pair in the Transaction index and in the btree,
-    // if transactions are disabled/not successful; copies the
-    // record into |record|. Also performs approx. matching.
-    ham_status_t find_txn(Context *context, Cursor *cursor,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // the current record number
     uint64_t m_recno;

@@ -254,6 +254,51 @@ x Remove the changeset from the Environment, and see how it goes
         -> only 1 left: make txn_manager() private
     x LocalDatabase: flushes/clears Context
 
+x improve separation between logic and state; make state immutable and
+    thread-safe/exception safe. Ultimately, there should be a separation
+    between...
+    - mutable database state
+        btree nodes, blobs...
+    - immutable database state
+        static parameters
+    - operation state (parameters)
+        insert, erase...
+    - the code
+    Immutable state can be accessed concurrently, w/o locking and blocking.
+    Mutable state is synchronized on the lowest level, with very short locks
+
+    x Rewrite the code
+        - remove dependencies to upper layers, i.e. to the Environment
+        - change function names, if necessary
+        - move implementation to Impl namespace and separate file
+        - separate state from the code
+        1. Struct Impl::XXX -> has State
+        2. Struct XXX : public Impl::XXX -> hides State (private)
+        3. Struct XXXTest(XXX *) -> state() returns State
+        x PageManager
+        x Move lsn handling to its own object, clean up
+        x Cache
+        x Changeset
+        x Journal
+        x remove Journal::set_switch_threshold
+        x Environment - not virtual, has pimpl for local and remote
+                implementation 
+            x Environment: has common code, takes care of exceptions etc
+            x *context_data -> move to LocalEnvironment
+            x move Mutex handling to env.cc (as much as possible)
+            x create separate EnvironmentTest class
+        x RemoteEnvironment
+            x make all other functions private
+        x LocalEnvironment
+            x clean up
+            x add Test interface
+            x remove "friend" declaration
+        x Database
+            x RemoteDatabase
+            x LocalDatabase
+
+x rebase against v2!!
+
 o Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
@@ -347,106 +392,52 @@ o Concurrency: move "purge cache" to background
 
             x merge ham_db_erase/ham_cursor_erase
             x merge ham_db_insert/ham_cursor_insert
-
         x always add a page to the Changeset, even if in-memory or
             recovery is disabled
         x when going out of scope: clear the changeset or flush it
 
         o Right now only the Cache uses a mutex. But we need to know
             whether a page is in use (= in a changelog) or if it's purged.
-            o add a spinlock to the Page
-            o acquire the log when storing the page in the Changeset
-                o PageManager must deal with flushed pages (pers == 0)
-            o when removing from the changelog: unlock
+            o move mutex/synchronization from Cache to PageManager
+            o add an atomic state to the page ("in use", "unused", "io")
+            o set state to "in use" when storing the page in the Changeset
+            o set state to "unused" when removing from the changeset
             o when writing to disk: acquire the lock; when flushing: set the
                 pers-pointer to null
+                o PageManager must deal with flushed pages (pers == 0)
                 o if enough pages were flushed: remove empty stubs from
                     the list
 
         o wake up thread if cache is full
-        o some tasks should only exist once, i.e. purging the cache. no need to
-            add it to the queue multiple times
+        o some messages should only exist once, i.e. purging the cache.
+            no need to add it to the queue multiple times
 
     o run performance tests again
         o also for > 10 million inserts
-
     o and run the leveldb benchmarks
     o use valgrind to check for race conditions etc 
-
     o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
-
     o run monster tests
 
-x rebase against v2!!
+o merge topic/perfect-world with v2
+    o reset topic/thread to v2
+    o then remove the threading code from v2; so far no thread is required
 
-o improve separation between logic and state; make state immutable and
-    thread-safe/exception safe. Ultimately, there should be a separation
-    between...
-    - mutable database state
-        btree nodes, blobs...
-    - immutable database state
-        static parameters
-    - operation state (parameters)
-        insert, erase...
-    - the code
-    Immutable state can be accessed concurrently, w/o locking and blocking.
-    Mutable state is synchronized on the lowest level, with very short locks
+o PRO: rebase to v2
 
-    o Rewrite the code
-        - remove dependencies to upper layers, i.e. to the Environment
-        - change function names, if necessary
-        - move implementation to Impl namespace and separate file
-        - separate state from the code
-        1. Struct Impl::XXX -> has State
-        2. Struct XXX : public Impl::XXX -> hides State (private)
-        3. Struct XXXTest(XXX *) -> state() returns State
-        x PageManager
-        x Move lsn handling to its own object, clean up
-        x Cache
-        x Changeset
-        x Journal
-        x remove Journal::set_switch_threshold
-        x Environment - not virtual, has pimpl for local and remote
-                implementation 
-            x Environment: has common code, takes care of exceptions etc
-            x *context_data -> move to LocalEnvironment
-            x move Mutex handling to env.cc (as much as possible)
-            x create separate EnvironmentTest class
-        x RemoteEnvironment
-            x make all other functions private
-        x LocalEnvironment
-            x clean up
-            x add Test interface
-            x remove "friend" declaration
-        o Database
-            o LocalDatabase
-            o RemoteDatabase
-        o HeaderPage - can it be treated like any other page, and moved
-            to the PageManager/Cache??
-            o remove LocalEnvironment::mark_header_page_dirty
-        o EnvironmentHeader
-        o BlobManager
-            o disk: pass PageManager during initialization
-            o inmem: pass InMemoryDevice during initialization
-            o remove dependency from env
-        o Device
-        o BtreeActions
-        o Btree
+o PRO: add more simdcomp related functions for blocks < 128 integers
+    o update Daniel's code - the repository has new patches (create a fork)
+    o add 'export "C"' directives for c++
+    o new function for calculating the delta
+    o new function for compression
+    o new function for decompression
+    o add tests
+    o send push request to Daniel
 
-o Refactoring: all unittest fixtures should derive from a BaseFixture,
-    which creates an Environment, creates a list of databases (w/ parameters),
-    and if required also a cursor, a transaction and a context
-    o include additional management functions like lenv(), ldb(), ltxn(),
-        page_manager(), cache(), context()...
-    o what else?
-    o then reorganize the tests
-        - public API
-        - internal modules
-
-. Refactoring: would it make sense if each Database has its own BlobManager?
-    Then ham_env_erase_db would be much faster, and if each Database has its
-    own lock then the blob pages would not block each other
+o PRO: simdcomp should use binary search for decompressed blocks
+    (currently uses linear search)
+    -> see mail from Daniel for more information, code
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
     o for each page retrieve those statistics and print them 
@@ -455,31 +446,10 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         o a new option for brief, consolidated statistics
         o a new option for long, extensive statistics
 
-o PRO: add more simdcomp related functions for blocks < 128 integers
-    o update Daniel's code - the repository has new patches
-    o for compression
-    o for decompression
-    o review once more
-    o send push request to Daniel
-
-o refactoring: make EnvironmentHeader stateless and exception safe
-    o transform to struct instead of class
-    o remove dependency from the PageManager (store header page)
-    o move header Page ownership from EnvironmentHeader to PageManager
-    o PageManager performs flushes/closes, not LocalEnvironment::close
-    o LocalEnvironment does not need to store an instance of the Header!
-
 o Erlang: investigate failure in ham_eqc2
-
-o Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
-
-o LocalEnvironment::open creates a "fakepage" to find out the page_size;
-    just assume the default page size of 16kb and read the first page. Then
-    discard if the real page_size is a different one
-    o deal with databases < 16kb?
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
@@ -510,6 +480,43 @@ o blob performance improvements
             pointer
         - If a record is in a mapped page then simply return a
             pointer
+
+. Refactoring: rewrite more classes to improve the whole structure
+    o HeaderPage - can it be treated like any other page, and moved
+        to the PageManager/Cache??
+        o remove LocalEnvironment::mark_header_page_dirty
+        o transform to struct instead of class
+        o move header Page ownership from EnvironmentHeader to PageManager
+    o EnvironmentHeader
+    o BlobManager
+        o disk: pass PageManager during initialization
+        o inmem: pass InMemoryDevice during initialization
+        o remove dependency from env
+    o Device
+    o BtreeActions
+    o Btree
+
+. Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions like lenv(), ldb(), ltxn(),
+        page_manager(), cache(), context()...
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
+
+. Refactoring: would it make sense if each Database has its own BlobManager?
+    Then ham_env_erase_db would be much faster, and if each Database has its
+    own lock then the blob pages would not block each other
+
+. Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
+
+. LocalEnvironment::open creates a "fakepage" to find out the page_size;
+    just assume the default page size of 16kb and read the first page. Then
+    discard if the real page_size is a different one
+    o deal with databases < 16kb?
+
 
 
 

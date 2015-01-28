@@ -45,13 +45,9 @@ class RemoteEnvironment;
 class RemoteDatabase : public Database
 {
   public:
-    RemoteDatabase(Environment *env, DatabaseConfiguration config)
-      : Database(env, config), m_remote_handle(0) {
-    }
-
-    // Returns the RemoteEnvironment instance
-    RemoteEnvironment *get_remote_env() {
-      return ((RemoteEnvironment *)m_env);
+    RemoteDatabase(Environment *env, DatabaseConfiguration config,
+                    uint64_t remote_handle)
+      : Database(env, config), m_remote_handle(remote_handle) {
     }
 
     // Returns Database parameters (ham_db_get_parameters)
@@ -102,17 +98,6 @@ class RemoteDatabase : public Database
     virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
-    // Returns the remote database handle
-    uint64_t get_remote_handle() {
-        return (m_remote_handle);
-    }
-
-    // Sets the remote database handle
-    // TODO make this private
-    void set_remote_handle(uint64_t handle) {
-        m_remote_handle = handle;
-    }
-
   protected:
     // Creates a cursor; this is the actual implementation
     virtual Cursor *cursor_create_impl(Transaction *txn, uint32_t flags);
@@ -127,9 +112,10 @@ class RemoteDatabase : public Database
     virtual ham_status_t close_impl(uint32_t flags);
 
   private:
-    // Insert implementation
-    ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    // Returns the RemoteEnvironment instance
+    RemoteEnvironment *renv() {
+      return ((RemoteEnvironment *)m_env);
+    }
 
     // the remote database handle
     uint64_t m_remote_handle;

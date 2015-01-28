@@ -279,9 +279,8 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     return (st);
 
   config.flags = reply->env_create_db_reply().db_flags();
-  RemoteDatabase *rdb = new RemoteDatabase(this, config);
-
-  rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
+  RemoteDatabase *rdb = new RemoteDatabase(this, config,
+                            reply->env_create_db_reply().db_handle());
 
   *pdb = rdb;
   return (0);
@@ -313,8 +312,8 @@ RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
     return (st);
 
   config.flags = reply->env_open_db_reply().db_flags();
-  RemoteDatabase *rdb = new RemoteDatabase(this, config);
-  rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
+  RemoteDatabase *rdb = new RemoteDatabase(this, config,
+                            reply->env_open_db_reply().db_handle());
 
   *pdb = rdb;
   return (0);

@@ -309,7 +309,7 @@ struct DupeCursorFixture {
     r.data = (void *)rec;
     r.size = rec ? strlen(rec) + 1 : 0;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
+    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
     ham_status_t st =  be->insert(m_context.get(), 0, &k, &r, flags);
     return (st);
   }

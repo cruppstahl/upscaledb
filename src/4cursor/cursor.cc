@@ -55,7 +55,7 @@ Cursor::Cursor(Cursor &other)
   m_btree_cursor.clone(&other.m_btree_cursor);
   m_txn_cursor.clone(&other.m_txn_cursor);
 
-  if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)
+  if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS)
     other.m_dupecache.clone(&m_dupecache);
 }
 
@@ -71,7 +71,7 @@ Cursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
 void
 Cursor::update_dupecache(Context *context, uint32_t what)
 {
-  if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+  if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
     return;
 
   /* if the cache already exists: no need to continue, it should be
@@ -202,11 +202,8 @@ Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
   // TODO not threadsafe - will leak if an exception is thrown
   Cursor *clone = get_db()->cursor_clone_impl(this);
 
-  ByteArray *key_arena = (get_txn() == 0
-                    || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
-               ? &get_db()->get_key_arena()
-               : &get_txn()->get_key_arena();
-  ham_status_t st = m_btree_cursor.move(context, &key, key_arena, 0, 0, 0);
+  ham_status_t st = m_btree_cursor.move(context, &key,
+                  &get_db()->key_arena(get_txn()), 0, 0, 0);
   if (st) {
     get_db()->cursor_close(clone);
     return (st);
@@ -334,7 +331,7 @@ int
 Cursor::compare(Context *context)
 {
   BtreeCursor *btrc = get_btree_cursor();
-  BtreeIndex *btree = get_db()->get_btree_index();
+  BtreeIndex *btree = get_db()->btree_index();
 
   TransactionNode *node = m_txn_cursor.get_coupled_op()->get_node();
   ham_key_t *txnk = node->get_key();
@@ -491,7 +488,7 @@ Cursor::move_next_key(Context *context, uint32_t flags)
 
     /* check for duplicates. the dupecache was already updated in
      * move_next_key_singlestep() */
-    if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
       if (!has_duplicates())
@@ -656,7 +653,7 @@ Cursor::move_previous_key(Context *context, uint32_t flags)
 
     /* check for duplicates. the dupecache was already updated in
      * move_previous_key_singlestep() */
-    if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
       if (!has_duplicates())
@@ -767,7 +764,7 @@ Cursor::move_first_key(Context *context, uint32_t flags)
 
   /* check for duplicates. the dupecache was already updated in
    * move_first_key_singlestep() */
-  if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+  if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
@@ -874,7 +871,7 @@ Cursor::move_last_key(Context *context, uint32_t flags)
 
   /* check for duplicates. the dupecache was already updated in
    * move_last_key_singlestep() */
-  if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+  if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
@@ -981,17 +978,8 @@ retrieve_key_and_record:
       }
     }
     else {
-      ByteArray *key_arena = (get_txn() == 0
-                        || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
-                   ? &get_db()->get_key_arena()
-                   : &get_txn()->get_key_arena();
-
-      ByteArray *record_arena = (get_txn() == 0
-                      || (get_txn()->get_flags() & HAM_TXN_TEMPORARY))
-                   ? &get_db()->get_record_arena()
-                   : &get_txn()->get_record_arena();
-
-      st = btrc->move(context, key, key_arena, record, record_arena, 0);
+      st = btrc->move(context, key, &get_db()->key_arena(get_txn()),
+                      record, &get_db()->record_arena(get_txn()), 0);
     }
   }
 
@@ -1041,7 +1029,7 @@ Cursor::get_record_count(Context *context, uint32_t flags)
     throw Exception(HAM_CURSOR_IS_NIL);
 
   if (m_txn) {
-    if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
       sync(context, 0, &dummy);
       update_dupecache(context, kTxn | kBtree);
@@ -1107,6 +1095,7 @@ Cursor::overwrite(Context *context, Transaction *htxn,
                   record, flags | HAM_OVERWRITE, get_txn_cursor());
     }
     else {
+      // TODO also calls db->insert_txn()
       st = m_txn_cursor.overwrite(context, txn, record);
     }
 

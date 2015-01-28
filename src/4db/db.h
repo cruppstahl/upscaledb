@@ -57,8 +57,6 @@ class Database
     // Constructor
     Database(Environment *env, DatabaseConfiguration &config);
 
-    // Must provide virtual destructor to avoid undefined behaviour (according
-    // to g++)
     virtual ~Database() {
     }
 
@@ -67,17 +65,19 @@ class Database
       return (m_env);
     }
 
+    // Returns the Database's configuration
+    const DatabaseConfiguration &config() const {
+      return (m_config);
+    }
+
     // Returns the runtime-flags - the flags are "mixed" with the flags from
     // the Environment
-    uint32_t get_rt_flags(bool raw = false) {
-      if (raw)
-        return (m_config.flags);
-      else
-        return (m_env->get_flags() | m_config.flags);
+    uint32_t get_flags() {
+      return (m_env->get_flags() | m_config.flags);
     }
 
     // Returns the database name
-    uint16_t get_name() const {
+    uint16_t name() const {
       return (m_config.db_name);
     }
 
@@ -166,18 +166,24 @@ class Database
     }
 
     // Returns the head of the linked list with all cursors
-    Cursor *get_cursor_list() {
+    Cursor *cursor_list() {
       return (m_cursor_list);
     }
 
-    // Returns the memory buffer for the key data
-    ByteArray &get_key_arena() {
-      return (m_key_arena);
+    // Returns the memory buffer for the key data: the per-database buffer
+    // if |txn| is null or temporary, otherwise the buffer from the |txn|
+    ByteArray &key_arena(Transaction *txn) {
+      return ((txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                 ? m_key_arena
+                 : txn->key_arena());
     }
 
-    // Returns the memory buffer for the record data
-    ByteArray &get_record_arena() {
-      return (m_record_arena);
+    // Returns the memory buffer for the record data: the per-database buffer
+    // if |txn| is null or temporary, otherwise the buffer from the |txn|
+    ByteArray &record_arena(Transaction *txn) {
+      return ((txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                 ? m_record_arena
+                 : txn->record_arena());
     }
 
   protected:

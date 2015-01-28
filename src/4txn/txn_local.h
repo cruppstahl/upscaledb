@@ -121,7 +121,7 @@ class TransactionOperation
     }
 
     // Returns the list of Cursors coupled to this operation
-    TransactionCursor *get_cursor_list() {
+    TransactionCursor *cursor_list() {
       return (m_cursor_list);
     }
 
@@ -531,7 +531,7 @@ class LocalTransactionManager : public TransactionManager
     uint64_t flush_txn(Context *context, LocalTransaction *txn);
 
     // Casts m_env to a LocalEnvironment
-    LocalEnvironment *get_local_env() {
+    LocalEnvironment *lenv() {
       return ((LocalEnvironment *)m_env);
     }
 

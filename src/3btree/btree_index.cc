@@ -57,7 +57,7 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
   ham_assert(key_size != 0);
 
   /* allocate a new root page */
-  Page *root = m_db->get_local_env()->page_manager()->alloc(context,
+  Page *root = m_db->lenv()->page_manager()->alloc(context,
                     Page::kTypeBroot, PageManager::kClearWithZero);
 
   // initialize the new page
@@ -100,10 +100,10 @@ BtreeIndex::open()
 void
 BtreeIndex::flush_descriptor(Context *context)
 {
-  if (m_db->get_rt_flags() & HAM_READ_ONLY)
+  if (m_db->get_flags() & HAM_READ_ONLY)
     return;
 
-  m_btree_header->set_dbname(m_db->get_name());
+  m_btree_header->set_dbname(m_db->name());
   m_btree_header->set_key_size(get_key_size());
   m_btree_header->set_rec_size(get_record_size());
   m_btree_header->set_key_type(get_key_type());
@@ -127,7 +127,7 @@ BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
   if (idxptr)
     *idxptr = slot;
 
-  return (m_db->get_local_env()->page_manager()->fetch(context,
+  return (m_db->lenv()->page_manager()->fetch(context,
                     record_id, page_manager_flags));
 }
 
@@ -192,7 +192,7 @@ class CalcKeysVisitor : public BtreeVisitor {
       size_t node_count = node->get_count();
 
       if (m_distinct
-          || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
+          || (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
         m_count += node_count;
         return;
       }

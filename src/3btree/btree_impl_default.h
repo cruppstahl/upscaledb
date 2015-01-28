@@ -246,7 +246,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
 
       // still here? then there's no way to avoid the split
-      BtreeIndex *bi = P::m_page->get_db()->get_btree_index();
+      BtreeIndex *bi = P::m_page->get_db()->btree_index();
       bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
                       load_range_size());
       bi->get_statistics()->set_keylist_capacities(P::m_node->is_leaf(),
@@ -316,13 +316,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       }
       // initialize a new page from scratch
       else if ((P::m_node->get_count() == 0
-                && !(db->get_rt_flags() & HAM_READ_ONLY))) {
+                && !(db->get_flags() & HAM_READ_ONLY))) {
         size_t key_range_size;
         size_t record_range_size;
 
         // if yes then ask the btree for the default range size (it keeps
         // track of the average range size of older pages).
-        BtreeStatistics *bstats = db->get_btree_index()->get_statistics();
+        BtreeStatistics *bstats = db->btree_index()->get_statistics();
         key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
 
         // no data so far? then come up with a good default
@@ -446,7 +446,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (false);
 
       if (capacity_hint == 0) {
-        BtreeStatistics *bstats = P::m_page->get_db()->get_btree_index()->get_statistics();
+        BtreeStatistics *bstats = P::m_page->get_db()->btree_index()->get_statistics();
         capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
       }
 
@@ -506,7 +506,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Returns the usable page size that can be used for actually
     // storing the data
     size_t usable_range_size() const {
-      return (Page::usable_page_size(P::m_page->get_db()->get_local_env()->config().page_size_bytes)
+      return (Page::usable_page_size(P::m_page->get_db()->lenv()->config().page_size_bytes)
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
                     - sizeof(uint32_t));

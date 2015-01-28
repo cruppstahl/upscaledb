@@ -577,7 +577,7 @@ struct DuplicateFixture {
     insertData("222", "bbbbbbbbbb");
     insertData("333", "cccccccccc");
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
+    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
     REQUIRE((page = ((LocalEnvironment *)m_env)->page_manager()->fetch(
                             m_context.get(), be->get_root_address())));
 
@@ -775,7 +775,7 @@ struct DuplicateFixture {
       REQUIRE(0 ==
           ham_env_open_db(m_env, &m_db, 1, 0, 0));
     }
-    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS));
+    REQUIRE((((LocalDatabase *)m_db)->get_flags() & HAM_ENABLE_DUPLICATE_KEYS));
 
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
@@ -1549,7 +1549,7 @@ struct DuplicateFixture {
       REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
               m_flags, 0));
       REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
-      REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS));
+      REQUIRE((((LocalDatabase *)m_db)->get_flags() & HAM_ENABLE_DUPLICATE_KEYS));
 
       REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 

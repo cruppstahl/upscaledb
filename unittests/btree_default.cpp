@@ -431,7 +431,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   // eval-versions have obfuscated symbol names
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
     REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateDefaultRecordList>, hamsterdb::VariableSizeCompare>");
   }
 #endif
@@ -576,7 +576,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
   // eval-versions have obfuscated symbol names
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
     REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::VariableSizeCompare>");
   }
 #endif
@@ -598,7 +598,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
   // eval-versions have obfuscated symbol names
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
     REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::NumericCompare<unsigned int> >");
   }
 #endif
@@ -623,7 +623,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
   // eval-versions have obfuscated symbol names
   if (ham_is_pro_evaluation() == 0) {
     std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->get_btree_index()->test_get_classname();
+    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
     REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::VariableSizeCompare>");
   }
 #endif

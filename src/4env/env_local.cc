@@ -496,7 +496,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   mark_header_page_dirty(&context);
 
-  /* initialize the Database; this will flush the context */
+  /* initialize the Database */
   ham_status_t st = db->create(&context, btree_header(dbi));
   if (st) {
     delete db;
@@ -618,8 +618,6 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
 ham_status_t
 LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 {
-  Context context(this);
-
   /* check if this database is still open */
   if (m_database_map.find(name) != m_database_map.end())
     return (HAM_DATABASE_ALREADY_OPEN);
@@ -647,6 +645,8 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   if (st)
     return (st);
 
+  Context context(this, 0, db);
+
   /*
    * delete all blobs and extended keys, also from the cache and
    * the extkey-cache
@@ -654,7 +654,9 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
    * also delete all pages and move them to the freelist; if they're
    * cached, delete them from the cache
    */
-  db->erase_me();
+  st = db->drop(&context);
+  if (st)
+    return (st);
 
   /* now set database name to 0 and set the header page to dirty */
   for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {

@@ -156,14 +156,14 @@ class Transaction
     // Returns the memory buffer for the key data.
     // Used to allocate array in ham_find, ham_cursor_move etc. which is
     // then returned to the user.
-    ByteArray &get_key_arena() {
+    ByteArray &key_arena() {
       return (m_key_arena);
     }
 
     // Returns the memory buffer for the record data.
     // Used to allocate array in ham_find, ham_cursor_move etc. which is
     // then returned to the user.
-    ByteArray &get_record_arena() {
+    ByteArray &record_arena() {
       return (m_record_arena);
     }
 

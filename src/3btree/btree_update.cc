@@ -47,7 +47,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
                         Page **parent)
 {
   LocalDatabase *db = m_btree->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   Page *page = env->page_manager()->fetch(m_context,
                 m_btree->get_root_address());
@@ -140,7 +140,7 @@ Page *
 BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 {
   LocalDatabase *db = m_btree->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
   BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sibling);
@@ -171,7 +171,7 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 Page *
 BtreeUpdateAction::collapse_root(Page *root_page)
 {
-  LocalEnvironment *env = root_page->get_db()->get_local_env();
+  LocalEnvironment *env = root_page->get_db()->lenv();
   BtreeNodeProxy *node = m_btree->get_node_from_page(root_page);
   ham_assert(node->get_count() == 0);
 
@@ -193,7 +193,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
                                 BtreeStatistics::InsertHints &hints)
 {
   LocalDatabase *db = m_btree->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   m_btree->get_statistics()->reset_page(old_page);
   BtreeNodeProxy *old_node = m_btree->get_node_from_page(old_page);
@@ -289,7 +289,7 @@ Page *
 BtreeUpdateAction::allocate_new_root(Page *old_root)
 {
   LocalDatabase *db = m_btree->get_db();
-  LocalEnvironment *env = db->get_local_env();
+  LocalEnvironment *env = db->lenv();
 
   Page *new_root = env->page_manager()->alloc(m_context, Page::kTypeBroot);
 

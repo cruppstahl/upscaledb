@@ -145,9 +145,6 @@ class TransactionCursor
     // Returns the database pointer
     LocalDatabase *get_db();
 
-    // Checks if this cursor conflicts with another transaction
-    bool has_conflict() const;
-
     // Moves the cursor to the first valid Operation in a Node
     ham_status_t move_top_in_node(TransactionNode *node,
                     TransactionOperation *op, bool ignore_conflicts,

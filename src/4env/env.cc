@@ -177,7 +177,7 @@ Environment::close_db(Database *db, uint32_t flags)
     if (!(flags & HAM_DONT_LOCK))
       lock = ScopedLock(m_mutex);
 
-    uint16_t dbname = db->get_name();
+    uint16_t dbname = db->name();
 
     // flush committed Transactions
     st = do_flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);

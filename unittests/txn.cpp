@@ -50,7 +50,7 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY) != 0);
+    REQUIRE((m_dbp->get_flags() & HAM_ENABLE_RECOVERY) != 0);
   }
 
   void beginCommitTest() {
@@ -106,7 +106,7 @@ struct TxnFixture {
     TransactionIndex *tree;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->get_txn_index();
+    tree = m_dbp->txn_index();
     REQUIRE(tree != (TransactionIndex *)0);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -117,9 +117,9 @@ struct TxnFixture {
     TransactionIndex *tree, *tree2;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->get_txn_index();
+    tree = m_dbp->txn_index();
     REQUIRE(tree != 0);
-    tree2 = m_dbp->get_txn_index();
+    tree2 = m_dbp->txn_index();
     REQUIRE(tree == tree2);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -134,9 +134,9 @@ struct TxnFixture {
     REQUIRE(0 == ham_env_create_db(m_env, &db3, 15, 0, 0));
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree1 = m_dbp->get_txn_index();
-    tree2 = ((LocalDatabase *)db2)->get_txn_index();
-    tree3 = ((LocalDatabase *)db3)->get_txn_index();
+    tree1 = m_dbp->txn_index();
+    tree2 = ((LocalDatabase *)db2)->txn_index();
+    tree3 = ((LocalDatabase *)db3)->txn_index();
     REQUIRE(tree1 != 0);
     REQUIRE(tree2 != 0);
     REQUIRE(tree3 != 0);
@@ -154,19 +154,19 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key1);
-    m_dbp->get_txn_index()->store(node1);
-    node2 = m_dbp->get_txn_index()->get(&key1, 0);
+    m_dbp->txn_index()->store(node1);
+    node2 = m_dbp->txn_index()->get(&key1, 0);
     REQUIRE(node1 == node2);
-    node2 = m_dbp->get_txn_index()->get(&key2, 0);
+    node2 = m_dbp->txn_index()->get(&key2, 0);
     REQUIRE((TransactionNode *)NULL == node2);
     node2 = new TransactionNode(m_dbp, &key2);
-    m_dbp->get_txn_index()->store(node2);
+    m_dbp->txn_index()->store(node2);
     REQUIRE(node1 != node2);
 
     // clean up
-    m_dbp->get_txn_index()->remove(node1);
+    m_dbp->txn_index()->remove(node1);
     delete node1;
-    m_dbp->get_txn_index()->remove(node2);
+    m_dbp->txn_index()->remove(node2);
     delete node2;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -187,18 +187,18 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key1);
-    m_dbp->get_txn_index()->store(node1);
+    m_dbp->txn_index()->store(node1);
     node2 = new TransactionNode(m_dbp, &key2);
-    m_dbp->get_txn_index()->store(node2);
+    m_dbp->txn_index()->store(node2);
     node3 = new TransactionNode(m_dbp, &key3);
-    m_dbp->get_txn_index()->store(node3);
+    m_dbp->txn_index()->store(node3);
 
     // clean up
-    m_dbp->get_txn_index()->remove(node1);
+    m_dbp->txn_index()->remove(node1);
     delete node1;
-    m_dbp->get_txn_index()->remove(node2);
+    m_dbp->txn_index()->remove(node2);
     delete node2;
-    m_dbp->get_txn_index()->remove(node3);
+    m_dbp->txn_index()->remove(node3);
     delete node3;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -213,7 +213,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key);
-    m_dbp->get_txn_index()->store(node);
+    m_dbp->txn_index()->store(node);
     op1 = node->append((LocalTransaction *)txn, 
                 0, TransactionOperation::kInsertDuplicate, 55, &key, &rec);
     REQUIRE(op1 != 0);
@@ -738,15 +738,15 @@ struct HighLevelTxnFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()) != 0);
-    REQUIRE((HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_rt_flags()) != 0);
+    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_flags()) != 0);
+    REQUIRE((HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_flags()) != 0);
     teardown();
 
     REQUIRE(0 ==
         ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
+    REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_flags()));
   }
 
   void noPersistentEnvironmentFlagTest() {

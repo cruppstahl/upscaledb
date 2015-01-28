@@ -75,7 +75,7 @@ class BinaryKeyList : public BaseKeyList
     // Constructor
     BinaryKeyList(LocalDatabase *db)
         : m_data(0) {
-      m_key_size = db->get_config().key_size;
+      m_key_size = db->config().key_size;
       ham_assert(m_key_size != 0);
     }
 

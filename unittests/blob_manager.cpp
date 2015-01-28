@@ -101,7 +101,7 @@ struct BlobManagerFixture {
     blobid = m_blob_manager->allocate(m_context.get(), &record, 0);
     REQUIRE(blobid != 0ull);
 
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
+    ByteArray *arena = &((LocalDatabase *)m_db)->record_arena(0);
 
     m_blob_manager->read(m_context.get(), blobid, &record, 0, arena);
     REQUIRE(record.size == (uint32_t)sizeof(buffer));
@@ -148,7 +148,7 @@ struct BlobManagerFixture {
     blobid = m_blob_manager->allocate(m_context.get(), &record, 0);
     REQUIRE(blobid != 0ull);
 
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
+    ByteArray *arena = &((LocalDatabase *)m_db)->record_arena(0);
     m_blob_manager->read(m_context.get(), blobid, &record, 0, arena);
     REQUIRE(record.size == (uint32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
@@ -178,7 +178,7 @@ struct BlobManagerFixture {
     blobid = m_blob_manager->allocate(m_context.get(), &record, 0);
     REQUIRE(blobid != 0ull);
 
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
+    ByteArray *arena = &((LocalDatabase *)m_db)->record_arena(0);
     m_blob_manager->read(m_context.get(), blobid, &record, 0, arena);
     REQUIRE(record.size == (uint32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
@@ -224,7 +224,7 @@ struct BlobManagerFixture {
       REQUIRE(header->get_freelist_offset(0) == 436);
     }
 
-    ByteArray *arena = &ldb->get_record_arena();
+    ByteArray *arena = &ldb->record_arena(0);
     m_blob_manager->read(m_context.get(), blobid, &record, 0, arena);
     REQUIRE(record.size == (uint32_t)sizeof(buffer));
     REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
@@ -283,7 +283,7 @@ struct BlobManagerFixture {
     REQUIRE(blobid != 0ull);
 
     /* verify it */
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
+    ByteArray *arena = &((LocalDatabase *)m_db)->record_arena(0);
     m_blob_manager->read(m_context.get(), blobid, &record, 0, arena);
     REQUIRE(record.size == (uint32_t)ps * BLOCKS * 2);
 
@@ -335,7 +335,7 @@ struct BlobManagerFixture {
       ::free(buffer);
     }
 
-    ByteArray *arena = &((LocalDatabase *)m_db)->get_record_arena();
+    ByteArray *arena = &((LocalDatabase *)m_db)->record_arena(0);
 
     for (int i = 0; i < loops; i++) {
       buffer = (uint8_t *)::malloc((i + 1) * factor);

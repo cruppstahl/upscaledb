@@ -368,7 +368,7 @@ class Cursor
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
     uint32_t get_dupecache_count(Context *context) {
-      if (!(m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+      if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
         return (0);
 
       TransactionCursor *txnc = get_txn_cursor();

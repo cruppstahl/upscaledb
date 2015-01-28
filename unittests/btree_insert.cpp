@@ -63,7 +63,7 @@ struct BtreeInsertFixture {
 
   Page *fetch_page(uint64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
-    PageManager *pm = db->get_local_env()->page_manager();
+    PageManager *pm = db->lenv()->page_manager();
     return (pm->fetch(m_context.get(), address));
   }
 

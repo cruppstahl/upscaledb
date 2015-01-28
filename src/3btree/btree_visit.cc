@@ -44,7 +44,7 @@ class BtreeVisitAction
 
     void run() {
       LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
+      LocalEnvironment *env = db->lenv();
 
       uint32_t pm_flags = 0;
       if (m_visitor.is_read_only())

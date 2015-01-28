@@ -197,7 +197,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                         - 1;
 
   entry.lsn = lsn;
-  entry.dbname = db->get_name();
+  entry.dbname = db->name();
   entry.type = kEntryTypeInsert;
   entry.followup_size = size;
 
@@ -240,7 +240,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   uint32_t size = sizeof(PJournalEntryErase) + key->size - 1;
 
   entry.lsn = lsn;
-  entry.dbname = db->get_name();
+  entry.dbname = db->name();
   entry.type = kEntryTypeErase;
   entry.followup_size = size;
   erase.key_size = key->size;

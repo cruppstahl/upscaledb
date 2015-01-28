@@ -35,445 +35,8 @@
 
 namespace hamsterdb {
 
-static Page *
-alloc_impl(PageManagerState &state, Context *context, uint32_t page_type,
-                uint32_t flags);
-
-static Page *
-fetch_impl(PageManagerState &state, Context *context, uint64_t address,
-                uint32_t flags);
-
 enum {
   kPurgeAtLeast = 20
-};
-
-static uint64_t
-store_state_impl(PageManagerState &state, Context *context)
-{
-  // no modifications? then simply return the old blobid
-  if (!state.needs_flush)
-    return (state.state_page ? state.state_page->get_address() : 0);
-
-  state.needs_flush = false;
-
-  // no freelist pages, no freelist state? then don't store anything
-  if (!state.state_page && state.free_pages.empty())
-    return (0);
-
-  // otherwise allocate a new page, if required
-  if (!state.state_page) {
-    state.state_page = new Page(state.device);
-    state.state_page->allocate(Page::kTypePageManager,
-            Page::kInitializeWithZeroes);
-  }
-
-  context->changeset.put(state.state_page);
-
-  uint32_t page_size = state.config.page_size_bytes;
-
-  // make sure that the page is logged
-  Page *page = state.state_page;
-  page->set_dirty(true);
-
-  uint8_t *p = page->get_payload();
-
-  // store page-ID of the last allocated blob
-  *(uint64_t *)p = state.last_blob_page_id;
-  p += sizeof(uint64_t);
-
-  // reset the overflow pointer and the counter
-  // TODO here we lose a whole chain of overflow pointers if there was such
-  // a chain. We only save the first. That's not critical but also not nice.
-  uint64_t next_pageid = *(uint64_t *)p;
-  if (next_pageid) {
-    state.free_pages[next_pageid] = 1;
-    ham_assert(next_pageid % page_size == 0);
-  }
-
-  // No freelist entries? then we're done. Make sure that there's no
-  // overflow pointer or other garbage in the page!
-  if (state.free_pages.empty()) {
-    *(uint64_t *)p = 0;
-    p += sizeof(uint64_t);
-    *(uint32_t *)p = 0;
-    return (state.state_page->get_address());
-  }
-
-  PageManagerState::FreeMap::const_iterator it = state.free_pages.begin();
-  while (it != state.free_pages.end()) {
-    // this is where we will store the data
-    p = page->get_payload();
-    // skip state.last_blob_page_id?
-    if (page == state.state_page)
-      p += sizeof(uint64_t);
-    p += 8;   // leave room for the pointer to the next page
-    p += 4;   // leave room for the counter
-
-    uint32_t counter = 0;
-
-    while (it != state.free_pages.end()) {
-      // 9 bytes is the maximum amount of storage that we will need for a
-      // new entry; if it does not fit then break
-      if ((p + 9) - page->get_payload()
-              >= (ptrdiff_t)(state.config.page_size_bytes
-                                - Page::kSizeofPersistentHeader))
-        break;
-
-      // ... and check if the next entry (and the following) are directly
-      // next to the current page
-      uint32_t page_counter = 1;
-      uint64_t base = it->first;
-      ham_assert(base % page_size == 0);
-      uint64_t current = it->first;
-
-      // move to the next entry
-      it++;
-
-      for (; it != state.free_pages.end() && page_counter < 16 - 1; it++) {
-        if (it->first != current + page_size)
-          break;
-        current += page_size;
-        page_counter++;
-      }
-
-      // now |base| is the start of a sequence of free pages, and the
-      // sequence has |page_counter| pages
-      //
-      // This is encoded as
-      // - 1 byte header
-      //   - 4 bits for |page_counter|
-      //   - 4 bits for the number of bytes following ("n")
-      // - n byte page-id (div page_size)
-      ham_assert(page_counter < 16);
-      int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
-      *p = (page_counter << 4) | num_bytes;
-      p += 1 + num_bytes;
-
-      counter++;
-    }
-
-    p = page->get_payload();
-    if (page == state.state_page) // skip state.last_blob_page_id?
-      p += sizeof(uint64_t);
-    uint64_t next_pageid = *(uint64_t *)p;
-    *(uint64_t *)p = 0;
-    p += 8;  // overflow page
-
-    // now store the counter
-    *(uint32_t *)p = counter;
-
-    // are we done? if not then continue with the next page
-    if (it != state.free_pages.end()) {
-      // allocate (or fetch) an overflow page
-      if (!next_pageid) {
-        Page *new_page = alloc_impl(state, context, Page::kTypePageManager,
-                PageManager::kIgnoreFreelist);
-        // patch the overflow pointer in the old (current) page
-        p = page->get_payload();
-        if (page == state.state_page) // skip state.last_blob_page_id?
-          p += sizeof(uint64_t);
-        *(uint64_t *)p = new_page->get_address();
-
-        // reset the overflow pointer in the new page
-        page = new_page;
-        p = page->get_payload();
-        *(uint64_t *)p = 0;
-      }
-      else
-        page = fetch_impl(state, context, next_pageid, 0);
-
-      // make sure that the page is logged
-      page->set_dirty(true);
-    }
-  }
-
-  return (state.state_page->get_address());
-}
-
-/* if recovery is enabled then immediately write the modified blob */
-static void
-maybe_store_state(PageManagerState &state, Context *context, bool force)
-{
-  if (force || (state.config.flags & HAM_ENABLE_RECOVERY)) {
-    uint64_t new_blobid = store_state_impl(state, context);
-    if (new_blobid != state.header->get_page_manager_blobid()) {
-      state.header->set_page_manager_blobid(new_blobid);
-      state.header->get_header_page()->set_dirty(true);
-      context->changeset.put(state.header->get_header_page());
-    }
-  }
-}
-
-/* returns true if the cache is full */
-static bool
-is_cache_full_impl(const PageManagerState &state)
-{
-  return (state.cache.allocated_elements() * state.config.page_size_bytes
-                    > state.cache.capacity());
-}
-
-static Page *
-fetch_impl(PageManagerState &state, Context *context, uint64_t address,
-                uint32_t flags)
-{
-  /* fetch the page from the cache */
-  Page *page;
-  
-  if (address == 0)
-    page = state.header->get_header_page();
-  else
-    page = state.cache.get(address);
-
-  if (page) {
-    ham_assert(page->get_data());
-    if (flags & PageManager::kNoHeader)
-      page->set_without_header(true);
-    context->changeset.put(page);
-    return (page);
-  }
-
-  if ((flags & PageManager::kOnlyFromCache)
-          || state.config.flags & HAM_IN_MEMORY)
-    return (0);
-
-  page = new Page(state.device, context->db);
-  try {
-    page->fetch(address);
-  }
-  catch (Exception &ex) {
-    delete page;
-    throw ex;
-  }
-
-  ham_assert(page->get_data());
-
-  /* store the page in the list */
-  state.cache.put(page);
-
-  /* write to disk (if necessary) */
-  if (!(flags & PageManager::kDisableStoreState)
-          && !(flags & PageManager::kReadOnly))
-    maybe_store_state(state, context, false);
-
-  if (flags & PageManager::kNoHeader)
-    page->set_without_header(true);
-
-  context->changeset.put(page);
-  state.page_count_fetched++;
-  return (page);
-}
-
-static Page *
-alloc_impl(PageManagerState &state, Context *context, uint32_t page_type,
-                uint32_t flags)
-{
-  uint64_t address = 0;
-  Page *page = 0;
-  uint32_t page_size = state.config.page_size_bytes;
-  bool allocated = false;
-
-  /* first check the internal list for a free page */
-  if ((flags & PageManager::kIgnoreFreelist) == 0
-          && !state.free_pages.empty()) {
-    PageManagerState::FreeMap::iterator it = state.free_pages.begin();
-
-    address = it->first;
-    ham_assert(address % page_size == 0);
-    /* remove the page from the freelist */
-    state.free_pages.erase(it);
-    state.needs_flush = true;
-
-    state.freelist_hits++;
-
-    /* try to fetch the page from the cache */
-    page = state.cache.get(address);
-    if (page)
-      goto done;
-    /* allocate a new page structure and read the page from disk */
-    page = new Page(state.device, context->db);
-    page->fetch(address);
-    goto done;
-  }
-
-  state.freelist_misses++;
-
-  try {
-    if (!page) {
-      allocated = true;
-      page = new Page(state.device, context->db);
-    }
-
-    page->allocate(page_type);
-  }
-  catch (Exception &ex) {
-    if (allocated)
-      delete page;
-    throw ex;
-  }
-
-done:
-  /* clear the page with zeroes?  */
-  if (flags & PageManager::kClearWithZero)
-    memset(page->get_data(), 0, page_size);
-
-  /* initialize the page; also set the 'dirty' flag to force logging */
-  page->set_type(page_type);
-  page->set_dirty(true);
-  page->set_db(context->db);
-
-  if (page->get_node_proxy()) {
-    delete page->get_node_proxy();
-    page->set_node_proxy(0);
-  }
-
-  context->changeset.put(page);
-
-  /* store the page in the cache */
-  state.cache.put(page);
-
-  /* write to disk (if necessary) */
-  if (!(flags & PageManager::kDisableStoreState)
-          && !(flags & PageManager::kReadOnly))
-    maybe_store_state(state, context, false);
-
-  switch (page_type) {
-    case Page::kTypeBindex:
-    case Page::kTypeBroot: {
-      memset(page->get_payload(), 0, sizeof(PBtreeNode));
-      state.page_count_index++;
-      break;
-    }
-    case Page::kTypePageManager:
-      state.page_count_page_manager++;
-      break;
-    case Page::kTypeBlob:
-      state.page_count_blob++;
-      break;
-    default:
-      break;
-  }
-
-  return (page);
-}
-
-static Page *
-alloc_multiple_blob_pages_impl(PageManagerState &state, Context *context,
-                size_t num_pages)
-{
-  // allocate only one page? then use the normal ::alloc() method
-  if (num_pages == 1)
-    return (alloc_impl(state, context, Page::kTypeBlob, 0));
-
-  Page *page = 0;
-  uint32_t page_size = state.config.page_size_bytes;
-
-  // Now check the freelist
-  if (!state.free_pages.empty()) {
-    for (PageManagerState::FreeMap::iterator it = state.free_pages.begin();
-            it != state.free_pages.end();
-            it++) {
-      if (it->second >= num_pages) {
-        for (size_t i = 0; i < num_pages; i++) {
-          if (i == 0) {
-            page = fetch_impl(state, context, it->first, 0);
-            page->set_type(Page::kTypeBlob);
-            page->set_without_header(false);
-          }
-          else {
-            Page *p = fetch_impl(state, context, it->first + (i*page_size), 0);
-            p->set_type(Page::kTypeBlob);
-            p->set_without_header(true);
-          }
-        }
-        if (it->second > num_pages) {
-          state.free_pages[it->first + num_pages * page_size]
-                = it->second - num_pages;
-        }
-        state.free_pages.erase(it);
-        return (page);
-      }
-    }
-  }
-
-  // Freelist lookup was not successful -> allocate new pages. Only the first
-  // page is a regular page; all others do not have page headers.
-  //
-  // disable "store state": the PageManager otherwise could alloc overflow
-  // pages in the middle of our blob sequence.
-  uint32_t flags = PageManager::kIgnoreFreelist
-                        | PageManager::kDisableStoreState;
-  for (size_t i = 0; i < num_pages; i++) {
-    if (page == 0)
-      page = alloc_impl(state, context, Page::kTypeBlob, flags);
-    else {
-      Page *p = alloc_impl(state, context, Page::kTypeBlob, flags);
-      p->set_without_header(true);
-    }
-  }
-
-  // now store the state
-  maybe_store_state(state, context, false);
-  return (page);
-}
-
-struct FlushAllPagesPurger
-{
-  bool operator()(Page *page) {
-    page->flush();
-    return (false);
-  }
-};
-
-static void
-flush_impl(PageManagerState &state)
-{
-  FlushAllPagesPurger purger;
-  state.cache.purge_if(purger);
-
-  if (state.state_page)
-    state.state_page->flush();
-}
-
-// callback for purging pages
-struct Purger
-{
-  Purger(Context *context, PageManager *page_manager)
-    : m_context(context), m_page_manager(page_manager) {
-  }
-
-  void operator()(Page *page) {
-    BtreeCursor::uncouple_all_cursors(m_context, page);
-
-    if (m_page_manager->m_state.last_blob_page == page) {
-      m_page_manager->m_state.last_blob_page_id
-              = m_page_manager->m_state.last_blob_page->get_address();
-      m_page_manager->m_state.last_blob_page = 0;
-    }
-
-    page->flush();
-    delete page;
-  }
-
-  Context *m_context;
-  PageManager *m_page_manager;
-};
-
-struct DbClosePurger
-{
-  DbClosePurger(LocalDatabase *db)
-    : m_db(db) {
-  }
-
-  bool operator()(Page *page) {
-    if (page->get_db() == m_db && page->get_address() != 0) {
-      ham_assert(page->get_cursor_list() == 0);
-      page->flush();
-      return (true);
-    }
-    return (false);
-  }
-
-  LocalDatabase *m_db;
 };
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
@@ -540,10 +103,211 @@ PageManager::initialize(uint64_t pageid)
 
     // load the overflow page
     if (overflow)
-      page = fetch_impl(m_state, &context, overflow, 0);
+      page = fetch(&context, overflow, 0);
     else
       break;
   }
+}
+
+Page *
+PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
+{
+  /* fetch the page from the cache */
+  Page *page;
+  
+  if (address == 0)
+    page = m_state.header->get_header_page();
+  else
+    page = m_state.cache.get(address);
+
+  if (page) {
+    ham_assert(page->get_data());
+    if (flags & PageManager::kNoHeader)
+      page->set_without_header(true);
+    context->changeset.put(page);
+    return (page);
+  }
+
+  if ((flags & PageManager::kOnlyFromCache)
+          || m_state.config.flags & HAM_IN_MEMORY)
+    return (0);
+
+  page = new Page(m_state.device, context->db);
+  try {
+    page->fetch(address);
+  }
+  catch (Exception &ex) {
+    delete page;
+    throw ex;
+  }
+
+  ham_assert(page->get_data());
+
+  /* store the page in the list */
+  m_state.cache.put(page);
+
+  /* write to disk (if necessary) */
+  if (!(flags & PageManager::kDisableStoreState)
+          && !(flags & PageManager::kReadOnly))
+    maybe_store_state(context, false);
+
+  if (flags & PageManager::kNoHeader)
+    page->set_without_header(true);
+
+  context->changeset.put(page);
+  m_state.page_count_fetched++;
+  return (page);
+}
+
+Page *
+PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
+{
+  uint64_t address = 0;
+  Page *page = 0;
+  uint32_t page_size = m_state.config.page_size_bytes;
+  bool allocated = false;
+
+  /* first check the internal list for a free page */
+  if ((flags & PageManager::kIgnoreFreelist) == 0
+          && !m_state.free_pages.empty()) {
+    PageManagerState::FreeMap::iterator it = m_state.free_pages.begin();
+
+    address = it->first;
+    ham_assert(address % page_size == 0);
+    /* remove the page from the freelist */
+    m_state.free_pages.erase(it);
+    m_state.needs_flush = true;
+
+    m_state.freelist_hits++;
+
+    /* try to fetch the page from the cache */
+    page = m_state.cache.get(address);
+    if (page)
+      goto done;
+    /* allocate a new page structure and read the page from disk */
+    page = new Page(m_state.device, context->db);
+    page->fetch(address);
+    goto done;
+  }
+
+  m_state.freelist_misses++;
+
+  try {
+    if (!page) {
+      allocated = true;
+      page = new Page(m_state.device, context->db);
+    }
+
+    page->allocate(page_type);
+  }
+  catch (Exception &ex) {
+    if (allocated)
+      delete page;
+    throw ex;
+  }
+
+done:
+  /* clear the page with zeroes?  */
+  if (flags & PageManager::kClearWithZero)
+    memset(page->get_data(), 0, page_size);
+
+  /* initialize the page; also set the 'dirty' flag to force logging */
+  page->set_type(page_type);
+  page->set_dirty(true);
+  page->set_db(context->db);
+
+  if (page->get_node_proxy()) {
+    delete page->get_node_proxy();
+    page->set_node_proxy(0);
+  }
+
+  context->changeset.put(page);
+
+  /* store the page in the cache */
+  m_state.cache.put(page);
+
+  /* write to disk (if necessary) */
+  if (!(flags & PageManager::kDisableStoreState)
+          && !(flags & PageManager::kReadOnly))
+    maybe_store_state(context, false);
+
+  switch (page_type) {
+    case Page::kTypeBindex:
+    case Page::kTypeBroot: {
+      memset(page->get_payload(), 0, sizeof(PBtreeNode));
+      m_state.page_count_index++;
+      break;
+    }
+    case Page::kTypePageManager:
+      m_state.page_count_page_manager++;
+      break;
+    case Page::kTypeBlob:
+      m_state.page_count_blob++;
+      break;
+    default:
+      break;
+  }
+
+  return (page);
+}
+
+Page *
+PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
+{
+  // allocate only one page? then use the normal ::alloc() method
+  if (num_pages == 1)
+    return (alloc(context, Page::kTypeBlob, 0));
+
+  Page *page = 0;
+  uint32_t page_size = m_state.config.page_size_bytes;
+
+  // Now check the freelist
+  if (!m_state.free_pages.empty()) {
+    for (PageManagerState::FreeMap::iterator it = m_state.free_pages.begin();
+            it != m_state.free_pages.end();
+            it++) {
+      if (it->second >= num_pages) {
+        for (size_t i = 0; i < num_pages; i++) {
+          if (i == 0) {
+            page = fetch(context, it->first, 0);
+            page->set_type(Page::kTypeBlob);
+            page->set_without_header(false);
+          }
+          else {
+            Page *p = fetch(context, it->first + (i*page_size), 0);
+            p->set_type(Page::kTypeBlob);
+            p->set_without_header(true);
+          }
+        }
+        if (it->second > num_pages) {
+          m_state.free_pages[it->first + num_pages * page_size]
+                = it->second - num_pages;
+        }
+        m_state.free_pages.erase(it);
+        return (page);
+      }
+    }
+  }
+
+  // Freelist lookup was not successful -> allocate new pages. Only the first
+  // page is a regular page; all others do not have page headers.
+  //
+  // disable "store state": the PageManager otherwise could alloc overflow
+  // pages in the middle of our blob sequence.
+  uint32_t flags = PageManager::kIgnoreFreelist
+                        | PageManager::kDisableStoreState;
+  for (size_t i = 0; i < num_pages; i++) {
+    if (page == 0)
+      page = alloc(context, Page::kTypeBlob, flags);
+    else {
+      Page *p = alloc(context, Page::kTypeBlob, flags);
+      p->set_without_header(true);
+    }
+  }
+
+  // now store the state
+  maybe_store_state(context, false);
+  return (page);
 }
 
 void
@@ -559,35 +323,53 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
   m_state.cache.fill_metrics(metrics);
 }
 
-Page *
-PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
+struct FlushAllPagesPurger
 {
-  return (fetch_impl(m_state, context, address, flags));
-}
-
-Page *
-PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
-{
-  return (alloc_impl(m_state, context, page_type, flags));
-}
-
-Page *
-PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
-{
-  return (alloc_multiple_blob_pages_impl(m_state, context, num_pages));
-}
+  bool operator()(Page *page) {
+    page->flush();
+    return (false);
+  }
+};
 
 void
 PageManager::flush()
 {
-  flush_impl(m_state);
+  FlushAllPagesPurger purger;
+  m_state.cache.purge_if(purger);
+
+  if (m_state.state_page)
+    m_state.state_page->flush();
 }
+
+// callback for purging pages
+struct Purger
+{
+  Purger(Context *context, PageManager *page_manager)
+    : m_context(context), m_page_manager(page_manager) {
+  }
+
+  void operator()(Page *page) {
+    BtreeCursor::uncouple_all_cursors(m_context, page);
+
+    if (m_page_manager->m_state.last_blob_page == page) {
+      m_page_manager->m_state.last_blob_page_id
+              = m_page_manager->m_state.last_blob_page->get_address();
+      m_page_manager->m_state.last_blob_page = 0;
+    }
+
+    page->flush();
+    delete page;
+  }
+
+  Context *m_context;
+  PageManager *m_page_manager;
+};
 
 void
 PageManager::purge_cache(Context *context)
 {
   // in-memory-db: don't remove the pages or they would be lost
-  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full_impl(m_state))
+  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
     return;
 
   // Purge as many pages as possible to get memory usage down to the
@@ -628,10 +410,28 @@ PageManager::reclaim_space(Context *context)
 
   if (do_truncate) {
     m_state.needs_flush = true;
-    maybe_store_state(m_state, context, true);
+    maybe_store_state(context, true);
     m_state.device->truncate(file_size);
   }
 }
+
+struct DbClosePurger
+{
+  DbClosePurger(LocalDatabase *db)
+    : m_db(db) {
+  }
+
+  bool operator()(Page *page) {
+    if (page->get_db() == m_db && page->get_address() != 0) {
+      ham_assert(page->cursor_list() == 0);
+      page->flush();
+      return (true);
+    }
+    return (false);
+  }
+
+  LocalDatabase *m_db;
+};
 
 void
 PageManager::close_database(Context *context, LocalDatabase *db)
@@ -674,7 +474,7 @@ PageManager::close(Context *context)
   // store the state of the PageManager
   if ((m_state.config.flags & HAM_IN_MEMORY) == 0
       && (m_state.config.flags & HAM_READ_ONLY) == 0) {
-    maybe_store_state(m_state, context, true);
+    maybe_store_state(context, true);
   }
 
   // reclaim unused disk space
@@ -695,7 +495,7 @@ PageManager::close(Context *context)
     reclaim_space(context);
   }
 
-  // clear the Changeset because flush_impl() will delete all Page pointers
+  // clear the Changeset because flush() will delete all Page pointers
   context->changeset.clear();
 
   // flush all dirty pages to disk, then delete them
@@ -723,14 +523,177 @@ PageManager::set_last_blob_page(Page *page)
   m_state.last_blob_page = page;
 }
 
+uint64_t
+PageManager::store_state(Context *context)
+{
+  // no modifications? then simply return the old blobid
+  if (!m_state.needs_flush)
+    return (m_state.state_page ? m_state.state_page->get_address() : 0);
+
+  m_state.needs_flush = false;
+
+  // no freelist pages, no freelist state? then don't store anything
+  if (!m_state.state_page && m_state.free_pages.empty())
+    return (0);
+
+  // otherwise allocate a new page, if required
+  if (!m_state.state_page) {
+    m_state.state_page = new Page(m_state.device);
+    m_state.state_page->allocate(Page::kTypePageManager,
+            Page::kInitializeWithZeroes);
+  }
+
+  context->changeset.put(m_state.state_page);
+
+  uint32_t page_size = m_state.config.page_size_bytes;
+
+  // make sure that the page is logged
+  Page *page = m_state.state_page;
+  page->set_dirty(true);
+
+  uint8_t *p = page->get_payload();
+
+  // store page-ID of the last allocated blob
+  *(uint64_t *)p = m_state.last_blob_page_id;
+  p += sizeof(uint64_t);
+
+  // reset the overflow pointer and the counter
+  // TODO here we lose a whole chain of overflow pointers if there was such
+  // a chain. We only save the first. That's not critical but also not nice.
+  uint64_t next_pageid = *(uint64_t *)p;
+  if (next_pageid) {
+    m_state.free_pages[next_pageid] = 1;
+    ham_assert(next_pageid % page_size == 0);
+  }
+
+  // No freelist entries? then we're done. Make sure that there's no
+  // overflow pointer or other garbage in the page!
+  if (m_state.free_pages.empty()) {
+    *(uint64_t *)p = 0;
+    p += sizeof(uint64_t);
+    *(uint32_t *)p = 0;
+    return (m_state.state_page->get_address());
+  }
+
+  PageManagerState::FreeMap::const_iterator it = m_state.free_pages.begin();
+  while (it != m_state.free_pages.end()) {
+    // this is where we will store the data
+    p = page->get_payload();
+    // skip m_state.last_blob_page_id?
+    if (page == m_state.state_page)
+      p += sizeof(uint64_t);
+    p += 8;   // leave room for the pointer to the next page
+    p += 4;   // leave room for the counter
+
+    uint32_t counter = 0;
+
+    while (it != m_state.free_pages.end()) {
+      // 9 bytes is the maximum amount of storage that we will need for a
+      // new entry; if it does not fit then break
+      if ((p + 9) - page->get_payload()
+              >= (ptrdiff_t)(m_state.config.page_size_bytes
+                                - Page::kSizeofPersistentHeader))
+        break;
+
+      // ... and check if the next entry (and the following) are directly
+      // next to the current page
+      uint32_t page_counter = 1;
+      uint64_t base = it->first;
+      ham_assert(base % page_size == 0);
+      uint64_t current = it->first;
+
+      // move to the next entry
+      it++;
+
+      for (; it != m_state.free_pages.end() && page_counter < 16 - 1; it++) {
+        if (it->first != current + page_size)
+          break;
+        current += page_size;
+        page_counter++;
+      }
+
+      // now |base| is the start of a sequence of free pages, and the
+      // sequence has |page_counter| pages
+      //
+      // This is encoded as
+      // - 1 byte header
+      //   - 4 bits for |page_counter|
+      //   - 4 bits for the number of bytes following ("n")
+      // - n byte page-id (div page_size)
+      ham_assert(page_counter < 16);
+      int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
+      *p = (page_counter << 4) | num_bytes;
+      p += 1 + num_bytes;
+
+      counter++;
+    }
+
+    p = page->get_payload();
+    if (page == m_state.state_page) // skip m_state.last_blob_page_id?
+      p += sizeof(uint64_t);
+    uint64_t next_pageid = *(uint64_t *)p;
+    *(uint64_t *)p = 0;
+    p += 8;  // overflow page
+
+    // now store the counter
+    *(uint32_t *)p = counter;
+
+    // are we done? if not then continue with the next page
+    if (it != m_state.free_pages.end()) {
+      // allocate (or fetch) an overflow page
+      if (!next_pageid) {
+        Page *new_page = alloc(context, Page::kTypePageManager,
+                PageManager::kIgnoreFreelist);
+        // patch the overflow pointer in the old (current) page
+        p = page->get_payload();
+        if (page == m_state.state_page) // skip m_state.last_blob_page_id?
+          p += sizeof(uint64_t);
+        *(uint64_t *)p = new_page->get_address();
+
+        // reset the overflow pointer in the new page
+        page = new_page;
+        p = page->get_payload();
+        *(uint64_t *)p = 0;
+      }
+      else
+        page = fetch(context, next_pageid, 0);
+
+      // make sure that the page is logged
+      page->set_dirty(true);
+    }
+  }
+
+  return (m_state.state_page->get_address());
+}
+
+void
+PageManager::maybe_store_state(Context *context, bool force)
+{
+  if (force || (m_state.config.flags & HAM_ENABLE_RECOVERY)) {
+    uint64_t new_blobid = store_state(context);
+    if (new_blobid != m_state.header->get_page_manager_blobid()) {
+      m_state.header->set_page_manager_blobid(new_blobid);
+      m_state.header->get_header_page()->set_dirty(true);
+      context->changeset.put(m_state.header->get_header_page());
+    }
+  }
+}
+
+bool
+PageManager::is_cache_full() const
+{
+  return (m_state.cache.allocated_elements() * m_state.config.page_size_bytes
+                    > m_state.cache.capacity());
+}
+
 PageManagerTest
 PageManager::test()
 {
-  return (PageManagerTest(&m_state));
+  return (PageManagerTest(this));
 }
 
-PageManagerTest::PageManagerTest(PageManagerState *state)
-  : m_state(state)
+PageManagerTest::PageManagerTest(PageManager *page_manager)
+  : m_sut(page_manager)
 {
 }
 
@@ -738,37 +701,44 @@ uint64_t
 PageManagerTest::store_state()
 {
   Context context(0, 0, 0);
-  return (store_state_impl(*m_state, &context));
+  return (m_sut->store_state(&context));
 }
 
 void
 PageManagerTest::remove_page(Page *page)
 {
-  m_state->cache.del(page);
+  m_sut->m_state.cache.del(page);
 }
 
 bool
 PageManagerTest::is_page_free(uint64_t pageid)
 {
-  return (m_state->free_pages.find(pageid) != m_state->free_pages.end());
+  return (m_sut->m_state.free_pages.find(pageid)
+                  != m_sut->m_state.free_pages.end());
 }
 
 Page *
 PageManagerTest::fetch_page(uint64_t id)
 {
-  return (m_state->cache.get(id));
+  return (m_sut->m_state.cache.get(id));
 }
 
 void
 PageManagerTest::store_page(Page *page)
 {
-  m_state->cache.put(page);
+  m_sut->m_state.cache.put(page);
 }
 
 bool
 PageManagerTest::is_cache_full()
 {
-  return (is_cache_full_impl(*m_state));
+  return (m_sut->is_cache_full());
+}
+
+PageManagerState *
+PageManagerTest::state()
+{
+  return (&m_sut->m_state);
 }
 
 } // namespace hamsterdb

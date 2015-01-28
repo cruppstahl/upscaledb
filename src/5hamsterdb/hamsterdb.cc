@@ -844,18 +844,18 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_PARTIAL)
-      && (db->get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && (db->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
           "transactions"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
   /* record number: make sure that we have a valid key structure */
-  if ((db->get_rt_flags() & HAM_RECORD_NUMBER32) && !key->data) {
+  if ((db->get_flags() & HAM_RECORD_NUMBER32) && !key->data) {
     ham_trace(("key->data must not be NULL"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
-  if ((db->get_rt_flags() & HAM_RECORD_NUMBER64) && !key->data) {
+  if ((db->get_flags() & HAM_RECORD_NUMBER64) && !key->data) {
     ham_trace(("key->data must not be NULL"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
@@ -913,7 +913,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
           "ham_cursor_insert"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
-  if (db->get_rt_flags() & HAM_READ_ONLY) {
+  if (db->get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot insert in a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
   }
@@ -922,7 +922,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_PARTIAL)
-      && (db->get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && (db->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
           "transactions"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -939,7 +939,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_DUPLICATE)
-      && !(db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)) {
+      && !(db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS)) {
     ham_trace(("database does not support duplicate keys "
           "(see HAM_ENABLE_DUPLICATE_KEYS)"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -957,8 +957,8 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
 
   /* allocate temp. storage for a recno key */
-  if ((db->get_rt_flags() & HAM_RECORD_NUMBER32)
-      || (db->get_rt_flags() & HAM_RECORD_NUMBER64)) {
+  if ((db->get_flags() & HAM_RECORD_NUMBER32)
+      || (db->get_flags() & HAM_RECORD_NUMBER64)) {
     if (flags & HAM_OVERWRITE) {
       if (!key->data) {
         ham_trace(("key->data must not be NULL"));
@@ -1015,7 +1015,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
           "ham_cursor_insert"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
-  if (db->get_rt_flags() & HAM_READ_ONLY) {
+  if (db->get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot erase from a read-only database"));
     return (HAM_WRITE_PROTECTED);
   }
@@ -1154,7 +1154,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
   }
   if (!__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
-  if (db->get_rt_flags() & HAM_READ_ONLY) {
+  if (db->get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot overwrite in a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
   }
@@ -1201,7 +1201,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_PARTIAL)
-      && (db->get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && (db->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
           "transactions"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -1263,7 +1263,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_PARTIAL)
-      && (db->get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && (db->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
           "transactions"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -1311,7 +1311,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
   if (!__prepare_key(key) || !__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  if (db->get_rt_flags() & HAM_READ_ONLY) {
+  if (db->get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot insert to a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
   }
@@ -1320,13 +1320,13 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_DUPLICATE)
-      && !(db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS)) {
+      && !(db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS)) {
     ham_trace(("database does not support duplicate keys "
           "(see HAM_ENABLE_DUPLICATE_KEYS)"));
     return (db->set_error(HAM_INV_PARAMETER));
   }
   if ((flags & HAM_PARTIAL)
-      && (db->get_rt_flags() & HAM_ENABLE_TRANSACTIONS)) {
+      && (db->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
           "transactions"));
     return (db->set_error(HAM_INV_PARAMETER));
@@ -1354,8 +1354,8 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
   }
 
   /* allocate temp. storage for a recno key */
-  if ((db->get_rt_flags() & HAM_RECORD_NUMBER32)
-      || (db->get_rt_flags() & HAM_RECORD_NUMBER64)) {
+  if ((db->get_flags() & HAM_RECORD_NUMBER32)
+      || (db->get_flags() & HAM_RECORD_NUMBER64)) {
     if (flags & HAM_OVERWRITE) {
       if (!key->data) {
         ham_trace(("key->data must not be NULL"));
@@ -1398,7 +1398,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
 
   ScopedLock lock(db->get_env()->mutex());
 
-  if (db->get_rt_flags() & HAM_READ_ONLY) {
+  if (db->get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot erase from a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
   }

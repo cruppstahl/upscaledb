@@ -56,7 +56,7 @@ class BtreeFindAction
 
     ham_status_t run() {
       LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
+      LocalEnvironment *env = db->lenv();
       Page *page = 0;
       int slot = -1;
       BtreeNodeProxy *node = 0;

@@ -58,7 +58,7 @@ struct PurgeSelector
     return (false);
   if (m_context->changeset.has(page))
     return (false);
-  if (page->get_cursor_list() != 0)
+  if (page->cursor_list() != 0)
     return (false);
   return (true);
   }

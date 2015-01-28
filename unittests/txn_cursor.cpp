@@ -56,7 +56,7 @@ struct TxnCursorFixture {
   TransactionNode *create_transaction_node(ham_key_t *key) {
     LocalDatabase *ldb = (LocalDatabase *)m_db;
     TransactionNode *node = new TransactionNode(ldb, key);
-    ldb->get_txn_index()->store(node);
+    ldb->txn_index()->store(node);
     return (node);
   }
 

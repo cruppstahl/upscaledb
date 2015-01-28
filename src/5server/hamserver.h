@@ -252,7 +252,7 @@ class ServerContext {
     Handle<Database> get_db_by_name(uint16_t dbname) {
       for (size_t i = 0; i < m_databases.size(); i++) {
         Database *db = m_databases[i].object;
-        if (db && db->get_name() == dbname)
+        if (db && db->name() == dbname)
           return (m_databases[i]);
       }
       return (Handle<Database>(0, 0));

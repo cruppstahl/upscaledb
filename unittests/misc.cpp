@@ -45,7 +45,7 @@ struct MiscFixture {
           ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     m_dbp = (LocalDatabase *)m_db;
-    m_btree = m_dbp->get_btree_index();
+    m_btree = m_dbp->btree_index();
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 

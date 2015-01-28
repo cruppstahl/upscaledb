@@ -106,7 +106,7 @@ class UpfrontIndex
     // with |create()| or |open()|.
     UpfrontIndex(LocalDatabase *db)
       : m_data(0), m_range_size(0), m_vacuumize_counter(0) {
-      size_t page_size = db->get_local_env()->config().page_size_bytes;
+      size_t page_size = db->lenv()->config().page_size_bytes;
       if (page_size <= 64 * 1024)
         m_sizeof_offset = 2;
       else

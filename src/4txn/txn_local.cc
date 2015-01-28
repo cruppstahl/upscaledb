@@ -55,7 +55,7 @@ compare(void *vlhs, void *vrhs)
   ham_key_t *lhskey = lhs->get_key();
   ham_key_t *rhskey = rhs->get_key();
   ham_assert(lhskey && rhskey);
-  return (db->get_btree_index()->compare_keys(lhskey, rhskey));
+  return (db->btree_index()->compare_keys(lhskey, rhskey));
 }
 
 rb_proto(static, rbt_, TransactionIndex, TransactionNode)
@@ -104,7 +104,7 @@ TransactionOperation::destroy()
     /* if the node is empty: remove the node from the tree */
     // TODO should this be done in here??
     if (get_next_in_node() == 0) {
-      node->get_db()->get_txn_index()->remove(node);
+      node->get_db()->txn_index()->remove(node);
       delete_node = true;
     }
     node->set_oldest_op(get_next_in_node());
@@ -134,13 +134,13 @@ TransactionOperation::destroy()
 TransactionNode *
 TransactionNode::get_next_sibling()
 {
-  return (rbt_next(get_db()->get_txn_index(), this));
+  return (rbt_next(get_db()->txn_index(), this));
 }
 
 TransactionNode *
 TransactionNode::get_previous_sibling()
 {
-  return (rbt_prev(get_db()->get_txn_index(), this));
+  return (rbt_prev(get_db()->txn_index(), this));
 }
 
 TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key)
@@ -410,7 +410,7 @@ struct KeyCounter : public TransactionIndex::Visitor
   }
 
   void visit(Context *context, TransactionNode *node) {
-    BtreeIndex *be = db->get_btree_index();
+    BtreeIndex *be = db->btree_index();
     TransactionOperation *op;
 
     /*
@@ -502,7 +502,7 @@ ham_status_t
 LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-  Context context(get_local_env(), txn, 0);
+  Context context(lenv(), txn, 0);
 
   try {
     txn->commit(flags);
@@ -511,8 +511,8 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY
         && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
         && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-      get_local_env()->journal()->append_txn_commit(txn,
-                      get_local_env()->next_lsn());
+      lenv()->journal()->append_txn_commit(txn,
+                      lenv()->next_lsn());
 
     /* flush committed transactions */
     m_queued_txn_for_flush++;
@@ -530,7 +530,7 @@ ham_status_t
 LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
-  Context context(get_local_env(), txn, 0);
+  Context context(lenv(), txn, 0);
 
   try {
     txn->abort(flags);
@@ -539,8 +539,8 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY
         && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
         && !(txn->get_flags() & HAM_TXN_TEMPORARY))
-      get_local_env()->journal()->append_txn_abort(txn,
-                      get_local_env()->next_lsn());
+      lenv()->journal()->append_txn_abort(txn,
+                      lenv()->next_lsn());
 
     /* flush committed transactions; while this one was not committed,
      * we might have cleared the way now to flush other committed
@@ -570,7 +570,7 @@ void
 LocalTransactionManager::flush_committed_txns(Context *context /* = 0 */)
 {
   if (!context) {
-    Context new_context(get_local_env(), 0, 0);
+    Context new_context(lenv(), 0, 0);
     flush_committed_txns_impl(&new_context);
   }
   else
@@ -581,7 +581,7 @@ void
 LocalTransactionManager::flush_committed_txns_impl(Context *context)
 {
   LocalTransaction *oldest;
-  Journal *journal = get_local_env()->journal();
+  Journal *journal = lenv()->journal();
   uint64_t highest_lsn = 0;
 
   ham_assert(context->changeset.is_empty());
@@ -655,7 +655,7 @@ LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
      */
     op->set_flushed();
 next_op:
-    while ((cursor = op->get_cursor_list())) {
+    while ((cursor = op->cursor_list())) {
       Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?

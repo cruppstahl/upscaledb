@@ -121,7 +121,7 @@ class DuplicateTable
     // Reads the table from disk
     void open(Context *context, uint64_t table_id) {
       ham_record_t record = {0};
-      m_db->get_local_env()->blob_manager()->read(context, table_id,
+      m_db->lenv()->blob_manager()->read(context, table_id,
                       &record, 0, &m_table);
       m_table_id = table_id;
     }
@@ -151,8 +151,7 @@ class DuplicateTable
         return (0);
 
       uint64_t blob_id = *(uint64_t *)p;
-      return (m_db->get_local_env()->blob_manager()->get_blob_size(context,
-                              blob_id));
+      return (m_db->lenv()->blob_manager()->get_blob_size(context, blob_id));
     }
 
     // Returns the full record and stores it in |record|. |flags| can
@@ -226,7 +225,7 @@ class DuplicateTable
       uint64_t blob_id = *(uint64_t *)p;
 
       // the record is stored as a blob
-      LocalEnvironment *env = m_db->get_local_env();
+      LocalEnvironment *env = m_db->lenv();
       env->blob_manager()->read(context, blob_id, record, flags, arena);
     }
 
@@ -236,7 +235,7 @@ class DuplicateTable
     uint64_t set_record(Context *context, int duplicate_index,
                     ham_record_t *record, uint32_t flags,
                     uint32_t *new_duplicate_index) {
-      BlobManager *blob_manager = m_db->get_local_env()->blob_manager();
+      BlobManager *blob_manager = m_db->lenv()->blob_manager();
 
       // the duplicate is overwritten
       if (flags & HAM_OVERWRITE) {
@@ -364,14 +363,14 @@ class DuplicateTable
             if (is_record_inline(*record_flags))
               continue;
             if (*(uint64_t *)p != 0) {
-              m_db->get_local_env()->blob_manager()->erase(context,
+              m_db->lenv()->blob_manager()->erase(context,
                               *(uint64_t *)p);
               *(uint64_t *)p = 0;
             }
           }
         }
         if (m_table_id != 0)
-          m_db->get_local_env()->blob_manager()->erase(context, m_table_id);
+          m_db->lenv()->blob_manager()->erase(context, m_table_id);
         set_record_count(0);
         m_table_id = 0;
         return (0);
@@ -382,7 +381,7 @@ class DuplicateTable
       uint8_t *record_flags;
       uint8_t *lhs = get_record_data(duplicate_index, &record_flags);
       if (record_flags != 0 && *record_flags == 0 && !m_inline_records) {
-        m_db->get_local_env()->blob_manager()->erase(context,
+        m_db->lenv()->blob_manager()->erase(context,
                           *(uint64_t *)lhs);
         *(uint64_t *)lhs = 0;
       }
@@ -425,10 +424,10 @@ class DuplicateTable
       record.data = m_table.get_ptr();
       record.size = m_table.get_size();
       if (!m_table_id)
-        m_table_id = m_db->get_local_env()->blob_manager()->allocate(
+        m_table_id = m_db->lenv()->blob_manager()->allocate(
                         context, &record, 0);
       else
-        m_table_id = m_db->get_local_env()->blob_manager()->overwrite(
+        m_table_id = m_db->lenv()->blob_manager()->overwrite(
                         context, m_table_id, &record, 0);
       return (m_table_id);
     }
@@ -519,7 +518,7 @@ class DuplicateRecordList : public BaseRecordList
                     bool store_flags, size_t record_size)
       : m_db(db), m_node(node), m_index(db), m_data(0),
         m_store_flags(store_flags), m_record_size(record_size) {
-      size_t page_size = db->get_local_env()->config().page_size_bytes;
+      size_t page_size = db->lenv()->config().page_size_bytes;
       if (Globals::ms_duplicate_threshold)
         m_duptable_threshold = Globals::ms_duplicate_threshold;
       else {
@@ -687,8 +686,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
   public:
     // Constructor
     DuplicateInlineRecordList(LocalDatabase *db, PBtreeNode *node)
-      : DuplicateRecordList(db, node, false, db->get_config().record_size),
-        m_record_size(db->get_config().record_size) {
+      : DuplicateRecordList(db, node, false, db->config().record_size),
+        m_record_size(db->config().record_size) {
     }
 
     // Creates a new RecordList starting at |data|
@@ -1124,7 +1123,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
 
-      return (m_db->get_local_env()->blob_manager()->get_blob_size(context,
+      return (m_db->lenv()->blob_manager()->get_blob_size(context,
                               *(uint64_t *)p));
     }
 
@@ -1189,7 +1188,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       uint64_t blob_id = *(uint64_t *)p;
 
       // the record is stored as a blob
-      LocalEnvironment *env = m_db->get_local_env();
+      LocalEnvironment *env = m_db->lenv();
       env->blob_manager()->read(context, blob_id, record, flags, arena);
     }
 
@@ -1291,8 +1290,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
           if (record->size <= 8) {
             uint64_t blob_id = *(uint64_t *)p;
             if (blob_id)
-              m_db->get_local_env()->blob_manager()->erase(context,
-                              blob_id);
+              m_db->lenv()->blob_manager()->erase(context, blob_id);
           }
           else
             overwrite_blob_id = *(uint64_t *)p;
@@ -1365,7 +1363,7 @@ write_record:
         *record_flags = BtreeRecord::kBlobSizeSmall;
       }
       else {
-        LocalEnvironment *env = m_db->get_local_env();
+        LocalEnvironment *env = m_db->lenv();
         *record_flags = 0;
         uint64_t blob_id;
         if (overwrite_blob_id)
@@ -1420,8 +1418,7 @@ write_record:
         for (uint32_t i = 0; i < count; i++) {
           uint8_t *p = &m_data[offset + 1 + 9 * i];
           if (!is_record_inline(*p)) {
-            m_db->get_local_env()->blob_manager()->erase(context,
-                            *(uint64_t *)(p + 1));
+            m_db->lenv()->blob_manager()->erase(context, *(uint64_t *)(p + 1));
             *(uint64_t *)(p + 1) = 0;
           }
         }
@@ -1431,8 +1428,7 @@ write_record:
       else {
         uint8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
         if (!is_record_inline(*p)) {
-          m_db->get_local_env()->blob_manager()->erase(context,
-                          *(uint64_t *)(p + 1));
+          m_db->lenv()->blob_manager()->erase(context, *(uint64_t *)(p + 1));
           *(uint64_t *)(p + 1) = 0;
         }
         if (duplicate_index < (int)count - 1)

@@ -107,7 +107,7 @@ class BtreeInsertAction : public BtreeUpdateAction
     ham_status_t append_or_prepend_key() {
       Page *page;
       LocalDatabase *db = m_btree->get_db();
-      LocalEnvironment *env = db->get_local_env();
+      LocalEnvironment *env = db->lenv();
       bool force_append = false;
       bool force_prepend = false;
 

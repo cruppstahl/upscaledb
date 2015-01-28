@@ -267,7 +267,7 @@ struct CallbackCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    return (m_db->get_compare_func()((::ham_db_t *)m_db, (uint8_t *)lhs_data,
+    return (m_db->compare_func()((::ham_db_t *)m_db, (uint8_t *)lhs_data,
                             lhs_size, (uint8_t *)rhs_data, rhs_size));
   }
 

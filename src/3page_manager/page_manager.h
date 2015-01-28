@@ -120,7 +120,17 @@ class PageManager
 
   private:
     friend struct Purger;
+    friend struct PageManagerTest;
     friend struct PageManagerFactory;
+
+    // Persists the PageManager's state in the file
+    uint64_t store_state(Context *context);
+
+    // Calls store_state() whenever it makes sense
+    void maybe_store_state(Context *context, bool force);
+
+    // Returns true if the cache is full
+    bool is_cache_full() const;
 
     // The constructor is not used directly. Use the PageManagerFactory instead
     PageManager(const PageManagerState &state);

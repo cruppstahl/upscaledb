@@ -72,7 +72,7 @@ class DefaultRecordList : public BaseRecordList
       size_t capacity = range_size / get_full_record_size();
       m_range_size = range_size;
 
-      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
         m_flags = data;
         m_data = (uint64_t *)&data[capacity];
       }
@@ -87,7 +87,7 @@ class DefaultRecordList : public BaseRecordList
       size_t capacity = range_size / get_full_record_size();
       m_range_size = range_size;
 
-      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
         m_flags = data;
         m_data = (uint64_t *)&data[capacity];
       }
@@ -105,7 +105,7 @@ class DefaultRecordList : public BaseRecordList
     // Returns the actual record size including overhead
     size_t get_full_record_size() const {
       return (sizeof(uint64_t) +
-                  (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED
+                  (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED
                     ? 1
                     : 0));
     }
@@ -123,7 +123,7 @@ class DefaultRecordList : public BaseRecordList
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));
 
-      LocalEnvironment *env = m_db->get_local_env();
+      LocalEnvironment *env = m_db->lenv();
       return (env->blob_manager()->get_blob_size(context, get_record_id(slot)));
     }
 
@@ -159,7 +159,7 @@ class DefaultRecordList : public BaseRecordList
       }
 
       // the record is stored as a blob
-      LocalEnvironment *env = m_db->get_local_env();
+      LocalEnvironment *env = m_db->lenv();
       env->blob_manager()->read(context, get_record_id(slot), record,
                       flags, arena);
     }
@@ -169,7 +169,7 @@ class DefaultRecordList : public BaseRecordList
                 ham_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
       uint64_t ptr = get_record_id(slot);
-      LocalEnvironment *env = m_db->get_local_env();
+      LocalEnvironment *env = m_db->lenv();
 
       // key does not yet exist
       if (!ptr && !is_record_inline(slot)) {
@@ -232,8 +232,7 @@ class DefaultRecordList : public BaseRecordList
       }
 
       // now erase the blob
-      m_db->get_local_env()->blob_manager()->erase(context,
-                      get_record_id(slot), 0);
+      m_db->lenv()->blob_manager()->erase(context, get_record_id(slot), 0);
       set_record_id(slot, 0);
     }
 
@@ -309,7 +308,7 @@ class DefaultRecordList : public BaseRecordList
         }
       }
 
-      if (m_db->get_config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
         m_flags = new_data_ptr;
         m_data = (uint64_t *)&new_data_ptr[new_capacity];
       }

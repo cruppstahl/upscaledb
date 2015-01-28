@@ -73,7 +73,7 @@ public:
     reopen();
 
     uint32_t mask = HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64;
-    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & mask) != 0);
+    REQUIRE((((LocalDatabase *)m_db)->get_flags() & mask) != 0);
   }
 
   void createInsertCloseReopenTest() {
@@ -500,9 +500,9 @@ public:
     }
 
     LocalDatabase *db = (LocalDatabase *)m_db;
-    BtreeIndex *be = db->get_btree_index();
+    BtreeIndex *be = db->btree_index();
     Page *page;
-    PageManager *pm = db->get_local_env()->page_manager();
+    PageManager *pm = db->lenv()->page_manager();
     REQUIRE((page = pm->fetch(m_context.get(), be->get_root_address())) != 0);
     REQUIRE(page != 0);
     BtreeCursor::uncouple_all_cursors(m_context.get(), page, 0);

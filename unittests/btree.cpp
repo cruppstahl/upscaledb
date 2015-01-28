@@ -76,7 +76,7 @@ struct BtreeFixture {
     // eval-versions have obfuscated symbol names
     if (ham_is_pro_evaluation() == 0) {
       std::string s;
-      s = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
+      s = ((LocalDatabase *)db)->btree_index()->test_get_classname();
       REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::VariableSizeCompare>");
     }
 #endif
@@ -118,7 +118,7 @@ struct BtreeFixture {
     // do not run the next test if this is an evaluation version, because
     // eval-versions have obfuscated symbol names
     if (ham_is_pro_evaluation() == 0) {
-      abi = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
+      abi = ((LocalDatabase *)db)->btree_index()->test_get_classname();
       REQUIRE(abi == abiname);
     }
 #endif
@@ -157,7 +157,7 @@ struct BtreeFixture {
     // eval-versions have obfuscated symbol names
     if (ham_is_pro_evaluation() == 0) {
       std::string abi2;
-      abi2 = ((LocalDatabase *)db)->get_btree_index()->test_get_classname();
+      abi2 = ((LocalDatabase *)db)->btree_index()->test_get_classname();
       REQUIRE(abi2 == abi);
     }
 #endif
@@ -291,7 +291,7 @@ struct BtreeFixture {
 
     // check if the root page proxy was created correctly (it's a leaf)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
-    node = ldb->get_btree_index()->get_node_from_page(page);
+    node = ldb->btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -322,7 +322,7 @@ struct BtreeFixture {
 
     // now check the leaf page (same as the previous root page)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
-    node = ldb->get_btree_index()->get_node_from_page(page);
+    node = ldb->btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -335,7 +335,7 @@ struct BtreeFixture {
 
     // check the other leaf
     REQUIRE((page = lenv->page_manager()->fetch(&context, 2 * 1024 * 16)));
-    node = ldb->get_btree_index()->get_node_from_page(page);
+    node = ldb->btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -348,7 +348,7 @@ struct BtreeFixture {
 
     // and the new root page (must be an internal page)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 3 * 1024 * 16)));
-    node = ldb->get_btree_index()->get_node_from_page(page);
+    node = ldb->btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     // do not run the next test if this is an evaluation version, because

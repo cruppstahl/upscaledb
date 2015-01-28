@@ -63,11 +63,11 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
   set_to_nil();
   m_coupled_op = op;
 
-  m_coupled_next = op->get_cursor_list();
+  m_coupled_next = op->cursor_list();
   m_coupled_previous = 0;
 
-  if (op->get_cursor_list()) {
-    TransactionCursor *old = op->get_cursor_list();
+  if (op->cursor_list()) {
+    TransactionCursor *old = op->cursor_list();
     old->m_coupled_previous = this;
   }
 
@@ -84,10 +84,6 @@ TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
     return (HAM_CURSOR_IS_NIL);
 
   TransactionNode *node = m_coupled_op->get_node();
-
-  /* check if the op is part of a conflicting txn */
-  if (has_conflict())
-    return (HAM_TXN_CONFLICT);
 
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
@@ -161,7 +157,7 @@ TransactionCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = get_db()->get_txn_index()->get_first();
+    node = get_db()->txn_index()->get_first();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
@@ -170,7 +166,7 @@ TransactionCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = get_db()->get_txn_index()->get_last();
+    node = get_db()->txn_index()->get_last();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
@@ -233,8 +229,8 @@ TransactionCursor::find(ham_key_t *key, uint32_t flags)
   set_to_nil();
 
   /* then lookup the node */
-  if (get_db()->get_txn_index())
-    node = get_db()->get_txn_index()->get(key, flags);
+  if (get_db()->txn_index())
+    node = get_db()->txn_index()->get(key, flags);
   if (!node)
     return (HAM_KEY_NOT_FOUND);
 
@@ -267,9 +263,7 @@ TransactionCursor::copy_coupled_key(ham_key_t *key)
   Transaction *txn = m_parent->get_txn();
   ham_key_t *source = 0;
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-              ? &get_db()->get_key_arena()
-              : &txn->get_key_arena();
+  ByteArray *arena = &get_db()->key_arena(txn);
 
   /* coupled cursor? get key from the txn_op structure */
   if (!is_nil()) {
@@ -301,9 +295,7 @@ TransactionCursor::copy_coupled_record(ham_record_t *record)
   ham_record_t *source = 0;
   Transaction *txn = m_parent->get_txn();
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-              ? &get_db()->get_record_arena()
-              : &txn->get_record_arena();
+  ByteArray *arena = &get_db()->record_arena(txn);
 
   /* coupled cursor? get record from the txn_op structure */
   if (!is_nil()) {
@@ -348,23 +340,9 @@ TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
                 uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
-  Context context(get_db()->get_local_env(), txn, get_db());
+  Context context(get_db()->lenv(), txn, get_db());
 
   return (get_db()->insert_txn(&context, key, record, flags, this));
-}
-
-bool
-TransactionCursor::has_conflict() const
-{
-  const Transaction *txn = m_parent->get_txn();
-  Transaction *optxn = m_coupled_op->get_txn();
-
-  if (optxn != txn) {
-    if (!optxn->is_committed() && !optxn->is_aborted())
-      return (true);
-  }
-
-  return (false);
 }
 
 void
@@ -372,7 +350,7 @@ TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
 {
   ham_assert(!is_nil());
 
-  if (op->get_cursor_list() == this) {
+  if (op->cursor_list() == this) {
     op->set_cursor_list(m_coupled_next);
     if (m_coupled_next)
       m_coupled_next->m_coupled_previous = 0;
