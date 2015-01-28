@@ -70,25 +70,6 @@ struct DbFixture {
     REQUIRE((uint8_t)4 == lenv->header()->get_version(3));
   }
 
-  void structureTest() {
-    REQUIRE(((LocalEnvironment *)m_env)->header()->get_header_page() != 0);
-
-    REQUIRE(0 == m_dbp->get_error());
-    m_dbp->set_error(HAM_IO_ERROR);
-    REQUIRE(HAM_IO_ERROR == m_dbp->get_error());
-
-    REQUIRE(m_dbp->get_btree_index()); // already initialized
-
-    ((LocalEnvironment *)m_env)->header()->get_header_page()->set_dirty(false);
-    REQUIRE(!((LocalEnvironment *)m_env)->header()->get_header_page()->is_dirty());
-    ((LocalEnvironment *)m_env)->mark_header_page_dirty(m_context.get());
-    REQUIRE(((LocalEnvironment *)m_env)->header()->get_header_page()->is_dirty());
-
-    REQUIRE(0 != m_dbp->get_rt_flags());
-
-    REQUIRE(m_dbp->get_env() != 0);
-  }
-
   void defaultCompareTest() {
     ham_key_t key1 = {0}, key2 = {0};
     key1.data = (void *)"abc";
@@ -200,12 +181,6 @@ TEST_CASE("Db/headerTest", "")
   f.headerTest();
 }
 
-TEST_CASE("Db/structureTest", "")
-{
-  DbFixture f;
-  f.structureTest();
-}
-
 TEST_CASE("Db/defaultCompareTest", "")
 {
   DbFixture f;
@@ -229,12 +204,6 @@ TEST_CASE("Db-inmem/headerTest", "")
 {
   DbFixture f(true);
   f.headerTest();
-}
-
-TEST_CASE("Db-inmem/structureTest", "")
-{
-  DbFixture f(true);
-  f.structureTest();
 }
 
 TEST_CASE("Db-inmem/defaultCompareTest", "")

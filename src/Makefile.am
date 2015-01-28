@@ -111,6 +111,7 @@ libhamsterdb_la_SOURCES = \
 	4env/env_header.h \
 	4env/env_local.h \
 	4env/env_local.cc \
+	4env/env_local_test.h \
 	4env/env_remote.h \
 	4env/env_remote.cc \
 	4txn/txn_cursor.cc \

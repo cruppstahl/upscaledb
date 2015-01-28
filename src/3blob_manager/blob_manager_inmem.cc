@@ -137,8 +137,7 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     return ((uint64_t)PTR_TO_U64(phdr));
   }
   else {
-    uint64_t new_blobid = m_env->blob_manager()->allocate(context,
-                    record, flags);
+    uint64_t new_blobid = allocate(context, record, flags);
 
     InMemoryDevice *dev = (InMemoryDevice *)m_env->device();
     dev->release(phdr, (size_t)phdr->get_alloc_size());

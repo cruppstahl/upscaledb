@@ -415,29 +415,24 @@ o improve separation between logic and state; make state immutable and
             x create separate EnvironmentTest class
         x RemoteEnvironment
             x make all other functions private
-        o LocalEnvironment
-            o clean up
+        x LocalEnvironment
+            x clean up
+            x add Test interface
+            x remove "friend" declaration
+        o Database
+            o LocalDatabase
+            o RemoteDatabase
         o HeaderPage - can it be treated like any other page, and moved
             to the PageManager/Cache??
-        o Device
-            Implementation class uses template specialization:
-                fetch_page_impl<InMemoryState>...
-                fetch_page_impl<DiskState>...
-        o BlobManager
+            o remove LocalEnvironment::mark_header_page_dirty
         o EnvironmentHeader
+        o BlobManager
+            o disk: pass PageManager during initialization
+            o inmem: pass InMemoryDevice during initialization
+            o remove dependency from env
+        o Device
         o BtreeActions
         o Btree
-        o Environment
-        o Database
-
-    o extract operation state/user parameters into separate structures
-        - MutableOperation<State> -> insert, erase...
-        - ImmutableOperation<State> -> lookups, get_parameters, ...
-        o create/abort/commit temp transactions in Operation
-        o flush/clear changeset in Operation
-        o make BtreeActions state-less and const
-            ("const BtreeFindAction bfa(...)");
-        o use "const" pages for immutable operations
 
 o Refactoring: all unittest fixtures should derive from a BaseFixture,
     which creates an Environment, creates a list of databases (w/ parameters),

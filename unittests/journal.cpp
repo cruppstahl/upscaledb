@@ -130,12 +130,13 @@ struct JournalFixture {
      * old journal
      */
     j = m_lenv->journal();
-    m_lenv->test_set_journal(NULL);
+    LocalEnvironmentTest test = m_lenv->test();
+    test.set_journal(NULL);
 
     j = new Journal(m_lenv);
     j->create();
-    REQUIRE(j);
-    m_lenv->test_set_journal(j);
+    test = m_lenv->test();
+    test.set_journal(j);
     return (j);
   }
 
@@ -153,7 +154,7 @@ struct JournalFixture {
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config().filename;
-    EnvironmentTest test = m_lenv->test();
+    EnvironmentTest test = ((Environment *)m_lenv)->test();
     test.set_filename("/::asdf");
     REQUIRE_CATCH(j->create(), HAM_IO_ERROR);
     test.set_filename(oldfilename);
@@ -164,7 +165,7 @@ struct JournalFixture {
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config().filename;
-    EnvironmentTest test = m_lenv->test();
+    EnvironmentTest test = ((Environment *)m_lenv)->test();
     test.set_filename("xxx$$test");
     REQUIRE_CATCH(j->open(), HAM_FILE_NOT_FOUND);
 
@@ -517,7 +518,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
 
     compareJournal(j, vec, p);
   }
@@ -546,7 +547,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
 
     compareJournal(j, vec, p);
   }
@@ -578,7 +579,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
 
     compareJournal(j, vec, p);
   }
@@ -677,7 +678,7 @@ struct JournalFixture {
     delete j;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
@@ -744,7 +745,7 @@ struct JournalFixture {
     
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
@@ -886,7 +887,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
@@ -953,7 +954,7 @@ struct JournalFixture {
 
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ham_env_close(m_env,
@@ -1022,7 +1023,7 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test_set_journal(j);
+    m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ham_env_close(m_env,

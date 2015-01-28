@@ -32,6 +32,7 @@
 #include "3journal/journal.h"
 #include "4env/env.h"
 #include "4env/env_header.h"
+#include "4env/env_local_test.h"
 #include "4context/context.h"
 
 #ifndef HAM_ROOT_H
@@ -91,20 +92,13 @@ class LocalEnvironment : public Environment
       return (m_txn_manager.get());
     }
 
-    // Sets the Journal; only for testing!
-    void test_set_journal(Journal *journal) {
-      m_journal.reset(journal);
-    }
-
     // Increments the lsn and returns the incremented value
     uint64_t next_lsn() {
       return (m_lsn_manager.next());
     }
 
-    // Returns the page_size as specified in ham_env_create
-    uint32_t xpage_size() const {
-      return ((uint32_t)m_config.page_size_bytes);
-    }
+    // Returns a test gateway
+    LocalEnvironmentTest test();
 
   protected:
     // Creates a new Environment (ham_env_create)
@@ -156,7 +150,7 @@ class LocalEnvironment : public Environment
     virtual void do_fill_metrics(ham_env_metrics_t *metrics) const;
 
   private:
-    friend struct DbFixture;
+    friend class LocalEnvironmentTest;
 
     // Runs the recovery process
     void recover(uint32_t flags);

@@ -97,6 +97,12 @@ LocalEnvironment::btree_header(int i)
   return (d + i);
 }
 
+LocalEnvironmentTest
+LocalEnvironment::test()
+{
+  return (LocalEnvironmentTest(this));
+}
+
 ham_status_t
 LocalEnvironment::do_create()
 {
@@ -750,6 +756,12 @@ LocalEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
   BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?
   metrics->simd_lane_width = os_get_simd_lane_width();
+}
+
+void
+LocalEnvironmentTest::set_journal(Journal *journal)
+{
+    m_env->m_journal.reset(journal);
 }
 
 } // namespace hamsterdb
