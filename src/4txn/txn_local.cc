@@ -659,7 +659,8 @@ next_op:
       Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?
-      pc->set_to_nil(Cursor::kTxn);
+      if (!pc->is_nil(Cursor::kTxn))
+        pc->set_to_nil(Cursor::kTxn);
     }
 
     ham_assert(op->get_lsn() > highest_lsn);

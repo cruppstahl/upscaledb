@@ -286,6 +286,10 @@ Environment::close(uint32_t flags)
       }
     }
 
+    /* flush all remaining transactions */
+    if (m_txn_manager)
+      m_txn_manager->flush_committed_txns();
+
     /* close all databases */
     Environment::DatabaseMap::iterator it = m_database_map.begin();
     while (it != m_database_map.end()) {

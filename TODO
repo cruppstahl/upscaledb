@@ -420,11 +420,13 @@ o Concurrency: move "purge cache" to background
         o but run performance tests
     o run monster tests
 
-o merge topic/perfect-world with v2
-    o reset topic/thread to v2
-    o then remove the threading code from v2; so far no thread is required
+x merge topic/perfect-world with v2
+    x then remove the threading code from v2; so far no thread is required
 
 o PRO: rebase to v2
+    o regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
+    o ... then compare PRO vs APL sources and make sure they don't diverge
+        too much!
 
 o PRO: add more simdcomp related functions for blocks < 128 integers
     o update Daniel's code - the repository has new patches (create a fork)
@@ -446,13 +448,12 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         o a new option for brief, consolidated statistics
         o a new option for long, extensive statistics
 
+o PRO: integrate Nathan's sources, or start a new KeyList
+
 o Erlang: investigate failure in ham_eqc2
 
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
-
-o documentation related issues for 2.1.10
-    o HAM_RECORD_NUMBER32: add/update tutorial
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
@@ -480,6 +481,9 @@ o blob performance improvements
             pointer
         - If a record is in a mapped page then simply return a
             pointer
+
+o documentation related issues for 2.1.10
+    o HAM_RECORD_NUMBER32: add/update tutorial
 
 . Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
@@ -527,10 +531,6 @@ o blob performance improvements
     o also for windows!
 
 o More things to refactor in the btree
-    o PageManager::fetch_page should be available in a const version
-        (fetch_const_page) which sets a flag in the page ("kIsImmutable").
-        the NodeProxy must test this flag whenever it modifies a page!
-        (debug only)
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
         -> use a common behaviour/indexing
     o EraseAction line 71: if the node is empty then it should be merged and
@@ -539,58 +539,9 @@ o More things to refactor in the btree
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
-o refactoring: reduce complexities by introducing "Operations". Each
-    operation (ham_env_create_db, ham_db_insert, etc) is an Operation.
-    At start, they perform sanity checks (i.e. verifying that the
-    changeset is empty). They create and manage local Transactions if
-    necessary. In the destructor they flush or clear the Changeset
-    and perform cleanups. The changeset is part of the operation.
-    Later, they will also store the caller's data in an Update structure.
-
-    Every operation returns a filled Changeset, and the Operation will
-    then proceed to work with it afterwards: either by ignoring/clearing
-    it or by flushing it.
-
-    This is the flow of ham_env_erase_db:
-        op = Operation<EraseDbState>(env); // locks env.mutex
-        op.state.db = db;
-        op.state.flags = flags;
-        st = env->erase(op);
-        if (st == 0)
-          op.commit()
-        else
-          op.abort()
-
-    This is the flow of ham_db_insert:
-        op = Operation<Update>(env); // locks env.mutex
-        op.state.db = db;
-        op.state.txn = txn;
-        op.state.key = key;
-        op.state.record = record;
-        op.state.flags = flags;
-        if (txn == 0)
-          op.state.txn = ham_txn_begin(...);
-        st = db->insert(op);
-        if (st == 0)
-          op.commit() // also commits local_txn
-        else
-          op.abort() // also aborts local_txn
-
 o refactoring: db_local.cc has so many TODOs!
-    o each operation should follow this pattern:
-        1. perform db- or cursor-specific parameter checks
-        2. perform db- or cursor-specific logic
-        3. create local transaction (if required)
-        4. call _impl method
-        5. call finalize (BOOST_SCOPE_EXIT)
 
-. refactor LocalDatabase::cursor_insert: when done, the duplicate index is
-    updated. In most cases (DUPLICATE_LAST), a duplicate table has to be built,
-    but it's unclear whether the duplicate index is ever required. Better
-    use a logical index ("kLastDuplicate") and lazily calculate the actual
-    position when it's required.
-
-. refactoring: improve the code separation of cursor, btree_cursor
+o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
     o the whole cursor state is messed up. there should be 3 states:
@@ -598,24 +549,70 @@ o refactoring: db_local.cc has so many TODOs!
         - coupled to btree
         - coupled to txn
         and nothing else!
-    o there should be a get_key() and a get_record() method; the caller should
+    o there should be a key() and a record() method; the caller should
         not get access to txn_cursor/btree_cursor etc
     o cursor.cc has so many TODOs!
-    o review if the Cursor class has access to any shared resource; what
-        about the cursor list??
 
-o continue with concurrency...
-    next stage: flush changesets in background. this should work whenever
-    recovery is enabled (with and without transactions)!
-    Also, try to handle blob pages separately from the rest - at least if blobs
-        are allocated and not overwritten! then the leaf operations would
-        maybe become atomic. -> needs more thinking
-    . support multiple worker threads which perform I/O
-        o create 1 thread for hdds
-        o create N threads for ssds, depending on number of controllers
-        -> make overwritable by parameter
+o internal nodes should use 32bit page IDs!
+    -> but should still work with 64bit IDs for in-memory environments
 
-o investigate "pointer swizzling": internal btree nodes should store "hints"
+o delta updates managed in the BtreeNode
+    Updates are attached to a node. A background thread can merge them.
+    At runtime, they're consolidated. An Update can be part of a Transaction.
+    The existing TransactionOperation structure is replaced. The whole
+    Transaction handling will be rewritten. Instead of using separate
+    TransactionTrees, the Updates are attached to the node.
+
+    Updates are a sorted (!) linked list. Prior to merge, those Updates that
+    delete keys will be applied.
+
+    The Update structure should be parameterized, just like the Btree
+    (i.e. use the identical type and compare function).
+
+    When pages are merged or split then the delta updates are moved to the
+    new page. They are not merged immediately.
+
+    The Update structure has a pointer to its Transaction. If the Transaction
+    is committed or aborted, then the Update state is set to "committed"
+    (or "aborted"). When merging, aborted Updates are removed. The Transaction
+    pointer is only followed if the state of the Transaction is not clear (i.e.
+    either committed or aborted). 
+       
+    -> Flushes/Merges happen in background
+    -> Transactions, Commits and Btree operations are completely decoupled.
+        This requires a new recovery/logging strategy!
+    -> The whole btree will borrow ideas from an LSM since it is running
+        compactions in the background
+    -> Needs more research...
+
+    o create an Update struct
+        o template parmeters for key and compare function
+        o key, record, ...
+        o single linked "next" pointer
+
+    o The BtreeNodeProxy manages a (single) linked list of Updates
+    o This linked list is always sorted
+    o Add a flag to force-flush immediately (disable queueing)
+    o Merge the updates (naive implementation: insert one by one)
+        o ... before flushing the page
+        o ... before all other operations
+    o When splitting the page: re-distribute the updates to the
+        new node
+    o Don't merge pages as long as delta-updates are attached
+    o implementation checkpoint - all tests must run
+        o unittests
+        o monster tests
+        o performance tests
+    o Then consolidate the updates piece by piece
+        o for lookups
+        o for inserts
+        o for erase
+        o for traversal
+        o for cursors
+        o for scans
+        o ... and with duplicates
+
+. investigate "pointer swizzling": internal btree nodes should store "hints"
     to the actual Page, not the Page IDs, as soon as the Page was loaded for
     the first time. This could circumvent the buffer cache and increase
     performance.
@@ -625,7 +622,7 @@ o investigate "pointer swizzling": internal btree nodes should store "hints"
         stub.
     - Could also use reference counting for the page
 
-o improve the webpage documentation
+. improve the webpage documentation
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
         o POD keys
@@ -636,7 +633,6 @@ o improve the webpage documentation
         o PRO: compressed keys
         o PRO: compressed records
 
-o internal nodes should use 32bit page IDs!
 
 
 
@@ -700,74 +696,6 @@ o PRO: use compression also for duplicate records
 
 
 
-
-o refactoring: create a Update structure whenever a database is modified;
-    -> Also see "DeltaUpdate" story; it will use an identical structure.
-    It consists of the operation type, key, record (optional), operation flags,
-    ByteArray for storing the result(s) etc. Can reuse the TransactionOperation
-    class.
-    This structure is then forwarded to the journal, and to all BtreeActions.
-    The BtreeActions no longer require state (at least large parts of it).
-    This structure will also be used for the DeltaUpdates and for batched
-    updates later on.
-    o insert: create such a structure in ham_db_insert, forward it to the
-        lower layers
-    o erase: create such a structure in ham_db_erase, forward it to the
-        lower layers
-    o same for cursor functions
-    o same for ham_cursor_overwrite
-    o can we get rid of Database::cursor_insert, cursor_find, cursor_erase?
-
-o delta updates managed in the BtreeNode
-    Updates are attached to a node. A background thread can merge them.
-    At runtime, they're consolidated. An Update can be part of a Transaction.
-    The existing TransactionOperation structure is replaced. The whole
-    Transaction handling will be rewritten. Instead of using separate
-    TransactionTrees, the Updates are attached to the node.
-
-    Updates are a sorted linked list. Prior to merge, those Updates that delete
-    keys will be applied.
-
-    When pages are merged or split then the delta updates are moved to the
-    new page. They are not merged immediately.
-       
-    -> Flushes/Merges happen in background
-    -> Transactions, Commits and Btree operations are completely decoupled.
-        This requires a new recovery/logging strategy!
-    -> The whole btree will borrow ideas from an LSM since it is running
-        compactions in the background
-    -> Needs more research...
-
-    o rename TransactionOperation to Update, decouple code from txn
-    o The BtreeNodeProxy manages a (single) linked list of Updates
-    o New Updates are added at the front
-    o Make sure that all node-operations take the Updates into account
-        o first stage: merge them (sort, remove Erase-Updates, apply Inserts)
-        o second stage: consolidate the Updates and avoid merges
-        o insert: take delta updates into account when splitting pages
-        o when splitting pages: re-distribute the Updates, don't apply them
-
-    o DeltaUpdate objects from a txn-flush should directly go down to
-        the node (detach from txn, attach to node)
-    o should the the insert + set_record operations be combined into a
-        single call? this has the additional advantage that the overhead
-        of calling set_record will disappear
-    o merge delta updates when reading and flushing
-        o however, for simple lookup calls (no duplicates) the DUs can
-            be traversed, too 
-    o requires_split() must take delta updates into account
-    o make the merge algorithm as efficient as possible
-        o sort deltas by key
-        o first execute all 'erase' either against other deltas or against
-            the node
-        o then merge the remaining inserts
-        o this needs lots of tests
-    o now run tests: should every update be stored as a DeltaUpdate? If not
-        then disable them by default, unless Transactions are used (and unless
-        bulk updates are used)
-    . Add deltas to leaf nodes, but not to internal nodes; internal nodes
-        have too many read operations and would anyway require immediate
-        flushes (really?)
 
 
 

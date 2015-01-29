@@ -149,7 +149,7 @@ LocalEnvironment::do_create()
     m_header->get_header_page()->flush();
 
   /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
+  //m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -261,7 +261,7 @@ fail_with_fake_cleansing:
     m_page_manager->initialize(m_header->get_page_manager_blobid());
 
   /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
+  //m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -351,15 +351,11 @@ LocalEnvironment::do_flush(uint32_t flags)
 {
   Context context(this, 0, 0);
 
-  /* never flush an in-memory-database */
-  if (get_flags() & HAM_IN_MEMORY)
-    return (0);
-
   /* flush all committed transactions */
   if (m_txn_manager)
     m_txn_manager->flush_committed_txns(&context);
 
-  if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS)
+  if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & HAM_IN_MEMORY)
     return (0);
 
   /* flush the header page */

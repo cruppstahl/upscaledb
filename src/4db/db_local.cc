@@ -1064,13 +1064,13 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
   try {
     ham_status_t st = 0;
-    LocalTransaction *local_txn = 0;
 
     /* Duplicates AND Transactions require a Cursor because only
      * Cursors can build lists of duplicates.
      * TODO not exception safe - if find() throws then the cursor is not closed
      */
-    if (!cursor && txn && get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
+    if (!cursor
+          && (get_flags() & (HAM_ENABLE_DUPLICATE_KEYS|HAM_ENABLE_TRANSACTIONS))) {
       Cursor *c = cursor_create_impl(txn, 0);
       st = find(c, txn, key, record, flags);
       cursor_close_impl(c);
@@ -1092,16 +1092,9 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
       cursor->set_to_nil(Cursor::kBoth);
     }
 
-    // create a temporary transaction, if necessary
-    if (!txn && (get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = begin_temp_txn();
-      context.txn = local_txn;
-      txn = local_txn;
-    }
-
     st = find_impl(&context, cursor, key, record, flags);
     if (st)
-      return (finalize(&context, st, local_txn));
+      return (finalize(&context, st, 0));
 
     if (cursor) {
       // make sure that txn-cursor and btree-cursor point to the same keys
@@ -1141,7 +1134,7 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
       cursor->set_lastop(Cursor::kLookupOrInsert);
     }
 
-    return (finalize(&context, st, local_txn));
+    return (finalize(&context, st, 0));
   }
   catch (Exception &ex) {
     return (ex.code);
@@ -1519,8 +1512,8 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
                   op->get_orig_flags() | additional_flag);
     }
     else {
-      TransactionCursor *tc2, *tc1 = op->cursor_list();
-      Cursor *c2, *c1 = tc1->get_parent();
+      TransactionCursor *tc1 = op->cursor_list();
+      Cursor *c1 = tc1->get_parent();
       /* pick the first cursor, get the parent/btree cursor and
        * insert the key/record pair in the btree. The btree cursor
        * then will be coupled to this item. */
@@ -1533,8 +1526,9 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
 
         /* all other (btree) cursors need to be coupled to the same
          * item as the first one. */
+        TransactionCursor *tc2;
         while ((tc2 = op->cursor_list())) {
-          c2 = tc2->get_parent();
+          Cursor *c2 = tc2->get_parent();
           c2->get_btree_cursor()->clone(c1->get_btree_cursor());
           c2->couple_to_btree(); // TODO merge these two calls
           c2->set_to_nil(Cursor::kTxn);
@@ -1571,7 +1565,7 @@ LocalDatabase::insert_impl(Context *context, Cursor *cursor,
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
-  if (context->txn)
+  if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
     st = insert_txn(context, key, record, flags, cursor
                                                 ? cursor->get_txn_cursor()
                                                 : 0);
@@ -1632,7 +1626,7 @@ LocalDatabase::find_impl(Context *context, Cursor *cursor,
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
    */
-  if (context->txn)
+  if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
     return (find_txn(context, cursor, key, record, flags));
 
   return (m_btree_index->find(context, cursor, key, &key_arena(context->txn),
@@ -1649,10 +1643,7 @@ LocalDatabase::erase_impl(Context *context, Cursor *cursor, ham_key_t *key,
    * if transactions are enabled: append a 'erase key' operation into
    * the txn tree; otherwise immediately erase the key from disk
    */
-  if (context->txn == 0) {
-    st = m_btree_index->erase(context, cursor, key, 0, flags);
-  }
-  else {
+  if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
     if (cursor) {
       /*
        * !!
@@ -1689,6 +1680,9 @@ LocalDatabase::erase_impl(Context *context, Cursor *cursor, ham_key_t *key,
     else {
       st = erase_txn(context, key, flags, 0);
     }
+  }
+  else {
+    st = m_btree_index->erase(context, cursor, key, 0, flags);
   }
 
   /* on success: verify that cursor is now nil */
