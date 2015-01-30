@@ -139,6 +139,7 @@ class BtreeFindAction
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = node->get_count() - 1;
+          approx_match = BtreeKey::kLower;
         }
       }
 
@@ -149,6 +150,7 @@ class BtreeFindAction
                           PageManager::kReadOnly);
           node = m_btree->get_node_from_page(page);
           slot = 0;
+          approx_match = BtreeKey::kGreater;
         }
         else
           slot = -1;
