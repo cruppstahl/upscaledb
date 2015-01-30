@@ -847,7 +847,8 @@ Journal::test()
 
 JournalState::JournalState(LocalEnvironment *env)
   : env(env), current_fd(0), threshold(env->config().journal_switch_threshold),
-    disable_logging(false), count_bytes_flushed(0)
+    disable_logging(false), count_bytes_flushed(0),
+    count_bytes_before_compression(0), count_bytes_after_compression(0)
 {
   if (threshold == 0)
     threshold = kSwitchTxnThreshold;

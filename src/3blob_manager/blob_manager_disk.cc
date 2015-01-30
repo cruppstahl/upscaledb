@@ -25,6 +25,7 @@
 #include "2device/device.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"
+#include "4db/db_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -564,6 +565,7 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
                 bool fetch_read_only)
 {
   uint32_t page_size = m_env->config().page_size_bytes;
+  bool first_page = true;
 
   while (size) {
     // get the page-id from this chunk
@@ -573,9 +575,15 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
     // otherwise fetch the page
     if (page && page->get_address() != pageid)
       page = 0;
-    if (!page)
-      page = m_env->page_manager()->fetch(context, pageid,
-                        fetch_read_only ? PageManager::kReadOnly : 0);
+
+    if (!page) {
+      uint32_t flags = 0;
+      if (fetch_read_only)
+        flags |= PageManager::kReadOnly;
+      if (!first_page)
+        flags |= PageManager::kNoHeader;
+      page = m_env->page_manager()->fetch(context, pageid, flags);
+    }
 
     // now read the data from the page
     uint32_t read_start = (uint32_t)(address - page->get_address());
@@ -586,6 +594,8 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
     address += read_size;
     data += read_size;
     size -= read_size;
+
+    first_page = false;
   }
 
   if (ppage)

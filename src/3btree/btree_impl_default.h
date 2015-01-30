@@ -219,7 +219,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (false);
 
       // first try to vaccumize the lists without rearranging them
-      // the page
       if (keys_require_split) {
         P::m_keys.vacuumize(node_count, false);
         keys_require_split = P::m_keys.requires_split(node_count, key);
@@ -234,7 +233,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (false);
 
       // now adjust the ranges and the capacity
-      if (adjust_capacity(key, keys_require_split, records_require_split)) {
+      if (reorganize(context, key)) {
 #ifdef HAM_DEBUG
         check_index_integrity(context, node_count);
 #endif
@@ -294,90 +293,11 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
     }
 
-  private:
-    // Initializes the node
-    void initialize(NodeType *other = 0) {
-      LocalDatabase *db = P::m_page->get_db();
-      size_t usable_size = usable_range_size();
-
-      // initialize this page in the same way as |other| was initialized
-      if (other) {
-        size_t key_range_size = other->load_range_size();
-
-        // persist the range size
-        store_range_size(key_range_size);
-        uint8_t *p = P::m_node->get_data();
-        p += sizeof(uint32_t);
-
-        // create the KeyList and RecordList
-        P::m_keys.create(p, key_range_size);
-        P::m_records.create(p + key_range_size,
-                        usable_size - key_range_size);
-      }
-      // initialize a new page from scratch
-      else if ((P::m_node->get_count() == 0
-                && !(db->get_flags() & HAM_READ_ONLY))) {
-        size_t key_range_size;
-        size_t record_range_size;
-
-        // if yes then ask the btree for the default range size (it keeps
-        // track of the average range size of older pages).
-        BtreeStatistics *bstats = db->btree_index()->get_statistics();
-        key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
-
-        // no data so far? then come up with a good default
-        if (key_range_size == 0) {
-          // no records? then assign the full range to the KeyList
-          if (P::m_records.get_full_record_size() == 0) {
-            key_range_size = usable_size;
-          }
-          // Otherwise split the range between both lists
-          else {
-            size_t capacity = usable_size
-                    / (P::m_keys.get_full_key_size(0) +
-                                  P::m_records.get_full_record_size());
-            key_range_size = capacity * P::m_keys.get_full_key_size(0);
-          }
-        }
-
-        record_range_size = usable_size - key_range_size;
-
-        ham_assert(key_range_size + record_range_size <= usable_size);
-
-        // persist the key range size
-        store_range_size(key_range_size);
-        uint8_t *p = P::m_node->get_data();
-        p += sizeof(uint32_t);
-
-        // and create the lists
-        P::m_keys.create(p, key_range_size);
-        P::m_records.create(p + key_range_size, record_range_size);
-
-        P::m_estimated_capacity = key_range_size
-                / (size_t)P::m_keys.get_full_key_size();
-      }
-      // open a page; read initialization parameters from persisted storage
-      else {
-        size_t key_range_size = load_range_size();
-        size_t record_range_size = usable_size - key_range_size;
-        uint8_t *p = P::m_node->get_data();
-        p += sizeof(uint32_t);
-
-        P::m_keys.open(p, key_range_size, P::m_node->get_count());
-        P::m_records.open(p + key_range_size, record_range_size,
-                        P::m_node->get_count());
-
-        P::m_estimated_capacity = key_range_size
-                / (size_t)P::m_keys.get_full_key_size();
-      }
-    }
-
     // Adjusts the size of both lists; either increases it or decreases
     // it (in order to free up space for variable length data).
     // Returns true if |key| and an additional record can be inserted, or
     // false if not; in this case the caller must perform a split.
-    bool adjust_capacity(const ham_key_t *key, bool keys_require_split,
-                    bool records_require_split) {
+    bool reorganize(Context *context, const ham_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
       // One of the lists must be resizable (otherwise they would be managed
@@ -479,11 +399,93 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // make sure that the page is flushed to disk
       P::m_page->set_dirty(true);
 
+#ifdef HAM_DEBUG
+      check_index_integrity(context, node_count);
+#endif
+
       // finally check if the new space is sufficient for the new key
       // TODO this shouldn't be required if the check above is implemented
       // -> change to an assert, then return true
       return (!P::m_records.requires_split(node_count)
                 && !P::m_keys.requires_split(node_count, key));
+    }
+
+  private:
+    // Initializes the node
+    void initialize(NodeType *other = 0) {
+      LocalDatabase *db = P::m_page->get_db();
+      size_t usable_size = usable_range_size();
+
+      // initialize this page in the same way as |other| was initialized
+      if (other) {
+        size_t key_range_size = other->load_range_size();
+
+        // persist the range size
+        store_range_size(key_range_size);
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
+
+        // create the KeyList and RecordList
+        P::m_keys.create(p, key_range_size);
+        P::m_records.create(p + key_range_size,
+                        usable_size - key_range_size);
+      }
+      // initialize a new page from scratch
+      else if ((P::m_node->get_count() == 0
+                && !(db->get_flags() & HAM_READ_ONLY))) {
+        size_t key_range_size;
+        size_t record_range_size;
+
+        // if yes then ask the btree for the default range size (it keeps
+        // track of the average range size of older pages).
+        BtreeStatistics *bstats = db->btree_index()->get_statistics();
+        key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
+
+        // no data so far? then come up with a good default
+        if (key_range_size == 0) {
+          // no records? then assign the full range to the KeyList
+          if (P::m_records.get_full_record_size() == 0) {
+            key_range_size = usable_size;
+          }
+          // Otherwise split the range between both lists
+          else {
+            size_t capacity = usable_size
+                    / (P::m_keys.get_full_key_size(0) +
+                                  P::m_records.get_full_record_size());
+            key_range_size = capacity * P::m_keys.get_full_key_size(0);
+          }
+        }
+
+        record_range_size = usable_size - key_range_size;
+
+        ham_assert(key_range_size + record_range_size <= usable_size);
+
+        // persist the key range size
+        store_range_size(key_range_size);
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
+
+        // and create the lists
+        P::m_keys.create(p, key_range_size);
+        P::m_records.create(p + key_range_size, record_range_size);
+
+        P::m_estimated_capacity = key_range_size
+                / (size_t)P::m_keys.get_full_key_size();
+      }
+      // open a page; read initialization parameters from persisted storage
+      else {
+        size_t key_range_size = load_range_size();
+        size_t record_range_size = usable_size - key_range_size;
+        uint8_t *p = P::m_node->get_data();
+        p += sizeof(uint32_t);
+
+        P::m_keys.open(p, key_range_size, P::m_node->get_count());
+        P::m_records.open(p + key_range_size, record_range_size,
+                        P::m_node->get_count());
+
+        P::m_estimated_capacity = key_range_size
+                / (size_t)P::m_keys.get_full_key_size();
+      }
     }
 
     // Try to get a clue about the capacity of the lists; this will help

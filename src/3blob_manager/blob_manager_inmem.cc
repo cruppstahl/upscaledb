@@ -20,6 +20,7 @@
 #include "1base/dynamic_array.h"
 #include "2device/device_inmem.h"
 #include "3blob_manager/blob_manager_inmem.h"
+#include "4db/db_local.h"
 #include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H

@@ -122,7 +122,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
     // PRO: Sets the record compression
     void set_record_compression(int algorithm) {
-      m_compression = algorithm << 4;
+      m_compression |= algorithm << 4;
     }
 
     // PRO: Returns the key compression
@@ -267,6 +267,18 @@ class BtreeIndex
     // and the file was opened
     void open();
 
+    // Sets the record compression algorithm
+    void set_record_compression(Context *context, int algo);
+
+    // Returns the record compression algorithm
+    int get_record_compression();
+
+    // Sets the key compression algorithm
+    void set_key_compression(Context *context, int algo);
+
+    // Returns the key compression algorithm
+    int get_key_compression();
+
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Context *context, Cursor *cursor, ham_key_t *key,
                     ByteArray *key_arena, ham_record_t *record,
@@ -327,6 +339,10 @@ class BtreeIndex
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->extended_keys = Globals::ms_extended_keys;
       metrics->extended_duptables = Globals::ms_extended_duptables;
+      metrics->key_bytes_before_compression
+              = Globals::ms_bytes_before_compression;
+      metrics->key_bytes_after_compression
+              = Globals::ms_bytes_after_compression;
     }
 
     // Returns the btree usage statistics

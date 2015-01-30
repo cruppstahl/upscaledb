@@ -504,16 +504,34 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // actual record is then updated with |set_record|.
     virtual PBtreeNode::InsertResult insert(Context *context,
                     ham_key_t *key, uint32_t flags) {
-      PBtreeNode::InsertResult result = {0, 0};
+      PBtreeNode::InsertResult result(0, 0);
       if (m_impl.requires_split(context, key)) {
         result.status = HAM_LIMITS_REACHED;
         return (result);
       }
 
       Comparator cmp(m_page->get_db());
-      result = m_impl.insert(context, key, flags, cmp);
+      try {
+        result = m_impl.insert(context, key, flags, cmp);
+      }
+      catch (Exception &ex) {
+        result.status = ex.code;
+      }
+
+      // split required? then reorganize the node, try again
+      if (result.status == HAM_LIMITS_REACHED) {
+        try {
+          if (m_impl.reorganize(context, key))
+            result = m_impl.insert(context, key, flags, cmp);
+        }
+        catch (Exception &ex) {
+          result.status = ex.code;
+        }
+      }
+
       if (result.status == HAM_SUCCESS)
         set_count(get_count() + 1);
+
       return (result);
     }
 

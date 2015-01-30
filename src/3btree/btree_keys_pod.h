@@ -62,14 +62,16 @@ template<typename T>
 class PodKeyList : public BaseKeyList
 {
   public:
-    typedef T type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 1,
 
       // A flag whether this KeyList supports the scan() call
-      kSupportsBlockScans = 1
+      kSupportsBlockScans = 1,
+
+      // This KeyList uses a custom SIMD implementation if possible,
+      // otherwise binary search in combination with linear search
+      kSearchImplementation = kBinaryLinear,
     };
 
     // Constructor
@@ -127,11 +129,45 @@ class PodKeyList : public BaseKeyList
     // Performs a linear search in a given range between |start| and
     // |start + length|
     template<typename Cmp>
-    int linear_search(size_t start, size_t length, ham_key_t *hkey,
-                    Cmp &cmp, int *pcmp) {
+    int linear_search(size_t start, size_t length, const ham_key_t *hkey,
+                    Cmp &comparator, int *pcmp) {
       T key = *(T *)hkey->data;
-      return (BaseKeyList::linear_search(m_data, start, length, key,
-                              cmp, pcmp));
+      size_t c = start;
+      size_t end = start + length;
+  
+  #undef COMPARE
+  #define COMPARE(c)      if (key <= m_data[c]) {                         \
+                            if (key < m_data[c]) {                        \
+                              if (c == 0)                                 \
+                                *pcmp = -1; /* key < m_data[0] */         \
+                              else                                        \
+                                *pcmp = +1; /* key > m_data[c - 1] */     \
+                              return ((c) - 1);                           \
+                            }                                             \
+                            *pcmp = 0;                                    \
+                            return (c);                                   \
+                          }
+
+      while (c + 8 < end) {
+        COMPARE(c)
+        COMPARE(c + 1)
+        COMPARE(c + 2)
+        COMPARE(c + 3)
+        COMPARE(c + 4)
+        COMPARE(c + 5)
+        COMPARE(c + 6)
+        COMPARE(c + 7)
+        c += 8;
+      }
+
+      while (c < end) {
+        COMPARE(c)
+        c++;
+      }
+
+      /* the new key is > the last key in the page */
+      *pcmp = 1;
+      return (start + length - 1);
     }
 
     // Iterates all keys, calls the |visitor| on each
@@ -148,12 +184,15 @@ class PodKeyList : public BaseKeyList
     }
 
     // Inserts a key
-    void insert(Context *context, size_t node_count, int slot,
-                    const ham_key_t *key) {
+    template<typename Cmp>
+    PBtreeNode::InsertResult insert(Context *context, size_t node_count,
+                    const ham_key_t *key, uint32_t flags, Cmp &comparator,
+                    int slot) {
       if (node_count > (size_t)slot)
         memmove(&m_data[slot + 1], &m_data[slot],
                         sizeof(T) * (node_count - slot));
       set_key_data(slot, key->data, key->size);
+      return (PBtreeNode::InsertResult(0, slot));
     }
 
     // Copies |count| key from this[sstart] to dest[dstart]

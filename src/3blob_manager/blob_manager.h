@@ -140,7 +140,9 @@ class BlobManager
     };
 
     BlobManager(LocalEnvironment *env)
-      : m_env(env), m_metric_total_allocated(0), m_metric_total_read(0) {
+      : m_env(env), m_metric_before_compression(0),
+        m_metric_after_compression(0), m_metric_total_allocated(0),
+        m_metric_total_read(0) {
     }
 
     virtual ~BlobManager() { }

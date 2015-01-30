@@ -423,9 +423,9 @@ o Concurrency: move "purge cache" to background
 x merge topic/perfect-world with v2
     x then remove the threading code from v2; so far no thread is required
 
-o PRO: rebase to v2
-    o regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
-    o ... then compare PRO vs APL sources and make sure they don't diverge
+x PRO: rebase to v2
+    x regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
+    x ... then compare PRO vs APL sources and make sure they don't diverge
         too much!
 
 o PRO: add more simdcomp related functions for blocks < 128 integers
@@ -442,11 +442,17 @@ o PRO: simdcomp should use binary search for decompressed blocks
     -> see mail from Daniel for more information, code
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
-    o for each page retrieve those statistics and print them 
+    o for each node retrieve these statistics and accumulate them
+        as min, max, avg:
+        - number of keys stored
+        - actually used storage for the keys
+        - static overhead per page
+        - overhead per index
+        - number of indices
+        - unused storage
     o extend ham_info
         o by default, no new stats are printed
-        o a new option for brief, consolidated statistics
-        o a new option for long, extensive statistics
+        o otherwise print them
 
 o PRO: integrate Nathan's sources, or start a new KeyList
 

@@ -90,11 +90,11 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
       }
       p++;
     }
+    return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
   }
-  return (0);
 }
 
 ham_status_t

@@ -38,7 +38,26 @@ struct BaseKeyList
 {
   enum {
       // This KeyList cannot reduce its capacity in order to release storage
-      kCanReduceCapacity = 0
+      kCanReduceCapacity = 0,
+
+      // This KeyList uses binary search combined with linear search
+      kBinaryLinear,
+
+      // This KeyList has a custom search implementation
+      kCustomSearch,
+
+      // This KeyList has a custom search implementation for exact matches
+      // *only*
+      kCustomExactImplementation,
+
+      // This KeyList uses binary search (this is the default)
+      kBinarySearch,
+
+      // Specifies the search implementation: 
+      kSearchImplementation = kBinarySearch,
+
+      // This KeyList does NOT have a custom insert implementation
+      kCustomInsert = 0,
   };
 
   BaseKeyList()
@@ -58,47 +77,27 @@ struct BaseKeyList
   void vacuumize(size_t node_count, bool force) const {
   }
 
+  // Finds a key
+  template<typename Cmp>
+  int find(Context *, size_t node_count, const ham_key_t *key, Cmp &comparator,
+                  int *pcmp) {
+    ham_assert(!"shouldn't be here");
+    return (0);
+  }
+
+  // Returns the threshold when switching from binary search to
+  // linear search. Disabled by default
+  size_t get_linear_search_threshold() const {
+    return ((size_t)-1);
+  }
+
   // Performs a linear search in a given range between |start| and
-  // |start + length|
-  template<typename T, typename Cmp>
-  int linear_search(T *data, size_t start, size_t length, T key,
+  // |start + length|. Disabled by default.
+  template<typename Cmp>
+  int linear_search(size_t start, size_t length, const ham_key_t *hkey,
                   Cmp &comparator, int *pcmp) {
-    int c = (int)start;
-    int end = (int)(start + length);
-
-#undef COMPARE
-#define COMPARE(c)      if (key <= data[c]) {                           \
-                          if (key < data[c]) {                          \
-                            if (c == 0)                                 \
-                              *pcmp = -1; /* key < data[0] */           \
-                            else                                        \
-                              *pcmp = +1; /* key > data[c - 1] */       \
-                            return ((c) - 1);                           \
-                          }                                             \
-                          *pcmp = 0;                                    \
-                          return (c);                                   \
-                        }
-
-    while (c + 8 < end) {
-      COMPARE(c)
-      COMPARE(c + 1)
-      COMPARE(c + 2)
-      COMPARE(c + 3)
-      COMPARE(c + 4)
-      COMPARE(c + 5)
-      COMPARE(c + 6)
-      COMPARE(c + 7)
-      c += 8;
-    }
-
-    while (c < end) {
-      COMPARE(c)
-      c++;
-    }
-
-    /* the new key is > the last key in the page */
-    *pcmp = 1;
-    return (start + length - 1);
+    ham_assert(!"shouldn't be here");
+    throw Exception(HAM_INTERNAL_ERROR);
   }
 
   // The size of the range (in bytes)

@@ -62,14 +62,15 @@ namespace PaxLayout {
 class BinaryKeyList : public BaseKeyList
 {
   public:
-    typedef uint8_t type;
-
     enum {
       // A flag whether this KeyList has sequential data
       kHasSequentialData = 1,
 
       // A flag whether this KeyList supports the scan() call
-      kSupportsBlockScans = 1
+      kSupportsBlockScans = 1,
+
+      // This KeyList uses binary search in combination with linear search
+      kSearchImplementation = kBinaryLinear,
     };
 
     // Constructor
@@ -126,13 +127,12 @@ class BinaryKeyList : public BaseKeyList
       if (m_key_size > 32)
         return (-1); // disable linear search for large keys
       return (128 / m_key_size);
-
     }
 
     // Performs a linear search in a given range between |start| and
     // |start + length|
     template<typename Cmp>
-    int linear_search(size_t start, size_t length, ham_key_t *key,
+    int linear_search(size_t start, size_t length, const ham_key_t *key,
                     Cmp &comparator, int *pcmp) {
       uint8_t *begin = &m_data[start * m_key_size];
       uint8_t *end = &m_data[(start + length) * m_key_size];
@@ -180,12 +180,15 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Inserts a key
-    void insert(Context *context, size_t node_count, int slot,
-                    const ham_key_t *key) {
+    template<typename Cmp>
+    PBtreeNode::InsertResult insert(Context *context, size_t node_count,
+                    const ham_key_t *key, uint32_t flags, Cmp &comparator,
+                    int slot) {
       if (node_count > (size_t)slot)
         memmove(&m_data[(slot + 1) * m_key_size], &m_data[slot * m_key_size],
                       m_key_size * (node_count - slot));
       set_key_data(slot, key->data, key->size);
+      return (PBtreeNode::InsertResult(0, slot));
     }
 
     // Returns true if the |key| no longer fits into the node
@@ -223,6 +226,17 @@ class BinaryKeyList : public BaseKeyList
     // Returns the pointer to a key's data
     uint8_t *get_key_data(int slot) {
       return (&m_data[slot * m_key_size]);
+    }
+
+    // Has support for SIMD style search?
+    bool has_simd_support() const {
+      return (false);
+    }
+
+    // Returns the pointer to the key's inline data - for SIMD calculations
+    // Not implemented by this KeyList
+    uint8_t *get_simd_data() {
+      return (0);
     }
 
   private:
