@@ -272,6 +272,17 @@ class BaseNodeImpl
       return (false);
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      metrics->number_of_pages++;
+      metrics->number_of_keys += node_count;
+
+      BtreeStatistics::update_min_max_avg(&metrics->keys_per_page, node_count);
+
+      m_keys.fill_metrics(metrics, node_count);
+      m_records.fill_metrics(metrics, node_count);
+    }
+
     // Prints a slot to stdout (for debugging)
     void print(Context *context, int slot) {
       std::stringstream ss;

@@ -1017,6 +1017,15 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       return (m_index.requires_split(node_count, required));
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseRecordList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
+                      m_index.get_capacity() * m_index.get_full_index_size());
+      BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
+                          m_range_size - get_required_range_size(node_count));
+    }
+
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) {
       out << "(" << get_record_count(context, slot) << " records)";
@@ -1498,6 +1507,15 @@ write_record:
       if (required < 10)
         required = 10;
       return (m_index.requires_split(node_count, required));
+    }
+
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseRecordList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
+                      m_index.get_capacity() * m_index.get_full_index_size());
+      BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
+                          m_range_size - get_required_range_size(node_count));
     }
 
     // Prints a slot to |out| (for debugging)

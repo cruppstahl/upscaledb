@@ -215,6 +215,13 @@ class PodKeyList : public BaseKeyList
       m_range_size = new_range_size;
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseKeyList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
+              m_range_size - (node_count * sizeof(T)));
+    }
+
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) const {
       out << m_data[slot];

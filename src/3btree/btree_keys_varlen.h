@@ -378,6 +378,17 @@ class VariableLengthKeyList : public BaseKeyList
       m_range_size = new_range_size;
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseKeyList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->keylist_index,
+              (uint32_t)(m_index.get_capacity()
+                    * m_index.get_full_index_size()));
+      BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
+              m_range_size
+                    - (uint32_t)m_index.get_required_range_size(node_count));
+    }
+
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) {
       ham_key_t tmp = {0};

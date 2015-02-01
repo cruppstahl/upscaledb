@@ -427,22 +427,23 @@ x PRO: rebase to v2
     x regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
     x ... then compare PRO vs APL sources and make sure they don't diverge
         too much!
+    x simdcomp-tests sometimes fail. valgrind has a huge amount of errors
 
-o PRO: add more simdcomp related functions for blocks < 128 integers
-    o update Daniel's code - the repository has new patches (create a fork)
-    o add 'export "C"' directives for c++
-    o new function for calculating the delta
-    o new function for compression
-    o new function for decompression
-    o add tests
-    o send push request to Daniel
+x PRO: add more simdcomp related functions for blocks < 128 integers
+    x update Daniel's code - the repository has new patches (create a fork)
+        git submodule add git@github.com:cruppstahl/simdcomp.git
+    x add 'export "C"' directives for c++
+    x add Makefile.am for Automake
+    x new function for calculating the delta
+    x add tests
+    x send push requests to Daniel
 
 o PRO: simdcomp should use binary search for decompressed blocks
     (currently uses linear search)
     -> see mail from Daniel for more information, code
 
 o PRO: retrieve better statistics regarding compression/overhead/payload
-    o for each node retrieve these statistics and accumulate them
+    x for each node retrieve these statistics and accumulate them
         as min, max, avg:
         - number of keys stored
         - actually used storage for the keys
@@ -450,9 +451,11 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         - overhead per index
         - number of indices
         - unused storage
+    o each node has a fill_metrics() method
     o extend ham_info
         o by default, no new stats are printed
-        o otherwise print them
+        o otherwise run "-f", call fill_metrics() for each
+            and print them
 
 o PRO: integrate Nathan's sources, or start a new KeyList
 

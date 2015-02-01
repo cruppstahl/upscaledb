@@ -135,6 +135,16 @@ class BtreeStatistics {
       return (m_keylist_capacities[(int)leaf]);
     }
 
+    // Update a min_max_avg structure
+    static void update_min_max_avg(min_max_avg_u32_t *data, uint32_t value) {
+      if (data->min > value)
+        data->min = value;
+      if (data->max < value)
+        data->max = value;
+      data->_total += value;
+      data->_instances++;
+    }
+
   private:
     // last leaf page for find/insert/erase
     uint64_t m_last_leaf_pages[kOperationMax];

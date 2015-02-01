@@ -200,6 +200,13 @@ class InlineRecordList : public BaseRecordList
       m_range_size = new_range_size;
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseRecordList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
+                          m_range_size - get_required_range_size(node_count));
+    }
+
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) const {
       out << "(" << get_record_size(context, slot) << " bytes)";

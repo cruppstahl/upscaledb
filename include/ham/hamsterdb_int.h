@@ -115,6 +115,56 @@ ham_get_context_data(ham_db_t *db, ham_bool_t dont_lock);
 HAM_EXPORT ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor);
 
+typedef struct min_max_avg_u32_t {
+  uint32_t min;
+  uint32_t max;
+  uint32_t avg;
+  uint32_t _total;      /* for calculating the average */
+  uint32_t _instances;  /* for calculating the average */
+} min_max_avg_u32_t;
+
+/* btree metrics */
+typedef struct btree_metrics_t {
+  /* number of pages */
+  uint64_t number_of_pages;
+
+  /* number of keys */
+  uint64_t number_of_keys;
+
+  /* total btree space, including overhead */
+  uint64_t total_btree_space;
+
+  /* static overhead per page */
+  uint32_t overhead_per_page;
+
+  /* number of keys stored per page (w/o duplicates) */
+  min_max_avg_u32_t keys_per_page;
+
+  /* payload storage assigned to the KeyLists */
+  min_max_avg_u32_t keylist_ranges;
+
+  /* payload storage assigned to the RecordLists */
+  min_max_avg_u32_t recordlist_ranges;
+
+  /* storage assigned to the Indices (if available) */
+  min_max_avg_u32_t keylist_index;
+
+  /* storage assigned to the Indices (if available) */
+  min_max_avg_u32_t recordlist_index;
+
+  /* unused storage (i.e. gaps between pages, underfilled blocks etc) */
+  min_max_avg_u32_t keylist_unused;
+
+  /* unused storage (i.e. gaps between pages, underfilled blocks etc) */
+  min_max_avg_u32_t recordlist_unused;
+
+  /* number of blocks per page (if available) */
+  min_max_avg_u32_t keylist_blocks_per_page;
+
+  /* block sizes (if available) */
+  min_max_avg_u32_t keylist_block_sizes;
+} btree_metrics_t;
+
 /**
  * Retrieves collected metrics from the hamsterdb Environment. Used mainly
  * for testing.
@@ -127,97 +177,103 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * Metrics marked "global" are stored globally and shared between multiple
  * Environments.
  */
-#define HAM_METRICS_VERSION         8
+#define HAM_METRICS_VERSION         9
 
 typedef struct ham_env_metrics_t {
-  // the version indicator - must be HAM_METRICS_VERSION
+  /* the version indicator - must be HAM_METRICS_VERSION */
   uint16_t version;
 
-  // number of total allocations for the whole lifetime of the process
+  /* number of total allocations for the whole lifetime of the process */
   uint64_t mem_total_allocations;
 
-  // currently active allocations for the whole process
+  /* currently active allocations for the whole process */
   uint64_t mem_current_allocations;
 
-  // current amount of memory allocated and tracked by the process
-  // (excludes memory used by the kernel or not allocated with
-  // malloc/free)
+  /* current amount of memory allocated and tracked by the process
+   * (excludes memory used by the kernel or not allocated with
+   * malloc/free) */
   uint64_t mem_current_usage;
 
-  // peak usage of memory (for the whole process)
+  /* peak usage of memory (for the whole process) */
   uint64_t mem_peak_usage;
 
-  // the heap size of this process
+  /* the heap size of this process */
   uint64_t mem_heap_size;
 
-  // amount of pages fetched from disk
+  /* amount of pages fetched from disk */
   uint64_t page_count_fetched;
 
-  // amount of pages written to disk
+  /* amount of pages written to disk */
   uint64_t page_count_flushed;
 
-  // number of index pages in this Environment
+  /* number of index pages in this Environment */
   uint64_t page_count_type_index;
 
-  // number of blob pages in this Environment
+  /* number of blob pages in this Environment */
   uint64_t page_count_type_blob;
 
-  // number of page-manager pages in this Environment
+  /* number of page-manager pages in this Environment */
   uint64_t page_count_type_page_manager;
 
-  // number of successful freelist hits
+  /* number of successful freelist hits */
   uint64_t freelist_hits;
 
-  // number of freelist misses
+  /* number of freelist misses */
   uint64_t freelist_misses;
 
-  // number of successful cache hits
+  /* number of successful cache hits */
   uint64_t cache_hits;
 
-  // number of cache misses
+  /* number of cache misses */
   uint64_t cache_misses;
 
-  // number of blobs allocated
+  /* number of blobs allocated */
   uint64_t blob_total_allocated;
 
-  // number of blobs read
+  /* number of blobs read */
   uint64_t blob_total_read;
 
-  // (global) number of btree page splits
+  /* (global) number of btree page splits */
   uint64_t btree_smo_split;
 
-  // (global) number of btree page merges
+  /* (global) number of btree page merges */
   uint64_t btree_smo_merge;
 
-  // (global) number of extended keys
+  /* (global) number of extended keys */
   uint64_t extended_keys;
 
-  // (global) number of extended duplicate tables
+  /* (global) number of extended duplicate tables */
   uint64_t extended_duptables;
 
-  // number of bytes that the log/journal flushes to disk
+  /* number of bytes that the log/journal flushes to disk */
   uint64_t journal_bytes_flushed;
 
-  // PRO: log/journal bytes before compression
+  /* PRO: log/journal bytes before compression */
   uint64_t journal_bytes_before_compression;
 
-  // PRO: log/journal bytes after compression
+  /* PRO: log/journal bytes after compression */
   uint64_t journal_bytes_after_compression;
 
-  // PRO: record bytes before compression
+  /* PRO: record bytes before compression */
   uint64_t record_bytes_before_compression;
 
-  // PRO: record bytes after compression
+  /* PRO: record bytes after compression */
   uint64_t record_bytes_after_compression;
 
-  // PRO: key bytes before compression
+  /* PRO: key bytes before compression */
   uint64_t key_bytes_before_compression;
 
-  // PRO: key bytes after compression
+  /* PRO: key bytes after compression */
   uint64_t key_bytes_after_compression;
 
-  // PRO: set to the max. SIMD lane width (0 if SIMD is not available)
+  /* PRO: set to the max. SIMD lane width (0 if SIMD is not available) */
   int simd_lane_width;
+ 
+  /* btree metrics for leaf nodes */
+  btree_metrics_t btree_leaf_metrics;
+
+  /* btree metrics for internal nodes */
+  btree_metrics_t btree_internal_metrics;
 
 } ham_env_metrics_t;
 

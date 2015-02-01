@@ -212,6 +212,13 @@ class BinaryKeyList : public BaseKeyList
       m_range_size = new_range_size;
     }
 
+    // Fills the btree_metrics structure
+    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+      BaseKeyList::fill_metrics(metrics, node_count);
+      BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
+              m_range_size - (node_count * m_key_size));
+    }
+
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) const {
       for (size_t i = 0; i < m_key_size; i++)

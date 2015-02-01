@@ -648,7 +648,8 @@ struct DuplicateTableFixture
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+                (LocalDatabase *)m_db));
   }
 
   ~DuplicateTableFixture() {
@@ -1560,7 +1561,8 @@ struct UpfrontIndexFixture
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+                (LocalDatabase *)m_db));
   }
 
   ~UpfrontIndexFixture() {

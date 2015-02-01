@@ -49,6 +49,12 @@ struct BaseRecordList
   void vacuumize(size_t node_count, bool force) const {
   }
 
+  // Fills the btree_metrics structure
+  void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+    BtreeStatistics::update_min_max_avg(&metrics->recordlist_ranges,
+                        m_range_size);
+  }
+
   // The size of the range (in bytes)
   size_t m_range_size;
 };
