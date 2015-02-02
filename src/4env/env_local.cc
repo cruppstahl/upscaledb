@@ -750,6 +750,11 @@ LocalEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
   // the Journal (if available)
   if (m_journal)
     m_journal->fill_metrics(metrics);
+  // the (first) database
+  if (!m_database_map.empty()) {
+    LocalDatabase *db = (LocalDatabase *)m_database_map.begin()->second;
+    db->fill_metrics(metrics);
+  }
   // and of the btrees
   BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?

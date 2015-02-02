@@ -162,4 +162,20 @@ BtreeStatistics::get_insert_hints(uint32_t flags)
   return (hints);
 }
 
+#define AVG(m)  m._instances ? (m._total / m._instances) : 0
+
+void
+BtreeStatistics::finalize_metrics(btree_metrics_t *metrics)
+{
+  metrics->keys_per_page.avg = AVG(metrics->keys_per_page);
+  metrics->keylist_ranges.avg = AVG(metrics->keylist_ranges);
+  metrics->recordlist_ranges.avg = AVG(metrics->recordlist_ranges);
+  metrics->keylist_index.avg = AVG(metrics->keylist_index);
+  metrics->recordlist_index.avg = AVG(metrics->recordlist_index);
+  metrics->keylist_unused.avg = AVG(metrics->keylist_unused);
+  metrics->recordlist_unused.avg = AVG(metrics->recordlist_unused);
+  metrics->keylist_blocks_per_page.avg = AVG(metrics->keylist_blocks_per_page);
+  metrics->keylist_block_sizes.avg = AVG(metrics->keylist_block_sizes);
+}
+
 } // namespace hamsterdb

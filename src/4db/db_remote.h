@@ -50,6 +50,9 @@ class RemoteDatabase : public Database
       : Database(env, config), m_remote_handle(remote_handle) {
     }
 
+    // Fills in the current metrics
+    virtual void fill_metrics(ham_env_metrics_t *metrics) { }
+
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 

@@ -675,6 +675,46 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   return (0);
 }
 
+struct MetricsVisitor : public BtreeVisitor {
+  MetricsVisitor(ham_env_metrics_t *metrics)
+    : m_metrics(metrics) {
+  }
+
+  // Specifies if the visitor modifies the node
+  virtual bool is_read_only() const {
+    return (true);
+  }
+
+  // called for each node
+  virtual void operator()(Context *context, BtreeNodeProxy *node) {
+    if (node->is_leaf())
+      node->fill_metrics(&m_metrics->btree_leaf_metrics);
+    else
+      node->fill_metrics(&m_metrics->btree_internal_metrics);
+  }
+  
+  ham_env_metrics_t *m_metrics;
+};
+
+void
+LocalDatabase::fill_metrics(ham_env_metrics_t *metrics)
+{
+  metrics->btree_leaf_metrics.database_name = name();
+  metrics->btree_internal_metrics.database_name = name();
+
+  try {
+    MetricsVisitor visitor(metrics);
+    Context context(lenv(), 0, this);
+    m_btree_index->visit_nodes(&context, visitor, true);
+
+    // calculate the "avg" values
+    BtreeStatistics::finalize_metrics(&metrics->btree_leaf_metrics);
+    BtreeStatistics::finalize_metrics(&metrics->btree_internal_metrics);
+  }
+  catch (Exception &ex) {
+  }
+}
+
 ham_status_t
 LocalDatabase::get_parameters(ham_parameter_t *param)
 {

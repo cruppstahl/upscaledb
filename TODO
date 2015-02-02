@@ -438,10 +438,6 @@ x PRO: add more simdcomp related functions for blocks < 128 integers
     x add tests
     x send push requests to Daniel
 
-o PRO: simdcomp should use binary search for decompressed blocks
-    (currently uses linear search)
-    -> see mail from Daniel for more information, code
-
 o PRO: retrieve better statistics regarding compression/overhead/payload
     x for each node retrieve these statistics and accumulate them
         as min, max, avg:
@@ -451,11 +447,18 @@ o PRO: retrieve better statistics regarding compression/overhead/payload
         - overhead per index
         - number of indices
         - unused storage
-    o each node has a fill_metrics() method
+    x each node has a fill_metrics() method
     o extend ham_info
         o by default, no new stats are printed
-        o otherwise run "-f", call fill_metrics() for each
-            and print them
+        o otherwise call fill_metrics() and print them
+
+o PRO: simdcomp should use binary search for decompressed blocks
+    (currently uses linear search)
+    -> see mail from Daniel for more information, code
+    o Simdcomp: find (line 152)
+    o Simdcomp: insert (line 589)
+    o Grouped Varint: find (line 157)
+    o Grouped Varint: insert (line 570)
 
 o PRO: integrate Nathan's sources, or start a new KeyList
 

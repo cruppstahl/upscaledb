@@ -26,7 +26,8 @@
 #define ARG_HELP        1
 #define ARG_DBNAME      2
 #define ARG_FULL        3
-#define ARG_QUIET       4
+#define ARG_BTREE       4
+#define ARG_QUIET       5
 
 static bool quiet = false;
 
@@ -51,6 +52,12 @@ static option_t opts[] = {
     "f",
     "full",
     "print full information",
+    0 },
+  {
+    ARG_BTREE,
+    "b",
+    "btree",
+    "print btree information (for developers)",
     0 },
   {
     ARG_QUIET,
@@ -112,83 +119,15 @@ print_environment(ham_env_t *env) {
 }
 
 static void
-print_database(ham_db_t *db, uint16_t dbname, int full) {
+print_full_information(ham_db_t *db) {
   ham_cursor_t *cursor;
+  ham_status_t st;
   ham_key_t key = {0};
   ham_record_t rec = {0};
-
-  // get the database information
-  ham_parameter_t params[] = {
-    {HAM_PARAM_KEY_TYPE, 0},
-    {HAM_PARAM_KEY_SIZE, 0},
-    {HAM_PARAM_RECORD_SIZE, 0},
-    {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
-    {HAM_PARAM_FLAGS, 0},
-    {HAM_PARAM_RECORD_COMPRESSION, 0},
-    {HAM_PARAM_KEY_COMPRESSION, 0},
-    {0, 0}
-  };
-
-  ham_status_t st = ham_db_get_parameters(db, &params[0]);
-  if (st != 0)
-    error("ham_db_get_parameters", st);
 
   unsigned num_items = 0, min_key_size = 0xffffffff,
       max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
       total_key_size = 0, total_rec_size = 0, extended_keys = 0;
-
-  if (!quiet) {
-    const char *key_type = 0;
-    switch (params[0].value) {
-      case HAM_TYPE_UINT8:
-        key_type = "HAM_TYPE_UINT8";
-        break;
-      case HAM_TYPE_UINT16:
-        key_type = "HAM_TYPE_UINT16";
-        break;
-      case HAM_TYPE_UINT32:
-        key_type = "HAM_TYPE_UINT32";
-        break;
-      case HAM_TYPE_UINT64:
-        key_type = "HAM_TYPE_UINT64";
-        break;
-      case HAM_TYPE_REAL32:
-        key_type = "HAM_TYPE_REAL32";
-        break;
-      case HAM_TYPE_REAL64:
-        key_type = "HAM_TYPE_REAL64";
-        break;
-      case HAM_TYPE_CUSTOM:
-        key_type = "HAM_TYPE_CUSTOM";
-        break;
-      default:
-        key_type = "HAM_TYPE_BINARY";
-        break;
-    }
-    printf("\n");
-    printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
-    printf("    key type:             %s\n", key_type);
-    printf("    max key size:         %u\n", (unsigned)params[1].value);
-    printf("    max keys per page:    %u\n", (unsigned)params[3].value);
-    printf("    flags:                0x%04x\n", (unsigned)params[4].value);
-    if (params[5].value)
-      printf("    record compression:   %s\n",
-                      get_compressor_name((int)params[5].value));
-    if (params[6].value)
-      printf("    key compression:      %s\n",
-                      get_compressor_name((int)params[6].value));
-    if (params[2].value == HAM_RECORD_SIZE_UNLIMITED)
-      printf("    record size:          unlimited\n");
-    else
-      printf("    record size:          %d (inline: %s)\n",
-                      (unsigned)params[2].value,
-                      params[4].value & HAM_FORCE_RECORDS_INLINE
-                            ? "yes"
-                            : "no");
-  }
-
-  if (!full)
-    return;
 
   st = ham_cursor_create(&cursor, db, 0, 0);
   if (st != HAM_SUCCESS)
@@ -241,12 +180,144 @@ print_database(ham_db_t *db, uint16_t dbname, int full) {
   }
 }
 
+static void
+print_btree_metrics(btree_metrics_t *metrics, const char *prefix) {
+  printf("    %s: number of pages:    %u\n", prefix,
+                  (uint32_t)metrics->number_of_pages);
+  printf("    %s: number of keys:     %u\n", prefix,
+                  (uint32_t)metrics->number_of_keys);
+  printf("    %s: keys per page (min, avg, max):      %u, %u, %u\n", prefix,
+                  metrics->keys_per_page.min,
+                  metrics->keys_per_page.avg,
+                  metrics->keys_per_page.max);
+  printf("    %s: keylist ranges (min, avg, max):     %u, %u, %u\n", prefix,
+                  metrics->keylist_ranges.min,
+                  metrics->keylist_ranges.avg,
+                  metrics->keylist_ranges.max);
+  printf("    %s: recordlist ranges (min, avg, max):  %u, %u, %u\n", prefix,
+                  metrics->recordlist_ranges.min,
+                  metrics->recordlist_ranges.avg,
+                  metrics->recordlist_ranges.max);
+  printf("    %s: keylist index (min, avg, max):      %u, %u, %u\n", prefix,
+                  metrics->keylist_index.min,
+                  metrics->keylist_index.avg,
+                  metrics->keylist_index.max);
+  printf("    %s: recordlist index (min, avg, max):   %u, %u, %u\n", prefix,
+                  metrics->recordlist_index.min,
+                  metrics->recordlist_index.avg,
+                  metrics->recordlist_index.max);
+  printf("    %s: keylist unused (min, avg, max):     %u, %u, %u\n", prefix,
+                  metrics->keylist_unused.min,
+                  metrics->keylist_unused.avg,
+                  metrics->keylist_unused.max);
+  printf("    %s: recordlist unused (min, avg, max):  %u, %u, %u\n", prefix,
+                  metrics->recordlist_unused.min,
+                  metrics->recordlist_unused.avg,
+                  metrics->recordlist_unused.max);
+  printf("    %s: keylist blocks (min, avg, max):     %u, %u, %u\n", prefix,
+                  metrics->keylist_blocks_per_page.min,
+                  metrics->keylist_blocks_per_page.avg,
+                  metrics->keylist_blocks_per_page.max);
+  printf("    %s: keylist block size (min, avg, max): %u, %u, %u\n", prefix,
+                  metrics->keylist_block_sizes.min,
+                  metrics->keylist_block_sizes.avg,
+                  metrics->keylist_block_sizes.max);
+}
+
+static void
+print_btree_information(ham_env_t *env, ham_db_t *db) {
+  ham_env_metrics_t metrics;
+
+  ham_status_t st = ham_env_get_metrics(env, &metrics);
+  if (st != HAM_SUCCESS)
+    error("ham_env_get_metrics", st);
+
+  print_btree_metrics(&metrics.btree_internal_metrics, "btree node");
+  print_btree_metrics(&metrics.btree_leaf_metrics, "btree leaf");
+}
+
+static void
+print_database(ham_env_t *env, ham_db_t *db, uint16_t dbname,
+                int full, int btree) {
+  // get the database information
+  ham_parameter_t params[] = {
+    {HAM_PARAM_KEY_TYPE, 0},
+    {HAM_PARAM_KEY_SIZE, 0},
+    {HAM_PARAM_RECORD_SIZE, 0},
+    {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
+    {HAM_PARAM_FLAGS, 0},
+    {HAM_PARAM_RECORD_COMPRESSION, 0},
+    {HAM_PARAM_KEY_COMPRESSION, 0},
+    {0, 0}
+  };
+
+  ham_status_t st = ham_db_get_parameters(db, &params[0]);
+  if (st != 0)
+    error("ham_db_get_parameters", st);
+
+  if (!quiet) {
+    const char *key_type = 0;
+    switch (params[0].value) {
+      case HAM_TYPE_UINT8:
+        key_type = "HAM_TYPE_UINT8";
+        break;
+      case HAM_TYPE_UINT16:
+        key_type = "HAM_TYPE_UINT16";
+        break;
+      case HAM_TYPE_UINT32:
+        key_type = "HAM_TYPE_UINT32";
+        break;
+      case HAM_TYPE_UINT64:
+        key_type = "HAM_TYPE_UINT64";
+        break;
+      case HAM_TYPE_REAL32:
+        key_type = "HAM_TYPE_REAL32";
+        break;
+      case HAM_TYPE_REAL64:
+        key_type = "HAM_TYPE_REAL64";
+        break;
+      case HAM_TYPE_CUSTOM:
+        key_type = "HAM_TYPE_CUSTOM";
+        break;
+      default:
+        key_type = "HAM_TYPE_BINARY";
+        break;
+    }
+    printf("\n");
+    printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
+    printf("    key type:             %s\n", key_type);
+    printf("    max key size:         %u\n", (unsigned)params[1].value);
+    printf("    max keys per page:    %u\n", (unsigned)params[3].value);
+    printf("    flags:                0x%04x\n", (unsigned)params[4].value);
+    if (params[5].value)
+      printf("    record compression:   %s\n",
+                      get_compressor_name((int)params[5].value));
+    if (params[6].value)
+      printf("    key compression:      %s\n",
+                      get_compressor_name((int)params[6].value));
+    if (params[2].value == HAM_RECORD_SIZE_UNLIMITED)
+      printf("    record size:          unlimited\n");
+    else
+      printf("    record size:          %d (inline: %s)\n",
+                      (unsigned)params[2].value,
+                      params[4].value & HAM_FORCE_RECORDS_INLINE
+                            ? "yes"
+                            : "no");
+  }
+
+  if (full)
+    print_full_information(db);
+  if (btree)
+    print_btree_information(env, db);
+}
+
 int
 main(int argc, char **argv) {
   unsigned opt;
   char *param, *filename = 0, *endptr = 0;
   unsigned short dbname = 0xffff;
   int full = 0;
+  int btree = 0;
 
   uint16_t names[1024];
   uint32_t i, names_count = 1024;
@@ -273,6 +344,9 @@ main(int argc, char **argv) {
       case ARG_FULL:
         full = 1;
         break;
+      case ARG_BTREE:
+        btree = 1;
+        break;
       case ARG_QUIET:
         quiet = true;
         break;
@@ -292,6 +366,8 @@ main(int argc, char **argv) {
         printf("     -h:     this help screen (alias: --help)\n");
         printf("     -db DBNAME: only print info about "
             "this database (alias: --dbname=<arg>)\n");
+        printf("     -b:     print btree information (for developers)"
+            "(alias: --btree)\n");
         printf("     -f:     print full information "
             "(alias: --full)\n");
         return (0);
@@ -334,7 +410,7 @@ main(int argc, char **argv) {
     else if (st)
       error("ham_env_open_db", st);
 
-    print_database(db, dbname, full);
+    print_database(env, db, dbname, full, btree);
 
     st = ham_db_close(db, 0);
     if (st)
@@ -347,7 +423,7 @@ main(int argc, char **argv) {
       if (st)
         error("ham_env_open_db", st);
 
-      print_database(db, names[i], full);
+      print_database(env, db, names[i], full, btree);
 
       st = ham_db_close(db, 0);
       if (st)

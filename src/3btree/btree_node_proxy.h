@@ -244,7 +244,7 @@ class BtreeNodeProxy
     virtual void merge_from(Context *context, BtreeNodeProxy *other) = 0;
 
     // Fills the btree_metrics structure
-    virtual void fill_metrics(btree_metrics_t *metrics, size_t node_count) = 0;
+    virtual void fill_metrics(btree_metrics_t *metrics) = 0;
 
     // Prints the node to stdout. Only for testing and debugging!
     virtual void print(Context *context, size_t node_count = 0) = 0;
@@ -577,8 +577,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Fills the btree_metrics structure
-    virtual void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
-      m_impl.fill_metrics(metrics, node_count);
+    virtual void fill_metrics(btree_metrics_t *metrics) {
+      m_impl.fill_metrics(metrics, get_count());
     }
 
     // Prints the node to stdout (for debugging)

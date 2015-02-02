@@ -125,6 +125,9 @@ typedef struct min_max_avg_u32_t {
 
 /* btree metrics */
 typedef struct btree_metrics_t {
+  /* the database name of the btree */
+  uint16_t database_name;
+
   /* number of pages */
   uint64_t number_of_pages;
 

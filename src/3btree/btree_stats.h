@@ -26,6 +26,8 @@
 
 #include "0root/root.h"
 
+#include <limits>
+
 #include "ham/hamsterdb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -135,8 +137,15 @@ class BtreeStatistics {
       return (m_keylist_capacities[(int)leaf]);
     }
 
+    // Calculate the "average" values
+    static void finalize_metrics(btree_metrics_t *metrics);
+
     // Update a min_max_avg structure
     static void update_min_max_avg(min_max_avg_u32_t *data, uint32_t value) {
+      // first update? then perform initialization
+      if (data->_instances == 0)
+        data->min = std::numeric_limits<uint32_t>::max();
+
       if (data->min > value)
         data->min = value;
       if (data->max < value)

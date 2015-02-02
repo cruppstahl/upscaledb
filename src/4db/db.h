@@ -24,6 +24,7 @@
 
 #include "0root/root.h"
 
+#include "ham/hamsterdb_int.h"
 #include "ham/hamsterdb_ola.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -85,6 +86,9 @@ class Database
     void set_name(uint16_t name) {
       m_config.db_name = name;
     }
+
+    // Fills in the current metrics
+    virtual void fill_metrics(ham_env_metrics_t *metrics) = 0;
 
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
