@@ -445,22 +445,24 @@ x PRO: integrate Nathan's sources, or start a new KeyList
     x add support for ham_bench
     x add monster tests (pro)
 
-o Concurrency: move "purge cache" to background (cont...)
-        o Right now only the Cache uses a mutex. But we need to know
-            whether a page is in use (= in a changelog) or if it's purged.
-            o move mutex/synchronization from Cache to PageManager
-            o add an atomic state to the page ("in use", "unused", "io")
-            o set state to "in use" when storing the page in the Changeset
-            o set state to "unused" when removing from the changeset
-            o when writing to disk: acquire the lock; when flushing: set the
-                pers-pointer to null
-                o PageManager must deal with flushed pages (pers == 0)
-                o if enough pages were flushed: remove empty stubs from
-                    the list
+x make sure the library and 3rdparty are compiled with -O3 by default
 
-        o wake up thread if cache is full
-        o some messages should only exist once, i.e. purging the cache.
-            no need to add it to the queue multiple times
+o Concurrency: move "purge cache" to background (cont...)
+    o Right now only the Cache uses a mutex. But we need to know
+        whether a page is in use (= in a changelog) or if it's purged.
+        o move mutex/synchronization from Cache to PageManager
+        o add an atomic state to the page ("in use", "unused", "io")
+        o set state to "in use" when storing the page in the Changeset
+        o set state to "unused" when removing from the changeset
+        o when writing to disk: acquire the lock; when flushing: set the
+            pers-pointer to null
+            o PageManager must deal with flushed pages (pers == 0)
+            o if enough pages were flushed: remove empty stubs from
+                the list
+
+    o wake up thread if cache is full
+    o some messages should only exist once, i.e. purging the cache.
+        no need to add it to the queue multiple times
 
     o run performance tests again
         o also for > 10 million inserts
@@ -496,8 +498,6 @@ o blob performance improvements
             pointer
         - If a record is in a mapped page then simply return a
             pointer
-
-o make sure the library and 3rdparty are compiled with -O3 by default
 
 o currently, code uses linear search over small ranges. This is not efficient.
     If the range is in the cache then binary is still faster.
