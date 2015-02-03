@@ -775,10 +775,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
           }
           break;
         case HAM_PARAM_RECORD_COMPRESSION:
-          p->value = get_btree_index()->get_record_compression();
+          p->value = btree_index()->get_record_compression();
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          p->value = get_btree_index()->get_key_compression();
+          p->value = btree_index()->get_key_compression();
           break;
         default:
           ham_trace(("unknown parameter %d", (int)p->name));

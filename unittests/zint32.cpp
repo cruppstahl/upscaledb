@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include "3rdparty/catch/catch.hpp"
+#include "3rdparty/simdcomp/include/simdcomp.h"
 
 #include "utils.h"
 #include "os.hpp"
@@ -211,6 +212,38 @@ TEST_CASE("GroupVarint/descendingDataTest", "")
     ivec.push_back(i);
 
   Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("StreamVbyte/randomDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+  std::srand(0); // make this reproducible
+  std::random_shuffle(ivec.begin(), ivec.end());
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("StreamVbyte/ascendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("StreamVbyte/descendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 30000; i >= 0; i--)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
   f.insertFindEraseFind(ivec);
 }
 

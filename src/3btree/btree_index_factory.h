@@ -34,6 +34,7 @@
 #include "3btree/btree_keys_zint32.h"
 #include "3btree/btree_keys_simdcomp.h"
 #include "3btree/btree_keys_groupvarint.h"
+#include "3btree/btree_keys_streamvbyte.h"
 #include "3btree/btree_records_default.h"
 #include "3btree/btree_records_inline.h"
 #include "3btree/btree_records_internal.h"
@@ -86,7 +87,7 @@ struct BtreeIndexFactory
     bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
     bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
-    int key_compression = db->get_config().key_compressor;
+    int key_compression = db->config().key_compressor;
 
     switch (key_type) {
       // 8bit unsigned integer
@@ -236,6 +237,23 @@ struct BtreeIndexFactory
             else
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::GroupVarintKeyList,
+                              PaxLayout::DefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == HAM_COMPRESSOR_UINT32_STREAMVBYTE) {
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
+                        NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
+                              PaxLayout::InlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }

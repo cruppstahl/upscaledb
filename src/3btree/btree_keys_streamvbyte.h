@@ -18,8 +18,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_SIMDCOMP_H
-#define HAM_BTREE_KEYS_SIMDCOMP_H
+#ifndef HAM_BTREE_KEYS_STREAMVBYTE_H
+#define HAM_BTREE_KEYS_STREAMVBYTE_H
 
 #include <sstream>
 #include <iostream>
@@ -27,14 +27,26 @@
 
 #include "0root/root.h"
 
-#include "3rdparty/simdcomp/include/simdcomp.h"
-
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_keys_block.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
 #endif
+
+extern "C" {
+extern uint8_t *svb_encode_scalar_d1_init(const uint32_t *in,
+                uint8_t * /*restrict*/ keyPtr, uint8_t * /*restrict */dataPtr,
+                uint32_t count, uint32_t prev);
+
+extern uint8_t *svb_decode_scalar_d1_init(uint32_t *out,
+                uint8_t * keyPtr, uint8_t * dataPtr, uint64_t count,
+                uint32_t prev);
+extern uint8_t *svb_decode_avx_d1_init(uint32_t *out,
+                uint8_t * keyPtr, uint8_t * dataPtr, uint64_t count,
+                uint32_t prev);
+
+}
 
 namespace hamsterdb {
 
@@ -47,20 +59,35 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 struct HAM_PACK_1 SimdCompIndex {
+HAM_PACK_0 struct HAM_PACK_1 StreamVbyteIndex {
   enum {
     // Initial size of a new block (1 bit per key = 16 bytes)
-    kInitialBlockSize = 16,
+    kInitialBlockSize = 17, // 1 + 4 * 4 // TODO
 
     // Grow blocks by this factor
-    kGrowFactor = 16,
+    kGrowFactor = 17, // TODO
   };
 
   // initialize this block index
   void initialize(uint32_t offset, uint32_t block_size) {
     ::memset(this, 0, sizeof(*this));
     this->offset = offset;
-    this->bits = block_size / 16;
+    this->block_size = block_size;
+  }
+
+  // returns the used block of the block
+  uint32_t get_used_size() const {
+    return (used_size);
+  }
+
+  // returns the total block size
+  uint32_t get_block_size() const {
+    return (block_size);
+  }
+
+  // sets the total block size
+  void set_block_size(uint32_t size) {
+    block_size = size;
   }
 
   // offset of the payload, relative to the beginning of the payloads
@@ -70,41 +97,28 @@ HAM_PACK_0 struct HAM_PACK_1 SimdCompIndex {
   // the start value of this block
   uint32_t value;
 
-  // returns the used block of the block
-  uint32_t get_used_size() const {
-    return (get_block_size());
-  }
+  // the total size of this block; max 511 bytes
+  unsigned int block_size : 9;
 
-  // returns the total block size
-  uint32_t get_block_size() const {
-    return (bits * 128 / 8);
-  }
+  // used size of this block; max 511 bytes
+  unsigned int used_size : 9;
 
-  // sets the block size; not required
-  void set_block_size(uint32_t new_size) {
-    // nop
-  }
-
-  // the number of keys in this block; max 129 (kMaxKeysPerBlock)
-  unsigned short key_count : 8;
-
-  // stored bits per integer; max 32
-  unsigned short bits : 6;
+  // the number of keys in this block; max 255 (kMaxKeysPerBlock)
+  unsigned int key_count : 8;
 } HAM_PACK_2;
 #include "1base/packstop.h"
 
-class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
+class StreamVbyteKeyList : public BlockKeyList<StreamVbyteIndex>
 {
   public:
     enum {
-      // Maximum keys per block (a compressed block holds up to 128 keys,
-      // and one key is stored in the index)
-      kMaxKeysPerBlock = 129
+      // Maximum keys per block
+      kMaxKeysPerBlock = 128 // TODO run tests, use same as GroupVarint
     };
 
     // Constructor
-    SimdCompKeyList(LocalDatabase *db)
-      : BlockKeyList<SimdCompIndex>(db) {
+    StreamVbyteKeyList(LocalDatabase *db)
+      : BlockKeyList<StreamVbyteIndex>(db) {
     }
 
     // Returns the key at the given |slot|.
@@ -153,8 +167,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         return (slot);
       }
 
-      // uncompress the block, then search for the key
-      uint32_t data[128];
+      // uncompress the block, then perform a linear search
+      uint32_t data[kMaxKeysPerBlock];
       uncompress_block(index, data);
 
       uint32_t *begin = &data[0];
@@ -207,7 +221,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         index = find_block_by_slot(slot, &position_in_block);
 
       // uncompress the block and remove the key
-      uint32_t data[128];
+      uint32_t data[kMaxKeysPerBlock];
       uncompress_block(index, data);
 
       // delete the first value?
@@ -226,27 +240,12 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         index->key_count = 0;
         remove_block(index);
       }
-      // otherwise check if the block has to grow because the bit
-      // width increased
+      // otherwise decrease key count and compress the block
       else {
-        if (index->bits < 32 && position_in_block < index->key_count - 1) {
-          uint32_t new_bits;
-          ham_assert(position_in_block > 0);
-          if (position_in_block == 1)
-             new_bits = bits(data[0] - index->value);
-          else
-             new_bits = bits(data[position_in_block - 1]
-                                - data[position_in_block - 2]);
-          if (new_bits > index->bits) {
-            // yes, try to grow; this will cause a split if it fails
-            uint32_t new_size = new_bits * 128 / 8;
-            grow_block(index, new_size - index->get_block_size());
-            index->bits = new_bits;
-          }
+        if (--index->key_count > 0) {
+          index->used_size = compress_block(index, data);
+          ham_assert(index->used_size <= index->block_size);
         }
-
-        if (--index->key_count > 0)
-          compress_block(index, data);
       }
 
       ham_assert(check_integrity(0, node_count - 1));
@@ -254,7 +253,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
     // Copies all keys from this[sstart] to dest[dstart]; this method
     // is used to split and merge btree nodes.
-    void copy_to(int sstart, size_t node_count, SimdCompKeyList &dest,
+    void copy_to(int sstart, size_t node_count, StreamVbyteKeyList &dest,
                     size_t other_count, int dstart) {
       ham_assert(check_integrity(0, node_count));
 
@@ -270,14 +269,18 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       int dst_position_in_block;
       Index *dsti = dest.find_block_by_slot(dstart, &dst_position_in_block);
 
+      // grow destination block
+      if (srci->used_size > dsti->block_size)
+        dest.grow_block(dsti, srci->used_size - dsti->block_size);
+
       bool initial_block_used = false;
 
       // If start offset or destination offset > 0: uncompress both blocks,
       // merge them
       if (src_position_in_block > 0 || dst_position_in_block > 0) {
-        uint32_t sdata[128];
+        uint32_t sdata[kMaxKeysPerBlock];
         uncompress_block(srci, sdata);
-        uint32_t ddata[128];
+        uint32_t ddata[kMaxKeysPerBlock];
         dest.uncompress_block(dsti, ddata);
 
         uint32_t *d = &ddata[srci->key_count];
@@ -300,19 +303,11 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         }
 
         srci->key_count -= dsti->key_count;
+        srci->used_size = compress_block(srci, sdata);
+        ham_assert(srci->used_size <= srci->block_size);
 
-        // grow destination block?
-        if (dsti->bits < 32) {
-          uint32_t new_bits = calc_max_bits(dsti->value, &ddata[0],
-                                    dsti->key_count - 1);
-          if (new_bits > dsti->bits) {
-            uint32_t new_size = new_bits * 128 / 8;
-            dest.grow_block(dsti, new_size - dsti->get_block_size());
-            dsti->bits = new_bits;
-          }
-        }
-
-        dest.compress_block(dsti, ddata);
+        dsti->used_size = dest.compress_block(dsti, ddata);
+        ham_assert(dsti->used_size <= dsti->block_size);
 
         srci++;
         dsti++;
@@ -330,12 +325,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
                       srci++, copied_blocks++) {
         if (initial_block_used == true)
           dsti = dest.add_block(dest.get_block_count(), srci->get_block_size());
-        else if (dsti->bits < srci->bits) {
-          dest.grow_block(dsti,
-                  srci->get_block_size() - dsti->get_block_size());
-          dsti->bits = srci->bits;
+        else
           initial_block_used = true;
-        }
 
         copy_blocks(srci, dest, dsti);
       }
@@ -368,7 +359,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       Index *it = get_block_index(0);
       Index *end = get_block_index(get_block_count());
       for (; it < end; it++) {
-        uint32_t data[128];
+        uint32_t data[kMaxKeysPerBlock];
         uncompress_block(it, data);
         (*visitor)(data, it->key_count);
       }
@@ -377,7 +368,17 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
     bool check_integrity(Context *, size_t node_count) const {
-      return (BlockKeyList<SimdCompIndex>::check_integrity(node_count));
+      if (!BlockKeyList<StreamVbyteIndex>::check_integrity(node_count))
+        return (false);
+
+      Index *index = get_block_index(0);
+      Index *end = index + get_block_count();
+      for (; index < end; index++) {
+        if (index->used_size == 0 && index->key_count > 1)
+          return (false);
+        ham_assert(index->key_count <= kMaxKeysPerBlock + 1);
+      }
+      return (true);
     }
 
     // Prints a key to |out| (for debugging)
@@ -387,47 +388,27 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
   private:
     // Uncompresses a whole block
-    void uncompress_block(Index *index, uint32_t *data) const {
-      simdunpackd1(index->value, (__m128i *)get_block_data(index),
-                      data, index->bits);
+    void uncompress_block(Index *index, uint32_t *out) const {
+      if (index->key_count > 1) {
+        uint32_t count = index->key_count - 1;
+        uint8_t *in = get_block_data(index);
+        uint32_t key_len = ((count + 3) / 4);   // 2-bits per key (rounded up)
+        uint8_t *data = in + key_len;    // data starts at end of keys
+        svb_decode_avx_d1_init(out, in, data, count, index->value);
+        //svb_decode_scalar_d1_init(out, in, data, count, index->value);
+      }
     }
 
     // Compresses a whole block
-    void compress_block(Index *index, uint32_t *data) {
+    uint32_t compress_block(Index *index, uint32_t *in) const {
       ham_assert(index->key_count > 0);
-      simdpackwithoutmaskd1(index->value, data,
-                      (__m128i *)get_block_data(index), index->bits);
-    }
-
-    // Returns the number of bits required to store a block
-    uint32_t calc_max_bits(uint32_t initial_value, uint32_t *data,
-                    uint32_t length) const {
-      if (length == 0)
-        return (1);
-      return (simdmaxbitsd1_length(initial_value, data, length));
-    }
-
-    // Copies two blocks; assumes that the new block |dst| has been properly
-    // allocated
-    void copy_blocks(Index *src, SimdCompKeyList &dest, Index *dst) {
-      ham_assert(dst->bits == src->bits);
-      dst->value     = src->value;
-      dst->key_count = src->key_count;
-
-      ::memcpy(dest.get_block_data(dst), get_block_data(src),
-                      src->get_block_size());
-    }
-
-    // Prints all keys of a block to stdout (for debugging)
-    void print_block(Index *index) const {
-      uint32_t key = index->value;
-      std::cout << "0: " << key << std::endl;
-
-      uint32_t data[128];
-      uncompress_block(index, data);
-
-      for (uint32_t i = 1; i < index->key_count; i++)
-        std::cout << i << ": " << data[i - 1] << std::endl;
+      uint8_t *out = get_block_data(index);
+      uint32_t count = index->key_count - 1;
+      uint32_t key_len = (count + 3) / 4; // 2-bits rounded to full byte
+      uint8_t *data = out + key_len;  // variable byte data after all keys
+    
+      return (svb_encode_scalar_d1_init(in, out, data, count,
+                      index->value) - out);
     }
 
     // Implementation for insert()
@@ -450,23 +431,17 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       if (index->value == key)
         throw Exception(HAM_DUPLICATE_KEY);
 
-      uint32_t old_data[128];
-      uint32_t new_data[128];
+      uint32_t old_data[kMaxKeysPerBlock];
+      uint32_t new_data[kMaxKeysPerBlock];
       uint32_t *data = &old_data[0];
       uncompress_block(index, data);
-
-      bool needs_compress = false;
 
       // if the block is empty then just write the new key
       if (index->key_count == 1) {
         // grow the block if required
-        uint32_t required_bits = bits(key > index->value
-                                        ? key - index->value
-                                        : index->value - key);
-        if (required_bits > index->bits) {
-          uint32_t new_size = required_bits * 128 / 8;
-          grow_block(index, new_size - index->get_block_size());
-          index->bits = required_bits;
+        uint32_t required_size = StreamVbyteIndex::kInitialBlockSize;
+        if (required_size > index->block_size) {
+          grow_block(index, required_size - index->get_block_size());
         }
 
         // swap |key| and |index->value| (cannot use std::swap because
@@ -484,20 +459,23 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         index->key_count++;
 
         // then compress and store the block
-        compress_block(index, data);
+        index->used_size = compress_block(index, data);
+        ham_assert(index->used_size <= index->block_size);
 
         ham_assert(check_integrity(0, node_count + 1));
         return (PBtreeNode::InsertResult(0, slot));
       }
 
+      bool needs_compress = false;
+
       // if the block is full then split it
-      if (index->key_count == kMaxKeysPerBlock) {
+      if (index->key_count + 1 >= kMaxKeysPerBlock) {
         int block = index - get_block_index(0);
 
         // prepend the key?
         if (key < index->value) {
           Index *new_index = add_block(block + 1,
-                          SimdCompIndex::kInitialBlockSize);
+                          StreamVbyteIndex::kInitialBlockSize);
           new_index->key_count = 1;
           new_index->value = key;
 
@@ -507,7 +485,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
           *new_index = tmp;
 
           // then compress and store the block
-          compress_block(index, new_data);
+          index->used_size = compress_block(index, new_data);
+          ham_assert(index->used_size <= index->block_size);
           ham_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot));
         }
@@ -515,19 +494,26 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
         // append the key?
         if (key > old_data[index->key_count - 2]) {
           Index *new_index = add_block(block + 1,
-                          SimdCompIndex::kInitialBlockSize);
+                          StreamVbyteIndex::kInitialBlockSize);
           new_index->key_count = 1;
           new_index->value = key;
 
           // then compress and store the block
-          compress_block(new_index, new_data);
+          new_index->used_size = compress_block(new_index, new_data);
+          ham_assert(new_index->used_size <= new_index->block_size);
           ham_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot + index->key_count));
         }
 
         // otherwise split the block in the middle and move half of the keys
-        // to the new block
-        uint32_t to_copy = index->key_count / 2;
+        // to the new block.
+        //
+        // The pivot position is aligned to 4.
+        uint32_t to_copy = (index->key_count / 2) & ~0x03;
+        if (to_copy == 0)
+          to_copy = (index->key_count / 2) & ~0x03;
+        ham_assert(to_copy > 0);
+
         uint32_t new_key_count = index->key_count - to_copy - 1;
         uint32_t new_value = data[to_copy];
 
@@ -537,15 +523,11 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
-                        sizeof(int32_t) * (index->key_count - to_copy));
-
-        // calculate the required bits for the new block
-        uint32_t required_bits = calc_max_bits(new_value, &new_data[0],
-                                    new_key_count - 1);
+                    sizeof(int32_t) * (index->key_count - to_copy));
 
         // Now create a new block. This can throw, but so far we have not
         // modified existing data.
-        Index *new_index = add_block(block + 1, required_bits * 128 / 8);
+        Index *new_index = add_block(block + 1, index->block_size);
         new_index->value = new_value;
         new_index->key_count = new_key_count;
 
@@ -554,7 +536,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
         // Now check if the new key will be inserted in the old or the new block
         if (key >= new_index->value) {
-          compress_block(index, data);
+          index->used_size = compress_block(index, data);
+          ham_assert(index->used_size <= index->block_size);
           slot += index->key_count;
 
           // continue with the new block
@@ -562,13 +545,29 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
           data = new_data;
         }
         else {
-          compress_block(new_index, new_data);
+          new_index->used_size = compress_block(new_index, new_data);
+          ham_assert(new_index->used_size <= new_index->block_size);
         }
 
         needs_compress = true;
 
         // fall through...
       }
+      // if required, increase block capacity by 5 bytes; this is
+      // the minimum size for a new GroupVarint (1 byte for the index
+      // + max. 4 bytes for 1 compressed integer)
+      else if (index->used_size + 5 > index->block_size) {
+        uint32_t grow_size = 5;
+        // since grow_block() can throw: flush the modified block, otherwise
+        // it's in an inconsistent state 
+        if (needs_compress && get_used_size() + grow_size >= m_range_size) {
+          index->used_size = compress_block(index, data);
+          ham_assert(index->used_size <= index->block_size);
+        }
+
+        grow_block(index, grow_size);
+      }
+
 
       // swap |key| and |index->value| (cannot use std::swap because
       // gcc refuses swapping a packed value)
@@ -585,38 +584,11 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
       // if the new key already exists then throw an exception
       if (it < end && *it == key) {
-        if (needs_compress)
-          compress_block(index, data);
+        if (needs_compress) {
+          index->used_size = compress_block(index, data);
+          ham_assert(index->used_size <= index->block_size);
+        }
         throw Exception(HAM_DUPLICATE_KEY);
-      }
-
-      // now check if the new key (its delta) requires more bits than the
-      // current block uses for storage
-      uint32_t required_bits;
-      if (it == &data[0]) {
-        ham_assert(key > index->value);
-        required_bits = bits(key - index->value);
-      }
-      else if (it == end) {
-        ham_assert(key > *(it - 1));
-        required_bits = bits(key - *(it - 1));
-      }
-      else {
-        ham_assert(*it > key);
-        required_bits = bits(*it - key);
-      }
-
-      // if yes then increase the bit width
-      if (required_bits > index->bits) {
-        uint32_t additional_size = (required_bits * 128 / 8)
-                                    - index->get_block_size();
-        // since grow_block() can throw: flush the modified block, otherwise
-        // it's in an inconsistent state 
-        if (needs_compress && get_used_size() + additional_size >= m_range_size)
-          compress_block(index, data);
-
-        grow_block(index, additional_size);
-        index->bits = required_bits;
       }
 
       // insert the new key
@@ -628,10 +600,35 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       index->key_count++;
 
       // then compress and store the block
-      compress_block(index, data);
+      index->used_size = compress_block(index, data);
+      ham_assert(index->used_size <= index->block_size);
 
       ham_assert(check_integrity(0, node_count + 1));
       return (PBtreeNode::InsertResult(0, slot));
+    }
+
+    // Copies two blocks; assumes that the new block |dst| has been properly
+    // allocated
+    void copy_blocks(Index *src, StreamVbyteKeyList &dest, Index *dst) {
+      dst->value     = src->value;
+      dst->key_count = src->key_count;
+      dst->used_size = src->used_size;
+
+      ::memcpy(dest.get_block_data(dst), get_block_data(src),
+                      src->get_block_size());
+      if (src == 0)
+              print_block(src);
+    }
+
+    // Prints all keys of a block to stdout (for debugging)
+    void print_block(Index *index) const {
+      std::cout << "0: " << index->value << std::endl;
+
+      uint32_t data[kMaxKeysPerBlock];
+      uncompress_block(index, data);
+
+      for (uint32_t i = 1; i < index->key_count; i++)
+        std::cout << i << ": " << data[i - 1] << std::endl;
     }
 
     // Implementation of vacuumize()
@@ -641,6 +638,48 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       if (internal)
         throw Exception(HAM_LIMITS_REACHED);
 
+      // make a copy of all indices
+      bool requires_sort = false;
+      int block_count = get_block_count();
+	  SortHelper *s = (SortHelper *)::alloca(block_count * sizeof(SortHelper));
+      for (int i = 0; i < block_count; i++) {
+        s[i].index = i;
+        s[i].offset = get_block_index(i)->offset;
+        if (i > 0 && requires_sort == false && s[i].offset < s[i - 1].offset)
+          requires_sort = true;
+      }
+
+      // sort them by offset; this is a very expensive call. only sort if
+      // it's absolutely necessary!
+      if (requires_sort)
+        std::sort(&s[0], &s[block_count], sort_by_offset);
+
+      // shift all blocks "to the left" and reduce their size as much as
+      // possible
+      uint32_t next_offset = 0;
+      uint8_t *block_data = &m_data[8 + sizeof(Index) * block_count];
+
+      for (int i = 0; i < block_count; i++) {
+        Index *index = get_block_index(s[i].index);
+
+        if (index->offset != next_offset) {
+          // shift block data to the left
+          memmove(&block_data[next_offset], &block_data[index->offset],
+                          index->used_size);
+          // overwrite the offset
+          index->offset = next_offset;
+        }
+
+        if (index->used_size == 0)
+          index->block_size = StreamVbyteIndex::kInitialBlockSize;
+        else
+          index->block_size = index->used_size;
+
+        next_offset += index->block_size;
+      }
+
+      set_used_size((block_data - m_data) + next_offset);
+#if 0
       int capacity = get_block_count() * kMaxKeysPerBlock;
 
       // iterate over all blocks, uncompress them into a big array
@@ -670,19 +709,16 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       // Now create and fill all the blocks
       uint32_t offset = 0;
       while (p_end - p >= kMaxKeysPerBlock) {
-        uint32_t data[128];
+        uint32_t data[kMaxKeysPerBlock];
         ::memcpy(&data[0], p + 1, sizeof(data));
 
-        uint32_t required_bits = calc_max_bits(*p, data, 128);
-        uint32_t required_size = required_bits * 128 / 8;
-
-        index->bits = required_bits;
         index->offset = offset;
         index->value = *p;
         index->key_count = kMaxKeysPerBlock;
-        compress_block(index, data);
+        index->used_size = compress_block(index, data);
+        index->block_size = index->used_size;
 
-        offset += required_size;
+        offset += index->block_size;
         p += kMaxKeysPerBlock;
         index++;
       }
@@ -691,7 +727,6 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       if (p_end - p == 1) {
         index->value = *p;
         index->key_count = 1;
-        index->bits = 1;
         index->offset = offset;
         offset += 16; // minimum block size for 1 bit
       }
@@ -699,23 +734,22 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
       else if (p_end - p > 1) {
         uint32_t value = *p;
         p++;
-        uint32_t data[128];
+        uint32_t data[kMaxKeysPerBlock];
         ::memcpy(&data[0], p, (p_end - p) * sizeof(uint32_t));
 
-        uint32_t required_bits = calc_max_bits(value, data, p_end - p);
-        uint32_t required_size = required_bits * 128 / 8;
         index->offset = offset;
-        index->bits = required_bits;
         index->key_count = p_end - p + 1;
         index->value = value;
+        index->used_size = compress_block(index, p);
+        index->block_size = index->used_size;
 
-        compress_block(index, p);
-        offset += required_size;
+        offset += index->block_size;
       }
 
       set_used_size(2 * sizeof(uint32_t)
                         + required_blocks * sizeof(Index)
                         + offset);
+#endif
     }
 
     // Returns a decompressed value
@@ -728,11 +762,11 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
       ham_assert(position_in_block < index->key_count);
 
-      uint32_t data[128];
+      uint32_t data[kMaxKeysPerBlock];
       uncompress_block(index, data);
       return (data[position_in_block - 1]);
     }
-    
+
     // helper variable to avoid returning pointers to local memory
     uint32_t m_dummy;
 };
@@ -741,4 +775,4 @@ class SimdCompKeyList : public BlockKeyList<SimdCompIndex>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_SIMDCOMP_H */
+#endif /* HAM_BTREE_KEYS_STREAMVBYTE_H */

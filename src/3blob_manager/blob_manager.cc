@@ -16,6 +16,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3blob_manager/blob_manager.h"
 #include "4db/db_local.h"
+#include "4context/context.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -30,7 +31,7 @@ BlobManager::allocate(Context *context, ham_record_t *record,
   // PARTIAL WRITE
   if (flags & HAM_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
-    if (db->get_record_compressor()) {
+    if (context->db && context->db->get_record_compressor()) {
       ham_trace(("Partial operations are not allowed if records "
                               "are compressed"));
       throw Exception(HAM_INV_PARAMETER);
@@ -54,7 +55,7 @@ BlobManager::read(Context *context, uint64_t blobid, ham_record_t *record,
   // PARTIAL READ
   if (flags & HAM_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
-    if (db->get_record_compressor()) {
+    if (context->db && context->db->get_record_compressor()) {
       ham_trace(("Partial operations are not allowed if records "
                               "are compressed"));
       throw Exception(HAM_INV_PARAMETER);
@@ -73,7 +74,7 @@ BlobManager::overwrite(Context *context, uint64_t old_blobid,
   // PARTIAL WRITE
   if (flags & HAM_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
-    if (db->get_record_compressor()) {
+    if (context->db && context->db->get_record_compressor()) {
       ham_trace(("Partial operations are not allowed if records "
                               "are compressed"));
       throw Exception(HAM_INV_PARAMETER);

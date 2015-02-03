@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
  * NOTICE: All information contained herein is, and remains the property

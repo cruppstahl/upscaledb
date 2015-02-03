@@ -180,8 +180,8 @@ class PodKeyList : public BaseKeyList
     // This is the SIMD implementation. If SIMD is disabled then the
     // BaseKeyList::find method is used.
     template<typename Cmp>
-    int find(size_t node_count, const ham_key_t *key, Cmp &comparator,
-                    int *pcmp) {
+    int find(Context *context, size_t node_count, const ham_key_t *key,
+                    Cmp &comparator, int *pcmp) {
       return (find_simd_sse<T>(node_count, &m_data[0], key));
     }
 #endif

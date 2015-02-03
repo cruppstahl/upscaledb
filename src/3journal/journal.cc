@@ -41,7 +41,7 @@ namespace hamsterdb {
 Journal::Journal(LocalEnvironment *env)
   : m_state(env)
 {
-  int algo = m_env->config().journal_compressor;
+  int algo = env->config().journal_compressor;
   if (algo)
     m_state.compressor.reset(CompressorFactory::create(algo));
 }
@@ -218,7 +218,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
   // patched in later.
-  uint32_t entry_position = m_buffer[idx].get_size();
+  uint32_t entry_position = m_state.buffer[idx].get_size();
 
   // write the header information
   append_entry(idx, (uint8_t *)&entry, sizeof(entry),
@@ -228,15 +228,15 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   // the original (uncompressed) payload then use it
   const void *key_data = key->data;
   uint32_t key_size = key->size;
-  if (m_compressor.get()) {
-    m_count_bytes_before_compression += key_size;
-    uint32_t len = m_compressor->compress((uint8_t *)key->data, key->size);
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += key_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)key->data, key->size);
     if (len < key->size) {
       key_size = len;
-      key_data = m_compressor->get_output_data();
+      key_data = m_state.compressor->get_output_data();
       insert.compressed_key_size = len;
     }
-    m_count_bytes_after_compression += key_size;
+    m_state.count_bytes_after_compression += key_size;
   }
   append_entry(idx, (uint8_t *)key_data, key_size);
   entry.followup_size += key_size;
@@ -246,24 +246,24 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   uint32_t record_size = flags & HAM_PARTIAL
                             ? record->partial_size
                             : record->size;
-  if (m_compressor.get()) {
-    m_count_bytes_before_compression += record_size;
-    uint32_t len = m_compressor->compress((uint8_t *)record->data,
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += record_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)record->data,
                         record_size);
     if (len < record_size) {
       record_size = len;
-      record_data = m_compressor->get_output_data();
+      record_data = m_state.compressor->get_output_data();
       insert.compressed_record_size = len;
     }
-    m_count_bytes_after_compression += record_size;
+    m_state.count_bytes_after_compression += record_size;
   }
   append_entry(idx, (uint8_t *)record_data, record_size);
   entry.followup_size += record_size;
 
   // now overwrite the patched entry
-  m_buffer[idx].overwrite(entry_position,
+  m_state.buffer[idx].overwrite(entry_position,
                   (uint8_t *)&entry, sizeof(entry));
-  m_buffer[idx].overwrite(entry_position + sizeof(entry),
+  m_state.buffer[idx].overwrite(entry_position + sizeof(entry),
                   (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
 
   maybe_flush_buffer(idx);
@@ -284,15 +284,15 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 
   // try to compress the payload; if the compressed result is smaller than
   // the original (uncompressed) payload then use it
-  if (m_compressor.get()) {
-    m_count_bytes_before_compression += payload_size;
-    uint32_t len = m_compressor->compress((uint8_t *)key->data, key->size);
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += payload_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)key->data, key->size);
     if (len < key->size) {
-      payload_data = m_compressor->get_output_data();
+      payload_data = m_state.compressor->get_output_data();
       payload_size = len;
       erase.compressed_key_size = len;
     }
-    m_count_bytes_after_compression += payload_size;
+    m_state.count_bytes_after_compression += payload_size;
   }
 
   entry.lsn = lsn;
@@ -375,13 +375,13 @@ uint32_t
 Journal::append_changeset_page(const Page *page, uint32_t page_size)
 {
   PJournalEntryPageHeader header(page->get_address());
-  if (m_compressor.get()) {
-    m_count_bytes_before_compression += page_size;
-    header.compressed_size = m_compressor->compress(page->get_raw_payload(),
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += page_size;
+    header.compressed_size = m_state.compressor->compress(page->get_raw_payload(),
                     page_size);
-    append_entry(m_current_fd, (uint8_t *)&header, sizeof(header),
-                  m_compressor->get_output_data(), header.compressed_size);
-    m_count_bytes_after_compression += header.compressed_size;
+    append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
+                  m_state.compressor->get_output_data(), header.compressed_size);
+    m_state.count_bytes_after_compression += header.compressed_size;
     return (header.compressed_size + sizeof(header));
   }
 
@@ -784,9 +784,9 @@ Journal::recover_journal(Context *context,
         // extract the key - it can be compressed or uncompressed
         ByteArray keyarena;
         if (ins->compressed_key_size != 0) {
-          m_compressor->decompress(payload, ins->compressed_key_size,
+          m_state.compressor->decompress(payload, ins->compressed_key_size,
                           ins->key_size);
-          keyarena.append(m_compressor->get_output_data(), ins->key_size);
+          keyarena.append(m_state.compressor->get_output_data(), ins->key_size);
           key.data = keyarena.get_ptr();
           payload += ins->compressed_key_size;
         }
@@ -799,9 +799,9 @@ Journal::recover_journal(Context *context,
         // extract the record - it can be compressed or uncompressed
         ByteArray recarena;
         if (ins->compressed_record_size != 0) {
-          m_compressor->decompress(payload, ins->compressed_record_size,
+          m_state.compressor->decompress(payload, ins->compressed_record_size,
                           ins->record_size);
-          recarena.append(m_compressor->get_output_data(), ins->record_size);
+          recarena.append(m_state.compressor->get_output_data(), ins->record_size);
           record.data = recarena.get_ptr();
           payload += ins->compressed_record_size;
         }
