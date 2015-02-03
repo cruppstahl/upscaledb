@@ -299,7 +299,7 @@ x improve separation between logic and state; make state immutable and
 
 x rebase against v2!!
 
-o Concurrency: move "purge cache" to background
+x Concurrency: move "purge cache" to background
     -> Reorg the hash table. All buckets are in serial memory. This requires
       a few allocations, but reduces cache misses because there's no
       "jumping" from page to page. Such a bucket can be replaced
@@ -368,7 +368,7 @@ o Concurrency: move "purge cache" to background
         x --seed=1380279291 --stop-ops=1000000 --distribution=ascending
         x --seed=1380279291 --stop-ops=1000000 --key=uint16
 
-    o move page flush in background
+    x move page flush in background
         -> A page is in use when it's added to a Changeset. However, pages that
             are fetched read-only are never added. And if recovery is disabled
             then it's not possible to figure out when a page is no longer used.
@@ -395,7 +395,57 @@ o Concurrency: move "purge cache" to background
         x always add a page to the Changeset, even if in-memory or
             recovery is disabled
         x when going out of scope: clear the changeset or flush it
+        (cont below...)
 
+x merge topic/perfect-world with v2
+    x then remove the threading code from v2; so far no thread is required
+
+x PRO: rebase to v2
+    x regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
+    x ... then compare PRO vs APL sources and make sure they don't diverge
+        too much!
+    x simdcomp-tests sometimes fail. valgrind has a huge amount of errors
+
+x PRO: add more simdcomp related functions for blocks < 128 integers
+    x update Daniel's code - the repository has new patches (create a fork)
+        git submodule add git@github.com:cruppstahl/simdcomp.git
+    x add 'export "C"' directives for c++
+    x add Makefile.am for Automake
+    x new function for calculating the delta
+    x add tests
+    x send push requests to Daniel
+
+x PRO: retrieve better statistics regarding compression/overhead/payload
+    x for each node retrieve these statistics and accumulate them
+        as min, max, avg:
+        - number of keys stored
+        - actually used storage for the keys
+        - static overhead per page
+        - overhead per index
+        - number of indices
+        - unused storage
+    x each node has a fill_metrics() method
+    x extend ham_info
+        x by default, no new stats are printed
+        x otherwise call fill_metrics() and print them
+
+x PRO: simdcomp should use binary search for decompressed blocks
+    (currently uses linear search)
+    -> see mail from Daniel for more information, code
+    x Simdcomp: find (line 152)
+    x Grouped Varint: find (line 157)
+    x Simdcomp: insert (line 589)
+    x Grouped Varint: insert (line 570)
+
+x PRO: integrate Nathan's sources, or start a new KeyList
+    x add parameter to header file
+    x add sources to 3rdparty
+    x implement the encoding
+    x add unittests
+    x add support for ham_bench
+    x add monster tests (pro)
+
+o Concurrency: move "purge cache" to background (cont...)
         o Right now only the Cache uses a mutex. But we need to know
             whether a page is in use (= in a changelog) or if it's purged.
             o move mutex/synchronization from Cache to PageManager
@@ -419,53 +469,6 @@ o Concurrency: move "purge cache" to background
     o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
     o run monster tests
-
-x merge topic/perfect-world with v2
-    x then remove the threading code from v2; so far no thread is required
-
-x PRO: rebase to v2
-    x regression: ./ham_bench --use-berkeleydb=true --reopen=true --use-berkeleydb=true --reopen=true  --use-transactions=tmp --use-cursors --duplicate=last --fullcheck=find ext_052.tst
-    x ... then compare PRO vs APL sources and make sure they don't diverge
-        too much!
-    x simdcomp-tests sometimes fail. valgrind has a huge amount of errors
-
-x PRO: add more simdcomp related functions for blocks < 128 integers
-    x update Daniel's code - the repository has new patches (create a fork)
-        git submodule add git@github.com:cruppstahl/simdcomp.git
-    x add 'export "C"' directives for c++
-    x add Makefile.am for Automake
-    x new function for calculating the delta
-    x add tests
-    x send push requests to Daniel
-
-o PRO: retrieve better statistics regarding compression/overhead/payload
-    x for each node retrieve these statistics and accumulate them
-        as min, max, avg:
-        - number of keys stored
-        - actually used storage for the keys
-        - static overhead per page
-        - overhead per index
-        - number of indices
-        - unused storage
-    x each node has a fill_metrics() method
-    o extend ham_info
-        o by default, no new stats are printed
-        o otherwise call fill_metrics() and print them
-
-o PRO: simdcomp should use binary search for decompressed blocks
-    (currently uses linear search)
-    -> see mail from Daniel for more information, code
-    o Simdcomp: find (line 152)
-    o Simdcomp: insert (line 589)
-    o Grouped Varint: find (line 157)
-    o Grouped Varint: insert (line 570)
-
-o PRO: integrate Nathan's sources, or start a new KeyList
-
-o Erlang: investigate failure in ham_eqc2
-
-o check recovery.pl - extended_tests are failing on PRO because the
-    error inducer hits too early
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
@@ -493,6 +496,18 @@ o blob performance improvements
             pointer
         - If a record is in a mapped page then simply return a
             pointer
+
+o make sure the library and 3rdparty are compiled with -O3 by default
+
+o currently, code uses linear search over small ranges. This is not efficient.
+    If the range is in the cache then binary is still faster.
+    o replace binary search implementation with std::lower_bound
+    o PRO: only use linear search if SIMD is enabled
+
+o Erlang: investigate failure in ham_eqc2
+
+o check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
