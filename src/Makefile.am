@@ -84,6 +84,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_keys_zint32.h \
 	3btree/btree_keys_simdcomp.h \
 	3btree/btree_keys_groupvarint.h \
+	3btree/btree_keys_streamvbyte.h \
 	3btree/btree_node.h \
 	3btree/btree_node_proxy.h \
 	3btree/btree_records_base.h \
@@ -152,7 +153,9 @@ libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 
 if ENABLE_COMPRESSION
 AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
-libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la
+libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
+						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
+						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
 if WITH_ZLIB
 libhamsterdb_la_LIBADD  += -lz
 endif

@@ -35,6 +35,7 @@
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db_local.h"
+#include "4context/context.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -55,7 +56,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
   uint32_t original_size = record->size;
 
   // compression enabled? then try to compress the data
-  Compressor *compressor = db->get_record_compressor();
+  Compressor *compressor = context->db->get_record_compressor();
   if (compressor && !(flags & kDisableCompression)) {
     m_metric_before_compression += record_size;
     uint32_t len = compressor->compress((uint8_t *)record->data,
@@ -275,7 +276,6 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
                         blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                                 ? record->partial_offset
                                 : 0), true);
-  }
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
     // read the blob data. if compression is enabled then

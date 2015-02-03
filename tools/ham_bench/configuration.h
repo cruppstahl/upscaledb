@@ -103,6 +103,7 @@ struct Configuration
       "zint32_varbyte",
       "zint32_simdcomp",
       "zint32_groupvarint",
+      "zint32_streamvbyte",
     };
     std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)

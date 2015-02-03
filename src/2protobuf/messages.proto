@@ -425,15 +425,6 @@ message CursorGetRecordSizeReply {
   required uint64 size = 2;
 };
 
-message CursorGetRecordSizeRequest {
-  required uint64 cursor_handle = 1;
-};
-
-message CursorGetRecordSizeReply {
-  required sint32 status = 1;
-  required uint64 size = 2;
-};
-
 message CursorGetDuplicatePositionRequest {
   required uint64 cursor_handle = 1;
 };

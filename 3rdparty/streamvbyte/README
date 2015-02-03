@@ -1,0 +1,7 @@
+Stream VByte - super fast SIMD implementation of a Group Varint-like scheme.
+
+Apache license, patent free
+
+Copyright Nathan Kurz, nate@verse.com
+
+Compile with: gcc -std=c99 -mavx streamvbyte.c

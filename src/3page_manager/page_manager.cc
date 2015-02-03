@@ -820,7 +820,7 @@ PageManager::verify_crc32(Page *page)
 {
   uint32_t crc32;
   MurmurHash3_x86_32(page->get_payload(),
-                  m_env->get_page_size() - (sizeof(PPageHeader) - 1),
+                  m_state.config.page_size_bytes - (sizeof(PPageHeader) - 1),
                   (uint32_t)page->get_address(), &crc32);
   if (crc32 != page->get_crc32()) {
     ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
  * NOTICE: All information contained herein is, and remains the property
@@ -36,6 +36,7 @@ CompressorFactory::is_available(int type)
     case HAM_COMPRESSOR_UINT32_VARBYTE:
     case HAM_COMPRESSOR_UINT32_SIMDCOMP:
     case HAM_COMPRESSOR_UINT32_GROUPVARINT:
+    case HAM_COMPRESSOR_UINT32_STREAMVBYTE:
       return (true);
     case HAM_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
