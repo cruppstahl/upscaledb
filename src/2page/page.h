@@ -23,8 +23,10 @@
 #define HAM_PAGE_H
 
 #include <string.h>
+#include <boost/atomic.hpp>
 
 #include "1base/error.h"
+#include "1base/spinlock.h"
 #include "1mem/mem.h"
 
 namespace hamsterdb {
@@ -170,6 +172,16 @@ class Page {
     // Sets the database to which this Page belongs
     void set_db(LocalDatabase *db) {
       m_db = db;
+    }
+
+    // Locks the spinlock
+    void lock() {
+      m_mutex.lock();
+    }
+
+    // Unlocks the spinlock
+    void unlock() {
+      m_mutex.unlock();
     }
 
     // Returns true if this is the header page of the Environment
@@ -391,6 +403,9 @@ class Page {
 
     // the Database handle (can be NULL)
     LocalDatabase *m_db;
+
+    // The spinlock is locked if the page is in use or written to disk
+    Spinlock m_mutex;
 
     // address of this page
     uint64_t m_address;

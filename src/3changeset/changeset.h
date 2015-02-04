@@ -51,7 +51,7 @@ class Changeset
      */
     Page *get(uint64_t address);
 
-    /* Append a new page to the changeset */
+    /* Append a new page to the changeset. The page is locked. */
     void put(Page *page);
 
     /* Check if the page is already part of the changeset */
@@ -60,7 +60,7 @@ class Changeset
     /* Returns true if the changeset is empty */
     bool is_empty() const;
 
-    /* Removes all pages from the changeset */
+    /* Removes all pages from the changeset. The pages are unlocked. */
     void clear();
 
     /*

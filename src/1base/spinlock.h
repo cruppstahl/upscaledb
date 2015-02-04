@@ -61,26 +61,28 @@ class Spinlock {
 
     void lock() {
       int k = 0;
-      while (m_state.exchange(kLocked, boost::memory_order_acquire)
-                      == kLocked) {
-        if (++k < kSpinThreshold) {
+      while (m_state.exchange(kLocked, boost::memory_order_acquire) == kLocked)
+        spin(++k);
+    }
+
+    static void spin(int loop) {
+      if (loop < kSpinThreshold) {
 #ifdef HAM_OS_WIN32
-          ::Sleep(0);
+        ::Sleep(0);
 #elif HAVE_SCHED_YIELD
-          ::sched_yield();
+        ::sched_yield();
 #else
-          ham_assert(!"Please implement me");
+        ham_assert(!"Please implement me");
 #endif 
-        }
-        else {
+      }
+      else {
 #ifdef HAM_OS_WIN32
-          ::Sleep(250);
+        ::Sleep(250);
 #elif HAVE_USLEEP
-          ::usleep(250);
+        ::usleep(250);
 #else
-          ham_assert(!"Please implement me");
+        ham_assert(!"Please implement me");
 #endif 
-        }
       }
     }
 

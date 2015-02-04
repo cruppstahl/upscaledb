@@ -447,18 +447,32 @@ x PRO: integrate Nathan's sources, or start a new KeyList
 
 x make sure the library and 3rdparty are compiled with -O3 by default
 
+========================
+streamvbyte: vacuumize_impl geht nicht. habe es mit dem aus simdcomp ersetzt.
+schauen warum es crasht (.bak-dateien kopieren, gdb oder valgrind neu starten)
+
+die alte variante müsste auch gehen, allerdings wird die blocksize neu gesetzt
+und das ist nicht ohne re-compress möglich. warum? evtl muss die blocksize
+aligned sein. Oder einfach die blocksize ungeändert lassen. aber dann lohnt sich
+das vacuumize evtl nicht
+========================
+
 o Concurrency: move "purge cache" to background (cont...)
     o Right now only the Cache uses a mutex. But we need to know
-        whether a page is in use (= in a changelog) or if it's purged.
-        o move mutex/synchronization from Cache to PageManager
-        o add an atomic state to the page ("in use", "unused", "io")
-        o set state to "in use" when storing the page in the Changeset
-        o set state to "unused" when removing from the changeset
-        o when writing to disk: acquire the lock; when flushing: set the
+        whether a page is in use (= in a changeset) or if it's purged.
+        x add a spinlock to the page
+        o PageManager: lock the page after adding it to the ChangeSet
+            o afterwards: fetch the page if pers == 0
+            o how to unlock in case of an exception?
+        o PageManager: unlock the page when removing it from the Changeset
+            (don't call Changeset.clear() directly!)
+        o when writing to disk: acquire the lock; after flushing: set the
             pers-pointer to null
-            o PageManager must deal with flushed pages (pers == 0)
-            o if enough pages were flushed: remove empty stubs from
-                the list
+            o make sure that ONLY page->pers is modified by the separate
+                thread, not the next/prev pointers!
+            o periodically remove empty stubs from the list
+        o if the Cache (or PageManager) is synchronized, then there's no need
+            to use an atomic variable for Page::m_state!
 
     o wake up thread if cache is full
     o some messages should only exist once, i.e. purging the cache.
@@ -511,6 +525,10 @@ o check recovery.pl - extended_tests are failing on PRO because the
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
+
+o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
+    perform similar to Simdcomp: uncompress all blocks into a large array,
+    compress them again and build up the index from scratch
 
 . Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
