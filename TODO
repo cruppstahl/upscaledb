@@ -447,34 +447,29 @@ x PRO: integrate Nathan's sources, or start a new KeyList
 
 x make sure the library and 3rdparty are compiled with -O3 by default
 
-========================
-streamvbyte: vacuumize_impl geht nicht. habe es mit dem aus simdcomp ersetzt.
-schauen warum es crasht (.bak-dateien kopieren, gdb oder valgrind neu starten)
-
-die alte variante müsste auch gehen, allerdings wird die blocksize neu gesetzt
-und das ist nicht ohne re-compress möglich. warum? evtl muss die blocksize
-aligned sein. Oder einfach die blocksize ungeändert lassen. aber dann lohnt sich
-das vacuumize evtl nicht
-========================
-
 o Concurrency: move "purge cache" to background (cont...)
-    o Right now only the Cache uses a mutex. But we need to know
+    x Right now only the Cache uses a mutex. But we need to know
         whether a page is in use (= in a changeset) or if it's purged.
         x add a spinlock to the page
-        o PageManager: lock the page after adding it to the ChangeSet
-            o afterwards: fetch the page if pers == 0
-            o how to unlock in case of an exception?
-        o PageManager: unlock the page when removing it from the Changeset
-            (don't call Changeset.clear() directly!)
-        o when writing to disk: acquire the lock; after flushing: set the
+        x PageManager: lock the page after adding it to the ChangeSet
+            x afterwards: fetch the page if pers == 0
+            x how to unlock in case of an exception?
+        x PageManager: unlock the page when removing it from the Changeset
+        x when writing to disk: acquire the lock; after flushing: set the
             pers-pointer to null
-            o make sure that ONLY page->pers is modified by the separate
+            x make sure that ONLY page->pers is modified by the separate
                 thread, not the next/prev pointers!
-            o periodically remove empty stubs from the list
-        o if the Cache (or PageManager) is synchronized, then there's no need
-            to use an atomic variable for Page::m_state!
+        x periodically remove empty stubs from the list
+            (or remove them immediately after the page is purged, and the
+            lock is re-acquired again
 
-    o wake up thread if cache is full
+    x fix TODO in cache_impl.h
+    x wake up thread if cache is full
+========================
+problem: PageManager::safely_lock_page() does not have a "mutex.is_locked()".
+remove this code, reimplement it differently (i.e. check whether the page
+is already in the changeset). Then continue checking helgrind.
+========================
     o some messages should only exist once, i.e. purging the cache.
         no need to add it to the queue multiple times
 
@@ -485,6 +480,9 @@ o Concurrency: move "purge cache" to background (cont...)
     o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
     o run monster tests
+
+o PageManagerFactory is no longer required
+o merge cache_impl with cache.h
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE

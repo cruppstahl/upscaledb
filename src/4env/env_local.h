@@ -48,6 +48,7 @@ class PageManager;
 class BlobManager;
 class LocalTransaction;
 class Worker;
+struct MessageBase;
 
 //
 // The Environment implementation for local file access
@@ -96,6 +97,9 @@ class LocalEnvironment : public Environment
     uint64_t next_lsn() {
       return (m_lsn_manager.next());
     }
+
+    // Sends a message to the worker thread
+    void send_to_worker(MessageBase *message);
 
     // Returns a test gateway
     LocalEnvironmentTest test();

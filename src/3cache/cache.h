@@ -51,8 +51,8 @@ class Cache
 {
   public:
     // The default constructor
-    Cache(const CacheState &state)
-      : m_state(state) {
+    Cache(const EnvironmentConfiguration &config)
+      : m_state(config) {
     }
 
     // Fills in the current metrics
@@ -82,8 +82,8 @@ class Cache
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
     template<typename Purger>
-    void purge(Context *context, Purger &purger) {
-      CacheImpl::purge<Purger>(m_state, context, purger);
+    void purge(Purger &purger) {
+      CacheImpl::purge<Purger>(m_state, purger);
     }
 
     // Visits all pages in the "totallist". If |cb| returns true then the
@@ -100,7 +100,7 @@ class Cache
     }
 
     // Returns the number of currently cached elements
-    size_t current_elements() const {
+    size_t current_elements() {
       return (CacheImpl::current_elements(m_state));
     }
 

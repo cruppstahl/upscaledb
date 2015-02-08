@@ -174,14 +174,9 @@ class Page {
       m_db = db;
     }
 
-    // Locks the spinlock
-    void lock() {
-      m_mutex.lock();
-    }
-
-    // Unlocks the spinlock
-    void unlock() {
-      m_mutex.unlock();
+    // Returns the spinlock
+    Spinlock &mutex() {
+      return (m_mutex);
     }
 
     // Returns true if this is the header page of the Environment

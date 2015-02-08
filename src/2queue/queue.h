@@ -78,10 +78,20 @@ class Queue
     // Pushes a |message| object to the queue
     void push(MessageBase *message) {
       ScopedSpinlock lock(m_mutex);
-      message->next = m_head;
-      m_head = message;
-      if (!m_tail)
-        m_tail = message;
+      if (!m_tail) {
+        ham_assert(m_head == 0);
+        m_head = m_tail = message;
+      }
+      else if (m_tail == m_head) {
+        m_tail->previous = message;
+        message->next = m_tail;
+        m_head = message;
+      }
+      else {
+        message->next = m_head;
+        m_head->previous = message;
+        m_head = message;
+      }
     }
 
     // Pops a message from the tail of the queue. Returns null if the queue
@@ -92,8 +102,13 @@ class Queue
         ham_assert(m_head == 0);
         return (0);
       }
-      m_tail = m_tail->previous;
-      return (m_tail);
+
+      MessageBase *msg = m_tail;
+      if (m_tail == m_head)
+        m_head = m_tail = 0;
+      else
+        m_tail = m_tail->previous;
+      return (msg);
     }
 
   private:

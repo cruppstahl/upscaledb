@@ -23,11 +23,13 @@
 #include "1base/pickle.h"
 #include "2page/page.h"
 #include "2device/device.h"
+#include "2queue/queue.h"
 #include "3page_manager/page_manager.h"
 #include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 #include "4context/context.h"
+#include "4worker/worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -42,15 +44,15 @@ enum {
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(CacheState(config)), needs_flush(false), state_page(0),
+    cache(env->config()), needs_flush(false), state_page(0),
     last_blob_page(0), last_blob_page_id(0), page_count_fetched(0),
     page_count_index(0), page_count_blob(0), page_count_page_manager(0),
     cache_hits(0), cache_misses(0), freelist_hits(0), freelist_misses(0)
 {
 }
 
-PageManager::PageManager(const PageManagerState &state)
-  : m_state(state)
+PageManager::PageManager(LocalEnvironment *env)
+  : m_state(env)
 {
 }
 
@@ -124,8 +126,7 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
     ham_assert(page->get_data());
     if (flags & PageManager::kNoHeader)
       page->set_without_header(true);
-    context->changeset.put(page);
-    return (page);
+    return (safely_lock_page(context, page, true));
   }
 
   if ((flags & PageManager::kOnlyFromCache)
@@ -154,9 +155,8 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
 
-  context->changeset.put(page);
   m_state.page_count_fetched++;
-  return (page);
+  return (safely_lock_page(context, page, false));
 }
 
 Page *
@@ -221,7 +221,7 @@ done:
     page->set_node_proxy(0);
   }
 
-  context->changeset.put(page);
+  safely_lock_page(context, page, false);
 
   /* store the page in the cache */
   m_state.cache.put(page);
@@ -344,12 +344,12 @@ PageManager::flush()
 // callback for purging pages
 struct Purger
 {
-  Purger(Context *context, PageManager *page_manager)
-    : m_context(context), m_page_manager(page_manager) {
+  Purger(PageManager *page_manager)
+    : m_page_manager(page_manager) {
   }
 
-  void operator()(Page *page) {
-    BtreeCursor::uncouple_all_cursors(m_context, page);
+  bool operator()(Page *page) {
+    ham_assert(page->cursor_list() == 0);
 
     if (m_page_manager->m_state.last_blob_page == page) {
       m_page_manager->m_state.last_blob_page_id
@@ -357,16 +357,34 @@ struct Purger
       m_page_manager->m_state.last_blob_page = 0;
     }
 
-    page->flush();
-    delete page;
+    // TODO not exception safe
+    printf("flush %llu\n", page->get_address());
+    if (page->mutex().try_lock()) {
+      page->flush();
+      page->free_buffer();
+      page->mutex().unlock();
+      return (true);
+    }
+
+    return (false);
   }
 
-  Context *m_context;
   PageManager *m_page_manager;
 };
 
 void
-PageManager::purge_cache(Context *context)
+PageManager::maybe_purge_cache(Context *context)
+{
+  // in-memory-db: don't remove the pages or they would be lost
+  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
+    return;
+
+  MessageBase *message = new MessageBase(Worker::kPurgeCache, 0);
+  context->env->send_to_worker(message);
+}
+
+void
+PageManager::purge_cache()
 {
   // in-memory-db: don't remove the pages or they would be lost
   if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
@@ -374,8 +392,8 @@ PageManager::purge_cache(Context *context)
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  Purger purger(context, this);
-  m_state.cache.purge(context, purger);
+  Purger purger(this);
+  m_state.cache.purge(purger);
 }
 
 void
@@ -455,6 +473,8 @@ PageManager::del(Page *page, size_t page_count)
   if (m_state.config.flags & HAM_IN_MEMORY)
     return;
 
+  page->mutex().unlock();
+
   m_state.needs_flush = true;
   m_state.free_pages[page->get_address()] = page_count;
   ham_assert(page->get_address() % m_state.config.page_size_bytes == 0);
@@ -510,7 +530,7 @@ Page *
 PageManager::get_last_blob_page(Context *context)
 {
   if (m_state.last_blob_page)
-    return (m_state.last_blob_page);
+    return (safely_lock_page(context, m_state.last_blob_page, true));
   if (m_state.last_blob_page_id)
     return (fetch(context, m_state.last_blob_page_id, 0));
   return (0);
@@ -543,6 +563,7 @@ PageManager::store_state(Context *context)
             Page::kInitializeWithZeroes);
   }
 
+  // don't bother locking the state page
   context->changeset.put(m_state.state_page);
 
   uint32_t page_size = m_state.config.page_size_bytes;
@@ -673,6 +694,7 @@ PageManager::maybe_store_state(Context *context, bool force)
     uint64_t new_blobid = store_state(context);
     if (new_blobid != m_state.header->get_page_manager_blobid()) {
       m_state.header->set_page_manager_blobid(new_blobid);
+      // don't bother to lock the header page
       m_state.header->get_header_page()->set_dirty(true);
       context->changeset.put(m_state.header->get_header_page());
     }
@@ -684,6 +706,34 @@ PageManager::is_cache_full() const
 {
   return (m_state.cache.allocated_elements() * m_state.config.page_size_bytes
                     > m_state.cache.capacity());
+}
+
+Page *
+PageManager::safely_lock_page(Context *context, Page *page,
+                bool allow_recursive_lock)
+{
+  if (allow_recursive_lock) {
+    if (!page->mutex().is_locked())
+      page->mutex().lock();
+  }
+  else {
+    ham_assert(!page->mutex().is_locked());
+    page->mutex().lock();
+  }
+
+  // fetch contents again?
+  if (!page->get_data()) {
+      printf("page %llu is empty\n", page->get_address());
+    try {
+      page->fetch(page->get_address());
+    }
+    catch (Exception &ex) {
+      page->mutex().unlock();
+      throw;
+    }
+  }
+  context->changeset.put(page);
+  return (page);
 }
 
 PageManagerTest

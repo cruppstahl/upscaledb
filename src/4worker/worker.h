@@ -39,6 +39,11 @@ namespace hamsterdb {
 class Worker
 {
   public:
+    // The available message types
+    enum {
+      kPurgeCache = 1,
+    };
+
     Worker(LocalEnvironment *env)
       : m_env(env), m_stop_requested(false), m_thread(&Worker::run, this) {
     }
@@ -72,12 +77,16 @@ class Worker
           // mandatory
           if ((m_stop_requested && message->flags & MessageBase::kIsMandatory)
                   || !m_stop_requested) {
-            // handle the message
+            switch (message->type) {
+              case kPurgeCache:
+                m_env->page_manager()->purge_cache();
+                break;
+              default:
+                ham_assert(!"shouldn't be here");
+            }
           }
           delete message;
         }
-        //m_env->page_manager()->purge_cache();
-        //boost::this_thread::yield();
       }
     }
 

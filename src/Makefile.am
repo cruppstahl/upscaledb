@@ -45,7 +45,6 @@ libhamsterdb_la_SOURCES = \
 	2lsn_manager/lsn_manager_test.h \
 	2queue/queue.h \
 	3cache/cache.h \
-	3cache/cache.cc \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
 	3changeset/changeset_state.h \

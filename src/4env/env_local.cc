@@ -149,7 +149,7 @@ LocalEnvironment::do_create()
     m_header->get_header_page()->flush();
 
   /* last step: start the worker thread */
-  //m_worker.reset(new Worker(this));
+  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -261,7 +261,7 @@ fail_with_fake_cleansing:
     m_page_manager->initialize(m_header->get_page_manager_blobid());
 
   /* last step: start the worker thread */
-  //m_worker.reset(new Worker(this));
+  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -664,6 +664,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   }
 
   mark_header_page_dirty(&context);
+  context.changeset.clear();
 
   (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
@@ -759,6 +760,12 @@ LocalEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
   BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?
   metrics->simd_lane_width = os_get_simd_lane_width();
+}
+
+void
+LocalEnvironment::send_to_worker(MessageBase *message)
+{
+  m_worker->add_to_queue(message);
 }
 
 void

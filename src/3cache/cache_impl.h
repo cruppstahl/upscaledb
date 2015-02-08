@@ -49,21 +49,15 @@ del_unlocked(CacheState &state, Page *page);
 // a changeset) and not have cursors attached
 struct PurgeSelector
 {
-  PurgeSelector(Context *context)
-  : m_context(context) {
-  }
-
   bool operator()(Page *page) {
-  if (page->is_allocated() == false)
-    return (false);
-  if (m_context->changeset.has(page))
-    return (false);
-  if (page->cursor_list() != 0)
-    return (false);
-  return (true);
+    if (page->is_allocated() == false)
+      return (false);
+    if (page->cursor_list() != 0)
+      return (false);
+    if (!page->get_data())
+      return (false);
+    return (true);
   }
-
-  Context *m_context;
 };
 
 template<typename Purger>
@@ -165,25 +159,38 @@ del(CacheState &state, Page *page)
   del_unlocked(state, page);
 }
 
+inline size_t
+current_elements(CacheState &state)
+{
+  ScopedSpinlock lock(state.mutex);
+  return (state.totallist.size());
+}
+
 template<typename Purger>
 inline void
-purge(CacheState &state, Context *context, Purger &purger)
+purge(CacheState &state, Purger &purger)
 {
-  size_t limit = state.totallist.size()
+  size_t limit = current_elements(state)
             - (state.capacity_bytes / state.page_size_bytes);
   if (limit < CacheState::kPurgeAtLeast)
     limit = CacheState::kPurgeAtLeast;
 
-  PurgeSelector selector(context);
+  PurgeSelector selector;
 
   for (size_t i = 0; i < limit; i++) {
     // The lock is permanently re-acquired so other threads don't starve
-    ScopedSpinlock lock(state.mutex);
-    Page *page = state.totallist.find_first_reverse(selector);
-    if (!page)
-      break;
-    del_unlocked(state, page);
-    purger(page);  // TODO also in locked context?
+    Page *page;
+    {
+      ScopedSpinlock lock(state.mutex);
+      page = state.totallist.find_first_reverse(selector);
+      if (!page)
+        break;
+    }
+
+    if (purger(page)) {
+      ScopedSpinlock lock(state.mutex);
+      del_unlocked(state, page);
+    }
   }
 }
 
@@ -201,12 +208,6 @@ inline size_t
 capacity(const CacheState &state)
 {
   return (state.capacity_bytes);
-}
-
-inline size_t
-current_elements(const CacheState &state)
-{
-  return (state.totallist.size());
 }
 
 inline size_t

@@ -42,7 +42,7 @@ class LocalEnvironment;
 struct PageManagerFactory
 {
   static PageManager *create(LocalEnvironment *env) {
-    return (new PageManager(PageManagerState(env)));
+    return (new PageManager(env));
   }
 };
 

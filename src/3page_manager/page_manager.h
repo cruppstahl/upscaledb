@@ -93,8 +93,12 @@ class PageManager
     // Flushes all pages to disk
     void flush();
 
-    // Purges the cache if the cache limits are exceeded
-    void purge_cache(Context *context);
+    // Asks the worker thread to purge the cache if the cache limits are
+    // exceeded
+    void maybe_purge_cache(Context *context);
+
+    // Purges the cache, regardless of the cache limits
+    void purge_cache();
 
     // Reclaim file space; truncates unused file space at the end of the file.
     void reclaim_space(Context *context);
@@ -131,9 +135,14 @@ class PageManager
 
     // Returns true if the cache is full
     bool is_cache_full() const;
+    
+    // Locks a page, fetches contents from disk if they were flushed in
+    // the meantime
+    Page *safely_lock_page(Context *context, Page *page,
+                bool allow_recursive_lock);
 
     // The constructor is not used directly. Use the PageManagerFactory instead
-    PageManager(const PageManagerState &state);
+    PageManager(LocalEnvironment *env);
 
     // The state
     PageManagerState m_state;

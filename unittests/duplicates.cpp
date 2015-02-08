@@ -59,6 +59,7 @@ struct DuplicateFixture {
   }
 
   void teardown() {
+    m_context->changeset.clear();
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 

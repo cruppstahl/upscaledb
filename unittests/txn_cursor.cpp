@@ -48,6 +48,7 @@ struct TxnCursorFixture {
   }
 
   ~TxnCursorFixture() {
+    m_context->changeset.clear();
     REQUIRE(0 == ham_cursor_close(m_cursor));
     REQUIRE(0 == ham_db_close(m_db, 0));
     REQUIRE(0 == ham_env_close(m_env, 0));

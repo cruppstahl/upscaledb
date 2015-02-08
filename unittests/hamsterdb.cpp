@@ -384,6 +384,7 @@ struct HamsterdbFixture {
     my_key_t my_key;
     my_rec_t my_rec;
 
+    teardown();
     REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
                             HAM_DISABLE_MMAP, 0644, ps));
 

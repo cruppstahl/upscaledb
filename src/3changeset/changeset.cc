@@ -59,9 +59,19 @@ is_empty(const ChangesetState &state)
   return (state.collection.is_empty());
 }
 
+struct UnlockPage
+{
+  void operator()(Page *page) {
+    page->mutex().unlock();
+  }
+};
+
 static void
 clear(ChangesetState &state)
 {
+  UnlockPage unlocker;
+  state.collection.for_each(unlocker);
+
   state.collection.clear();
 }
 

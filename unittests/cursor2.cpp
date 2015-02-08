@@ -288,6 +288,7 @@ struct DupeCursorFixture {
   }
 
   void teardown() {
+    m_context->changeset.clear();
     if (m_cursor) {
       REQUIRE(0 == ham_cursor_close(m_cursor));
       m_cursor = 0;

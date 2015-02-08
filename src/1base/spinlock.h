@@ -26,6 +26,8 @@
 #define HAM_SPINLOCK_H
 
 #include "0root/root.h"
+#include "1base/error.h"
+#include "1base/mutex.h"
 
 #ifndef HAM_OS_WIN32
 #  include <sched.h>
@@ -41,6 +43,9 @@
 
 namespace hamsterdb {
 
+typedef Mutex Spinlock;
+
+#if 0
 class Spinlock {
     typedef enum {
       kLocked,
@@ -65,6 +70,14 @@ class Spinlock {
         spin(++k);
     }
 
+    void unlock() {
+      m_state.store(kUnlocked, boost::memory_order_release);
+    }
+
+    bool is_locked() const {
+      return (m_state.load(boost::memory_order_release) == kLocked);
+    }
+
     static void spin(int loop) {
       if (loop < kSpinThreshold) {
 #ifdef HAM_OS_WIN32
@@ -86,13 +99,10 @@ class Spinlock {
       }
     }
 
-    void unlock() {
-      m_state.store(kUnlocked, boost::memory_order_release);
-    }
-
   private:
     boost::atomic<LockState> m_state;
 };
+#endif
 
 class ScopedSpinlock {
   public:
