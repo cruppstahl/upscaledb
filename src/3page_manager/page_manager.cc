@@ -25,11 +25,11 @@
 #include "2device/device.h"
 #include "2queue/queue.h"
 #include "3page_manager/page_manager.h"
+#include "3page_manager/page_manager_worker.h"
 #include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 #include "4context/context.h"
-#include "4worker/worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -54,6 +54,8 @@ PageManagerState::PageManagerState(LocalEnvironment *env)
 PageManager::PageManager(LocalEnvironment *env)
   : m_state(env)
 {
+  /* start the worker thread */
+  m_worker.reset(new PageManagerWorker(&m_state.cache));
 }
 
 void
@@ -123,7 +125,6 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
     page = m_state.cache.get(address);
 
   if (page) {
-    ham_assert(page->get_data());
     if (flags & PageManager::kNoHeader)
       page->set_without_header(true);
     return (safely_lock_page(context, page, true));
@@ -186,6 +187,7 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
       goto done;
     /* allocate a new page structure and read the page from disk */
     page = new Page(m_state.device, context->db);
+    context->changeset.put(page);
     page->fetch(address);
     goto done;
   }
@@ -198,6 +200,7 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
       page = new Page(m_state.device, context->db);
     }
 
+    context->changeset.put(page);
     page->allocate(page_type);
   }
   catch (Exception &ex) {
@@ -221,10 +224,9 @@ done:
     page->set_node_proxy(0);
   }
 
-  safely_lock_page(context, page, false);
-
-  /* store the page in the cache */
+  /* store the page in the cache and the Changeset */
   m_state.cache.put(page);
+  safely_lock_page(context, page, false);
 
   /* write to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
@@ -341,59 +343,67 @@ PageManager::flush()
     m_state.state_page->flush();
 }
 
-// callback for purging pages
-struct Purger
+// Returns true if the page can be purged: page must use allocated
+// memory instead of an mmapped pointer; page must not be in use (= in
+// a changeset) and not have cursors attached
+struct PurgeSelector
 {
-  Purger(PageManager *page_manager)
-    : m_page_manager(page_manager) {
+  PurgeSelector(Page *last_blob_page)
+    : m_last_blob_page(last_blob_page) {
   }
 
   bool operator()(Page *page) {
-    ham_assert(page->cursor_list() == 0);
+#if 0
+    ScopedSpinlock lock(page->mutex());
+    if (page == m_last_blob_page)
+      return (false);
+    if (page->is_allocated() == false)
+      return (false);
+    if (page->cursor_list() != 0)
+      return (false);
+    if (!page->get_data())
+      return (false);
+#endif
+    return (true);
+  }
 
-    if (m_page_manager->m_state.last_blob_page == page) {
-      m_page_manager->m_state.last_blob_page_id
-              = m_page_manager->m_state.last_blob_page->get_address();
-      m_page_manager->m_state.last_blob_page = 0;
-    }
+  Page *m_last_blob_page;
+};
 
-    // TODO not exception safe
-    printf("flush %llu\n", page->get_address());
-    if (page->mutex().try_lock()) {
-      page->flush();
-      page->free_buffer();
-      page->mutex().unlock();
-      return (true);
-    }
+// callback for purging pages
+struct Purger
+{
+  Purger(PageManager *page_manager, PurgeCacheMessage *message)
+    : m_page_manager(page_manager), m_message(message) {
+  }
 
-    return (false);
+  void operator()(Page *page) {
+    m_message->addresses.push_back(page->get_address());
   }
 
   PageManager *m_page_manager;
+  PurgeCacheMessage *m_message;
 };
 
 void
-PageManager::maybe_purge_cache(Context *context)
+PageManager::purge_cache(Context *context)
 {
   // in-memory-db: don't remove the pages or they would be lost
   if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
     return;
 
-  MessageBase *message = new MessageBase(Worker::kPurgeCache, 0);
-  context->env->send_to_worker(message);
-}
-
-void
-PageManager::purge_cache()
-{
-  // in-memory-db: don't remove the pages or they would be lost
-  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
-    return;
+  PurgeCacheMessage *message = new PurgeCacheMessage;
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  Purger purger(this);
-  m_state.cache.purge(purger);
+  PurgeSelector selector(m_state.last_blob_page);
+  Purger purger(this, message);
+  m_state.cache.purge(selector, purger);
+
+  if (message && !message->addresses.empty())
+    m_worker->add_to_queue(message);
+  else
+    delete message;
 }
 
 void
@@ -491,6 +501,10 @@ PageManager::del(Page *page, size_t page_count)
 void
 PageManager::close(Context *context)
 {
+  /* wait for the worker thread to stop */
+  if (m_worker.get())
+    m_worker->stop_and_join();
+
   // store the state of the PageManager
   if ((m_state.config.flags & HAM_IN_MEMORY) == 0
       && (m_state.config.flags & HAM_READ_ONLY) == 0) {
@@ -712,27 +726,22 @@ Page *
 PageManager::safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock)
 {
+#if 0
   if (allow_recursive_lock) {
-    if (!page->mutex().is_locked())
+    if (!context->changeset.has(page))
       page->mutex().lock();
   }
   else {
-    ham_assert(!page->mutex().is_locked());
+    ham_assert(!context->changeset.has(page));
     page->mutex().lock();
   }
+#endif
+  context->changeset.put(page);
 
   // fetch contents again?
-  if (!page->get_data()) {
-      printf("page %llu is empty\n", page->get_address());
-    try {
-      page->fetch(page->get_address());
-    }
-    catch (Exception &ex) {
-      page->mutex().unlock();
-      throw;
-    }
-  }
-  context->changeset.put(page);
+  if (!page->get_data())
+    page->fetch(page->get_address());
+
   return (page);
 }
 

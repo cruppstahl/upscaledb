@@ -58,6 +58,7 @@ struct MessageBase
   MessageBase *next;
 };
 
+
 class Queue
 {
   public:

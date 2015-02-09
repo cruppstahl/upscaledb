@@ -39,13 +39,8 @@ namespace hamsterdb {
 class Worker
 {
   public:
-    // The available message types
-    enum {
-      kPurgeCache = 1,
-    };
-
-    Worker(LocalEnvironment *env)
-      : m_env(env), m_stop_requested(false), m_thread(&Worker::run, this) {
+    Worker()
+      : m_stop_requested(false), m_thread(&Worker::run, this) {
     }
 
     void add_to_queue(MessageBase *message) {
@@ -67,31 +62,26 @@ class Worker
   private:
     // The thread function
     void run() {
-      ScopedLock lock(m_mutex);
-      while (!m_stop_requested) {
-        m_cond.wait(lock); // will unlock m_mutex while waiting
+      while (true) {
+        MessageBase *message = 0;
+        {
+          ScopedLock lock(m_mutex);
+          if (m_stop_requested)
+            return;
+          m_cond.wait(lock); // will unlock m_mutex while waiting
 
-        MessageBase *message;
-        while ((message = m_queue.pop()) != 0) {
-          // ignore the message if stop was requested and the message is not
-          // mandatory
-          if ((m_stop_requested && message->flags & MessageBase::kIsMandatory)
-                  || !m_stop_requested) {
-            switch (message->type) {
-              case kPurgeCache:
-                m_env->page_manager()->purge_cache();
-                break;
-              default:
-                ham_assert(!"shouldn't be here");
-            }
-          }
+          message = m_queue.pop();
+        }
+
+        if (message) {
+          handle_message(message);
           delete message;
         }
       }
     }
 
-    // The Environment which created the thread
-    LocalEnvironment *m_env;
+    // The message handler - has to be overridden
+    virtual void handle_message(MessageBase *message) = 0;
 
     // A queue for storing messages
     Queue m_queue;

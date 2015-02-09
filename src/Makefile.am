@@ -96,6 +96,7 @@ libhamsterdb_la_SOURCES = \
 	3page_manager/page_manager_factory.h \
 	3page_manager/page_manager_state.h \
 	3page_manager/page_manager_test.h \
+	3page_manager/page_manager_worker.h \
 	4cursor/cursor.cc \
 	4cursor/cursor.h \
 	4db/db.cc \

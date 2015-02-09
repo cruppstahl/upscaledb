@@ -47,7 +47,6 @@ class Journal;
 class PageManager;
 class BlobManager;
 class LocalTransaction;
-class Worker;
 struct MessageBase;
 
 //
@@ -97,9 +96,6 @@ class LocalEnvironment : public Environment
     uint64_t next_lsn() {
       return (m_lsn_manager.next());
     }
-
-    // Sends a message to the worker thread
-    void send_to_worker(MessageBase *message);
 
     // Returns a test gateway
     LocalEnvironmentTest test();
@@ -186,9 +182,6 @@ class LocalEnvironment : public Environment
 
     // The logical journal
     ScopedPtr<Journal> m_journal;
-
-    // The worker thread
-    ScopedPtr<Worker> m_worker;
 
     // The lsn manager
     LsnManager m_lsn_manager;

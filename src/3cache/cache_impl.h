@@ -44,22 +44,6 @@ namespace CacheImpl {
 void
 del_unlocked(CacheState &state, Page *page);
 
-// Returns true if the page can be purged: page must use allocated
-// memory instead of an mmapped pointer; page must not be in use (= in
-// a changeset) and not have cursors attached
-struct PurgeSelector
-{
-  bool operator()(Page *page) {
-    if (page->is_allocated() == false)
-      return (false);
-    if (page->cursor_list() != 0)
-      return (false);
-    if (!page->get_data())
-      return (false);
-    return (true);
-  }
-};
-
 template<typename Purger>
 struct PurgeIfSelector
 {
@@ -166,31 +150,21 @@ current_elements(CacheState &state)
   return (state.totallist.size());
 }
 
-template<typename Purger>
+template<typename Selector, typename Purger>
 inline void
-purge(CacheState &state, Purger &purger)
+purge(CacheState &state, Selector &selector, Purger &purger)
 {
   size_t limit = current_elements(state)
             - (state.capacity_bytes / state.page_size_bytes);
   if (limit < CacheState::kPurgeAtLeast)
     limit = CacheState::kPurgeAtLeast;
 
-  PurgeSelector selector;
-
+  ScopedSpinlock lock(state.mutex);
   for (size_t i = 0; i < limit; i++) {
-    // The lock is permanently re-acquired so other threads don't starve
-    Page *page;
-    {
-      ScopedSpinlock lock(state.mutex);
-      page = state.totallist.find_first_reverse(selector);
-      if (!page)
-        break;
-    }
-
-    if (purger(page)) {
-      ScopedSpinlock lock(state.mutex);
-      del_unlocked(state, page);
-    }
+    Page *page = state.totallist.find_first_reverse(selector);
+    if (!page)
+      break;
+    purger(page);
   }
 }
 

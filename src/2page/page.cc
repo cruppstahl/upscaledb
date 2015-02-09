@@ -41,6 +41,10 @@ Page::~Page()
 {
   ham_assert(m_cursor_list == 0);
 
+  // safely unlock the mutex
+  m_mutex.try_lock();
+  m_mutex.unlock();
+
   if (m_node_proxy) {
     delete m_node_proxy;
     m_node_proxy = 0;

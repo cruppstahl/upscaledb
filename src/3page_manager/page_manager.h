@@ -31,8 +31,10 @@
 #include <map>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/scoped_ptr.h"
 #include "3page_manager/page_manager_state.h"
 #include "3page_manager/page_manager_test.h"
+#include "3page_manager/page_manager_worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -95,10 +97,7 @@ class PageManager
 
     // Asks the worker thread to purge the cache if the cache limits are
     // exceeded
-    void maybe_purge_cache(Context *context);
-
-    // Purges the cache, regardless of the cache limits
-    void purge_cache();
+    void purge_cache(Context *context);
 
     // Reclaim file space; truncates unused file space at the end of the file.
     void reclaim_space(Context *context);
@@ -143,6 +142,9 @@ class PageManager
 
     // The constructor is not used directly. Use the PageManagerFactory instead
     PageManager(LocalEnvironment *env);
+
+    // The worker thread which flushes dirty pages
+    ScopedPtr<PageManagerWorker> m_worker;
 
     // The state
     PageManagerState m_state;

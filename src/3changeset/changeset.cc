@@ -41,16 +41,18 @@ get(ChangesetState &state, uint64_t address)
   return (state.collection.get(address));
 }
 
-static void
-put(ChangesetState &state, Page *page)
-{
-  state.collection.put(page);
-}
-
 static bool
 has(const ChangesetState &state, Page *page)
 {
   return (state.collection.has(page));
+}
+
+static void
+put(ChangesetState &state, Page *page)
+{
+  if (!has(state, page))
+    page->mutex().lock();
+  state.collection.put(page);
 }
 
 static bool
@@ -93,6 +95,8 @@ struct PageCollectionVisitor
     if (page->is_dirty() == true) {
       pages[num_pages] = page;
       ++num_pages;
+      // |page| is now removed from the Changeset
+      page->mutex().unlock();
     }
     return (true);
   }

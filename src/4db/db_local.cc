@@ -778,7 +778,7 @@ LocalDatabase::check_integrity(uint32_t flags)
     Context context(lenv(), 0, this);
 
     /* purge cache if necessary */
-    lenv()->page_manager()->maybe_purge_cache(&context);
+    lenv()->page_manager()->purge_cache(&context);
 
     /* call the btree function */
     m_btree_index->check_integrity(&context, flags);
@@ -801,7 +801,7 @@ LocalDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
     Context context(lenv(), txn, this);
 
     /* purge cache if necessary */
-    lenv()->page_manager()->maybe_purge_cache(&context);
+    lenv()->page_manager()->purge_cache(&context);
 
     /*
      * call the btree function - this will retrieve the number of keys
@@ -836,7 +836,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     ham_key_t key = {0};
 
     /* purge cache if necessary */
-    lenv()->page_manager()->maybe_purge_cache(&context);
+    lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
     Cursor *cursor = cursor_create_impl(txn, 0);
@@ -1245,7 +1245,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
     Transaction *local_txn = 0;
 
     /* purge cache if necessary */
-    lenv()->page_manager()->maybe_purge_cache(&context);
+    lenv()->page_manager()->purge_cache(&context);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
@@ -1286,7 +1286,7 @@ LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
-  lenv()->page_manager()->maybe_purge_cache(context);
+  lenv()->page_manager()->purge_cache(context);
 
   /*
    * if the cursor was never used before and the user requests a NEXT then
@@ -1599,7 +1599,7 @@ LocalDatabase::insert_impl(Context *context, Cursor *cursor,
 {
   ham_status_t st = 0;
 
-  lenv()->page_manager()->maybe_purge_cache(context);
+  lenv()->page_manager()->purge_cache(context);
 
   /*
    * if transactions are enabled: only insert the key/record pair into
@@ -1660,7 +1660,7 @@ LocalDatabase::find_impl(Context *context, Cursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
-  lenv()->page_manager()->maybe_purge_cache(context);
+  lenv()->page_manager()->purge_cache(context);
 
   /*
    * if transactions are enabled: read keys from transaction trees,

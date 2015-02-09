@@ -81,9 +81,9 @@ class Cache
     //
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
-    template<typename Purger>
-    void purge(Purger &purger) {
-      CacheImpl::purge<Purger>(m_state, purger);
+    template<typename Selector, typename Purger>
+    void purge(Selector &selector, Purger &purger) {
+      CacheImpl::purge<Selector, Purger>(m_state, selector, purger);
     }
 
     // Visits all pages in the "totallist". If |cb| returns true then the

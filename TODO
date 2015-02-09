@@ -466,23 +466,41 @@ o Concurrency: move "purge cache" to background (cont...)
     x fix TODO in cache_impl.h
     x wake up thread if cache is full
 ========================
-problem: PageManager::safely_lock_page() does not have a "mutex.is_locked()".
-remove this code, reimplement it differently (i.e. check whether the page
-is already in the changeset). Then continue checking helgrind.
+x worker thread muss die pages freigeben (try_lock(), dann free_buffer())
+    x vorsicht: wenn cursor attached ist dann nicht entfernen!
+x printf's raus
+x unittests crashen. derzeit ist nicht immer klar wer/wann/wo die page lockt
+    bzw page lock und changeset::put sind nicht synchron.
+    page->mutex().lock() deshalb nach Changeset::put verschieben!
+    (ist dann auch synchron mit unlock().)
+o main thread muss die leeren pages entfernen
 ========================
-    o some messages should only exist once, i.e. purging the cache.
-        no need to add it to the queue multiple times
 
+    . some messages should only exist once, i.e. purging the cache.
+        no need to add them to the queue multiple times
     o run performance tests again
         o also for > 10 million inserts
+    o how can we profile the time used by the mutexes?
+        try http://0pointer.de/blog/projects/mutrace.html
     o and run the leveldb benchmarks
     o use valgrind to check for race conditions etc 
     o review comment in Cache::purge and rewrite if necessary
         o but run performance tests
     o run monster tests
 
-o PageManagerFactory is no longer required
-o merge cache_impl with cache.h
+    o have a special build mode where Mutex is used instead of Spinlock
+        (HAM_ENABLE_HELGRIND)
+
+o various issues for refactoring...
+    o move 4worker/worker.h to 2worker/worker.h
+    o PageManagerFactory is no longer required
+    o merge cache_impl with cache.h
+    o PageManager::alloc calls Page::allocate (rename to "alloc"!), which
+        calls DeviceDisk::read_page. Why? it's enough to assign the address
+        (unless the storage is mmapped)
+        o i think the Device should allocate the page, and not vice versa
+            (currently the Page uses the device to allocate itself)
+        o also assign page address in constructor!
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE

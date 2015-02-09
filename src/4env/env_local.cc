@@ -148,9 +148,6 @@ LocalEnvironment::do_create()
   if (get_flags() & HAM_ENABLE_RECOVERY)
     m_header->get_header_page()->flush();
 
-  /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
-
   return (0);
 }
 
@@ -259,9 +256,6 @@ fail_with_fake_cleansing:
   /* load the state of the PageManager */
   if (m_header->get_page_manager_blobid() != 0)
     m_page_manager->initialize(m_header->get_page_manager_blobid());
-
-  /* last step: start the worker thread */
-  m_worker.reset(new Worker(this));
 
   return (0);
 }
@@ -696,10 +690,6 @@ LocalEnvironment::do_close(uint32_t flags)
 {
   Context context(this);
 
-  /* wait for the worker thread to stop */
-  if (m_worker.get())
-    m_worker->stop_and_join();
-
   /* flush all committed transactions */
   if (m_txn_manager)
     m_txn_manager->flush_committed_txns(&context);
@@ -760,12 +750,6 @@ LocalEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
   BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?
   metrics->simd_lane_width = os_get_simd_lane_width();
-}
-
-void
-LocalEnvironment::send_to_worker(MessageBase *message)
-{
-  m_worker->add_to_queue(message);
 }
 
 void
