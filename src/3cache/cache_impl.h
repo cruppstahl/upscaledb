@@ -164,7 +164,10 @@ purge(CacheState &state, Selector &selector, Purger &purger)
     Page *page = state.totallist.find_first_reverse(selector);
     if (!page)
       break;
-    purger(page);
+    if (!purger(page)) {
+      del_unlocked(state, page);
+      delete page;
+    }
   }
 }
 

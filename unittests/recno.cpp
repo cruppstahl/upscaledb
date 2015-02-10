@@ -506,6 +506,7 @@ public:
     PageManager *pm = db->lenv()->page_manager();
     REQUIRE((page = pm->fetch(m_context.get(), be->get_root_address())) != 0);
     REQUIRE(page != 0);
+    m_context->changeset.clear(); // unlock pages
     BtreeCursor::uncouple_all_cursors(m_context.get(), page, 0);
 
     for (int i = 0; i < 5; i++) {

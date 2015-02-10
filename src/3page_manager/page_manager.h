@@ -107,7 +107,7 @@ class PageManager
 
     // Schedules one (or many sequential) pages for deletion and adds them
     // to the Freelist. Will not do anything if the Environment is in-memory.
-    void del(Page *page, size_t page_count = 1);
+    void del(Context *context, Page *page, size_t page_count = 1);
 
     // Closes the PageManager; flushes all dirty pages
     void close(Context *context);

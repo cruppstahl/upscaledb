@@ -54,6 +54,9 @@ class Changeset
     /* Append a new page to the changeset. The page is locked. */
     void put(Page *page);
 
+    /* Removes a page from the changeset. The page is unlocked. */
+    void del(Page *page);
+
     /* Check if the page is already part of the changeset */
     bool has(Page *page) const;
 

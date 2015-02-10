@@ -208,7 +208,7 @@ struct BtreeKeyFixture {
 
   void resetPage() {
     PageManager *pm = m_dbp->lenv()->page_manager();
-    pm->del(m_page);
+    pm->del(m_context.get(), m_page);
 
     m_page = pm->alloc(m_context.get(), Page::kTypeBindex,
                     PageManager::kClearWithZero);

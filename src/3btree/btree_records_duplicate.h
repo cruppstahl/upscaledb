@@ -363,8 +363,7 @@ class DuplicateTable
             if (is_record_inline(*record_flags))
               continue;
             if (*(uint64_t *)p != 0) {
-              m_db->lenv()->blob_manager()->erase(context,
-                              *(uint64_t *)p);
+              m_db->lenv()->blob_manager()->erase(context, *(uint64_t *)p);
               *(uint64_t *)p = 0;
             }
           }
@@ -381,8 +380,7 @@ class DuplicateTable
       uint8_t *record_flags;
       uint8_t *lhs = get_record_data(duplicate_index, &record_flags);
       if (record_flags != 0 && *record_flags == 0 && !m_inline_records) {
-        m_db->lenv()->blob_manager()->erase(context,
-                          *(uint64_t *)lhs);
+        m_db->lenv()->blob_manager()->erase(context, *(uint64_t *)lhs);
         *(uint64_t *)lhs = 0;
       }
 
@@ -1132,8 +1130,8 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
 
-      return (m_db->lenv()->blob_manager()->get_blob_size(context,
-                              *(uint64_t *)p));
+      LocalEnvironment *env = m_db->lenv();
+      return (env->blob_manager()->get_blob_size(context, *(uint64_t *)p));
     }
 
     // Returns the full record and stores it in |dest|; memory must be

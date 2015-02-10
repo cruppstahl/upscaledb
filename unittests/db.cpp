@@ -109,6 +109,7 @@ struct DbFixture {
     PageManagerTest test = pm->test();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
+    m_context->changeset.clear(); // unlock pages
 
     REQUIRE(m_dbp == page->get_db());
     p = page->get_payload();
@@ -121,6 +122,7 @@ struct DbFixture {
     delete page;
 
     REQUIRE((page = pm->fetch(m_context.get(), address)));
+    m_context->changeset.clear(); // unlock pages
     REQUIRE(page != 0);
     REQUIRE(address == page->get_address());
     test.remove_page(page);

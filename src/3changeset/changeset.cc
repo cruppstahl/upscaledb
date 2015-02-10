@@ -41,17 +41,28 @@ get(ChangesetState &state, uint64_t address)
   return (state.collection.get(address));
 }
 
+static void
+del(ChangesetState &state, Page *page)
+{
+  page->mutex().unlock();
+  state.collection.del(page);
+}
+
 static bool
 has(const ChangesetState &state, Page *page)
 {
   return (state.collection.has(page));
 }
 
+static int counter = 0;
 static void
 put(ChangesetState &state, Page *page)
 {
-  if (!has(state, page))
+  if (!has(state, page)) {
+    if (page->get_address() == 66560)
+      counter++;
     page->mutex().lock();
+  }
   state.collection.put(page);
 }
 
@@ -64,6 +75,7 @@ is_empty(const ChangesetState &state)
 struct UnlockPage
 {
   void operator()(Page *page) {
+    page->mutex().try_lock();
     page->mutex().unlock();
   }
 };
@@ -95,9 +107,9 @@ struct PageCollectionVisitor
     if (page->is_dirty() == true) {
       pages[num_pages] = page;
       ++num_pages;
-      // |page| is now removed from the Changeset
-      page->mutex().unlock();
     }
+    // |page| is now removed from the Changeset
+    page->mutex().unlock();
     return (true);
   }
 
@@ -164,6 +176,12 @@ Page *
 Changeset::get(uint64_t address)
 {
   return (Impl::get(m_state, address));
+}
+
+void
+Changeset::del(Page *page)
+{
+  Impl::del(m_state, page);
 }
 
 void

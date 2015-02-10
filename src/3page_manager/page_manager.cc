@@ -204,6 +204,7 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
     page->allocate(page_type);
   }
   catch (Exception &ex) {
+    context->changeset.del(page);
     if (allocated)
       delete page;
     throw ex;
@@ -276,7 +277,7 @@ PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
             page->set_without_header(false);
           }
           else {
-            Page *p = fetch(context, it->first + (i*page_size), 0);
+            Page *p = fetch(context, it->first + (i * page_size), 0);
             p->set_type(Page::kTypeBlob);
             p->set_without_header(true);
           }
@@ -353,7 +354,6 @@ struct PurgeSelector
   }
 
   bool operator()(Page *page) {
-#if 0
     ScopedSpinlock lock(page->mutex());
     if (page == m_last_blob_page)
       return (false);
@@ -363,7 +363,6 @@ struct PurgeSelector
       return (false);
     if (!page->get_data())
       return (false);
-#endif
     return (true);
   }
 
@@ -377,8 +376,12 @@ struct Purger
     : m_page_manager(page_manager), m_message(message) {
   }
 
-  void operator()(Page *page) {
+  bool operator()(Page *page) {
+    ScopedSpinlock lock(page->mutex());
+    if (!page->get_data())
+      return (false);
     m_message->addresses.push_back(page->get_address());
+    return (true);
   }
 
   PageManager *m_page_manager;
@@ -476,14 +479,23 @@ PageManager::close_database(Context *context, LocalDatabase *db)
 }
 
 void
-PageManager::del(Page *page, size_t page_count)
+PageManager::del(Context *context, Page *page, size_t page_count)
 {
   ham_assert(page_count > 0);
 
   if (m_state.config.flags & HAM_IN_MEMORY)
     return;
 
-  page->mutex().unlock();
+  // remove all pages from the changeset, otherwise they won't be unlocked
+  context->changeset.del(page);
+  if (page_count > 1) {
+    uint32_t page_size = m_state.config.page_size_bytes;
+    for (size_t i = 1; i < page_count; i++) {
+      Page *p = m_state.cache.get(page->get_address() + i * page_size);
+      if (context->changeset.has(p))
+        context->changeset.del(p);
+    }
+  }
 
   m_state.needs_flush = true;
   m_state.free_pages[page->get_address()] = page_count;

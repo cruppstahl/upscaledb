@@ -162,7 +162,7 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 
   m_btree->get_statistics()->reset_page(sibling);
   m_btree->get_statistics()->reset_page(page);
-  env->page_manager()->del(sibling);
+  env->page_manager()->del(m_context, sibling);
 
   BtreeIndex::ms_btree_smo_merge++;
   return (page);
@@ -183,7 +183,7 @@ BtreeUpdateAction::collapse_root(Page *root_page)
   Page *new_root = env->page_manager()->fetch(m_context,
                         m_btree->get_root_address());
   new_root->set_type(Page::kTypeBroot);
-  env->page_manager()->del(root_page);
+  env->page_manager()->del(m_context, root_page);
   return (new_root);
 }
 

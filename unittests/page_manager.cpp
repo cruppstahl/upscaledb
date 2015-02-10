@@ -301,7 +301,7 @@ struct PageManagerFixture {
     // free the last 3 of them and move them to the freelist (and verify with
     // is_page_free())
     for (int i = 2; i < 5; i++) {
-      pm->del(page[i]);
+      pm->del(m_context.get(), page[i]);
       REQUIRE(true == test.is_page_free(page[i]->get_address()));
     }
     for (int i = 0; i < 2; i++) {
@@ -406,7 +406,7 @@ struct PageManagerFixture {
 
     Page *head = pm->alloc_multiple_blob_pages(&context, 10);
     REQUIRE(head != 0);
-    pm->del(head, 10);
+    pm->del(&context, head, 10);
 
     Page *page1 = pm->alloc_multiple_blob_pages(&context, 2);
     REQUIRE(page1 != 0);

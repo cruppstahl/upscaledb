@@ -465,23 +465,23 @@ o Concurrency: move "purge cache" to background (cont...)
 
     x fix TODO in cache_impl.h
     x wake up thread if cache is full
-========================
-x worker thread muss die pages freigeben (try_lock(), dann free_buffer())
-    x vorsicht: wenn cursor attached ist dann nicht entfernen!
-x printf's raus
-x unittests crashen. derzeit ist nicht immer klar wer/wann/wo die page lockt
-    bzw page lock und changeset::put sind nicht synchron.
-    page->mutex().lock() deshalb nach Changeset::put verschieben!
-    (ist dann auch synchron mit unlock().)
-o main thread muss die leeren pages entfernen
-========================
+    x fix all regressions
+    x main thread must remove empty pages
 
-    . some messages should only exist once, i.e. purging the cache.
+    o profile mutex contention with
+        http://0pointer.de/blog/projects/mutrace.html
+        The cache mutex is a problem. Verify that it's not held while pages
+        are flushed!
+        #id  5462574   288644   222691   147887.835        0.027       59.274
+
+    o some messages should only exist once, i.e. purging the cache.
         no need to add them to the queue multiple times
+    o use Spinlock instead of Mutex for the Page
+        (blog post: compare both - on linux and windows!)
+
+    o run monster tests
     o run performance tests again
         o also for > 10 million inserts
-    o how can we profile the time used by the mutexes?
-        try http://0pointer.de/blog/projects/mutrace.html
     o and run the leveldb benchmarks
     o use valgrind to check for race conditions etc 
     o review comment in Cache::purge and rewrite if necessary

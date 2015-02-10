@@ -312,6 +312,7 @@ struct DupeCursorFixture {
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
     ham_status_t st =  be->insert(m_context.get(), 0, &k, &r, flags);
+    m_context->changeset.clear(); // unlock pages
     return (st);
   }
 

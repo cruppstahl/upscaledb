@@ -361,7 +361,7 @@ DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
   if (header->get_free_bytes() == (header->get_num_pages()
               * m_env->config().page_size_bytes) - kPageOverhead) {
     m_env->page_manager()->set_last_blob_page(0);
-    m_env->page_manager()->del(page, header->get_num_pages());
+    m_env->page_manager()->del(context, page, header->get_num_pages());
     header->initialize();
     return;
   }
