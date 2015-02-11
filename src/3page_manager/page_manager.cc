@@ -44,10 +44,11 @@ enum {
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(env->config()), needs_flush(false), state_page(0),
-    last_blob_page(0), last_blob_page_id(0), page_count_fetched(0),
-    page_count_index(0), page_count_blob(0), page_count_page_manager(0),
-    cache_hits(0), cache_misses(0), freelist_hits(0), freelist_misses(0)
+    cache(env->config()), needs_flush(false), purge_cache_pending(false),
+    state_page(0), last_blob_page(0), last_blob_page_id(0),
+    page_count_fetched(0), page_count_index(0), page_count_blob(0),
+    page_count_page_manager(0), cache_hits(0), cache_misses(0),
+    freelist_hits(0), freelist_misses(0)
 {
 }
 
@@ -394,8 +395,12 @@ PageManager::purge_cache(Context *context)
   // in-memory-db: don't remove the pages or they would be lost
   if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
     return;
+  // if a "purge cache" operation is still pending then do not schedule
+  // a new one
+  if (m_state.purge_cache_pending)
+    return;
 
-  PurgeCacheMessage *message = new PurgeCacheMessage;
+  PurgeCacheMessage *message = new PurgeCacheMessage(&m_state.purge_cache_pending);
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
@@ -403,8 +408,10 @@ PageManager::purge_cache(Context *context)
   Purger purger(this, message);
   m_state.cache.purge(selector, purger);
 
-  if (message && !message->addresses.empty())
+  if (message && !message->addresses.empty()) {
+    m_state.purge_cache_pending = true;
     m_worker->add_to_queue(message);
+  }
   else
     delete message;
 }

@@ -39,7 +39,6 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "3cache/cache_state.h"
-#include "3cache/cache_impl.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -49,6 +48,29 @@ namespace hamsterdb {
 
 class Cache
 {
+    template<typename Purger>
+    struct PurgeIfSelector
+    {
+      PurgeIfSelector(Cache *cache, Purger &purger)
+        : m_cache(cache), m_purger(purger) {
+      }
+
+      void prepare(size_t size) {
+      }
+
+      bool operator()(Page *page) {
+        if (m_purger(page)) {
+          m_cache->del_unlocked(page);
+          delete page;
+        }
+        // don't remove page from list; it was already removed above
+        return (false);
+      }
+
+      Cache *m_cache;
+      Purger &m_purger;
+    };
+
   public:
     // The default constructor
     Cache(const EnvironmentConfiguration &config)
@@ -56,25 +78,17 @@ class Cache
     }
 
     // Fills in the current metrics
-    void fill_metrics(ham_env_metrics_t *metrics) const {
-      CacheImpl::fill_metrics(m_state, metrics);
-    }
+    void fill_metrics(ham_env_metrics_t *metrics) const;
 
     // Retrieves a page from the cache, also removes the page from the cache
     // and re-inserts it at the front. Returns null if the page was not cached.
-    Page *get(uint64_t address, uint32_t flags = 0) {
-      return (CacheImpl::get(m_state, address, flags));
-    }
+    Page *get(uint64_t address);
 
     // Stores a page in the cache
-    void put(Page *page) {
-      CacheImpl::put(m_state, page);
-    }
+    void put(Page *page);
 
     // Removes a page from the cache
-    void del(Page *page) {
-      CacheImpl::del(m_state, page);
-    }
+    void del(Page *page);
 
     // Purges the cache. Whenever |PurgeSelector()| returns true, the page is
     // forwarded to the |purger()|.
@@ -83,7 +97,21 @@ class Cache
     // be a good limit.
     template<typename Selector, typename Purger>
     void purge(Selector &selector, Purger &purger) {
-      CacheImpl::purge<Selector, Purger>(m_state, selector, purger);
+      size_t limit = current_elements()
+                - (m_state.capacity_bytes / m_state.page_size_bytes);
+      if (limit < CacheState::kPurgeAtLeast)
+        limit = CacheState::kPurgeAtLeast;
+
+      ScopedSpinlock lock(m_state.mutex);
+      for (size_t i = 0; i < limit; i++) {
+        Page *page = m_state.totallist.find_first_reverse(selector);
+        if (!page)
+          break;
+        if (!purger(page)) {
+          del_unlocked(page);
+          delete page;
+        }
+      }
     }
 
     // Visits all pages in the "totallist". If |cb| returns true then the
@@ -91,26 +119,25 @@ class Cache
     // to flush (and delete) pages.
     template<typename Purger>
     void purge_if(Purger &purger) {
-      CacheImpl::purge_if<Purger>(m_state, purger);
+      PurgeIfSelector<Purger> selector(this, purger);
+
+      ScopedSpinlock lock(m_state.mutex);
+      m_state.totallist.extract(selector);
     }
 
     // Returns the capacity (in bytes)
-    size_t capacity() const {
-      return (CacheImpl::capacity(m_state));
-    }
+    size_t capacity() const;
 
     // Returns the number of currently cached elements
-    size_t current_elements() {
-      return (CacheImpl::current_elements(m_state));
-    }
+    size_t current_elements();
 
     // Returns the number of currently cached elements (excluding those that
     // are mmapped)
-    size_t allocated_elements() const {
-      return (CacheImpl::allocated_elements(m_state));
-    }
+    size_t allocated_elements() const;
 
   private:
+    void del_unlocked(Page *page);
+
     // The mutable state
     CacheState m_state;
 };

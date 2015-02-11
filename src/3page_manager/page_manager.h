@@ -125,6 +125,7 @@ class PageManager
     friend struct Purger;
     friend struct PageManagerTest;
     friend struct PageManagerFactory;
+    friend class  PageManagerWorker;
 
     // Persists the PageManager's state in the file
     uint64_t store_state(Context *context);

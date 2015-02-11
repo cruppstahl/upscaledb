@@ -43,9 +43,10 @@
 
 namespace hamsterdb {
 
+#ifdef HAM_ENABLE_HELGRIND
 typedef Mutex Spinlock;
+#else
 
-#if 0
 class Spinlock {
     typedef enum {
       kLocked,
@@ -74,8 +75,9 @@ class Spinlock {
       m_state.store(kUnlocked, boost::memory_order_release);
     }
 
-    bool is_locked() const {
-      return (m_state.load(boost::memory_order_release) == kLocked);
+    bool try_lock() {
+      return (m_state.exchange(kLocked, boost::memory_order_acquire)
+                      != kLocked);
     }
 
     static void spin(int loop) {
@@ -102,7 +104,7 @@ class Spinlock {
   private:
     boost::atomic<LockState> m_state;
 };
-#endif
+#endif // HAM_ENABLE_HELGRIND
 
 class ScopedSpinlock {
   public:

@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <boost/thread.hpp>
+#include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
 #include "2queue/queue.h"
@@ -44,11 +45,12 @@ struct PurgeCacheMessage : public MessageBase
     kPurgeCache = 1,
   };
 
-  PurgeCacheMessage()
-    : MessageBase(kPurgeCache, 0) {
+  PurgeCacheMessage(boost::atomic<bool> *pending)
+    : MessageBase(kPurgeCache, 0), ppending(pending) {
   }
 
   std::vector<uint64_t> addresses;
+  boost::atomic<bool> *ppending;
 };
 
 
@@ -83,6 +85,7 @@ class PageManagerWorker : public Worker
               page->mutex().unlock();
             }
           }
+          *pcm->ppending = false;
           break;
         }
         default:

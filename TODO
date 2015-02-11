@@ -468,33 +468,29 @@ o Concurrency: move "purge cache" to background (cont...)
     x fix all regressions
     x main thread must remove empty pages
 
-    o profile mutex contention with
+    x profile mutex contention with
         http://0pointer.de/blog/projects/mutrace.html
         The cache mutex is a problem. Verify that it's not held while pages
         are flushed!
         #id  5462574   288644   222691   147887.835        0.027       59.274
 
-    o some messages should only exist once, i.e. purging the cache.
+    x some messages should only exist once, i.e. purging the cache.
         no need to add them to the queue multiple times
+    x use valgrind to check for race conditions etc 
     o use Spinlock instead of Mutex for the Page
         (blog post: compare both - on linux and windows!)
+        o have a special build mode where Mutex is used instead of Spinlock
+            (HAM_ENABLE_HELGRIND)
 
     o run monster tests
     o run performance tests again
         o also for > 10 million inserts
     o and run the leveldb benchmarks
-    o use valgrind to check for race conditions etc 
-    o review comment in Cache::purge and rewrite if necessary
-        o but run performance tests
-    o run monster tests
-
-    o have a special build mode where Mutex is used instead of Spinlock
-        (HAM_ENABLE_HELGRIND)
 
 o various issues for refactoring...
+    x merge cache_impl with cache.h
     o move 4worker/worker.h to 2worker/worker.h
     o PageManagerFactory is no longer required
-    o merge cache_impl with cache.h
     o PageManager::alloc calls Page::allocate (rename to "alloc"!), which
         calls DeviceDisk::read_page. Why? it's enough to assign the address
         (unless the storage is mmapped)

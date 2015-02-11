@@ -45,6 +45,7 @@ libhamsterdb_la_SOURCES = \
 	2lsn_manager/lsn_manager_test.h \
 	2queue/queue.h \
 	3cache/cache.h \
+	3cache/cache.cc \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
 	3changeset/changeset_state.h \
@@ -128,7 +129,8 @@ libhamsterdb_la_SOURCES = \
 
 EXTRA_DIST = 1os/os_win32.cc
 
-AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
+AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
+			  $(BOOST_CPPFLAGS) # -DHAM_ENABLE_HELGRIND
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS)	\
 		$(BOOST_THREAD_LDFLAGS)
 libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)

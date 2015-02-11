@@ -41,8 +41,10 @@ Page::~Page()
 {
   ham_assert(m_cursor_list == 0);
 
+#ifdef HAM_ENABLE_HELGRIND
   // safely unlock the mutex
   m_mutex.try_lock();
+#endif
   m_mutex.unlock();
 
   if (m_node_proxy) {

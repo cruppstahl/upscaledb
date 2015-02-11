@@ -29,6 +29,7 @@
 #include "0root/root.h"
 
 #include <map>
+#include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
 #include "2config/env_config.h"
@@ -76,6 +77,9 @@ struct PageManagerState
 
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
+
+  // Whether a "purge cache" operation is pending
+  boost::atomic<bool> purge_cache_pending;
 
   // Page with the persisted state data. If multiple pages are allocated
   // then these pages form a linked list, with |m_state_page| being the head
