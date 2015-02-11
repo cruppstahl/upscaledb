@@ -71,6 +71,29 @@ class Cache
       Purger &m_purger;
     };
 
+    template<typename Selector>
+    struct PurgeSelector
+    {
+      PurgeSelector(Selector &selector, std::vector<Page *> &pages,
+                      size_t limit)
+        : selector(selector), pages(pages), limit(limit) {
+        ham_assert(limit > 0);
+      }
+
+      void prepare(size_t size) {
+      }
+
+      bool operator()(Page *page) {
+        if (selector(page))
+          pages.push_back(page);
+        return (pages.size() < limit);
+      }
+
+      Selector &selector;
+      std::vector<Page *> &pages;
+      size_t limit;
+    };
+
   public:
     // The default constructor
     Cache(const EnvironmentConfiguration &config)
@@ -90,27 +113,34 @@ class Cache
     // Removes a page from the cache
     void del(Page *page);
 
-    // Purges the cache. Whenever |PurgeSelector()| returns true, the page is
+    // Purges the cache. Whenever |Selector()| returns true, the page is
     // forwarded to the |purger()|.
     //
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
-    template<typename Selector, typename Purger>
-    void purge(Selector &selector, Purger &purger) {
+    template<typename Selector>
+    void purge_candidates(Selector &selector, std::vector<Page *> &pages) {
       size_t limit = current_elements()
                 - (m_state.capacity_bytes / m_state.page_size_bytes);
       if (limit < CacheState::kPurgeAtLeast)
         limit = CacheState::kPurgeAtLeast;
 
       ScopedSpinlock lock(m_state.mutex);
-      for (size_t i = 0; i < limit; i++) {
-        Page *page = m_state.totallist.find_first_reverse(selector);
-        if (!page)
-          break;
-        if (!purger(page)) {
+      PurgeSelector<Selector> purge_selector(selector, pages, limit);
+      m_state.totallist.for_each_reverse(purge_selector);
+      
+      for (size_t i = 0; i < pages.size(); i++) {
+        Page *page = pages[i];
+        bool delete_page = false;
+        {
+          ScopedSpinlock lock(page->mutex());
+          if (!page->get_data())
+            delete_page = true;
           del_unlocked(page);
-          delete page;
         }
+
+        if (delete_page)
+          delete page;
       }
     }
 

@@ -54,22 +54,21 @@ class PageCollection {
       return (m_size);
     }
 
-    // Returns the first page where |predicate()| returns true. Starts at
-    // the tail.
-    template<typename Predicate>
-    Page *find_first_reverse(Predicate &predicate) {
-      for (Page *p = m_tail; p != 0; p = p->get_previous(m_id)) {
-        if (predicate(p))
-          return (p);
-      }
-      return (0);
-    }
-
     // Atomically applies the |visitor()| to each page
     template<typename Visitor>
     void for_each(Visitor &visitor) {
       for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
-        visitor(p);
+        if (!visitor(p))
+          break;
+      }
+    }
+
+    // Atomically applies the |visitor()| to each page; starts at the tail
+    template<typename Visitor>
+    void for_each_reverse(Visitor &visitor) {
+      for (Page *p = m_tail; p != 0; p = p->get_previous(m_id)) {
+        if (!visitor(p))
+          break;
       }
     }
 

@@ -74,11 +74,12 @@ is_empty(const ChangesetState &state)
 
 struct UnlockPage
 {
-  void operator()(Page *page) {
+  bool operator()(Page *page) {
 #ifdef HAM_ENABLE_HELGRIND
     page->mutex().try_lock();
 #endif
     page->mutex().unlock();
+    return (true);
   }
 };
 

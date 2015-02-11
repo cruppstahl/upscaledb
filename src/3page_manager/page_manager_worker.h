@@ -49,7 +49,7 @@ struct PurgeCacheMessage : public MessageBase
     : MessageBase(kPurgeCache, 0), ppending(pending) {
   }
 
-  std::vector<uint64_t> addresses;
+  std::vector<Page *> pages;
   boost::atomic<bool> *ppending;
 };
 
@@ -66,13 +66,13 @@ class PageManagerWorker : public Worker
       switch (message->type) {
         case PurgeCacheMessage::kPurgeCache: {
           PurgeCacheMessage *pcm = (PurgeCacheMessage *)message;
-          std::vector<uint64_t>::iterator it = pcm->addresses.begin();
-          for (; it != pcm->addresses.end(); ++it) {
-            Page *page = m_cache->get(*it);
+          std::vector<Page *>::iterator it = pcm->pages.begin();
+          for (; it != pcm->pages.end(); ++it) {
+            Page *page = *it;
             if (page && page->mutex().try_lock()) {
               if (page->get_data()
                     && page->cursor_list() == 0
-                    && !page->is_allocated()) {
+                    && page->is_allocated()) {
                 try {
                   page->flush();
                   page->free_buffer();

@@ -370,31 +370,13 @@ struct PurgeSelector
   Page *m_last_blob_page;
 };
 
-// callback for purging pages
-struct Purger
-{
-  Purger(PageManager *page_manager, PurgeCacheMessage *message)
-    : m_page_manager(page_manager), m_message(message) {
-  }
-
-  bool operator()(Page *page) {
-    ScopedSpinlock lock(page->mutex());
-    if (!page->get_data())
-      return (false);
-    m_message->addresses.push_back(page->get_address());
-    return (true);
-  }
-
-  PageManager *m_page_manager;
-  PurgeCacheMessage *m_message;
-};
-
 void
 PageManager::purge_cache(Context *context)
 {
   // in-memory-db: don't remove the pages or they would be lost
   if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
     return;
+
   // if a "purge cache" operation is still pending then do not schedule
   // a new one
   if (m_state.purge_cache_pending)
@@ -405,10 +387,9 @@ PageManager::purge_cache(Context *context)
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
   PurgeSelector selector(m_state.last_blob_page);
-  Purger purger(this, message);
-  m_state.cache.purge(selector, purger);
+  m_state.cache.purge_candidates(selector, message->pages);
 
-  if (message && !message->addresses.empty()) {
+  if (message && !message->pages.empty()) {
     m_state.purge_cache_pending = true;
     m_worker->add_to_queue(message);
   }
