@@ -477,9 +477,9 @@ o Concurrency: move "purge cache" to background (cont...)
     x some messages should only exist once, i.e. purging the cache.
         no need to add them to the queue multiple times
     x use valgrind to check for race conditions etc 
-    o use Spinlock instead of Mutex for the Page
+    x use Spinlock instead of Mutex for the Page
         (blog post: compare both - on linux and windows!)
-        o have a special build mode where Mutex is used instead of Spinlock
+        x have a special build mode where Mutex is used instead of Spinlock
             (HAM_ENABLE_HELGRIND)
 
     o run monster tests
@@ -489,8 +489,8 @@ o Concurrency: move "purge cache" to background (cont...)
 
 o various issues for refactoring...
     x merge cache_impl with cache.h
+    x PageManagerFactory is no longer required
     o move 4worker/worker.h to 2worker/worker.h
-    o PageManagerFactory is no longer required
     o PageManager::alloc calls Page::allocate (rename to "alloc"!), which
         calls DeviceDisk::read_page. Why? it's enough to assign the address
         (unless the storage is mmapped)
@@ -506,7 +506,7 @@ o reserve file size upon creation, then map the whole range
     o the device will manage the mapping
         o unittest - verify that the initial file size is correct
         o unittest - verify that the file size does not grow if new pages
-            are allocated
+            are allocated (unless the initial size is exceeded)
     o support in ham_bench
     o monster tests and performance tests
     o also for java
@@ -552,7 +552,7 @@ o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
     o BlobManager
         o disk: pass PageManager during initialization
         o inmem: pass InMemoryDevice during initialization
-        o remove dependency from env
+        o remove dependency to env
     o Device
     o BtreeActions
     o Btree
@@ -567,7 +567,7 @@ o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
         - public API
         - internal modules
 
-. Refactoring: would it make sense if each Database has its own BlobManager?
+o Refactoring: would it make sense if each Database has its own BlobManager?
     Then ham_env_erase_db would be much faster, and if each Database has its
     own lock then the blob pages would not block each other
 

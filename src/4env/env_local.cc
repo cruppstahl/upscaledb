@@ -22,8 +22,8 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_stats.h"
 #include "3blob_manager/blob_manager_factory.h"
-#include "3page_manager/page_manager_factory.h"
 #include "3journal/journal.h"
+#include "3page_manager/page_manager.h"
 #include "4db/db.h"
 #include "4txn/txn.h"
 #include "4txn/txn_local.h"
@@ -135,7 +135,7 @@ LocalEnvironment::do_create()
   m_header->set_max_databases(m_config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this));
+  m_page_manager.reset(new PageManager(this));
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -247,7 +247,7 @@ fail_with_fake_cleansing:
   }
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(PageManagerFactory::create(this));
+  m_page_manager.reset(new PageManager(this));
 
   /* check if recovery is required */
   if (get_flags() & HAM_ENABLE_RECOVERY)

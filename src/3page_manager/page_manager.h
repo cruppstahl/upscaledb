@@ -69,6 +69,9 @@ class PageManager
       kNoHeader = 4
     };
 
+    // Constructor
+    PageManager(LocalEnvironment *env);
+
     // Loads the state from a blob
     void initialize(uint64_t blobid);
 
@@ -140,9 +143,6 @@ class PageManager
     // the meantime
     Page *safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock);
-
-    // The constructor is not used directly. Use the PageManagerFactory instead
-    PageManager(LocalEnvironment *env);
 
     // The worker thread which flushes dirty pages
     ScopedPtr<PageManagerWorker> m_worker;
