@@ -202,7 +202,7 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
     }
 
     context->changeset.put(page);
-    page->allocate(page_type);
+    page->alloc(page_type);
   }
   catch (Exception &ex) {
     context->changeset.del(page);
@@ -592,7 +592,7 @@ PageManager::store_state(Context *context)
   // otherwise allocate a new page, if required
   if (!m_state.state_page) {
     m_state.state_page = new Page(m_state.device);
-    m_state.state_page->allocate(Page::kTypePageManager,
+    m_state.state_page->alloc(Page::kTypePageManager,
             Page::kInitializeWithZeroes);
   }
 

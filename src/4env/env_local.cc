@@ -120,7 +120,7 @@ LocalEnvironment::do_create()
 
   /* allocate the header page */
   Page *page = new Page(m_device.get());
-  page->allocate(Page::kTypeHeader, m_config.page_size_bytes);
+  page->alloc(Page::kTypeHeader, m_config.page_size_bytes);
   ::memset(page->get_data(), 0, m_config.page_size_bytes);
   page->set_type(Page::kTypeHeader);
   page->set_dirty(true);

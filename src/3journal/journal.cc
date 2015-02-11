@@ -592,7 +592,7 @@ Journal::recover_changeset()
         file_size += page_size;
 
         page = new Page(m_state.env->device());
-        page->allocate(0);
+        page->alloc(0);
       }
       else if (page_header.address > file_size) {
         file_size = (size_t)page_header.address + page_size;

@@ -95,7 +95,7 @@ class Page {
       // sizeof the persistent page header
       kSizeofPersistentHeader = sizeof(PPageHeader) - 1,
 
-      // instruct Page::allocate() to reset the page with zeroes
+      // instruct Page::alloc() to reset the page with zeroes
       kInitializeWithZeroes,
     };
 
@@ -302,7 +302,7 @@ class Page {
 
     // Allocates a new page from the device
     // |flags|: either 0 or kInitializeWithZeroes
-    void allocate(uint32_t type, uint32_t flags = 0);
+    void alloc(uint32_t type, uint32_t flags = 0);
 
     // Reads a page from the device
     void fetch(uint64_t address);

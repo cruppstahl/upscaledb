@@ -212,7 +212,10 @@ class DiskDevice : public Device {
 
       truncate(address + m_config.page_size_bytes);
       page->set_address(address);
-      read_page(page, (uint64_t)address);
+
+      // allocate a memory buffer
+      uint8_t *p = Memory::allocate<uint8_t>(m_config.page_size_bytes);
+      page->assign_allocated_buffer(p, address);
     }
 
     // Frees a page on the device; plays counterpoint to |alloc_page|

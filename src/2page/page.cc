@@ -57,7 +57,7 @@ Page::~Page()
 }
 
 void
-Page::allocate(uint32_t type, uint32_t flags)
+Page::alloc(uint32_t type, uint32_t flags)
 {
   m_device->alloc_page(this);
 

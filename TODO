@@ -490,13 +490,10 @@ o Concurrency: move "purge cache" to background (cont...)
 o various issues for refactoring...
     x merge cache_impl with cache.h
     x PageManagerFactory is no longer required
-    o move 4worker/worker.h to 2worker/worker.h
-    o PageManager::alloc calls Page::allocate (rename to "alloc"!), which
+    x PageManager::alloc calls Page::allocate (rename to "alloc"!), which
         calls DeviceDisk::read_page. Why? it's enough to assign the address
         (unless the storage is mmapped)
-        o i think the Device should allocate the page, and not vice versa
-            (currently the Page uses the device to allocate itself)
-        o also assign page address in constructor!
+    o move 4worker/worker.h to 2worker/worker.h
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
