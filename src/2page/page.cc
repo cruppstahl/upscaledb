@@ -87,4 +87,17 @@ Page::flush()
   }
 }
 
+void
+Page::free_buffer()
+{
+  if (m_node_proxy) {
+    delete m_node_proxy;
+    m_node_proxy = 0;
+  }
+
+  if (m_is_allocated)
+    Memory::release(m_data);
+  m_data = 0;
+}
+
 } // namespace hamsterdb

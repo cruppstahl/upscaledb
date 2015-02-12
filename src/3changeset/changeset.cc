@@ -54,13 +54,10 @@ has(const ChangesetState &state, Page *page)
   return (state.collection.has(page));
 }
 
-static int counter = 0;
 static void
 put(ChangesetState &state, Page *page)
 {
   if (!has(state, page)) {
-    if (page->get_address() == 66560)
-      counter++;
     page->mutex().lock();
   }
   state.collection.put(page);

@@ -387,9 +387,9 @@ PageManager::purge_cache(Context *context)
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
   PurgeSelector selector(m_state.last_blob_page);
-  m_state.cache.purge_candidates(selector, message->pages);
+  m_state.cache.purge_candidates(selector, message->addresses);
 
-  if (message && !message->pages.empty()) {
+  if (message && !message->addresses.empty()) {
     m_state.purge_cache_pending = true;
     m_worker->add_to_queue(message);
   }
@@ -726,21 +726,14 @@ Page *
 PageManager::safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock)
 {
-#if 0
-  if (allow_recursive_lock) {
-    if (!context->changeset.has(page))
-      page->mutex().lock();
-  }
-  else {
-    ham_assert(!context->changeset.has(page));
-    page->mutex().lock();
-  }
-#endif
   context->changeset.put(page);
 
+  ham_assert(page->mutex().try_lock() == false);
+
   // fetch contents again?
-  if (!page->get_data())
+  if (!page->get_data()) {
     page->fetch(page->get_address());
+  }
 
   return (page);
 }

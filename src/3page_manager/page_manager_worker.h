@@ -29,6 +29,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "2queue/queue.h"
+#include "2device/device.h"
 #include "3cache/cache.h"
 #include "4worker/worker.h"
 
@@ -49,7 +50,7 @@ struct PurgeCacheMessage : public MessageBase
     : MessageBase(kPurgeCache, 0), ppending(pending) {
   }
 
-  std::vector<Page *> pages;
+  std::vector<uint64_t> addresses;
   boost::atomic<bool> *ppending;
 };
 
@@ -66,16 +67,16 @@ class PageManagerWorker : public Worker
       switch (message->type) {
         case PurgeCacheMessage::kPurgeCache: {
           PurgeCacheMessage *pcm = (PurgeCacheMessage *)message;
-          std::vector<Page *>::iterator it = pcm->pages.begin();
-          for (; it != pcm->pages.end(); ++it) {
-            Page *page = *it;
+          std::vector<uint64_t>::iterator it = pcm->addresses.begin();
+          for (; it != pcm->addresses.end(); ++it) {
+            Page *page = m_cache->get(*it);
             if (page && page->mutex().try_lock()) {
               if (page->get_data()
                     && page->cursor_list() == 0
                     && page->is_allocated()) {
                 try {
                   page->flush();
-                  page->free_buffer();
+                  page->device()->free_page(page);
                 }
                 catch (Exception &ex) {
                   page->mutex().unlock();

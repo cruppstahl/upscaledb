@@ -179,6 +179,11 @@ class Page {
       return (m_mutex);
     }
 
+    // Returns the device
+    Device *device() {
+      return (m_device);
+    }
+
     // Returns true if this is the header page of the Environment
     bool is_header() const {
       return (m_address == 0);
@@ -234,11 +239,7 @@ class Page {
     }
 
     // Free resources associated with the buffer
-    void free_buffer() {
-      if (m_is_allocated)
-        Memory::release(m_data);
-      m_data = 0;
-    }
+    void free_buffer();
 
     // Returns the linked list of coupled cursors (can be NULL)
     BtreeCursor *cursor_list() {

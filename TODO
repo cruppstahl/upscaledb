@@ -486,12 +486,6 @@ o Concurrency: move "purge cache" to background (cont...)
         x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=ascending --extkey-threshold=20 --recsize=0 --stop-ops=500000
         x find_first_reverse always returns the same page!
 
-=================
-./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --pagesize=1024 --recsize=0 --distribution=ascending --extkey-threshold=20 --recsize=0 --stop-ops=500000
-crasht weil page->m_db == 0. ist eine race condition, denn manchmal geht's.
-- mit helgrind laufen lassen
-=================
-
     o run monster tests
     o run performance tests
         o also for > 10 million inserts

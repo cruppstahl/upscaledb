@@ -308,3 +308,15 @@ TEST_CASE("APIv110/issue7Test", "")
   f.issue7Test();
 }
 
+#include "1base/spinlock.h"
+
+TEST_CASE("APIv110/spinlockTest", "")
+{
+  hamsterdb::Spinlock lock;
+  lock.lock();
+  REQUIRE(false == lock.try_lock());
+  lock.unlock();
+  REQUIRE(true == lock.try_lock());
+  lock.unlock();
+}
+

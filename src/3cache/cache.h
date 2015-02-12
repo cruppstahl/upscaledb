@@ -74,9 +74,9 @@ class Cache
     template<typename Selector>
     struct PurgeSelector
     {
-      PurgeSelector(Selector &selector, std::vector<Page *> &pages,
+      PurgeSelector(Selector &selector, std::vector<uint64_t> &addresses,
                       size_t limit)
-        : selector(selector), pages(pages), limit(limit) {
+        : selector(selector), addresses(addresses), limit(limit) {
         ham_assert(limit > 0);
       }
 
@@ -85,12 +85,12 @@ class Cache
 
       bool operator()(Page *page) {
         if (selector(page))
-          pages.push_back(page);
-        return (pages.size() < limit);
+          addresses.push_back(page->get_address());
+        return (addresses.size() < limit);
       }
 
       Selector &selector;
-      std::vector<Page *> &pages;
+      std::vector<uint64_t> &addresses;
       size_t limit;
     };
 
@@ -119,24 +119,26 @@ class Cache
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
     template<typename Selector>
-    void purge_candidates(Selector &selector, std::vector<Page *> &pages) {
+    void purge_candidates(Selector &selector,
+                    std::vector<uint64_t> &addresses) {
       size_t limit = current_elements()
                 - (m_state.capacity_bytes / m_state.page_size_bytes);
       if (limit < CacheState::kPurgeAtLeast)
         limit = CacheState::kPurgeAtLeast;
 
       ScopedSpinlock lock(m_state.mutex);
-      PurgeSelector<Selector> purge_selector(selector, pages, limit);
+      PurgeSelector<Selector> purge_selector(selector, addresses, limit);
       m_state.totallist.for_each_reverse(purge_selector);
       
-      for (size_t i = 0; i < pages.size(); i++) {
-        Page *page = pages[i];
+      for (size_t i = 0; i < addresses.size(); i++) {
+        Page *page = m_state.totallist.get(addresses[i]);
         bool delete_page = false;
-        {
+        if (page) {
           ScopedSpinlock lock(page->mutex());
-          if (!page->get_data())
+          if (!page->get_data()) {
             delete_page = true;
-          del_unlocked(page);
+            del_unlocked(page);
+          }
         }
 
         if (delete_page)
