@@ -39,19 +39,18 @@
 
 namespace hamsterdb {
 
-struct PurgeCacheMessage : public MessageBase
+struct FlushPageMessage : public MessageBase
 {
   // The available message types
   enum {
-    kPurgeCache = 1,
+    kFlushPage = 1,
   };
 
-  PurgeCacheMessage(boost::atomic<bool> *pending)
-    : MessageBase(kPurgeCache, 0), ppending(pending) {
+  FlushPageMessage(Page *page)
+    : MessageBase(kFlushPage, 0), page(page) {
   }
 
-  std::vector<uint64_t> addresses;
-  boost::atomic<bool> *ppending;
+  Page *page;
 };
 
 
@@ -65,28 +64,19 @@ class PageManagerWorker : public Worker
   private:
     virtual void handle_message(MessageBase *message) {
       switch (message->type) {
-        case PurgeCacheMessage::kPurgeCache: {
-          PurgeCacheMessage *pcm = (PurgeCacheMessage *)message;
-          std::vector<uint64_t>::iterator it = pcm->addresses.begin();
-          for (; it != pcm->addresses.end(); ++it) {
-            Page *page = m_cache->get(*it);
-            if (page && page->mutex().try_lock()) {
-              if (page->get_data()
-                    && page->cursor_list() == 0
-                    && page->is_allocated()) {
-                try {
-                  page->flush();
-                  page->device()->free_page(page);
-                }
-                catch (Exception &ex) {
-                  page->mutex().unlock();
-                  throw;
-                }
-              }
-              page->mutex().unlock();
-            }
+        case FlushPageMessage::kFlushPage: {
+          FlushPageMessage *fpm = (FlushPageMessage *)message;
+          Page *page = fpm->page;
+          ham_assert(page != 0);
+          ham_assert(page->mutex().try_lock() == false);
+          try {
+            page->flush();
           }
-          *pcm->ppending = false;
+          catch (Exception &ex) {
+            page->mutex().unlock();
+            throw;
+          }
+          page->mutex().unlock();
           break;
         }
         default:

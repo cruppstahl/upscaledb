@@ -188,7 +188,6 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
       goto done;
     /* allocate a new page structure and read the page from disk */
     page = new Page(m_state.device, context->db);
-    context->changeset.put(page);
     page->fetch(address);
     goto done;
   }
@@ -201,11 +200,9 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
       page = new Page(m_state.device, context->db);
     }
 
-    context->changeset.put(page);
     page->alloc(page_type);
   }
   catch (Exception &ex) {
-    context->changeset.del(page);
     if (allocated)
       delete page;
     throw ex;
@@ -348,26 +345,23 @@ PageManager::flush()
 // Returns true if the page can be purged: page must use allocated
 // memory instead of an mmapped pointer; page must not be in use (= in
 // a changeset) and not have cursors attached
-struct PurgeSelector
+struct PurgeProcessor
 {
-  PurgeSelector(Page *last_blob_page)
-    : m_last_blob_page(last_blob_page) {
+  PurgeProcessor(Page *last_blob_page, PageManagerWorker *worker)
+    : last_blob_page(last_blob_page), worker(worker) {
   }
 
   bool operator()(Page *page) {
-    ScopedSpinlock lock(page->mutex());
-    if (page == m_last_blob_page)
+    // the lock in here will be unlocked by the worker thread
+    if (page == last_blob_page || !page->mutex().try_lock())
       return (false);
-    if (page->is_allocated() == false)
-      return (false);
-    if (page->cursor_list() != 0)
-      return (false);
-    if (!page->get_data())
-      return (false);
+    FlushPageMessage *message = new FlushPageMessage(page);
+    worker->add_to_queue(message);
     return (true);
   }
 
-  Page *m_last_blob_page;
+  Page *last_blob_page;
+  PageManagerWorker *worker;
 };
 
 void
@@ -382,19 +376,10 @@ PageManager::purge_cache(Context *context)
   if (m_state.purge_cache_pending)
     return;
 
-  PurgeCacheMessage *message = new PurgeCacheMessage(&m_state.purge_cache_pending);
-
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  PurgeSelector selector(m_state.last_blob_page);
-  m_state.cache.purge_candidates(selector, message->addresses);
-
-  if (message && !message->addresses.empty()) {
-    m_state.purge_cache_pending = true;
-    m_worker->add_to_queue(message);
-  }
-  else
-    delete message;
+  PurgeProcessor processor(m_state.last_blob_page, m_worker.get());
+  m_state.cache.purge(processor);
 }
 
 void

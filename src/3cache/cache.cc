@@ -38,19 +38,6 @@ calc_hash(uint64_t value)
 }
 
 void
-Cache::del_unlocked(Page *page)
-{
-  ham_assert(page->get_address() != 0);
-  size_t hash = calc_hash(page->get_address());
-  /* remove the page from the cache buckets */
-  m_state.buckets[hash].del(page);
-
-  /* remove it from the list of all cached pages */
-  if (m_state.totallist.del(page) && page->is_allocated())
-    m_state.alloc_elements--;
-}
-
-void
 Cache::fill_metrics(ham_env_metrics_t *metrics) const
 {
   metrics->cache_hits = m_state.cache_hits;
@@ -61,8 +48,6 @@ Page *
 Cache::get(uint64_t address)
 {
   size_t hash = calc_hash(address);
-
-  ScopedSpinlock lock(m_state.mutex);
 
   Page *page = m_state.buckets[hash].get(address);;
   if (!page) {
@@ -85,8 +70,6 @@ Cache::put(Page *page)
   size_t hash = calc_hash(page->get_address());
   ham_assert(page->get_data());
 
-  ScopedSpinlock lock(m_state.mutex);
-
   /* First remove the page from the cache, if it's already cached
    *
    * Then re-insert the page at the head of the list. The tail will
@@ -103,14 +86,19 @@ Cache::put(Page *page)
 void
 Cache::del(Page *page)
 {
-  ScopedSpinlock lock(m_state.mutex);
-  del_unlocked(page);
+  ham_assert(page->get_address() != 0);
+  size_t hash = calc_hash(page->get_address());
+  /* remove the page from the cache buckets */
+  m_state.buckets[hash].del(page);
+
+  /* remove it from the list of all cached pages */
+  if (m_state.totallist.del(page) && page->is_allocated())
+    m_state.alloc_elements--;
 }
 
 size_t
 Cache::current_elements()
 {
-  ScopedSpinlock lock(m_state.mutex);
   return (m_state.totallist.size());
 }
 

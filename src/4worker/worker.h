@@ -68,9 +68,11 @@ class Worker
           ScopedLock lock(m_mutex);
           if (m_stop_requested)
             return;
-          m_cond.wait(lock); // will unlock m_mutex while waiting
-
           message = m_queue.pop();
+          if (!message) {
+            m_cond.wait(lock); // will unlock m_mutex while waiting
+            message = m_queue.pop();
+          }
         }
 
         if (message) {

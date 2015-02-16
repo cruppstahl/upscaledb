@@ -60,7 +60,7 @@ class Cache
 
       bool operator()(Page *page) {
         if (m_purger(page)) {
-          m_cache->del_unlocked(page);
+          m_cache->del(page);
           delete page;
         }
         // don't remove page from list; it was already removed above
@@ -69,29 +69,6 @@ class Cache
 
       Cache *m_cache;
       Purger &m_purger;
-    };
-
-    template<typename Selector>
-    struct PurgeSelector
-    {
-      PurgeSelector(Selector &selector, std::vector<uint64_t> &addresses,
-                      size_t limit)
-        : selector(selector), addresses(addresses), limit(limit) {
-        ham_assert(limit > 0);
-      }
-
-      void prepare(size_t size) {
-      }
-
-      bool operator()(Page *page) {
-        if (selector(page))
-          addresses.push_back(page->get_address());
-        return (addresses.size() < limit);
-      }
-
-      Selector &selector;
-      std::vector<uint64_t> &addresses;
-      size_t limit;
     };
 
   public:
@@ -113,36 +90,37 @@ class Cache
     // Removes a page from the cache
     void del(Page *page);
 
-    // Purges the cache. Whenever |Selector()| returns true, the page is
-    // forwarded to the |purger()|.
+    // Purges the cache. Implements a LRU eviction algorithm. Dirty pages are
+    // forwarded to the |processor()| for flushing.
     //
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
-    template<typename Selector>
-    void purge_candidates(Selector &selector,
-                    std::vector<uint64_t> &addresses) {
-      size_t limit = current_elements()
+    template<typename Processor>
+    void purge(Processor &processor) {
+      int limit = current_elements()
                 - (m_state.capacity_bytes / m_state.page_size_bytes);
       if (limit < CacheState::kPurgeAtLeast)
         limit = CacheState::kPurgeAtLeast;
 
-      ScopedSpinlock lock(m_state.mutex);
-      PurgeSelector<Selector> purge_selector(selector, addresses, limit);
-      m_state.totallist.for_each_reverse(purge_selector);
-      
-      for (size_t i = 0; i < addresses.size(); i++) {
-        Page *page = m_state.totallist.get(addresses[i]);
-        bool delete_page = false;
-        if (page) {
-          ScopedSpinlock lock(page->mutex());
-          if (!page->get_data()) {
-            delete_page = true;
-            del_unlocked(page);
-          }
+      Page *page = m_state.totallist.tail();
+      for (int i = 0; i < limit && page != 0; i++) {
+        Page *next = page->get_previous(Page::kListCache);
+
+        // dirty pages are flushed by the worker thread
+        if (page->is_dirty()
+                && page->is_allocated()
+                && page->cursor_list() == 0) {
+          processor(page);
+          page = next;
+          continue;
+        }
+        // non-dirty pages are deleted if possible
+        if (!page->is_dirty() && page->cursor_list() == 0) {
+          del(page);
+          delete page;
         }
 
-        if (delete_page)
-          delete page;
+        page = next;
       }
     }
 
@@ -152,8 +130,6 @@ class Cache
     template<typename Purger>
     void purge_if(Purger &purger) {
       PurgeIfSelector<Purger> selector(this, purger);
-
-      ScopedSpinlock lock(m_state.mutex);
       m_state.totallist.extract(selector);
     }
 
@@ -168,8 +144,6 @@ class Cache
     size_t allocated_elements() const;
 
   private:
-    void del_unlocked(Page *page);
-
     // The mutable state
     CacheState m_state;
 };

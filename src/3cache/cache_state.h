@@ -64,9 +64,6 @@ struct CacheState
     ham_assert(capacity_bytes > 0);
   }
 
-  // A fast spinlock
-  Spinlock mutex;
-
   // the capacity (in bytes)
   uint64_t capacity_bytes;
 
