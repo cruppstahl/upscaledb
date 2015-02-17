@@ -261,6 +261,7 @@ struct BtreeFixture {
 
     Page *page;
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
+    context.changeset.clear(); // unlock pages
     PBtreeNode *node = PBtreeNode::from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
