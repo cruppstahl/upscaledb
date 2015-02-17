@@ -28,10 +28,10 @@
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
-#include "2queue/queue.h"
 #include "2device/device.h"
+#include "2queue/queue.h"
+#include "2worker/worker.h"
 #include "3cache/cache.h"
-#include "4worker/worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

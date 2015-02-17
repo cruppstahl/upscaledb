@@ -31,7 +31,6 @@
 #include "4cursor/cursor.h"
 #include "4context/context.h"
 #include "4txn/txn_cursor.h"
-#include "4worker/worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

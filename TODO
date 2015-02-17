@@ -501,20 +501,20 @@ o Concurrency: move "purge cache" to background (cont...)
         - hamsterdb performance (w/o compression)
         - hamsterdb-pro performance (w/ compression)
 
+x various issues for refactoring...
+    x merge cache_impl with cache.h
+    x PageManagerFactory is no longer required
+    x PageManager::alloc calls Page::allocate (rename to "alloc"!), which
+        calls DeviceDisk::read_page. Why? it's enough to assign the address
+        (unless the storage is mmapped)
+    x move 4worker/worker.h to 2worker/worker.h
+
 o Change copyright to 2015
     x all sources
     x webpage footer
     o also for PRO!
 
 o zint32: new KeyList for Masked VByte encoding
-
-o various issues for refactoring...
-    x merge cache_impl with cache.h
-    x PageManagerFactory is no longer required
-    x PageManager::alloc calls Page::allocate (rename to "alloc"!), which
-        calls DeviceDisk::read_page. Why? it's enough to assign the address
-        (unless the storage is mmapped)
-    o move 4worker/worker.h to 2worker/worker.h
 
 o reserve file size upon creation, then map the whole range
     o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE

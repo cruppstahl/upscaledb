@@ -44,6 +44,7 @@ libhamsterdb_la_SOURCES = \
 	2lsn_manager/lsn_manager.h \
 	2lsn_manager/lsn_manager_test.h \
 	2queue/queue.h \
+	2worker/worker.h \
 	3cache/cache.h \
 	3cache/cache.cc \
 	3changeset/changeset.cc \
@@ -122,7 +123,6 @@ libhamsterdb_la_SOURCES = \
 	4txn/txn_remote.cc \
 	4txn/txn_remote.h \
 	4txn/txn.h \
-	4worker/worker.h \
 	5hamsterdb/hamsterdb.cc \
 	5hamsterdb/hola.cc
 
