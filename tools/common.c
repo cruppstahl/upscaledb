@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ print_banner(const char *program_name)
   uint32_t maj, min, rev;
   ham_get_version(&maj, &min, &rev);
 
-  printf("hamsterdb %s%d.%d.%d - Copyright (C) 2005-2014 "
+  printf("hamsterdb %s%d.%d.%d - Copyright (C) 2005-2015 "
        "Christoph Rupp (chris@crupp.de).\n\n",
        ham_is_pro() ? "pro " : "", maj, min, rev);
 

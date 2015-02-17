@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,8 +75,6 @@ class PageCollection {
     // Same as |for_each()|, but removes the page if |visitor()| returns true
     template<typename Visitor>
     void extract(Visitor &visitor) {
-      visitor.prepare(m_size);
-
       Page *page = m_head;
       while (page) {
         Page *next = page->get_next(m_id);

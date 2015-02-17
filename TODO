@@ -486,6 +486,12 @@ o Concurrency: move "purge cache" to background (cont...)
         x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=ascending --extkey-threshold=20 --recsize=0 --stop-ops=500000
         x find_first_reverse always returns the same page!
 
+    o check if there's a race condition between worker thread
+        and PageManager::close_database()
+        o PageManager creates list of pages to flush; the PageManager
+            flushes them
+        o afterwards they will be closed as soon as they move to the tail
+            of the queue?!
     o run monster tests
     o run performance tests
         o also for > 10 million inserts
@@ -499,9 +505,9 @@ o Concurrency: move "purge cache" to background (cont...)
         - hamsterdb-pro performance (w/ compression)
 
 o Change copyright to 2015
-    o all sources
-    o also for PRO!
+    x all sources
     x webpage footer
+    o also for PRO!
 
 o various issues for refactoring...
     x merge cache_impl with cache.h
