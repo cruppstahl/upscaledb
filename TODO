@@ -486,14 +486,6 @@ o Concurrency: move "purge cache" to background (cont...)
         x ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --pagesize=1024 --recsize=0 --bulk-erase --distribution=ascending --extkey-threshold=20 --recsize=0 --stop-ops=500000
         x find_first_reverse always returns the same page!
 
-==========================================================
-too slow!
-- cache purge (main thread): if a page is dirty then lock it and pass the
-    Page pointer to the worker thread
-- the worker thread flushes the page, set dirty == false, then unlocks it
-- cache purge (main thread): if a page is NOT dirty then delete it
-==========================================================
-
     o run monster tests
     o run performance tests
         o also for > 10 million inserts
@@ -505,6 +497,11 @@ too slow!
         - leveldb performance (1, 5, 10, 20, 50, 100 mio integer keys)
         - hamsterdb performance (w/o compression)
         - hamsterdb-pro performance (w/ compression)
+
+o Change copyright to 2015
+    o all sources
+    o also for PRO!
+    x webpage footer
 
 o various issues for refactoring...
     x merge cache_impl with cache.h

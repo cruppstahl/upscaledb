@@ -46,11 +46,11 @@ struct FlushPageMessage : public MessageBase
     kFlushPage = 1,
   };
 
-  FlushPageMessage(Page *page)
-    : MessageBase(kFlushPage, 0), page(page) {
+  FlushPageMessage()
+    : MessageBase(kFlushPage, 0) {
   }
 
-  Page *page;
+  std::vector<Page *> list;
 };
 
 
@@ -66,17 +66,21 @@ class PageManagerWorker : public Worker
       switch (message->type) {
         case FlushPageMessage::kFlushPage: {
           FlushPageMessage *fpm = (FlushPageMessage *)message;
-          Page *page = fpm->page;
-          ham_assert(page != 0);
-          ham_assert(page->mutex().try_lock() == false);
-          try {
-            page->flush();
-          }
-          catch (Exception &ex) {
+          for (std::vector<Page *>::iterator it = fpm->list.begin();
+                          it != fpm->list.end();
+                          ++it) {
+            Page *page = *it;
+            ham_assert(page != 0);
+            ham_assert(page->mutex().try_lock() == false);
+            try {
+              page->flush();
+            }
+            catch (Exception &ex) {
+              page->mutex().unlock();
+              throw;
+            }
             page->mutex().unlock();
-            throw;
           }
-          page->mutex().unlock();
           break;
         }
         default:

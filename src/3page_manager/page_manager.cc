@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -327,6 +327,7 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
 struct FlushAllPagesPurger
 {
   bool operator()(Page *page) {
+    ScopedSpinlock lock(page->mutex());
     page->flush();
     return (false);
   }
@@ -338,8 +339,10 @@ PageManager::flush()
   FlushAllPagesPurger purger;
   m_state.cache.purge_if(purger);
 
-  if (m_state.state_page)
+  if (m_state.state_page) {
+    ScopedSpinlock lock(m_state.state_page->mutex());
     m_state.state_page->flush();
+  }
 }
 
 // Returns true if the page can be purged: page must use allocated
@@ -347,21 +350,20 @@ PageManager::flush()
 // a changeset) and not have cursors attached
 struct PurgeProcessor
 {
-  PurgeProcessor(Page *last_blob_page, PageManagerWorker *worker)
-    : last_blob_page(last_blob_page), worker(worker) {
+  PurgeProcessor(Page *last_blob_page, FlushPageMessage *message)
+    : last_blob_page(last_blob_page), message(message) {
   }
 
   bool operator()(Page *page) {
     // the lock in here will be unlocked by the worker thread
     if (page == last_blob_page || !page->mutex().try_lock())
       return (false);
-    FlushPageMessage *message = new FlushPageMessage(page);
-    worker->add_to_queue(message);
+    message->list.push_back(page);
     return (true);
   }
 
   Page *last_blob_page;
-  PageManagerWorker *worker;
+  FlushPageMessage *message;
 };
 
 void
@@ -378,8 +380,14 @@ PageManager::purge_cache(Context *context)
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  PurgeProcessor processor(m_state.last_blob_page, m_worker.get());
-  m_state.cache.purge(processor);
+  FlushPageMessage *message = new FlushPageMessage();
+  PurgeProcessor processor(m_state.last_blob_page, message);
+  m_state.cache.purge(processor, m_state.last_blob_page);
+
+  if (message->list.size())
+    m_worker->add_to_queue(message);
+  else
+    delete message;
 }
 
 void
@@ -427,6 +435,7 @@ struct DbClosePurger
 
   bool operator()(Page *page) {
     if (page->get_db() == m_db && page->get_address() != 0) {
+      ScopedSpinlock lock(page->mutex());
       ham_assert(page->cursor_list() == 0);
       page->flush();
       return (true);
@@ -465,7 +474,7 @@ PageManager::del(Context *context, Page *page, size_t page_count)
     uint32_t page_size = m_state.config.page_size_bytes;
     for (size_t i = 1; i < page_count; i++) {
       Page *p = m_state.cache.get(page->get_address() + i * page_size);
-      if (context->changeset.has(p))
+      if (p && context->changeset.has(p))
         context->changeset.del(p);
     }
   }

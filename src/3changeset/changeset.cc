@@ -91,16 +91,11 @@ clear(ChangesetState &state)
 
 struct PageCollectionVisitor
 {
-  PageCollectionVisitor()
-    : num_pages(0), pages(0) {
-  }
-
-  ~PageCollectionVisitor() {
-    Memory::release(pages);
+  PageCollectionVisitor(Page **pages)
+    : num_pages(0), pages(pages) {
   }
 
   void prepare(size_t size) {
-    pages = Memory::allocate<Page *>(sizeof(Page *) * size);
   }
 
   bool operator()(Page *page) {
@@ -127,7 +122,8 @@ flush(ChangesetState &state, uint64_t lsn)
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // Fetch the pages, ignoring all pages that are not dirty
-  PageCollectionVisitor visitor;
+  Page **pages = (Page **)::alloca(sizeof(Page *) * state.collection.size());
+  PageCollectionVisitor visitor(pages);
   state.collection.extract(visitor);
 
   // TODO sort by address (really?)

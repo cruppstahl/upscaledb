@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,9 +55,6 @@ class Cache
         : m_cache(cache), m_purger(purger) {
       }
 
-      void prepare(size_t size) {
-      }
-
       bool operator()(Page *page) {
         if (m_purger(page)) {
           m_cache->del(page);
@@ -96,7 +93,7 @@ class Cache
     // Tries to purge at least 20 pages. In benchmarks this has proven to
     // be a good limit.
     template<typename Processor>
-    void purge(Processor &processor) {
+    void purge(Processor &processor, Page *ignore_page) {
       int limit = current_elements()
                 - (m_state.capacity_bytes / m_state.page_size_bytes);
       if (limit < CacheState::kPurgeAtLeast)
@@ -107,15 +104,15 @@ class Cache
         Page *next = page->get_previous(Page::kListCache);
 
         // dirty pages are flushed by the worker thread
-        if (page->is_dirty()
-                && page->is_allocated()
-                && page->cursor_list() == 0) {
+        if (page->is_dirty()) {
           processor(page);
           page = next;
           continue;
         }
         // non-dirty pages are deleted if possible
-        if (!page->is_dirty() && page->cursor_list() == 0) {
+        if (!page->is_dirty()
+                && page->cursor_list() == 0
+                && page != ignore_page) {
           del(page);
           delete page;
         }
