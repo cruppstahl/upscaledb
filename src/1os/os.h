@@ -63,6 +63,10 @@ typedef SOCKET             ham_socket_t;
 #  define HAM_INVALID_FD   (0)
 #endif
 
+// Returns true if the CPU supports AVX
+extern bool
+os_has_avx();
+
 // Returns the number of 32bit integers that the CPU can process in
 // parallel (the SIMD lane width) 
 extern int

@@ -31,10 +31,10 @@
 #include "3btree/btree_keys_pod.h"
 #include "3btree/btree_keys_binary.h"
 #include "3btree/btree_keys_varlen.h"
-#include "3btree/btree_keys_zint32.h"
-#include "3btree/btree_keys_simdcomp.h"
 #include "3btree/btree_keys_groupvarint.h"
+#include "3btree/btree_keys_simdcomp.h"
 #include "3btree/btree_keys_streamvbyte.h"
+#include "3btree/btree_keys_varbyte.h"
 #include "3btree/btree_records_default.h"
 #include "3btree/btree_records_inline.h"
 #include "3btree/btree_records_internal.h"
@@ -197,12 +197,12 @@ struct BtreeIndexFactory
                         NumericCompare<uint32_t> >());
             if (inline_records)
               return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::Zint32KeyList,
+                        <DefaultNodeImpl<Zint32::VarbyteKeyList,
                               PaxLayout::InlineRecordList>,
                         NumericCompare<uint32_t> >());
             else
               return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::Zint32KeyList,
+                        <DefaultNodeImpl<Zint32::VarbyteKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }

@@ -18,8 +18,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_ZINT32_H
-#define HAM_BTREE_KEYS_ZINT32_H
+#ifndef HAM_BTREE_KEYS_VARBYTE_H
+#define HAM_BTREE_KEYS_VARBYTE_H
 
 #include <sstream>
 #include <iostream>
@@ -93,7 +93,7 @@ HAM_PACK_0 struct HAM_PACK_1 VarbyteIndex {
 } HAM_PACK_2;
 #include "1base/packstop.h"
 
-class Zint32KeyList : public BlockKeyList<VarbyteIndex>
+class VarbyteKeyList : public BlockKeyList<VarbyteIndex>
 {
   public:
     enum {
@@ -105,7 +105,7 @@ class Zint32KeyList : public BlockKeyList<VarbyteIndex>
     };
 
     // Constructor
-    Zint32KeyList(LocalDatabase *db)
+    VarbyteKeyList(LocalDatabase *db)
       : BlockKeyList<VarbyteIndex>(db) {
     }
 
@@ -232,7 +232,7 @@ class Zint32KeyList : public BlockKeyList<VarbyteIndex>
     // is used to split btree nodes.
     //
     // TODO this function is too complex. rewrite it!
-    void copy_to(int sstart, size_t node_count, Zint32KeyList &dest,
+    void copy_to(int sstart, size_t node_count, VarbyteKeyList &dest,
                     size_t other_count, int dstart) {
       ham_assert(check_integrity(0, node_count));
 
@@ -772,7 +772,7 @@ class Zint32KeyList : public BlockKeyList<VarbyteIndex>
 
     // Copies two blocks; assumes that the new block |dst| has been properly
     // allocated
-    void copy_blocks(Index *src, Zint32KeyList &dest, Index *dst) {
+    void copy_blocks(Index *src, VarbyteKeyList &dest, Index *dst) {
       dst->value     = src->value;
       dst->used_size = src->used_size;
       dst->key_count = src->key_count;
@@ -940,4 +940,4 @@ class Zint32KeyList : public BlockKeyList<VarbyteIndex>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_ZINT32_H */
+#endif /* HAM_BTREE_KEYS_VARBYTE_H */

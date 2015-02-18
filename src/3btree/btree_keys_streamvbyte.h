@@ -394,8 +394,11 @@ class StreamVbyteKeyList : public BlockKeyList<StreamVbyteIndex>
         uint8_t *in = get_block_data(index);
         uint32_t key_len = ((count + 3) / 4);   // 2-bits per key (rounded up)
         uint8_t *data = in + key_len;    // data starts at end of keys
-        svb_decode_avx_d1_init(out, in, data, count, index->value);
-        //svb_decode_scalar_d1_init(out, in, data, count, index->value);
+
+        if (os_has_avx())
+          svb_decode_avx_d1_init(out, in, data, count, index->value);
+        else
+          svb_decode_scalar_d1_init(out, in, data, count, index->value);
       }
     }
 
