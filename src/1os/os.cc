@@ -19,9 +19,6 @@ namespace hamsterdb {
 
 // AVX might be enabled at compile time, but it's still possible that
 // it's not enabled at run-time because the CPU is an older model.
-//
-// Therefore check the cpuid if AVX is available.
-#ifdef __AVX__
 
 // from http://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
 
@@ -43,7 +40,7 @@ cpuid(int cpuinfo[4], int infotype){
 }
 #endif
 
-bool
+extern bool
 os_has_avx()
 {
   static bool available = false;
@@ -72,16 +69,6 @@ os_get_simd_lane_width()
 {
   return (os_has_avx() ? 8 : 4);
 }
-
-#else // !__AVX__
-
-int
-os_get_simd_lane_width()
-{
-  return (4);
-}
-
-#endif // __AVX__
 
 #else // !HAM_ENABLE_SIMD
 
