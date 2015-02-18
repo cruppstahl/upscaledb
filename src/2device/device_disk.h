@@ -224,6 +224,11 @@ class DiskDevice : public Device {
       page->free_buffer();
     }
 
+    // Returns true if the specified range is in mapped memory
+    virtual bool is_mapped(uint64_t file_offset, size_t size) const {
+      return (file_offset + size <= m_state.mapped_size);
+    }
+
   private:
     State m_state;
 };

@@ -225,18 +225,29 @@ DiskBlobManager::do_read(Context *context, uint64_t blobid,
     return;
   }
 
-  // second step: resize the blob buffer
-  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-    arena->resize(blobsize);
-    record->data = arena->get_ptr();
+  // if the blob is in memory-mapped storage (and the user does not require
+  // a copy of the data): simply return a pointer
+  if ((flags & HAM_FORCE_DEEP_COPY) == 0
+        && m_env->device()->is_mapped(blobid, blobsize)
+        && !(record->flags & HAM_RECORD_USER_ALLOC)) {
+    record->data = read_chunk(context, page, 0,
+                        blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
+                                ? record->partial_offset
+                                : 0), true);
   }
+  // otherwise resize the blob buffer and copy the blob data into the buffer
+  else {
+    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      arena->resize(blobsize);
+      record->data = arena->get_ptr();
+    }
 
-  // third step: read the blob data
-  copy_chunk(context, page, 0,
+    copy_chunk(context, page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
                   (uint8_t *)record->data, blobsize, true);
+  }
 }
 
 uint64_t

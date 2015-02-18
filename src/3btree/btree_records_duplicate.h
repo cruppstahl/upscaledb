@@ -122,7 +122,7 @@ class DuplicateTable
     void open(Context *context, uint64_t table_id) {
       ham_record_t record = {0};
       m_db->lenv()->blob_manager()->read(context, table_id,
-                      &record, 0, &m_table);
+                      &record, HAM_FORCE_DEEP_COPY, &m_table);
       m_table_id = table_id;
     }
 

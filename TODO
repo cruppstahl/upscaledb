@@ -447,6 +447,21 @@ x PRO: integrate Nathan's sources, or start a new KeyList
 
 x make sure the library and 3rdparty are compiled with -O3 by default
 
+x various issues for refactoring...
+    x merge cache_impl with cache.h
+    x PageManagerFactory is no longer required
+    x PageManager::alloc calls Page::allocate (rename to "alloc"!), which
+        calls DeviceDisk::read_page. Why? it's enough to assign the address
+        (unless the storage is mmapped)
+    x move 4worker/worker.h to 2worker/worker.h
+
+x blob performance improvements
+    x there's no need to copy the BlobHeader; this can be returned as a pointer
+        instead (verify! the pointer must not be modified - make it const!)
+        -> or is it possible that the header is spread over two pages??
+    x If mmap is enabled then keys and records don't have to be copied as long
+        as they point into the mapped area!
+
 o Concurrency: move "purge cache" to background (cont...)
     x Right now only the Cache uses a mutex. But we need to know
         whether a page is in use (= in a changeset) or if it's purged.
@@ -501,49 +516,23 @@ o Concurrency: move "purge cache" to background (cont...)
         - hamsterdb performance (w/o compression)
         - hamsterdb-pro performance (w/ compression)
 
-x various issues for refactoring...
-    x merge cache_impl with cache.h
-    x PageManagerFactory is no longer required
-    x PageManager::alloc calls Page::allocate (rename to "alloc"!), which
-        calls DeviceDisk::read_page. Why? it's enough to assign the address
-        (unless the storage is mmapped)
-    x move 4worker/worker.h to 2worker/worker.h
-
-o Change copyright to 2015
+x Change copyright to 2015
     x all sources
     x webpage footer
-    o also for PRO!
+    x also for PRO!
 
-o zint32: new KeyList for Masked VByte encoding
+x zint32: stream vbyte: use avx only if it's supported by the cpu!
+    (note that os.cc currently returns wrong value if __AVX__ is not set; but
+    we want to check the runtime capabilities and not the compile time setting)
 
-o reserve file size upon creation, then map the whole range
-    o needs new parameter HAM_PARAM_INITIAL_FILE_SIZE
-    o automatically page-align the size
-    o only for disk-based devices!
-        o unittest
-    o the device will manage the mapping
-        o unittest - verify that the initial file size is correct
-        o unittest - verify that the file size does not grow if new pages
-            are allocated (unless the initial size is exceeded)
-        o if a new page is allocated then use the mapped storage
-            o unittest
-    o support in ham_bench
-    o monster tests and performance tests
-    o also for java
-    o also for dotnet
-    o also for python
-    o also for erlang
+o zint32: new KeyList for Masked VByte encoding (use StreamVbyte as a
+    template and compress/uncompress blockwise)
+    o add unittests
+    o add monster tests
 
-o blob performance improvements
-    x there's no need to copy the BlobHeader; this can be returned as a pointer
-        instead (verify! the pointer must not be modified - make it const!)
-        -> or is it possible that the header is spread over two pages??
-    o If mmap is enabled then keys and records don't have to be copied as long
-        as they point into the mapped area!
-        o If a key is in a mapped page (w/o extended key) then simply return a
-            pointer
-        o If a record is in a mapped page then simply return a
-            pointer
+o zint32: investigate performance problems of memmove (w/o compression!)
+    o look into assembler code of memmove; is it using a loop?
+    o track wallclock time of inserts (pod vs varbyte)
 
 o Erlang: investigate failure in ham_eqc2
 
@@ -552,6 +541,7 @@ o check recovery.pl - extended_tests are failing on PRO because the
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
+    o record data points into mapped storage
 
 o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
     perform similar to Simdcomp: uncompress all blocks into a large array,

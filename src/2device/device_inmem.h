@@ -160,6 +160,11 @@ class InMemoryDevice : public Device {
       m_state.allocated_size -= m_config.page_size_bytes;
     }
 
+    // Returns true if the specified range is in mapped memory
+    virtual bool is_mapped(uint64_t file_offset, size_t size) const {
+      return (false);
+    }
+
     // releases a chunk of memory previously allocated with alloc()
     void release(void *ptr, size_t size) {
       Memory::release(ptr);

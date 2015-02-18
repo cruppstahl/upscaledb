@@ -108,6 +108,9 @@ class Device {
     // function will assert that the page is not dirty.
     virtual void free_page(Page *page) = 0;
 
+    // Returns true if the specified range is in mapped memory
+    virtual bool is_mapped(uint64_t file_offset, size_t size) const = 0;
+
   protected:
     // the Environment configuration settings
     const EnvironmentConfiguration &m_config;

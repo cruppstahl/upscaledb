@@ -475,7 +475,8 @@ class VariableLengthKeyList : public BaseKeyList
 
       ByteArray arena;
       ham_record_t record = {0};
-      m_db->lenv()->blob_manager()->read(context, blob_id, &record, 0, &arena);
+      m_db->lenv()->blob_manager()->read(context, blob_id, &record,
+                      HAM_FORCE_DEEP_COPY, &arena);
       (*m_extkey_cache)[blob_id] = arena;
       arena.disown();
       key->data = record.data;

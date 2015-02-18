@@ -1552,6 +1552,10 @@ ham_db_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @ref ham_cursor_find, @ref ham_cursor_move */
 #define HAM_PARTIAL                     0x0080
 
+/* Internal flag for @ref ham_db_find, @ref ham_cursor_find,
+ * @ref ham_cursor_move */
+#define HAM_FORCE_DEEP_COPY             0x0100
+
 /**
  * Flag for @ref ham_cursor_insert
  *
