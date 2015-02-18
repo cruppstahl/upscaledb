@@ -489,7 +489,7 @@ o Concurrency: move "purge cache" to background (cont...)
     x check if there's a race condition between worker thread
         and PageManager::close_database()
 
-    o run monster tests
+    x run monster tests
     o run performance tests
         o also for > 10 million inserts
     o blog post: compare performance of
@@ -525,6 +525,8 @@ o reserve file size upon creation, then map the whole range
         o unittest - verify that the initial file size is correct
         o unittest - verify that the file size does not grow if new pages
             are allocated (unless the initial size is exceeded)
+        o if a new page is allocated then use the mapped storage
+            o unittest
     o support in ham_bench
     o monster tests and performance tests
     o also for java
@@ -533,20 +535,15 @@ o reserve file size upon creation, then map the whole range
     o also for erlang
 
 o blob performance improvements
-    o there's no need to copy the BlobHeader; this can be returned as a pointer
+    x there's no need to copy the BlobHeader; this can be returned as a pointer
         instead (verify! the pointer must not be modified - make it const!)
         -> or is it possible that the header is spread over two pages??
     o If mmap is enabled then keys and records don't have to be copied as long
         as they point into the mapped area!
-        - If a key is in a mapped page (w/o extended key) then simply return a
+        o If a key is in a mapped page (w/o extended key) then simply return a
             pointer
-        - If a record is in a mapped page then simply return a
+        o If a record is in a mapped page then simply return a
             pointer
-
-o currently, code uses linear search over small ranges. This is not efficient.
-    If the range is in the cache then binary is still faster.
-    o replace binary search implementation with std::lower_bound
-    o PRO: only use linear search if SIMD is enabled
 
 o Erlang: investigate failure in ham_eqc2
 
@@ -559,6 +556,14 @@ o documentation related issues for 2.1.10
 o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
     perform similar to Simdcomp: uncompress all blocks into a large array,
     compress them again and build up the index from scratch
+
+o PRO: zint32 currently does not work if pagesize != 16kb. Document this
+    limitation and return an error if a different pagesize is used
+
+. currently, code uses linear search over small ranges. This is not efficient.
+    If the range is in the cache then binary is still faster.
+    o replace binary search implementation with std::lower_bound
+    o PRO: only use linear search if SIMD is enabled
 
 . Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
@@ -588,8 +593,11 @@ o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
 o Refactoring: would it make sense if each Database has its own BlobManager?
     Then ham_env_erase_db would be much faster, and if each Database has its
     own lock then the blob pages would not block each other
-
-. Erlang: Impove test coverage of approx. matching w/ EQC: add transactions
+    o are there other modules that should be "per database" and not
+        "per environment"?
+        - PageManager
+        - Device
+        - ...?
 
 . LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then

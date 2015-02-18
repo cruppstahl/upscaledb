@@ -195,17 +195,16 @@ DiskBlobManager::do_read(Context *context, uint64_t blobid,
   Page *page;
 
   // first step: read the blob header
-  PBlobHeader blob_header;
-  read_chunk(context, 0, &page, blobid, (uint8_t *)&blob_header,
-          sizeof(blob_header), true);
+  PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
+                  blobid, true);
 
   // sanity check
-  if (blob_header.get_self() != blobid) {
+  if (blob_header->get_self() != blobid) {
     ham_log(("blob %lld not found", blobid));
     throw Exception(HAM_BLOB_NOT_FOUND);
   }
 
-  uint32_t blobsize = (uint32_t)blob_header.get_size();
+  uint32_t blobsize = (uint32_t)blob_header->get_size();
   record->size = blobsize;
 
   if (flags & HAM_PARTIAL) {
@@ -233,7 +232,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blobid,
   }
 
   // third step: read the blob data
-  read_chunk(context, page, 0,
+  copy_chunk(context, page, 0,
                   blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
@@ -244,21 +243,20 @@ uint64_t
 DiskBlobManager::do_get_blob_size(Context *context, uint64_t blobid)
 {
   // read the blob header
-  PBlobHeader blob_header;
-  read_chunk(context, 0, 0, blobid, (uint8_t *)&blob_header,
-          sizeof(blob_header), true);
+  PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, 0, blobid,
+                  true);
 
-  if (blob_header.get_self() != blobid)
+  if (blob_header->get_self() != blobid)
     throw Exception(HAM_BLOB_NOT_FOUND);
 
-  return (blob_header.get_size());
+  return (blob_header->get_size());
 }
 
 uint64_t
 DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                 ham_record_t *record, uint32_t flags)
 {
-  PBlobHeader old_blob_header, new_blob_header;
+  PBlobHeader *old_blob_header, new_blob_header;
   Page *page;
 
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
@@ -266,22 +264,22 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
   // first, read the blob header; if the new blob fits into the
   // old blob, we overwrite the old blob (and add the remaining
   // space to the freelist, if there is any)
-  read_chunk(context, 0, &page, old_blobid, (uint8_t *)&old_blob_header,
-          sizeof(old_blob_header), false);
+  old_blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
+                    old_blobid, false);
 
   // sanity check
-  ham_assert(old_blob_header.get_self() == old_blobid);
-  if (old_blob_header.get_self() != old_blobid)
+  ham_assert(old_blob_header->get_self() == old_blobid);
+  if (old_blob_header->get_self() != old_blobid)
     throw Exception(HAM_BLOB_NOT_FOUND);
 
   // now compare the sizes; does the new data fit in the old allocated
   // space?
-  if (alloc_size <= old_blob_header.get_alloc_size()) {
+  if (alloc_size <= old_blob_header->get_alloc_size()) {
     uint8_t *chunk_data[2];
     uint32_t chunk_size[2];
 
     // setup the new blob header
-    new_blob_header.set_self(old_blob_header.get_self());
+    new_blob_header.set_self(old_blob_header->get_self());
     new_blob_header.set_size(record->size);
     new_blob_header.set_alloc_size(alloc_size);
     new_blob_header.set_flags(0); // disable compression, just in case...
@@ -316,13 +314,13 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     }
 
     // move remaining data to the freelist
-    if (alloc_size < old_blob_header.get_alloc_size()) {
+    if (alloc_size < old_blob_header->get_alloc_size()) {
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       header->set_free_bytes(header->get_free_bytes()
-                  + (uint32_t)(old_blob_header.get_alloc_size() - alloc_size));
+                  + (uint32_t)(old_blob_header->get_alloc_size() - alloc_size));
       add_to_freelist(header,
                   (uint32_t)(old_blobid + alloc_size) - page->get_address(),
-                  (uint32_t)old_blob_header.get_alloc_size() - alloc_size);
+                  (uint32_t)old_blob_header->get_alloc_size() - alloc_size);
     }
 
     // the old rid is the new rid
@@ -342,19 +340,18 @@ DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
                 uint32_t flags)
 {
   // fetch the blob header
-  PBlobHeader blob_header;
-  read_chunk(context, 0, &page, blobid, (uint8_t *)&blob_header,
-                  sizeof(blob_header), false);
+  PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
+                        blobid, false);
 
   // sanity check
-  ham_verify(blob_header.get_self() == blobid);
-  if (blob_header.get_self() != blobid)
+  ham_verify(blob_header->get_self() == blobid);
+  if (blob_header->get_self() != blobid)
     throw Exception(HAM_BLOB_NOT_FOUND);
 
   // update the "free bytes" counter in the blob page header
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   header->set_free_bytes(header->get_free_bytes()
-                  + blob_header.get_alloc_size());
+                  + blob_header->get_alloc_size());
 
   // if the page is now completely empty (all blobs were erased) then move
   // it to the freelist
@@ -368,7 +365,7 @@ DiskBlobManager::do_erase(Context *context, uint64_t blobid, Page *page,
 
   // otherwise move the blob to the freelist
   add_to_freelist(header, (uint32_t)(blobid - page->get_address()),
-                  (uint32_t)blob_header.get_alloc_size());
+                  (uint32_t)blob_header->get_alloc_size());
 }
 
 bool
@@ -560,7 +557,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
 }
 
 void
-DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
+DiskBlobManager::copy_chunk(Context *context, Page *page, Page **ppage,
                 uint64_t address, uint8_t *data, uint32_t size,
                 bool fetch_read_only)
 {
@@ -602,3 +599,28 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
     *ppage = page;
 }
 
+uint8_t *
+DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
+                uint64_t address, bool fetch_read_only)
+{
+  // get the page-id from this chunk
+  uint32_t page_size = m_env->config().page_size_bytes;
+  uint64_t pageid = address - (address % page_size);
+
+  // is this the current page? if yes then continue working with this page,
+  // otherwise fetch the page
+  if (page && page->get_address() != pageid)
+    page = 0;
+
+  if (!page) {
+    uint32_t flags = 0;
+    if (fetch_read_only)
+      flags |= PageManager::kReadOnly;
+    page = m_env->page_manager()->fetch(context, pageid, flags);
+    if (ppage)
+      *ppage = page;
+  }
+
+  uint32_t read_start = (uint32_t)(address - page->get_address());
+  return (&page->get_raw_payload()[read_start]);
+}

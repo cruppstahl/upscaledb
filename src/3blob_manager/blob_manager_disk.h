@@ -168,10 +168,15 @@ class DiskBlobManager : public BlobManager
                     uint8_t **chunk_data, uint32_t *chunk_size,
                     uint32_t chunks);
 
-    // same as above, but for reading chunks from the file
-    void read_chunk(Context *context, Page *page, Page **fpage,
+    // Same as above, but for reading chunks from the file. The data
+    // is copied to |data|.
+    void copy_chunk(Context *context, Page *page, Page **fpage,
                     uint64_t addr, uint8_t *data, uint32_t size,
                     bool fetch_read_only);
+
+    // Same as |copy_chunk|, but does not copy the data
+    uint8_t *read_chunk(Context *context, Page *page, Page **fpage,
+                    uint64_t addr, bool fetch_read_only);
 
     // adds a free chunk to the freelist
     void add_to_freelist(PBlobPageHeader *header, uint32_t offset,
