@@ -112,8 +112,10 @@ class Cache
         // non-dirty pages are deleted if possible
         if (!page->is_dirty()
                 && page->cursor_list() == 0
-                && page != ignore_page) {
+                && page != ignore_page
+                && page->mutex().try_lock()) {
           del(page);
+          page->mutex().unlock();
           delete page;
         }
 
