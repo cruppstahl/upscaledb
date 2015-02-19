@@ -1913,6 +1913,16 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_COMPRESSOR_UINT32_STREAMVBYTE   8
 
 /**
+ * hamsterdb pro: uint32 key compression (Masked Vbyte compression)
+ */
+#define HAM_COMPRESSOR_UINT32_MASKEDVBYTE   9
+
+/**
+ * hamsterdb pro: uint32 key compression (no compression, just block storage)
+ */
+#define HAM_COMPRESSOR_UINT32_BLOCKINDEX   10
+
+/**
  * Retrieves the Environment handle of a Database
  *
  * @param db A valid Database handle

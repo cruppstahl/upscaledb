@@ -462,9 +462,14 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_UINT32_GROUPVARINT);
   if (!strcmp(param, "zint32_streamvbyte"))
     return (HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  if (!strcmp(param, "zint32_maskedvbyte"))
+    return (HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  if (!strcmp(param, "zint32_blockindex"))
+    return (HAM_COMPRESSOR_UINT32_STREAMVBYTE);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
               "'snappy', 'lzf', 'lzo', 'zint32_varbyte', 'zint32_simdcomp', "
-              "'zint32_groupvarint', 'zint32_streamvbyte'\n", param);
+              "'zint32_groupvarint', 'zint32_streamvbyte', "
+              "'zint32_maskedvbyte', 'zint32_blockindex'\n", param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }

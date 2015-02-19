@@ -104,6 +104,8 @@ struct Configuration
       "zint32_simdcomp",
       "zint32_groupvarint",
       "zint32_streamvbyte",
+      "zint32_maskedvbyte",
+      "zint32_blockindex",
     };
     std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)
