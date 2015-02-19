@@ -496,7 +496,9 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE
       || config.key_compressor == HAM_COMPRESSOR_UINT32_SIMDCOMP
       || config.key_compressor == HAM_COMPRESSOR_UINT32_GROUPVARINT
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_STREAMVBYTE) {
+      || config.key_compressor == HAM_COMPRESSOR_UINT32_STREAMVBYTE
+      || config.key_compressor == HAM_COMPRESSOR_UINT32_MASKEDVBYTE
+      || config.key_compressor == HAM_COMPRESSOR_UINT32_BLOCKINDEX) {
     if (config.key_type != HAM_TYPE_UINT32) {
       ham_trace(("Uint32 compression only allowed for uint32 keys "
                  "(HAM_TYPE_UINT32)"));

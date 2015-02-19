@@ -22,6 +22,8 @@
 #include "3rdparty/catch/catch.hpp"
 #include "3rdparty/simdcomp/include/simdcomp.h"
 
+#include "1os/os.h"
+
 #include "utils.h"
 #include "os.hpp"
 
@@ -246,6 +248,80 @@ TEST_CASE("StreamVbyte/descendingDataTest", "")
   Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
   f.insertFindEraseFind(ivec);
 }
+
+TEST_CASE("MaskedVbyte/randomDataTest", "")
+{
+  if (os_has_avx()) {
+    Zint32Fixture::IntVector ivec;
+    for (int i = 0; i < 30000; i++)
+      ivec.push_back(i);
+    std::srand(0); // make this reproducible
+    std::random_shuffle(ivec.begin(), ivec.end());
+
+    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    f.insertFindEraseFind(ivec);
+  }
+}
+
+TEST_CASE("MaskedVbyte/ascendingDataTest", "")
+{
+  if (os_has_avx()) {
+    Zint32Fixture::IntVector ivec;
+    for (int i = 0; i < 30000; i++)
+      ivec.push_back(i);
+
+    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    f.insertFindEraseFind(ivec);
+  }
+}
+
+TEST_CASE("MaskedVbyte/descendingDataTest", "")
+{
+  if (os_has_avx()) {
+    Zint32Fixture::IntVector ivec;
+    for (int i = 30000; i >= 0; i--)
+      ivec.push_back(i);
+
+    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    f.insertFindEraseFind(ivec);
+  }
+}
+
+#if 0
+
+TEST_CASE("BlockIndex/randomDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+  std::srand(0); // make this reproducible
+  std::random_shuffle(ivec.begin(), ivec.end());
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("BlockIndex/ascendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 0; i < 30000; i++)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  f.insertFindEraseFind(ivec);
+}
+
+TEST_CASE("BlockIndex/descendingDataTest", "")
+{
+  Zint32Fixture::IntVector ivec;
+  for (int i = 30000; i >= 0; i--)
+    ivec.push_back(i);
+
+  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  f.insertFindEraseFind(ivec);
+}
+
+#endif
 
 } // namespace hamsterdb
 

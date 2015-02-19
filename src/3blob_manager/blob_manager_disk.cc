@@ -276,13 +276,14 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
                         blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                                 ? record->partial_offset
                                 : 0), true);
+  }
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
     // read the blob data. if compression is enabled then
     // read into the Compressor's arena, otherwise read directly into the
     // caller's arena
     if (blob_header->get_flags() & kIsCompressed) {
-      Compressor *compressor = db->get_record_compressor();
+      Compressor *compressor = context->db->get_record_compressor();
       ham_assert(compressor != 0);
 
       // read into temporary buffer; we reuse the compressor's memory arena
@@ -290,8 +291,8 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
       ByteArray *dest = compressor->get_arena();
       dest->resize(blob_header->get_alloc_size() - sizeof(PBlobHeader));
 
-      read_chunk(page, 0, blobid + sizeof(PBlobHeader),
-                    db, (uint8_t *)dest->get_ptr(),
+      copy_chunk(context, page, 0, blobid + sizeof(PBlobHeader),
+                    (uint8_t *)dest->get_ptr(),
                     blob_header->get_alloc_size() - sizeof(PBlobHeader), true);
 
       // now uncompress into the caller's memory arena

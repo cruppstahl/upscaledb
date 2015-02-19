@@ -73,7 +73,10 @@ class BlockKeyList : public BaseKeyList
       kSearchImplementation = kCustomSearch,
 
       // Use a custom insert implementation
-      kCustomInsert = 1
+      kCustomInsert = 1,
+
+      // Each KeyList has a static overhead of 8 bytes
+      kSizeofOverhead = 8
     };
 
     // Constructor
@@ -166,7 +169,7 @@ class BlockKeyList : public BaseKeyList
       }
 
       // add static overhead
-      used_size += 8 + sizeof(Index) * get_block_count();
+      used_size += kSizeofOverhead + sizeof(Index) * get_block_count();
 
       if (used_size != (int)get_used_size()) {
         ham_log(("used size %d differs from expected %d",
@@ -228,7 +231,7 @@ class BlockKeyList : public BaseKeyList
     // Create an initial empty block
     void initialize() {
       set_block_count(0);
-      set_used_size(sizeof(uint32_t) * 2);
+      set_used_size(kSizeofOverhead);
       add_block(0, Index::kInitialBlockSize);
     }
 
@@ -241,7 +244,8 @@ class BlockKeyList : public BaseKeyList
         if (index->offset + index->get_block_size() > used_size)
           used_size = index->offset + index->get_block_size();
       }
-      set_used_size(used_size + 8 + sizeof(Index) * get_block_count());
+      set_used_size(used_size + kSizeofOverhead
+                      + sizeof(Index) * get_block_count());
     }
 
     // Returns the index for a block with that slot
@@ -297,7 +301,8 @@ class BlockKeyList : public BaseKeyList
 
       if (get_block_count() != 0) {
         ::memmove(index + 1, index,
-                        get_used_size() - (position * sizeof(Index)));
+                    get_used_size() - (position * sizeof(Index))
+                            - kSizeofOverhead);
       }
 
       set_block_count(get_block_count() + 1);
@@ -322,7 +327,7 @@ class BlockKeyList : public BaseKeyList
       if (get_used_size() == index->offset
                                 + index->get_block_size()
                                 + get_block_count() * sizeof(Index)
-                                + 8)
+                                + kSizeofOverhead)
         do_reset_used_size = true;
 
       // shift all indices (and the payload data) to the left
@@ -343,7 +348,8 @@ class BlockKeyList : public BaseKeyList
 
       // move all other blocks unless the current block is the last one
       if ((size_t)index->offset + index->get_block_size()
-              < get_used_size() - 8 - sizeof(Index) * get_block_count()) {
+              < get_used_size() - kSizeofOverhead
+                    - sizeof(Index) * get_block_count()) {
         uint8_t *p = get_block_data(index) + index->get_block_size();
         uint8_t *q = &m_data[get_used_size()];
         ::memmove(p + additional_size, p, q - p);
@@ -395,7 +401,8 @@ class BlockKeyList : public BaseKeyList
 
     // Returns the payload data of a block
     uint8_t *get_block_data(Index *index) const {
-      return (&m_data[8 + index->offset + sizeof(Index) * get_block_count()]);
+      return (&m_data[kSizeofOverhead + index->offset
+                        + sizeof(Index) * get_block_count()]);
     }
 
     // Sets the block count
@@ -421,7 +428,7 @@ class BlockKeyList : public BaseKeyList
 
     // Returns a pointer to a block index
     Index *get_block_index(int i) const {
-      return ((Index *)(m_data + 8 + i * sizeof(Index)));
+      return ((Index *)(m_data + kSizeofOverhead + i * sizeof(Index)));
     }
 
     // The persisted (compressed) data
