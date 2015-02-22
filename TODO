@@ -462,7 +462,7 @@ x blob performance improvements
     x If mmap is enabled then keys and records don't have to be copied as long
         as they point into the mapped area!
 
-o Concurrency: move "purge cache" to background (cont...)
+x Concurrency: move "purge cache" to background (cont...)
     x Right now only the Cache uses a mutex. But we need to know
         whether a page is in use (= in a changeset) or if it's purged.
         x add a spinlock to the page
@@ -505,16 +505,7 @@ o Concurrency: move "purge cache" to background (cont...)
         and PageManager::close_database()
 
     x run monster tests
-    o run performance tests
-        o also for > 10 million inserts
-    o blog post: compare performance of
-        - Spinlock linux vs Mutex linux (1, 5, 10, 20 mio keys)
-        - Spinlock win32 vs Mutex win32 (same machine)
-        - leveldb performance (100 mio keys)
-        - hamsterdb performance (100 mio keys)
-        - leveldb performance (1, 5, 10, 20, 50, 100 mio integer keys)
-        - hamsterdb performance (w/o compression)
-        - hamsterdb-pro performance (w/ compression)
+    x run performance tests
 
 x Change copyright to 2015
     x all sources
@@ -525,14 +516,30 @@ x zint32: stream vbyte: use avx only if it's supported by the cpu!
     (note that os.cc currently returns wrong value if __AVX__ is not set; but
     we want to check the runtime capabilities and not the compile time setting)
 
-o zint32: new KeyList for Masked VByte encoding (use StreamVbyte as a
-    template and compress/uncompress blockwise)
-    o add unittests
-    o add monster tests
+x zint32: investigate performance problems of memmove (w/o compression!)
+    x look into assembler code of memmove; is it using a loop?
+        - yes it is (sse w/ prefetch)
+    x track statistics of memmove; how many bytes are moved? also track the
+        time to get a total MB/SEC figure
+        - 13.2 gb/sec
+    x write a micro-benchmark
+        - no, actually memmove is faster than memcpy. wtf?? check again
+          with Vtune. Is this a profiling error with valgrind/callgrind? -> no
 
-o zint32: investigate performance problems of memmove (w/o compression!)
-    o look into assembler code of memmove; is it using a loop?
-    o track wallclock time of inserts (pod vs varbyte)
+x zint32: new KeyList for Masked VByte encoding (use StreamVbyte as a
+    template and compress/uncompress blockwise)
+    x add unittests
+    x add monster tests
+
+o zint32: would it make sense to have a block-based "compression" without
+      compression?
+
+o blog post: compare performance of
+    - leveldb performance (100 mio keys, binaries)
+    - hamsterdb performance (100 mio keys, binaries)
+    - leveldb performance (1, 10, 20, 100 mio integer keys)
+    - hamsterdb performance (1, 10, 20, 100 mio integer keys)
+    - hamsterdb-pro performance (same, w/ integer compression)
 
 o Erlang: investigate failure in ham_eqc2
 
@@ -550,10 +557,17 @@ o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
 o PRO: zint32 currently does not work if pagesize != 16kb. Document this
     limitation and return an error if a different pagesize is used
 
+. perftest updates: use fewer tests, but make them longer (100 mio operations)
+
+. When flushing pages (PageManagerWorker): use writev and flush all pages
+    in a single call (win32 has no writev, therefore os_win32.cc should
+    sort the array first)
+
 . currently, code uses linear search over small ranges. This is not efficient.
     If the range is in the cache then binary is still faster.
     o replace binary search implementation with std::lower_bound
-    o PRO: only use linear search if SIMD is enabled
+    o PRO: only use linear search if SIMD is enabled (really? does it make
+        sense?)
 
 . Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
@@ -709,13 +723,6 @@ o delta updates managed in the BtreeNode
 
 
 
-
-o PRO: additional zint32 TODOs for simdcomp
-    o needs to work with various page sizes; have to increase the offset
-        parameter for the index!
-    o improve copy_to() performance by allocating multiple blocks at once
-    o rewrite remainding simdcomp functions to accept a "length" parameter
-    o add more unittests for delete stability
 
 o PRO: Group Varint-related improvements
     o will currently not work with pages > 16kb

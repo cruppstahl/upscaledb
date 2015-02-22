@@ -96,8 +96,6 @@ class Cache
     void purge(Processor &processor, Page *ignore_page) {
       int limit = current_elements()
                 - (m_state.capacity_bytes / m_state.page_size_bytes);
-      if (limit < CacheState::kPurgeAtLeast)
-        limit = CacheState::kPurgeAtLeast;
 
       Page *page = m_state.totallist.tail();
       for (int i = 0; i < limit && page != 0; i++) {
