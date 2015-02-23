@@ -33,62 +33,6 @@ namespace hamsterdb {
 /* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
-namespace Impl {
-
-static Page *
-get(ChangesetState &state, uint64_t address)
-{
-  return (state.collection.get(address));
-}
-
-static void
-del(ChangesetState &state, Page *page)
-{
-  page->mutex().unlock();
-  state.collection.del(page);
-}
-
-static bool
-has(const ChangesetState &state, Page *page)
-{
-  return (state.collection.has(page));
-}
-
-static void
-put(ChangesetState &state, Page *page)
-{
-  if (!has(state, page)) {
-    page->mutex().lock();
-  }
-  state.collection.put(page);
-}
-
-static bool
-is_empty(const ChangesetState &state)
-{
-  return (state.collection.is_empty());
-}
-
-struct UnlockPage
-{
-  bool operator()(Page *page) {
-#ifdef HAM_ENABLE_HELGRIND
-    page->mutex().try_lock();
-#endif
-    page->mutex().unlock();
-    return (true);
-  }
-};
-
-static void
-clear(ChangesetState &state)
-{
-  UnlockPage unlocker;
-  state.collection.for_each(unlocker);
-
-  state.collection.clear();
-}
-
 struct PageCollectionVisitor
 {
   PageCollectionVisitor(Page **pages)
@@ -112,19 +56,19 @@ struct PageCollectionVisitor
   Page **pages;
 };
 
-static void
-flush(ChangesetState &state, uint64_t lsn)
+void
+Changeset::flush(uint64_t lsn)
 {
   // now flush all modified pages to disk
-  if (state.collection.is_empty())
+  if (m_collection.is_empty())
     return;
   
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // Fetch the pages, ignoring all pages that are not dirty
-  Page **pages = (Page **)::alloca(sizeof(Page *) * state.collection.size());
+  Page **pages = (Page **)::alloca(sizeof(Page *) * m_collection.size());
   PageCollectionVisitor visitor(pages);
-  state.collection.extract(visitor);
+  m_collection.extract(visitor);
 
   // TODO sort by address (really?)
 
@@ -137,7 +81,7 @@ flush(ChangesetState &state, uint64_t lsn)
   // If more than one page is modified then the modification is no longer
   // atomic. All dirty pages are written to the log.
   if (visitor.num_pages > 1) {
-    state.env->journal()->append_changeset((const Page **)visitor.pages,
+    m_env->journal()->append_changeset((const Page **)visitor.pages,
                         visitor.num_pages, lsn);
   }
 
@@ -160,59 +104,10 @@ flush(ChangesetState &state, uint64_t lsn)
   }
 
   /* flush the file handle (if required) */
-  if (state.env->get_flags() & HAM_ENABLE_FSYNC)
-    state.env->device()->flush();
+  if (m_env->get_flags() & HAM_ENABLE_FSYNC)
+    m_env->device()->flush();
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-}
-
-} // namespace Impl
-
-Page *
-Changeset::get(uint64_t address)
-{
-  return (Impl::get(m_state, address));
-}
-
-void
-Changeset::del(Page *page)
-{
-  Impl::del(m_state, page);
-}
-
-void
-Changeset::put(Page *page)
-{
-  Impl::put(m_state, page);
-}
-
-bool
-Changeset::has(Page *page) const
-{
-  return (Impl::has(m_state, page));
-}
-
-bool
-Changeset::is_empty() const
-{
-  return (Impl::is_empty(m_state));
-}
-
-void
-Changeset::clear()
-{
-  Impl::clear(m_state);
-}
-
-void
-Changeset::flush(uint64_t lsn)
-{
-  Impl::flush(m_state, lsn);
-}
-
-ChangesetState::ChangesetState(LocalEnvironment *env)
-  : env(env), collection(Page::kListChangeset)
-{
 }
 
 } // namespace hamsterdb

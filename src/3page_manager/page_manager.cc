@@ -369,13 +369,13 @@ struct PurgeProcessor
 void
 PageManager::purge_cache(Context *context)
 {
-  // in-memory-db: don't remove the pages or they would be lost
-  if (m_state.config.flags & HAM_IN_MEMORY || !is_cache_full())
-    return;
-
-  // if a "purge cache" operation is still pending then do not schedule
-  // a new one
-  if (m_state.purge_cache_pending)
+  // do NOT purge the cache iff
+  //   1. this is an in-memory Environment
+  //   2. there's still a "purge cache" operation pending
+  //   3. the cache is not full
+  if (m_state.config.flags & HAM_IN_MEMORY
+      || m_state.purge_cache_pending
+      || !is_cache_full())
     return;
 
   // Purge as many pages as possible to get memory usage down to the

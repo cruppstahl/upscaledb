@@ -7,12 +7,6 @@ x a finished TODO item
 
 ==============================================================================
 
-------------- hamsterdb-erlang 2.1.9 ---------------------------------
-
-o improve erlang integration
-    o integration for quickcheck-ci.com
-    x look into Thomas' mail
-
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
 x documentation rewrite
@@ -531,91 +525,74 @@ x zint32: new KeyList for Masked VByte encoding (use StreamVbyte as a
     x add unittests
     x add monster tests
 
-o zint32: would it make sense to have a block-based "compression" without
-      compression?
+x Erlang: investigate test failures
+    x in ham_eqc2 - no longer reproducible
+    x in test.erl
 
 o blog post: compare performance of
-    - leveldb performance (100 mio keys, binaries)
-    - hamsterdb performance (100 mio keys, binaries)
-    - leveldb performance (1, 10, 20, 100 mio integer keys)
-    - hamsterdb performance (1, 10, 20, 100 mio integer keys)
-    - hamsterdb-pro performance (same, w/ integer compression)
-
-o Erlang: investigate failure in ham_eqc2
-
-o check recovery.pl - extended_tests are failing on PRO because the
-    error inducer hits too early
+    - leveldb performance (100 mio keys)
+    - hamsterdb performance (100 mio keys)
+    - leveldb performance (1, 5, 10, 20, 50, 100 mio integer keys)
+    - hamsterdb performance (w/o compression)
+    - hamsterdb-pro performance (w/ compression)
 
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
     o record data points into mapped storage
 
-o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
-    perform similar to Simdcomp: uncompress all blocks into a large array,
-    compress them again and build up the index from scratch
+
+
+
+
+
 
 o PRO: zint32 currently does not work if pagesize != 16kb. Document this
     limitation and return an error if a different pagesize is used
 
-. perftest updates: use fewer tests, but make them longer (100 mio operations)
+o PRO: check recovery.pl - extended_tests are failing on PRO because the
+    error inducer hits too early???
 
-. When flushing pages (PageManagerWorker): use writev and flush all pages
+o zint32: would it make sense to have a block-based "compression" without
+      compression?
+
+o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
+    perform similar to Simdcomp: uncompress all blocks into a large array,
+    compress them again and build up the index from scratch
+
+
+
+
+
+
+
+o When flushing pages (PageManagerWorker): use writev and flush all pages
     in a single call (win32 has no writev, therefore os_win32.cc should
     sort the array first)
 
-. currently, code uses linear search over small ranges. This is not efficient.
-    If the range is in the cache then binary is still faster.
+o Sometimes the performance peaks when truncating/growing the file. The device
+    should therefore allocate more space than required. If the file size is
+    small (i.e. < 100 pages) then continue as of now. Otherwise truncate
+    the file for multiple pages (the number should depend on the file size),
+    and use this spare buffer whenever required.
+    o when shutting down: remove the spare overhead!
+
+o Currently, the code uses linear search over small ranges. This is not
+    efficient. If the range is in the cache then binary search is still faster.
     o replace binary search implementation with std::lower_bound
     o PRO: only use linear search if SIMD is enabled (really? does it make
         sense?)
 
-. Refactoring: rewrite more classes to improve the whole structure
+o Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
         to the PageManager/Cache??
         o remove LocalEnvironment::mark_header_page_dirty
         o transform to struct instead of class
         o move header Page ownership from EnvironmentHeader to PageManager
-    o EnvironmentHeader
+    o EnvironmentHeader - allow concurrent access from multiple databases
     o BlobManager
         o disk: pass PageManager during initialization
         o inmem: pass InMemoryDevice during initialization
         o remove dependency to env
-    o Device
-    o BtreeActions
-    o Btree
-
-. Refactoring: all unittest fixtures should derive from a BaseFixture,
-    which creates an Environment, creates a list of databases (w/ parameters),
-    and if required also a cursor, a transaction and a context
-    o include additional management functions like lenv(), ldb(), ltxn(),
-        page_manager(), cache(), context()...
-    o what else?
-    o then reorganize the tests
-        - public API
-        - internal modules
-
-o Refactoring: would it make sense if each Database has its own BlobManager?
-    Then ham_env_erase_db would be much faster, and if each Database has its
-    own lock then the blob pages would not block each other
-    o are there other modules that should be "per database" and not
-        "per environment"?
-        - PageManager
-        - Device
-        - ...?
-
-. LocalEnvironment::open creates a "fakepage" to find out the page_size;
-    just assume the default page size of 16kb and read the first page. Then
-    discard if the real page_size is a different one
-    o deal with databases < 16kb?
-
-
-
-
-
-
-. migrate to libuv 1.0, it has a stable API
-    http://docs.libuv.org/en/latest/migration_010_100.html
-    o also for windows!
 
 o More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
@@ -626,11 +603,10 @@ o More things to refactor in the btree
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
-o refactoring: db_local.cc has so many TODOs!
-
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
+    o clean up the interface, remove dependencies
     o the whole cursor state is messed up. there should be 3 states:
         - nil
         - coupled to btree
@@ -638,32 +614,40 @@ o refactoring: improve the code separation of cursor, btree_cursor
         and nothing else!
     o there should be a key() and a record() method; the caller should
         not get access to txn_cursor/btree_cursor etc
-    o cursor.cc has so many TODOs!
+    o fix the TODOs in cursor.cc
+    o fix the TODOs in db_local.cc
 
-o internal nodes should use 32bit page IDs!
-    -> but should still work with 64bit IDs for in-memory environments
+o Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions like lenv(), ldb(), ltxn(),
+        page_manager(), cache(), context()...
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
 
-o delta updates managed in the BtreeNode
-    Updates are attached to a node. A background thread can merge them.
-    At runtime, they're consolidated. An Update can be part of a Transaction.
+o DeltaUpdates managed in the BtreeNode
+    DeltaUpdates are attached to a node. A background thread can merge them.
+    At runtime, they're consolidated. A DeltaUpdate can be part of a
+    Transaction.
     The existing TransactionOperation structure is replaced. The whole
     Transaction handling will be rewritten. Instead of using separate
-    TransactionTrees, the Updates are attached to the node.
+    TransactionTrees, the DeltaUpdates are attached to the node.
 
-    Updates are a sorted (!) linked list. Prior to merge, those Updates that
-    delete keys will be applied.
+    DeltaUpdates are a sorted (!) linked list. Prior to merge, those
+    DeltaUpdates that delete keys will be applied.
 
-    The Update structure should be parameterized, just like the Btree
+    The DeltaUpdate structure should be parameterized, just like the Btree
     (i.e. use the identical type and compare function).
 
     When pages are merged or split then the delta updates are moved to the
     new page. They are not merged immediately.
 
-    The Update structure has a pointer to its Transaction. If the Transaction
-    is committed or aborted, then the Update state is set to "committed"
-    (or "aborted"). When merging, aborted Updates are removed. The Transaction
-    pointer is only followed if the state of the Transaction is not clear (i.e.
-    either committed or aborted). 
+    The DeltaUpdate structure has a pointer to its Transaction. If the
+    Transaction is committed or aborted, then the DeltaUpdate state is set to
+    "committed" (or "aborted"). When merging, aborted DeltaUpdates are removed.     The Transaction pointer is only followed if the state of the Transaction is
+    not clear (i.e. either committed or aborted). 
        
     -> Flushes/Merges happen in background
     -> Transactions, Commits and Btree operations are completely decoupled.
@@ -672,15 +656,44 @@ o delta updates managed in the BtreeNode
         compactions in the background
     -> Needs more research...
 
-    o create an Update struct
+    o create a DeltaUpdate struct
         o template parmeters for key and compare function
         o key, record, ...
-        o single linked "next" pointer
+        o the state (committed, aborted)
+        o pointer to the Transaction
+        o single "next" pointer for the linked list
 
-    o The BtreeNodeProxy manages a (single) linked list of Updates
+    o define a recovery strategy
+        If recovery is enabled then the DeltaUpdates are written to the journal.
+        At recovery they're recreated and assigned to the btree pages.
+        But what if a page is merged with its updates? How to make sure that
+        no update is applied twice?
+
+    o define an auto-merge strategy
+        o in the beginning, DUs will always be merged when the node is
+            accessed for reading or most other operations. This will change
+            as soon as data can be consolidated on the fly.
+        o what if a split is required during auto-merge?
+            - first vacuumize (this happens automatically)
+            - either call ham_db_insert() to traverse the tree
+        - or split into a sibling page, insert the page in the leaf but add the
+            parent link later on (queries must make sure that they check the
+            sibling node)
+            - then fix the parent node later
+        - if the Database is closed: write all DUs to a log and re-apply
+            them when the database is opened
+
+    o Each BtreeNodeProxy manages a (single) linked list of DeltaUpdates
+        o but also keep track of the tail for fast append operations
     o This linked list is always sorted
-    o Add a flag to force-flush immediately (disable queueing)
-    o Merge the updates (naive implementation: insert one by one)
+    o Add a flag to force-flush immediately (disable queueing) - per database!
+        -> this is a counter which specifies the queue length till the queue
+            is merged. default is max<int>, 0 disables queueing
+        o support this in ham_bench
+
+    o Merge the updates (naive implementation: apply one by one)
+        o first apply "delete" operations
+        o then all others
         o ... before flushing the page
         o ... before all other operations
     o When splitting the page: re-distribute the updates to the
@@ -698,6 +711,54 @@ o delta updates managed in the BtreeNode
         o for cursors
         o for scans
         o ... and with duplicates
+
+    o Replace the TransactionOperation with the DeltaUpdates
+        o requires double linked list to all DUs within this txn?
+        o txn is committed: set the state of all DUs to "committed"
+        o txn is aborted: set the state of all DUs to "aborted"
+        o move the consolidation away from the txn layer towards the DU layer
+
+o Refactoring: remove the TransactionNode structure, it's no longer required
+o Refactoring: remove the TransactionTree structure, it's no longer required
+o Refactoring: temporary txn's should no longer exist as a structure; their
+        DUs are automatically set to "committed"
+o Refactoring: move duplicate key consolidation down to the DU layer
+o Refactoring: get rid of the TransactionCursor
+o Refactoring: the remaining Transaction layer should only manage txn-id and
+        txn name; nothing else!
+    o then get rid of the TransactionCursor
+    o ... and merge Cursor with BtreeCursor
+
+
+
+
+
+o Concurrency: can the changeset flush be asynchronously? As soon as the log
+    is written (and fsync'd), the pages can be flushed to disk in the
+    background
+
+o Concurrency: merge Delta Updates in the background
+
+o internal nodes should use 32bit page IDs!
+    -> but should still work with 64bit IDs for in-memory environments
+
+. Refactoring: would it make sense if each Database has its own BlobManager?
+    Then ham_env_erase_db would be much faster, and if each Database has its
+    own lock then the blob pages would not block each other
+    o are there other modules that should be "per database" and not
+        "per environment"?
+        - PageManager
+        - Device
+        - ...?
+
+. LocalEnvironment::open creates a "fakepage" to find out the page_size;
+    just assume the default page size of 16kb and read the first page. Then
+    discard if the real page_size is a different one
+    o deal with databases < 16kb?
+
+. migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
 
 . investigate "pointer swizzling": internal btree nodes should store "hints"
     to the actual Page, not the Page IDs, as soon as the Page was loaded for

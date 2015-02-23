@@ -37,7 +37,7 @@ struct Context
 {
   Context(LocalEnvironment *env, LocalTransaction *txn = 0,
                   LocalDatabase *db = 0)
-    : env(env), txn(txn), db(db), changeset(ChangesetState(env)) {
+    : env(env), txn(txn), db(db), changeset(env) {
   }
 
   ~Context() {

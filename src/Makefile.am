@@ -46,10 +46,8 @@ libhamsterdb_la_SOURCES = \
 	2queue/queue.h \
 	2worker/worker.h \
 	3cache/cache.h \
-	3cache/cache.cc \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
-	3changeset/changeset_state.h \
 	3blob_manager/blob_manager.h \
 	3blob_manager/blob_manager.cc \
 	3blob_manager/blob_manager_inmem.h \
