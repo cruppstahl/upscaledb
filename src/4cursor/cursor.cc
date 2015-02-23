@@ -1028,7 +1028,7 @@ Cursor::get_record_count(Context *context, uint32_t flags)
   if (is_nil())
     throw Exception(HAM_CURSOR_IS_NIL);
 
-  if (m_txn) {
+  if (m_txn || is_coupled_to_txnop()) {
     if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
       sync(context, 0, &dummy);

@@ -39,13 +39,11 @@ doc documentation/html:
 	VERSION=$(VERSION) ;            \
 	export VERSION;                 \
 	doxygen documentation/Doxyfile
-	@cp documentation/*.jpg documentation/html/
 
 internal_doc:
 	VERSION=$(VERSION) ;            \
 	export VERSION;                 \
 	doxygen documentation/Doxyfile.int
-	@cp documentation/*.jpg documentation/internal/html/
 
 bfc_doc:
 	VERSION=$(VERSION) ;            \

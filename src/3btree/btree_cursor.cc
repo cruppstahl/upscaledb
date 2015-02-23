@@ -232,7 +232,7 @@ BtreeCursor::get_record_count(Context *context, uint32_t flags)
   if (m_state == kStateUncoupled)
     couple(context);
   else if (m_state != kStateCoupled)
-    return (HAM_CURSOR_IS_NIL);
+    throw Exception(HAM_CURSOR_IS_NIL);
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
   return (node->get_record_count(context, m_coupled_index));

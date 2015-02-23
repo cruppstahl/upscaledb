@@ -3232,6 +3232,9 @@ TEST_CASE("Cursor/erlangTest", "")
   uint64_t size = 0;
   REQUIRE(0 == ham_cursor_get_record_size(cursor, &size));
   REQUIRE(size == 6ull);
+  uint32_t count = 0;
+  REQUIRE(0 == ham_cursor_get_duplicate_count(cursor, &count, 0));
+  REQUIRE(count == 1u);
 
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
