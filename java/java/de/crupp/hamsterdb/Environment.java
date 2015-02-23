@@ -379,7 +379,7 @@ public class Environment {
    *        <code>Const.HAM_DATABASE_NOT_FOUND</code>.
    *
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga4ceb71003291e9eabe2df7140c89610c">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga4ceb710032.1.10eabe2df7140c89610c">C documentation</a>
    */
   public void eraseDatabase(short name)
     throws DatabaseException {

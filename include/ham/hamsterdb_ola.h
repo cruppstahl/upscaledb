@@ -18,7 +18,7 @@
  * @file hamsterdb_hola.h
  * @brief Include file for hamsterdb OnLine Analytical functions
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.9
+ * @version 2.1.10
  *
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */
