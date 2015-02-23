@@ -26,9 +26,8 @@
 #define HAM_SPINLOCK_H
 
 #include "0root/root.h"
-#include "1base/error.h"
-#include "1base/mutex.h"
 
+#include <stdio.h>
 #ifndef HAM_OS_WIN32
 #  include <sched.h>
 #  include <unistd.h>
@@ -36,6 +35,8 @@
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/error.h"
+#include "1base/mutex.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -92,9 +93,9 @@ class Spinlock {
       }
       else {
 #ifdef HAM_OS_WIN32
-        ::Sleep(250);
+        ::Sleep(25);
 #elif HAVE_USLEEP
-        ::usleep(250);
+        ::usleep(25);
 #else
         ham_assert(!"Please implement me");
 #endif 
