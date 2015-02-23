@@ -136,9 +136,6 @@ class PageManager
     // Calls store_state() whenever it makes sense
     void maybe_store_state(Context *context, bool force);
 
-    // Returns true if the cache is full
-    bool is_cache_full() const;
-    
     // Locks a page, fetches contents from disk if they were flushed in
     // the meantime
     Page *safely_lock_page(Context *context, Page *page,

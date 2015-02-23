@@ -375,7 +375,7 @@ PageManager::purge_cache(Context *context)
   //   3. the cache is not full
   if (m_state.config.flags & HAM_IN_MEMORY
       || m_state.purge_cache_pending
-      || !is_cache_full())
+      || !m_state.cache.is_cache_full())
     return;
 
   // Purge as many pages as possible to get memory usage down to the
@@ -709,13 +709,6 @@ PageManager::maybe_store_state(Context *context, bool force)
   }
 }
 
-bool
-PageManager::is_cache_full() const
-{
-  return (m_state.cache.allocated_elements() * m_state.config.page_size_bytes
-                    > m_state.cache.capacity());
-}
-
 Page *
 PageManager::safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock)
@@ -778,7 +771,7 @@ PageManagerTest::store_page(Page *page)
 bool
 PageManagerTest::is_cache_full()
 {
-  return (m_sut->is_cache_full());
+  return (m_sut->m_state.cache.is_cache_full());
 }
 
 PageManagerState *

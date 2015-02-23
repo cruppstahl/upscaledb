@@ -188,6 +188,12 @@ class Cache
       m_totallist.extract(selector);
     }
 
+    // Returns true if the capacity limits are exceeded
+    bool is_cache_full() const {
+      return (current_elements() * m_page_size_bytes
+                    > m_capacity_bytes);
+    }
+
     // Returns the capacity (in bytes)
     size_t capacity() const {
       return (m_capacity_bytes);
