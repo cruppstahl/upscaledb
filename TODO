@@ -538,6 +538,10 @@ o zint32: would it make sense to have a block-based "compression" without
       compression?
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> Updated TODO
 o blog post: compare performance of
     - Spinlock linux vs Mutex linux (1, 5, 10, 20 mio keys)
     - Spinlock win32 vs Mutex win32 (same machine)
@@ -552,12 +556,17 @@ o Erlang: investigate failure in ham_eqc2
 o check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early
 
+<<<<<<< HEAD
 =======
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
+=======
+>>>>>>> Updated TODO
+>>>>>>> Updated TODO
 o documentation related issues for 2.1.10
     o HAM_RECORD_NUMBER32: add/update tutorial
     o record data points into mapped storage
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
     perform similar to Simdcomp: uncompress all blocks into a large array,
@@ -576,6 +585,8 @@ o PRO: zint32 currently does not work if pagesize != 16kb. Document this
     o PRO: only use linear search if SIMD is enabled (really? does it make
         sense?)
 =======
+=======
+>>>>>>> Updated TODO
 
 
 
@@ -1024,8 +1035,114 @@ o BtreeUpdate managed in the BtreeNode
 
     BtreeUpdate are a sorted (!) linked list. Prior to merge, those
     BtreeUpdate that delete keys will be applied.
+<<<<<<< HEAD
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
 
+=======
+=======
+o PRO: zint32 - if vacuumize calculates that 10% of the space are wasted then
+    perform similar to Simdcomp: uncompress all blocks into a large array,
+    compress them again and build up the index from scratch
+
+o PRO: zint32 currently does not work if pagesize != 16kb. Document this
+    limitation and return an error if a different pagesize is used
+
+. When flushing pages (PageManagerWorker): use writev and flush all pages
+    in a single call (win32 has no writev, therefore os_win32.cc should
+    sort the array first)
+
+. currently, code uses linear search over small ranges. This is not efficient.
+    If the range is in the cache then binary is still faster.
+    o replace binary search implementation with std::lower_bound
+    o PRO: only use linear search if SIMD is enabled (really? does it make
+        sense?)
+
+. Refactoring: rewrite more classes to improve the whole structure
+    o HeaderPage - can it be treated like any other page, and moved
+        to the PageManager/Cache??
+        o remove LocalEnvironment::mark_header_page_dirty
+        o transform to struct instead of class
+        o move header Page ownership from EnvironmentHeader to PageManager
+    o EnvironmentHeader
+    o BlobManager
+        o disk: pass PageManager during initialization
+        o inmem: pass InMemoryDevice during initialization
+        o remove dependency to env
+    o Device
+    o BtreeActions
+    o Btree
+
+. Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions like lenv(), ldb(), ltxn(),
+        page_manager(), cache(), context()...
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
+
+o Refactoring: would it make sense if each Database has its own BlobManager?
+    Then ham_env_erase_db would be much faster, and if each Database has its
+    own lock then the blob pages would not block each other
+    o are there other modules that should be "per database" and not
+        "per environment"?
+        - PageManager
+        - Device
+        - ...?
+
+. LocalEnvironment::open creates a "fakepage" to find out the page_size;
+    just assume the default page size of 16kb and read the first page. Then
+    discard if the real page_size is a different one
+    o deal with databases < 16kb?
+
+
+
+
+
+
+. migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
+
+o More things to refactor in the btree
+    o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
+        -> use a common behaviour/indexing
+    o EraseAction line 71: if the node is empty then it should be merged and
+        moved to the freelist!
+
+o when splitting and HAM_HINT_APPEND is set, the new page is appended.
+    do the same for prepend!
+
+o refactoring: db_local.cc has so many TODOs!
+
+o refactoring: improve the code separation of cursor, btree_cursor
+    and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
+    etc
+    o the whole cursor state is messed up. there should be 3 states:
+        - nil
+        - coupled to btree
+        - coupled to txn
+        and nothing else!
+    o there should be a key() and a record() method; the caller should
+        not get access to txn_cursor/btree_cursor etc
+    o cursor.cc has so many TODOs!
+
+o internal nodes should use 32bit page IDs!
+    -> but should still work with 64bit IDs for in-memory environments
+
+o delta updates managed in the BtreeNode
+    Updates are attached to a node. A background thread can merge them.
+    At runtime, they're consolidated. An Update can be part of a Transaction.
+    The existing TransactionOperation structure is replaced. The whole
+    Transaction handling will be rewritten. Instead of using separate
+    TransactionTrees, the Updates are attached to the node.
+
+    Updates are a sorted (!) linked list. Prior to merge, those Updates that
+    delete keys will be applied.
+>>>>>>> Updated TODO
+
+>>>>>>> Updated TODO
     The Update structure should be parameterized, just like the Btree
     (i.e. use the identical type and compare function).
 
@@ -1033,18 +1150,31 @@ o BtreeUpdate managed in the BtreeNode
     split the page is grown and moved.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     The Update structure has a pointer to its Transaction. If the Transaction
     is committed or aborted, then the Update state is set to "committed"
     (or "aborted"). When merging, aborted Updates are removed. The Transaction
     pointer is only followed if the state of the Transaction is not clear (i.e.
     either committed or aborted). 
 =======
+=======
+>>>>>>> Updated TODO
     The DeltaUpdate structure has a pointer to its Transaction. If the
     Transaction is committed or aborted, then the DeltaUpdate state is set to
     "committed" (or "aborted"). When merging, aborted BtreeUpdate are removed.
     The Transaction pointer is only followed if the state of the Transaction is
     not clear (i.e. either committed or aborted). 
+<<<<<<< HEAD
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
+=======
+=======
+    The Update structure has a pointer to its Transaction. If the Transaction
+    is committed or aborted, then the Update state is set to "committed"
+    (or "aborted"). When merging, aborted Updates are removed. The Transaction
+    pointer is only followed if the state of the Transaction is not clear (i.e.
+    either committed or aborted). 
+>>>>>>> Updated TODO
+>>>>>>> Updated TODO
        
     For recovery, only few changes are required. All BtreeUpdates are
     written to the journal. Each has its own lsn, and each page stores the
@@ -1059,10 +1189,13 @@ o BtreeUpdate managed in the BtreeNode
         o template parmeters for key and compare function
         o key, record, ...
 <<<<<<< HEAD
+<<<<<<< HEAD
         o single linked "next" pointer
 
     o The BtreeNodeProxy manages a (single) linked list of Updates
 =======
+=======
+>>>>>>> Updated TODO
         o the state (committed, aborted)
         o pointer to the Transaction
         o single "next" pointer for the linked list
@@ -1085,7 +1218,15 @@ o BtreeUpdate managed in the BtreeNode
 
     o Each BtreeNodeProxy manages a (single) linked list of BtreeUpdate
         o but also keep track of the tail for fast append operations
+<<<<<<< HEAD
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
+=======
+=======
+        o single linked "next" pointer
+
+    o The BtreeNodeProxy manages a (single) linked list of Updates
+>>>>>>> Updated TODO
+>>>>>>> Updated TODO
     o This linked list is always sorted
     o Add a flag to force-flush immediately (disable queueing)
     o Merge the updates (naive implementation: insert one by one)
@@ -1108,7 +1249,10 @@ o BtreeUpdate managed in the BtreeNode
         o ... and with duplicates
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> Updated TODO
     o Replace the TransactionOperation with the BtreeUpdate
         o requires double linked list to all BUs within this txn?
         o txn is committed: set the state of all BUs to "committed"
@@ -1208,7 +1352,23 @@ o migrate to libuv 1.0, it has a stable API
 . improve the webpage documentation
 =======
 o improve the webpage documentation
+<<<<<<< HEAD
 >>>>>>> Improving reclaim_space functionality
+=======
+=======
+. investigate "pointer swizzling": internal btree nodes should store "hints"
+    to the actual Page, not the Page IDs, as soon as the Page was loaded for
+    the first time. This could circumvent the buffer cache and increase
+    performance.
+    How to invalidate those hints or discover that a page was evicted from
+    cache?
+    - Eviction could only free the persistent part of a page, and not the
+        stub.
+    - Could also use reference counting for the page
+
+. improve the webpage documentation
+>>>>>>> Updated TODO
+>>>>>>> Updated TODO
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
         o POD keys
