@@ -1,3 +1,13 @@
+Feb 28, 2015 - chris ---------------------------------------------------
+o Fixed bug related to usage of HAM_PARAM_JOURNAL_COMPRESSION
+
+Feb 27, 2015 - chris ---------------------------------------------------
+o Added experimental uint32 storage w/o compression
+	(HAM_COMPRESSOR_UINT32_BLOCKINDEX)
+
+Feb 20, 2015 - chris ---------------------------------------------------
+o Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_MASKEDVBYTE)
+
 Feb 03, 2015 - chris ---------------------------------------------------
 o Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_STREAMVBYTE)
 

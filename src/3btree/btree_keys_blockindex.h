@@ -48,10 +48,10 @@ namespace Zint32 {
 HAM_PACK_0 struct HAM_PACK_1 BlockIndexIndex {
   enum {
     // Initial size of a new block
-    kInitialBlockSize = 32,
+    kInitialBlockSize = 128,
 
     // Grow blocks by this factor
-    kGrowFactor = 16,
+    kGrowFactor = 64,
   };
 
   // initialize this block index
@@ -375,8 +375,11 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexIndex>
 
     // Compresses a whole block
     uint32_t compress_block(Index *index, uint32_t *in) const {
-      ham_assert(in == (uint32_t *)get_block_data(index));
-      return ((index->key_count - 1) * sizeof(uint32_t));
+      uint32_t used_size = (index->key_count - 1) * sizeof(uint32_t);
+      if (in != (uint32_t *)get_block_data(index)) {
+        ::memcpy(get_block_data(index), in, used_size);
+      }
+      return (used_size);
     }
 
     // Implementation for insert()
@@ -503,7 +506,8 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexIndex>
 
         // Now check if the new key will be inserted in the old or the new block
         if (key >= new_index->value) {
-          index->used_size = compress_block(index, data);
+          index->used_size = compress_block(index,
+                                    (uint32_t *)get_block_data(index));
           ham_assert(index->used_size <= index->block_size);
           slot += index->key_count;
 
@@ -514,6 +518,10 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexIndex>
         else {
           new_index->used_size = compress_block(new_index, new_data);
           ham_assert(new_index->used_size <= new_index->block_size);
+
+          // fetch data pointer once more - it was invalidated when the
+          // new block was added
+          data = (uint32_t *)get_block_data(index);
         }
 
         needs_compress = true;
@@ -532,8 +540,11 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexIndex>
         }
 
         grow_block(index, grow_size);
-      }
 
+        // fetch data pointer once more - it was invalidated when the
+        // new block was added
+        data = (uint32_t *)get_block_data(index);
+      }
 
       // swap |key| and |index->value| (cannot use std::swap because
       // gcc refuses swapping a packed value)
@@ -600,8 +611,8 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexIndex>
     void vacuumize_impl(bool internal) {
       // Just throw if this function was invoked while adding or resizing
       // blocks. Otherwise the caller's state would be messed up.
-      if (internal)
-        throw Exception(HAM_LIMITS_REACHED);
+      //if (internal)
+        //throw Exception(HAM_LIMITS_REACHED);
 
       // make a copy of all indices
       bool requires_sort = false;

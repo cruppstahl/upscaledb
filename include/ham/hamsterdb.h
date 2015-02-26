@@ -887,6 +887,16 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @ref HAM_PARAM_KEY_COMPRESSION. See the hamsterdb pro documentation
  * for more details.
  *
+ * In addition, *experimental* integer compression algorithms are available
+ * for Databases created with the type @ref HAM_TYPE_UINT32. These
+ * algorithms (@ref HAM_COMPRESSOR_UINT32_VARBYTE,
+ * @ref HAM_COMPRESSOR_UINT32_SIMDCOMP, @ref HAM_COMPRESSOR_UINT32_GROUPVARINT,
+ * @ref HAM_COMPRESSOR_UINT32_STREAMVBYTE,
+ * @ref HAM_COMPRESSOR_UINT32_MASKEDVBYTE (requires AVX!),
+ * @ref HAM_COMPRESSOR_UINT32_BLOCKINDEX) are subject to change and might be
+ * removed in following versions. They only work with the default
+ * page size of 16kb.
+ *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *      Database. To close the handle, use @ref ham_db_close.
