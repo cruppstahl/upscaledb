@@ -287,8 +287,6 @@ TEST_CASE("MaskedVbyte/descendingDataTest", "")
   }
 }
 
-#if 0
-
 TEST_CASE("BlockIndex/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
@@ -321,7 +319,25 @@ TEST_CASE("BlockIndex/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-#endif
+TEST_CASE("Zint32/invalidPagesizeTest", "")
+{
+  ham_parameter_t p1[] = {
+    { HAM_PARAM_PAGE_SIZE, 1024 },
+    { 0, 0 }
+  };
+  ham_parameter_t p2[] = {
+    { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
+    { HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_UINT32_VARBYTE},
+    { 0, 0 }
+  };
+
+  ham_env_t *env;
+  ham_db_t *db;
+
+  REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0644, &p1[0]));
+  REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &p2[0]));
+  ham_env_close(env, 0);
+}
 
 } // namespace hamsterdb
 

@@ -637,6 +637,7 @@ Journal::recover_changeset()
 
     uint32_t page_size = m_state.env->config().page_size_bytes;
     ByteArray arena(page_size);
+    ByteArray tmp;
 
     uint64_t file_size = m_state.env->device()->file_size();
 
@@ -646,9 +647,19 @@ Journal::recover_changeset()
       m_state.files[m_state.current_fd].pread(position, &page_header,
                       sizeof(page_header));
       position += sizeof(page_header);
-      m_state.files[m_state.current_fd].pread(position, arena.get_ptr(),
-                      page_size);
-      position += page_size;
+      if (page_header.compressed_size > 0) {
+        tmp.resize(page_size);
+        m_state.files[m_state.current_fd].pread(position, tmp.get_ptr(),
+                        page_header.compressed_size);
+        position += page_header.compressed_size;
+        m_state.compressor->decompress(tmp.get_ptr(),
+                        page_header.compressed_size, page_size, &arena);
+      }
+      else {
+        m_state.files[m_state.current_fd].pread(position, arena.get_ptr(),
+                        page_size);
+        position += page_size;
+      }
 
       Page *page;
 
