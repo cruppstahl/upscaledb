@@ -15,22 +15,21 @@
  */
 
 /*
- * Misc. utility classes and functions
- *
  * @exception_safe: nothrow
- * @thread_safe: yes
+ * @thread_safe: no
  */
 
-#ifndef HAM_UTIL_H
-#define HAM_UTIL_H
+#ifndef HAM_DELTA_UPDATES_UNSORTED_H
+#define HAM_DELTA_UPDATES_UNSORTED_H
 
 #include "0root/root.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
+#include <vector>
+#include <algorithm>
 
 // Always verify that a file of level N does not include headers > N!
+#include "3btree/btree_index_traits.h"
+#include "3delta/delta_update.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -38,25 +37,34 @@
 
 namespace hamsterdb {
 
-//
-// vsnprintf replacement/wrapper
-//
-// uses vsprintf on platforms which do not define vsnprintf
-//
-extern int
-util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+class DeltaAction;
 
 //
-// snprintf replacement/wrapper
+// An unsorted vector of DeltaAction objects
 //
-// uses sprintf on platforms which do not define snprintf()
-//
-#ifdef WIN32
-#  define util_snprintf _snprintf
-#else
-#  define util_snprintf snprintf
-#endif
+struct UnsortedDeltaActions
+{
+  typedef std::vector<DeltaAction *>::iterator Iterator;
+
+  // Inserts a DeltaAction into the sorted vector
+  void append(DeltaAction *da) {
+    m_vec.push_back(da);
+  }
+
+  // Returns a pointer to the first element of the vector
+  Iterator begin() {
+    return (m_vec.begin());
+  }
+
+  // Returns a pointer to the first element AFTER the vector
+  Iterator end() {
+    return (m_vec.end());
+  }
+
+  // The vector
+  std::vector<DeltaAction *> m_vec;
+};
 
 } // namespace hamsterdb
 
-#endif // HAM_UTIL_H
+#endif /* HAM_DELTA_UPDATES_UNSORTED_H */

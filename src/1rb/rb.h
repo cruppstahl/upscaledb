@@ -24,7 +24,7 @@
 
 #include "0root/root.h"
 
-#ifndef HAM_OS_WIN32
+#ifndef WIN32
 #   include <stdint.h>
 #   include <sys/cdefs.h>
 #endif

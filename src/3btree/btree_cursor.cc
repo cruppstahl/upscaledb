@@ -25,6 +25,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_node_proxy.h"
+#include "3delta/delta_binding.h"
 #include "4cursor/cursor_local.h"
 
 #ifndef HAM_ROOT_H
@@ -36,9 +37,9 @@ namespace hamsterdb {
 BtreeCursor::BtreeCursor(LocalCursor *parent)
   : m_parent(parent), m_state(0), m_duplicate_index(0),
     m_coupled_page(0), m_coupled_index(0), m_next_in_page(0),
-    m_previous_in_page(0)
+    m_previous_in_page(0), m_deltaupdate(0), m_deltaupdate_action(0)
 {
-  memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
+  ::memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
   m_btree = parent->ldb()->btree_index();
 }
 
@@ -77,9 +78,20 @@ BtreeCursor::uncouple_from_page(Context *context)
 }
 
 void
+BtreeCursor::uncouple_from_deltaupdate(DeltaUpdate *update)
+{
+  LocalDatabase::copy_key(update->key(), &m_uncoupled_arena, &m_uncoupled_key);
+  detach_from_deltaupdate();
+
+  // set the state and the uncoupled key
+  m_state = BtreeCursor::kStateUncoupled;
+}
+
+void
 BtreeCursor::clone(BtreeCursor *other)
 {
-  m_duplicate_index = other->m_duplicate_index;
+ m_deltaupdate = other->m_deltaupdate;
+ m_duplicate_index = other->m_duplicate_index;
 
   // if the old cursor is coupled: couple the new cursor, too
   if (other->m_state == kStateCoupled) {
@@ -297,8 +309,10 @@ BtreeCursor::move_first(Context *context, uint32_t flags)
 
   // and to the next page that is NOT empty
   while (node->get_count() == 0) {
-    if (node->get_right() == 0)
+    if (node->get_right() == 0) {
+      couple_to_page(page, 0, 0);
       return (HAM_KEY_NOT_FOUND);
+    }
     page = env->page_manager()->fetch(context, node->get_right(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
@@ -327,8 +341,9 @@ BtreeCursor::move_next(Context *context, uint32_t flags)
   // if this key has duplicates: get the next duplicate; otherwise
   // (and if there's no duplicate): fall through
   if (!(flags & HAM_SKIP_DUPLICATES)) {
-    if (m_duplicate_index
-            < node->get_record_count(context, m_coupled_index) - 1) {
+    if (m_coupled_index < (int)node->get_count()
+          && m_duplicate_index
+                < node->get_record_count(context, m_coupled_index) - 1) {
       m_duplicate_index++;
       return (0);
     }
@@ -394,7 +409,7 @@ BtreeCursor::move_previous(Context *context, uint32_t flags)
     return (HAM_KEY_NOT_FOUND);
 
   // if the index-1 is till in the coupled page, just decrement the index
-  if (m_coupled_index != 0) {
+  if (m_coupled_index > 0) {
     couple_to_page(m_coupled_page, m_coupled_index - 1);
   }
   // otherwise load the left sibling page
@@ -455,8 +470,10 @@ BtreeCursor::move_last(Context *context, uint32_t flags)
 
   // and to the last page that is NOT empty
   while (node->get_count() == 0) {
-    if (node->get_left() == 0)
+    if (node->get_left() == 0) {
+      couple_to_page(page, node->get_count() - 1, 0);
       return (HAM_KEY_NOT_FOUND);
+    }
     page = env->page_manager()->fetch(context, node->get_left(),
                         PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
@@ -526,7 +543,7 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
 {
   bool skipped = false;
   LocalCursor *cursors = page->cursor_list()
-          ? page->cursor_list()->get_parent()
+          ? page->cursor_list()->parent()
           : 0;
 
   while (cursors) {
@@ -552,6 +569,13 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
 
   if (!skipped)
     page->set_cursor_list(0);
+}
+
+void
+BtreeCursor::couple_to_deltaupdate(Page *page, DeltaUpdate *update)
+{
+  update->binding().attach(this);
+  m_coupled_page = page;
 }
 
 } // namespace hamsterdb

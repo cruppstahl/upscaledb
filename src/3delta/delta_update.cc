@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
+/*
+ * @exception_safe: unknown
+ * @thread_safe: unknown
+ */
+
+#include "0root/root.h"
+
 // Always verify that a file of level N does not include headers > N!
-#include "1base/util.h"
+#include "3delta/delta_update.h"
+#include "4cursor/cursor_local.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
-int
-util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+size_t
+DeltaAction::data_size() const
 {
-#if defined(HAVE_VSNPRINTF)
-  return vsnprintf(str, size, format, ap);
-#elif defined(WIN32)
-  return _vsnprintf(str, size, format, ap);
-#else
-  (void)size;
-  return (vsprintf(str, format, ap));
-#endif
+  return (m_record.size + m_delta_update->key()->size);
 }
 
-} // namespace hamsterdb
-
+}

@@ -46,16 +46,16 @@ class File
 {
   public:
     enum {
-#ifdef HAM_OS_POSIX
-      kSeekSet = SEEK_SET,
-      kSeekEnd = SEEK_END,
-      kSeekCur = SEEK_CUR,
-      kMaxPath = PATH_MAX
-#else
+#ifdef WIN32
       kSeekSet = FILE_BEGIN,
       kSeekEnd = FILE_END,
       kSeekCur = FILE_CURRENT,
       kMaxPath = MAX_PATH
+#else
+      kSeekSet = SEEK_SET,
+      kSeekEnd = SEEK_END,
+      kSeekCur = SEEK_CUR,
+      kMaxPath = PATH_MAX
 #endif
     };
 

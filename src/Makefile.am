@@ -68,6 +68,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_index.cc \
 	3btree/btree_index.h \
 	3btree/btree_index_factory.h \
+	3btree/btree_index_traits.h \
 	3btree/btree_insert.cc \
 	3btree/btree_keys_base.h \
 	3btree/btree_keys_binary.h \
@@ -87,6 +88,14 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_visit.cc \
 	3btree/btree_visitor.h \
 	3btree/upfront_index.h \
+	3delta/delta_factory.h \
+	3delta/delta_action.h \
+	3delta/delta_actions_unsorted.h \
+	3delta/delta_binding.cc \
+	3delta/delta_binding.h \
+	3delta/delta_update.h \
+	3delta/delta_update.cc \
+	3delta/delta_updates_sorted.h \
 	3journal/journal.cc \
 	3journal/journal.h \
 	3journal/journal_entries.h \

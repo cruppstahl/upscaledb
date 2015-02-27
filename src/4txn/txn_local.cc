@@ -260,6 +260,12 @@ LocalTransaction::commit(uint32_t flags)
 
   /* this transaction is now committed! */
   m_flags |= kStateCommitted;
+
+  /* for each DeltaAction: set the state to "Committed" */
+  for (UnsortedDeltaActions::Iterator it = m_delta_actions.begin();
+          it != m_delta_actions.end(); ++it) {
+    (*it)->set_flags((*it)->flags() | DeltaAction::kIsCommitted);
+  }
 }
 
 void
@@ -277,6 +283,12 @@ LocalTransaction::abort(uint32_t flags)
 
   /* immediately release memory of the cached operations */
   free_operations();
+
+  /* for each DeltaAction: set the state to "Aborted" */
+  for (UnsortedDeltaActions::Iterator it = m_delta_actions.begin();
+          it != m_delta_actions.end(); ++it) {
+    (*it)->set_flags((*it)->flags() | DeltaAction::kIsAborted);
+  }
 }
 
 void
@@ -575,7 +587,7 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   ham_assert(context->changeset.is_empty());
 
   /* always get the oldest transaction; if it was committed: flush
-   * it; if it was aborted: discard it; otherwise return */
+   * it; if it was aborted: discard it; otherwise return. */
   while ((oldest = (LocalTransaction *)get_oldest_txn())) {
     if (oldest->is_committed()) {
       m_queued_ops_for_flush -= oldest->get_op_counter();
@@ -618,44 +630,40 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   ham_assert(context->changeset.is_empty());
 }
 
+static void
+maybe_remove_delta_update_from_node(DeltaUpdate *update)
+{
+  if (update->actions() != 0)
+    return;
+
+  // TODO
+}
+
 uint64_t
 LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
 {
-  TransactionOperation *op = txn->get_oldest_op();
-  TransactionCursor *cursor = 0;
   uint64_t highest_lsn = 0;
 
-  while (op) {
-    TransactionNode *node = op->get_node();
+  /* for each DeltaAction: modify the node */
+  for (UnsortedDeltaActions::Iterator it = txn->delta_actions().begin();
+          it != txn->delta_actions().end(); ++it) {
+    DeltaAction *action = *it;
+    DeltaUpdate *update = action->delta_update();
 
-    if (op->get_flags() & TransactionOperation::kIsFlushed)
-      goto next_op;
+    ham_assert(isset(action->flags(), DeltaAction::kIsCommitted));
+    ham_assert(action->lsn() > highest_lsn);
 
-    // perform the actual operation in the btree
-    node->get_db()->flush_txn_operation(context, txn, op);
+    highest_lsn = action->lsn();
 
-    /*
-     * this op is about to be flushed!
-     *
-     * as a consequence, all (txn)cursors which are coupled to this op
-     * have to be uncoupled, as their parent (btree) cursor was
-     * already coupled to the btree item instead
-     */
-    op->set_flushed();
-next_op:
-    while ((cursor = op->cursor_list())) {
-      LocalCursor *pc = cursor->get_parent();
-      ham_assert(pc->get_txn_cursor() == cursor);
-      pc->couple_to_btree(); // TODO merge both calls?
-      if (!pc->is_nil(LocalCursor::kTxn))
-        pc->set_to_nil(LocalCursor::kTxn);
-    }
+    // perform the actual operation in the node
+    update->db()->flush_delta_action(context, action);
 
-    ham_assert(op->get_lsn() > highest_lsn);
-    highest_lsn = op->get_lsn();
+    // remove the DeltaAction from the DeltaUpdate
+    update->remove(action);
 
-    /* continue with the next operation of this txn */
-    op = op->get_next_in_txn();
+    // ... and remove the DeltaUpdate from the node if it contains no
+    // more actions
+    maybe_remove_delta_update_from_node(update);
   }
 
   return (highest_lsn);

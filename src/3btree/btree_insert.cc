@@ -57,7 +57,7 @@ class BtreeInsertAction : public BtreeUpdateAction
                                             : 0, 0),
         m_key(key), m_record(record), m_flags(flags) {
       if (m_cursor)
-        m_duplicate_index = m_cursor->get_duplicate_index();
+        m_duplicate_index = m_cursor->duplicate_index();
     }
 
     // This is the entry point for the actual insert operation

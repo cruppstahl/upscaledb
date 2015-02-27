@@ -17,7 +17,7 @@
 #include "0root/root.h"
 
 #include <string.h>
-#ifndef HAM_OS_WIN32
+#ifndef WIN32
 #  include <libgen.h>
 #endif
 
@@ -902,7 +902,7 @@ Journal::get_path(int i)
   }
   else {
     path = m_state.env->config().log_filename;
-#ifdef HAM_OS_WIN32
+#ifdef WIN32
     path += "\\";
     char fname[_MAX_FNAME];
     char ext[_MAX_EXT];

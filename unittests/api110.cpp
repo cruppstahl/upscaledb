@@ -238,28 +238,21 @@ struct APIv110Fixture {
   }
 
   void issue7Test() {
-    ham_key_t key1 = {};
-    ham_key_t key2 = {};
+    ham_key_t key1 = ham_make_key((void *)"FooBar", strlen("FooBar") + 1);
+    ham_key_t key2 = ham_make_key((void *)"Foo", strlen("Foo") + 1);
     ham_record_t rec1 = {};
     ham_record_t rec2 = {};
     ham_txn_t *txn;
 
-    key1.data = (void *)"FooBar";
-    key1.size = strlen("FooBar")+1;
-    key2.data = (void *)"Foo";
-    key2.size = strlen("Foo")+1;
-
     teardown();
-    REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test.db"),
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test.db"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn, &key1, &rec1, 0));
     REQUIRE(0 == ham_db_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
-    REQUIRE(0 == strcmp((const char *)key2.data, "FooBar"));
+    REQUIRE(0 == ::strcmp((const char *)key2.data, "FooBar"));
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }

@@ -46,115 +46,48 @@ struct Context;
 
 // A single line in the dupecache structure - can reference a btree
 // record or a txn-op
-class DupeCacheLine
+class Duplicate
 {
   public:
-    DupeCacheLine(bool use_btree = true, uint64_t btree_dupeidx = 0)
-      : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
-      ham_assert(use_btree == true);
+    Duplicate(int duplicate_index)
+      : m_duplicate_index(duplicate_index), m_action(0) {
     }
 
-    DupeCacheLine(bool use_btree, TransactionOperation *op)
-      : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
-      ham_assert(use_btree == false);
-    }
-
-    // Returns true if this cache entry is a duplicate in the btree index
-    // (otherwise it's a duplicate in the transaction index)
-    bool use_btree() const {
-      return (m_use_btree);
+    Duplicate(DeltaAction *action)
+      : m_duplicate_index(-1), m_action(action) {
     }
 
     // Returns the btree duplicate index
-    uint64_t get_btree_dupe_idx() {
-      ham_assert(m_use_btree == true);
-      return (m_btree_dupeidx);
+    int duplicate_index() const {
+      return (m_duplicate_index);
     }
 
     // Sets the btree duplicate index
-    void set_btree_dupe_idx(uint64_t idx) {
-      m_use_btree = true;
-      m_btree_dupeidx = idx;
-      m_op = 0;
+    void set_duplicate_index(int index) {
+      m_duplicate_index = index;
+      m_action = 0;
     }
 
-    // Returns the txn-op duplicate
-    TransactionOperation *get_txn_op() {
-      ham_assert(m_use_btree == false);
-      return (m_op);
+    // Returns the DeltaAction
+    DeltaAction *action() {
+      return (m_action);
     }
 
-    // Sets the txn-op duplicate
-    void set_txn_op(TransactionOperation *op) {
-      m_use_btree = false;
-      m_op = op;
-      m_btree_dupeidx = 0;
+    // Sets the DeltaAction pointer
+    void set_action(DeltaAction *action) {
+      m_action = action;
+      m_duplicate_index = -1;
     }
 
   private:
     // The btree duplicate index (of the original btree dupe table)
-    uint64_t m_btree_dupeidx;
+    int m_duplicate_index;
 
-    // The txn op structure that we refer to
-    TransactionOperation *m_op;
-
-    // using btree or txn duplicates?
-    bool m_use_btree;
+    // The DeltaAction structure
+    DeltaAction *m_action;
 };
 
-//
-// The dupecache is a cache for duplicate keys
-//
-class DupeCache
-{
-  public:
-    // default constructor - creates an empty dupecache with room for 8
-    // duplicates
-    DupeCache() {
-      m_elements.reserve(8);
-    }
-
-    // Returns the number of elements in the cache
-    uint32_t get_count() const {
-      return ((uint32_t)m_elements.size());
-    }
-
-    // Returns an element from the cache
-    DupeCacheLine *get_element(unsigned idx) {
-      return (&m_elements[idx]);
-    }
-
-    // Clones this dupe-cache into 'other'
-    void clone(DupeCache *other) {
-      other->m_elements = m_elements;
-    }
-
-    // Inserts a new item somewhere in the cache; resizes the
-    // cache if necessary
-    void insert(unsigned position, const DupeCacheLine &dcl) {
-      m_elements.insert(m_elements.begin() + position, dcl);
-    }
-
-    // Append an element to the dupecache
-    void append(const DupeCacheLine &dcl) {
-      m_elements.push_back(dcl);
-    }
-
-    // Erases an item
-    void erase(uint32_t position) {
-      m_elements.erase(m_elements.begin() + position);
-    }
-
-    // Clears the cache; frees all resources
-    void clear() {
-      m_elements.resize(0);
-    }
-
-  private:
-    // The cached elements
-    std::vector<DupeCacheLine> m_elements;
-};
-
+typedef std::vector<Duplicate> DuplicateCache;
 
 //
 // the Database Cursor
@@ -167,17 +100,10 @@ class LocalCursor : public Cursor
     //    > 0x1000000:        cursor
     enum {
       // Flags for set_to_nil, is_nil
-      kBoth  = 0,
-      kBtree = 1,
-      kTxn   = 2,
-
-      // Flag for sync(): do not use approx matching if the key
-      // is not available
-      kSyncOnlyEqualKeys = 0x200000,
-
-      // Flag for sync(): do not load the key if there's an approx.
-      // match. Only positions the cursor.
-      kSyncDontLoadKey   = 0x100000,
+      kBoth        = 0,
+      kBtree       = 1,
+      kTxn         = 2,
+      kDeltaUpdate = 3,
 
       // Cursor flag: cursor is coupled to the txn-cursor
       kCoupledToTxn      = 0x1000000,
@@ -250,57 +176,19 @@ class LocalCursor : public Cursor
     // Closes the cursor (ham_cursor_close)
     virtual void close();
 
-    // Couples the cursor to a duplicate in the dupe table
-    // dupe_id is a 1 based index!!
-    void couple_to_dupe(uint32_t dupe_id);
+    // Synchronizes BtreeCursor with the DeltaUpdates; sets m_last_cmp.
+    // Will not do anything if m_last_cmp is already 0.
+    // Clears the DuplicateCache.
+    void sync(Context *context);
 
-    // Synchronizes txn- and btree-cursor
-    //
-    // If txn-cursor is nil then try to move the txn-cursor to the same key
-    // as the btree cursor.
-    // If btree-cursor is nil then try to move the btree-cursor to the same key
-    // as the txn cursor.
-    // If both are nil, or both are valid, then nothing happens
-    //
-    // |equal_key| is set to true if the keys in both cursors are equal.
-    void sync(Context *context, uint32_t flags, bool *equal_keys);
-
-    // Returns the number of duplicates in the duplicate cache
-    // The duplicate cache is updated if necessary
-    uint32_t get_dupecache_count(Context *context, bool clear_cache = false) {
-      if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
-        return (0);
-
-      if (clear_cache)
-        clear_dupecache();
-
-      if (is_coupled_to_txnop())
-        update_dupecache(context, kBtree | kTxn);
-      else
-        update_dupecache(context, kBtree);
-      return (m_dupecache.get_count());
-    }
-
-    // Returns a pointer to the duplicate cache
-    // TODO really required?
-    DupeCache *get_dupecache() {
-      return (&m_dupecache);
-    }
-
-    // Returns a pointer to the duplicate cache
-    // TODO really required?
-    const DupeCache *get_dupecache() const {
-      return (&m_dupecache);
-    }
-
-    // Returns the current index in the dupe cache
-    uint32_t get_dupecache_index() const {
+    // Returns the current index in the DuplicateCache
+    int get_dupecache_index() const {
       return (m_dupecache_index);
     }
 
-    // Sets the current index in the dupe cache
+    // Sets the current index in the DuplicateCache
     // TODO rename to set_duplicate_position()
-    void set_dupecache_index(uint32_t index) {
+    void set_dupecache_index(int index) {
       m_dupecache_index = index;
     }
 
@@ -317,15 +205,31 @@ class LocalCursor : public Cursor
     }
 
     // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    uint32_t get_duplicate_count(Context *context);
+    uint32_t duplicate_count(Context *context);
+
+    // Couples the cursor to the duplicate at m_duplicate_cache[index],
+    // sets m_duplicate_index
+    void couple_to_duplicate(int index);
+
+    // Updates (or builds) the DuplicateCache for a cursor
+    void update_duplicate_cache(Context *context, bool force_sync = false);
+
+    // Same as above, but more specialized
+    void update_duplicate_cache(Context *context, BtreeNodeProxy *node,
+                        int slot, DeltaUpdate *du);
 
   private:
     friend struct TxnCursorFixture;
+    friend class LocalDatabase; // TODO remove this
 
     // Returns the LocalEnvironment instance
-    LocalEnvironment *lenv() {
-      return ((LocalEnvironment *)ldb()->get_env());
-    }
+    LocalEnvironment *lenv();
+
+    // Returns true if a key was erased in a Transaction (or DeltaUpdate)
+    bool is_key_erased(Context *context, ham_key_t *key);
+
+    // Overloaded version; checks whether a DeltaUpdate key is erased
+    bool is_key_erased(Context *context, DeltaUpdate *du);
 
     // Implementation of overwrite()
     virtual ham_status_t do_overwrite(ham_record_t *record, uint32_t flags);
@@ -340,48 +244,20 @@ class LocalCursor : public Cursor
     // Implementation of get_duplicate_position()
     virtual ham_status_t do_get_duplicate_position(uint32_t *pposition);
 
-    // Clears the dupecache and disconnect the Cursor from any duplicate key
-    void clear_dupecache() {
-      m_dupecache.clear();
-      set_dupecache_index(0);
+    // Clears the DuplicateCache and disconnect the Cursor from any
+    // duplicate key
+    void clear_duplicate_cache() {
+      m_duplicate_cache.clear();
+      m_dupecache_index = -1;
     }
-
-    // Updates (or builds) the dupecache for a cursor
-    //
-    // The |what| parameter specifies if the dupecache is initialized from
-    // btree (kBtree), from txn (kTxn) or both.
-    void update_dupecache(Context *context, uint32_t what);
-
-    // Appends the duplicates of the BtreeCursor to the duplicate cache.
-    void append_btree_duplicates(Context *context, BtreeCursor *btc,
-                    DupeCache *dc);
-
-    // Checks if a btree cursor points to a key that was overwritten or erased
-    // in the txn-cursor
-    //
-    // This is needed when moving the cursor backwards/forwards
-    // and consolidating the btree and the txn-tree
-    ham_status_t check_if_btree_key_is_erased_or_overwritten(Context *context);
 
     // Compares btree and txn-cursor; stores result in lastcmp
     int compare(Context *context);
 
     // Returns true if this key has duplicates
     bool has_duplicates() const {
-      return (m_dupecache.get_count() > 0);
+      return (m_duplicate_cache.size() > 0);
     }
-
-    // Moves cursor to the first duplicate
-    ham_status_t move_first_dupe(Context *context);
-
-    // Moves cursor to the last duplicate
-    ham_status_t move_last_dupe(Context *context);
-
-    // Moves cursor to the next duplicate
-    ham_status_t move_next_dupe(Context *context);
-
-    // Moves cursor to the previous duplicate
-    ham_status_t move_previous_dupe(Context *context);
 
     // Moves cursor to the first key
     ham_status_t move_first_key(Context *context, uint32_t flags);
@@ -395,17 +271,8 @@ class LocalCursor : public Cursor
     // Moves cursor to the previous key
     ham_status_t move_previous_key(Context *context, uint32_t flags);
 
-    // Moves cursor to the first key - helper function
-    ham_status_t move_first_key_singlestep(Context *context);
-
-    // Moves cursor to the last key - helper function
-    ham_status_t move_last_key_singlestep(Context *context);
-
-    // Moves cursor to the next key - helper function
-    ham_status_t move_next_key_singlestep(Context *context);
-
-    // Moves cursor to the previous key - helper function
-    ham_status_t move_previous_key_singlestep(Context *context);
+    // Returns the last valid DeltaAction from a DeltaUpdate
+    DeltaAction *locate_valid_action(DeltaUpdate *du);
 
     // A Cursor which can walk over Transaction trees
     TransactionCursor m_txn_cursor;
@@ -416,11 +283,11 @@ class LocalCursor : public Cursor
     // A cache for all duplicates of the current key. needed for
     // ham_cursor_move, ham_find and other functions. The cache is
     // used to consolidate all duplicates of btree and txn.
-    DupeCache m_dupecache;
+    DuplicateCache m_duplicate_cache;
 
     /** The current position of the cursor in the cache. This is a
-     * 1-based index. 0 means that the cache is not in use. */
-    uint32_t m_dupecache_index;
+     * 0-based index. -1 means that the index is not used */
+    int m_dupecache_index;
 
     // The last operation (insert/find or move); needed for
     // ham_cursor_move. Values can be HAM_CURSOR_NEXT,
@@ -435,6 +302,14 @@ class LocalCursor : public Cursor
 
     // true if this cursor was never used
     bool m_is_first_use;
+
+    // kBtree: currently using the BtreeCursor; kDeltaUpdate: currently
+    // using the DeltaUpdate
+    int m_currently_using;
+
+    // Helper flag to remember whether the B-tree cursor reached the end
+    // of the Database
+    bool m_btree_eof;
 };
 
 } // namespace hamsterdb

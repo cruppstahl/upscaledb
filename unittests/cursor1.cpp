@@ -121,8 +121,7 @@ struct BaseCursorFixture {
       rec.data = data;
       rec.size = i;
       ::memset(&data, i + 0x15, sizeof(data));
-      REQUIRE(0 ==
-          ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
     }
 
     for (int i = 0; i < MAX; i++) {
@@ -130,11 +129,9 @@ struct BaseCursorFixture {
 
       key.data = data;
       key.size = sizeof(data);
-      REQUIRE(0 ==
-          ham_cursor_move(c, &key, &rec,
-            i == 0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
-      REQUIRE(0 ==
-          ham_cursor_get_record_size(c, &size));
+      REQUIRE(0 == ham_cursor_move(c, &key, &rec,
+                    i == 0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+      REQUIRE(0 == ham_cursor_get_record_size(c, &size));
       REQUIRE(size == rec.size);
     }
 
@@ -142,23 +139,14 @@ struct BaseCursorFixture {
   }
 
   void insertFindTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
 
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(HAM_DUPLICATE_KEY ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key, &rec, 0));
-    REQUIRE(1u ==
-          ((LocalCursor *)m_cursor)->get_dupecache_count(m_context.get()));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(HAM_DUPLICATE_KEY == ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(1u == ((LocalCursor *)m_cursor)->duplicate_count(m_context.get()));
   }
 
   void insertFindMultipleCursorsTest(void)
@@ -176,25 +164,22 @@ struct BaseCursorFixture {
     }
 
     REQUIRE(0 == ham_cursor_move(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec.data));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_move(c[i], &key, &rec, 0));
-      REQUIRE(0 == strcmp("12345", (char *)key.data));
-      REQUIRE(0 == strcmp("abcde", (char *)rec.data));
+      REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+      REQUIRE(0 == ::strcmp("abcde", (char *)rec.data));
       REQUIRE(0 == ham_cursor_close(c[i]));
     }
   }
 
   void findInEmptyDatabaseTest() {
-    ham_key_t key = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
 
     /* this looks up a key in an empty database */
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_find(m_cursor, &key, 0, 0));
   }
 
   void nilCursorTest() {
@@ -505,14 +490,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void findInBtreeOverwrittenInTxnTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"22222";
-    rec2.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = ham_make_record((void *)"22222", 6);
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
@@ -524,19 +504,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* retrieve key and compare record */
     REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("22222", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)rec.data));
   }
 
   void findInTxnOverwrittenInTxnTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"22222";
-    rec2.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = ham_make_record((void *)"22222", 6);
 
     /* insert a key into the txn */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
@@ -546,17 +521,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* retrieve key and compare record */
     REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("22222", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)rec.data));
   }
 
   void eraseInTxnKeyFromBtreeTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
@@ -577,12 +548,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void eraseInTxnKeyFromTxnTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
 
     /* insert a key into the Transaction */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
@@ -667,31 +634,21 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void overwriteInTransactionTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"aaaaa";
-    rec2.size = 6;
-
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = ham_make_record((void *)"aaaaa", 6);
 
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_overwrite(m_cursor, &rec2, 0));
     REQUIRE(0 == ham_cursor_find(m_cursor, &key, &rec, 0));
 
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec.data));
   }
 
   void cloneCoupledTxnCursorTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
 
     ham_cursor_t *clone;
 
@@ -725,12 +682,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void moveFirstInEmptyTransactionTest() {
-    ham_key_t key = {0}, key2 = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_key_t key2 = {0};
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = {0};
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
@@ -739,18 +694,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInEmptyTransactionExtendedKeyTest() {
-    ham_key_t key = {0}, key2 = {0};
-    ham_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)ext, 31);
+    ham_key_t key2 = {0};
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = {0};
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
@@ -759,52 +712,46 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInTransactionTest() {
-    ham_key_t key = {0}, key2 = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_key_t key2 = {0};
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = {0};
 
     /* insert a key into the Transaction */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInTransactionExtendedKeyTest() {
-    ham_key_t key = {0}, key2 = {0};
-    ham_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)ext, 31);
+    ham_key_t key2 = {0};
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = {0};
 
     /* insert a key into the Transaction */
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstIdenticalTest() {
-    ham_key_t key = {0}, key2 = {0};
-    ham_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ham_key_t key = ham_make_key((void *)"12345", 6);
+    ham_key_t key2 = {0};
+    ham_record_t rec = ham_make_record((void *)"abcde", 6);
+    ham_record_t rec2 = {0};
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
@@ -816,12 +763,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
-
-    /* make sure that the cursor is coupled to the txn-op */
-    LocalCursor *c = (LocalCursor *)m_cursor;
-    REQUIRE(c->is_coupled_to_txnop());
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstSmallerInTransactionTest() {
@@ -844,8 +787,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveFirstSmallerInTransactionExtendedKeyTest() {
@@ -870,8 +813,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext1, (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext1, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeTest() {
@@ -894,8 +837,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeExtendedKeyTest() {
@@ -996,8 +939,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("10101", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("10101", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeErasedInTxnTest() {
@@ -1125,9 +1068,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
     REQUIRE(0 == strcmp("12345", (char *)key2.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
-
-    /* make sure that the cursor is coupled to the txn-op */
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
   }
 
   void moveLastSmallerInTransactionTest() {
@@ -1150,8 +1090,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastSmallerInTransactionExtendedKeyTest() {
@@ -1176,8 +1116,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext2, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext2, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeTest() {
@@ -1200,8 +1140,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeExtendedKeyTest() {
@@ -1226,8 +1166,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext2, (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext2, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveLastErasedInTxnTest() {
@@ -1303,8 +1243,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("10101", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("10101", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeErasedInTxnTest() {
@@ -1332,8 +1272,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the second item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveNextInEmptyTransactionTest() {
@@ -1359,14 +1299,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1389,18 +1329,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1414,8 +1351,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     /* and a "greater" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -1425,11 +1361,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1453,11 +1389,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1495,23 +1431,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
     REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1548,30 +1484,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1602,14 +1532,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_db_erase(m_db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1637,33 +1565,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1695,38 +1614,28 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1757,38 +1666,27 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1820,38 +1718,27 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* overwrite all keys but the last */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("99999", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
   }
@@ -1897,22 +1784,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("99999", (char *)key2.data));
     REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -1957,9 +1840,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
-#define BTREE 1
-#define TXN   2
-  ham_status_t compare(const char *key, const char *rec, int where) {
+  ham_status_t compare(const char *key, const char *rec) {
     ham_key_t k = {0};
     ham_record_t r = {0};
     ham_status_t st;
@@ -1971,37 +1852,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
       return (HAM_INTERNAL_ERROR);
     if (strcmp(rec, (char *)r.data))
       return (HAM_INTERNAL_ERROR);
-    if (where == BTREE) {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
-        return (HAM_INTERNAL_ERROR);
-    }
-    else {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
-        return (HAM_INTERNAL_ERROR);
-    }
     return (0);
   }
 
-  ham_status_t comparePrev(const char *key, const char *rec, int where) {
+  ham_status_t comparePrev(const char *key, const char *rec) {
     ham_key_t k = {0};
     ham_record_t r = {0};
-    ham_status_t st;
-
-    st = ham_cursor_move(m_cursor, &k, &r, HAM_CURSOR_PREVIOUS);
+    ham_status_t st = ham_cursor_move(m_cursor, &k, &r, HAM_CURSOR_PREVIOUS);
     if (st)
       return (st);
-    if (strcmp(key, (char *)k.data))
+    if (::strcmp(key, (char *)k.data))
       return (HAM_INTERNAL_ERROR);
-    if (strcmp(rec, (char *)r.data))
+    if (::strcmp(rec, (char *)r.data))
       return (HAM_INTERNAL_ERROR);
-    if (where==BTREE) {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
-        return (HAM_INTERNAL_ERROR);
-    }
-    else {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
-        return (HAM_INTERNAL_ERROR);
-    }
     return (0);
   }
 
@@ -2019,15 +1882,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11117", "bbbbb", HAM_OVERWRITE));
     REQUIRE(0 == insertTxn  ("11118", "bbbbc", HAM_OVERWRITE));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11115", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11116", "bbbba", TXN));
-    REQUIRE(0 == compare  ("11117", "bbbbb", TXN));
-    REQUIRE(0 == compare  ("11118", "bbbbc", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, 0));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaaa"));
+    REQUIRE(0 == compare  ("11114", "aaaab"));
+    REQUIRE(0 == compare  ("11115", "aaaac"));
+    REQUIRE(0 == compare  ("11116", "bbbba"));
+    REQUIRE(0 == compare  ("11117", "bbbbb"));
+    REQUIRE(0 == compare  ("11118", "bbbbc"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void moveNextWhileInsertingBtreeTest() {
@@ -2038,19 +1901,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertBtree("11117", "aaaab"));
     REQUIRE(0 == insertBtree("11118", "aaaac"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
+    REQUIRE(0 == compare    ("11111", "aaaaa"));
+    REQUIRE(0 == compare    ("11112", "aaaab"));
+    REQUIRE(0 == compare    ("11113", "aaaac"));
     REQUIRE(0 == insertBtree("11114", "aaaax"));
-    REQUIRE(0 == compare  ("11114", "aaaax", BTREE));
+    REQUIRE(0 == compare    ("11114", "aaaax"));
     REQUIRE(0 == insertBtree("00001", "aaaax"));
     REQUIRE(0 == insertBtree("00002", "aaaax"));
-    REQUIRE(0 == compare  ("11116", "aaaaa", BTREE));
+    REQUIRE(0 == compare    ("11116", "aaaaa"));
     REQUIRE(0 == insertBtree("22222", "aaaax"));
-    REQUIRE(0 == compare  ("11117", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11118", "aaaac", BTREE));
-    REQUIRE(0 == compare  ("22222", "aaaax", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, 0));
+    REQUIRE(0 == compare    ("11117", "aaaab"));
+    REQUIRE(0 == compare    ("11118", "aaaac"));
+    REQUIRE(0 == compare    ("22222", "aaaax"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void moveNextWhileInsertingTransactionTest() {
@@ -2061,19 +1924,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn("11117", "aaaab"));
     REQUIRE(0 == insertTxn("11118", "aaaac"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11112", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11113", "aaaac", TXN));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
     REQUIRE(0 == insertTxn("11114", "aaaax"));
-    REQUIRE(0 == compare  ("11114", "aaaax", TXN));
+    REQUIRE(0 == compare  ("11114", "aaaax"));
     REQUIRE(0 == insertTxn("00001", "aaaax"));
     REQUIRE(0 == insertTxn("00002", "aaaax"));
-    REQUIRE(0 == compare  ("11116", "aaaaa", TXN));
+    REQUIRE(0 == compare  ("11116", "aaaaa"));
     REQUIRE(0 == insertTxn("22222", "aaaax"));
-    REQUIRE(0 == compare  ("11117", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaac", TXN));
-    REQUIRE(0 == compare  ("22222", "aaaax", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, 0));
+    REQUIRE(0 == compare  ("11117", "aaaab"));
+    REQUIRE(0 == compare  ("11118", "aaaac"));
+    REQUIRE(0 == compare  ("22222", "aaaax"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void moveNextWhileInsertingMixedTest() {
@@ -2085,14 +1948,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11118", "aaaac"));
     REQUIRE(0 == insertBtree("11119", "aaaac"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaaa", TXN));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaaa"));
     REQUIRE(0 == insertTxn  ("11113", "xxxxx", HAM_OVERWRITE));
-    REQUIRE(0 == compare  ("11113", "xxxxx", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11119", "aaaac", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, 0));
+    REQUIRE(0 == compare  ("11113", "xxxxx"));
+    REQUIRE(0 == compare  ("11117", "aaaab"));
+    REQUIRE(0 == compare  ("11118", "aaaac"));
+    REQUIRE(0 == compare  ("11119", "aaaac"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void moveNextWhileErasingTest() {
@@ -2103,18 +1966,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11115", "aaaae"));
     REQUIRE(0 == insertTxn  ("11116", "aaaaf"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
+    REQUIRE(0 == compare    ("11111", "aaaaa"));
+    REQUIRE(0 == compare    ("11112", "aaaab"));
     REQUIRE(0 == eraseTxn   ("11112"));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
-    REQUIRE(true == ((LocalCursor *)m_cursor)->is_first_use());
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
+    REQUIRE(0 == compare    ("11113", "aaaac"));
     REQUIRE(0 == eraseTxn   ("11114"));
-    REQUIRE(0 == compare  ("11115", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11116", "aaaaf", TXN));
+    REQUIRE(0 == compare    ("11115", "aaaae"));
+    REQUIRE(0 == compare    ("11116", "aaaaf"));
     REQUIRE(0 == eraseTxn   ("11116"));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
   }
 
   void movePreviousInEmptyTransactionTest() {
@@ -2138,19 +1997,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    /* this moves the cursor to the last item */
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2201,8 +2057,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     /* and a "large" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2211,14 +2066,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     m_context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2238,18 +2091,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2263,16 +2113,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few "small" keys into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
@@ -2289,30 +2136,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     m_context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2340,42 +2181,33 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2442,33 +2274,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
   }
@@ -2514,17 +2337,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
@@ -2576,22 +2396,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("00000", (char *)key2.data));
     REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -2644,17 +2460,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -2698,22 +2511,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("99999", (char *)key2.data));
     REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("33333", (char *)key2.data));
     REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("22222", (char *)key2.data));
     REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 == strcmp("11111", (char *)key2.data));
     REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -2734,15 +2543,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11117", "bbbbb", HAM_OVERWRITE));
     REQUIRE(0 == insertTxn  ("11118", "bbbbc", HAM_OVERWRITE));
 
-    REQUIRE(0 == comparePrev("11118", "bbbbc", TXN));
-    REQUIRE(0 == comparePrev("11117", "bbbbb", TXN));
-    REQUIRE(0 == comparePrev("11116", "bbbba", TXN));
-    REQUIRE(0 == comparePrev("11115", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11114", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaaa", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, 0));
+    REQUIRE(0 == comparePrev("11118", "bbbbc"));
+    REQUIRE(0 == comparePrev("11117", "bbbbb"));
+    REQUIRE(0 == comparePrev("11116", "bbbba"));
+    REQUIRE(0 == comparePrev("11115", "aaaac"));
+    REQUIRE(0 == comparePrev("11114", "aaaab"));
+    REQUIRE(0 == comparePrev("11113", "aaaaa"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void movePreviousWhileInsertingBtreeTest() {
@@ -2753,19 +2562,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertBtree("11117", "aaaab"));
     REQUIRE(0 == insertBtree("11118", "aaaac"));
 
-    REQUIRE(0 == comparePrev("11118", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("11117", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11116", "aaaaa", BTREE));
+    REQUIRE(0 == comparePrev("11118", "aaaac"));
+    REQUIRE(0 == comparePrev("11117", "aaaab"));
+    REQUIRE(0 == comparePrev("11116", "aaaaa"));
     REQUIRE(0 == insertBtree("11114", "aaaax"));
-    REQUIRE(0 == comparePrev("11114", "aaaax", BTREE));
-    REQUIRE(0 == comparePrev("11113", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("11112", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
+    REQUIRE(0 == comparePrev("11114", "aaaax"));
+    REQUIRE(0 == comparePrev("11113", "aaaac"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
     REQUIRE(0 == insertBtree("00000", "aaaax"));
-    REQUIRE(0 == comparePrev("00000", "aaaax", BTREE));
+    REQUIRE(0 == comparePrev("00000", "aaaax"));
     REQUIRE(0 == insertBtree("00001", "aaaax"));
     REQUIRE(0 == insertBtree("00002", "aaaax"));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void movePreviousWhileInsertingTransactionTest() {
@@ -2776,20 +2585,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11117", "aaaab"));
     REQUIRE(0 == insertTxn  ("11118", "aaaac"));
 
-    REQUIRE(0 == comparePrev("11118", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11117", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11116", "aaaaa", TXN));
+    REQUIRE(0 == comparePrev("11118", "aaaac"));
+    REQUIRE(0 == comparePrev("11117", "aaaab"));
+    REQUIRE(0 == comparePrev("11116", "aaaaa"));
     REQUIRE(0 == insertTxn  ("11114", "aaaax"));
-    REQUIRE(0 == comparePrev("11114", "aaaax", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", TXN));
+    REQUIRE(0 == comparePrev("11114", "aaaax"));
+    REQUIRE(0 == comparePrev("11113", "aaaac"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
     REQUIRE(0 == insertTxn  ("00000", "aaaax"));
-    REQUIRE(0 == comparePrev("00000", "aaaax", TXN));
+    REQUIRE(0 == comparePrev("00000", "aaaax"));
 
     REQUIRE(0 == insertTxn  ("00001", "aaaax"));
     REQUIRE(0 == insertTxn  ("00002", "aaaax"));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void movePreviousWhileInsertingMixedTest() {
@@ -2801,14 +2610,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11118", "aaaac"));
     REQUIRE(0 == insertBtree("11119", "aaaac"));
 
-    REQUIRE(0 == comparePrev("11119", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("11118", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11117", "aaaab", TXN));
+    REQUIRE(0 == comparePrev("11119", "aaaac"));
+    REQUIRE(0 == comparePrev("11118", "aaaac"));
+    REQUIRE(0 == comparePrev("11117", "aaaab"));
     REQUIRE(0 == insertTxn  ("11113", "xxxxx", HAM_OVERWRITE));
-    REQUIRE(0 == comparePrev("11113", "xxxxx", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaaa", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, 0));
+    REQUIRE(0 == comparePrev("11113", "xxxxx"));
+    REQUIRE(0 == comparePrev("11112", "aaaaa"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void switchDirectionsInBtreeTest() {
@@ -2823,24 +2632,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertBtree("11118", "aaaai"));
     REQUIRE(0 == insertBtree("11119", "aaaaj"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
-    REQUIRE(0 == compare  ("11114", "aaaad", BTREE));
-    REQUIRE(0 == comparePrev("11113", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
-    REQUIRE(0 == compare  ("11114", "aaaad", BTREE));
-    REQUIRE(0 == compare  ("11115", "aaaae", BTREE));
-    REQUIRE(0 == compare  ("11116", "aaaag", BTREE));
-    REQUIRE(0 == compare  ("11117", "aaaah", BTREE));
-    REQUIRE(0 == compare  ("11118", "aaaai", BTREE));
-    REQUIRE(0 == compare  ("11119", "aaaaj", BTREE));
-    REQUIRE(0 == comparePrev("11118", "aaaai", BTREE));
-    REQUIRE(0 == comparePrev("11117", "aaaah", BTREE));
-    REQUIRE(0 == comparePrev("11116", "aaaag", BTREE));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == comparePrev("11113", "aaaac"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == compare  ("11115", "aaaae"));
+    REQUIRE(0 == compare  ("11116", "aaaag"));
+    REQUIRE(0 == compare  ("11117", "aaaah"));
+    REQUIRE(0 == compare  ("11118", "aaaai"));
+    REQUIRE(0 == compare  ("11119", "aaaaj"));
+    REQUIRE(0 == comparePrev("11118", "aaaai"));
+    REQUIRE(0 == comparePrev("11117", "aaaah"));
+    REQUIRE(0 == comparePrev("11116", "aaaag"));
   }
 
   void switchDirectionsInTransactionTest() {
@@ -2855,24 +2664,72 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11118", "aaaai"));
     REQUIRE(0 == insertTxn  ("11119", "aaaaj"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11112", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11112", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11113", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaad", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11113", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaad", TXN));
-    REQUIRE(0 == compare  ("11115", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11116", "aaaag", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaah", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaai", TXN));
-    REQUIRE(0 == compare  ("11119", "aaaaj", TXN));
-    REQUIRE(0 == comparePrev("11118", "aaaai", TXN));
-    REQUIRE(0 == comparePrev("11117", "aaaah", TXN));
-    REQUIRE(0 == comparePrev("11116", "aaaag", TXN));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == comparePrev("11113", "aaaac"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == compare  ("11115", "aaaae"));
+    REQUIRE(0 == compare  ("11116", "aaaag"));
+    REQUIRE(0 == compare  ("11117", "aaaah"));
+    REQUIRE(0 == compare  ("11118", "aaaai"));
+    REQUIRE(0 == compare  ("11119", "aaaaj"));
+    REQUIRE(0 == comparePrev("11118", "aaaai"));
+    REQUIRE(0 == comparePrev("11117", "aaaah"));
+    REQUIRE(0 == comparePrev("11116", "aaaag"));
+  }
+
+  void moveNextMixedTest() {
+    REQUIRE(0 == insertBtree("11111", "aaaaa"));
+    REQUIRE(0 == insertTxn  ("11112", "aaaab"));
+    REQUIRE(0 == insertBtree("11113", "aaaac"));
+    REQUIRE(0 == insertTxn  ("11114", "aaaad"));
+    REQUIRE(0 == insertBtree("11115", "aaaae"));
+    REQUIRE(0 == insertTxn  ("11116", "aaaaf"));
+    REQUIRE(0 == insertTxn  ("11116", "aaaag", HAM_OVERWRITE));
+    REQUIRE(0 == insertBtree("11117", "aaaah"));
+    REQUIRE(0 == insertTxn  ("11118", "aaaai"));
+    REQUIRE(0 == insertBtree("11119", "aaaaj"));
+    REQUIRE(0 == insertTxn  ("11119", "aaaak", HAM_OVERWRITE));
+
+    REQUIRE(0 == compare  ("11111", "aaaaa"));    // BTREE
+    REQUIRE(0 == compare  ("11112", "aaaab"));    // TXN
+    REQUIRE(0 == compare  ("11113", "aaaac"));    // BTREE
+    REQUIRE(0 == compare  ("11114", "aaaad"));    // TXN
+    REQUIRE(0 == compare  ("11115", "aaaae"));
+    REQUIRE(0 == compare  ("11116", "aaaag"));
+    REQUIRE(0 == compare  ("11117", "aaaah"));
+    REQUIRE(0 == compare  ("11118", "aaaai"));
+    REQUIRE(0 == compare  ("11119", "aaaak"));
+  }
+
+  void movePreviousMixedTest() {
+    REQUIRE(0 == insertBtree("11111", "aaaaa"));
+    REQUIRE(0 == insertTxn  ("11112", "aaaab"));
+    REQUIRE(0 == insertBtree("11113", "aaaac"));
+    REQUIRE(0 == insertTxn  ("11114", "aaaad"));
+    REQUIRE(0 == insertBtree("11115", "aaaae"));
+    REQUIRE(0 == insertTxn  ("11116", "aaaaf"));
+    REQUIRE(0 == insertTxn  ("11116", "aaaag", HAM_OVERWRITE));
+    REQUIRE(0 == insertBtree("11117", "aaaah"));
+    REQUIRE(0 == insertTxn  ("11118", "aaaai"));
+    REQUIRE(0 == insertBtree("11119", "aaaaj"));
+    REQUIRE(0 == insertTxn  ("11119", "aaaak", HAM_OVERWRITE));
+
+    REQUIRE(0 == comparePrev("11119", "aaaak"));
+    REQUIRE(0 == comparePrev("11118", "aaaai"));
+    REQUIRE(0 == comparePrev("11117", "aaaah"));
+    REQUIRE(0 == comparePrev("11116", "aaaag"));
+    REQUIRE(0 == comparePrev("11115", "aaaae"));
+    REQUIRE(0 == comparePrev("11114", "aaaad"));    // TXN
+    REQUIRE(0 == comparePrev("11113", "aaaac"));    // BTREE
+    REQUIRE(0 == comparePrev("11112", "aaaab"));    // TXN
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));    // BTREE
   }
 
   void switchDirectionsMixedStartInBtreeTest() {
@@ -2888,24 +2745,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertBtree("11119", "aaaaj"));
     REQUIRE(0 == insertTxn  ("11119", "aaaak", HAM_OVERWRITE));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
-    REQUIRE(0 == compare  ("11114", "aaaad", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("11112", "aaaab", TXN));
-    REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
-    REQUIRE(0 == compare  ("11114", "aaaad", TXN));
-    REQUIRE(0 == compare  ("11115", "aaaae", BTREE));
-    REQUIRE(0 == compare  ("11116", "aaaag", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaah", BTREE));
-    REQUIRE(0 == compare  ("11118", "aaaai", TXN));
-    REQUIRE(0 == compare  ("11119", "aaaak", TXN));
-    REQUIRE(0 == comparePrev("11118", "aaaai", TXN));
-    REQUIRE(0 == comparePrev("11117", "aaaah", BTREE));
-    REQUIRE(0 == comparePrev("11116", "aaaag", TXN));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));    // BTREE
+    REQUIRE(0 == compare  ("11112", "aaaab"));    // TXN
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));  // BTREE
+    REQUIRE(0 == compare  ("11112", "aaaab"));    // TXN
+    REQUIRE(0 == compare  ("11113", "aaaac"));    // BTREE
+    REQUIRE(0 == compare  ("11114", "aaaad"));    // TXN
+    REQUIRE(0 == comparePrev("11113", "aaaac"));  // BTREE
+    REQUIRE(0 == comparePrev("11112", "aaaab"));  // TXN
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == compare  ("11115", "aaaae"));
+    REQUIRE(0 == compare  ("11116", "aaaag"));
+    REQUIRE(0 == compare  ("11117", "aaaah"));
+    REQUIRE(0 == compare  ("11118", "aaaai"));
+    REQUIRE(0 == compare  ("11119", "aaaak"));
+    REQUIRE(0 == comparePrev("11118", "aaaai"));
+    REQUIRE(0 == comparePrev("11117", "aaaah"));
+    REQUIRE(0 == comparePrev("11116", "aaaag"));
   }
 
   void switchDirectionsMixedStartInTxnTest() {
@@ -2920,24 +2777,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11118", "aaaai"));
     REQUIRE(0 == insertBtree("11119", "aaaaj"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", TXN));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaad", BTREE));
-    REQUIRE(0 == comparePrev("11113", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaac", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaad", BTREE));
-    REQUIRE(0 == compare  ("11115", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11116", "aaaag", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaah", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaai", TXN));
-    REQUIRE(0 == compare  ("11119", "aaaaj", BTREE));
-    REQUIRE(0 == comparePrev("11118", "aaaai", TXN));
-    REQUIRE(0 == comparePrev("11117", "aaaah", TXN));
-    REQUIRE(0 == comparePrev("11116", "aaaag", TXN));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == comparePrev("11113", "aaaac"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaac"));
+    REQUIRE(0 == compare  ("11114", "aaaad"));
+    REQUIRE(0 == compare  ("11115", "aaaae"));
+    REQUIRE(0 == compare  ("11116", "aaaag"));
+    REQUIRE(0 == compare  ("11117", "aaaah"));
+    REQUIRE(0 == compare  ("11118", "aaaai"));
+    REQUIRE(0 == compare  ("11119", "aaaaj"));
+    REQUIRE(0 == comparePrev("11118", "aaaai"));
+    REQUIRE(0 == comparePrev("11117", "aaaah"));
+    REQUIRE(0 == comparePrev("11116", "aaaag"));
   }
 
   void switchDirectionsMixedSequenceTest() {
@@ -2958,49 +2815,49 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11121", "aaaao", HAM_OVERWRITE));
     REQUIRE(0 == insertTxn  ("11122", "aaaap"));
 
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaaf", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaae", TXN));
-    REQUIRE(0 == comparePrev("11112", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, BTREE));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaae"));
+    REQUIRE(0 == compare  ("11114", "aaaaf"));
+    REQUIRE(0 == comparePrev("11113", "aaaae"));
+    REQUIRE(0 == comparePrev("11112", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
     ((LocalCursor *)m_cursor)->set_to_nil(0);
-    REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
-    REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
-    REQUIRE(0 == compare  ("11113", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaaf", TXN));
-    REQUIRE(0 == compare  ("11115", "aaaag", TXN));
-    REQUIRE(0 == compare  ("11116", "aaaah", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaai", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaaj", BTREE));
-    REQUIRE(0 == compare  ("11119", "aaaak", BTREE));
-    REQUIRE(0 == compare  ("11120", "aaaan", TXN));
-    REQUIRE(0 == compare  ("11121", "aaaao", TXN));
-    REQUIRE(0 == compare  ("11122", "aaaap", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, BTREE));
+    REQUIRE(0 == compare  ("11111", "aaaaa"));
+    REQUIRE(0 == compare  ("11112", "aaaab"));
+    REQUIRE(0 == compare  ("11113", "aaaae"));
+    REQUIRE(0 == compare  ("11114", "aaaaf"));
+    REQUIRE(0 == compare  ("11115", "aaaag"));
+    REQUIRE(0 == compare  ("11116", "aaaah"));
+    REQUIRE(0 == compare  ("11117", "aaaai"));
+    REQUIRE(0 == compare  ("11118", "aaaaj"));
+    REQUIRE(0 == compare  ("11119", "aaaak"));
+    REQUIRE(0 == compare  ("11120", "aaaan"));
+    REQUIRE(0 == compare  ("11121", "aaaao"));
+    REQUIRE(0 == compare  ("11122", "aaaap"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
     ((LocalCursor *)m_cursor)->set_to_nil(0);
-    REQUIRE(0 == comparePrev("11122", "aaaap", TXN));
-    REQUIRE(0 == comparePrev("11121", "aaaao", TXN));
-    REQUIRE(0 == comparePrev("11120", "aaaan", TXN));
-    REQUIRE(0 == comparePrev("11119", "aaaak", BTREE));
-    REQUIRE(0 == comparePrev("11118", "aaaaj", BTREE));
-    REQUIRE(0 == comparePrev("11117", "aaaai", TXN));
-    REQUIRE(0 == comparePrev("11116", "aaaah", TXN));
-    REQUIRE(0 == comparePrev("11115", "aaaag", TXN));
-    REQUIRE(0 == comparePrev("11114", "aaaaf", TXN));
-    REQUIRE(0 == comparePrev("11113", "aaaae", TXN));
-    REQUIRE(0 == compare  ("11114", "aaaaf", TXN));
-    REQUIRE(0 == compare  ("11115", "aaaag", TXN));
-    REQUIRE(0 == compare  ("11116", "aaaah", TXN));
-    REQUIRE(0 == compare  ("11117", "aaaai", TXN));
-    REQUIRE(0 == compare  ("11118", "aaaaj", BTREE));
-    REQUIRE(0 == compare  ("11119", "aaaak", BTREE));
-    REQUIRE(0 == compare  ("11120", "aaaan", TXN));
-    REQUIRE(0 == compare  ("11121", "aaaao", TXN));
-    REQUIRE(0 == compare  ("11122", "aaaap", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, BTREE));
+    REQUIRE(0 == comparePrev("11122", "aaaap"));
+    REQUIRE(0 == comparePrev("11121", "aaaao"));
+    REQUIRE(0 == comparePrev("11120", "aaaan"));
+    REQUIRE(0 == comparePrev("11119", "aaaak"));
+    REQUIRE(0 == comparePrev("11118", "aaaaj"));
+    REQUIRE(0 == comparePrev("11117", "aaaai"));
+    REQUIRE(0 == comparePrev("11116", "aaaah"));
+    REQUIRE(0 == comparePrev("11115", "aaaag"));
+    REQUIRE(0 == comparePrev("11114", "aaaaf"));
+    REQUIRE(0 == comparePrev("11113", "aaaae"));
+    REQUIRE(0 == compare  ("11114", "aaaaf"));
+    REQUIRE(0 == compare  ("11115", "aaaag"));
+    REQUIRE(0 == compare  ("11116", "aaaah"));
+    REQUIRE(0 == compare  ("11117", "aaaai"));
+    REQUIRE(0 == compare  ("11118", "aaaaj"));
+    REQUIRE(0 == compare  ("11119", "aaaak"));
+    REQUIRE(0 == compare  ("11120", "aaaan"));
+    REQUIRE(0 == compare  ("11121", "aaaao"));
+    REQUIRE(0 == compare  ("11122", "aaaap"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findTxnThenMoveNextTest() {
@@ -3010,14 +2867,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertBtree("44444", "aaaad"));
     REQUIRE(0 == insertBtree("55555", "aaaae"));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare  ("44444", "aaaad", BTREE));
-    REQUIRE(0 == compare  ("55555", "aaaae", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, BTREE));
+    ham_key_t key = ham_make_key((void *)"33333", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == compare  ("44444", "aaaad"));
+    REQUIRE(0 == compare  ("55555", "aaaae"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findTxnThenMoveNext2Test() {
@@ -3034,10 +2888,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"44444";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare  ("55555", "aaaae", BTREE));
-    REQUIRE(0 == compare  ("66666", "aaaaf", BTREE));
-    REQUIRE(0 == compare  ("77777", "aaaag", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, BTREE));
+    REQUIRE(0 == compare  ("55555", "aaaae"));
+    REQUIRE(0 == compare  ("66666", "aaaaf"));
+    REQUIRE(0 == compare  ("77777", "aaaag"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findTxnThenMovePreviousTest() {
@@ -3052,9 +2906,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("22222", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, BTREE));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findTxnThenMoveNext3Test() {
@@ -3070,9 +2924,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare("44444", "aaaae", TXN));
-    REQUIRE(0 == compare("55555", "aaaaf", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, TXN));
+    REQUIRE(0 == compare("44444", "aaaae"));
+    REQUIRE(0 == compare("55555", "aaaaf"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findTxnThenMoveNext4Test() {
@@ -3088,9 +2942,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare("44444", "aaaae", BTREE));
-    REQUIRE(0 == compare("55555", "aaaaf", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, TXN));
+    REQUIRE(0 == compare("44444", "aaaae"));
+    REQUIRE(0 == compare("55555", "aaaaf"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findTxnThenMovePrevious2Test() {
@@ -3107,10 +2961,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"44444";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("33333", "aaaac", BTREE));
-    REQUIRE(0 == comparePrev("22222", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, BTREE));
+    REQUIRE(0 == comparePrev("33333", "aaaac"));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findTxnThenMovePrevious3Test() {
@@ -3126,9 +2980,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("22222", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, TXN));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findTxnThenMovePrevious4Test() {
@@ -3142,11 +2996,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     ham_key_t key = {0};
     key.size = 6;
     key.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("22222", "aaaab", BTREE));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, TXN));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findBtreeThenMoveNextTest() {
@@ -3156,14 +3009,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("44444", "aaaad"));
     REQUIRE(0 == insertTxn  ("55555", "aaaae"));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare  ("44444", "aaaad", TXN));
-    REQUIRE(0 == compare  ("55555", "aaaae", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, TXN));
+    ham_key_t key = ham_make_key((void *)"33333", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == compare  ("44444", "aaaad"));
+    REQUIRE(0 == compare  ("55555", "aaaae"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findBtreeThenMovePreviousTest() {
@@ -3173,14 +3023,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("44444", "aaaad"));
     REQUIRE(0 == insertTxn  ("55555", "aaaae"));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("22222", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, TXN));
+    ham_key_t key = ham_make_key((void *)"33333", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findBtreeThenMovePrevious2Test() {
@@ -3192,15 +3039,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("66666", "aaaaf"));
     REQUIRE(0 == insertBtree("77777", "aaaag"));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"44444";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == comparePrev("33333", "aaaac", TXN));
-    REQUIRE(0 == comparePrev("22222", "aaaab", TXN));
-    REQUIRE(0 == comparePrev("11111", "aaaaa", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0, BTREE));
+    ham_key_t key = ham_make_key((void *)"44444", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == comparePrev("33333", "aaaac"));
+    REQUIRE(0 == comparePrev("22222", "aaaab"));
+    REQUIRE(0 == comparePrev("11111", "aaaaa"));
+    REQUIRE(HAM_KEY_NOT_FOUND == comparePrev(0, 0));
   }
 
   void findBtreeThenMoveNext2Test() {
@@ -3217,10 +3061,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"44444";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare  ("55555", "aaaae", TXN));
-    REQUIRE(0 == compare  ("66666", "aaaaf", TXN));
-    REQUIRE(0 == compare  ("77777", "aaaag", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, BTREE));
+    REQUIRE(0 == compare  ("55555", "aaaae"));
+    REQUIRE(0 == compare  ("66666", "aaaaf"));
+    REQUIRE(0 == compare  ("77777", "aaaag"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void findBtreeThenMoveNext3Test() {
@@ -3236,9 +3080,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     REQUIRE(0 ==
           ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == compare("44444", "aaaae", BTREE));
-    REQUIRE(0 == compare("55555", "aaaaf", BTREE));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, TXN));
+    REQUIRE(0 == compare("44444", "aaaae"));
+    REQUIRE(0 == compare("55555", "aaaaf"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void insertThenMoveNextTest() {
@@ -3254,11 +3098,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     ham_record_t rec = {0};
     rec.size = 6;
     rec.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
-    REQUIRE(0 == compare  ("44444", "aaaad", TXN));
-    REQUIRE(0 == compare  ("55555", "aaaae", TXN));
-    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0, TXN));
+    REQUIRE(0 == ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == compare  ("44444", "aaaad"));
+    REQUIRE(0 == compare  ("55555", "aaaae"));
+    REQUIRE(HAM_KEY_NOT_FOUND == compare(0, 0));
   }
 
   void abortWhileCursorActiveTest() {
@@ -3279,38 +3122,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     ham_key_t key = {0};
     key.size = 6;
     key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_find(cursor2, &key, 0, 0));
-
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
-
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(cursor2, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
     REQUIRE(0 == ham_cursor_close(cursor2));
   }
 
   void eraseKeyWithTwoCursorsOverwriteTest() {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     ham_cursor_t *cursor2;
-    REQUIRE(0 ==
-          ham_cursor_clone(m_cursor, &cursor2));
+    REQUIRE(0 == ham_cursor_clone(m_cursor, &cursor2));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    ham_record_t rec = {0};
-    rec.size = 6;
-    rec.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_insert(cursor2, &key, &rec, HAM_OVERWRITE));
+    ham_key_t key = ham_make_key((void *)"11111", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    ham_record_t rec = ham_make_record((void *)"11111", 6);
+    REQUIRE(0 == ham_cursor_insert(cursor2, &key, &rec, HAM_OVERWRITE));
 
-    REQUIRE(0 ==
-          ham_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ham_cursor_erase(m_cursor, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
 
@@ -3320,54 +3148,40 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   void eraseWithThreeCursorsTest() {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     ham_cursor_t *cursor2, *cursor3;
-    REQUIRE(0 ==
-          ham_cursor_create(&cursor2, m_db, m_txn, 0));
-    REQUIRE(0 ==
-          ham_cursor_create(&cursor3, m_db, m_txn, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, m_txn, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor3, m_db, m_txn, 0));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"11111";
-    ham_record_t rec = {0};
-    rec.size = 6;
-    rec.data = (void *)"33333";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_insert(cursor2, &key, &rec, HAM_OVERWRITE));
-    REQUIRE(0 ==
-          ham_cursor_insert(cursor3, &key, &rec, HAM_OVERWRITE));
+    ham_key_t key = ham_make_key((void *)"11111", 6);
+    ham_record_t rec = ham_make_record((void *)"33333", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor2, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_cursor_insert(cursor3, &key, &rec, HAM_OVERWRITE));
 
-    REQUIRE(0 ==
-          ham_db_erase(m_db, m_txn, &key, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)cursor3, 0));
+    REQUIRE(0 == ham_db_erase(m_db, m_txn, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(cursor2, &key, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(cursor3, &key, &rec, 0));
 
     REQUIRE(0 == ham_cursor_close(cursor2));
     REQUIRE(0 == ham_cursor_close(cursor3));
   }
 
   void eraseKeyWithoutCursorsTest() {
+    ham_record_t rec = {0};
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     ham_cursor_t *cursor2;
-    REQUIRE(0 ==
-          ham_cursor_clone(m_cursor, &cursor2));
+    REQUIRE(0 == ham_cursor_clone(m_cursor, &cursor2));
 
-    ham_key_t key = {0};
-    key.size = 6;
-    key.data = (void *)"11111";
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 ==
-          ham_cursor_find(cursor2, &key, 0, 0));
+    ham_key_t key = ham_make_key((void *)"11111", 6);
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(cursor2, &key, 0, 0));
 
-    REQUIRE(HAM_TXN_CONFLICT ==
-          ham_db_erase(m_db, 0, &key, 0));
-    REQUIRE(0 ==
-          ham_db_erase(m_db, m_txn, &key, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
-    REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
+    REQUIRE(HAM_TXN_CONFLICT == ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, m_txn, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
+        ham_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
+        ham_cursor_move(cursor2, &key, &rec, 0));
 
     REQUIRE(0 == ham_cursor_close(cursor2));
   }
@@ -3381,17 +3195,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
     ham_cursor_t *cursor2;
-    REQUIRE(0 ==
-          ham_cursor_create(&cursor2, m_db, txn2, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, txn2, 0));
 
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    key.size = 6;
-    key.data = (void *)"11112";
-    REQUIRE(0 ==
-          ham_cursor_insert(cursor2, &key, &rec, 0));
-    REQUIRE(0 ==
-          ham_cursor_close(cursor2));
+    ham_key_t key = ham_make_key((void *)"11112", 6);
+    ham_record_t rec = ham_make_record((void *)"33333", 6);
+    REQUIRE(0 == ham_cursor_insert(cursor2, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_close(cursor2));
 
     /* commit the 2nd txn - it will not be flushed because an older
      * txn also was not flushed */
@@ -3399,15 +3208,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* the other cursor is part of the first transaction; position on
      * the new key */
-    REQUIRE(0 ==
-          ham_cursor_find(m_cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(m_cursor, &key, 0, 0));
 
     /* now erase the key */
-    REQUIRE(0 ==
-          ham_db_erase(m_db, m_txn, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, m_txn, &key, 0));
 
-    /* cursor must be nil */
-    REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
+    /* key no longer exists */
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(m_cursor, 0, 0, 0));
   }
 
   ham_status_t move(const char *key, const char *rec, uint32_t flags,
@@ -3927,6 +3734,18 @@ TEST_CASE("Cursor-longtxn/switchDirectionsInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsInBtreeTest();
+}
+
+TEST_CASE("Cursor-longtxn/moveNextMixedTest", "")
+{
+  LongTxnCursorFixture f;
+  f.moveNextMixedTest();
+}
+
+TEST_CASE("Cursor-longtxn/movePreviousMixedTest", "")
+{
+  LongTxnCursorFixture f;
+  f.movePreviousMixedTest();
 }
 
 TEST_CASE("Cursor-longtxn/switchDirectionsInTransactionTest", "")

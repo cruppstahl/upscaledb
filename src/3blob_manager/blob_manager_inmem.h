@@ -53,7 +53,7 @@ class InMemoryBlobManager : public BlobManager {
 
     // Retrieves the size of a blob
     virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid) {
-      PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
+      PBlobHeader *blob_header = (PBlobHeader *)blobid;
       return ((uint32_t)blob_header->size);
     }
 
@@ -67,7 +67,7 @@ class InMemoryBlobManager : public BlobManager {
     // Deletes an existing blob
     virtual void do_erase(Context *context, uint64_t blobid,
                     Page *page = 0, uint32_t flags = 0) {
-      Memory::release((void *)U64_TO_PTR(blobid));
+      Memory::release((void *)blobid);
     }
 };
 

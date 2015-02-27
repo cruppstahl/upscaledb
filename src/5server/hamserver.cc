@@ -199,7 +199,7 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
     case HAM_PARAM_FILENAME:
       if (params[i].value)
         reply.mutable_env_get_parameters_reply()->set_filename(
-              (const char *)(U64_TO_PTR(params[i].value)));
+              (const char *)(params[i].value));
       break;
     default:
       ham_trace(("unsupported parameter %u", (unsigned)params[i].name));

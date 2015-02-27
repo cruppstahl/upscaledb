@@ -34,7 +34,7 @@
  * cursor is "coupled" again and basically performs a normal lookup of the key.
  *
  * The three states of a BtreeCursor("nil", "coupled", "uncoupled") can be
- * retrieved with the method get_state(), and can be modified with
+ * retrieved with the method state(), and can be modified with
  * set_to_nil(), couple_to_page() and uncouple_from_page().
  *
  * @exception_safe: unknown
@@ -60,6 +60,8 @@ struct Context;
 class LocalCursor;
 class BtreeIndex;
 class Page;
+class DeltaAction;
+class DeltaUpdate;
 
 //
 // The Cursor structure for a b+tree cursor
@@ -70,10 +72,12 @@ class BtreeCursor
     enum {
       // Cursor does not point to any key
       kStateNil       = 0,
-      // Cursor flag: the cursor is coupled
+      // Cursor flag: the cursor is coupled to a btree slot
       kStateCoupled   = 1,
       // Cursor flag: the cursor is uncoupled
-      kStateUncoupled = 2
+      kStateUncoupled = 2,
+      // Cursor flag: the cursor is attached to a DeltaUpdate
+      kStateAttached  = 3
     };
 
     // Constructor
@@ -86,7 +90,7 @@ class BtreeCursor
 
     // Returns the parent cursor
     // TODO this should be private
-    LocalCursor *get_parent() {
+    LocalCursor *parent() {
       return (m_parent);
     }
 
@@ -94,8 +98,13 @@ class BtreeCursor
     void clone(BtreeCursor *other);
 
     // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
-    uint32_t get_state() const {
+    uint32_t state() const {
       return (m_state);
+    }
+
+    // Sets the state
+    void set_state(uint32_t state) {
+      m_state = state;
     }
 
     // Reset's the cursor's state and uninitializes it. After this call
@@ -108,7 +117,6 @@ class BtreeCursor
     // Asserts that the cursor is coupled.
     void get_coupled_key(Page **page, int *index = 0,
                     int *duplicate_index = 0) const {
-      ham_assert(m_state == kStateCoupled);
       if (page)
         *page = m_coupled_page;
       if (index)
@@ -133,17 +141,21 @@ class BtreeCursor
     }
 
     // Returns the duplicate index that this cursor points to.
-    int get_duplicate_index() const {
+    int duplicate_index() const {
       return (m_duplicate_index);
     }
 
     // Sets the duplicate key we're pointing to
     void set_duplicate_index(int duplicate_index) {
       m_duplicate_index = duplicate_index;
+      m_deltaupdate_action = 0;
     }
 
     // Uncouples the cursor
     void uncouple_from_page(Context *context);
+
+    // Uncouples from a DeltaUpdate
+    void uncouple_from_deltaupdate(DeltaUpdate *update);
 
     // Returns true if a cursor points to this btree key
     bool points_to(Context *context, Page *page, int slot);
@@ -184,6 +196,39 @@ class BtreeCursor
     static void uncouple_all_cursors(Context *context, Page *page,
                     int start = 0);
 
+    BtreeCursor *next_in_page() {
+      return (m_next_in_page);
+    }
+
+    // TODO this is the same as DeltaBinding::bidir_attach?
+    void couple_to_deltaupdate(Page *page, DeltaUpdate *update);
+
+    void attach_to_deltaupdate(DeltaUpdate *du) {
+      m_deltaupdate = du;
+    }
+
+    void attach_to_deltaaction(DeltaAction *action) {
+      m_deltaupdate_action = action;
+    }
+
+    void detach_from_deltaupdate() {
+      m_deltaupdate = 0;
+      m_deltaupdate_action = 0;
+    }
+
+    DeltaUpdate *deltaupdate() const {
+      return (m_deltaupdate);
+    }
+
+    DeltaAction *deltaupdate_action() {
+      return (m_deltaupdate_action);
+    }
+
+    // Couples the cursor to the current page/key
+    // Asserts that the cursor is uncoupled. After this call the cursor
+    // will be coupled.
+    void couple(Context *context);
+
   private:
     // Sets the key we're pointing to - if the cursor is coupled. Also
     // links the Cursor with |page| (and vice versa).
@@ -191,11 +236,6 @@ class BtreeCursor
 
     // Removes this cursor from a page
     void remove_cursor_from_page(Page *page);
-
-    // Couples the cursor to the current page/key
-    // Asserts that the cursor is uncoupled. After this call the cursor
-    // will be coupled.
-    void couple(Context *context);
 
     // move cursor to the very first key
     ham_status_t move_first(Context *context, uint32_t flags);
@@ -239,6 +279,14 @@ class BtreeCursor
 
     // Linked list of cursors which point to the same page
     BtreeCursor *m_next_in_page, *m_previous_in_page;
+
+    // If this cursor points to a DeltaUpdate then it's stored here
+    // (This is the index in the coupled page's deltas() */
+    DeltaUpdate *m_deltaupdate;
+
+    // If this cursor points to a DeltaUpdate then an additional (optional)
+    // DeltaAction can be specified as well
+    DeltaAction *m_deltaupdate_action;
 };
 
 } // namespace hamsterdb

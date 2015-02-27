@@ -164,6 +164,8 @@ class CalcKeysVisitor : public BtreeVisitor {
   public:
     CalcKeysVisitor(LocalDatabase *db, bool distinct)
       : m_db(db), m_distinct(distinct), m_count(0) {
+      if (!isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS))
+        distinct = true;
     }
 
     virtual bool is_read_only() const {
@@ -173,8 +175,46 @@ class CalcKeysVisitor : public BtreeVisitor {
     virtual void operator()(Context *context, BtreeNodeProxy *node) {
       size_t node_count = node->get_count();
 
-      if (m_distinct
-          || (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
+      // add the Delta Updates; skip those that are not yet committed
+      // or aborted. If they delete keys then reduce the count.
+      // TODO need to check for the current transaction!
+      for (SortedDeltaUpdates::Iterator it = node->deltas().begin();
+          it != node->deltas().end(); it++) {
+        int inserted = 0;
+        for (DeltaAction *action = (*it)->actions(); action != 0;
+            action = action->next()) {
+          if (isset(action->flags(), DeltaAction::kIsAborted))
+            continue;
+          //if (notset(action->flags(), DeltaAction::kIsCommitted)
+              //&& action->txn_id() != m_txn->get_id())
+            //continue; // skip conflicting Transactions
+
+          if (isset(action->flags(), DeltaAction::kErase)) {
+            if (action->referenced_duplicate() == -1) {
+              inserted = 0;
+              // TODO if a key is deleted in a Transaction which does NOT
+              // exist in the Btree then we reduce node_count too much!
+              if (node_count > 0)
+                node_count--; // "remove" the Btree key
+            }
+            else
+              inserted--;
+          }
+          else if (isset(action->flags(), DeltaAction::kInsert)) {
+            inserted = 1;
+          }
+          else if (isset(action->flags(), DeltaAction::kInsertDuplicate)) {
+            inserted++;
+          }
+        }
+
+        if (m_distinct && inserted > 1)
+          inserted = 1;
+
+        m_count += inserted;
+      }
+
+      if (m_distinct) {
         m_count += node_count;
         return;
       }

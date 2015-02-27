@@ -682,10 +682,8 @@ struct JournalFixture {
     compareJournal(j, vec, p);
     REQUIRE(0 == ham_env_close(m_env,
                 HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
@@ -984,6 +982,7 @@ struct JournalFixture {
     ham_key_t key = {0};
     ham_record_t rec = {0};
     uint64_t lsn = 2;
+    uint64_t keycount;
 
     /* create a transaction with many keys that are inserted, mostly
      * duplicates */
@@ -998,6 +997,10 @@ struct JournalFixture {
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeInsert, 1);
     }
+
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &keycount));
+    REQUIRE(100ull == keycount);
+
     /* now delete them all */
     for (int i = 0; i < 10; i++) {
       key.data = &i;
@@ -1006,15 +1009,21 @@ struct JournalFixture {
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeErase, 1);
     }
+
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &keycount));
+    REQUIRE(0ull == keycount);
+
     /* commit the txn */
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
-          Journal::kEntryTypeTxnCommit, 0);
+                Journal::kEntryTypeTxnCommit, 0);
     REQUIRE(0 == ham_txn_commit(txn, 0));
+
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
+    REQUIRE(0ull == keycount);
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
 
     m_lenv = (LocalEnvironment *)m_env;
@@ -1023,12 +1032,9 @@ struct JournalFixture {
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
@@ -1036,7 +1042,6 @@ struct JournalFixture {
 
     /* now verify that the committed transaction was re-played from
      * the journal; the database must be empty */
-    uint64_t keycount;
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
@@ -1082,7 +1087,7 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
 
-    /* open the environment */
+    /* open the environment, perform recovery */
     REQUIRE(0 ==
         ham_env_open(&m_env, Utils::opath(".test"),
             HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));

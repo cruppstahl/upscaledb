@@ -22,6 +22,7 @@
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
+#include "3delta/delta_binding.h"
 #include "3page_manager/page_manager.h"
 #include "4cursor/cursor_local.h"
 #include "4env/env_local.h"
@@ -35,9 +36,10 @@ using namespace hamsterdb;
 
 LocalCursor::LocalCursor(LocalDatabase *db, Transaction *txn)
   : Cursor(db, txn), m_txn_cursor(this), m_btree_cursor(this),
-    m_dupecache_index(0), m_last_operation(0), m_flags(0), m_last_cmp(0),
-    m_is_first_use(true)
+    m_dupecache_index(-1), m_last_operation(0), m_flags(0), m_last_cmp(0),
+    m_is_first_use(true), m_currently_using(0), m_btree_eof(false)
 {
+  m_duplicate_cache.reserve(8);
 }
 
 LocalCursor::LocalCursor(LocalCursor &other)
@@ -47,286 +49,256 @@ LocalCursor::LocalCursor(LocalCursor &other)
   m_next = other.m_next;
   m_previous = other.m_previous;
   m_dupecache_index = other.m_dupecache_index;
+  m_duplicate_cache = other.m_duplicate_cache;
   m_last_operation = other.m_last_operation;
   m_last_cmp = other.m_last_cmp;
+  m_currently_using = other.m_currently_using;
   m_flags = other.m_flags;
   m_is_first_use = other.m_is_first_use;
+  m_btree_eof = other.m_btree_eof;
 
   m_btree_cursor.clone(&other.m_btree_cursor);
   m_txn_cursor.clone(&other.m_txn_cursor);
 
   if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS)
-    other.m_dupecache.clone(&m_dupecache);
+    other.m_duplicate_cache = m_duplicate_cache;
 }
 
 void
-LocalCursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
-                DupeCache *dc)
+LocalCursor::update_duplicate_cache(Context *context, bool force_sync)
 {
-  uint32_t count = btc->get_record_count(context, 0);
-  for (uint32_t i = 0; i < count; i++)
-    dc->append(DupeCacheLine(true, i));
-}
-
-void
-LocalCursor::update_dupecache(Context *context, uint32_t what)
-{
-  if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+  if (notset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS))
     return;
 
   /* if the cache already exists: no need to continue, it should be
    * up to date */
-  if (m_dupecache.get_count() != 0)
+  if (!m_duplicate_cache.empty())
     return;
 
-  if ((what & kBtree) && (what & kTxn)) {
-    if (is_nil(kBtree) && !is_nil(kTxn)) {
-      bool equal_keys;
-      sync(context, 0, &equal_keys);
-      if (!equal_keys)
-        set_to_nil(kBtree);
-    }
-  }
+  /* clone the cursor, otherwise this function would modify its state */
+  ScopedPtr<LocalCursor> clone(new LocalCursor(*this));
+
+  Page *page;
+  int slot;
+  m_btree_cursor.get_coupled_key(&page, &slot, 0);
+
+  // the clone is not automatically coupled
+  // TODO why?
+  clone->m_btree_cursor.couple_to_page(page, slot, 0);
+  BtreeNodeProxy *node = ldb()->btree_index()->get_node_from_page(page);
+
+  /* synchronize both cursors if necessary */
+  if (clone->m_last_cmp != 0 || force_sync)
+    clone->sync(context);
 
   /* first collect all duplicates from the btree. They're already sorted,
-   * therefore we can just append them to our duplicate-cache. */
-  if ((what & kBtree) && !is_nil(kBtree))
-    append_btree_duplicates(context, &m_btree_cursor, &m_dupecache);
+   * therefore we can just append them to the DuplicateCache */
+  if (clone->m_currently_using == kBtree
+        || (clone->m_last_cmp == 0
+                && (slot >= 0 && slot < (int)node->get_count()))) {
+    int count = node->get_record_count(context, slot);
+    for (int i = 0; i < count; i++)
+      m_duplicate_cache.push_back(Duplicate(i));
+  }
 
-  /* read duplicates from the txn-cursor? */
-  if ((what & kTxn) && !is_nil(kTxn)) {
-    TransactionOperation *op = m_txn_cursor.get_coupled_op();
-    TransactionNode *node = op->get_node();
+  /* locate the DeltaUpdates, merge them with the Btree Duplicates */
+  if ((clone->m_currently_using == kDeltaUpdate || clone->m_last_cmp == 0)
+      && clone->m_btree_cursor.deltaupdate() != 0) {
+    SortedDeltaUpdates::Iterator it = node->deltas().get(clone->m_btree_cursor.deltaupdate());
+    for (DeltaAction *action = (*it)->actions();
+            action != 0;
+            action = action->next()) {
+      // Ignore aborted Transactions
+      if (isset(action->flags(), DeltaAction::kIsAborted))
+        continue;
 
-    if (!node)
-      return;
+      // Is the DeltaUpdate modified by a different Transaction? Then skip
+      // it as well, because it's "conflicting"
+      // conflict.
+      if (notset(action->flags(), DeltaAction::kIsCommitted)
+          && action->txn_id() != context->txn->get_id())
+        continue;
 
-    /* now start integrating the items from the transactions */
-    op = node->get_oldest_op();
-    while (op) {
-      Transaction *optxn = op->get_txn();
-      /* collect all ops that are valid (even those that are
-       * from conflicting transactions) */
-      if (!optxn->is_aborted()) {
-        /* a normal (overwriting) insert will overwrite ALL dupes,
-         * but an overwrite of a duplicate will only overwrite
-         * an entry in the dupecache */
-        if (op->get_flags() & TransactionOperation::kInsert) {
-          /* all existing dupes are overwritten */
-          m_dupecache.clear();
-          m_dupecache.append(DupeCacheLine(false, op));
-        }
-        else if (op->get_flags() & TransactionOperation::kInsertOverwrite) {
-          uint32_t ref = op->get_referenced_dupe();
-          if (ref) {
-            ham_assert(ref <= m_dupecache.get_count());
-            DupeCacheLine *e = m_dupecache.get_element(0);
-            (&e[ref - 1])->set_txn_op(op);
-          }
-          else {
-            /* all existing dupes are overwritten */
-            m_dupecache.clear();
-            m_dupecache.append(DupeCacheLine(false, op));
-          }
-        }
-        /* insert a duplicate key */
-        else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
-          uint32_t of = op->get_orig_flags();
-          uint32_t ref = op->get_referenced_dupe() - 1;
-          DupeCacheLine dcl(false, op);
-          if (of & HAM_DUPLICATE_INSERT_FIRST)
-            m_dupecache.insert(0, dcl);
-          else if (of & HAM_DUPLICATE_INSERT_BEFORE) {
-            m_dupecache.insert(ref, dcl);
-          }
-          else if (of & HAM_DUPLICATE_INSERT_AFTER) {
-            if (ref + 1 >= m_dupecache.get_count())
-              m_dupecache.append(dcl);
-            else
-              m_dupecache.insert(ref + 1, dcl);
-          }
-          else /* default is HAM_DUPLICATE_INSERT_LAST */
-            m_dupecache.append(dcl);
-        }
-        /* a normal erase will erase ALL duplicate keys */
-        else if (op->get_flags() & TransactionOperation::kErase) {
-          uint32_t ref = op->get_referenced_dupe();
-          if (ref) {
-            ham_assert(ref <= m_dupecache.get_count());
-            m_dupecache.erase(ref - 1);
-          }
-          else {
-            /* all existing dupes are erased */
-            m_dupecache.clear();
-          }
-        }
-        else {
-          /* everything else is a bug! */
-          ham_assert(op->get_flags() == TransactionOperation::kNop);
-        }
+      // handle deleted duplicates
+      if (isset(action->flags(), DeltaAction::kErase)) {
+        if (action->referenced_duplicate() >= 0)
+          m_duplicate_cache.erase(m_duplicate_cache.begin()
+                                    + action->referenced_duplicate());
+        else
+          m_duplicate_cache.clear();
+        continue;
       }
 
-      /* continue with the previous/older operation */
-      op = op->get_next_in_node();
+      // all duplicates are overwritten by a new key?
+      if (issetany(action->flags(), DeltaAction::kInsert)) {
+        m_duplicate_cache.clear();
+        m_duplicate_cache.push_back(Duplicate(action));
+        continue;
+      }
+
+      // a duplicate is overwritten?
+      if (issetany(action->flags(), DeltaAction::kInsertOverwrite)) {
+        int ref = action->referenced_duplicate();
+        if (ref >= 0) {
+          ham_assert(ref < (int)m_duplicate_cache.size());
+          m_duplicate_cache[ref] = Duplicate(action);
+        }
+        else {
+          m_duplicate_cache.clear();
+          m_duplicate_cache.push_back(Duplicate(action));
+        }
+        continue;
+      }
+
+      // another duplicate is inserted?
+      if (issetany(action->flags(), DeltaAction::kInsertDuplicate)) {
+        uint32_t of = action->original_flags();
+        int ref = action->referenced_duplicate();
+        if (isset(of, HAM_DUPLICATE_INSERT_FIRST)) {
+          m_duplicate_cache.insert(m_duplicate_cache.begin(),
+                                Duplicate(action));
+        }
+        else if (isset(of, HAM_DUPLICATE_INSERT_BEFORE)) {
+          m_duplicate_cache.insert(m_duplicate_cache.begin() + ref,
+                                Duplicate(action));
+        }
+        else if (isset(of, HAM_DUPLICATE_INSERT_AFTER)) {
+          if (ref + 1 >= (int)m_duplicate_cache.size() - 1)
+            m_duplicate_cache.push_back(Duplicate(action));
+          else
+            m_duplicate_cache.insert(m_duplicate_cache.begin() + ref + 1,
+                                Duplicate(action));
+        }
+        else /* default is HAM_DUPLICATE_INSERT_LAST */
+          m_duplicate_cache.push_back(Duplicate(action));
+        continue;
+      }
     }
   }
 }
 
 void
-LocalCursor::couple_to_dupe(uint32_t dupe_id)
+LocalCursor::update_duplicate_cache(Context *context, BtreeNodeProxy *node,
+                        int slot, DeltaUpdate *du)
 {
-  DupeCacheLine *e = 0;
+  ham_assert(isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS));
+  ham_assert(m_duplicate_cache.empty());
 
-  ham_assert(m_dupecache.get_count() >= dupe_id);
-  ham_assert(dupe_id >= 1);
+  /* first collect all duplicates from the btree. They're already sorted,
+   * therefore we can just append them to the DuplicateCache */
+  int count = node->get_record_count(context, slot);
+  for (int i = 0; i < count; i++)
+    m_duplicate_cache.push_back(Duplicate(i));
 
-  /* dupe-id is a 1-based index! */
-  e = m_dupecache.get_element(dupe_id - 1);
-  if (e->use_btree()) {
-    couple_to_btree();
-    m_btree_cursor.set_duplicate_index((uint32_t)e->get_btree_dupe_idx());
+  /* Now merge the DeltaUpdates */
+  if (!du)
+    return;
+
+  for (DeltaAction *action = du->actions();
+          action != 0;
+          action = action->next()) {
+    // Ignore aborted Transactions
+    if (isset(action->flags(), DeltaAction::kIsAborted))
+      continue;
+
+    // Is the DeltaUpdate modified by a different Transaction? Then skip
+    // it as well, because it's "conflicting"
+    // conflict.
+    if (notset(action->flags(), DeltaAction::kIsCommitted)
+        && action->txn_id() != context->txn->get_id())
+      continue;
+
+    // handle deleted duplicates
+    if (isset(action->flags(), DeltaAction::kErase)) {
+      if (action->referenced_duplicate() >= 0)
+        m_duplicate_cache.erase(m_duplicate_cache.begin()
+                                  + action->referenced_duplicate());
+      else
+        m_duplicate_cache.clear();
+      continue;
+    }
+
+    // all duplicates are overwritten by a new key?
+    if (issetany(action->flags(), DeltaAction::kInsert)) {
+      m_duplicate_cache.clear();
+      m_duplicate_cache.push_back(Duplicate(action));
+      continue;
+    }
+
+    // a duplicate is overwritten?
+    if (issetany(action->flags(), DeltaAction::kInsertOverwrite)) {
+      int ref = action->referenced_duplicate();
+      if (ref >= 0) {
+        ham_assert(ref < (int)m_duplicate_cache.size());
+        m_duplicate_cache[ref] = Duplicate(action);
+      }
+      else {
+        m_duplicate_cache.clear();
+        m_duplicate_cache.push_back(Duplicate(action));
+      }
+      continue;
+    }
+
+    // another duplicate is inserted?
+    if (issetany(action->flags(), DeltaAction::kInsertDuplicate)) {
+      uint32_t of = action->original_flags();
+      int ref = action->referenced_duplicate();
+      if (isset(of, HAM_DUPLICATE_INSERT_FIRST)) {
+        m_duplicate_cache.insert(m_duplicate_cache.begin(),
+                              Duplicate(action));
+      }
+      else if (isset(of, HAM_DUPLICATE_INSERT_BEFORE)) {
+        m_duplicate_cache.insert(m_duplicate_cache.begin() + ref,
+                              Duplicate(action));
+      }
+      else if (isset(of, HAM_DUPLICATE_INSERT_AFTER)) {
+        if (ref + 1 >= (int)m_duplicate_cache.size() - 1)
+          m_duplicate_cache.push_back(Duplicate(action));
+        else
+          m_duplicate_cache.insert(m_duplicate_cache.begin() + ref + 1,
+                              Duplicate(action));
+      }
+      else /* default is HAM_DUPLICATE_INSERT_LAST */
+        m_duplicate_cache.push_back(Duplicate(action));
+      continue;
+    }
   }
+}
+
+void
+LocalCursor::sync(Context *context)
+{
+  Page *page;
+  int slot;
+  m_btree_cursor.get_coupled_key(&page, &slot, 0);
+  BtreeNodeProxy *node = ldb()->btree_index()->get_node_from_page(page);
+
+  /* if cursor is attached to a DeltaUpdate: search for the same key
+   * in the btree node */
+  if (m_currently_using == kDeltaUpdate) {
+    ham_key_t *key = m_btree_cursor.deltaupdate()->key();
+    int slot = node->find_lower_bound(context, key, 0, &m_last_cmp);
+    if (slot >= 0)
+      m_btree_cursor.couple_to_page(page, slot, 0);
+  }
+  /* if the cursor is coupled to a btree slot then search for the
+   * corresponding DeltaUpdate */
   else {
-    ham_assert(e->get_txn_op() != 0);
-    m_txn_cursor.couple_to_op(e->get_txn_op());
-    couple_to_txnop();
-  }
-  set_dupecache_index(dupe_id);
-}
+    ham_key_t key = {0};
+    ByteArray *arena = &ldb()->key_arena(context->txn);
+    node->get_key(context, slot, arena, &key); // TODO avoid deep copy
 
-ham_status_t
-LocalCursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
-{
-  ham_key_t key = {0};
-  TransactionOperation *op;
-  // TODO will leak if an exception is thrown
-  LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
-
-  ham_status_t st = m_btree_cursor.move(context, &key,
-                  &db()->key_arena(get_txn()), 0, 0, 0);
-  if (st) {
-    db()->cursor_close(clone);
-    return (st);
-  }
-
-  st = clone->m_txn_cursor.find(&key, 0);
-  if (st) {
-    clone->close();
-    delete clone;
-    return (st);
-  }
-
-  op = clone->m_txn_cursor.get_coupled_op();
-  if (op->get_flags() & TransactionOperation::kInsertDuplicate)
-    st = HAM_KEY_NOT_FOUND;
-  clone->close();
-  delete clone;
-  return (st);
-}
-
-void
-LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
-{
-  if (equal_keys)
-    *equal_keys = false;
-
-  if (is_nil(kBtree)) {
-    if (!m_txn_cursor.get_coupled_op())
-      return;
-    ham_key_t *key = m_txn_cursor.get_coupled_op()->get_node()->get_key();
-
-    if (!(flags & kSyncOnlyEqualKeys))
-      flags = flags | ((flags & HAM_CURSOR_NEXT)
-                ? HAM_FIND_GEQ_MATCH
-                : HAM_FIND_LEQ_MATCH);
-    /* the flag |kSyncDontLoadKey| does not load the key if there's an
-     * approx match - it only positions the cursor */
-    ham_status_t st = m_btree_cursor.find(context, key, 0, 0, 0,
-                            kSyncDontLoadKey | flags);
-    /* if we had a direct hit instead of an approx. match then
-     * set |equal_keys| to false; otherwise Cursor::move()
-     * will move the btree cursor again */
-    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(key))
-      *equal_keys = true;
-  }
-  else if (is_nil(kTxn)) {
-    // TODO will leak if an exception is thrown
-    LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
-    clone->m_btree_cursor.uncouple_from_page(context);
-    ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
-    if (!(flags & kSyncOnlyEqualKeys))
-      flags = flags | ((flags & HAM_CURSOR_NEXT)
-          ? HAM_FIND_GEQ_MATCH
-          : HAM_FIND_LEQ_MATCH);
-
-    ham_status_t st = m_txn_cursor.find(key, kSyncDontLoadKey | flags);
-    /* if we had a direct hit instead of an approx. match then
-    * set |equal_keys| to false; otherwise Cursor::move()
-    * will move the btree cursor again */
-    if (st == 0 && equal_keys && !ham_key_get_approximate_match_type(key))
-      *equal_keys = true;
-    clone->close();
-    delete clone;
-  }
-}
-
-ham_status_t
-LocalCursor::move_next_dupe(Context *context)
-{
-  if (get_dupecache_index()) {
-    if (get_dupecache_index() < m_dupecache.get_count()) {
-      set_dupecache_index(get_dupecache_index() + 1);
-      couple_to_dupe(get_dupecache_index());
-      return (0);
+    SortedDeltaUpdates::Iterator it = node->deltas().find_lower_bound(&key, ldb());
+    if (it != node->deltas().end()) {
+      m_last_cmp = node->compare(context, (*it)->key(), slot);
+      m_btree_cursor.attach_to_deltaupdate(*it);
     }
   }
-  return (HAM_LIMITS_REACHED);
+
+  m_duplicate_cache.clear();
 }
 
-ham_status_t
-LocalCursor::move_previous_dupe(Context *context)
-{
-  if (get_dupecache_index()) {
-    if (get_dupecache_index() > 1) {
-      set_dupecache_index(get_dupecache_index() - 1);
-      couple_to_dupe(get_dupecache_index());
-      return (0);
-    }
-  }
-  return (HAM_LIMITS_REACHED);
-}
-
-ham_status_t
-LocalCursor::move_first_dupe(Context *context)
-{
-  if (m_dupecache.get_count()) {
-    set_dupecache_index(1);
-    couple_to_dupe(get_dupecache_index());
-    return (0);
-  }
-  return (HAM_LIMITS_REACHED);
-}
-
-ham_status_t
-LocalCursor::move_last_dupe(Context *context)
-{
-  if (m_dupecache.get_count()) {
-    set_dupecache_index(m_dupecache.get_count());
-    couple_to_dupe(get_dupecache_index());
-    return (0);
-  }
-  return (HAM_LIMITS_REACHED);
-}
-
-static bool
-__txn_cursor_is_erase(TransactionCursor *txnc)
-{
-  TransactionOperation *op = txnc->get_coupled_op();
-  return (op
-          ? (op->get_flags() & TransactionOperation::kErase) != 0
-          : false);
-}
-
+// TODO where is this required?
 int
 LocalCursor::compare(Context *context)
 {
@@ -339,7 +311,7 @@ LocalCursor::compare(Context *context)
   ham_assert(!is_nil(0));
   ham_assert(!m_txn_cursor.is_nil());
 
-  if (btrc->get_state() == BtreeCursor::kStateCoupled) {
+  if (btrc->state() == BtreeCursor::kStateCoupled) {
     Page *page;
     int slot;
     btrc->get_coupled_key(&page, &slot, 0);
@@ -354,7 +326,7 @@ LocalCursor::compare(Context *context)
 
     return (m_last_cmp);
   }
-  else if (btrc->get_state() == BtreeCursor::kStateUncoupled) {
+  else if (btrc->state() == BtreeCursor::kStateUncoupled) {
     m_last_cmp = btree->compare_keys(btrc->get_uncoupled_key(), txnk);
     return (m_last_cmp);
   }
@@ -364,547 +336,682 @@ LocalCursor::compare(Context *context)
 }
 
 ham_status_t
-LocalCursor::move_next_key_singlestep(Context *context)
-{
-  ham_status_t st = 0;
-  BtreeCursor *btrc = get_btree_cursor();
-
-  /* if both cursors point to the same key: move next with both */
-  if (m_last_cmp == 0) {
-    if (!is_nil(kBtree)) {
-      st = btrc->move(context, 0, 0, 0, 0,
-                    HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
-      if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
-        set_to_nil(kBtree); // TODO muss raus
-        if (m_txn_cursor.is_nil())
-          return (HAM_KEY_NOT_FOUND);
-        else {
-          couple_to_txnop();
-          m_last_cmp = 1;
-        }
-      }
-    }
-    if (!m_txn_cursor.is_nil()) {
-      st = m_txn_cursor.move(HAM_CURSOR_NEXT);
-      if (st == HAM_KEY_NOT_FOUND || st==HAM_CURSOR_IS_NIL) {
-        set_to_nil(kTxn); // TODO muss raus
-        if (is_nil(kBtree))
-          return (HAM_KEY_NOT_FOUND);
-        else {
-          couple_to_btree();
-          m_last_cmp = -1;
-
-          ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
-          if (st2 == HAM_TXN_CONFLICT)
-            st = st2;
-        }
-      }
-    }
-  }
-  /* if the btree-key is smaller: move it next */
-  else if (m_last_cmp < 0) {
-    st = btrc->move(context, 0, 0, 0, 0, HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES);
-    if (st == HAM_KEY_NOT_FOUND) {
-      set_to_nil(kBtree); // TODO Das muss raus!
-      if (m_txn_cursor.is_nil())
-        return (st);
-      couple_to_txnop();
-      m_last_cmp = +1;
-    }
-    else {
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
-      if (st2 == HAM_TXN_CONFLICT)
-        st = st2;
-    }
-    if (m_txn_cursor.is_nil())
-      m_last_cmp = -1;
-  }
-  /* if the txn-key is smaller OR if both keys are equal: move next
-   * with the txn-key (which is chronologically newer) */
-  else {
-    st = m_txn_cursor.move(HAM_CURSOR_NEXT);
-    if (st == HAM_KEY_NOT_FOUND) {
-      set_to_nil(kTxn); // TODO Das muss raus!
-      if (is_nil(kBtree))
-        return (st);
-      couple_to_btree();
-      m_last_cmp = -1;
-    }
-    if (is_nil(kBtree))
-      m_last_cmp = 1;
-  }
-
-  /* compare keys again */
-  if (!is_nil(kBtree) && !m_txn_cursor.is_nil())
-    compare(context);
-
-  /* if there's a txn conflict: move next */
-  if (st == HAM_TXN_CONFLICT)
-    return (move_next_key_singlestep(context));
-
-  /* btree-key is smaller */
-  if (m_last_cmp < 0 || m_txn_cursor.is_nil()) {
-    couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
-  }
-  /* txn-key is smaller */
-  else if (m_last_cmp > 0 || btrc->get_state() == BtreeCursor::kStateNil) {
-    couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
-  }
-  /* both keys are equal */
-  else {
-    couple_to_txnop();
-    update_dupecache(context, kTxn | kBtree);
-    return (0);
-  }
-}
-
-ham_status_t
 LocalCursor::move_next_key(Context *context, uint32_t flags)
 {
-  ham_status_t st;
+  bool force_sync = false;
+  Page *page;
+  int slot;
+  BtreeNodeProxy *node = 0;
 
-  /* are we in the middle of a duplicate list? if yes then move to the
-   * next duplicate */
-  if (get_dupecache_index() > 0 && !(flags & HAM_SKIP_DUPLICATES)) {
-    st = move_next_dupe(context);
-    if (st != HAM_LIMITS_REACHED)
-      return (st);
-    else if (st == HAM_LIMITS_REACHED && (flags & HAM_ONLY_DUPLICATES))
-      return (HAM_KEY_NOT_FOUND);
-  }
-
-  clear_dupecache();
-
-  /* either there were no duplicates or we've reached the end of the
-   * duplicate list. move next till we found a new candidate */
-  while (1) {
-    st = move_next_key_singlestep(context);
-    if (st)
-      return (st);
-
-    /* check for duplicates. the dupecache was already updated in
-     * move_next_key_singlestep() */
-    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-      /* are there any duplicates? if not then they were all erased and
-       * we move to the previous key */
-      if (!has_duplicates())
-        continue;
-
-      /* otherwise move to the first duplicate */
-      return (move_first_dupe(context));
-    }
-
-    /* no duplicates - make sure that we've not coupled to an erased
-     * item */
-    if (is_coupled_to_txnop()) {
-      if (__txn_cursor_is_erase(&m_txn_cursor))
-        continue;
-      else
-        return (0);
-    }
-    if (is_coupled_to_btree()) {
-      st = check_if_btree_key_is_erased_or_overwritten(context);
-      if (st == HAM_KEY_ERASED_IN_TXN)
-        continue;
-      else if (st == 0) {
-        couple_to_txnop();
+  // If duplicates are enabled: load the DuplicateCache (if necessary),
+  // then try to move to the next duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    if (notset(flags, HAM_SKIP_DUPLICATES) && !m_duplicate_cache.empty()) {
+      if (m_dupecache_index < (int)m_duplicate_cache.size() - 1) {
+        m_dupecache_index++;
+        couple_to_duplicate(m_dupecache_index);
         return (0);
       }
-      else if (st == HAM_KEY_NOT_FOUND)
-        return (0);
-      else
-        return (st);
     }
-    else
-      return (HAM_KEY_NOT_FOUND);
+    // clear the DuplicateCache before moving to the next key
+    m_duplicate_cache.clear();
   }
 
-  ham_assert(!"should never reach this");
-  return (HAM_INTERNAL_ERROR);
-}
-
-ham_status_t
-LocalCursor::move_previous_key_singlestep(Context *context)
-{
-  ham_status_t st = 0;
-  BtreeCursor *btrc = get_btree_cursor();
-
-  /* if both cursors point to the same key: move previous with both */
-  if (m_last_cmp == 0) {
-    if (!is_nil(kBtree)) {
-      st = btrc->move(context, 0, 0, 0, 0,
-                    HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
-      if (st == HAM_KEY_NOT_FOUND || st == HAM_CURSOR_IS_NIL) {
-        set_to_nil(kBtree); // TODO muss raus
-        if (m_txn_cursor.is_nil())
-          return (HAM_KEY_NOT_FOUND);
-        else {
-          couple_to_txnop();
-          m_last_cmp = -1;
-        }
-      }
-    }
-    if (!m_txn_cursor.is_nil()) {
-      st = m_txn_cursor.move(HAM_CURSOR_PREVIOUS);
-      if (st == HAM_KEY_NOT_FOUND || st==HAM_CURSOR_IS_NIL) {
-        set_to_nil(kTxn); // TODO muss raus
-        if (is_nil(kBtree))
-          return (HAM_KEY_NOT_FOUND);
-        else {
-          couple_to_btree();
-          m_last_cmp = 1;
-        }
-      }
-    }
+  // Fetch the current page and slot
+  m_btree_cursor.get_coupled_key(&page, &slot);
+  if (page == 0) { // TODO merge all three calls
+    m_btree_cursor.couple(context);
+    m_btree_cursor.get_coupled_key(&page, &slot);
   }
-  /* if the btree-key is greater: move previous */
-  else if (m_last_cmp > 0) {
-    st = btrc->move(context, 0, 0, 0, 0,
-                    HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES);
-    if (st == HAM_KEY_NOT_FOUND) {
-      set_to_nil(kBtree); // TODO Das muss raus!
-      if (m_txn_cursor.is_nil())
-        return (st);
-      couple_to_txnop();
-      m_last_cmp = -1;
+  node = ldb()->btree_index()->get_node_from_page(page);
+
+  bool use_delta_key;
+  bool use_btree_key;
+
+  SortedDeltaUpdates::Iterator it = node->deltas().begin();
+  if (m_btree_cursor.deltaupdate() != 0)
+    it = node->deltas().get(m_btree_cursor.deltaupdate());
+  if (m_last_cmp <= 0 || m_currently_using == kDeltaUpdate) {
+    it++;
+    m_btree_cursor.attach_to_deltaupdate(*it);
+  }
+
+  while (true) {
+    DeltaAction *action = 0;
+    use_btree_key = node->get_count() > 0;
+    use_delta_key = true;
+
+    // If the Btree key was consumed: move to the next Btree key
+    if (m_last_cmp >= 0 || m_currently_using == kBtree) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      if (m_btree_cursor.move(context, 0, 0, 0, 0,
+                              HAM_CURSOR_NEXT | HAM_SKIP_DUPLICATES) != 0)
+        use_btree_key = false;
+
+      // TODO this moves node to the next page; but what if the previous node
+      // still had valid Delta updates? they will not get picked up!
+      m_btree_cursor.get_coupled_key(&page, &slot);
+      node = ldb()->btree_index()->get_node_from_page(page);
+    }
+
+    if (node->deltas().size() == 0 || it >= node->deltas().end()) {
+      // attach "out of bounds", otherwise DU will be picked up again
+      m_btree_cursor.attach_to_deltaupdate(*node->deltas().end());
+      use_delta_key = false;
     }
     else {
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
-      if (st2 == HAM_TXN_CONFLICT)
-        st = st2;
+      for (; it != node->deltas().end(); it++) {
+        // check if this key has valid (i.e. non-aborted) actions
+        for (action = (*it)->actions();
+                        action != 0;
+                        action = action->next()) {
+          if (isset(action->flags(), DeltaAction::kIsAborted))
+            continue;
+          use_delta_key = true;
+          break;
+        }
+        if (use_delta_key)
+          break;
+      }
     }
-    if (m_txn_cursor.is_nil())
-      m_last_cmp = 1;
-  }
-  /* if the txn-key is greater OR if both keys are equal: move previous
-   * with the txn-key (which is chronologically newer) */
-  else {
-    st = m_txn_cursor.move(HAM_CURSOR_PREVIOUS);
-    if (st == HAM_KEY_NOT_FOUND) {
-      set_to_nil(kTxn); // TODO Das muss raus!
-      if (is_nil(kBtree))
-        return (st);
-      couple_to_btree();
-      m_last_cmp = 1;
 
-      ham_status_t st2 = check_if_btree_key_is_erased_or_overwritten(context);
-      if (st2 == HAM_TXN_CONFLICT)
-        st = st2;
+    // Neither Btree key nor Delta key available?
+    if (!use_btree_key && !use_delta_key) {
+      return (HAM_KEY_NOT_FOUND);
     }
-    if (is_nil(kBtree))
-      m_last_cmp = -1;
+
+    // Only Btree keys remaining, no more Delta key available?
+    if (use_btree_key && !use_delta_key) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      m_currently_using = kBtree;
+      force_sync = true;
+      goto maybe_update_duplicate_cache;
+    }
+
+    bool is_erased = false;
+    bool is_conflict = false;
+    for (; action != 0; action = action->next()) {
+      if (isset(action->flags(), DeltaAction::kErase)) {
+        is_erased = true;
+        continue;
+      }
+      if (context->txn
+              && notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id()) {
+        is_conflict = true;
+        break;
+      }
+
+      is_erased = false;
+    }
+
+    // Only Delta keys remaining, no more Btree key available?
+    if (!use_btree_key && use_delta_key) {
+      // TODO might have duplicates!?
+      // Cursor-longtxn/moveNextWhileErasingTest
+      if (is_erased || is_conflict) {
+        it++;
+        m_btree_cursor.attach_to_deltaupdate(*it);
+        m_currently_using = kDeltaUpdate;
+        continue;
+      }
+      m_currently_using = kDeltaUpdate;
+      m_btree_cursor.attach_to_deltaupdate(*it);
+      force_sync = true;
+      goto maybe_update_duplicate_cache;
+    }
+
+    // Btree key *and* Delta key are available - use the smaller one
+    // Btree key is < DeltaUpdate? then use the Btree key
+    ham_assert(slot >= 0 && slot < (int)node->get_count());
+    m_last_cmp = node->compare(context, (*it)->key(), slot);
+
+    if (m_last_cmp > 0) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      m_currently_using = kBtree;
+      use_delta_key = false;
+      break;
+    }
+
+    // Btree key is equal to DeltaUpdate? check for conflict or if the Btree
+    // key was erased; if not then attach to the DeltaUpdate, otherwise
+    // move next in the Btree and continue
+    if (is_erased || is_conflict) {
+      it++;
+      m_btree_cursor.attach_to_deltaupdate(*it);
+      m_currently_using = kDeltaUpdate;
+      continue;
+    }
+
+    if (m_last_cmp == 0) {
+      m_btree_cursor.couple_to_deltaupdate(page, *it);
+      m_currently_using = kDeltaUpdate;
+      use_btree_key = false;
+      break;
+    }
+
+    // DeltaUpdate is < Btree key? Use the DeltaUpdate if possible
+    m_btree_cursor.couple_to_deltaupdate(page, *it);
+    m_currently_using = kDeltaUpdate;
+    use_btree_key = false;
+    break;
   }
 
-  /* compare keys again */
-  if (!is_nil(kBtree) && !m_txn_cursor.is_nil())
-    compare(context);
-
-  /* if there's a txn conflict: move previous */
-  if (st == HAM_TXN_CONFLICT)
-    return (move_previous_key_singlestep(context));
-
-  /* btree-key is greater */
-  if (m_last_cmp > 0 || m_txn_cursor.is_nil()) {
-    couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
+maybe_update_duplicate_cache:
+  // If required: build a DuplicateCache, return its first duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    ham_assert(m_duplicate_cache.empty());
+    update_duplicate_cache(context, force_sync);
+    couple_to_duplicate(0);
   }
-  /* txn-key is greater */
-  else if (m_last_cmp < 0 || btrc->get_state() == BtreeCursor::kStateNil) {
-    couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
-  }
-  /* both keys are equal */
-  else {
-    couple_to_txnop();
-    update_dupecache(context, kTxn | kBtree);
-    return (0);
-  }
+  return (0);
 }
 
+/*
+ * TODO
+ * this method uses an integer index in the deltas to move backwards.
+ * this is cumbersome - better use a reverse iterator!
+ */
 ham_status_t
 LocalCursor::move_previous_key(Context *context, uint32_t flags)
 {
-  ham_status_t st;
+  bool force_sync = false;
+  Page *page;
+  int slot;
+  BtreeNodeProxy *node = 0;
 
-  /* are we in the middle of a duplicate list? if yes then move to the
-   * previous duplicate */
-  if (get_dupecache_index() > 0 && !(flags & HAM_SKIP_DUPLICATES)) {
-    st = move_previous_dupe(context);
-    if (st != HAM_LIMITS_REACHED)
-      return (st);
-    else if (st == HAM_LIMITS_REACHED && (flags & HAM_ONLY_DUPLICATES))
-      return (HAM_KEY_NOT_FOUND);
-  }
-
-  clear_dupecache();
-
-  /* either there were no duplicates or we've reached the end of the
-   * duplicate list. move previous till we found a new candidate */
-  while (!is_nil(kBtree) || !m_txn_cursor.is_nil()) {
-    st = move_previous_key_singlestep(context);
-    if (st)
-      return (st);
-
-    /* check for duplicates. the dupecache was already updated in
-     * move_previous_key_singlestep() */
-    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-      /* are there any duplicates? if not then they were all erased and
-       * we move to the previous key */
-      if (!has_duplicates())
-        continue;
-
-      /* otherwise move to the last duplicate */
-      return (move_last_dupe(context));
-    }
-
-    /* no duplicates - make sure that we've not coupled to an erased
-     * item */
-    if (is_coupled_to_txnop()) {
-      if (__txn_cursor_is_erase(&m_txn_cursor))
-        continue;
-      else
-        return (0);
-    }
-    if (is_coupled_to_btree()) {
-      st = check_if_btree_key_is_erased_or_overwritten(context);
-      if (st == HAM_KEY_ERASED_IN_TXN)
-        continue;
-      else if (st == 0) {
-        couple_to_txnop();
+  // If duplicates are enabled: load the DuplicateCache (if necessary),
+  // then try to move to the next duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    if (notset(flags, HAM_SKIP_DUPLICATES) && !m_duplicate_cache.empty()) {
+      if (m_dupecache_index > 0) {
+        m_dupecache_index--;
+        couple_to_duplicate(m_dupecache_index);
         return (0);
       }
-      else if (st == HAM_KEY_NOT_FOUND)
-        return (0);
-      else
-        return (st);
     }
-    else
-      return (HAM_KEY_NOT_FOUND);
+    // clear the DuplicateCache before moving to the next key
+    m_duplicate_cache.clear();
   }
 
-  return (HAM_KEY_NOT_FOUND);
-}
-
-ham_status_t
-LocalCursor::move_first_key_singlestep(Context *context)
-{
-  ham_status_t btrs, txns;
-  BtreeCursor *btrc = get_btree_cursor();
-
-  /* fetch the smallest key from the transaction tree. */
-  txns = m_txn_cursor.move(HAM_CURSOR_FIRST);
-  /* fetch the smallest key from the btree tree. */
-  btrs = btrc->move(context, 0, 0, 0, 0,
-                HAM_CURSOR_FIRST | HAM_SKIP_DUPLICATES);
-  /* now consolidate - if both trees are empty then return */
-  if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
-    return (HAM_KEY_NOT_FOUND);
+  // Fetch the current page and slot
+  m_btree_cursor.get_coupled_key(&page, &slot);
+  if (page == 0) { // TODO merge all three calls
+    m_btree_cursor.couple(context);
+    m_btree_cursor.get_coupled_key(&page, &slot);
   }
-  /* if btree is empty but txn-tree is not: couple to txn */
-  else if (btrs == HAM_KEY_NOT_FOUND && txns != HAM_KEY_NOT_FOUND) {
-    if (txns == HAM_TXN_CONFLICT)
-      return (txns);
-    couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
-  }
-  /* if txn-tree is empty but btree is not: couple to btree */
-  else if (txns == HAM_KEY_NOT_FOUND && btrs != HAM_KEY_NOT_FOUND) {
-    couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
-  }
-  /* if both trees are not empty then compare them and couple to the
-   * smaller one */
-  else {
-    ham_assert(btrs == 0 && (txns == 0
-        || txns == HAM_KEY_ERASED_IN_TXN
-        || txns == HAM_TXN_CONFLICT));
-    compare(context);
+  node = ldb()->btree_index()->get_node_from_page(page);
 
-    /* both keys are equal - couple to txn; it's chronologically
-     * newer */
-    if (m_last_cmp == 0) {
-      if (txns && txns != HAM_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kBtree | kTxn);
+  bool use_delta_key;
+  bool use_btree_key;
+
+  int delta_slot = node->deltas().index_of(m_btree_cursor.deltaupdate());
+  SortedDeltaUpdates::Iterator it = node->deltas().begin();
+  if (delta_slot >= (int)node->deltas().size())
+    delta_slot = node->deltas().size() - 1;
+  if (m_last_cmp >= 0 || m_currently_using == kDeltaUpdate) {
+    delta_slot--;
+    m_btree_cursor.attach_to_deltaupdate(node->deltas().at(delta_slot));
+  }
+
+  while (true) {
+    DeltaAction *action = 0;
+    use_btree_key = m_btree_eof ? false : node->get_count() > 0;
+    use_delta_key = true;
+
+    // If the Btree key was consumed: move to the next Btree key
+    if (m_last_cmp <= 0 || m_currently_using == kBtree) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      if (m_btree_cursor.move(context, 0, 0, 0, 0,
+                              HAM_CURSOR_PREVIOUS | HAM_SKIP_DUPLICATES) != 0) {
+        use_btree_key = false;
+        m_btree_eof = true;
+      }
+
+      m_btree_cursor.get_coupled_key(&page, &slot);
+      node = ldb()->btree_index()->get_node_from_page(page);
     }
-    /* couple to txn */
-    else if (m_last_cmp > 0) {
-      if (txns && txns != HAM_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kTxn);
+
+    if (node->deltas().size() == 0 || delta_slot < 0) {
+      // attach "out of bounds", otherwise DU will be picked up again
+      m_btree_cursor.detach_from_deltaupdate();
+      use_delta_key = false;
     }
-    /* couple to btree */
     else {
-      couple_to_btree();
-      update_dupecache(context, kBtree);
+      for (; delta_slot >= 0; delta_slot--) {
+        it = node->deltas().begin() + delta_slot;
+        // check if this key has valid (i.e. non-aborted) actions
+        for (action = (*it)->actions();
+                        action != 0;
+                        action = action->next()) {
+          if (isset(action->flags(), DeltaAction::kIsAborted))
+            continue;
+          use_delta_key = true;
+          break;
+        }
+        if (use_delta_key)
+          break;
+      }
     }
-    return (0);
+
+    // Neither Btree key nor Delta key available?
+    if (!use_btree_key && !use_delta_key) {
+      return (HAM_KEY_NOT_FOUND);
+    }
+
+    // Only Btree keys remaining, no more Delta key available?
+    if (use_btree_key && !use_delta_key) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      m_currently_using = kBtree;
+      force_sync = true;
+      goto maybe_update_duplicate_cache;
+    }
+
+    bool is_erased = false;
+    bool is_conflict = false;
+    for (; action != 0; action = action->next()) {
+      if (isset(action->flags(), DeltaAction::kErase)) {
+        is_erased = true;
+        continue;
+      }
+      if (context->txn
+              && notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id()) {
+        is_conflict = true;
+        break;
+      }
+
+      is_erased = false;
+    }
+
+    // Only Delta keys remaining, no more Btree key available?
+    if (!use_btree_key && use_delta_key) {
+      if (is_erased || is_conflict) {
+        it--;
+        delta_slot--;
+        m_btree_cursor.attach_to_deltaupdate(node->deltas().at(delta_slot));
+        m_currently_using = kDeltaUpdate;
+        continue;
+      }
+      m_btree_cursor.attach_to_deltaupdate(node->deltas().at(delta_slot));
+      m_currently_using = kDeltaUpdate;
+      force_sync = true;
+      goto maybe_update_duplicate_cache;
+    }
+
+    // Btree key *and* Delta key are available - use the smaller one
+    // Btree key is < DeltaUpdate? then use the Btree key
+    ham_assert(slot >= 0 && slot < (int)node->get_count());
+    m_last_cmp = node->compare(context, (*it)->key(), slot);
+
+    if (m_last_cmp < 0) {
+      m_btree_cursor.couple_to_page(page, slot, 0);
+      m_currently_using = kBtree;
+      use_delta_key = false;
+      break;
+    }
+
+    // Btree key is equal to DeltaUpdate? check for conflict or if the Btree
+    // key was erased; if not then attach to the DeltaUpdate, otherwise
+    // move next in the Btree and continue
+    if (is_erased || is_conflict) {
+      it--;
+      delta_slot--;
+      m_btree_cursor.attach_to_deltaupdate(node->deltas().at(delta_slot));
+      m_currently_using = kDeltaUpdate;
+      continue;
+    }
+
+    if (m_last_cmp == 0) {
+      m_btree_cursor.couple_to_deltaupdate(page, node->deltas().at(delta_slot));
+      m_currently_using = kDeltaUpdate;
+      use_btree_key = false;
+      break;
+    }
+
+    // DeltaUpdate is < Btree key? Use the DeltaUpdate if possible
+    m_btree_cursor.couple_to_deltaupdate(page, node->deltas().at(delta_slot));
+    m_currently_using = kDeltaUpdate;
+    use_btree_key = false;
+    break;
   }
+
+maybe_update_duplicate_cache:
+  // If required: build a DuplicateCache, return its last duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    ham_assert(m_duplicate_cache.empty());
+    update_duplicate_cache(context, force_sync);
+    if (!m_duplicate_cache.empty())
+      couple_to_duplicate(m_duplicate_cache.size() - 1);
+  }
+  return (0);
 }
 
 ham_status_t
 LocalCursor::move_first_key(Context *context, uint32_t flags)
 {
-  ham_status_t st = 0;
+  Page *page;
+  BtreeNodeProxy *node = 0;
 
-  /* move to the very very first key */
-  st = move_first_key_singlestep(context);
-  if (st)
-    return (st);
+  // Reset the cursor
+  m_btree_cursor.detach_from_deltaupdate();
 
-  /* check for duplicates. the dupecache was already updated in
-   * move_first_key_singlestep() */
-  if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    /* are there any duplicates? if not then they were all erased and we
-     * move to the previous key */
-    if (!has_duplicates())
-      return (move_next_key(context, flags));
+  // Fetch the BtreeNode which stores the first key
+  m_btree_cursor.move(context, 0, 0, 0, 0,
+                    HAM_CURSOR_FIRST | HAM_SKIP_DUPLICATES);
+  m_btree_cursor.get_coupled_key(&page);
+  node = ldb()->btree_index()->get_node_from_page(page);
 
-    /* otherwise move to the first duplicate */
-    return (move_first_dupe(context));
-  }
+  int slot = 0;
+  SortedDeltaUpdates::Iterator start = node->deltas().begin();
+  for (SortedDeltaUpdates::Iterator it = start;
+          it != node->deltas().end();
+          it++) {
 
-  /* no duplicates - make sure that we've not coupled to an erased
-   * item */
-  if (is_coupled_to_txnop()) {
-    if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_next_key(context, flags));
-    else
-      return (0);
-  }
-  if (is_coupled_to_btree()) {
-    st = check_if_btree_key_is_erased_or_overwritten(context);
-    if (st == HAM_KEY_ERASED_IN_TXN)
-      return (move_next_key(context, flags));
-    else if (st == 0) {
-      couple_to_txnop();
-      return (0);
+    // check if this key has valid (i.e. non-aborted) actions
+    DeltaAction *action = locate_valid_action(*it);
+    if (action == 0)
+      continue;
+
+    // compare the current Btree key to the key of the DeltaUpdate
+    if (slot < (int)node->get_count()) {
+      m_last_cmp = node->compare(context, (*it)->key(), slot);
+
+      // Btree key is < DeltaUpdate? then use the Btree key. Btree keys are
+      // always sorted, therefore it's not necessary to use a DuplicateCache
+      if (m_last_cmp > 0) {
+        m_btree_cursor.couple_to_page(page, slot, 0);
+        m_currently_using = kBtree;
+
+        if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+          update_duplicate_cache(context);
+          couple_to_duplicate(0);
+        }
+        return (0);
+      }
+
+      if (context->txn
+              && notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id())
+        throw Exception(HAM_TXN_CONFLICT);
+
+      // Btree key is equal to DeltaUpdate? check for conflict or if the Btree
+      // key was erased; if not then attach to the DeltaUpdate, otherwise
+      // move next in the Btree and continue
+      if (m_last_cmp == 0) {
+        // handle txn conflict
+        if (context->txn
+            && notset(action->flags(), DeltaAction::kIsCommitted)
+            && action->txn_id() != context->txn->get_id())
+          throw Exception(HAM_TXN_CONFLICT);
+
+        bool is_erased = false;
+
+        if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+          update_duplicate_cache(context, node, slot, *it);
+          is_erased = m_duplicate_cache.empty();
+          if (!is_erased)
+            couple_to_duplicate(0);
+        }
+        else {
+          for (; action != 0; action = action->next()) {
+            if (notset(action->flags(), DeltaAction::kIsCommitted)
+                  && action->txn_id() != context->txn->get_id())
+              continue;
+            if (isset(action->flags(), DeltaAction::kErase)) {
+              is_erased = true;
+              continue;
+            }
+            is_erased = false;
+          }
+        }
+
+        if (is_erased) {
+          slot++;
+          m_btree_cursor.couple_to_page(page, slot, 0);
+          continue;
+        }
+
+        m_currently_using = kDeltaUpdate;
+        m_btree_cursor.couple_to_deltaupdate(page, *it);
+        return (0);
+      }
     }
-    else if (st == HAM_KEY_NOT_FOUND)
-      return (0);
-    else
-      return (st);
-  }
-  else
-    return (HAM_KEY_NOT_FOUND);
-}
-
-ham_status_t
-LocalCursor::move_last_key_singlestep(Context *context)
-{
-  ham_status_t btrs, txns;
-  BtreeCursor *btrc = get_btree_cursor();
-
-  /* fetch the largest key from the transaction tree. */
-  txns = m_txn_cursor.move(HAM_CURSOR_LAST);
-  /* fetch the largest key from the btree tree. */
-  btrs = btrc->move(context, 0, 0, 0, 0, HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
-  /* now consolidate - if both trees are empty then return */
-  if (btrs == HAM_KEY_NOT_FOUND && txns == HAM_KEY_NOT_FOUND) {
-    return (HAM_KEY_NOT_FOUND);
-  }
-  /* if btree is empty but txn-tree is not: couple to txn */
-  else if (btrs == HAM_KEY_NOT_FOUND && txns != HAM_KEY_NOT_FOUND) {
-    if (txns == HAM_TXN_CONFLICT)
-      return (txns);
-    couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
-  }
-  /* if txn-tree is empty but btree is not: couple to btree */
-  else if (txns == HAM_KEY_NOT_FOUND && btrs != HAM_KEY_NOT_FOUND) {
-    couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
-  }
-  /* if both trees are not empty then compare them and couple to the
-   * greater one */
-  else {
-    ham_assert(btrs == 0 && (txns == 0
-        || txns == HAM_KEY_ERASED_IN_TXN
-        || txns == HAM_TXN_CONFLICT));
-    compare(context);
-
-    /* both keys are equal - couple to txn; it's chronologically
-     * newer */
-    if (m_last_cmp == 0) {
-      if (txns && txns != HAM_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kBtree | kTxn);
-    }
-    /* couple to txn */
-    else if (m_last_cmp < 1) {
-      if (txns && txns != HAM_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kTxn);
-    }
-    /* couple to btree */
     else {
-      couple_to_btree();
-      update_dupecache(context, kBtree);
+      // continue with the sibling page
+      if (node->get_right()) {
+        page = lenv()->page_manager()->fetch(context, node->get_right());
+        node = ldb()->btree_index()->get_node_from_page(page);
+        slot = 0;
+        m_btree_cursor.couple_to_page(page, slot, 0);
+        continue;
+      }
     }
+
+    if (context->txn
+            && notset(action->flags(), DeltaAction::kIsCommitted)
+            && action->txn_id() != context->txn->get_id())
+      throw Exception(HAM_TXN_CONFLICT);
+
+    // DeltaUpdate is < Btree key? Use the DeltaUpdate if possible
+    m_btree_cursor.couple_to_deltaupdate(page, *it);
+    m_currently_using = kDeltaUpdate;
+
+    // Locate the first duplicate
+    if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+      update_duplicate_cache(context);
+      if (m_duplicate_cache.empty())
+        continue;
+      couple_to_duplicate(0);
+    }
+    else if (isset(action->flags(), DeltaAction::kErase))
+      continue;
     return (0);
   }
+
+  // still here? then all DeltaUpdates have been processed. If there are still
+  // Btree keys available then use them.
+  if (slot >= (int)node->get_count())
+    return (HAM_KEY_NOT_FOUND);
+
+  m_btree_cursor.couple_to_page(page, slot, 0);
+  m_currently_using = kBtree;
+  // Locate the first duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    update_duplicate_cache(context);
+    couple_to_duplicate(0);
+  }
+  return (0);
 }
 
 ham_status_t
 LocalCursor::move_last_key(Context *context, uint32_t flags)
 {
-  ham_status_t st = 0;
+  Page *page;
+  BtreeNodeProxy *node = 0;
 
-  /* move to the very very last key */
-  st = move_last_key_singlestep(context);
-  if (st)
-    return (st);
+  // Reset the cursor
+  m_btree_cursor.detach_from_deltaupdate();
 
-  /* check for duplicates. the dupecache was already updated in
-   * move_last_key_singlestep() */
-  if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-    /* are there any duplicates? if not then they were all erased and we
-     * move to the previous key */
-    if (!has_duplicates())
-      return (move_previous_key(context, flags));
+  // Fetch the BtreeNode which stores the first key
+  m_btree_cursor.move(context, 0, 0, 0, 0,
+                    HAM_CURSOR_LAST | HAM_SKIP_DUPLICATES);
+  m_btree_cursor.get_coupled_key(&page);
+  node = ldb()->btree_index()->get_node_from_page(page);
 
-    /* otherwise move to the last duplicate */
-    return (move_last_dupe(context));
-  }
+  int slot = node->get_count() - 1;
+  int delta_slot = node->deltas().size() - 1;
+  SortedDeltaUpdates::Iterator it = node->deltas().begin();
+  for (; delta_slot >= 0; delta_slot--) {
+    it = node->deltas().begin() + delta_slot;
 
-  /* no duplicates - make sure that we've not coupled to an erased
-   * item */
-  if (is_coupled_to_txnop()) {
-    if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_previous_key(context, flags));
-    else
-      return (0);
-  }
-  if (is_coupled_to_btree()) {
-    st = check_if_btree_key_is_erased_or_overwritten(context);
-    if (st == HAM_KEY_ERASED_IN_TXN)
-      return (move_previous_key(context, flags));
-    else if (st == 0) {
-      couple_to_txnop();
-      return (0);
+    // check if this key has valid (i.e. non-aborted) actions
+    DeltaAction *action = locate_valid_action(*it);
+    if (action == 0)
+      continue;
+
+    // compare the current Btree key to the key of the DeltaUpdate
+    if (slot < (int)node->get_count()) {
+      m_last_cmp = node->compare(context, (*it)->key(), slot);
+
+      // Btree key is > DeltaUpdate? then use the Btree key
+      if (m_last_cmp < 0) {
+        m_btree_cursor.attach_to_deltaupdate(*it);
+        m_btree_cursor.couple_to_page(page, slot, 0);
+        m_currently_using = kBtree;
+
+        if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+          update_duplicate_cache(context);
+          couple_to_duplicate(0);
+        }
+        return (0);
+      }
+
+      if (context->txn
+              && notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id())
+        throw Exception(HAM_TXN_CONFLICT);
+
+      // Btree key is equal to DeltaUpdate? check for conflict or if the Btree
+      // key was erased; if not then attach to the DeltaUpdate, otherwise
+      // move next in the Btree and continue
+      if (m_last_cmp == 0) {
+        bool is_erased = false;
+
+        if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+          update_duplicate_cache(context, node, slot, *it);
+          is_erased = m_duplicate_cache.empty();
+          if (!is_erased)
+            couple_to_duplicate(m_duplicate_cache.size() - 1);
+        }
+        else {
+          for (; action != 0; action = action->next()) {
+            if (notset(action->flags(), DeltaAction::kIsCommitted)
+                  && action->txn_id() != context->txn->get_id())
+              continue;
+            if (isset(action->flags(), DeltaAction::kErase)) {
+              is_erased = true;
+              continue;
+            }
+            is_erased = false;
+          }
+        }
+
+        if (is_erased) {
+          slot--;
+          m_btree_cursor.couple_to_page(page, slot, 0);
+          continue;
+        }
+
+        m_currently_using = kDeltaUpdate;
+        m_btree_cursor.couple_to_deltaupdate(page, node->deltas().at(delta_slot));
+        return (0);
+      }
     }
-    else if (st == HAM_KEY_NOT_FOUND)
-      return (0);
-    else
-      return (st);
+    else {
+      // continue with the left page
+      if (node->get_left()) {
+        page = lenv()->page_manager()->fetch(context, node->get_left());
+        node = ldb()->btree_index()->get_node_from_page(page);
+        slot = node->get_count() - 1;
+        m_btree_cursor.couple_to_page(page, slot, 0);
+        continue;
+      }
+    }
+
+    if (context->txn
+            && notset(action->flags(), DeltaAction::kIsCommitted)
+            && action->txn_id() != context->txn->get_id())
+      throw Exception(HAM_TXN_CONFLICT);
+
+    // DeltaUpdate is > Btree key? Use the DeltaUpdate if possible
+    m_btree_cursor.couple_to_deltaupdate(page, node->deltas().at(delta_slot));
+    m_currently_using = kDeltaUpdate;
+
+    // Locate the first duplicate
+    if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+      update_duplicate_cache(context);
+      if (m_duplicate_cache.empty())
+        continue;
+      couple_to_duplicate(m_duplicate_cache.size() - 1);
+    }
+    else if (isset(action->flags(), DeltaAction::kErase))
+      continue;
+    return (0);
   }
-  else
+
+  // still here? then all DeltaUpdates have been processed. If there are still
+  // Btree keys available then use them.
+  if (slot >= (int)node->get_count() || slot < 0)
     return (HAM_KEY_NOT_FOUND);
+
+  m_btree_cursor.couple_to_page(page, slot, node->get_count() - 1);
+  m_currently_using = kBtree;
+  // Locate the first duplicate
+  if (isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    update_duplicate_cache(context);
+    couple_to_duplicate(m_duplicate_cache.size() - 1);
+  }
+  return (0);
 }
+
+bool
+LocalCursor::is_key_erased(Context *context, ham_key_t *key)
+{
+  Page *page;
+  int slot;
+  m_btree_cursor.get_coupled_key(&page, &slot);
+  if (page == 0)
+    return (false);
+
+  BtreeNodeProxy *node = ldb()->btree_index()->get_node_from_page(page);
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, ldb());
+  if (it == node->deltas().end())
+    return (false);
+
+  return (is_key_erased(context, *it));
+}
+
+bool
+LocalCursor::is_key_erased(Context *context, DeltaUpdate *du)
+{
+  int inserted = 0;
+
+  // retrieve number of records in the btree
+  if (m_last_cmp == 0) {
+    Page *page;
+    int slot;
+    m_btree_cursor.get_coupled_key(&page, &slot);
+    if (page != 0) {
+      BtreeNodeProxy *node = ldb()->btree_index()->get_node_from_page(page);
+      if (slot >= 0 && slot < (int)node->get_count())
+        inserted += node->get_record_count(context, slot);
+    }
+  }
+
+  for (DeltaAction *action = du->actions();
+                  action != 0;
+                  action = action->next()) {
+    if (notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id())
+      continue;
+    if (isset(action->flags(), DeltaAction::kErase)) {
+      if (action->referenced_duplicate() == -1)
+        inserted = 0;
+      else
+        inserted--;
+    }
+    else if (isset(action->flags(), DeltaAction::kInsert)) {
+      inserted = 1;
+    }
+    else if (isset(action->flags(), DeltaAction::kInsertDuplicate)) {
+      inserted++;
+    }
+  }
+
+  ham_assert(inserted >= 0);
+  return (inserted == 0);
+} 
 
 ham_status_t
 LocalCursor::move(Context *context, ham_key_t *key, ham_record_t *record,
@@ -934,14 +1041,16 @@ LocalCursor::move(Context *context, ham_key_t *key, ham_record_t *record,
     changed_dir = true;
   if (((flags & HAM_CURSOR_NEXT) || (flags & HAM_CURSOR_PREVIOUS))
         && (m_last_operation == LocalCursor::kLookupOrInsert || changed_dir)) {
-    if (is_coupled_to_txnop())
+    if (is_coupled_to_txnop()) // TODO raus!
       set_to_nil(kBtree);
     else
       set_to_nil(kTxn);
-    (void)sync(context, flags, 0);
 
-    if (!m_txn_cursor.is_nil() && !is_nil(kBtree))
-      compare(context);
+    // TODO loses flags re approx matching
+    if (m_last_cmp != 0 || m_duplicate_cache.empty())
+      sync(context);
+
+    m_btree_eof = false;
   }
 
   /* we have either skipped duplicates or reached the end of the duplicate
@@ -954,12 +1063,14 @@ LocalCursor::move(Context *context, ham_key_t *key, ham_record_t *record,
     st = move_previous_key(context, flags);
   }
   else if (flags & HAM_CURSOR_FIRST) {
-    clear_dupecache();
+    clear_duplicate_cache();
+    m_btree_eof = false;
     st = move_first_key(context, flags);
   }
   else {
     ham_assert(flags & HAM_CURSOR_LAST);
-    clear_dupecache();
+    clear_duplicate_cache();
+    m_btree_eof = false;
     st = move_last_key(context, flags);
   }
 
@@ -967,30 +1078,105 @@ LocalCursor::move(Context *context, ham_key_t *key, ham_record_t *record,
     return (st);
 
 retrieve_key_and_record:
-  /* retrieve key/record, if requested */
-  if (st == 0) {
-    if (is_coupled_to_txnop()) {
-#ifdef HAM_DEBUG
-      TransactionOperation *op = m_txn_cursor.get_coupled_op();
-      ham_assert(!(op->get_flags() & TransactionOperation::kErase));
-#endif
-      try {
-        if (key)
-          m_txn_cursor.copy_coupled_key(key);
-        if (record)
-          m_txn_cursor.copy_coupled_record(record);
+  ham_assert(st == 0);
+
+  if (m_currently_using == 0)
+    return (HAM_CURSOR_IS_NIL);
+
+  ByteArray *key_arena = &ldb()->key_arena(context->txn);
+  ByteArray *record_arena = &ldb()->record_arena(context->txn);
+
+  /* if duplicate keys are enabled then fetch the duplicate record */
+  if (m_dupecache_index >= 0
+        && isset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS)) {
+    Duplicate &dup = m_duplicate_cache[m_dupecache_index];
+    m_btree_cursor.attach_to_deltaaction(dup.action());
+
+    if (record) {
+      if (dup.action()) {
+        record->size = dup.action()->record()->size;
+        if (record->size > 0) {
+          if (!(record->flags & HAM_KEY_USER_ALLOC)) {
+            record_arena->resize(record->size);
+            record->data = record_arena->get_ptr();
+          }
+          ::memcpy(record->data, dup.action()->record()->data, record->size);
+        }
+        else
+          record->data = 0;
       }
-      catch (Exception &ex) {
-        return (ex.code);
+      else {
+        m_btree_cursor.move(context, 0, 0, record, record_arena, 0);
       }
-    }
-    else {
-      st = m_btree_cursor.move(context, key, &db()->key_arena(get_txn()),
-                      record, &db()->record_arena(get_txn()), 0);
+      record = 0; // do not overwrite below
     }
   }
 
-  return (st);
+  if (m_currently_using == kBtree) {
+    ham_status_t st = m_btree_cursor.move(context, key, key_arena, record,
+                            record_arena, 0);
+    /* don't forget to check if the key still exists */
+    /* TODO perform the check even if |key| is null! */
+    if (st == 0 && flags == 0 && key && is_key_erased(context, key))
+      return (HAM_KEY_NOT_FOUND);
+    return (st);
+  }
+
+  if (m_currently_using == kDeltaUpdate) {
+    Page *page;
+    m_btree_cursor.get_coupled_key(&page);
+
+    /* page is not assigned if key was deleted */
+    if (!page)
+      return (HAM_CURSOR_IS_NIL);
+
+    DeltaUpdate *du = m_btree_cursor.deltaupdate();
+
+    /* don't forget to check if the key still exists */
+    if (flags == 0 && is_key_erased(context, du))
+      return (HAM_KEY_NOT_FOUND);
+
+    if (key) {
+      key->size = du->key()->size;
+      if (key->size > 0) {
+        if (!(key->flags & HAM_KEY_USER_ALLOC)) {
+          key_arena->resize(key->size);
+          key->data = key_arena->get_ptr();
+        }
+        ::memcpy(key->data, du->key()->data, key->size);
+      }
+      else
+        key->data = 0;
+    }
+
+    // pick the first action with a record
+    DeltaAction *action = m_btree_cursor.deltaupdate_action();
+    if (action == 0) {
+      for (action = du->actions(); action != 0; action = action->next()) {
+        if (isset(action->flags(), DeltaAction::kIsAborted))
+          continue;
+        if (context->txn && action->txn_id() != context->txn->get_id())
+          continue;
+        break;
+      }
+    }
+    m_btree_cursor.attach_to_deltaaction(action);
+
+    if (record) {
+      record->size = action->record()->size;
+      if (record->size > 0) {
+        if (!(record->flags & HAM_KEY_USER_ALLOC)) {
+          record_arena->resize(record->size);
+          record->data = record_arena->get_ptr();
+        }
+        ::memcpy(record->data, action->record()->data, record->size);
+      }
+      else
+        record->data = 0;
+    }
+  }
+
+  return (0);
 }
 
 bool
@@ -998,12 +1184,12 @@ LocalCursor::is_nil(int what)
 {
   switch (what) {
     case kBtree:
-      return (m_btree_cursor.get_state() == BtreeCursor::kStateNil);
+      return (m_btree_cursor.state() == BtreeCursor::kStateNil);
     case kTxn:
       return (m_txn_cursor.is_nil());
     default:
       ham_assert(what == 0);
-      return (m_btree_cursor.get_state() == BtreeCursor::kStateNil
+      return (m_btree_cursor.state() == BtreeCursor::kStateNil
                       && m_txn_cursor.is_nil());
   }
 }
@@ -1025,7 +1211,7 @@ LocalCursor::set_to_nil(int what)
       m_txn_cursor.set_to_nil();
       couple_to_btree(); /* reset flag */
       m_is_first_use = true;
-      clear_dupecache();
+      clear_duplicate_cache();
       break;
   }
 }
@@ -1034,7 +1220,7 @@ void
 LocalCursor::close()
 {
   m_btree_cursor.close();
-  m_dupecache.clear();
+  m_duplicate_cache.clear();
 }
 
 ham_status_t
@@ -1042,11 +1228,11 @@ LocalCursor::do_overwrite(ham_record_t *record, uint32_t flags)
 {
   Context context(lenv(), (LocalTransaction *)m_txn, ldb());
 
+  if (is_nil())
+    return (HAM_CURSOR_IS_NIL);
+
   ham_status_t st = 0;
   Transaction *local_txn = 0;
-
-  /* purge cache if necessary */
-  lenv()->page_manager()->purge_cache(&context);
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -1055,33 +1241,17 @@ LocalCursor::do_overwrite(ham_record_t *record, uint32_t flags)
     context.txn = (LocalTransaction *)local_txn;
   }
 
-  /*
-   * if we're in transactional mode then just append an "insert/OW" operation
-   * to the txn-tree.
-   *
-   * if the txn_cursor is already coupled to a txn-op, then we can use
-   * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
-   *
-   * If transactions are disabled then overwrite the item in the btree.
-   */
-  if (context.txn) {
-    if (m_txn_cursor.is_nil() && !(is_nil(0))) {
-      m_btree_cursor.uncouple_from_page(&context);
-      st = ldb()->insert_txn(&context,
-                  m_btree_cursor.get_uncoupled_key(),
-                  record, flags | HAM_OVERWRITE, &m_txn_cursor);
-    }
-    else {
-      // TODO also calls db->insert_txn()
-      st = m_txn_cursor.overwrite(&context, context.txn, record);
-    }
+  if (m_currently_using == kDeltaUpdate) {
+    Page *page;
+    m_btree_cursor.get_coupled_key(&page);
 
-    if (st == 0)
-      couple_to_txnop();
+    st = ldb()->insert_txn(&context, m_btree_cursor.deltaupdate()->key(),
+                        record, flags | HAM_OVERWRITE, this);
   }
   else {
     m_btree_cursor.overwrite(&context, record, flags);
     couple_to_btree();
+    st = 0;
   }
 
   return (ldb()->finalize(&context, st, local_txn));
@@ -1095,7 +1265,7 @@ LocalCursor::do_get_duplicate_position(uint32_t *pposition)
 
   // use btree cursor?
   if (m_txn_cursor.is_nil())
-    *pposition = m_btree_cursor.get_duplicate_index();
+    *pposition = m_btree_cursor.duplicate_index();
   // otherwise return the index in the duplicate cache
   else
     *pposition = get_dupecache_index() - 1;
@@ -1104,20 +1274,19 @@ LocalCursor::do_get_duplicate_position(uint32_t *pposition)
 }
 
 uint32_t
-LocalCursor::get_duplicate_count(Context *context)
+LocalCursor::duplicate_count(Context *context)
 {
   ham_assert(!is_nil());
 
-  if (m_txn || is_coupled_to_txnop()) {
-    if (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
-      bool dummy;
-      sync(context, 0, &dummy);
-      update_dupecache(context, kTxn | kBtree);
-      return (m_dupecache.get_count());
-    }
-
-    /* obviously the key exists, since the cursor is coupled */
+  // if duplicates are disabled then there's only one record
+  if (notset(m_db->get_flags(), HAM_ENABLE_DUPLICATE_KEYS))
     return (1);
+
+  // only update the DuplicateCache if required
+  if (isset(ldb()->get_flags(), HAM_ENABLE_TRANSACTIONS)) {
+    if (m_last_cmp != 0 || m_duplicate_cache.empty())
+      update_duplicate_cache(context);
+    return (m_duplicate_cache.size());
   }
 
   return (m_btree_cursor.get_record_count(context, 0));
@@ -1126,14 +1295,14 @@ LocalCursor::get_duplicate_count(Context *context)
 ham_status_t
 LocalCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 {
-  Context context(ldb()->lenv(), (LocalTransaction *)m_txn, ldb());
-
   if (is_nil()) {
     *pcount = 0;
     return (HAM_CURSOR_IS_NIL);
   }
 
-  *pcount = get_duplicate_count(&context);
+  Context context(ldb()->lenv(), (LocalTransaction *)m_txn, ldb());
+
+  *pcount = duplicate_count(&context);
   return (0);
 }
 
@@ -1147,8 +1316,48 @@ LocalCursor::do_get_record_size(uint64_t *psize)
 
   if (is_coupled_to_txnop())
     *psize = m_txn_cursor.get_record_size();
+  else if (m_currently_using == kDeltaUpdate
+            && m_btree_cursor.deltaupdate_action())
+    *psize = m_btree_cursor.deltaupdate_action()->record()->size;
   else
     *psize = m_btree_cursor.get_record_size(&context);
+
   return (0);
+}
+
+LocalEnvironment *
+LocalCursor::lenv()
+{
+  return ((LocalEnvironment *)ldb()->get_env());
+}
+
+void
+LocalCursor::couple_to_duplicate(int index)
+{
+  ham_assert(index >= 0 && index < (int)m_duplicate_cache.size());
+
+  Duplicate &dup = m_duplicate_cache[index];
+  if (!dup.action()) {
+    m_btree_cursor.set_duplicate_index(dup.duplicate_index());
+    m_btree_cursor.set_state(BtreeCursor::kStateCoupled);
+  }
+  else {
+    m_btree_cursor.attach_to_deltaaction(dup.action());
+  }
+
+  m_dupecache_index = index;
+}
+
+DeltaAction *
+LocalCursor::locate_valid_action(DeltaUpdate *du)
+{
+  DeltaAction *action = 0;
+  for (DeltaAction *da = du->actions(); da != 0; da = da->next()) {
+    if (isset(da->flags(), DeltaAction::kIsAborted))
+      continue;
+    action = da;
+  }
+
+  return (action);
 }
 

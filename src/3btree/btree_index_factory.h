@@ -15,8 +15,8 @@
  */
 
 /*
- * @exception_safe: unknown
- * @thread_safe: unknown
+ * @exception_safe: nothrow
+ * @thread_safe: no
  */
 
 #ifndef HAM_BTREE_INDEX_FACTORY_H
@@ -51,13 +51,16 @@ template<class NodeLayout, class Comparator>
 class BtreeIndexTraitsImpl : public BtreeIndexTraits
 {
   public:
+    BtreeIndexTraitsImpl(LocalDatabase *db)
+      : BtreeIndexTraits(db) {
+    }
+
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
-            ham_key_t *rhs) const {
-      Comparator cmp(db);
+    virtual int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
+      Comparator cmp(m_db);
       return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
     }
 
@@ -92,34 +95,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<uint8_t> >());
+                    NumericCompare<uint8_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<uint8_t> >());
+                  NumericCompare<uint8_t> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<uint8_t> >());
+                  NumericCompare<uint8_t> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
                       PaxNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<uint8_t> >());
+                      NumericCompare<uint8_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<uint8_t> >());
+                      NumericCompare<uint8_t> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint8_t>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<uint8_t> >());
+                      NumericCompare<uint8_t> >(db));
         }
       // 16bit unsigned integer
       case HAM_TYPE_UINT16:
@@ -128,34 +131,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<uint16_t> >());
+                    NumericCompare<uint16_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<uint16_t> >());
+                  NumericCompare<uint16_t> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<uint16_t> >());
+                  NumericCompare<uint16_t> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<uint16_t> >());
+                      NumericCompare<uint16_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<uint16_t> >());
+                      NumericCompare<uint16_t> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint16_t>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<uint16_t> >());
+                      NumericCompare<uint16_t> >(db));
         }
       // 32bit unsigned integer
       case HAM_TYPE_UINT32:
@@ -164,34 +167,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<uint32_t> >());
+                    NumericCompare<uint32_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<uint32_t> >());
+                  NumericCompare<uint32_t> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<uint32_t> >());
+                  NumericCompare<uint32_t> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<uint32_t> >());
+                      NumericCompare<uint32_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<uint32_t> >());
+                      NumericCompare<uint32_t> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<uint32_t> >());
+                      NumericCompare<uint32_t> >(db));
         }
       // 64bit unsigned integer
       case HAM_TYPE_UINT64:
@@ -200,34 +203,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<uint64_t> >());
+                    NumericCompare<uint64_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<uint64_t> >());
+                  NumericCompare<uint64_t> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<uint64_t> >());
+                  NumericCompare<uint64_t> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
                       PaxNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<uint64_t> >());
+                      NumericCompare<uint64_t> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<uint64_t> >());
+                      NumericCompare<uint64_t> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint64_t>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<uint64_t> >());
+                      NumericCompare<uint64_t> >(db));
         }
       // 32bit float
       case HAM_TYPE_REAL32:
@@ -236,34 +239,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<float>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<float> >());
+                    NumericCompare<float> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<float>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<float> >());
+                  NumericCompare<float> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<float>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<float> >());
+                  NumericCompare<float> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<float>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<float> >());
+                      NumericCompare<float> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<float>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<float> >());
+                      NumericCompare<float> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<float>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<float> >());
+                      NumericCompare<float> >(db));
         }
       // 64bit double
       case HAM_TYPE_REAL64:
@@ -272,34 +275,34 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<double>,
                           PaxLayout::InternalRecordList>,
-                    NumericCompare<double> >());
+                    NumericCompare<double> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<double>,
                         DefLayout::DuplicateInlineRecordList>,
-                  NumericCompare<double> >());
+                  NumericCompare<double> >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<double>,
                         DefLayout::DuplicateDefaultRecordList>,
-                  NumericCompare<double> >());
+                  NumericCompare<double> >(db));
         }
         else {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<double>,
                             PaxLayout::InternalRecordList>,
-                      NumericCompare<double> >());
+                      NumericCompare<double> >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<double>,
                             PaxLayout::InlineRecordList>,
-                      NumericCompare<double> >());
+                      NumericCompare<double> >(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<double>,
                             PaxLayout::DefaultRecordList>,
-                      NumericCompare<double> >());
+                      NumericCompare<double> >(db));
         }
       // Callback function provided by user?
       case HAM_TYPE_CUSTOM:
@@ -309,17 +312,17 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::InternalRecordList>,
-                      CallbackCompare>());
+                      CallbackCompare>(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::InlineRecordList>,
-                      CallbackCompare>());
+                      CallbackCompare>(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::DefaultRecordList>,
-                      CallbackCompare>());
+                      CallbackCompare>(db));
         }
         // Fixed keys WITH duplicates
         if (fixed_keys && use_duplicates) {
@@ -327,44 +330,44 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::BinaryKeyList,
                           PaxLayout::InternalRecordList>,
-                    CallbackCompare >());
+                    CallbackCompare >(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::BinaryKeyList,
                         DefLayout::DuplicateInlineRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
           else
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::BinaryKeyList,
                         DefLayout::DuplicateDefaultRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         }
         // Variable keys with or without duplicates
         if (!is_leaf)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::InternalRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         if (inline_records && !use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::InlineRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         if (inline_records && use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateInlineRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         if (!inline_records && !use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::DefaultRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         if (!inline_records && use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateDefaultRecordList>,
-                  CallbackCompare >());
+                  CallbackCompare >(db));
         ham_assert(!"shouldn't be here");
       // BINARY is the default:
       case HAM_TYPE_BINARY:
@@ -374,17 +377,17 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::InternalRecordList>,
-                      FixedSizeCompare>());
+                      FixedSizeCompare>(db));
           if (inline_records)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::InlineRecordList>,
-                      FixedSizeCompare>());
+                      FixedSizeCompare>(db));
           else
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::BinaryKeyList,
                             PaxLayout::DefaultRecordList>,
-                      FixedSizeCompare>());
+                      FixedSizeCompare>(db));
         }
         // fixed keys with duplicates
         if (fixed_keys && use_duplicates) {
@@ -392,44 +395,44 @@ struct BtreeIndexFactory
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::BinaryKeyList,
                           PaxLayout::InternalRecordList>,
-                    FixedSizeCompare >());
+                    FixedSizeCompare >(db));
           if (inline_records && use_duplicates)
             return (new BtreeIndexTraitsImpl<
                     DefaultNodeImpl<PaxLayout::BinaryKeyList,
                           DefLayout::DuplicateInlineRecordList>,
-                    FixedSizeCompare >());
+                    FixedSizeCompare >(db));
           if (!inline_records && use_duplicates)
             return (new BtreeIndexTraitsImpl<
                     DefaultNodeImpl<PaxLayout::BinaryKeyList,
                           DefLayout::DuplicateDefaultRecordList>,
-                    FixedSizeCompare >());
+                    FixedSizeCompare >(db));
         }
         // variable length keys, with and without duplicates
         if (!is_leaf)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::InternalRecordList>,
-                  VariableSizeCompare >());
+                  VariableSizeCompare >(db));
         if (inline_records && !use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::InlineRecordList>,
-                  VariableSizeCompare >());
+                  VariableSizeCompare >(db));
         if (inline_records && use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateInlineRecordList>,
-                  VariableSizeCompare >());
+                  VariableSizeCompare >(db));
         if (!inline_records && !use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         PaxLayout::DefaultRecordList>,
-                  VariableSizeCompare >());
+                  VariableSizeCompare >(db));
         if (!inline_records && use_duplicates)
           return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateDefaultRecordList>,
-                  VariableSizeCompare >());
+                  VariableSizeCompare >(db));
         ham_assert(!"shouldn't be here");
       default:
         break;

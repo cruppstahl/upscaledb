@@ -51,14 +51,14 @@ class BtreeEraseAction : public BtreeUpdateAction
                                             : 0, duplicate_index),
         m_key(key), m_flags(flags) {
       if (m_cursor)
-        m_duplicate_index = m_cursor->get_duplicate_index() + 1;
+        m_duplicate_index = m_cursor->duplicate_index() + 1;
     }
 
     // This is the entry point for the erase operation
     ham_status_t run() {
       // Coupled cursor: try to remove the key directly from the page
       if (m_cursor) {
-        if (m_cursor->get_state() == BtreeCursor::kStateCoupled) {
+        if (m_cursor->state() == BtreeCursor::kStateCoupled) {
           Page *coupled_page;
           int coupled_index;
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
@@ -84,7 +84,7 @@ fall_through:
           m_cursor->uncouple_from_page(m_context);
         }
 
-        if (m_cursor->get_state() == BtreeCursor::kStateUncoupled)
+        if (m_cursor->state() == BtreeCursor::kStateUncoupled)
           m_key = m_cursor->get_uncoupled_key();
       }
 
@@ -139,7 +139,7 @@ fall_through:
 
         int duplicate_index =
                 m_cursor
-                    ? m_cursor->get_duplicate_index()
+                    ? m_cursor->duplicate_index()
                     : m_duplicate_index;
 
         while (btcur) {
@@ -150,10 +150,10 @@ fall_through:
           }
 
           if (btcur != m_cursor && btcur->points_to(m_context, page, slot)) {
-            if (btcur->get_duplicate_index() == duplicate_index)
+            if (btcur->duplicate_index() == duplicate_index)
                 btcur->set_to_nil();
-            else if (btcur->get_duplicate_index() > duplicate_index)
-              btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
+            else if (btcur->duplicate_index() > duplicate_index)
+              btcur->set_duplicate_index(btcur->duplicate_index() - 1);
           }
           btcur = next;
         }
@@ -181,7 +181,7 @@ fall_through:
           if (btcur != m_cursor && cur->points_to(m_context, page, slot))
             cur->set_to_nil();
           else if (btcur != m_cursor
-                  && (cur->get_state() & BtreeCursor::kStateCoupled)) {
+                  && (cur->state() & BtreeCursor::kStateCoupled)) {
             Page *coupled_page;
             int coupled_slot;
             cur->get_coupled_key(&coupled_page, &coupled_slot);

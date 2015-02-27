@@ -103,7 +103,7 @@ On Ubuntu, the following packages are required:
   - libboost-thread-dev
   - libboost-dev
   - (libuv needs to be installed from sources - see
-      https://github.com/joyent/libuv)
+      https://github.com/libuv/libuv)
 
 For Windows, precompiled dependencies are available here:
 https://github.com/cruppstahl/hamsterdb-alien
@@ -126,8 +126,6 @@ If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
 
 DEBUG                   enable debugging output and diagnostic checks (slow!)
-HAM_32BIT               compile for 32bit (alias: WIN32)
-HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
 
 Also, if you compile for windows, you have to compile the file
 'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on

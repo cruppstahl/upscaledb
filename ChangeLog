@@ -1,6 +1,9 @@
 Aug 26, 2015 - chris ---------------------------------------------------
 o issue #58 (.NET) - fixed crash in ham_strerror
 
+Aug 05, 2015 - chris ---------------------------------------------------
+o Adding the tool ham_recover as a win32 project
+
 Jun 19, 2015 - chris ---------------------------------------------------
 o Fixing a bug during recovery where modified pages were not recreated
 o Reducing ftruncate() system calls

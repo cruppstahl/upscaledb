@@ -19,6 +19,9 @@
 #include <boost/scope_exit.hpp>
 
 // Always verify that a file of level N does not include headers > N!
+#include "3delta/delta_factory.h"
+#include "3delta/delta_binding.h"
+#include "3delta/delta_updates_sorted.h"
 #include "3page_manager/page_manager.h"
 #include "3journal/journal.h"
 #include "3blob_manager/blob_manager.h"
@@ -37,539 +40,519 @@
 namespace hamsterdb {
 
 ham_status_t
-LocalDatabase::check_insert_conflicts(Context *context, TransactionNode *node,
-                    ham_key_t *key, uint32_t flags)
+LocalDatabase::insert_txn(Context *context, ham_key_t *key,
+                ham_record_t *record, uint32_t flags, LocalCursor *cursor)
 {
-  TransactionOperation *op = 0;
+  bool is_erased = false;
 
-  /*
-   * pick the tree_node of this key, and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then look at the
-   *    operation in detail
-   * - is this op part of an txn which is still active? return an error
-   *    because we've found a conflict
-   * - if a committed txn has erased the item then there's no need
-   *    to continue checking older, committed txns
-   */
-  op = node->get_newest_op();
-  while (op) {
-    LocalTransaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-      ; /* nop */
-    else if (optxn->is_committed() || context->txn == optxn) {
-      /* if key was erased then it doesn't exist and can be
-       * inserted without problems */
-      if (op->get_flags() & TransactionOperation::kIsFlushed)
-        ; /* nop */
-      else if (op->get_flags() & TransactionOperation::kErase)
-        return (0);
-      /* if the key already exists then we can only continue if
-       * we're allowed to overwrite it or to insert a duplicate */
-      else if ((op->get_flags() & TransactionOperation::kInsert)
-          || (op->get_flags() & TransactionOperation::kInsertOverwrite)
-          || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
-        if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
-          return (0);
-        else
+  // Fetch the BtreeNode which stores the key
+  Page *page = m_btree_index->find_leaf(context, key);
+  ham_assert(page != 0);
+  BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+
+  // Check for txn conflicts of this key
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, this);
+  if (it != node->deltas().end()) {
+    for (DeltaAction *action = (*it)->actions();
+            action != 0;
+            action = action->next()) {
+      // Ignore aborted Transactions
+      if (isset(action->flags(), DeltaAction::kIsAborted))
+        continue;
+
+      // Is the DeltaUpdate modified by a different Transaction? Then report a
+      // conflict.
+      if (notset(action->flags(), DeltaAction::kIsCommitted)
+          && action->txn_id() != context->txn->get_id())
+        return (HAM_TXN_CONFLICT);
+
+      // Otherwise - if the key already exists - return an error unless the key
+      // is overwritten or a duplicate is inserted
+      if (notset(action->flags(), DeltaAction::kErase)) {
+        if (notset(flags, (HAM_OVERWRITE | HAM_DUPLICATE)))
           return (HAM_DUPLICATE_KEY);
       }
-      else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ham_assert(!"shouldn't be here");
-        return (HAM_DUPLICATE_KEY);
+      else {
+        is_erased = true;
+        break;
       }
     }
-    else { /* txn is still active */
-      return (HAM_TXN_CONFLICT);
-    }
-
-    op = op->get_previous_in_node();
   }
 
-  /*
-   * we've successfully checked all un-flushed transactions and there
-   * were no conflicts. Now check all transactions which are already
-   * flushed - basically that's identical to a btree lookup.
-   *
-   * however we can skip this check if we do not care about duplicates.
-   */
-  if ((flags & HAM_OVERWRITE)
-          || (flags & HAM_DUPLICATE)
-          || (get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)))
-    return (0);
+  // Still here - no conflicts. Check the BtreeNode if the key exists
+  if (is_erased == false
+      && notset(flags, (HAM_OVERWRITE | HAM_DUPLICATE))
+      && node->find(context, key) >= 0)
+    return (HAM_DUPLICATE_KEY);
 
-  ham_status_t st = m_btree_index->find(context, 0, key, 0, 0, 0, flags);
-  switch (st) {
-    case HAM_KEY_NOT_FOUND:
-      return (0);
-    case HAM_SUCCESS:
-      return (HAM_DUPLICATE_KEY);
-    default:
-      return (st);
+  // If not then finally append a new DeltaUpdate to the node
+  DeltaUpdate *du;
+  if (it == node->deltas().end()) {
+    du = DeltaUpdateFactory::create_delta_update(this, key);
+    node->deltas().insert(du, this);
   }
-}
+  else
+    du = *it;
 
-ham_status_t
-LocalDatabase::check_erase_conflicts(Context *context, TransactionNode *node,
-                    ham_key_t *key, uint32_t flags)
-{
-  TransactionOperation *op = 0;
+  // Append a new DeltaAction to the DeltaUpdate
+  DeltaAction *da = DeltaUpdateFactory::create_delta_action(du,
+                        context->txn ? context->txn->get_id() : 0,
+                        lenv()->next_lsn(), 
+                        issetany(flags, HAM_PARTIAL | HAM_DUPLICATE)
+                            ? DeltaAction::kInsertDuplicate
+                            : (isset(flags, HAM_OVERWRITE)
+                                ? DeltaAction::kInsertOverwrite
+                                : DeltaAction::kInsert),
+                        flags,
+                        cursor ? cursor->m_dupecache_index : -1,
+                        record);
+  du->append(da);
 
-  /*
-   * pick the tree_node of this key, and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then look at the
-   *    operation in detail
-   * - is this op part of an txn which is still active? return an error
-   *    because we've found a conflict
-   * - if a committed txn has erased the item then there's no need
-   *    to continue checking older, committed txns
-   */
-  op = node->get_newest_op();
-  while (op) {
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-      ; /* nop */
-    else if (optxn->is_committed() || context->txn == optxn) {
-      if (op->get_flags() & TransactionOperation::kIsFlushed)
-        ; /* nop */
-      /* if key was erased then it doesn't exist and we fail with
-       * an error */
-      else if (op->get_flags() & TransactionOperation::kErase)
-        return (HAM_KEY_NOT_FOUND);
-      /* if the key exists then we're successful */
-      else if ((op->get_flags() & TransactionOperation::kInsert)
-          || (op->get_flags() & TransactionOperation::kInsertOverwrite)
-          || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
-        return (0);
-      }
-      else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ham_assert(!"shouldn't be here");
-        return (HAM_KEY_NOT_FOUND);
-      }
-    }
-    else { /* txn is still active */
-      return (HAM_TXN_CONFLICT);
-    }
-
-    op = op->get_previous_in_node();
-  }
-
-  /*
-   * we've successfully checked all un-flushed transactions and there
-   * were no conflicts. Now check all transactions which are already
-   * flushed - basically that's identical to a btree lookup.
-   */
-  return (m_btree_index->find(context, 0, key, 0, 0, 0, flags));
-}
-
-ham_status_t
-LocalDatabase::insert_txn(Context *context, ham_key_t *key,
-                ham_record_t *record, uint32_t flags, TransactionCursor *cursor)
-{
-  ham_status_t st = 0;
-  TransactionOperation *op;
-  bool node_created = false;
-
-  /* get (or create) the node for this key */
-  TransactionNode *node = m_txn_index->get(key, 0);
-  if (!node) {
-    node = new TransactionNode(this, key);
-    node_created = true;
-    // TODO only store when the operation is successful?
-    m_txn_index->store(node);
-  }
-
-  // check for conflicts of this key
-  //
-  // !!
-  // afterwards, clear the changeset; check_insert_conflicts()
-  // checks if a key already exists, and this fills the changeset
-  st = check_insert_conflicts(context, node, key, flags);
-  if (st) {
-    if (node_created) {
-      m_txn_index->remove(node);
-      delete node;
-    }
-    return (st);
-  }
-
-  // append a new operation to this node
-  op = node->append(context->txn, flags,
-                (flags & HAM_PARTIAL) |
-                ((flags & HAM_DUPLICATE)
-                    ? TransactionOperation::kInsertDuplicate
-                    : (flags & HAM_OVERWRITE)
-                        ? TransactionOperation::kInsertOverwrite
-                        : TransactionOperation::kInsert),
-                lenv()->next_lsn(), key, record);
-
-  // if there's a cursor then couple it to the op; also store the
-  // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
+  // if there's a cursor then couple it to the DeltaUpdate
   if (cursor) {
-    LocalCursor *c = cursor->get_parent();
-    if (c->get_dupecache_index())
-      op->set_referenced_dupe(c->get_dupecache_index());
+    cursor->clear_duplicate_cache();
+    du->binding().attach(cursor->get_btree_cursor());
+    cursor->get_btree_cursor()->couple_to_page(page, 0, 0); // TODO
+    cursor->get_btree_cursor()->attach_to_deltaaction(da); // TODO
+    cursor->m_currently_using = LocalCursor::kDeltaUpdate; // TODO
+    // if there (maybe) are duplicates then build a DuplicateCache and
+    // attach the cursor to the inserted duplicate
 
-    cursor->couple_to_op(op);
-
-    // all other cursors need to increment their dupe index, if their
-    // index is > this cursor's index
-    increment_dupe_index(context, node, c, c->get_dupecache_index());
+    // TODO can we remove this loop and directly insert the DeltaAction
+    // at the correct position??
+    cursor->update_duplicate_cache(context);
+    for (size_t i = 0; i < cursor->m_duplicate_cache.size(); i++) {
+      if (cursor->m_duplicate_cache[i].action() == da) {
+        cursor->m_dupecache_index = (int)i;
+        break;
+      }
+    }
   }
+
+  if (context->txn)
+    context->txn->add_delta_action(da);
 
   // append journal entry
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+  if (isset(m_env->get_flags(),
+              HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS)) {
     Journal *j = lenv()->journal();
     j->append_insert(this, context->txn, key, record,
-              flags & HAM_DUPLICATE ? flags : flags | HAM_OVERWRITE,
-              op->get_lsn());
+              isset(flags, HAM_DUPLICATE) ? flags : flags | HAM_OVERWRITE,
+              da->lsn());
   }
 
-  ham_assert(st == 0);
   return (0);
 }
 
-bool
-LocalDatabase::is_key_erased(Context *context, ham_key_t *key)
+static SortedDeltaUpdates::Iterator
+adjust_iterator(SortedDeltaUpdates &deltas, SortedDeltaUpdates::Iterator it,
+                    uint32_t flags)
 {
-  /* get the node for this key (but don't create a new one if it does
-   * not yet exist) */
-  TransactionNode *node = m_txn_index->get(key, 0);
-  if (!node)
+  if (isset(flags, HAM_FIND_LT_MATCH) && it > deltas.begin())
+    return (--it);
+
+  if (isset(flags, HAM_FIND_GT_MATCH) && it < deltas.end() - 1)
+    return (++it);
+
+  return (deltas.end());
+}
+
+bool
+LocalDatabase::is_key_erased(Context *context, BtreeNodeProxy *node,
+                    int slot, ham_key_t *key)
+{
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, context->db);
+  if (it == node->deltas().end())
     return (false);
 
-  /* now traverse the tree, check if the key was erased */
-  TransactionOperation *op = node->get_newest_op();
-  while (op) {
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-      ; /* nop */
-    else if (optxn->is_committed() || context->txn == optxn) {
-      if (op->get_flags() & TransactionOperation::kIsFlushed)
-        ; /* continue */
-      else if (op->get_flags() & TransactionOperation::kErase) {
-        /* TODO does not check duplicates!! */
-        return (true);
-      }
-      else if ((op->get_flags() & TransactionOperation::kInsert)
-          || (op->get_flags() & TransactionOperation::kInsertOverwrite)
-          || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
-        return (false);
-      }
-    }
+  // retrieve number of records in the Btree
+  int inserted = node->get_record_count(context, slot);
 
-    op = op->get_previous_in_node();
+  // now add the DeltaUpdates
+  DeltaUpdate *du = *it;
+  for (DeltaAction *action = du->actions();
+                  action != 0;
+                  action = action->next()) {
+    if (notset(action->flags(), DeltaAction::kIsCommitted)
+              && action->txn_id() != context->txn->get_id())
+      continue;
+    if (isset(action->flags(), DeltaAction::kErase)) {
+      if (action->referenced_duplicate() == -1)
+        inserted = 0;
+      else
+        inserted--;
+    }
+    else if (isset(action->flags(), DeltaAction::kInsert)) {
+      inserted = 1;
+    }
+    else if (isset(action->flags(), DeltaAction::kInsertDuplicate)) {
+      inserted++;
+    }
   }
 
-  return (false);
+  // No records left? then the key was deleted
+  ham_assert(inserted >= 0);
+  return (inserted == 0);
+} 
+
+ham_status_t
+LocalDatabase::find_approx_txn(Context *context, LocalCursor *cursor,
+                ham_key_t *key, ham_record_t *record, uint32_t flags)
+{
+  DeltaAction *found_action = 0;
+  ByteArray *pkey_arena = &key_arena(context->txn);
+  ByteArray *precord_arena = &record_arena(context->txn);
+
+  ham_assert(cursor != 0);
+
+  ham_key_set_intflags(key,
+        (ham_key_get_intflags(key) & (~BtreeKey::kApproximate)));
+
+  // Fetch the BtreeNode which stores the key
+  Page *page = m_btree_index->find_leaf(context, key);
+  ham_assert(page != 0);
+  BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+
+  // Check for txn conflicts of this key
+  //
+  // TODO
+  // it would be nice if the following two blocks would be comined in a
+  // call to node->deltas().find_approx(key, this, flags), which returns
+  // an adjusted iterator
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, this, flags);
+
+  if (notset(flags, HAM_FIND_EXACT_MATCH)
+        && it != node->deltas().end()
+        && !m_btree_index->compare_keys((*it)->key(), key)) {
+    it = adjust_iterator(node->deltas(), it, flags);
+    ham_key_set_intflags(key,
+          (ham_key_get_intflags(key) | BtreeKey::kApproximate));
+  }
+
+  if (it == node->deltas().end()) {
+    cursor->m_btree_cursor.detach_from_deltaupdate();
+    goto find_in_btree;
+  }
+
+find_in_deltas:
+  for (DeltaAction *action = (*it)->actions();
+          action != 0;
+          action = action->next()) {
+    // Ignore aborted Transactions
+    if (isset(action->flags(), DeltaAction::kIsAborted))
+      continue;
+
+    // Is the DeltaUpdate modified by a different Transaction? Then move
+    // to the next key
+    if (notset(action->flags(), DeltaAction::kIsCommitted)
+          && action->txn_id() != context->txn->get_id()) {
+      it = adjust_iterator(node->deltas(), it, flags);
+      if (it != node->deltas().end()) {
+        ham_key_set_intflags(key,
+            (ham_key_get_intflags(key) | BtreeKey::kApproximate));
+        found_action = 0;
+        goto find_in_deltas;
+      }
+      break;
+    }
+
+    // Otherwise - if the key already exists - return an error unless the key
+    // is overwritten or a duplicate is inserted
+    if (isset(action->flags(), DeltaAction::kErase)) {
+      if (action->referenced_duplicate() == -1) {
+        it = adjust_iterator(node->deltas(), it, flags);
+        if (it != node->deltas().end()) {
+          found_action = 0;
+          goto find_in_deltas;
+        }
+      }
+      // the caller will check the duplicate cache for a valid duplicate
+      // TODO
+      break;
+    }
+
+    // If the key exists then return its record. A deep copy is required
+    // since action->record() might be invalidated
+    if (issetany(action->flags(), DeltaAction::kInsert
+                                    | DeltaAction::kInsertOverwrite
+                                    | DeltaAction::kInsertDuplicate)) {
+      found_action = action;
+      continue;
+    }
+  }
+
+  if (it != node->deltas().end()) {
+    (*it)->binding().attach(cursor->get_btree_cursor());
+    cursor->get_btree_cursor()->couple_to_page(page, 0, 0); // TODO
+    cursor->m_currently_using = LocalCursor::kDeltaUpdate; // TODO
+  }
+
+  if (found_action == 0)
+    goto find_in_btree;
+
+  // successfully found a DeltaUpdate? Then return without looking at the
+  // btree
+  if (isset(flags, HAM_FIND_EXACT_MATCH)
+        && !m_btree_index->compare_keys((*it)->key(), key)) {
+    if (record)
+      copy_record(found_action->record(), &record_arena(context->txn), record);
+    return (0);
+  }
+
+  if (HAM_KEY_NOT_FOUND == m_btree_index->find_in_leaf(context, cursor,
+                        page, key, pkey_arena, 0, 0, flags)) {
+    // TODO pretend that txn/btree are not equal.
+    // This will trigger a call to LocalCursor::sync() when moving 
+    // forward/backward with the cursor
+    cursor->m_last_cmp = 1;
+  }
+  else {
+    // Btree key exists - check if it's deleted
+    Page *page;
+    int slot;
+    cursor->m_btree_cursor.get_coupled_key(&page, &slot, 0);
+    node = m_btree_index->get_node_from_page(page);
+    if (slot < (int)node->get_count()
+        && !is_key_erased(context, node, slot, key)) {
+      // Check which key is "closer" to the requested key; the B-Tree key
+      // or the DeltaUpdate key?
+      cursor->m_last_cmp = m_btree_index->compare_keys((*it)->key(), key);
+      if (isset(flags, HAM_FIND_LT_MATCH)) {
+        if (cursor->m_last_cmp < 0)
+          cursor->m_currently_using = LocalCursor::kBtree; // TODO
+        else
+          cursor->m_currently_using = LocalCursor::kDeltaUpdate; // TODO
+      }
+      else if (isset(flags, HAM_FIND_GT_MATCH)) {
+        if (cursor->m_last_cmp < 0)
+          cursor->m_currently_using = LocalCursor::kDeltaUpdate; // TODO
+        else
+          cursor->m_currently_using = LocalCursor::kBtree; // TODO
+      }
+    }
+  }
+
+  // If duplicate keys are enabled: build a duplicate table
+  // Now copy the record and return
+  // TODO only if duplicates are disabled; otherwise the caller will
+  // build a duplicate table and copy the record
+  if (record) {
+    if (cursor->m_currently_using == LocalCursor::kDeltaUpdate) {
+      copy_key((*it)->key(), &key_arena(context->txn), key);
+      copy_record(found_action->record(), &record_arena(context->txn), record);
+    }
+    else
+      cursor->move(context, 0, record, 0);
+  }
+  return (0);
+
+find_in_btree:
+  // Still here? then either there is no DeltaUpdate, or all of them were
+  // ignored. Fetch the key and the record from the btree
+  cursor->m_currently_using = LocalCursor::kBtree; // TODO
+  cursor->m_last_cmp = 1; // TODO see comment above
+
+  // Search through the btree till we found a key which was not erased
+  ham_status_t st = 0;
+  int slot = -1;
+  uint32_t btree_flags = flags & ~HAM_FIND_EXACT_MATCH;
+  if (isset(flags, HAM_FIND_LT_MATCH))
+    btree_flags |= HAM_CURSOR_PREVIOUS;
+  else
+    btree_flags |= HAM_CURSOR_PREVIOUS;
+
+  do {
+    if (slot == -1)
+      st = cursor->m_btree_cursor.find(context, key, pkey_arena,
+                                    record, precord_arena, flags);
+    else
+      st = cursor->m_btree_cursor.move(context, key, pkey_arena,
+                                    record, precord_arena, btree_flags);
+    if (st)
+      break;
+
+    Page *page;
+    cursor->m_btree_cursor.get_coupled_key(&page, &slot, 0);
+    node = m_btree_index->get_node_from_page(page);
+  } while (is_key_erased(context, node, slot, key));
+
+  return (st);
 }
 
 ham_status_t
 LocalDatabase::find_txn(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st = 0;
-  TransactionOperation *op = 0;
-  bool first_loop = true;
-  bool exact_is_erased = false;
-
   ByteArray *pkey_arena = &key_arena(context->txn);
   ByteArray *precord_arena = &record_arena(context->txn);
 
   ham_key_set_intflags(key,
         (ham_key_get_intflags(key) & (~BtreeKey::kApproximate)));
 
-  /* get the node for this key (but don't create a new one if it does
-   * not yet exist) */
-  TransactionNode *node = m_txn_index->get(key, flags);
+  // Fetch the BtreeNode which stores the key
+  Page *page = m_btree_index->find_leaf(context, key);
+  ham_assert(page != 0);
+  BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
-  /*
-   * pick the node of this key, and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then look at the
-   *    operation in detail
-   * - is this op part of an txn which is still active? return an error
-   *    because we've found a conflict
-   * - if a committed txn has erased the item then there's no need
-   *    to continue checking older, committed txns
-   */
-retry:
-  if (node)
-    op = node->get_newest_op();
-  while (op) {
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-      ; /* nop */
-    else if (optxn->is_committed() || context->txn == optxn) {
-      if (op->get_flags() & TransactionOperation::kIsFlushed)
-        ; /* nop */
-      /* if key was erased then it doesn't exist and we can return
-       * immediately
-       *
-       * if an approximate match is requested then move to the next
-       * or previous node
-       */
-      else if (op->get_flags() & TransactionOperation::kErase) {
-        if (first_loop
-            && !(ham_key_get_intflags(key) & BtreeKey::kApproximate))
-          exact_is_erased = true;
-        first_loop = false;
-        if (flags & HAM_FIND_LT_MATCH) {
-          node = node->get_previous_sibling();
-          if (!node)
-            break;
-          ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | BtreeKey::kApproximate));
-          goto retry;
+  // Check for txn conflicts of this key
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, this);
+  if (it == node->deltas().end()) {
+    cursor->m_btree_cursor.detach_from_deltaupdate();
+  }
+  else {
+    DeltaAction *found_action = 0;
+
+    for (DeltaAction *action = (*it)->actions();
+            action != 0;
+            action = action->next()) {
+      // Ignore aborted Transactions
+      if (isset(action->flags(), DeltaAction::kIsAborted))
+        continue;
+
+      // Is the DeltaUpdate modified by a different Transaction? Then report a
+      // conflict.
+      if (notset(action->flags(), DeltaAction::kIsCommitted)
+          && action->txn_id() != context->txn->get_id())
+        return (HAM_TXN_CONFLICT);
+
+      // Otherwise - if the key already exists - return an error unless the key
+      // is overwritten or a duplicate is inserted
+      if (isset(action->flags(), DeltaAction::kErase)) {
+        if (action->referenced_duplicate() == -1) {
+          found_action = 0;
+          continue;
         }
-        else if (flags & HAM_FIND_GT_MATCH) {
-          node = node->get_next_sibling();
-          if (!node)
-            break;
-          ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | BtreeKey::kApproximate));
-          goto retry;
-        }
-        /* if a duplicate was deleted then check if there are other duplicates
-         * left */
-        st = HAM_KEY_NOT_FOUND;
-        // TODO merge both calls
-        if (cursor) {
-          cursor->get_txn_cursor()->couple_to_op(op);
-          cursor->couple_to_txnop();
-        }
-        if (op->get_referenced_dupe() > 1) {
-          // not the first dupe - there are other dupes
-          st = 0;
-        }
-        else if (op->get_referenced_dupe() == 1) {
-          // check if there are other dupes
-          bool is_equal;
-          (void)cursor->sync(context, LocalCursor::kSyncOnlyEqualKeys, &is_equal);
-          if (!is_equal) // TODO merge w/ line above?
-            cursor->set_to_nil(LocalCursor::kBtree);
-          st = cursor->get_dupecache_count(context) ? 0 : HAM_KEY_NOT_FOUND;
-        }
-        return (st);
+        // the caller will check the duplicate cache for a valid duplicate
+        break;
       }
-      /* if the key already exists then return its record; do not
-       * return pointers to TransactionOperation::get_record, because it may be
-       * flushed and the user's pointers would be invalid */
-      else if ((op->get_flags() & TransactionOperation::kInsert)
-          || (op->get_flags() & TransactionOperation::kInsertOverwrite)
-          || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
-        if (cursor) { // TODO merge those calls
-          cursor->get_txn_cursor()->couple_to_op(op);
-          cursor->couple_to_txnop();
-        }
-        // approx match? leave the loop and continue
-        // with the btree
-        if (ham_key_get_intflags(key) & BtreeKey::kApproximate)
-          break;
-        // otherwise copy the record and return
-        if (record)
-          return (LocalDatabase::copy_record(this, context->txn, op, record));
-        return (0);
-      }
-      else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ham_assert(!"shouldn't be here");
-        return (HAM_KEY_NOT_FOUND);
+
+      // If the key exists then return its record. A deep copy is required
+      // since action->record() might be invalidated
+      if (issetany(action->flags(), DeltaAction::kInsert
+                                      | DeltaAction::kInsertOverwrite
+                                      | DeltaAction::kInsertDuplicate)) {
+        found_action = action;
+        continue;
       }
     }
-    else { /* txn is still active */
-      return (HAM_TXN_CONFLICT);
+
+    if (cursor) {
+      (*it)->binding().attach(cursor->get_btree_cursor());
+      cursor->get_btree_cursor()->couple_to_page(page, 0, 0); // TODO
+      cursor->m_currently_using = LocalCursor::kDeltaUpdate; // TODO
     }
 
-    op = op->get_previous_in_node();
+    if (found_action == 0)
+      goto find_in_btree;
+
+    if (cursor) {
+      if (HAM_KEY_NOT_FOUND == m_btree_index->find_in_leaf(context, cursor,
+                            page, key, pkey_arena, 0, 0, flags))
+        // TODO pretend that txn/btree are not equal.
+        // This will trigger a call to LocalCursor::sync() when moving 
+        // forward/backward with the cursor
+        cursor->m_last_cmp = 1;
+    }
+    // If duplicate keys are enabled: build a duplicate table
+    // Now copy the record and return
+    // TODO only if duplicates are disabled; otherwise the caller will
+    // build a duplicate table and copy the record
+    if (record)
+      copy_record(found_action->record(), &record_arena(context->txn), record);
+    return (0);
   }
 
-  /*
-   * if there was an approximate match: check if the btree provides
-   * a better match
-   */
-  if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
-    ham_key_t *k = op->get_node()->get_key();
-
-    ham_key_t txnkey = ham_make_key(::alloca(k->size), k->size);
-    txnkey._flags = BtreeKey::kApproximate;
-    ::memcpy(txnkey.data, k->data, k->size);
-
-    ham_key_set_intflags(key, 0);
-
-    // now lookup in the btree, but make sure that the retrieved key was
-    // not deleted or overwritten in a transaction
-    bool first_run = true;
-    do {
-      uint32_t new_flags = flags; 
-
-      // the "exact match" key was erased? then don't fetch it again
-      if (!first_run || exact_is_erased) {
-        first_run = false;
-        new_flags = flags & (~HAM_FIND_EXACT_MATCH);
-      }
-
-      if (cursor)
-        cursor->set_to_nil(LocalCursor::kBtree);
-      st = m_btree_index->find(context, cursor, key, pkey_arena, record,
-                      precord_arena, new_flags);
-    } while (st == 0 && is_key_erased(context, key));
-
-    // if the key was not found in the btree: return the key which was found
-    // in the transaction tree
-    if (st == HAM_KEY_NOT_FOUND) {
-      if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-        pkey_arena->resize(txnkey.size);
-        key->data = pkey_arena->get_ptr();
-      }
-      if (txnkey.data)
-        ::memcpy(key->data, txnkey.data, txnkey.size);
-      key->size = txnkey.size;
-      key->_flags = txnkey._flags;
-
-      if (cursor) { // TODO merge those calls
-        cursor->get_txn_cursor()->couple_to_op(op);
-        cursor->couple_to_txnop();
-      }
-      if (record)
-        return (LocalDatabase::copy_record(this, context->txn, op, record));
-      return (0);
-    }
-    else if (st)
-      return (st);
-
-    // the btree key is a direct match? then return it
-    if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
-          && (flags & HAM_FIND_EXACT_MATCH)
-          && !exact_is_erased) {
-      if (cursor)
-        cursor->couple_to_btree();
-      return (0);
-    }
-
-    // if there's an approx match in the btree: compare both keys and
-    // use the one that is closer. if the btree is closer: make sure
-    // that it was not erased or overwritten in a transaction
-    int cmp = m_btree_index->compare_keys(key, &txnkey);
-    bool use_btree = false;
-    if (flags & HAM_FIND_GT_MATCH) {
-      if (cmp < 0)
-        use_btree = true;
-    }
-    else if (flags & HAM_FIND_LT_MATCH) {
-      if (cmp > 0)
-        use_btree = true;
-    }
-    else
-      ham_assert(!"shouldn't be here");
-
-    if (use_btree) {
-      // lookup again, with the same flags and the btree key.
-      // this will check if the key was erased or overwritten
-      // in a transaction
-      st = find_txn(context, cursor, key, record, flags | HAM_FIND_EXACT_MATCH);
-      if (st == 0)
-        ham_key_set_intflags(key,
-          (ham_key_get_intflags(key) | BtreeKey::kApproximate));
-      return (st);
-    }
-    else { // use txn
-      if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-        pkey_arena->resize(txnkey.size);
-        key->data = pkey_arena->get_ptr();
-      }
-      if (txnkey.data) {
-        ::memcpy(key->data, txnkey.data, txnkey.size);
-      }
-      key->size = txnkey.size;
-      key->_flags = txnkey._flags;
-
-      if (cursor) { // TODO merge those calls
-        cursor->get_txn_cursor()->couple_to_op(op);
-        cursor->couple_to_txnop();
-      }
-      if (record)
-        return (LocalDatabase::copy_record(this, context->txn, op, record));
-      return (0);
-    }
+find_in_btree:
+  // Still here? then either there is no DeltaUpdate, or all of them were
+  // ignored. Fetch the key and the record from the btree
+  if (cursor) {
+    cursor->m_currently_using = LocalCursor::kBtree; // TODO
+    cursor->m_last_cmp = 1; // TODO see comment above
   }
-
-  /*
-   * no approximate match:
-   *
-   * we've successfully checked all un-flushed transactions and there
-   * were no conflicts, and we have not found the key: now try to
-   * lookup the key in the btree.
-   */
-  return (m_btree_index->find(context, cursor, key, pkey_arena, record,
-                          precord_arena, flags));
+  return (m_btree_index->find_in_leaf(context, cursor, page, key,
+                                pkey_arena, record, precord_arena, flags));
 }
 
 ham_status_t
 LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
-                TransactionCursor *cursor)
+                LocalCursor *cursor)
 {
-  ham_status_t st = 0;
-  TransactionOperation *op;
-  bool node_created = false;
-  LocalCursor *pc = 0;
-  if (cursor)
-    pc = cursor->get_parent();
+  // Fetch the BtreeNode which stores the key
+  Page *page = m_btree_index->find_leaf(context, key);
+  ham_assert(page != 0);
+  BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
-  /* get (or create) the node for this key */
-  TransactionNode *node = m_txn_index->get(key, 0);
-  if (!node) {
-    node = new TransactionNode(this, key);
-    node_created = true;
-    // TODO only store when the operation is successful?
-    m_txn_index->store(node);
-  }
+  DeltaAction *insert_action = 0;
 
-  /* check for conflicts of this key - but only if we're not erasing a
-   * duplicate key. dupes are checked for conflicts in _local_cursor_move TODO that function no longer exists */
-  if (!pc || (!pc->get_dupecache_index())) {
-    st = check_erase_conflicts(context, node, key, flags);
-    if (st) {
-      if (node_created) {
-        m_txn_index->remove(node);
-        delete node;
+  // Check for txn conflicts of this key
+  SortedDeltaUpdates::Iterator it = node->deltas().find(key, this);
+  if (it != node->deltas().end()) {
+    for (DeltaAction *action = (*it)->actions();
+            action != 0;
+            action = action->next()) {
+      // Ignore aborted Transactions
+      if (isset(action->flags(), DeltaAction::kIsAborted))
+        continue;
+
+      // Is the DeltaUpdate modified by a different Transaction? Then report a
+      // conflict.
+      if (notset(action->flags(), DeltaAction::kIsCommitted)
+          && action->txn_id() != context->txn->get_id())
+        return (HAM_TXN_CONFLICT);
+
+      // If the key was already erased then return an error
+      if (isset(action->flags(), DeltaAction::kErase)) {
+        if (action->referenced_duplicate() == -1)
+          insert_action = 0;
       }
-      return (st);
+      else if (issetany(action->flags(), DeltaAction::kInsert
+                                      | DeltaAction::kInsertOverwrite
+                                      | DeltaAction::kInsertDuplicate)) {
+        insert_action = action;
+      }
     }
   }
 
-  /* append a new operation to this node */
-  op = node->append(context->txn, flags, TransactionOperation::kErase,
-                  lenv()->next_lsn(), key, 0);
+  // Still here - no conflicts. If a key was not yet found then check the
+  // BtreeNode if the key exists
+  if (insert_action == 0 && node->find(context, key) == -1)
+    return (HAM_KEY_NOT_FOUND);
 
-  /* is this function called through ham_cursor_erase? then add the
-   * duplicate ID */
-  if (cursor) {
-    if (pc->get_dupecache_index())
-      op->set_referenced_dupe(pc->get_dupecache_index());
+  // If not then finally append a new DeltaUpdate to the node
+  DeltaUpdate *du;
+  if (it == node->deltas().end()) {
+    du = DeltaUpdateFactory::create_delta_update(this, key);
+    node->deltas().insert(du, this);
   }
+  else
+    du = *it;
 
-  /* the current op has no cursors attached; but if there are any
-   * other ops in this node and in this transaction, then they have to
-   * be set to nil. This only nil's txn-cursors! */
-  nil_all_cursors_in_node(context->txn, pc, node);
+  // Append a new DeltaAction to the DeltaUpdate
+  DeltaAction *da = DeltaUpdateFactory::create_delta_action(du,
+                        context->txn ? context->txn->get_id() : 0,
+                        lenv()->next_lsn(), 
+                        DeltaAction::kErase,
+                        flags,
+                        cursor ? cursor->m_dupecache_index : -1, 0);
+  du->append(da);
 
-  /* in addition we nil all btree cursors which are coupled to this key */
-  nil_all_cursors_in_btree(context, pc, node->get_key());
+  if (context->txn)
+    context->txn->add_delta_action(da);
+
+  // TODO combine both calls
+  if (cursor) {
+    cursor->set_to_nil();
+    cursor->get_btree_cursor()->detach_from_deltaupdate();
+  }
 
   /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+  if (isset(m_env->get_flags(),
+              HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS)) {
     Journal *j = lenv()->journal();
     j->append_erase(this, context->txn, key, 0,
-                    flags | HAM_ERASE_ALL_DUPLICATES, op->get_lsn());
+                    flags | HAM_ERASE_ALL_DUPLICATES, da->lsn());
   }
 
-  ham_assert(st == 0);
   return (0);
 }
 
@@ -698,6 +681,7 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
     LocalCursor *c = new LocalCursor(this, 0);
     ham_status_t st = cursor_move_impl(context, c, &key, 0, HAM_CURSOR_LAST);
     cursor_close(c);
+    delete c;
     if (st)
       return (st == HAM_KEY_NOT_FOUND ? 0 : st);
 
@@ -865,6 +849,9 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
   ham_status_t st = 0;
   LocalCursor *cursor = 0;
 
+  if (!(get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+    distinct = true;
+
   try {
     Context context(lenv(), (LocalTransaction *)txn, this);
 
@@ -886,7 +873,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       do {
         /* process the key */
         (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_duplicate_count(&context)
+                                        ? cursor->duplicate_count(&context)
                                         : 1);
       } while ((st = cursor_move_impl(&context, cursor, &key,
                             0, HAM_CURSOR_NEXT)) == 0);
@@ -929,7 +916,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       if (!txnkey) {
         /* process the key */
         (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_duplicate_count(&context)
+                                        ? cursor->duplicate_count(&context)
                                         : 1);
         break;
       }
@@ -948,7 +935,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
           }
           /* process the key */
           (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_duplicate_count(&context)
+                                        ? cursor->duplicate_count(&context)
                                         : 1);
         } while ((st = cursor_move_impl(&context, cursor, &key,
                                 0, HAM_CURSOR_NEXT)) == 0);
@@ -970,7 +957,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     while ((st = cursor_move_impl(&context, cursor, &key,
                             0, HAM_CURSOR_NEXT)) == 0) {
       (*visitor)(key.data, key.size, distinct
-                                     ? cursor->get_duplicate_count(&context)
+                                     ? cursor->duplicate_count(&context)
                                      : 1);
     }
 
@@ -1155,7 +1142,7 @@ LocalDatabase::find(Cursor *hcursor, Transaction *txn, ham_key_t *key,
      * TODO not exception safe - if find() throws then the cursor is not closed
      */
     if (!cursor
-          && (get_flags() & (HAM_ENABLE_DUPLICATE_KEYS|HAM_ENABLE_TRANSACTIONS))) {
+          && (get_flags() & (HAM_ENABLE_DUPLICATE_KEYS | HAM_ENABLE_TRANSACTIONS))) {
       LocalCursor *c = (LocalCursor *)cursor_create_impl(txn);
       st = find(c, txn, key, record, flags);
       c->close();
@@ -1178,35 +1165,23 @@ LocalDatabase::find(Cursor *hcursor, Transaction *txn, ham_key_t *key,
     if (st)
       return (finalize(&context, st, 0));
 
-    if (cursor) {
-      // make sure that txn-cursor and btree-cursor point to the same keys
-      if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
-        bool is_equal;
-        (void)cursor->sync(&context, LocalCursor::kSyncOnlyEqualKeys, &is_equal);
-        if (!is_equal && cursor->is_coupled_to_txnop())
-          cursor->set_to_nil(LocalCursor::kBtree);
-      }
-
-      /* if the key has duplicates: build a duplicate table, then couple to the
-       * first/oldest duplicate */
-      if (cursor->get_dupecache_count(&context, true)) {
-        cursor->couple_to_dupe(1); // 1-based index!
-        if (record) { // TODO don't copy record if it was already
-                      // copied in find_impl
-          if (cursor->is_coupled_to_txnop())
-            cursor->get_txn_cursor()->copy_coupled_record(record);
-          else {
-            Transaction *txn = cursor->get_txn();
-            st = cursor->get_btree_cursor()->move(&context, 0, 0, record,
-                          &record_arena(txn), 0);
-          }
-        }
-      }
-
-      /* set a flag that the cursor just completed an Insert-or-find
-       * operation; this information is needed in ham_cursor_move */
-      cursor->set_last_operation(LocalCursor::kLookupOrInsert);
+    // if a cursor is used w/ duplicates and transactions (DeltaUpdates)
+    // enabled then the duplicates have to be consolidated in a DuplicateCache
+    if (cursor != 0
+            && isset(get_flags(),
+                        HAM_ENABLE_DUPLICATE_KEYS | HAM_ENABLE_TRANSACTIONS)) {
+      cursor->update_duplicate_cache(&context);
+      if (cursor->m_duplicate_cache.size() == 0)
+        return (finalize(&context, HAM_KEY_NOT_FOUND, 0));
+      cursor->couple_to_duplicate(0);
+      if (record)
+        cursor->move(&context, 0, record, 0);
     }
+
+    /* set a flag that the cursor just completed an Insert-or-find
+     * operation; this information is needed in ham_cursor_move */
+    if (cursor)
+      cursor->set_last_operation(LocalCursor::kLookupOrInsert);
 
     return (finalize(&context, st, 0));
   }
@@ -1364,7 +1339,7 @@ LocalDatabase::increment_dupe_index(Context *context, TransactionNode *node,
     }
 
     if (hit) {
-      if (c->get_dupecache_index() > start)
+      if (c->get_dupecache_index() > (int)start)
         c->set_dupecache_index(c->get_dupecache_index() + 1);
     }
 
@@ -1374,103 +1349,27 @@ next:
 }
 
 void
-LocalDatabase::nil_all_cursors_in_node(LocalTransaction *txn,
-                LocalCursor *current, TransactionNode *node)
+LocalDatabase::copy_key(ham_key_t *source, ByteArray *arena,
+                ham_key_t *dest)
 {
-  TransactionOperation *op = node->get_newest_op();
-  while (op) {
-    TransactionCursor *cursor = op->cursor_list();
-    while (cursor) {
-      LocalCursor *parent = cursor->get_parent();
-      // is the current cursor to a duplicate? then adjust the
-      // coupled duplicate index of all cursors which point to a duplicate
-      if (current) {
-        if (current->get_dupecache_index()) {
-          if (current->get_dupecache_index() < parent->get_dupecache_index()) {
-            parent->set_dupecache_index(parent->get_dupecache_index() - 1);
-            cursor = cursor->get_coupled_next();
-            continue;
-          }
-          else if (current->get_dupecache_index() > parent->get_dupecache_index()) {
-            cursor = cursor->get_coupled_next();
-            continue;
-          }
-          // else fall through
-        }
-      }
-      parent->couple_to_btree(); // TODO merge these two lines
-      parent->set_to_nil(LocalCursor::kTxn);
-      // set a flag that the cursor just completed an Insert-or-find
-      // operation; this information is needed in ham_cursor_move
-      // (in this aspect, an erase is the same as insert/find)
-      parent->set_last_operation(LocalCursor::kLookupOrInsert);
-
-      cursor = op->cursor_list();
-    }
-
-    op = op->get_previous_in_node();
+  if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+    arena->resize(source->size);
+    dest->data = arena->get_ptr();
   }
-}
-
-ham_status_t
-LocalDatabase::copy_record(LocalDatabase *db, Transaction *txn,
-                TransactionOperation *op, ham_record_t *record)
-{
-  ByteArray *arena = &db->record_arena(txn);
-
-  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-    arena->resize(op->get_record()->size);
-    record->data = arena->get_ptr();
-  }
-  memcpy(record->data, op->get_record()->data, op->get_record()->size);
-  record->size = op->get_record()->size;
-  return (0);
+  ::memcpy(dest->data, source->data, source->size);
+  dest->size = source->size;
 }
 
 void
-LocalDatabase::nil_all_cursors_in_btree(Context *context, LocalCursor *current,
-                ham_key_t *key)
+LocalDatabase::copy_record(ham_record_t *source, ByteArray *arena,
+                ham_record_t *dest)
 {
-  LocalCursor *c = (LocalCursor *)m_cursor_list;
-
-  /* foreach cursor in this database:
-   *  if it's nil or coupled to the txn: skip it
-   *  if it's coupled to btree AND uncoupled: compare keys; set to nil
-   *    if keys are identical
-   *  if it's uncoupled to btree AND coupled: compare keys; set to nil
-   *    if keys are identical; (TODO - improve performance by nil'ling
-   *    all other cursors from the same btree page)
-   *
-   *  do NOT nil the current cursor - it's coupled to the key, and the
-   *  coupled key is still needed by the caller
-   */
-  while (c) {
-    if (c->is_nil(0) || c == current)
-      goto next;
-    if (c->is_coupled_to_txnop())
-      goto next;
-
-    if (c->get_btree_cursor()->points_to(context, key)) {
-      /* is the current cursor to a duplicate? then adjust the
-       * coupled duplicate index of all cursors which point to a
-       * duplicate */
-      if (current) {
-        if (current->get_dupecache_index()) {
-          if (current->get_dupecache_index() < c->get_dupecache_index()) {
-            c->set_dupecache_index(c->get_dupecache_index() - 1);
-            goto next;
-          }
-          else if (current->get_dupecache_index() > c->get_dupecache_index()) {
-            goto next;
-          }
-          /* else fall through */
-        }
-      }
-      c->set_to_nil(0);
-    }
-next:
-    c = (LocalCursor *)c->get_next();
+  if (!(dest->flags & HAM_RECORD_USER_ALLOC)) {
+    arena->resize(source->size);
+    dest->data = arena->get_ptr();
   }
+  ::memcpy(dest->data, source->data, source->size);
+  dest->size = source->size;
 }
 
 ham_status_t
@@ -1534,6 +1433,54 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
   return (st);
 }
 
+struct UncoupleBtreeCursor
+{
+  void operator()(DeltaUpdate *update, BtreeCursor *cursor) {
+    cursor->uncouple_from_deltaupdate(update);
+  }
+};
+
+void
+LocalDatabase::flush_delta_action(Context *context, DeltaAction *action)
+{
+  DeltaUpdate *update = action->delta_update();
+
+  /*
+   * Depending on the type of the operation: actually perform the
+   * operation on the btree.
+   */
+  if (issetany(action->flags(), 
+            DeltaAction::kInsert
+             | DeltaAction::kInsertOverwrite
+             | DeltaAction::kInsertDuplicate)) {
+    uint32_t additional_flag = 0;
+    if (isset(action->flags(), TransactionOperation::kInsertDuplicate))
+      additional_flag |= HAM_DUPLICATE;
+
+    // Now insert the key, and couple the *first* cursor to the inserted
+    // key. In 99% of all cases there will NOT be more than one cursor. If
+    // it is, then simply uncouple all other cursors. They will be
+    // coupled when they are accessed again.
+    BtreeCursor *btree_cursor = update->binding().any();
+    m_btree_index->insert(context,
+                    btree_cursor ? btree_cursor->parent() : 0,
+                    update->key(), action->record(),
+                    action->original_flags() | additional_flag);
+    if (update->binding().size() > 1)
+      update->binding().perform(UncoupleBtreeCursor());
+    return;
+  }
+
+  if (isset(action->flags(), DeltaAction::kErase)) {
+    ham_status_t st = m_btree_index->erase(context, 0, update->key(),
+                  action->referenced_duplicate(), action->original_flags());
+    if (st && st != HAM_KEY_NOT_FOUND)
+      throw Exception(st);
+
+    return;
+  }
+}
+
 ham_status_t
 LocalDatabase::drop(Context *context)
 {
@@ -1545,54 +1492,23 @@ ham_status_t
 LocalDatabase::insert_impl(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
-  ham_status_t st = 0;
-
   lenv()->page_manager()->purge_cache(context);
 
   /*
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
+  ham_status_t st = 0;
   if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
-    st = insert_txn(context, key, record, flags, cursor
-                                                ? cursor->get_txn_cursor()
-                                                : 0);
+    st = insert_txn(context, key, record, flags, cursor);
   else
     st = m_btree_index->insert(context, cursor, key, record, flags);
 
-  // couple the cursor to the inserted key
+  /*
+   * set a flag that the cursor just completed an Insert-or-find
+   * operation; this information is needed in ham_cursor_move()
+   */
   if (st == 0 && cursor) {
-    if (m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-      DupeCache *dc = cursor->get_dupecache();
-      // TODO required? should have happened in insert_txn
-      cursor->couple_to_txnop();
-      /* the cursor is coupled to the txn-op; nil the btree-cursor to
-       * trigger a sync() call when fetching the duplicates */
-      // TODO merge with the line above
-      cursor->set_to_nil(LocalCursor::kBtree);
-
-      /* if duplicate keys are enabled: set the duplicate index of
-       * the new key  */
-      if (st == 0 && cursor->get_dupecache_count(context, true)) {
-        TransactionOperation *op = cursor->get_txn_cursor()->get_coupled_op();
-        ham_assert(op != 0);
-
-        for (uint32_t i = 0; i < dc->get_count(); i++) {
-          DupeCacheLine *l = dc->get_element(i);
-          if (!l->use_btree() && l->get_txn_op() == op) {
-            cursor->set_dupecache_index(i + 1);
-            break;
-          }
-        }
-      }
-    }
-    else {
-      // TODO required? should have happened in BtreeInsertAction
-      cursor->couple_to_btree();
-    }
-
-    /* set a flag that the cursor just completed an Insert-or-find
-     * operation; this information is needed in ham_cursor_move */
     cursor->set_last_operation(LocalCursor::kLookupOrInsert);
   }
 
@@ -1610,8 +1526,12 @@ LocalDatabase::find_impl(Context *context, LocalCursor *cursor,
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
    */
-  if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS)
-    return (find_txn(context, cursor, key, record, flags));
+  if (context->txn || m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    if (flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
+      return (find_approx_txn(context, cursor, key, record, flags));
+    else
+      return (find_txn(context, cursor, key, record, flags));
+  }
 
   return (m_btree_index->find(context, cursor, key, &key_arena(context->txn),
                           record, &record_arena(context->txn), flags));
@@ -1634,31 +1554,30 @@ LocalDatabase::erase_impl(Context *context, LocalCursor *cursor, ham_key_t *key,
        * we have two cases:
        *
        * 1. the cursor is coupled to a btree item (or uncoupled, but not nil)
-       *    and the txn_cursor is nil; in that case, we have to
+       *    and NOT to a DeltaUpdate:
        *    - uncouple the btree cursor
-       *    - insert the erase-op for the key which is used by the btree cursor
+       *    - insert an "Erase"-DeltaUpdate for the current key
        *
-       * 2. the cursor is coupled to a txn-op; in this case, we have to
-       *    - insert the erase-op for the key which is used by the txn-op
+       * 2. the cursor is attached to a DeltaUpdate; in this case, we have to
+       *    - insert an "Erase"-DeltaUpdate for the current key
        *
        * TODO clean up this whole mess. code should be like
        *
        *   if (txn)
-       *     erase_txn(txn, cursor->get_key(), 0, cursor->get_txn_cursor());
+       *     erase_txn(txn, cursor->key(), 0, cursor->txn_cursor());
        */
       /* case 1 described above */
-      if (cursor->is_coupled_to_btree()) {
-        cursor->set_to_nil(LocalCursor::kTxn);
-        cursor->get_btree_cursor()->uncouple_from_page(context);
-        st = erase_txn(context, cursor->get_btree_cursor()->get_uncoupled_key(),
-                        0, cursor->get_txn_cursor());
+      if (cursor->m_currently_using == LocalCursor::kDeltaUpdate) {
+        Page *page;
+        cursor->get_btree_cursor()->get_coupled_key(&page, 0, 0);
+        ham_key_t *key = cursor->get_btree_cursor()->deltaupdate()->key();
+        st = erase_txn(context, key, 0, cursor);
       }
       /* case 2 described above */
       else {
-        // TODO this line is ugly
-        st = erase_txn(context, 
-                        cursor->get_txn_cursor()->get_coupled_op()->get_key(),
-                        0, cursor->get_txn_cursor());
+        cursor->get_btree_cursor()->uncouple_from_page(context);
+        st = erase_txn(context, cursor->get_btree_cursor()->get_uncoupled_key(),
+                        0, cursor);
       }
     }
     else {

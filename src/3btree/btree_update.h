@@ -97,7 +97,7 @@ class BtreeUpdateAction
 
     // the duplicate index (in case the update is for a duplicate key)
     // 1-based (if 0 then this update is not for a duplicate)
-    uint32_t m_duplicate_index;
+    int m_duplicate_index;
 
   private:
     /* Merges the |sibling| into |page|, returns the merged page and moves

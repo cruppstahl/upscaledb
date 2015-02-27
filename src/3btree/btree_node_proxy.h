@@ -36,6 +36,7 @@
 #include "1base/error.h"
 #include "2page/page.h"
 #include "3btree/btree_node.h"
+#include "3delta/delta_updates_sorted.h"
 #include "3blob_manager/blob_manager.h"
 #include "4env/env_local.h"
 #include "4db/db_local.h"
@@ -68,6 +69,11 @@ class BtreeNodeProxy
 
     // Destructor
     virtual ~BtreeNodeProxy() {
+    }
+
+    // Returns the DeltaUpdates
+    SortedDeltaUpdates &deltas() {
+      return (m_deltas);
     }
 
     // Returns the flags of the btree node (|kLeafNode|)
@@ -256,6 +262,9 @@ class BtreeNodeProxy
 
   protected:
     Page *m_page;
+
+    // A Sorted list of DeltaUpdates
+    SortedDeltaUpdates m_deltas;
 };
 
 //
@@ -559,13 +568,16 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       size_t node_count = get_count();
       set_count(pivot);
 
+      /* also split the delta updates */
+      m_deltas.split(pivot, other_node->deltas());
+
       if (is_leaf())
         other->set_count(node_count - pivot);
       else
         other->set_count(node_count - pivot - 1);
     }
 
-    // Merges all keys from the |other| node into this node
+    // Merges all keys from the |other_node| into this node
     virtual void merge_from(Context *context, BtreeNodeProxy *other_node) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
       ham_assert(other != 0);
@@ -574,6 +586,9 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
       set_count(get_count() + other->get_count());
       other->set_count(0);
+
+      /* also merge the delta updates */
+      m_deltas.append(other_node->deltas());
     }
 
     // Fills the btree_metrics structure
@@ -601,6 +616,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
   private:
+    // The actual implementation - a template parameter
     NodeImpl m_impl;
 };
 

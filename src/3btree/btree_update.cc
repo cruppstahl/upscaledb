@@ -425,8 +425,8 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
   // couple it to the inserted key
   // TODO only when performing an insert(), not an erase()!
   if (m_cursor && node->is_leaf()) {
-    m_cursor->get_parent()->set_to_nil(LocalCursor::kBtree);
-    ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
+    m_cursor->parent()->set_to_nil(LocalCursor::kBtree);
+    ham_assert(m_cursor->state() == BtreeCursor::kStateNil);
     m_cursor->couple_to_page(page, result.slot, new_duplicate_id);
   }
 

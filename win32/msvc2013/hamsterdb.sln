@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_env3", "sample_env3.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_info", "ham_info.vcxproj", "{8FE983E8-8B32-4524-9BEF-1311B7ABC142}"
 EndProject
+Project("{99348342-8B4A-11D0-8D11-00A0C91BC942}") = "ham_recover", "ham_recover.vcxproj", "{99348342-8B32-4524-9BEF-1311B7ABC142}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_dump", "ham_dump.vcxproj", "{D11CE71E-716F-46B0-9DDD-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{10DCD767-DFBE-4096-9258-111D4CF899B1} = {10DCD767-DFBE-4096-9258-111D4CF899B1}

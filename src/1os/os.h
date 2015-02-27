@@ -43,7 +43,7 @@ namespace hamsterdb {
 /*
  * typedefs for posix
  */
-#ifdef HAM_OS_POSIX
+#ifndef WIN32
 typedef int                ham_fd_t;
 typedef int	               ham_socket_t;
 #  define HAM_INVALID_FD  (-1)

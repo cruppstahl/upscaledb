@@ -101,17 +101,6 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 
-  void txnTreeStructureTest() {
-    ham_txn_t *txn;
-    TransactionIndex *tree;
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->txn_index();
-    REQUIRE(tree != (TransactionIndex *)0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
   void txnTreeCreatedOnceTest() {
     ham_txn_t *txn;
     TransactionIndex *tree, *tree2;
@@ -125,154 +114,39 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
-  void txnMultipleTreesTest() {
-    ham_db_t *db2, *db3;
-    ham_txn_t *txn;
-    TransactionIndex *tree1, *tree2, *tree3;
-
-    REQUIRE(0 == ham_env_create_db(m_env, &db2, 14, 0, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &db3, 15, 0, 0));
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree1 = m_dbp->txn_index();
-    tree2 = ((LocalDatabase *)db2)->txn_index();
-    tree3 = ((LocalDatabase *)db3)->txn_index();
-    REQUIRE(tree1 != 0);
-    REQUIRE(tree2 != 0);
-    REQUIRE(tree3 != 0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-    REQUIRE(0 == ham_db_close(db2, 0));
-    REQUIRE(0 == ham_db_close(db3, 0));
-  }
-
-  void txnNodeCreatedOnceTest() {
-    ham_txn_t *txn;
-    TransactionNode *node1, *node2;
-    ham_key_t key1 = ham_make_key((void *)"hello", 5);
-    ham_key_t key2 = ham_make_key((void *)"world", 5);
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = new TransactionNode(m_dbp, &key1);
-    m_dbp->txn_index()->store(node1);
-    node2 = m_dbp->txn_index()->get(&key1, 0);
-    REQUIRE(node1 == node2);
-    node2 = m_dbp->txn_index()->get(&key2, 0);
-    REQUIRE((TransactionNode *)NULL == node2);
-    node2 = new TransactionNode(m_dbp, &key2);
-    m_dbp->txn_index()->store(node2);
-    REQUIRE(node1 != node2);
-
-    // clean up
-    m_dbp->txn_index()->remove(node1);
-    delete node1;
-    m_dbp->txn_index()->remove(node2);
-    delete node2;
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
-  void txnMultipleNodesTest() {
-    ham_txn_t *txn;
-    TransactionNode *node1, *node2, *node3;
-    ham_key_t key1 = {0};
-    ham_key_t key2 = {0};
-    ham_key_t key3 = {0};
-    key1.data = (void *)"1111";
-    key1.size = 5;
-    key2.data = (void *)"2222";
-    key2.size = 5;
-    key3.data = (void *)"3333";
-    key3.size = 5;
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = new TransactionNode(m_dbp, &key1);
-    m_dbp->txn_index()->store(node1);
-    node2 = new TransactionNode(m_dbp, &key2);
-    m_dbp->txn_index()->store(node2);
-    node3 = new TransactionNode(m_dbp, &key3);
-    m_dbp->txn_index()->store(node3);
-
-    // clean up
-    m_dbp->txn_index()->remove(node1);
-    delete node1;
-    m_dbp->txn_index()->remove(node2);
-    delete node2;
-    m_dbp->txn_index()->remove(node3);
-    delete node3;
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
-  void txnMultipleOpsTest() {
-    ham_txn_t *txn;
-    TransactionNode *node;
-    TransactionOperation *op1, *op2, *op3;
-    ham_key_t key = ham_make_key((void *)"hello", 5);
-    ham_record_t rec = ham_make_record((void *)"world", 5);
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode(m_dbp, &key);
-    m_dbp->txn_index()->store(node);
-    op1 = node->append((LocalTransaction *)txn, 
-                0, TransactionOperation::kInsertDuplicate, 55, &key, &rec);
-    REQUIRE(op1 != 0);
-    op2 = node->append((LocalTransaction *)txn,
-                0, TransactionOperation::kErase, 56, &key, &rec);
-    REQUIRE(op2 != 0);
-    op3 = node->append((LocalTransaction *)txn,
-                0, TransactionOperation::kNop, 57, &key, &rec);
-    REQUIRE(op3 != 0);
-
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
   void txnInsertConflict1Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
     REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
-    REQUIRE(HAM_TXN_CONFLICT ==
-          ham_db_insert(m_db, txn2, &key, &rec, 0));
+    REQUIRE(HAM_TXN_CONFLICT == ham_db_insert(m_db, txn2, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict2Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
-    /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> duplicate */
+    /* begin(T1); begin(T2); insert(T1, a); commit(T1);
+     * insert(T2, a) -> duplicate */
     REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
-    REQUIRE(HAM_DUPLICATE_KEY ==
-          ham_db_insert(m_db, txn2, &key, &rec, 0));
+    REQUIRE(HAM_DUPLICATE_KEY == ham_db_insert(m_db, txn2, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict3Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * insert(T2, a, OW) -> ok */
@@ -280,19 +154,14 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
-    REQUIRE(0 ==
-          ham_db_insert(m_db, txn2, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, txn2, &key, &rec, HAM_OVERWRITE));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict4Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * insert(T2, a, DUP) -> ok */
@@ -300,19 +169,14 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
-    REQUIRE(0 ==
-          ham_db_insert(m_db, txn2, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, txn2, &key, &rec, HAM_DUPLICATE));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict5Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1);
      * insert(T2, a) */
@@ -326,16 +190,9 @@ struct TxnFixture {
 
   void txnInsertFind1Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
+    ham_record_t rec2 = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); find(T2, a) -> ok */
     REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
@@ -345,45 +202,30 @@ struct TxnFixture {
     REQUIRE(0 == ham_db_find(m_db, txn2, &key, &rec2, 0));
 
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == memcmp(rec.data, rec2.data, rec2.size));
+    REQUIRE(0 == ::memcmp(rec.data, rec2.data, rec2.size));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind2Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
+    ham_record_t rec2 = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
     REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
-    REQUIRE(HAM_TXN_CONFLICT ==
-          ham_db_find(m_db, txn2, &key, &rec2, 0));
+    REQUIRE(HAM_TXN_CONFLICT == ham_db_find(m_db, txn2, &key, &rec2, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind3Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
+    ham_record_t rec2 = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * commit(T2); find(temp, a) -> ok */
@@ -395,17 +237,13 @@ struct TxnFixture {
     REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
 
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == memcmp(rec.data, rec2.data, rec2.size));
+    REQUIRE(0 == ::memcmp(rec.data, rec2.data, rec2.size));
   }
 
   void txnInsertFind4Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1);
      * find(T2, a) -> fail */
@@ -413,24 +251,16 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_abort(txn1, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_find(m_db, txn2, &key, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, txn2, &key, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind5Test(void)
   {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    ham_key_t key2;
-    memset(&key2, 0, sizeof(key2));
-    key2.data = (void *)"world";
-    key2.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_key_t key2 = ham_make_key((void *)"world", 5);
+    ham_record_t rec = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * find(T2, c) -> fail */
@@ -438,54 +268,15 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_txn_abort(txn1, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_find(m_db, txn2, &key2, &rec, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, txn2, &key2, &rec, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
-#if 0
-  void txnPartialInsertFindTest(void) {
-    ham_txn_t *txn;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data=(void *)"hello";
-    key.size=5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data=(void *)"worldworld";
-    rec.size=9;
-    rec.partial_offset=1;
-    rec.partial_size=2;
-
-    /* insert partial record */
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_PARTIAL));
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-
-    /* and read it back */
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
-    rec2.partial_offset=1;
-    rec2.partial_size=2;
-    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec2, HAM_PARTIAL));
-
-TODO weiter hier - compare record; must be "\0or\0\0\0\0\0\0\0" (ists
-aber nicht)
-  }
-#endif
-
   void txnInsertFindErase1Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
+    ham_record_t rec2 = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); erase(T2, a);
      * find(T2, a) -> fail */
@@ -501,16 +292,9 @@ aber nicht)
 
   void txnInsertFindErase2Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
+    ham_record_t rec2 = {0};
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); commit(T2);
      * erase(T3, a) -> ok; find(T2, a) -> fail */
@@ -526,14 +310,8 @@ aber nicht)
 
   void txnInsertFindErase3Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1); erase(T2, a) -> fail;
      * commit(T2); */
@@ -547,16 +325,8 @@ aber nicht)
 
   void txnInsertFindErase4Test() {
     ham_txn_t *txn1, *txn2;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data = (void *)"world";
-    rec.size = 5;
-    ham_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
+    ham_key_t key = ham_make_key((void *)"hello", 5);
+    ham_record_t rec = ham_make_record((void *)"world", 5);
 
     /* begin(T1); begin(T2); insert(T1, a); erase(T1, a); -> ok;
      * commit(T2); */
@@ -564,11 +334,9 @@ aber nicht)
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
     REQUIRE(0 == ham_db_erase(m_db, txn1, &key, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_erase(m_db, txn1, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, txn1, &key, 0));
     REQUIRE(0 == ham_txn_commit(txn1, 0));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, txn2, &key, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 };
@@ -595,36 +363,6 @@ TEST_CASE("Txn/beginAbortTest", "")
 {
   TxnFixture f;
   f.beginAbortTest();
-}
-
-TEST_CASE("Txn/txnTreeStructureTest", "")
-{
-  TxnFixture f;
-  f.txnTreeStructureTest();
-}
-
-TEST_CASE("Txn/txnMultipleTreesTest", "")
-{
-  TxnFixture f;
-  f.txnMultipleTreesTest();
-}
-
-TEST_CASE("Txn/txnNodeCreatedOnceTest", "")
-{
-  TxnFixture f;
-  f.txnNodeCreatedOnceTest();
-}
-
-TEST_CASE("Txn/txnMultipleNodesTest", "")
-{
-  TxnFixture f;
-  f.txnMultipleNodesTest();
-}
-
-TEST_CASE("Txn/txnMultipleOpsTest", "")
-{
-  TxnFixture f;
-  f.txnMultipleOpsTest();
 }
 
 TEST_CASE("Txn/txnInsertConflict1Test", "")

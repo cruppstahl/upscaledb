@@ -33,6 +33,7 @@
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node.h"
+#include "3btree/btree_index_traits.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -172,29 +173,6 @@ struct PDupeEntry;
 struct BtreeVisitor;
 
 //
-// Abstract base class, overwritten by a templated version
-//
-class BtreeIndexTraits
-{
-  public:
-    // virtual destructor
-    virtual ~BtreeIndexTraits() { }
-
-    // Compares two keys
-    // Returns -1, 0, +1 or higher positive values are the result of a
-    // successful key comparison (0 if both keys match, -1 when
-    // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
-                    ham_key_t *rhs) const = 0;
-
-    // Returns the class name (for testing)
-    virtual std::string test_get_classname() const = 0;
-
-    // Implementation of get_node_from_page()
-    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) const = 0;
-};
-
-//
 // The Btree. Derived by BtreeIndexImpl, which uses template policies to
 // define the btree node layout.
 //
@@ -280,6 +258,15 @@ class BtreeIndex
     // Returns the key compression algorithm
     int key_compression();
 
+    // Lookup a key in the index; returns the leaf page with that key
+    Page *find_leaf(Context *context, ham_key_t *key);
+
+    // Lookup a key in a leaf page
+    ham_status_t find_in_leaf(Context *context, LocalCursor *cursor,
+                    Page *page, ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags);
+
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Context *context, LocalCursor *cursor, ham_key_t *key,
                     ByteArray *key_arena, ham_record_t *record,
@@ -315,7 +302,7 @@ class BtreeIndex
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
     int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
-      return (m_leaf_traits->compare_keys(m_db, lhs, rhs));
+      return (m_leaf_traits->compare_keys(lhs, rhs));
     }
 
     // Returns a BtreeNodeProxy for a Page

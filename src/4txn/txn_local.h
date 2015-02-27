@@ -26,6 +26,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1rb/rb.h"
+#include "3delta/delta_actions_unsorted.h"
 #include "4txn/txn.h"
 
 #ifndef HAM_ROOT_H
@@ -435,6 +436,18 @@ class LocalTransaction : public Transaction
       return (m_accum_data_size);
     }
 
+    // Appends a DeltaAction to this Transaction
+    void add_delta_action(DeltaAction *da) {
+      m_delta_actions.append(da);
+
+      m_op_counter++;
+      m_accum_data_size += da->data_size();
+    }
+
+    UnsortedDeltaActions &delta_actions() {
+      return (m_delta_actions);
+    }
+
   private:
     friend class Journal;
     friend struct TxnFixture;
@@ -470,6 +483,9 @@ class LocalTransaction : public Transaction
     // The approximate accumulated memory consumed by this Transaction
     // (sums up key->size and record->size over all operations)
     int m_accum_data_size;
+
+    // A list of DeltaActions
+    UnsortedDeltaActions m_delta_actions;
 };
 
 

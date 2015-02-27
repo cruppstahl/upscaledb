@@ -75,7 +75,6 @@ test_SOURCES    = api110.cpp \
 				  partial-write-ps64.h \
 				  recno.cpp \
 				  txn.cpp \
-				  txn_cursor.cpp \
 				  utils.h
 
 recovery_SOURCES = recovery.cpp

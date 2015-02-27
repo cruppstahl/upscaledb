@@ -103,6 +103,9 @@
 /* Define to 1 if you have the <uv.h> header file. */
 #undef HAVE_UV_H
 
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
 /* Define to 1 if you have the `writev' function. */
 #undef HAVE_WRITEV
 

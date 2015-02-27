@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
+#include "0root/root.h"
+
 // Always verify that a file of level N does not include headers > N!
-#include "1base/util.h"
+#include "3delta/delta_binding.h"
+#include "3delta/delta_update.h"
+#include "3delta/delta_updates_sorted.h"
+#include "3btree/btree_cursor.h"
+
+#ifndef HAM_ROOT_H
+#  error "root.h was not included"
+#endif
 
 namespace hamsterdb {
 
-int
-util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+void 
+DeltaBinding::attach(BtreeCursor *cursor)
 {
-#if defined(HAVE_VSNPRINTF)
-  return vsnprintf(str, size, format, ap);
-#elif defined(WIN32)
-  return _vsnprintf(str, size, format, ap);
-#else
-  (void)size;
-  return (vsprintf(str, format, ap));
-#endif
+  cursor->attach_to_deltaupdate(m_update);
 }
 
 } // namespace hamsterdb
-

@@ -50,8 +50,41 @@ class BtreeFindAction
       : m_btree(btree), m_context(context), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags), m_key_arena(key_arena),
         m_record_arena(record_arena) {
-      if (cursor && cursor->get_btree_cursor()->get_parent())
+      if (cursor && cursor->get_btree_cursor()->parent())
         m_cursor = cursor->get_btree_cursor();
+    }
+
+    Page *find_leaf() {
+      LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->lenv();
+
+      /* load the root page */
+      Page *page = env->page_manager()->fetch(m_context,
+                        m_btree->root_address(), PageManager::kReadOnly);
+
+      /* now traverse the root to the leaf nodes till we find a leaf */
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+      while (!node->is_leaf()) {
+        page = m_btree->find_lower_bound(m_context, page, m_key,
+                              PageManager::kReadOnly, 0);
+        if (!page)
+          throw Exception(HAM_KEY_NOT_FOUND);
+
+        node = m_btree->get_node_from_page(page);
+      }
+
+      return (page);
+    }
+
+    ham_status_t find_in_leaf(Page *page) {
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+      ham_assert(node->is_leaf());
+
+      uint32_t approx_match;
+      int slot = find(m_context, page, m_key, m_flags, &approx_match);
+      if (slot == -1)
+        return (HAM_KEY_NOT_FOUND);
+      return (finalize(page, slot, approx_match));
     }
 
     ham_status_t run() {
@@ -104,17 +137,8 @@ class BtreeFindAction
                         m_btree->root_address(), PageManager::kReadOnly);
 
         /* now traverse the root to the leaf nodes till we find a leaf */
+        page = find_leaf();
         node = m_btree->get_node_from_page(page);
-        while (!node->is_leaf()) {
-          page = m_btree->find_lower_bound(m_context, page, m_key,
-                                PageManager::kReadOnly, 0);
-          if (!page) {
-            stats->find_failed();
-            return (HAM_KEY_NOT_FOUND);
-          }
-
-          node = m_btree->get_node_from_page(page);
-        }
 
         /* check the leaf page for the key (shortcut w/o approx. matching) */
         if (m_flags == 0) {
@@ -123,7 +147,7 @@ class BtreeFindAction
             stats->find_failed();
             return (HAM_KEY_NOT_FOUND);
           }
-          goto return_result;
+          return (finalize(page, slot, approx_match));
         }
 
         /* check the leaf page for the key (long path w/ approx. matching),
@@ -162,28 +186,7 @@ class BtreeFindAction
 
       ham_assert(node->is_leaf());
 
-return_result:
-      /* set the cursor-position to this key */
-      if (m_cursor) {
-        m_cursor->couple_to_page(page, slot, 0);
-      }
-
-      /* approx. match: patch the key flags */
-      if (approx_match) {
-        ham_key_set_intflags(m_key, approx_match);
-      }
-
-      /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
-       * is set: */
-      if (m_key && approx_match && !(m_flags & LocalCursor::kSyncDontLoadKey)) {
-        node->get_key(m_context, slot, m_key_arena, m_key);
-      }
-
-      if (m_record) {
-        node->get_record(m_context, slot, m_record_arena, m_record, m_flags);
-      }
-
-      return (0);
+      return (finalize(page, slot, approx_match));
     }
 
   private:
@@ -236,6 +239,30 @@ return_result:
       return (cmp ? -1 : slot);
     }
 
+    ham_status_t finalize(Page *page, int slot, uint32_t approx_match) {
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+
+      /* set the cursor-position to this key */
+      if (m_cursor) {
+        m_cursor->couple_to_page(page, slot, 0);
+      }
+
+      /* approx. match: patch the key flags */
+      if (approx_match != 0)
+        ham_key_set_intflags(m_key, approx_match);
+
+      /* overwrite the key if we have an approx. match */
+      if (m_key && approx_match) {
+        node->get_key(m_context, slot, m_key_arena, m_key);
+      }
+
+      if (m_record)
+        node->get_record(m_context, slot, m_record_arena, m_record, m_flags);
+
+      return (0);
+    }
+
+
     // the current btree
     BtreeIndex *m_btree;
 
@@ -269,6 +296,24 @@ BtreeIndex::find(Context *context, LocalCursor *cursor, ham_key_t *key,
   BtreeFindAction bfa(this, context, cursor, key, key_arena, record,
                   record_arena, flags);
   return (bfa.run());
+}
+
+Page *
+BtreeIndex::find_leaf(Context *context, ham_key_t *key)
+{
+  BtreeFindAction bfa(this, context, 0, key, 0, 0, 0, 0);
+  return (bfa.find_leaf());
+}
+
+ham_status_t
+BtreeIndex::find_in_leaf(Context *context, LocalCursor *cursor,
+                    Page *page, ham_key_t *key, ByteArray *key_arena,
+                    ham_record_t *record, ByteArray *record_arena,
+                    uint32_t flags)
+{
+  BtreeFindAction bfa(this, context, cursor, key, key_arena, record,
+                  record_arena, flags);
+  return (bfa.find_in_leaf(page));
 }
 
 } // namespace hamsterdb

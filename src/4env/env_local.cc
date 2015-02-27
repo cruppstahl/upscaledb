@@ -310,13 +310,13 @@ LocalEnvironment::do_get_parameters(ham_parameter_t *param)
         break;
       case HAM_PARAM_FILENAME:
         if (m_config.filename.size())
-          p->value = (uint64_t)(PTR_TO_U64(m_config.filename.c_str()));
+          p->value = (uint64_t)(m_config.filename.c_str());
         else
           p->value = 0;
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         if (m_config.log_filename.size())
-          p->value = (uint64_t)(PTR_TO_U64(m_config.log_filename.c_str()));
+          p->value = (uint64_t)(m_config.log_filename.c_str());
         else
           p->value = 0;
         break;
@@ -348,7 +348,8 @@ LocalEnvironment::do_flush(uint32_t flags)
   if (m_txn_manager)
     m_txn_manager->flush_committed_txns(&context);
 
-  if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & HAM_IN_MEMORY)
+  if (isset(flags, HAM_FLUSH_COMMITTED_TRANSACTIONS)
+      || isset(get_flags(), HAM_IN_MEMORY))
     return (0);
 
   /* Flush all open pages to disk. This operation is blocking. */
@@ -707,7 +708,7 @@ LocalEnvironment::do_close(uint32_t flags)
   /* close the device */
   if (m_device) {
     if (m_device->is_open()) {
-      if (!(get_flags() & HAM_READ_ONLY))
+      if (!isset(get_flags(), HAM_READ_ONLY))
         m_device->flush();
       m_device->close();
     }
@@ -715,7 +716,7 @@ LocalEnvironment::do_close(uint32_t flags)
 
   /* close the log and the journal */
   if (m_journal)
-    m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
+    m_journal->close(isset(flags, HAM_DONT_CLEAR_LOG));
 
   return (0);
 }

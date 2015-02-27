@@ -107,16 +107,16 @@ struct ApproxFixture {
   }
 
   ham_status_t find(uint32_t flags, const char *search, const char *expected) {
-    ham_key_t k = {};
+    ham_key_t k = {0};
     k.data = (void *)search;
     k.size = strlen(search) + 1;
-    ham_record_t r = {};
+    ham_record_t r = {0};
 
     ham_status_t st = ham_db_find(m_db, m_txn, &k, &r, flags);
     if (st)
       return (st);
     if (strcmp(expected, (const char *)k.data))
-      REQUIRE((ham_key_get_intflags(&k) & BtreeKey::kApproximate));
+      REQUIRE((flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) != 0);
     return (::strcmp(expected, (const char *)r.data));
   }
 
@@ -510,7 +510,8 @@ struct ApproxFixture {
     ham_key_t key = ham_make_key((void *)"aa", 3);
     ham_record_t rec = {0};
 
-    REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(HAM_KEY_NOT_FOUND
+                == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
   }
 
   void issue52Test() {

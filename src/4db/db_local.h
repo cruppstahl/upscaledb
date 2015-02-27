@@ -124,8 +124,7 @@ class LocalDatabase : public Database {
     // be attached to the new txn_op structure
     // TODO this should be private
     ham_status_t insert_txn(Context *context, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags,
-                    TransactionCursor *cursor);
+                    ham_record_t *record, uint32_t flags, LocalCursor *cursor);
 
     // Returns the default comparison function
     ham_compare_func_t compare_func() {
@@ -144,16 +143,24 @@ class LocalDatabase : public Database {
     }
 
     // Flushes a TransactionOperation to the btree
-    // TODO should be private
     ham_status_t flush_txn_operation(Context *context, LocalTransaction *txn,
                     TransactionOperation *op);
 
+    // Flushes a DeltaAction and writes its modification to the Btree
+    void flush_delta_action(Context *context, DeltaAction *action);
+
+    // Copies the ham_key_t structure from |source| into |dest|
+    // TODO move to a "utility" class
+    static void copy_key(ham_key_t *source, ByteArray *arena,
+                    ham_key_t *dest);
+
+    // Copies the ham_record_t structure from |source| into |dest|
+    // TODO move to a "utility" class
+    static void copy_record(ham_record_t *source, ByteArray *arena,
+                    ham_record_t *dest);
+
   protected:
     friend class LocalCursor;
-
-    // Copies the ham_record_t structure from |op| into |record|
-    static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
-                    TransactionOperation *op, ham_record_t *record);
 
     // Creates a cursor; this is the actual implementation
     virtual Cursor *cursor_create_impl(Transaction *txn);
@@ -181,17 +188,22 @@ class LocalDatabase : public Database {
     friend class RecordNumberFixture<uint64_t>;
 
     // Returns true if a (btree) key was erased in a Transaction
-    bool is_key_erased(Context *context, ham_key_t *key);
+    bool is_key_erased(Context *context, BtreeNodeProxy *node,
+                    int slot, ham_key_t *key);
 
     // Erases a key/record pair from a txn; on success, cursor will be set to
     // nil
     ham_status_t erase_txn(Context *context, ham_key_t *key, uint32_t flags,
-                    TransactionCursor *cursor);
+                    LocalCursor *cursor);
 
     // Lookup of a key/record pair in the Transaction index and in the btree,
     // if transactions are disabled/not successful; copies the
     // record into |record|. Also performs approx. matching.
     ham_status_t find_txn(Context *context, LocalCursor *cursor,
+                    ham_key_t *key, ham_record_t *record, uint32_t flags);
+
+    // Same as above, but for approx. matching
+    ham_status_t find_approx_txn(Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Moves a cursor, returns key and/or record (ham_cursor_move)
@@ -221,28 +233,10 @@ class LocalDatabase : public Database {
       return (m_recno);
     }
 
-    // Checks if an insert operation conflicts with another txn; this is the
-    // case if the same key is modified by another active txn.
-    ham_status_t check_insert_conflicts(Context *context, TransactionNode *node,
-                    ham_key_t *key, uint32_t flags);
-
-    // Checks if an erase operation conflicts with another txn; this is the
-    // case if the same key is modified by another active txn.
-    ham_status_t check_erase_conflicts(Context *context, TransactionNode *node,
-                    ham_key_t *key, uint32_t flags);
-
     // Increments dupe index of all cursors with a dupe index > |start|;
     // only cursor |skip| is ignored
     void increment_dupe_index(Context *context, TransactionNode *node,
                     LocalCursor *skip, uint32_t start);
-
-    // Sets all cursors attached to a TransactionNode to nil
-    void nil_all_cursors_in_node(LocalTransaction *txn, LocalCursor *current,
-                    TransactionNode *node);
-
-    // Sets all cursors to nil if they point to |key| in the btree index
-    void nil_all_cursors_in_btree(Context *context, LocalCursor *current,
-                    ham_key_t *key);
 
     // the current record number
     uint64_t m_recno;

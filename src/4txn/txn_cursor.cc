@@ -88,7 +88,7 @@ TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
   return (((LocalDatabase *)get_db())->insert_txn(context, node->get_key(),
-                          record, HAM_OVERWRITE, this));
+                          record, HAM_OVERWRITE, m_parent));
 }
 
 ham_status_t
@@ -342,7 +342,7 @@ TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
   Context context(get_db()->lenv(), txn, get_db());
 
-  return (get_db()->insert_txn(&context, key, record, flags, this));
+  return (get_db()->insert_txn(&context, key, record, flags, m_parent));
 }
 
 void
