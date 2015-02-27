@@ -56,6 +56,9 @@ class DiskDevice : public Device {
 
       // the (cached) size of the file
       uint64_t file_size;
+
+      // excess storage at the end of the file
+      uint64_t excess_at_end;
     };
 
   public:
@@ -65,6 +68,7 @@ class DiskDevice : public Device {
       state.mmapptr = 0;
       state.mapped_size = 0;
       state.file_size = 0;
+      state.excess_at_end = 0;
       std::swap(m_state, state);
     }
 
@@ -167,9 +171,31 @@ class DiskDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual uint64_t alloc(size_t len) {
-      uint64_t address = m_state.file_size;
-      truncate(address + len);
-      return ((uint64_t)address);
+      uint64_t address;
+
+      if (m_state.excess_at_end >= len) {
+        address = m_state.file_size - m_state.excess_at_end;
+        m_state.excess_at_end -= len;
+      }
+      else {
+        uint64_t excess;
+
+        // if the file is large enough then allocate more space to avoid
+        // frequent calls to ftruncate()
+        if (m_state.file_size < len * 100)
+          excess = 0;
+        else if (m_state.file_size < len * 250)
+          excess = len * 100;
+        else if (m_state.file_size < len * 1000)
+          excess = len * 250;
+        else
+          excess = len * 1000;
+
+        address = m_state.file_size;
+        truncate(address + len + excess);
+        m_state.excess_at_end = excess;
+      }
+      return (address);
     }
 
     // reads a page from the device; this function CAN return a
@@ -208,9 +234,7 @@ class DiskDevice : public Device {
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page) {
-      uint64_t address = m_state.file_size;
-
-      truncate(address + m_config.page_size_bytes);
+      uint64_t address = alloc(m_config.page_size_bytes);
       page->set_address(address);
 
       // allocate a memory buffer
