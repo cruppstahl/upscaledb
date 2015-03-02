@@ -40,24 +40,14 @@ struct BaseKeyList
       // This KeyList cannot reduce its capacity in order to release storage
       kCanReduceCapacity = 0,
 
-      // This KeyList uses binary search combined with linear search
-      kBinaryLinear,
-
-      // This KeyList has a custom search implementation
-      kCustomSearch,
-
-      // This KeyList has a custom search implementation for exact matches
-      // *only*
-      kCustomExactImplementation,
-
-      // This KeyList uses binary search (this is the default)
-      kBinarySearch,
-
-      // Specifies the search implementation: 
-      kSearchImplementation = kBinarySearch,
-
-      // This KeyList does NOT have a custom insert implementation
+      // This KeyList does NOT have a custom insert() implementation
       kCustomInsert = 0,
+
+      // This KeyList does NOT have a custom find() implementation
+      kCustomFind = 0,
+
+      // This KeyList does NOT have a custom find_lower_bound() implementation
+      kCustomFindLowerBound = 0,
   };
 
   BaseKeyList()
@@ -77,27 +67,18 @@ struct BaseKeyList
   void vacuumize(size_t node_count, bool force) const {
   }
 
+  // Performs a lower-bound search for a key
+  template<typename Cmp>
+  int find_lower_bound(Context *context, size_t node_count,
+                  const ham_key_t *hkey, Cmp &comparator, int *pcmp) {
+    throw Exception(HAM_NOT_IMPLEMENTED);
+  }
+
   // Finds a key
   template<typename Cmp>
-  int find(Context *, size_t node_count, const ham_key_t *key, Cmp &comparator,
-                  int *pcmp) {
-    ham_assert(!"shouldn't be here");
-    return (0);
-  }
-
-  // Returns the threshold when switching from binary search to
-  // linear search. Disabled by default
-  size_t get_linear_search_threshold() const {
-    return ((size_t)-1);
-  }
-
-  // Performs a linear search in a given range between |start| and
-  // |start + length|. Disabled by default.
-  template<typename Cmp>
-  int linear_search(size_t start, size_t length, const ham_key_t *hkey,
-                  Cmp &comparator, int *pcmp) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+  int find(Context *context, size_t node_count, const ham_key_t *hkey,
+                  Cmp &comparator) {
+    throw Exception(HAM_NOT_IMPLEMENTED);
   }
 
   // Fills the btree_metrics structure

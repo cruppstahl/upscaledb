@@ -278,6 +278,7 @@ class Cursor
 
     // Sets the Transaction handle; often used to assign a temporary
     // Transaction to this cursor
+    // TODO really required?
     void set_txn(Transaction *txn) {
       m_txn = txn;
     }

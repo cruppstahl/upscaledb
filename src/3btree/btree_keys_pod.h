@@ -69,9 +69,11 @@ class PodKeyList : public BaseKeyList
       // A flag whether this KeyList supports the scan() call
       kSupportsBlockScans = 1,
 
-      // This KeyList uses a custom SIMD implementation if possible,
-      // otherwise binary search in combination with linear search
-      kSearchImplementation = kBinaryLinear,
+      // This KeyList has a custom find() implementation
+      kCustomFind = 1,
+
+      // This KeyList has a custom find_lower_bound() implementation
+      kCustomFindLowerBound = 1,
     };
 
     // Constructor
@@ -102,6 +104,47 @@ class PodKeyList : public BaseKeyList
       return (sizeof(T));
     }
 
+    // Finds a key
+    template<typename Cmp>
+    int find(Context *context, size_t node_count, const ham_key_t *hkey,
+                    Cmp &comparator) {
+      T key = *(T *)hkey->data;
+      T *result = std::lower_bound(&m_data[0], &m_data[node_count], key);
+      if (result == &m_data[node_count] || *result != key)
+        return (-1);
+      return (result - &m_data[0]);
+    }
+
+    // Performs a lower-bound search for a key
+    template<typename Cmp>
+    int find_lower_bound(Context *context, size_t node_count,
+                    const ham_key_t *hkey, Cmp &comparator, int *pcmp) {
+      T key = *(T *)hkey->data;
+      T *result = std::lower_bound(&m_data[0], &m_data[node_count], key);
+      if (result == &m_data[node_count]) {
+        if (key > m_data[node_count - 1]) {
+          *pcmp = +1;
+          return (node_count - 1);
+        }
+        if (key < m_data[0]) {
+          *pcmp = -1;
+          return (0);
+        }
+        ham_assert(!"shouldn't be here");
+        throw Exception(HAM_INTERNAL_ERROR);
+      }
+
+      if (key > *result)
+        *pcmp = +1;
+      else if (key < *result) {
+        *pcmp = +1;
+        result--;
+      }
+      else
+        *pcmp = 0;
+      return (result - &m_data[0]);
+    }
+
     // Copies a key into |dest|
     void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
                     bool deep_copy = true) const {
@@ -118,56 +161,6 @@ class PodKeyList : public BaseKeyList
       }
 
       memcpy(dest->data, &m_data[slot], sizeof(T));
-    }
-
-    // Returns the threshold when switching from binary search to
-    // linear search
-    size_t get_linear_search_threshold() const {
-      return (128 / sizeof(T));
-    }
-
-    // Performs a linear search in a given range between |start| and
-    // |start + length|
-    template<typename Cmp>
-    int linear_search(size_t start, size_t length, const ham_key_t *hkey,
-                    Cmp &comparator, int *pcmp) {
-      T key = *(T *)hkey->data;
-      size_t c = start;
-      size_t end = start + length;
-  
-  #undef COMPARE
-  #define COMPARE(c)      if (key <= m_data[c]) {                         \
-                            if (key < m_data[c]) {                        \
-                              if (c == 0)                                 \
-                                *pcmp = -1; /* key < m_data[0] */         \
-                              else                                        \
-                                *pcmp = +1; /* key > m_data[c - 1] */     \
-                              return ((c) - 1);                           \
-                            }                                             \
-                            *pcmp = 0;                                    \
-                            return (c);                                   \
-                          }
-
-      while (c + 8 < end) {
-        COMPARE(c)
-        COMPARE(c + 1)
-        COMPARE(c + 2)
-        COMPARE(c + 3)
-        COMPARE(c + 4)
-        COMPARE(c + 5)
-        COMPARE(c + 6)
-        COMPARE(c + 7)
-        c += 8;
-      }
-
-      while (c < end) {
-        COMPARE(c)
-        c++;
-      }
-
-      /* the new key is > the last key in the page */
-      *pcmp = 1;
-      return (start + length - 1);
     }
 
     // Iterates all keys, calls the |visitor| on each

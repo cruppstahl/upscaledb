@@ -138,7 +138,7 @@ BtreeIndex::flush_descriptor(Context *context)
 }
 
 Page *
-BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
+BtreeIndex::find_lower_bound(Context *context, Page *page, const ham_key_t *key,
                 uint32_t page_manager_flags, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
@@ -148,7 +148,7 @@ BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
   ham_assert(node->get_ptr_down() != 0);
 
   uint64_t record_id;
-  int slot = node->find_child(context, (ham_key_t *)key, &record_id);
+  int slot = node->find_lower_bound(context, (ham_key_t *)key, &record_id);
 
   if (idxptr)
     *idxptr = slot;

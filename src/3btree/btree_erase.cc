@@ -99,7 +99,7 @@ fall_through:
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       // we have reached the leaf; search the leaf for the key
-      int slot = node->find_exact(m_context, m_key);
+      int slot = node->find(m_context, m_key);
       if (slot < 0) {
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);

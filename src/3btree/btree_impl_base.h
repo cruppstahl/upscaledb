@@ -146,7 +146,7 @@ class BaseNodeImpl
         result.slot = node_count;
       else {
         int cmp;
-        result.slot = find_lowerbound_impl(context, key, comparator, &cmp);
+        result.slot = find_lower_bound_impl(context, key, comparator, &cmp);
 
         /* insert the new key at the beginning? */
         if (result.slot == -1) {
@@ -196,11 +196,11 @@ class BaseNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_child(Context *context, ham_key_t *key, Cmp &comparator,
+    int find_lower_bound(Context *context, ham_key_t *key, Cmp &comparator,
                     uint64_t *precord_id, int *pcmp) {
-      int slot = find_lowerbound_impl(context, key, comparator, pcmp);
+      int slot = find_lower_bound_impl(context, key, comparator, pcmp);
       if (precord_id) {
-        if (slot == -1)
+        if (slot == -1 || (slot == 0 && *pcmp == -1))
           *precord_id = m_node->get_ptr_down();
         else
           *precord_id = m_records.get_record_id(slot);
@@ -211,10 +211,8 @@ class BaseNodeImpl
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
-    int find_exact(Context *context, ham_key_t *key, Cmp &comparator) {
-      int cmp = 0;
-      int r = find_exact_impl(context, key, comparator, &cmp);
-      return (cmp ? -1 : r);
+    int find(Context *context, ham_key_t *key, Cmp &comparator) {
+      return (find_impl(context, key, comparator));
     }
 
     // Splits a node and moves parts of the current node into |other|, starting
@@ -324,146 +322,72 @@ class BaseNodeImpl
     // is no exact match then the lower bound is returned, and the compare value
     // is returned in |*pcmp|.
     template<typename Cmp>
-    int find_lowerbound_impl(Context *context, const ham_key_t *key,
+    int find_lower_bound_impl(Context *context, const ham_key_t *key,
                     Cmp &comparator, int *pcmp) {
-      switch ((int)KeyList::kSearchImplementation) {
-        case BaseKeyList::kBinaryLinear:
-          return (find_impl_binlin(context, key, comparator, pcmp));
-        case BaseKeyList::kCustomSearch:
-          return (m_keys.find(context, m_node->get_count(), key,
+      if (KeyList::kCustomFindLowerBound)
+        return (m_keys.find_lower_bound(context, m_node->get_count(), key,
                       comparator, pcmp));
-        default: // BaseKeyList::kBinarySearch
-          return (find_impl_binary(context, key, comparator, pcmp));
-      }
+
+      return (find_impl_binary(context, key, comparator, pcmp));
     }
 
     // Implementation of the find method for exact matches. Supports a custom
     // search implementation in the KeyList (i.e. for SIMD).
     template<typename Cmp>
-    int find_exact_impl(Context *context, const ham_key_t *key,
-                    Cmp &comparator, int *pcmp) {
-      switch ((int)KeyList::kSearchImplementation) {
-        case BaseKeyList::kBinaryLinear:
-          return (find_impl_binlin(context, key, comparator, pcmp));
-        case BaseKeyList::kCustomSearch:
-        case BaseKeyList::kCustomExactImplementation:
-          return (m_keys.find(context, m_node->get_count(), key,
-                      comparator, pcmp));
-        default: // BaseKeyList::kBinarySearch
-          return (find_impl_binary(context, key, comparator, pcmp));
-      }
+    int find_impl(Context *context, const ham_key_t *key, Cmp &comparator) {
+      if (KeyList::kCustomFind)
+        return (m_keys.find(context, m_node->get_count(), key, comparator));
+
+      int cmp = 0;
+      int slot = find_impl_binary(context, key, comparator, &cmp);
+      if (slot == -1 || cmp != 0)
+        return (-1);
+      return (slot);
     }
 
     // Binary search
     template<typename Cmp>
     int find_impl_binary(Context *context, const ham_key_t *key,
             Cmp &comparator, int *pcmp) {
-      size_t node_count = m_node->get_count();
-      ham_assert(node_count > 0);
+      int right = (int)m_node->get_count();
+      int left = 0;
+      int last = right + 1;
 
-      int i, l = 0, r = (int)node_count;
-      int last = node_count + 1;
-      int cmp = -1;
+      *pcmp = -1;
 
-      /* repeat till we found the key or the remaining range is so small that
-       * we rather perform a linear search (which is faster for small ranges) */
-      while (r - l > 0) {
+      while (right - left > 0) {
         /* get the median item; if it's identical with the "last" item,
          * we've found the slot */
-        i = (l + r) / 2;
+        int middle = (left + right) / 2;
 
-        if (i == last) {
-          ham_assert(i >= 0);
-          ham_assert(i < (int)node_count);
+        if (middle == last) {
           *pcmp = 1;
-          return (i);
+          return (middle);
         }
 
         /* compare it against the key */
-        cmp = compare(context, key, i, comparator);
+        *pcmp = compare(context, key, middle, comparator);
 
         /* found it? */
-        if (cmp == 0) {
-          *pcmp = cmp;
-          return (i);
+        if (*pcmp == 0) {
+          return (middle);
         }
         /* if the key is bigger than the item: search "to the left" */
-        else if (cmp < 0) {
-          if (r == 0) {
-            ham_assert(i == 0);
-            *pcmp = cmp;
+        if (*pcmp < 0) {
+          if (right == 0) {
+            ham_assert(middle == 0);
             return (-1);
           }
-          r = i;
+          right = middle;
         }
         /* otherwise search "to the right" */
         else {
-          last = i;
-          l = i;
+          last = middle;
+          left = middle;
         }
       }
 
-      *pcmp = cmp;
       return (-1);
-    }
-
-    // Binary search combined with linear search
-    template<typename Cmp>
-    int find_impl_binlin(Context *context, const ham_key_t *key,
-                    Cmp &comparator, int *pcmp) {
-      size_t node_count = m_node->get_count();
-      ham_assert(node_count > 0);
-
-      int i, l = 0, r = (int)node_count;
-      int last = node_count + 1;
-      int cmp = -1;
-
-      // Run a binary search, but fall back to linear search as soon as
-      // the remaining range is too small. Sets threshold to 0 if linear
-      // search is disabled for this KeyList.
-      int threshold = m_keys.get_linear_search_threshold();
-
-      /* repeat till we found the key or the remaining range is so small that
-       * we rather perform a linear search (which is faster for small ranges) */
-      while (r - l > threshold) {
-        /* get the median item; if it's identical with the "last" item,
-         * we've found the slot */
-        i = (l + r) / 2;
-
-        if (i == last) {
-          ham_assert(i >= 0);
-          ham_assert(i < (int)node_count);
-          *pcmp = 1;
-          return (i);
-        }
-
-        /* compare it against the key */
-        cmp = compare(context, key, i, comparator);
-
-        /* found it? */
-        if (cmp == 0) {
-          *pcmp = cmp;
-          return (i);
-        }
-        /* if the key is bigger than the item: search "to the left" */
-        else if (cmp < 0) {
-          if (r == 0) {
-            ham_assert(i == 0);
-            *pcmp = cmp;
-            return (-1);
-          }
-          r = i;
-        }
-        /* otherwise search "to the right" */
-        else {
-          last = i;
-          l = i;
-        }
-      }
-
-      // still here? then perform a linear search for the remaining range
-      ham_assert(r - l <= threshold);
-      return (m_keys.linear_search(l, r - l, key, comparator, pcmp));
     }
 
     // A memory arena for various tasks

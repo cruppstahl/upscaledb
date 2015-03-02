@@ -81,7 +81,7 @@ class BtreeFindAction
           ham_assert(node->is_leaf());
 
           uint32_t approx_match;
-          slot = find_leaf(m_context, page, m_key, m_flags, &approx_match);
+          slot = find(m_context, page, m_key, m_flags, &approx_match);
 
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
@@ -106,7 +106,7 @@ class BtreeFindAction
         /* now traverse the root to the leaf nodes till we find a leaf */
         node = m_btree->get_node_from_page(page);
         while (!node->is_leaf()) {
-          page = m_btree->find_child(m_context, page, m_key,
+          page = m_btree->find_lower_bound(m_context, page, m_key,
                                 PageManager::kReadOnly, 0);
           if (!page) {
             stats->find_failed();
@@ -118,7 +118,7 @@ class BtreeFindAction
 
         /* check the leaf page for the key (shortcut w/o approx. matching) */
         if (m_flags == 0) {
-          slot = node->find_exact(m_context, m_key);
+          slot = node->find(m_context, m_key);
           if (slot == -1) {
             stats->find_failed();
             return (HAM_KEY_NOT_FOUND);
@@ -127,7 +127,7 @@ class BtreeFindAction
 
         /* check the leaf page for the key (long path w/ approx. matching),
          * then fall through */
-        slot = find_leaf(m_context, page, m_key, m_flags, &approx_match);
+        slot = find(m_context, page, m_key, m_flags, &approx_match);
       }
 
       if (slot == -1) {
@@ -192,7 +192,7 @@ class BtreeFindAction
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    int find_leaf(Context *context, Page *page, ham_key_t *key, uint32_t flags,
+    int find(Context *context, Page *page, ham_key_t *key, uint32_t flags,
                     uint32_t *approx_match) {
       *approx_match = 0;
 
@@ -202,7 +202,7 @@ class BtreeFindAction
         return (-1);
 
       int cmp;
-      int slot = node->find_child(context, key, 0, &cmp);
+      int slot = node->find_lower_bound(context, key, 0, &cmp);
 
       /* successfull match */
       if (cmp == 0 && (flags == 0 || flags & HAM_FIND_EXACT_MATCH))

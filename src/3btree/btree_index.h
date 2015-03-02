@@ -395,7 +395,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_child(Context *context, Page *parent, const ham_key_t *key,
+    Page *find_lower_bound(Context *context, Page *parent, const ham_key_t *key,
                     uint32_t page_manager_flags, int *idxptr);
 
     // pointer to the database object

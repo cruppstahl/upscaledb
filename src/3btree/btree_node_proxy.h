@@ -162,12 +162,12 @@ class BtreeNodeProxy
     // compare operation.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(Context *context, ham_key_t *key,
+    virtual int find_lower_bound(Context *context, ham_key_t *key,
                     uint64_t *record_id = 0, int *pcmp = 0) = 0;
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find_exact(Context *context, ham_key_t *key) = 0;
+    virtual int find(Context *context, ham_key_t *key) = 0;
 
     // Returns the full key at the |slot|. Also resolves extended keys
     // and respects HAM_KEY_USER_ALLOC in dest->flags.
@@ -391,7 +391,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Searches the node for the key and returns the slot of this key.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_child(Context *context, ham_key_t *key,
+    virtual int find_lower_bound(Context *context, ham_key_t *key,
                     uint64_t *precord_id = 0, int *pcmp = 0) {
       int dummy;
       if (get_count() == 0) {
@@ -402,18 +402,18 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         return (-1);
       }
       Comparator cmp(m_page->get_db());
-      return (m_impl.find_child(context, key, cmp,
+      return (m_impl.find_lower_bound(context, key, cmp,
                               precord_id ? precord_id : 0,
                               pcmp ? pcmp : &dummy));
     }
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find_exact(Context *context, ham_key_t *key) {
+    virtual int find(Context *context, ham_key_t *key) {
       if (get_count() == 0)
         return (-1);
       Comparator cmp(m_page->get_db());
-      return (m_impl.find_exact(context, key, cmp));
+      return (m_impl.find(context, key, cmp));
     }
 
     // Returns the full key at the |slot|. Also resolves extended keys

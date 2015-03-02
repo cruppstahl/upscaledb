@@ -96,9 +96,6 @@ class VariableLengthKeyList : public BaseKeyList
 
       // This KeyList can reduce its capacity in order to release storage
       kCanReduceCapacity = 1,
-
-      // This KeyList uses binary search
-      kSearchImplementation = kBinarySearch,
     };
 
     // Constructor

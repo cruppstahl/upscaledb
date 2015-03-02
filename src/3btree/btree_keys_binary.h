@@ -32,6 +32,7 @@
 
 #include "0root/root.h"
 
+#include <cstdio>
 #include <sstream>
 #include <iostream>
 
@@ -68,9 +69,6 @@ class BinaryKeyList : public BaseKeyList
 
       // A flag whether this KeyList supports the scan() call
       kSupportsBlockScans = 1,
-
-      // This KeyList uses binary search in combination with linear search
-      kSearchImplementation = kBinaryLinear,
     };
 
     // Constructor
@@ -119,51 +117,6 @@ class BinaryKeyList : public BaseKeyList
       }
 
       memcpy(dest->data, &m_data[slot * m_key_size], m_key_size);
-    }
-
-    // Returns the threshold when switching from binary search to
-    // linear search
-    size_t get_linear_search_threshold() const {
-      if (m_key_size > 32)
-        return (-1); // disable linear search for large keys
-      return (128 / m_key_size);
-    }
-
-    // Performs a linear search in a given range between |start| and
-    // |start + length|
-    template<typename Cmp>
-    int linear_search(size_t start, size_t length, const ham_key_t *key,
-                    Cmp &comparator, int *pcmp) {
-      uint8_t *begin = &m_data[start * m_key_size];
-      uint8_t *end = &m_data[(start + length) * m_key_size];
-      uint8_t *current = begin;
-
-      int c = start;
-
-      while (current < end) {
-        /* compare it against the key */
-        int cmp = comparator(key->data, key->size, current, m_key_size);
-
-        /* found it, or moved past the key? */
-        if (cmp <= 0) {
-          if (cmp < 0) {
-            if (c == 0)
-              *pcmp = -1; // key is < #m_data[0]
-            else
-              *pcmp = +1; // key is > #m_data[c - 1]!
-            return (c - 1);
-          }
-          *pcmp = 0;
-          return (c);
-        }
-
-        current += m_key_size;
-        c++;
-      }
-
-      /* the new key is > the last key in the page */
-      *pcmp = 1;
-      return (start + length - 1);
     }
 
     // Iterates all keys, calls the |visitor| on each
