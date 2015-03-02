@@ -318,7 +318,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
       }
 
       copy_chunk(context, page, 0,
-                  blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
+                  blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
                   (uint8_t *)record->data, blobsize, true);

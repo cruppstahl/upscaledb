@@ -605,19 +605,29 @@ x Sometimes the performance peaks when truncating/growing the file. The device
     and use this spare buffer whenever required.
     x when shutting down: remove the spare overhead!
 
-o Refactoring: is Device::alloc(len) really used?
+x Refactoring: is Device::alloc(len) really used?  - yes
 
 o Refactoring: rewrite more classes to improve the whole structure
+    x BlobManager: remove dependency to env
+        pass Config, PageManager, Device during initialization
     o HeaderPage - can it be treated like any other page, and moved
         to the PageManager/Cache??
         o remove LocalEnvironment::mark_header_page_dirty
         o transform to struct instead of class
         o move header Page ownership from EnvironmentHeader to PageManager
     o EnvironmentHeader - allow concurrent access from multiple databases
-    o BlobManager
-        o disk: pass PageManager during initialization
-        o inmem: pass InMemoryDevice during initialization
-        o remove dependency to env
+    o Move functions from btree_index.cc to btree_action.cc. This will
+        be the base class for BtreeAction*.
+        This includes...
+        - find_child()
+        - find_leaf()
+        - all functions from BtreeUpdateAction
+        o remove get_key_type() etc; use the DatabaseConfiguration instead
+        o There should be a function to store the DatabaseConfiguration in
+            the Headerpage, and one to load the configuration. remove those
+            get_*_compression/set_*_compression methods!
+        o rename release() to drop()
+        o db.h: rename erase_me() to drop()
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -719,6 +729,7 @@ o refactoring: improve the code separation of cursor, btree_cursor
     o cursor.cc has so many TODOs!
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 o internal nodes should use 32bit page IDs!
     -> but should still work with 64bit IDs for in-memory environments
 
@@ -748,6 +759,8 @@ o Refactoring: move functions from btree_index.cc to btree_action.cc. This will
     o rename release() to drop()
     o db.h: rename erase_me() to drop()
 
+=======
+>>>>>>> Cleanup of the BlobManager code; no functional changes
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
