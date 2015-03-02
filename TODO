@@ -598,12 +598,26 @@ x PRO: check recovery.pl - extended_tests are failing on PRO because the
 
 
 
-o Sometimes the performance peaks when truncating/growing the file. The device
+x Sometimes the performance peaks when truncating/growing the file. The device
     should therefore allocate more space than required. If the file size is
     small (i.e. < 100 pages) then continue as of now. Otherwise truncate
     the file for multiple pages (the number should depend on the file size),
     and use this spare buffer whenever required.
-    o when shutting down: remove the spare overhead!
+    x when shutting down: remove the spare overhead!
+
+o Refactoring: is Device::alloc(len) really used?
+
+o Refactoring: rewrite more classes to improve the whole structure
+    o HeaderPage - can it be treated like any other page, and moved
+        to the PageManager/Cache??
+        o remove LocalEnvironment::mark_header_page_dirty
+        o transform to struct instead of class
+        o move header Page ownership from EnvironmentHeader to PageManager
+    o EnvironmentHeader - allow concurrent access from multiple databases
+    o BlobManager
+        o disk: pass PageManager during initialization
+        o inmem: pass InMemoryDevice during initialization
+        o remove dependency to env
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -614,8 +628,6 @@ o There are performance issues related to cache flushes.
     The original page could be hazard-collected after a while (10 sec), or
     forwarded to the worker thread for cleanup (as long as there's just one
     thread this will work fine).
-
-o Refactoring: is Device::alloc(len) really used?
 
 o Currently, the code uses linear search over small ranges. This is not
     efficient. If the range is in the cache then binary search is still faster.
@@ -632,6 +644,7 @@ o Currently, the code uses linear search over small ranges. This is not
         o change webpage/README etc
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
 
+<<<<<<< HEAD
 . Refactoring: rewrite more classes to improve the whole structure
     o HeaderPage - can it be treated like any other page, and moved
         to the PageManager/Cache??
@@ -691,6 +704,8 @@ o when splitting and HAM_HINT_APPEND is set, the new page is appended.
 
 o refactoring: db_local.cc has so many TODOs!
 
+=======
+>>>>>>> Improving reclaim_space functionality
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
@@ -703,6 +718,7 @@ o refactoring: improve the code separation of cursor, btree_cursor
         not get access to txn_cursor/btree_cursor etc
     o cursor.cc has so many TODOs!
 
+<<<<<<< HEAD
 o internal nodes should use 32bit page IDs!
     -> but should still work with 64bit IDs for in-memory environments
 
@@ -717,6 +733,8 @@ o delta updates managed in the BtreeNode
     Updates are a sorted (!) linked list. Prior to merge, those Updates that
     delete keys will be applied.
 =======
+=======
+>>>>>>> Improving reclaim_space functionality
 o Refactoring: move functions from btree_index.cc to btree_action.cc. This will
     be the base class for BtreeAction*.
     This includes...
@@ -734,11 +752,6 @@ o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
-
-o The PageManager state is currently stored in a compressed encoding, but
-    it is less efficient than the standard varbyte encoding because
-    pages > 15 * page_size have to be split. Use a standard vbyte encoding
-    instead (it will anyway be required later on).
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
@@ -932,17 +945,37 @@ o Refactoring: the remaining Transaction layer should only manage txn-id and
     o then get rid of the TransactionCursor
     o ... and merge Cursor with BtreeCursor
 
+. More things to refactor in the btree
+    o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
+        -> use a common behaviour/indexing
+    o EraseAction line 71: if the node is empty then it should be merged and
+        moved to the freelist!
+
+. when splitting and HAM_HINT_APPEND is set, the new page is appended.
+    do the same for prepend!
+
+. Refactoring: all unittest fixtures should derive from a BaseFixture,
+    which creates an Environment, creates a list of databases (w/ parameters),
+    and if required also a cursor, a transaction and a context
+    o include additional management functions like lenv(), ldb(), ltxn(),
+        page_manager(), cache(), context()...
+    o what else?
+    o then reorganize the tests
+        - public API
+        - internal modules
+
+. The PageManager state is currently stored in a compressed encoding, but
+    it is less efficient than the standard varbyte encoding because
+    pages > 15 * page_size have to be split. Use a standard vbyte encoding
+    instead (it will anyway be required later on).
+
 
 
 
 
 o Concurrency: merge BtreeUpdates in the background
 
-o internal nodes should use 32bit page IDs!
-    -> or at least come up with a decent compression scheme!
-    -> but should still work with 64bit IDs for in-memory environments
-
-. Refactoring: would it make sense if each Database has its own BlobManager?
+o Refactoring: would it make sense if each Database has its own BlobManager?
     Then ham_env_erase_db would be much faster, and if each Database has its
     own lock then the blob pages would not block each other
     o are there other modules that should be "per database" and not
@@ -951,15 +984,16 @@ o internal nodes should use 32bit page IDs!
         - Device
         - ...?
 
-. LocalEnvironment::open creates a "fakepage" to find out the page_size;
+o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then
     discard if the real page_size is a different one
     o deal with databases < 16kb?
 
-. migrate to libuv 1.0, it has a stable API
+o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
+<<<<<<< HEAD
 >>>>>>> Now allocating excess storage at the end of the file to avoid ftruncate()
 . investigate "pointer swizzling": internal btree nodes should store "hints"
     to the actual Page, not the Page IDs, as soon as the Page was loaded for
@@ -972,6 +1006,9 @@ o internal nodes should use 32bit page IDs!
     - Could also use reference counting for the page
 
 . improve the webpage documentation
+=======
+o improve the webpage documentation
+>>>>>>> Improving reclaim_space functionality
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
         o POD keys
@@ -981,6 +1018,16 @@ o internal nodes should use 32bit page IDs!
         o duplicates (w/ overflow tables)
         o PRO: compressed keys
         o PRO: compressed records
+
+. investigate "pointer swizzling": internal btree nodes should store "hints"
+    to the actual Page, not the Page IDs, as soon as the Page was loaded for
+    the first time. This could circumvent the buffer cache and increase
+    performance.
+    How to invalidate those hints or discover that a page was evicted from
+    cache?
+    - Eviction could only free the persistent part of a page, and not the
+        stub.
+    - Could also use reference counting for the page
 
 
 
