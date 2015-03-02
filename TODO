@@ -610,12 +610,11 @@ x Refactoring: is Device::alloc(len) really used?  - yes
 o Refactoring: rewrite more classes to improve the whole structure
     x BlobManager: remove dependency to env
         pass Config, PageManager, Device during initialization
-    o HeaderPage - can it be treated like any other page, and moved
-        to the PageManager/Cache??
-        o remove LocalEnvironment::mark_header_page_dirty
-        o transform to struct instead of class
-        o move header Page ownership from EnvironmentHeader to PageManager
-    o EnvironmentHeader - allow concurrent access from multiple databases
+    x HeaderPage - can it be treated like any other page, and moved
+        to the PageManager/Cache?? - yes, but not yet now
+        x transform to struct instead of class
+    x EnvironmentHeader - allow concurrent access from multiple databases
+        - postponed
     o Move functions from btree_index.cc to btree_action.cc. This will
         be the base class for BtreeAction*.
         This includes...
@@ -626,8 +625,8 @@ o Refactoring: rewrite more classes to improve the whole structure
         o There should be a function to store the DatabaseConfiguration in
             the Headerpage, and one to load the configuration. remove those
             get_*_compression/set_*_compression methods!
-        o rename release() to drop()
-        o db.h: rename erase_me() to drop()
+    o btree_index.h: rename release() to drop()
+    o db.h: rename erase_me() to drop()
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -844,6 +843,16 @@ o Make Pages resizable with variable length
 
     o compress the page IDs and store them in a block-organized record list
     o checkpoint - all tests need to work
+
+o always use constant sizes for the header page(s)
+    o 1kb for the EnvironmentHeader
+    o 4kb for the PageManager state
+    o 11kb for the list of databases
+    o improve logic in ham_env_open
+    o remove dependeny to header page in the PageManager; it now has its
+        own header page!
+    o clean up EnvironmentHeader, header page in LocalEnvironment
+    o clean up BtreeHeader etc
 
 o BtreeUpdate managed in the BtreeNode
     BtreeUpdate are attached to a node. A background thread can merge them.

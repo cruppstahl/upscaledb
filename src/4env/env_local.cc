@@ -223,8 +223,7 @@ LocalEnvironment::do_open()
         m_device->write(0, hdrbuf, sizeof(hdrbuf));
       }
     }
-    else if (m_header->get_version(3) != (HAM_FILE_VERSION | 0x80)) {
->>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+    else if (m_header->version(3) != (HAM_FILE_VERSION | 0x80)) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
@@ -602,7 +601,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   /* search for a database with this name */
   uint16_t dbi;
   for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
-    uint16_t name = btree_header(dbi)->database_name();
+    uint16_t name = btree_header(dbi)->get_dbname();
     if (!name)
       continue;
     if (config.db_name == name)
