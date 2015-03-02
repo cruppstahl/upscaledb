@@ -521,6 +521,10 @@ PageManager::close(Context *context)
     maybe_store_state(context, true);
   }
 
+  // cut off excessive space at the end of the file; this space is managed
+  // by the device
+  m_state.device->reclaim_space();
+
   // reclaim unused disk space
   // if logging is enabled: also flush the changeset to write back the
   // modified freelist pages

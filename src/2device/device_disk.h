@@ -253,6 +253,12 @@ class DiskDevice : public Device {
       return (file_offset + size <= m_state.mapped_size);
     }
 
+    // Removes unused space at the end of the file
+    virtual void reclaim_space() {
+      if (m_state.excess_at_end > 0)
+        truncate(m_state.file_size - m_state.excess_at_end);
+    }
+
   private:
     State m_state;
 };

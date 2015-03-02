@@ -165,6 +165,10 @@ class InMemoryDevice : public Device {
       return (false);
     }
 
+    // Removes unused space at the end of the file
+    virtual void reclaim_space() {
+    }
+
     // releases a chunk of memory previously allocated with alloc()
     void release(void *ptr, size_t size) {
       Memory::release(ptr);

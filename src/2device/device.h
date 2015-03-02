@@ -111,6 +111,9 @@ class Device {
     // Returns true if the specified range is in mapped memory
     virtual bool is_mapped(uint64_t file_offset, size_t size) const = 0;
 
+    // Removes unused space at the end of the file
+    virtual void reclaim_space() = 0;
+
   protected:
     // the Environment configuration settings
     const EnvironmentConfiguration &m_config;
