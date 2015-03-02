@@ -91,8 +91,7 @@ PBtreeHeader *
 LocalEnvironment::btree_header(int i)
 {
   PBtreeHeader *d = (PBtreeHeader *)
-        (m_header->get_header_page()->get_payload()
-            + sizeof(PEnvironmentHeader));
+        (m_header->header_page()->get_payload() + sizeof(PEnvironmentHeader));
   return (d + i);
 }
 
@@ -147,7 +146,7 @@ LocalEnvironment::do_create()
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_header->get_header_page()->flush();
+    m_header->header_page()->flush();
 
   return (0);
 }
@@ -212,14 +211,14 @@ LocalEnvironment::do_open()
 
     /* check the database version; everything with a different file version
      * is incompatible */
-    if (m_header->get_version(3) != HAM_FILE_VERSION) {
+    if (m_header->version(3) != HAM_FILE_VERSION) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
     }
-    else if (m_header->get_version(0) == 1 &&
-      m_header->get_version(1) == 0 &&
-      m_header->get_version(2) <= 9) {
+    else if (m_header->version(0) == 1 &&
+      m_header->version(1) == 0 &&
+      m_header->version(2) <= 9) {
       ham_log(("invalid file version; < 1.0.9 is not supported"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
@@ -257,8 +256,8 @@ fail_with_fake_cleansing:
     recover(m_config.flags);
 
   /* load the state of the PageManager */
-  if (m_header->get_page_manager_blobid() != 0)
-    m_page_manager->initialize(m_header->get_page_manager_blobid());
+  if (m_header->page_manager_blobid() != 0)
+    m_page_manager->initialize(m_header->page_manager_blobid());
 
   return (0);
 }
@@ -274,8 +273,8 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   *count = 0;
 
   /* copy each database name to the array */
-  ham_assert(m_header->get_max_databases() > 0);
-  for (i = 0; i < m_header->get_max_databases(); i++) {
+  ham_assert(m_header->max_databases() > 0);
+  for (i = 0; i < m_header->max_databases(); i++) {
     name = btree_header(i)->get_dbname();
     if (name == 0)
       continue;
@@ -304,7 +303,7 @@ LocalEnvironment::do_get_parameters(ham_parameter_t *param)
         p->value = m_config.page_size_bytes;
         break;
       case HAM_PARAM_MAX_DATABASES:
-        p->value = m_header->get_max_databases();
+        p->value = m_header->max_databases();
         break;
       case HAM_PARAM_FLAGS:
         p->value = get_flags();
@@ -356,7 +355,7 @@ LocalEnvironment::do_flush(uint32_t flags)
     return (0);
 
   /* flush the header page */
-  m_header->get_header_page()->flush();
+  m_header->header_page()->flush();
 
   /* flush all open pages to disk */
   m_page_manager->flush(false);
@@ -464,7 +463,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   /* check if this database name is unique */
   uint16_t dbi;
-  for (uint32_t i = 0; i < m_header->get_max_databases(); i++) {
+  for (uint32_t i = 0; i < m_header->max_databases(); i++) {
     uint16_t name = btree_header(i)->get_dbname();
     if (!name)
       continue;
@@ -475,14 +474,14 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* find a free slot in the PBtreeHeader array and store the name */
-  for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+  for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
     uint16_t name = btree_header(dbi)->get_dbname();
     if (!name) {
       btree_header(dbi)->set_dbname(config.db_name);
       break;
     }
   }
-  if (dbi == m_header->get_max_databases()) {
+  if (dbi == m_header->max_databases()) {
     delete db;
     return (HAM_LIMITS_REACHED);
   }
@@ -539,11 +538,11 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   Context context(this, 0, db);
 
-  ham_assert(0 != m_header->get_header_page());
+  ham_assert(0 != m_header->header_page());
 
   /* search for a database with this name */
   uint16_t dbi;
-  for (dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+  for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
     uint16_t name = btree_header(dbi)->get_dbname();
     if (!name)
       continue;
@@ -551,7 +550,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
       break;
   }
 
-  if (dbi == m_header->get_max_databases()) {
+  if (dbi == m_header->max_databases()) {
     delete db;
     return (HAM_DATABASE_NOT_FOUND);
   }
@@ -578,7 +577,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
    * check if a database with the new name already exists; also search
    * for the database with the old name
    */
-  uint16_t max = m_header->get_max_databases();
+  uint16_t max = m_header->max_databases();
   uint16_t slot = max;
   ham_assert(max > 0);
   for (uint16_t dbi = 0; dbi < max; dbi++) {
@@ -620,7 +619,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
    * database from the environment header
    */
   if (get_flags() & HAM_IN_MEMORY) {
-    for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+    for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
       PBtreeHeader *desc = btree_header(dbi);
       if (name == desc->get_dbname()) {
         desc->set_dbname(0);
@@ -652,7 +651,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
     return (st);
 
   /* now set database name to 0 and set the header page to dirty */
-  for (uint16_t dbi = 0; dbi < m_header->get_max_databases(); dbi++) {
+  for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
     PBtreeHeader *desc = btree_header(dbi);
     if (name == desc->get_dbname()) {
       desc->set_dbname(0);
@@ -703,15 +702,15 @@ LocalEnvironment::do_close(uint32_t flags)
 
   /* if we're not in read-only mode, and not an in-memory-database,
    * and the dirty-flag is true: flush the page-header to disk */
-  if (m_header && m_header->get_header_page() && !(get_flags() & HAM_IN_MEMORY)
+  if (m_header && m_header->header_page() && !(get_flags() & HAM_IN_MEMORY)
         && m_device.get() && m_device.get()->is_open()
         && (!(get_flags() & HAM_READ_ONLY))) {
-    m_header->get_header_page()->flush();
+    m_header->header_page()->flush();
   }
 
   /* close the header page */
-  if (m_header && m_header->get_header_page()) {
-    Page *page = m_header->get_header_page();
+  if (m_header && m_header->header_page()) {
+    Page *page = m_header->header_page();
     if (page->get_data())
       m_device->free_page(page);
     delete page;

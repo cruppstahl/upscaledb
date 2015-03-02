@@ -162,7 +162,7 @@ class LocalEnvironment : public Environment
     // Sets the dirty-flag of the header page and adds the header page
     // to the Changeset (if recovery is enabled)
     void mark_header_page_dirty(Context *context) {
-      Page *page = m_header->get_header_page();
+      Page *page = m_header->header_page();
       page->set_dirty(true);
       if (get_flags() & HAM_ENABLE_RECOVERY)
         context->changeset.put(page);

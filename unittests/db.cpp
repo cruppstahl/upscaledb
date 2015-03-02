@@ -65,10 +65,10 @@ struct DbFixture {
     REQUIRE(true == lenv->header()->verify_magic('1', '2', '3', '4'));
 
     lenv->header()->set_version(1, 2, 3, 4);
-    REQUIRE((uint8_t)1 == lenv->header()->get_version(0));
-    REQUIRE((uint8_t)2 == lenv->header()->get_version(1));
-    REQUIRE((uint8_t)3 == lenv->header()->get_version(2));
-    REQUIRE((uint8_t)4 == lenv->header()->get_version(3));
+    REQUIRE((uint8_t)1 == lenv->header()->version(0));
+    REQUIRE((uint8_t)2 == lenv->header()->version(1));
+    REQUIRE((uint8_t)3 == lenv->header()->version(2));
+    REQUIRE((uint8_t)4 == lenv->header()->version(3));
   }
 
   void defaultCompareTest() {

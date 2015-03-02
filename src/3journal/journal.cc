@@ -494,7 +494,7 @@ Journal::recover(LocalTransactionManager *txn_manager)
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
   // recover_changeset()
-  uint64_t page_manager_blobid = m_state.env->header()->get_page_manager_blobid();
+  uint64_t page_manager_blobid = m_state.env->header()->page_manager_blobid();
   if (page_manager_blobid != 0) {
     m_state.env->page_manager()->initialize(page_manager_blobid);
   }

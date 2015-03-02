@@ -121,7 +121,7 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
   Page *page;
   
   if (address == 0)
-    page = m_state.header->get_header_page();
+    page = m_state.header->header_page();
   else
     page = m_state.cache.get(address);
 
@@ -720,11 +720,11 @@ PageManager::maybe_store_state(Context *context, bool force)
 {
   if (force || (m_state.config.flags & HAM_ENABLE_RECOVERY)) {
     uint64_t new_blobid = store_state(context);
-    if (new_blobid != m_state.header->get_page_manager_blobid()) {
+    if (new_blobid != m_state.header->page_manager_blobid()) {
       m_state.header->set_page_manager_blobid(new_blobid);
       // don't bother to lock the header page
-      m_state.header->get_header_page()->set_dirty(true);
-      context->changeset.put(m_state.header->get_header_page());
+      m_state.header->header_page()->set_dirty(true);
+      context->changeset.put(m_state.header->header_page());
     }
   }
 }
