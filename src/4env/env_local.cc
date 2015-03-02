@@ -601,7 +601,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   /* search for a database with this name */
   uint16_t dbi;
   for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
-    uint16_t name = btree_header(dbi)->get_dbname();
+    uint16_t name = btree_header(dbi)->database_name();
     if (!name)
       continue;
     if (config.db_name == name)

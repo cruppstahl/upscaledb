@@ -607,7 +607,7 @@ x Sometimes the performance peaks when truncating/growing the file. The device
 
 x Refactoring: is Device::alloc(len) really used?  - yes
 
-o Refactoring: rewrite more classes to improve the whole structure
+x Refactoring: rewrite more classes to improve the whole structure
     x BlobManager: remove dependency to env
         pass Config, PageManager, Device during initialization
     x HeaderPage - can it be treated like any other page, and moved
@@ -615,39 +615,21 @@ o Refactoring: rewrite more classes to improve the whole structure
         x transform to struct instead of class
     x EnvironmentHeader - allow concurrent access from multiple databases
         - postponed
-    o Move functions from btree_index.cc to btree_action.cc. This will
-        be the base class for BtreeAction*.
-        This includes...
-        - find_child()
-        - find_leaf()
-        - all functions from BtreeUpdateAction
-        o remove get_key_type() etc; use the DatabaseConfiguration instead
-        o There should be a function to store the DatabaseConfiguration in
-            the Headerpage, and one to load the configuration. remove those
-            get_*_compression/set_*_compression methods!
-    o btree_index.h: rename release() to drop()
-    o db.h: rename erase_me() to drop()
-
-o There are performance issues related to cache flushes.
-    1. if multiple pages are flushed then their locks are held for a long time
-    2. even if a single page is flushed then it's possible that there's a
-        significant latency spike when fetching a locked page
-    A strategy to avoiding these spikes would be to create a copy of the page
-    as soon as a page is fetched but the lock is already acquired.
-    The original page could be hazard-collected after a while (10 sec), or
-    forwarded to the worker thread for cleanup (as long as there's just one
-    thread this will work fine).
+    x Move find_leaf from btree_index to btree_find
+    x btree_index.h: rename release() to drop()
 
 o Currently, the code uses linear search over small ranges. This is not
     efficient. If the range is in the cache then binary search is still faster.
-    o remove linear search
-    o rename find_exact() to find()
+    o rename find_exact() and find_leaf() to find()
     o rename find_child() to find_lower_bound()
+    o rebase PRO
     o BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
         -> implement it in BaseKeyList, overwrite in PAX list and in the
             compressed lists
+    o replace lower bound implementation with std::lower_bound
     o replace binary search implementation with std::binary_search for
         exact matches
+<<<<<<< HEAD
         o run performance tests
     o PRO: also get rid of linear search?
         o change webpage/README etc
@@ -693,6 +675,12 @@ o Refactoring: would it make sense if each Database has its own BlobManager?
     discard if the real page_size is a different one
     o deal with databases < 16kb?
 
+=======
+    o remove linear search and move mixed binary search/linear search to
+        the PRO PaxKeyList
+    o rebase PRO
+    o run performance tests
+>>>>>>> More cleanups
 
 
 
@@ -758,8 +746,22 @@ o Refactoring: move functions from btree_index.cc to btree_action.cc. This will
     o rename release() to drop()
     o db.h: rename erase_me() to drop()
 
+<<<<<<< HEAD
 =======
 >>>>>>> Cleanup of the BlobManager code; no functional changes
+=======
+o There are performance issues related to cache flushes.
+    1. if multiple pages are flushed then their locks are held for a long time
+    2. even if a single page is flushed then it's possible that there's a
+        significant latency spike when fetching a locked page
+    A strategy to avoiding these spikes would be to create a copy of the page
+    as soon as a page is fetched but the lock is already acquired.
+    The original page could be hazard-collected after a while (10 sec), or
+    forwarded to the worker thread for cleanup (as long as there's just one
+    thread this will work fine).
+    What if this (previous) page is in other linked lists?
+
+>>>>>>> More cleanups
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
@@ -853,6 +855,17 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
+
+o clean up BtreeIndex class; it has too many responsibilities, i.e.
+    managing configuration, persisting configuration, btree traversal,
+    btree actions etc
+    o the configuration of all btrees is moved to a separate class
+    o the BtreeIndexFactory can create or open btree indices; it manages
+        the page with the persistent configurations
+    o the BtreeIndex has a persistent configuration, a runtime configuration
+        (DatabaseConfiguration) and entry points for btree actions
+    o create a common root class for BtreeActions with common functions,
+        i.e. traversal
 
 o BtreeUpdate managed in the BtreeNode
     BtreeUpdate are attached to a node. A background thread can merge them.
