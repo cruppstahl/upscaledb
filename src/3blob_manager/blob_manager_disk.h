@@ -21,7 +21,6 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "3blob_manager/blob_manager.h"
-#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -125,8 +124,9 @@ class DiskBlobManager : public BlobManager
   };
 
   public:
-    DiskBlobManager(LocalEnvironment *env)
-      : BlobManager(env) {
+    DiskBlobManager(const EnvironmentConfiguration *config,
+                    PageManager *page_manager, Device *device)
+      : BlobManager(config, page_manager, device) {
     }
 
   protected:

@@ -37,8 +37,10 @@
 
 namespace hamsterdb {
 
-struct Context;
-class LocalEnvironment;
+class Context;
+class Device;
+class PageManager;
+class EnvironmentConfiguration;
 
 #include "1base/packstart.h"
 
@@ -46,74 +48,33 @@ class LocalEnvironment;
 //
 // This header is prepended to the blob's payload. It holds the blob size and
 // the blob's address (which is not required but useful for error checking.)
-HAM_PACK_0 class HAM_PACK_1 PBlobHeader
+HAM_PACK_0 struct HAM_PACK_1 PBlobHeader
 {
-  public:
-    PBlobHeader() {
-      memset(this, 0, sizeof(PBlobHeader));
-    }
+  PBlobHeader() {
+    ::memset(this, 0, sizeof(PBlobHeader));
+  }
 
-    // Returns a PBlobHeader from a file address
-    static PBlobHeader *from_page(Page *page, uint64_t address) {
-      uint32_t readstart = (uint32_t)(address - page->get_address());
-      return (PBlobHeader *)&page->get_raw_payload()[readstart];
-    }
+  // Returns a PBlobHeader from a file address
+  static PBlobHeader *from_page(Page *page, uint64_t address) {
+    uint32_t readstart = (uint32_t)(address - page->get_address());
+    return (PBlobHeader *)&page->get_raw_payload()[readstart];
+  }
 
-    // Returns the blob flags
-    uint32_t get_flags() const {
-      return (m_flags);
-    }
+  // Flags; currently only used in hamsterdb-pro to store compression
+  // information
+  uint32_t flags;
 
-    // Sets the blob's flags
-    void set_flags(uint32_t flags) {
-      m_flags = flags;
-    }
+  // The blob ID - which is the absolute address/offset of this
+  // structure in the file
+  uint64_t blob_id;
 
-    // Returns the absolute address of the blob
-    uint64_t get_self() const {
-      return (m_blobid);
-    }
+  // The allocated size of the blob; this is the size, which is used
+  // by the blob and it's header and maybe additional padding
+  uint64_t allocated_size;
 
-    // Sets the absolute address of the blob
-    void set_self(uint64_t id) {
-      m_blobid = id;
-    }
+  // The size of the blob from the user's point of view (excluding the header)
+  uint64_t size;
 
-    // Returns the payload size of the blob
-    uint64_t get_size() const {
-      return (m_size);
-    }
-
-    // Sets the payload size of the blob
-    void set_size(uint64_t size) {
-      m_size = size;
-    }
-
-    // Returns the allocated size of the blob (includes padding)
-    uint64_t get_alloc_size() const {
-      return (m_allocated_size);
-    }
-
-    // Sets the allocated size of a blob (includes padding)
-    void set_alloc_size(uint64_t size) {
-      m_allocated_size = size;
-    }
-
-  private:
-    // Flags; currently only used in hamsterdb-pro to store compression
-    // information
-    uint32_t m_flags;
-
-    // The blob ID - which is the absolute address/offset of this
-    //* structure in the file
-    uint64_t m_blobid;
-
-    // The allocated size of the blob; this is the size, which is used
-    // by the blob and it's header and maybe additional padding
-    uint64_t m_allocated_size;
-
-    // The "real" size of the blob (excluding the header)
-    uint64_t m_size;
 } HAM_PACK_2;
 
 #include "1base/packstop.h"
@@ -139,8 +100,10 @@ class BlobManager
       kDisableCompression = 0x10000000
     };
 
-    BlobManager(LocalEnvironment *env)
-      : m_env(env), m_metric_before_compression(0),
+    BlobManager(const EnvironmentConfiguration *config,
+                    PageManager *page_manager, Device *device)
+      : m_config(config), m_page_manager(page_manager), m_device(device),
+        m_metric_before_compression(0),
         m_metric_after_compression(0), m_metric_total_allocated(0),
         m_metric_total_read(0) {
     }
@@ -209,8 +172,14 @@ class BlobManager
     virtual void do_erase(Context *context, uint64_t blob_id,
                     Page *page = 0, uint32_t flags = 0) = 0;
 
-    // The Environment which created this BlobManager
-    LocalEnvironment *m_env;
+    // The configuration of the Environment
+    const EnvironmentConfiguration *m_config;
+
+    // The active page manager - required to allocate and fetch pages
+    PageManager *m_page_manager;
+
+    // The device - sometimes it's accessed directly
+    Device *m_device;
 
     // Usage tracking - number of bytes before compression
     uint64_t m_metric_before_compression;

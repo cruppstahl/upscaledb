@@ -76,19 +76,6 @@ struct BlobManagerFixture {
         REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void structureTest() {
-    PBlobHeader b;
-
-    b.set_self((uint64_t)0x12345ull);
-    REQUIRE((uint64_t)0x12345ull == b.get_self());
-
-    b.set_alloc_size(0x789ull);
-    REQUIRE((uint64_t)0x789ull == b.get_alloc_size());
-
-    b.set_size(0x123ull);
-    REQUIRE((uint64_t)0x123ull == b.get_size());
-  }
-
   void allocReadFreeTest() {
     uint8_t buffer[64];
     uint64_t blobid;
@@ -371,12 +358,6 @@ struct BlobManagerFixture {
 };
 
 
-TEST_CASE("BlobManager/structureTest", "")
-{
-  BlobManagerFixture f(false, true, 1024);
-  f.structureTest();
-}
-
 TEST_CASE("BlobManager/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 1024);
@@ -432,12 +413,6 @@ TEST_CASE("BlobManager/smallBlobTest", "")
 }
 
 
-TEST_CASE("BlobManager-notxn/structureTest", "")
-{
-  BlobManagerFixture f(false, false, 1024);
-  f.structureTest();
-}
-
 TEST_CASE("BlobManager-notxn/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, false, 1024);
@@ -486,12 +461,6 @@ TEST_CASE("BlobManager-notxn/smallBlobTest", "")
   f.smallBlobTest();
 }
 
-
-TEST_CASE("BlobManager-64k/structureTest", "")
-{
-  BlobManagerFixture f(false, true, 1024 * 64, 1024 * 64);
-  f.structureTest();
-}
 
 TEST_CASE("BlobManager-64k/allocReadFreeTest", "")
 {
@@ -542,12 +511,6 @@ TEST_CASE("BlobManager-64k/smallBlobTest", "")
 }
 
 
-TEST_CASE("BlobManager-nocache/structureTest", "")
-{
-  BlobManagerFixture f(false, true, 0);
-  f.structureTest();
-}
-
 TEST_CASE("BlobManager-nocache/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 0);
@@ -596,12 +559,6 @@ TEST_CASE("BlobManager-nocache/smallBlobTest", "")
   f.smallBlobTest();
 }
 
-
-TEST_CASE("BlobManager-nocache-notxn/structureTest", "")
-{
-  BlobManagerFixture f(false, false, 0);
-  f.structureTest();
-}
 
 TEST_CASE("BlobManager-nocache-notxn/allocReadFreeTest", "")
 {
@@ -652,12 +609,6 @@ TEST_CASE("BlobManager-nocache-notxn/smallBlobTest", "")
 }
 
 
-TEST_CASE("BlobManager-nocache-64k/structureTest", "")
-{
-  BlobManagerFixture f(false, true, 0, 1024 * 64);
-  f.structureTest();
-}
-
 TEST_CASE("BlobManager-nocache-64k/allocReadFreeTest", "")
 {
   BlobManagerFixture f(false, true, 0, 1024 * 64);
@@ -707,12 +658,6 @@ TEST_CASE("BlobManager-nocache-64k/smallBlobTest", "")
 }
 
 
-TEST_CASE("BlobManager-inmem/structureTest", "")
-{
-  BlobManagerFixture f(true, false);
-  f.structureTest();
-}
-
 TEST_CASE("BlobManager-inmem/allocReadFreeTest", "")
 {
   BlobManagerFixture f(true, false);
@@ -761,12 +706,6 @@ TEST_CASE("BlobManager-inmem/smallBlobTest", "")
   f.smallBlobTest();
 }
 
-
-TEST_CASE("BlobManager-inmem-64k/structureTest", "")
-{
-  BlobManagerFixture f(true, false, 0, 1024 * 64);
-  f.structureTest();
-}
 
 TEST_CASE("BlobManager-inmem-64k/allocReadFreeTest", "")
 {

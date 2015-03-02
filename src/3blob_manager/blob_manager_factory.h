@@ -22,6 +22,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3blob_manager/blob_manager_disk.h"
 #include "3blob_manager/blob_manager_inmem.h"
+#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -33,9 +34,11 @@ struct BlobManagerFactory {
   // creates a new BlobManager instance depending on the flags
   static BlobManager *create(LocalEnvironment *env, uint32_t flags) {
     if (flags & HAM_IN_MEMORY)
-      return (new InMemoryBlobManager(env));
+      return (new InMemoryBlobManager(&env->config(), env->page_manager(),
+                              env->device()));
     else
-      return (new DiskBlobManager(env));
+      return (new DiskBlobManager(&env->config(), env->page_manager(),
+                              env->device()));
   }
 };
 

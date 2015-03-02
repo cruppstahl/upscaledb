@@ -20,8 +20,6 @@
 #include "1base/dynamic_array.h"
 #include "2device/device_inmem.h"
 #include "3blob_manager/blob_manager_inmem.h"
-#include "4db/db_local.h"
-#include "4env/env_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -35,15 +33,14 @@ InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
-  uint8_t *p = (uint8_t *)m_env->device()->alloc(record->size
-                  + sizeof(PBlobHeader));
+  uint8_t *p = (uint8_t *)m_device->alloc(record->size + sizeof(PBlobHeader));
 
   // initialize the header
   PBlobHeader *blob_header = (PBlobHeader *)p;
   memset(blob_header, 0, sizeof(*blob_header));
-  blob_header->set_self((uint64_t)PTR_TO_U64(p));
-  blob_header->set_alloc_size(record->size + sizeof(PBlobHeader));
-  blob_header->set_size(record->size);
+  blob_header->blob_id = (uint64_t)PTR_TO_U64(p);
+  blob_header->allocated_size = record->size + sizeof(PBlobHeader);
+  blob_header->size = record->size;
 
   // do we have gaps? if yes, fill them with zeroes
   if (flags & HAM_PARTIAL) {
@@ -78,7 +75,7 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
     return;
   }
 
-  uint32_t blobsize = (uint32_t)blob_header->get_size();
+  uint32_t blobsize = (uint32_t)blob_header->size;
   record->size = blobsize;
 
   if (flags & HAM_PARTIAL) {
@@ -126,22 +123,22 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
   // just overwrite the data)
   PBlobHeader *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
 
-  if (phdr->get_size() == record->size) {
+  if (phdr->size == record->size) {
     uint8_t *p = (uint8_t *)phdr;
     if (flags & HAM_PARTIAL) {
-      memmove(p + sizeof(PBlobHeader) + record->partial_offset,
+      ::memmove(p + sizeof(PBlobHeader) + record->partial_offset,
               record->data, record->partial_size);
     }
     else {
-      memmove(p + sizeof(PBlobHeader), record->data, record->size);
+      ::memmove(p + sizeof(PBlobHeader), record->data, record->size);
     }
     return ((uint64_t)PTR_TO_U64(phdr));
   }
   else {
     uint64_t new_blobid = allocate(context, record, flags);
 
-    InMemoryDevice *dev = (InMemoryDevice *)m_env->device();
-    dev->release(phdr, (size_t)phdr->get_alloc_size());
+    InMemoryDevice *dev = (InMemoryDevice *)m_device;
+    dev->release(phdr, (size_t)phdr->allocated_size);
     return (new_blobid);
   }
 }

@@ -33,8 +33,9 @@ namespace hamsterdb {
  */
 class InMemoryBlobManager : public BlobManager {
   public:
-    InMemoryBlobManager(LocalEnvironment *env)
-      : BlobManager(env) {
+    InMemoryBlobManager(const EnvironmentConfiguration *config,
+                    PageManager *page_manager, Device *device)
+      : BlobManager(config, page_manager, device) {
     }
 
   protected:
@@ -53,7 +54,7 @@ class InMemoryBlobManager : public BlobManager {
     // Retrieves the size of a blob
     virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid) {
       PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
-      return ((uint32_t)blob_header->get_size());
+      return ((uint32_t)blob_header->size);
     }
 
     // Overwrites an existing blob

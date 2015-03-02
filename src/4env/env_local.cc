@@ -109,7 +109,6 @@ LocalEnvironment::do_create()
     m_config.flags |= HAM_DISABLE_RECLAIM_INTERNAL;
 
   /* initialize the device if it does not yet exist */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
   m_device.reset(DeviceFactory::create(m_config));
   if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
@@ -136,6 +135,9 @@ LocalEnvironment::do_create()
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
 
+  /* the blob manager needs a device and an initialized page manager */
+  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
     m_journal.reset(new Journal(this));
@@ -159,7 +161,6 @@ LocalEnvironment::do_open()
 
   /* Initialize the device if it does not yet exist. The page size will
    * be filled in later (at this point in time, it's still unknown) */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
   m_device.reset(DeviceFactory::create(m_config));
 
   /* open the file */
@@ -247,6 +248,9 @@ fail_with_fake_cleansing:
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
+
+  /* the blob manager needs a device and an initialized page manager */
+  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
 
   /* check if recovery is required */
   if (get_flags() & HAM_ENABLE_RECOVERY)
