@@ -703,22 +703,22 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS);
 
-  m_config.key_type = btree_header->get_key_type();
-  m_config.key_size = btree_header->get_key_size();
+  m_config.key_type = btree_header->key_type();
+  m_config.key_size = btree_header->key_size();
 
   /* create the BtreeIndex */
   m_btree_index.reset(new BtreeIndex(this, btree_header,
-                            flags | btree_header->get_flags(),
-                            btree_header->get_key_type(),
-                            btree_header->get_key_size()));
+                            flags | btree_header->flags(),
+                            btree_header->key_type(),
+                            btree_header->key_size()));
 
-  ham_assert(!(m_btree_index->get_flags() & HAM_CACHE_UNLIMITED));
-  ham_assert(!(m_btree_index->get_flags() & HAM_DISABLE_MMAP));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_FSYNC));
-  ham_assert(!(m_btree_index->get_flags() & HAM_READ_ONLY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_RECOVERY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_AUTO_RECOVERY));
-  ham_assert(!(m_btree_index->get_flags() & HAM_ENABLE_TRANSACTIONS));
+  ham_assert(!(m_btree_index->flags() & HAM_CACHE_UNLIMITED));
+  ham_assert(!(m_btree_index->flags() & HAM_DISABLE_MMAP));
+  ham_assert(!(m_btree_index->flags() & HAM_ENABLE_FSYNC));
+  ham_assert(!(m_btree_index->flags() & HAM_READ_ONLY));
+  ham_assert(!(m_btree_index->flags() & HAM_ENABLE_RECOVERY));
+  ham_assert(!(m_btree_index->flags() & HAM_AUTO_RECOVERY));
+  ham_assert(!(m_btree_index->flags() & HAM_ENABLE_TRANSACTIONS));
 
   /* initialize the btree */
   m_btree_index->open();
@@ -728,10 +728,10 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
 
   /* merge the non-persistent database flag with the persistent flags from
    * the btree index */
-  m_config.flags = config().flags | m_btree_index->get_flags();
-  m_config.key_size = m_btree_index->get_key_size();
-  m_config.key_type = m_btree_index->get_key_type();
-  m_config.record_size = m_btree_index->get_record_size();
+  m_config.flags = config().flags | m_btree_index->flags();
+  m_config.key_size = m_btree_index->key_size();
+  m_config.key_type = m_btree_index->key_type();
+  m_config.record_size = m_btree_index->record_size();
 
   // fetch the current record number
   if ((get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
@@ -821,7 +821,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         case HAM_PARAM_MAX_KEYS_PER_PAGE:
           p->value = 0;
           page = lenv()->page_manager()->fetch(&context,
-                          m_btree_index->get_root_address(),
+                          m_btree_index->root_address(),
                         PageManager::kReadOnly);
           if (page) {
             BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
@@ -1461,7 +1461,7 @@ LocalDatabase::close_impl(uint32_t flags)
 
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY)
-   m_btree_index->release(&context);
+   m_btree_index->drop(&context);
 
   /*
    * flush all pages of this database (but not the header page,
@@ -1672,7 +1672,7 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
 ham_status_t
 LocalDatabase::drop(Context *context)
 {
-  m_btree_index->release(context);
+  m_btree_index->drop(context);
   return (0);
 }
 

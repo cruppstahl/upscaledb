@@ -50,7 +50,7 @@ BtreeUpdateAction::traverse_tree(const ham_key_t *key,
   LocalEnvironment *env = db->lenv();
 
   Page *page = env->page_manager()->fetch(m_context,
-                m_btree->get_root_address());
+                m_btree->root_address());
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
   *parent = 0;
@@ -181,7 +181,7 @@ BtreeUpdateAction::collapse_root(Page *root_page)
   header->set_dirty(true);
 
   Page *new_root = env->page_manager()->fetch(m_context,
-                        m_btree->get_root_address());
+                        m_btree->root_address());
   new_root->set_type(Page::kTypeBroot);
   env->page_manager()->del(m_context, root_page);
   return (new_root);

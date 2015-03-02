@@ -81,11 +81,11 @@ BtreeIndex::open()
   uint32_t flags;
   uint32_t rec_size;
 
-  key_size = m_btree_header->get_key_size();
-  key_type = m_btree_header->get_key_type();
-  rec_size = m_btree_header->get_record_size();
-  rootadd = m_btree_header->get_root_address();
-  flags = m_btree_header->get_flags();
+  key_size = m_btree_header->key_size();
+  key_type = m_btree_header->key_type();
+  rec_size = m_btree_header->record_size();
+  rootadd = m_btree_header->root_address();
+  flags = m_btree_header->flags();
 
   ham_assert(key_size > 0);
   ham_assert(rootadd > 0);
@@ -105,9 +105,9 @@ BtreeIndex::set_record_compression(Context *context, int algo)
 }
 
 int
-BtreeIndex::get_record_compression()
+BtreeIndex::record_compression()
 {
-  return (m_btree_header->get_record_compression());
+  return (m_btree_header->record_compression());
 }
 
 void
@@ -118,9 +118,9 @@ BtreeIndex::set_key_compression(Context *context, int algo)
 }
 
 int
-BtreeIndex::get_key_compression()
+BtreeIndex::key_compression()
 {
-  return (m_btree_header->get_key_compression());
+  return (m_btree_header->key_compression());
 }
 
 void
@@ -129,12 +129,12 @@ BtreeIndex::flush_descriptor(Context *context)
   if (m_db->get_flags() & HAM_READ_ONLY)
     return;
 
-  m_btree_header->set_dbname(m_db->name());
-  m_btree_header->set_key_size(get_key_size());
-  m_btree_header->set_rec_size(get_record_size());
-  m_btree_header->set_key_type(get_key_type());
-  m_btree_header->set_root_address(get_root_address());
-  m_btree_header->set_flags(get_flags());
+  m_btree_header->set_database_name(m_db->name());
+  m_btree_header->set_key_size(key_size());
+  m_btree_header->set_rec_size(record_size());
+  m_btree_header->set_key_type(key_type());
+  m_btree_header->set_root_address(root_address());
+  m_btree_header->set_flags(flags());
 }
 
 Page *
@@ -155,50 +155,6 @@ BtreeIndex::find_child(Context *context, Page *page, const ham_key_t *key,
 
   return (m_db->lenv()->page_manager()->fetch(context,
                     record_id, page_manager_flags));
-}
-
-int
-BtreeIndex::find_leaf(Context *context, Page *page, ham_key_t *key,
-                uint32_t flags, uint32_t *approx_match)
-{
-  *approx_match = 0;
-
-  /* ensure the approx flag is NOT set by anyone yet */
-  BtreeNodeProxy *node = get_node_from_page(page);
-  if (node->get_count() == 0)
-    return (-1);
-
-  int cmp;
-  int slot = node->find_child(context, key, 0, &cmp);
-
-  /* successfull match */
-  if (cmp == 0 && (flags == 0 || flags & HAM_FIND_EXACT_MATCH))
-    return (slot);
-
-  /* approx. matching: smaller key is required */
-  if (flags & HAM_FIND_LT_MATCH) {
-    if (cmp == 0 && (flags & HAM_FIND_GT_MATCH)) {
-      *approx_match = BtreeKey::kLower;
-      return (slot + 1);
-    }
-
-    if (slot < 0 && (flags & HAM_FIND_GT_MATCH)) {
-      *approx_match = BtreeKey::kGreater;
-      return (0);
-    }
-    *approx_match = BtreeKey::kLower;
-    if (cmp <= 0)
-      return (slot - 1);
-    return (slot);
-  }
-
-  /* approx. matching: greater key is required */
-  if (flags & HAM_FIND_GT_MATCH) {
-    *approx_match = BtreeKey::kGreater;
-    return (slot + 1);
-  }
-
-  return (cmp ? -1 : slot);
 }
 
 //
@@ -260,7 +216,7 @@ class FreeBlobsVisitor : public BtreeVisitor {
 };
 
 void
-BtreeIndex::release(Context *context)
+BtreeIndex::drop(Context *context)
 {
   FreeBlobsVisitor visitor;
   visit_nodes(context, visitor, true);

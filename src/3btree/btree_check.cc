@@ -59,10 +59,8 @@ class BtreeCheckAction
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->lenv();
 
-      ham_assert(m_btree->get_root_address() != 0);
-
       // get the root page of the tree
-      page = env->page_manager()->fetch(m_context, m_btree->get_root_address(),
+      page = env->page_manager()->fetch(m_context, m_btree->root_address(),
                                     PageManager::kReadOnly);
 
 #if HAM_DEBUG
@@ -204,7 +202,7 @@ class BtreeCheckAction
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
-        if (page->get_address() == m_btree->get_root_address())
+        if (page->get_address() == m_btree->root_address())
           return;
 
         // for internal nodes: ptr_down HAS to be set!

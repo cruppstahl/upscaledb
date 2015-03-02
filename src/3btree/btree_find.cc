@@ -81,8 +81,7 @@ class BtreeFindAction
           ham_assert(node->is_leaf());
 
           uint32_t approx_match;
-          slot = m_btree->find_leaf(m_context, page, m_key, m_flags,
-                                &approx_match);
+          slot = find_leaf(m_context, page, m_key, m_flags, &approx_match);
 
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
@@ -102,7 +101,7 @@ class BtreeFindAction
       if (slot == -1) {
         /* load the root page */
         page = env->page_manager()->fetch(m_context,
-                        m_btree->get_root_address(), PageManager::kReadOnly);
+                        m_btree->root_address(), PageManager::kReadOnly);
 
         /* now traverse the root to the leaf nodes till we find a leaf */
         node = m_btree->get_node_from_page(page);
@@ -128,8 +127,7 @@ class BtreeFindAction
 
         /* check the leaf page for the key (long path w/ approx. matching),
          * then fall through */
-        slot = m_btree->find_leaf(m_context, page, m_key, m_flags,
-                                &approx_match);
+        slot = find_leaf(m_context, page, m_key, m_flags, &approx_match);
       }
 
       if (slot == -1) {
@@ -187,6 +185,55 @@ class BtreeFindAction
     }
 
   private:
+    // Searches a leaf node for a key.
+    //
+    // !!!
+    // only works with leaf nodes!!
+    //
+    // Returns the index of the key, or -1 if the key was not found, or
+    // another negative status code value when an unexpected error occurred.
+    int find_leaf(Context *context, Page *page, ham_key_t *key, uint32_t flags,
+                    uint32_t *approx_match) {
+      *approx_match = 0;
+
+      /* ensure the approx flag is NOT set by anyone yet */
+      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+      if (node->get_count() == 0)
+        return (-1);
+
+      int cmp;
+      int slot = node->find_child(context, key, 0, &cmp);
+
+      /* successfull match */
+      if (cmp == 0 && (flags == 0 || flags & HAM_FIND_EXACT_MATCH))
+        return (slot);
+
+      /* approx. matching: smaller key is required */
+      if (flags & HAM_FIND_LT_MATCH) {
+        if (cmp == 0 && (flags & HAM_FIND_GT_MATCH)) {
+          *approx_match = BtreeKey::kLower;
+          return (slot + 1);
+        }
+
+        if (slot < 0 && (flags & HAM_FIND_GT_MATCH)) {
+          *approx_match = BtreeKey::kGreater;
+          return (0);
+        }
+        *approx_match = BtreeKey::kLower;
+        if (cmp <= 0)
+          return (slot - 1);
+        return (slot);
+      }
+
+      /* approx. matching: greater key is required */
+      if (flags & HAM_FIND_GT_MATCH) {
+        *approx_match = BtreeKey::kGreater;
+        return (slot + 1);
+      }
+
+      return (cmp ? -1 : slot);
+    }
+
     // the current btree
     BtreeIndex *m_btree;
 

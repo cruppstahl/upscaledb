@@ -39,7 +39,6 @@ class BtreeVisitAction
                     bool visit_internal_nodes)
       : m_btree(btree), m_context(context), m_visitor(visitor),
         m_visit_internal_nodes(visit_internal_nodes) {
-      ham_assert(m_btree->get_root_address() != 0);
     }
 
     void run() {
@@ -52,7 +51,7 @@ class BtreeVisitAction
 
       // get the root page of the tree
       Page *page = env->page_manager()->fetch(m_context,
-                    m_btree->get_root_address(), pm_flags);
+                    m_btree->root_address(), pm_flags);
 
       // go down to the leaf
       while (page) {

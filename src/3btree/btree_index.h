@@ -56,17 +56,17 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the database name
-    uint16_t get_dbname() const {
+    uint16_t database_name() const {
       return (m_dbname);
     }
 
     // Sets the database name
-    void set_dbname(uint16_t name) {
+    void set_database_name(uint16_t name) {
       m_dbname = name;
     }
 
     // Returns the btree's max. key_size
-    size_t get_key_size() const {
+    size_t key_size() const {
       return (m_key_size);
     }
 
@@ -76,7 +76,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the record size (or 0 if none was specified)
-    uint32_t get_record_size() const {
+    uint32_t record_size() const {
       return (m_rec_size);
     }
 
@@ -86,7 +86,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the btree's key type
-    uint16_t get_key_type() const {
+    uint16_t key_type() const {
       return (m_key_type);
     }
 
@@ -96,7 +96,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the address of the btree's root page.
-    uint64_t get_root_address() const {
+    uint64_t root_address() const {
       return (m_root_address);
     }
 
@@ -106,7 +106,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // Returns the btree's flags
-    uint32_t get_flags() const {
+    uint32_t flags() const {
       return (m_flags);
     }
 
@@ -116,7 +116,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // PRO: Returns the record compression
-    uint8_t get_record_compression() const {
+    uint8_t record_compression() const {
       return (m_compression >> 4);
     }
 
@@ -126,7 +126,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
     // PRO: Returns the key compression
-    uint8_t get_key_compression() const {
+    uint8_t key_compression() const {
       return (m_compression & 0xf);
     }
 
@@ -230,27 +230,27 @@ class BtreeIndex
     }
 
     // Returns the internal key size
-    size_t get_key_size() const {
+    size_t key_size() const {
       return (m_key_size);
     }
 
     // Returns the record size
-    size_t get_record_size() const {
+    size_t record_size() const {
       return (m_rec_size);
     }
 
     // Returns the internal key type
-    uint16_t get_key_type() const {
+    uint16_t key_type() const {
       return (m_key_type);
     }
 
     // Returns the address of the root page
-    uint64_t get_root_address() const {
+    uint64_t root_address() const {
       return (m_root_address);
     }
 
     // Returns the btree flags
-    uint32_t get_flags() const {
+    uint32_t flags() const {
       return (m_flags);
     }
 
@@ -271,13 +271,13 @@ class BtreeIndex
     void set_record_compression(Context *context, int algo);
 
     // Returns the record compression algorithm
-    int get_record_compression();
+    int record_compression();
 
     // Sets the key compression algorithm
     void set_key_compression(Context *context, int algo);
 
     // Returns the key compression algorithm
-    int get_key_compression();
+    int key_compression();
 
     // Lookup a key in the index (ham_db_find)
     ham_status_t find(Context *context, Cursor *cursor, ham_key_t *key,
@@ -304,10 +304,10 @@ class BtreeIndex
     // Counts the keys in the btree
     uint64_t count(Context *context, bool distinct);
 
-    // Erases all records, overflow areas, extended keys etc from the index;
-    // used to avoid memory leaks when closing in-memory Databases and to
-    // clean up when deleting on-disk Databases.
-    void release(Context *context);
+    // Drops this index. Deletes all records, overflow areas, extended
+    // keys etc from the index; also used to avoid memory leaks when closing
+    // in-memory Databases and to clean up when deleting on-disk Databases.
+    void drop(Context *context);
 
     // Compares two keys
     // Returns -1, 0, +1 or higher positive values are the result of a
@@ -397,16 +397,6 @@ class BtreeIndex
     // of the loaded page.
     Page *find_child(Context *context, Page *parent, const ham_key_t *key,
                     uint32_t page_manager_flags, int *idxptr);
-
-    // Searches a leaf node for a key.
-    //
-    // !!!
-    // only works with leaf nodes!!
-    //
-    // Returns the index of the key, or -1 if the key was not found, or
-    // another negative status code value when an unexpected error occurred.
-    int find_leaf(Context *context, Page *page, ham_key_t *key, uint32_t flags,
-                    uint32_t *approx_match);
 
     // pointer to the database object
     LocalDatabase *m_db;
