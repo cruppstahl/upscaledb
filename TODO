@@ -620,12 +620,12 @@ x Refactoring: rewrite more classes to improve the whole structure
 
 o Currently, the code uses linear search over small ranges. This is not
     efficient. If the range is in the cache then binary search is still faster.
-    o rename find_exact() and find_leaf() to find()
-    o rename find_child() to find_lower_bound()
-    o rebase PRO
-    o BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
+    x rename find_exact() and find_leaf() to find()
+    x rename find_child() to find_lower_bound()
+    x BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
         -> implement it in BaseKeyList, overwrite in PAX list and in the
             compressed lists
+<<<<<<< HEAD
     o replace lower bound implementation with std::lower_bound
     o replace binary search implementation with std::binary_search for
         exact matches
@@ -698,6 +698,15 @@ o More things to refactor in the btree
 
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
+=======
+    x PAX: replace lower bound implementation with std::lower_bound
+    x PAX: replace exact search implementation with std::lower_bound
+    x run performance tests - not changed
+    o rebase PRO
+        o remove linear search and move mixed binary search/linear search to
+            the PRO PaxKeyList
+        o run performance comparison
+>>>>>>> Rewriting binary search interface
 
 o refactoring: db_local.cc has so many TODOs!
 
@@ -706,6 +715,7 @@ o refactoring: db_local.cc has so many TODOs!
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
+<<<<<<< HEAD
     o the whole cursor state is messed up. there should be 3 states:
         - nil
         - coupled to btree
@@ -719,6 +729,21 @@ o refactoring: improve the code separation of cursor, btree_cursor
 <<<<<<< HEAD
 o internal nodes should use 32bit page IDs!
     -> but should still work with 64bit IDs for in-memory environments
+=======
+    o clean up the interface, remove dependencies
+        o there should be 3 states:
+            - nil
+            - coupled to btree
+            - coupled to txn
+            o state() - returns the state
+            o set_state() - changes the state
+    o key() returns the current (coupled) key
+    o record() returns the current (coupled) record
+    o clean up duplicate cache handling; avoid direct access from outside
+    o fix the TODOs in cursor.cc
+    o fix the TODOs in db_local.cc
+    o run monster tests
+>>>>>>> Rewriting binary search interface
 
 <<<<<<< HEAD
 o delta updates managed in the BtreeNode
@@ -760,6 +785,13 @@ o There are performance issues related to cache flushes.
     forwarded to the worker thread for cleanup (as long as there's just one
     thread this will work fine).
     What if this (previous) page is in other linked lists?
+    -> We need a way to swap the data of a page even while it is locked and/or
+        flushed
+    -> combine mutex, is_dirty and the data pointer to a separate structure
+    -> the mutex only protects this structure!
+    -> the worker thread does not work on pages but on these structures
+    -> ... and therefore the main thread can swap them!
+    Just try to avoid an extra memory allocation!
 
 >>>>>>> More cleanups
 o Concurrency: flush the changeset asynchronously. As soon as the log
