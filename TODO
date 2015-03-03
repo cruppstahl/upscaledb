@@ -684,6 +684,20 @@ o There are performance issues related to cache flushes.
     x btree_index.h: rename release() to drop()
 >>>>>>> More cleanups
 
+x refactoring: the Cursor should be a top-level entity
+    x introduce a virtual base class, a LocalCursor and a RemoteCursor
+    x the RemoteCursor manages the remote handle
+    x rewrite ham_cursor_create
+    x ham_cursor_clone
+    x ham_cursor_close
+    x ham_cursor_get_duplicate_position
+    x ham_cursor_get_duplicate_count
+    x ham_cursor_get_record_size
+    x ham_cursor_overwrite
+    x fix the constructor call and pass a Database, not a LocalDatabase
+        (move m_db to derived class?)
+        x remove "evil cast"
+
 o Currently, the code uses linear search over small ranges. This is not
     efficient. If the range is in the cache then binary search is still faster.
     x rename find_exact() and find_leaf() to find()
@@ -698,21 +712,6 @@ o Currently, the code uses linear search over small ranges. This is not
         o remove linear search and move mixed binary search/linear search to
             the PRO PaxKeyList
         o run performance comparison
-
-o refactoring: the Cursor should be a top-level entity
-    o introduce a virtual base class, a LocalCursor and a RemoteCursor
-    o the RemoteCursor manages the remote handle
-    o rewrite ham_cursor_create
-    o ham_cursor_clone
-    o ham_cursor_close
-    o ham_cursor_get_duplicate_position
-    o ham_cursor_get_duplicate_count
-    o ham_cursor_get_record_size
-    o ham_cursor_move
-    o ham_cursor_overwrite
-    o ham_cursor_find
-    o ham_cursor_insert
-    o ham_cursor_erase
 
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
@@ -873,6 +872,15 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
+
+o Do not add read-only pages to the Changeset
+    There's no need to add pages to the Changeset if they are not modified.
+    My first thought was that the lock should be replaced with a RW-lock,
+    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
+    read-lock. But the current implementation does not require this level of
+    concurrency. Even if concurrency is implemented on a database-level
+    then there's no need for RW-locks in the pages (as long as blob pages
+    are NOT shared between databases!)
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
