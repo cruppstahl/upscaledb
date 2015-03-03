@@ -32,7 +32,7 @@
 #include "3btree/btree_stats.h"
 #include "4db/db_local.h"
 #include "4context/context.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4txn/txn_local.h"
 #include "4txn/txn_cursor.h"
 
@@ -215,7 +215,7 @@ LocalDatabase::insert_txn(Context *context, ham_key_t *key,
   // if there's a cursor then couple it to the op; also store the
   // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
   if (cursor) {
-    Cursor *c = cursor->get_parent();
+    LocalCursor *c = cursor->get_parent();
     if (c->get_dupecache_index())
       op->set_referenced_dupe(c->get_dupecache_index());
 
@@ -277,7 +277,7 @@ LocalDatabase::is_key_erased(Context *context, ham_key_t *key)
 }
 
 ham_status_t
-LocalDatabase::find_txn(Context *context, Cursor *cursor,
+LocalDatabase::find_txn(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
@@ -358,9 +358,9 @@ retry:
         else if (op->get_referenced_dupe() == 1) {
           // check if there are other dupes
           bool is_equal;
-          (void)cursor->sync(context, Cursor::kSyncOnlyEqualKeys, &is_equal);
+          (void)cursor->sync(context, LocalCursor::kSyncOnlyEqualKeys, &is_equal);
           if (!is_equal) // TODO merge w/ line above?
-            cursor->set_to_nil(Cursor::kBtree);
+            cursor->set_to_nil(LocalCursor::kBtree);
           st = cursor->get_dupecache_count(context) ? 0 : HAM_KEY_NOT_FOUND;
         }
         return (st);
@@ -418,7 +418,7 @@ retry:
     // now lookup in the btree, but make sure that the retrieved key was
     // not deleted or overwritten in a transaction
     if (cursor)
-      cursor->set_to_nil(Cursor::kBtree);
+      cursor->set_to_nil(LocalCursor::kBtree);
     st = m_btree_index->find(context, cursor, key, pkey_arena, record,
                     precord_arena, flags);
 
@@ -557,7 +557,7 @@ LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
   ham_status_t st = 0;
   TransactionOperation *op;
   bool node_created = false;
-  Cursor *pc = 0;
+  LocalCursor *pc = 0;
   if (cursor)
     pc = cursor->get_parent();
 
@@ -736,7 +736,7 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   // fetch the current record number
   if ((get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
     ham_key_t key = {};
-    Cursor *c = new Cursor(this, 0, 0);
+    LocalCursor *c = new LocalCursor(this, 0);
     ham_status_t st = cursor_move_impl(context, c, &key, 0, HAM_CURSOR_LAST);
     cursor_close(c);
     if (st)
@@ -904,7 +904,7 @@ ham_status_t
 LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
   ham_status_t st = 0;
-  Cursor *cursor = 0;
+  LocalCursor *cursor = 0;
 
   try {
     Context context(lenv(), (LocalTransaction *)txn, this);
@@ -916,7 +916,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
-    cursor = cursor_create_impl(txn, 0);
+    cursor = (LocalCursor *)cursor_create_impl(txn);
 
     st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
     if (st)
@@ -927,7 +927,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       do {
         /* process the key */
         (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(&context, 0)
+                                        ? cursor->get_duplicate_count(&context)
                                         : 1);
       } while ((st = cursor_move_impl(&context, cursor, &key,
                             0, HAM_CURSOR_NEXT)) == 0);
@@ -970,7 +970,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       if (!txnkey) {
         /* process the key */
         (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(&context, 0)
+                                        ? cursor->get_duplicate_count(&context)
                                         : 1);
         break;
       }
@@ -989,7 +989,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
           }
           /* process the key */
           (*visitor)(key.data, key.size, distinct
-                                        ? cursor->get_record_count(&context, 0)
+                                        ? cursor->get_duplicate_count(&context)
                                         : 1);
         } while ((st = cursor_move_impl(&context, cursor, &key,
                                 0, HAM_CURSOR_NEXT)) == 0);
@@ -1011,7 +1011,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     while ((st = cursor_move_impl(&context, cursor, &key,
                             0, HAM_CURSOR_NEXT)) == 0) {
       (*visitor)(key.data, key.size, distinct
-                                     ? cursor->get_record_count(&context, 0)
+                                     ? cursor->get_duplicate_count(&context)
                                      : 1);
     }
 
@@ -1032,9 +1032,10 @@ bail:
 }
 
 ham_status_t
-LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
+LocalDatabase::insert(Cursor *hcursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  LocalCursor *cursor = (LocalCursor *)hcursor;
   Context context(lenv(), (LocalTransaction *)txn, this);
 
   try {
@@ -1139,9 +1140,10 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
+LocalDatabase::erase(Cursor *hcursor, Transaction *txn, ham_key_t *key,
                 uint32_t flags)
 {
+  LocalCursor *cursor = (LocalCursor *)hcursor;
   Context context(lenv(), (LocalTransaction *)txn, this);
 
   try {
@@ -1180,9 +1182,10 @@ LocalDatabase::erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
+LocalDatabase::find(Cursor *hcursor, Transaction *txn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  LocalCursor *cursor = (LocalCursor *)hcursor;
   Context context(lenv(), (LocalTransaction *)txn, this);
 
   try {
@@ -1194,9 +1197,9 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
      */
     if (!cursor
           && (get_flags() & (HAM_ENABLE_DUPLICATE_KEYS|HAM_ENABLE_TRANSACTIONS))) {
-      Cursor *c = cursor_create_impl(txn, 0);
+      LocalCursor *c = (LocalCursor *)cursor_create_impl(txn);
       st = find(c, txn, key, record, flags);
-      cursor_close_impl(c);
+      c->close();
       delete c;
       return (st);
     }
@@ -1223,9 +1226,9 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
       // make sure that txn-cursor and btree-cursor point to the same keys
       if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
         bool is_equal;
-        (void)cursor->sync(&context, Cursor::kSyncOnlyEqualKeys, &is_equal);
+        (void)cursor->sync(&context, LocalCursor::kSyncOnlyEqualKeys, &is_equal);
         if (!is_equal && cursor->is_coupled_to_txnop())
-          cursor->set_to_nil(Cursor::kBtree);
+          cursor->set_to_nil(LocalCursor::kBtree);
       }
 
       /* if the key has duplicates: build a duplicate table, then couple to the
@@ -1254,7 +1257,7 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 
       /* set a flag that the cursor just completed an Insert-or-find
        * operation; this information is needed in ham_cursor_move */
-      cursor->set_lastop(Cursor::kLookupOrInsert);
+      cursor->set_last_operation(LocalCursor::kLookupOrInsert);
     }
 
     return (finalize(&context, st, 0));
@@ -1265,94 +1268,23 @@ LocalDatabase::find(Cursor *cursor, Transaction *txn, ham_key_t *key,
 }
 
 Cursor *
-LocalDatabase::cursor_create_impl(Transaction *txn, uint32_t flags)
+LocalDatabase::cursor_create_impl(Transaction *txn)
 {
-  return (new Cursor(this, txn, flags));
+  return (new LocalCursor(this, txn));
 }
 
 Cursor *
-LocalDatabase::cursor_clone_impl(Cursor *src)
+LocalDatabase::cursor_clone_impl(Cursor *hsrc)
 {
-  return (new Cursor(*src));
+  return (new LocalCursor(*(LocalCursor *)hsrc));
 }
 
 ham_status_t
-LocalDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags,
-                    uint32_t *pcount)
-{
-  try {
-    Context context(lenv(), (LocalTransaction *)cursor->get_txn(), this);
-    *pcount = cursor->get_record_count(&context, flags);
-    return (0);
-  }
-  catch (Exception &ex) {
-    *pcount = 0;
-    return (ex.code);
-  }
-}
-
-ham_status_t
-LocalDatabase::cursor_get_duplicate_position(Cursor *cursor,
-                    uint32_t *pposition)
-{
-  try {
-    *pposition = cursor->get_duplicate_position();
-    return (0);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-LocalDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *psize)
-{
-  try {
-    Context context(lenv(), (LocalTransaction *)cursor->get_txn(), this);
-    *psize = cursor->get_record_size(&context);
-    return (0);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-LocalDatabase::cursor_overwrite(Cursor *cursor,
+LocalDatabase::cursor_move(Cursor *hcursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
-  Context context(lenv(), (LocalTransaction *)cursor->get_txn(), this);
+  LocalCursor *cursor = (LocalCursor *)hcursor;
 
-  try {
-    ham_status_t st = 0;
-    Transaction *local_txn = 0;
-
-    /* purge cache if necessary */
-    lenv()->page_manager()->purge_cache(&context);
-
-    /* if user did not specify a transaction, but transactions are enabled:
-     * create a temporary one */
-    if (!cursor->get_txn() && (get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-      local_txn = begin_temp_txn();
-      context.txn = (LocalTransaction *)local_txn;
-    }
-
-    /* this function will do all the work */
-    st = cursor->overwrite(&context, cursor->get_txn()
-                                        ? cursor->get_txn()
-                                        : local_txn,
-                            record, flags);
-    return (finalize(&context, st, local_txn));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
-                ham_record_t *record, uint32_t flags)
-{
   try {
     Context context(lenv(), (LocalTransaction *)cursor->get_txn(),
             this);
@@ -1365,7 +1297,7 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
+LocalDatabase::cursor_move_impl(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
@@ -1379,8 +1311,6 @@ LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
    * if the cursor was already used but is nil then we've reached EOF,
    * and a NEXT actually tries to move to the LAST key (and PREVIOUS
    * moves to FIRST)
-   *
-   * TODO the btree-cursor has identical code which can be removed
    */
   if (cursor->is_nil(0)) {
     if (flags & HAM_CURSOR_NEXT) {
@@ -1400,13 +1330,6 @@ LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
   }
 
   ham_status_t st = 0;
-
-  /* in non-transactional mode - just call the btree function and return */
-  if (!(get_flags() & HAM_ENABLE_TRANSACTIONS)) {
-    return (cursor->get_btree_cursor()->move(context,
-                            key, &key_arena(context->txn),
-                            record, &record_arena(context->txn), flags));
-  }
 
   /* everything else is handled by the cursor function */
   st = cursor->move(context, key, record, flags);
@@ -1428,12 +1351,6 @@ LocalDatabase::cursor_move_impl(Context *context, Cursor *cursor,
   }
 
   return (0);
-}
-
-void
-LocalDatabase::cursor_close_impl(Cursor *cursor)
-{
-  cursor->close();
 }
 
 ham_status_t
@@ -1474,9 +1391,9 @@ LocalDatabase::close_impl(uint32_t flags)
 
 void 
 LocalDatabase::increment_dupe_index(Context *context, TransactionNode *node,
-                Cursor *skip, uint32_t start)
+                LocalCursor *skip, uint32_t start)
 {
-  Cursor *c = m_cursor_list;
+  LocalCursor *c = (LocalCursor *)m_cursor_list;
 
   while (c) {
     bool hit = false;
@@ -1504,19 +1421,19 @@ LocalDatabase::increment_dupe_index(Context *context, TransactionNode *node,
     }
 
 next:
-    c = c->get_next();
+    c = (LocalCursor *)c->get_next();
   }
 }
 
 void
-LocalDatabase::nil_all_cursors_in_node(LocalTransaction *txn, Cursor *current,
-                TransactionNode *node)
+LocalDatabase::nil_all_cursors_in_node(LocalTransaction *txn,
+                LocalCursor *current, TransactionNode *node)
 {
   TransactionOperation *op = node->get_newest_op();
   while (op) {
     TransactionCursor *cursor = op->cursor_list();
     while (cursor) {
-      Cursor *parent = cursor->get_parent();
+      LocalCursor *parent = cursor->get_parent();
       // is the current cursor to a duplicate? then adjust the
       // coupled duplicate index of all cursors which point to a duplicate
       if (current) {
@@ -1534,11 +1451,11 @@ LocalDatabase::nil_all_cursors_in_node(LocalTransaction *txn, Cursor *current,
         }
       }
       parent->couple_to_btree(); // TODO merge these two lines
-      parent->set_to_nil(Cursor::kTxn);
+      parent->set_to_nil(LocalCursor::kTxn);
       // set a flag that the cursor just completed an Insert-or-find
       // operation; this information is needed in ham_cursor_move
       // (in this aspect, an erase is the same as insert/find)
-      parent->set_lastop(Cursor::kLookupOrInsert);
+      parent->set_last_operation(LocalCursor::kLookupOrInsert);
 
       cursor = op->cursor_list();
     }
@@ -1563,10 +1480,10 @@ LocalDatabase::copy_record(LocalDatabase *db, Transaction *txn,
 }
 
 void
-LocalDatabase::nil_all_cursors_in_btree(Context *context, Cursor *current,
+LocalDatabase::nil_all_cursors_in_btree(Context *context, LocalCursor *current,
                 ham_key_t *key)
 {
-  Cursor *c = m_cursor_list;
+  LocalCursor *c = (LocalCursor *)m_cursor_list;
 
   /* foreach cursor in this database:
    *  if it's nil or coupled to the txn: skip it
@@ -1604,7 +1521,7 @@ LocalDatabase::nil_all_cursors_in_btree(Context *context, Cursor *current,
       c->set_to_nil(0);
     }
 next:
-    c = c->get_next();
+    c = (LocalCursor *)c->get_next();
   }
 }
 
@@ -1636,7 +1553,7 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
     }
     else {
       TransactionCursor *tc1 = op->cursor_list();
-      Cursor *c1 = tc1->get_parent();
+      LocalCursor *c1 = tc1->get_parent();
       /* pick the first cursor, get the parent/btree cursor and
        * insert the key/record pair in the btree. The btree cursor
        * then will be coupled to this item. */
@@ -1645,16 +1562,16 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
       if (!st) {
         /* uncouple the cursor from the txn-op, and remove it */
         c1->couple_to_btree(); // TODO merge these two calls
-        c1->set_to_nil(Cursor::kTxn);
+        c1->set_to_nil(LocalCursor::kTxn);
 
         /* all other (btree) cursors need to be coupled to the same
          * item as the first one. */
         TransactionCursor *tc2;
         while ((tc2 = op->cursor_list())) {
-          Cursor *c2 = tc2->get_parent();
+          LocalCursor *c2 = tc2->get_parent();
           c2->get_btree_cursor()->clone(c1->get_btree_cursor());
           c2->couple_to_btree(); // TODO merge these two calls
-          c2->set_to_nil(Cursor::kTxn);
+          c2->set_to_nil(LocalCursor::kTxn);
         }
       }
     }
@@ -1677,7 +1594,7 @@ LocalDatabase::drop(Context *context)
 }
 
 ham_status_t
-LocalDatabase::insert_impl(Context *context, Cursor *cursor,
+LocalDatabase::insert_impl(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   ham_status_t st = 0;
@@ -1704,7 +1621,7 @@ LocalDatabase::insert_impl(Context *context, Cursor *cursor,
       /* the cursor is coupled to the txn-op; nil the btree-cursor to
        * trigger a sync() call when fetching the duplicates */
       // TODO merge with the line above
-      cursor->set_to_nil(Cursor::kBtree);
+      cursor->set_to_nil(LocalCursor::kBtree);
 
       /* reset the dupecache, otherwise cursor->get_dupecache_count()
        * does not update the dupecache correctly */
@@ -1732,14 +1649,14 @@ LocalDatabase::insert_impl(Context *context, Cursor *cursor,
 
     /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(Cursor::kLookupOrInsert);
+    cursor->set_last_operation(LocalCursor::kLookupOrInsert);
   }
 
   return (st);
 }
 
 ham_status_t
-LocalDatabase::find_impl(Context *context, Cursor *cursor,
+LocalDatabase::find_impl(Context *context, LocalCursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
@@ -1757,7 +1674,7 @@ LocalDatabase::find_impl(Context *context, Cursor *cursor,
 }
 
 ham_status_t
-LocalDatabase::erase_impl(Context *context, Cursor *cursor, ham_key_t *key,
+LocalDatabase::erase_impl(Context *context, LocalCursor *cursor, ham_key_t *key,
                 uint32_t flags)
 {
   ham_status_t st = 0;
@@ -1787,7 +1704,7 @@ LocalDatabase::erase_impl(Context *context, Cursor *cursor, ham_key_t *key,
        */
       /* case 1 described above */
       if (cursor->is_coupled_to_btree()) {
-        cursor->set_to_nil(Cursor::kTxn);
+        cursor->set_to_nil(LocalCursor::kTxn);
         cursor->get_btree_cursor()->uncouple_from_page(context);
         st = erase_txn(context, cursor->get_btree_cursor()->get_uncoupled_key(),
                         0, cursor->get_txn_cursor());

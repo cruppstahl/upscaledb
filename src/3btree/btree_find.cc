@@ -31,7 +31,7 @@
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node_proxy.h"
 #include "3page_manager/page_manager.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4db/db.h"
 
 #ifndef HAM_ROOT_H
@@ -43,7 +43,7 @@ namespace hamsterdb {
 class BtreeFindAction
 {
   public:
-    BtreeFindAction(BtreeIndex *btree, Context *context, Cursor *cursor,
+    BtreeFindAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
                     ham_key_t *key, ByteArray *key_arena,
                     ham_record_t *record, ByteArray *record_arena,
                     uint32_t flags)
@@ -173,7 +173,7 @@ class BtreeFindAction
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
-      if (m_key && approx_match && !(m_flags & Cursor::kSyncDontLoadKey)) {
+      if (m_key && approx_match && !(m_flags & LocalCursor::kSyncDontLoadKey)) {
         node->get_key(m_context, slot, m_key_arena, m_key);
       }
 
@@ -260,7 +260,7 @@ class BtreeFindAction
 };
 
 ham_status_t
-BtreeIndex::find(Context *context, Cursor *cursor, ham_key_t *key,
+BtreeIndex::find(Context *context, LocalCursor *cursor, ham_key_t *key,
                 ByteArray *key_arena, ham_record_t *record,
                 ByteArray *record_arena, uint32_t flags)
 {

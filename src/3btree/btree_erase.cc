@@ -29,7 +29,7 @@
 #include "3btree/btree_update.h"
 #include "3btree/btree_node_proxy.h"
 #include "4db/db.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -43,7 +43,7 @@ namespace hamsterdb {
 class BtreeEraseAction : public BtreeUpdateAction
 {
   public:
-    BtreeEraseAction(BtreeIndex *btree, Context *context, Cursor *cursor,
+    BtreeEraseAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
                     ham_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
       : BtreeUpdateAction(btree, context, cursor
                                             ? cursor->get_btree_cursor()
@@ -133,7 +133,7 @@ fall_through:
 
       // still got duplicates left? then adjust all cursors
       if (node->is_leaf() && has_duplicates_left && db->cursor_list()) {
-        Cursor *cursors = db->cursor_list();
+        LocalCursor *cursors = (LocalCursor *)db->cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
         int duplicate_index =
@@ -144,7 +144,7 @@ fall_through:
         while (btcur) {
           BtreeCursor *next = 0;
           if (cursors->get_next()) {
-            cursors = cursors->get_next();
+            cursors = (LocalCursor *)cursors->get_next();
             next = cursors->get_btree_cursor();
           }
 
@@ -165,7 +165,7 @@ fall_through:
       // this key are set to nil, all cursors pointing to a key in the same
       // page are adjusted, if necessary
       if (node->is_leaf() && !has_duplicates_left && db->cursor_list()) {
-        Cursor *cursors = db->cursor_list();
+        LocalCursor *cursors = (LocalCursor *)db->cursor_list();
         BtreeCursor *btcur = cursors->get_btree_cursor();
 
         /* 'nil' every cursor which points to the deleted key, and adjust
@@ -174,7 +174,7 @@ fall_through:
           BtreeCursor *cur = btcur;
           BtreeCursor *next = 0;
           if (cursors->get_next()) {
-            cursors = cursors->get_next();
+            cursors = (LocalCursor *)cursors->get_next();
             next = cursors->get_btree_cursor();
           }
           if (btcur != m_cursor && cur->points_to(m_context, page, slot))
@@ -221,7 +221,7 @@ fall_through:
 };
 
 ham_status_t
-BtreeIndex::erase(Context *context, Cursor *cursor, ham_key_t *key,
+BtreeIndex::erase(Context *context, LocalCursor *cursor, ham_key_t *key,
                 int duplicate, uint32_t flags)
 {
   context->db = get_db();

@@ -1015,6 +1015,7 @@ struct SerializedCursorInsertRequest {
   SerializedKey key;
   SerializedBool has_record;
   SerializedRecord record;
+  SerializedBool send_key;
 
   SerializedCursorInsertRequest() {
     clear();
@@ -1028,6 +1029,7 @@ struct SerializedCursorInsertRequest {
           (has_key.value ? key.get_size() : 0) + 
           has_record.get_size() + 
           (has_record.value ? record.get_size() : 0) + 
+          send_key.get_size() + 
           0);
   }
 
@@ -1038,6 +1040,7 @@ struct SerializedCursorInsertRequest {
     key.clear();
     has_record = false;
     record.clear();
+    send_key.clear();
   }
 
   void serialize(unsigned char **pptr, int *psize) const {
@@ -1047,6 +1050,7 @@ struct SerializedCursorInsertRequest {
     if (has_key.value) key.serialize(pptr, psize);
     has_record.serialize(pptr, psize);
     if (has_record.value) record.serialize(pptr, psize);
+    send_key.serialize(pptr, psize);
   }
 
   void deserialize(unsigned char **pptr, int *psize) {
@@ -1056,6 +1060,7 @@ struct SerializedCursorInsertRequest {
     if (has_key.value) key.deserialize(pptr, psize);
     has_record.deserialize(pptr, psize);
     if (has_record.value) record.deserialize(pptr, psize);
+    send_key.deserialize(pptr, psize);
   }
 };
 

@@ -40,7 +40,8 @@
 
 namespace hamsterdb {
 
-struct Context;
+class Context;
+class LocalCursor;
 
 #include "1base/packstart.h"
 
@@ -280,18 +281,18 @@ class BtreeIndex
     int key_compression();
 
     // Lookup a key in the index (ham_db_find)
-    ham_status_t find(Context *context, Cursor *cursor, ham_key_t *key,
+    ham_status_t find(Context *context, LocalCursor *cursor, ham_key_t *key,
                     ByteArray *key_arena, ham_record_t *record,
                     ByteArray *record_arena, uint32_t flags);
 
     // Inserts (or updates) a key/record in the index (ham_db_insert)
-    ham_status_t insert(Context *context, Cursor *cursor, ham_key_t *key,
+    ham_status_t insert(Context *context, LocalCursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
     // Erases a key/record from the index (ham_db_erase).
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
-    ham_status_t erase(Context *context, Cursor *cursor, ham_key_t *key,
+    ham_status_t erase(Context *context, LocalCursor *cursor, ham_key_t *key,
                     int duplicate_index, uint32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node

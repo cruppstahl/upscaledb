@@ -35,7 +35,7 @@ ham_status_t
 Database::cursor_create(Cursor **pcursor, Transaction *txn, uint32_t flags)
 {
   try {
-    Cursor *cursor = cursor_create_impl(txn, flags);
+    Cursor *cursor = cursor_create_impl(txn);
 
     /* fix the linked list of cursors */
     cursor->set_next(m_cursor_list);
@@ -50,6 +50,7 @@ Database::cursor_create(Cursor **pcursor, Transaction *txn, uint32_t flags)
     return (0);
   }
   catch (Exception &ex) {
+    *pcursor = 0;
     return (ex.code);
   }
 }
@@ -75,6 +76,7 @@ Database::cursor_clone(Cursor **pdest, Cursor *src)
     return (0);
   }
   catch (Exception &ex) {
+    *pdest = 0;
     return (ex.code);
   }
 }
@@ -86,7 +88,7 @@ Database::cursor_close(Cursor *cursor)
     Cursor *p, *n;
 
     // first close the cursor
-    cursor_close_impl(cursor);
+    cursor->close();
 
     // decrease the transaction refcount; the refcount specifies how many
     // cursors are attached to the transaction

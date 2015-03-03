@@ -97,8 +97,12 @@ libhamsterdb_la_SOURCES = \
 	3page_manager/page_manager_test.h \
 	3page_manager/page_manager_worker.h \
 	4context/context.h \
-	4cursor/cursor.cc \
 	4cursor/cursor.h \
+	4cursor/cursor.cc \
+	4cursor/cursor_local.cc \
+	4cursor/cursor_local.h \
+	4cursor/cursor_remote.cc \
+	4cursor/cursor_remote.h \
 	4db/db.cc \
 	4db/db.h \
 	4db/db_local.cc \

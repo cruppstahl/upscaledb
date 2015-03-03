@@ -21,7 +21,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "4env/env_local.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
 using namespace hamsterdb;
@@ -392,7 +392,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == move     ("33333", "aaaac", HAM_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", HAM_CURSOR_NEXT));
     REQUIRE(4u ==
-          ((Cursor *)m_cursor)->get_dupecache_count(m_context.get()));
+          ((LocalCursor *)m_cursor)->get_dupecache_count(m_context.get()));
     REQUIRE(HAM_KEY_NOT_FOUND == move(0, 0, HAM_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", HAM_CURSOR_LAST));
     REQUIRE(0 == move     ("33333", "aaaac", HAM_CURSOR_PREVIOUS));

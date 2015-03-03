@@ -389,6 +389,7 @@ message CursorInsertRequest {
   optional Key key = 2;
   optional Record record = 3;
   required uint32 flags = 4;
+  required bool send_key = 5;
 };
 
 message CursorInsertReply {

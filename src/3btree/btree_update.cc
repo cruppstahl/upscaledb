@@ -26,7 +26,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_update.h"
 #include "3btree/btree_node_proxy.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -425,7 +425,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
   // couple it to the inserted key
   // TODO only when performing an insert(), not an erase()!
   if (m_cursor && node->is_leaf()) {
-    m_cursor->get_parent()->set_to_nil(Cursor::kBtree);
+    m_cursor->get_parent()->set_to_nil(LocalCursor::kBtree);
     ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
     m_cursor->couple_to_page(page, result.slot, new_duplicate_id);
   }

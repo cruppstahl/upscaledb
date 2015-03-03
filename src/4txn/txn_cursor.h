@@ -46,8 +46,8 @@
 
 namespace hamsterdb {
 
-class Cursor;
-struct Context;
+class LocalCursor;
+class Context;
 
 //
 // An cursor which can iterate over Transaction nodes
@@ -56,7 +56,7 @@ class TransactionCursor
 {
   public:
     // Constructor
-    TransactionCursor(Cursor *parent)
+    TransactionCursor(LocalCursor *parent)
       : m_parent(parent) {
       m_coupled_op = 0;
       m_coupled_next = 0;
@@ -73,7 +73,7 @@ class TransactionCursor
 
     // Returns the parent cursor
     // TODO this should be private
-    Cursor *get_parent() {
+    LocalCursor *get_parent() {
       return (m_parent);
     }
 
@@ -151,7 +151,7 @@ class TransactionCursor
                     uint32_t flags);
 
     // The parent cursor
-    Cursor *m_parent;
+    LocalCursor *m_parent;
 
     // A Cursor can either be coupled or nil ("not in list"). If it's
     // coupled, it directly points to a TransactionOperation structure.

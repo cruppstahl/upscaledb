@@ -34,7 +34,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_update.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4db/db.h"
 #include "4env/env.h"
 
@@ -49,7 +49,7 @@ namespace hamsterdb {
 class BtreeInsertAction : public BtreeUpdateAction
 {
   public:
-    BtreeInsertAction(BtreeIndex *btree, Context *context, Cursor *cursor,
+    BtreeInsertAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags)
       : BtreeUpdateAction(btree, context, cursor
                                             ? cursor->get_btree_cursor()
@@ -201,7 +201,7 @@ class BtreeInsertAction : public BtreeUpdateAction
 };
 
 ham_status_t
-BtreeIndex::insert(Context *context, Cursor *cursor, ham_key_t *key,
+BtreeIndex::insert(Context *context, LocalCursor *cursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
   context->db = get_db();

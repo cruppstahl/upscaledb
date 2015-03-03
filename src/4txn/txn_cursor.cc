@@ -18,12 +18,12 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_cursor.h"
-#include "4db/db.h"
+#include "4db/db_local.h"
 #include "4txn/txn.h"
 #include "4txn/txn_cursor.h"
 #include "4txn/txn_local.h"
 #include "4env/env.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
 #ifndef HAM_ROOT_H
@@ -332,7 +332,7 @@ TransactionCursor::get_record_size()
 LocalDatabase *
 TransactionCursor::get_db()
 {
-  return (m_parent->get_db());
+  return (m_parent->ldb());
 }
 
 ham_status_t

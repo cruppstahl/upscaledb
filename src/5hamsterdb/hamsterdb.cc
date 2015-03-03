@@ -37,8 +37,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "4cursor/cursor.h"
-#include "4db/db.h"
-#include "4env/env.h"
+#include "4db/db_local.h"
 #include "4env/env_header.h"
 #include "4env/env_local.h"
 #include "4env/env_remote.h"
@@ -1104,8 +1103,6 @@ ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
 ham_status_t HAM_CALLCONV
 ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 {
-  Database *db;
-
   if (!hsrc) {
     ham_trace(("parameter 'src' must not be NULL"));
     return (HAM_INV_PARAMETER);
@@ -1119,8 +1116,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
   src = (Cursor *)hsrc;
   dest = (Cursor **)hdest;
 
-  db = src->get_db();
-
+  Database *db = src->db();
   ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->cursor_clone(dest, src)));
@@ -1130,8 +1126,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
                 uint32_t flags)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
@@ -1139,8 +1133,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
 
   Cursor *cursor = (Cursor *)hcursor;
 
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (flags) {
@@ -1159,25 +1152,20 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
     return (db->set_error(HAM_WRITE_PROTECTED));
   }
 
-  return (db->set_error(db->cursor_overwrite(cursor, record, flags)));
+  return (db->set_error(cursor->overwrite(record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
-  Database *db;
-  Environment *env;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if ((flags & HAM_ONLY_DUPLICATES) && (flags & HAM_SKIP_DUPLICATES)) {
@@ -1186,7 +1174,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  env = db->get_env();
+  Environment *env = db->get_env();
 
   if ((flags & HAM_DIRECT_ACCESS)
       && !(env->get_flags() & HAM_IN_MEMORY)) {
@@ -1219,18 +1207,14 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
                 uint32_t flags)
 {
-  Database *db;
-  Environment *env;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-  env = db->get_env();
+  Database *db = cursor->db();
+  Environment *env = db->get_env();
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
@@ -1282,8 +1266,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
                 uint32_t flags)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
@@ -1291,8 +1273,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 
   Cursor *cursor = (Cursor *)hcursor;
 
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (!key) {
@@ -1385,17 +1366,13 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
 ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (db->get_flags() & HAM_READ_ONLY) {
@@ -1418,17 +1395,13 @@ ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
                 uint32_t flags)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (!count) {
@@ -1436,23 +1409,19 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  return (db->set_error(db->cursor_get_record_count(cursor, flags, count)));
+  return (db->set_error(cursor->get_duplicate_count(flags, count)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_position(ham_cursor_t *hcursor, uint32_t *position)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (!position) {
@@ -1460,23 +1429,19 @@ ham_cursor_get_duplicate_position(ham_cursor_t *hcursor, uint32_t *position)
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  return (db->set_error(db->cursor_get_duplicate_position(cursor, position)));
+  return (db->set_error(cursor->get_duplicate_position(position)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   if (!size) {
@@ -1484,23 +1449,19 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  return (db->set_error(db->cursor_get_record_size(cursor, size)));
+  return (db->set_error(cursor->get_record_size(size)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *hcursor)
 {
-  Database *db;
-
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
     return (HAM_INV_PARAMETER);
   }
 
   Cursor *cursor = (Cursor *)hcursor;
-
-  db = cursor->get_db();
-
+  Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
   return (db->set_error(db->cursor_close(cursor)));
@@ -1537,7 +1498,7 @@ ham_cursor_get_database(ham_cursor_t *hcursor)
 {
   if (hcursor) {
     Cursor *cursor = (Cursor *)hcursor;
-    return ((ham_db_t *)cursor->get_db());
+    return ((ham_db_t *)cursor->db());
   }
   return (0);
 }

@@ -81,35 +81,16 @@ class RemoteDatabase : public Database
     virtual ham_status_t find(Cursor *cursor, Transaction *txn, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
-    // Returns number of duplicates (ham_cursor_get_record_count)
-    virtual ham_status_t cursor_get_record_count(Cursor *cursor, uint32_t flags,
-                    uint32_t *pcount);
-
-    // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    virtual ham_status_t cursor_get_duplicate_position(Cursor *cursor,
-                    uint32_t *pposition);
-
-    // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    uint64_t *psize);
-
-    // Overwrites the record of a cursor (ham_cursor_overwrite)
-    virtual ham_status_t cursor_overwrite(Cursor *cursor,
-                    ham_record_t *record, uint32_t flags);
-
     // Moves a cursor, returns key and/or record (ham_cursor_move)
     virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
   protected:
     // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Transaction *txn, uint32_t flags);
+    virtual Cursor *cursor_create_impl(Transaction *txn);
 
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src);
-
-    // Closes a cursor; this is the actual implementation
-    virtual void cursor_close_impl(Cursor *c);
 
     // Closes a database; this is the actual implementation
     virtual ham_status_t close_impl(uint32_t flags);

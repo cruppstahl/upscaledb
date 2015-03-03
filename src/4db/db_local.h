@@ -116,22 +116,6 @@ class LocalDatabase : public Database {
     virtual ham_status_t find(Cursor *cursor, Transaction *txn, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
 
-    // Returns number of duplicates (ham_cursor_get_record_count)
-    virtual ham_status_t cursor_get_record_count(Cursor *cursor, uint32_t flags,
-                    uint32_t *pcount);
-
-    // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    virtual ham_status_t cursor_get_duplicate_position(Cursor *cursor,
-                    uint32_t *pposition);
-
-    // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    uint64_t *psize);
-
-    // Overwrites the record of a cursor (ham_cursor_overwrite)
-    virtual ham_status_t cursor_overwrite(Cursor *cursor,
-                    ham_record_t *record, uint32_t flags);
-
     // Moves a cursor, returns key and/or record (ham_cursor_move)
     virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, uint32_t flags);
@@ -165,23 +149,29 @@ class LocalDatabase : public Database {
                     TransactionOperation *op);
 
   protected:
-    friend class Cursor;
+    friend class LocalCursor;
 
     // Copies the ham_record_t structure from |op| into |record|
     static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
                     TransactionOperation *op, ham_record_t *record);
 
     // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Transaction *txn, uint32_t flags);
+    virtual Cursor *cursor_create_impl(Transaction *txn);
 
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src);
 
-    // Closes a cursor; this is the actual implementation
-    virtual void cursor_close_impl(Cursor *c);
-
     // Closes a database; this is the actual implementation
     virtual ham_status_t close_impl(uint32_t flags);
+
+    // Begins a new temporary Transaction
+    LocalTransaction *begin_temp_txn();
+
+    // Finalizes an operation by committing or aborting the |local_txn|
+    // and clearing or flushing the Changeset.
+    // Returns |status|.
+    ham_status_t finalize(Context *context, ham_status_t status,
+                    Transaction *local_txn);
 
   private:
     friend struct DbFixture;
@@ -201,33 +191,24 @@ class LocalDatabase : public Database {
     // Lookup of a key/record pair in the Transaction index and in the btree,
     // if transactions are disabled/not successful; copies the
     // record into |record|. Also performs approx. matching.
-    ham_status_t find_txn(Context *context, Cursor *cursor,
+    ham_status_t find_txn(Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // Moves a cursor, returns key and/or record (ham_cursor_move)
-    ham_status_t cursor_move_impl(Context *context, Cursor *cursor,
+    ham_status_t cursor_move_impl(Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of insert()
-    ham_status_t insert_impl(Context *context, Cursor *cursor,
+    ham_status_t insert_impl(Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of find()
-    ham_status_t find_impl(Context *context, Cursor *cursor,
+    ham_status_t find_impl(Context *context, LocalCursor *cursor,
                     ham_key_t *key, ham_record_t *record, uint32_t flags);
 
     // The actual implementation of erase()
-    ham_status_t erase_impl(Context *context, Cursor *cursor,
+    ham_status_t erase_impl(Context *context, LocalCursor *cursor,
                     ham_key_t *key, uint32_t flags);
-
-    // Finalizes an operation by committing or aborting the |local_txn|
-    // and clearing or flushing the Changeset.
-    // Returns |status|.
-    ham_status_t finalize(Context *context, ham_status_t status,
-                    Transaction *local_txn);
-
-    // Begins a new temporary Transaction
-    LocalTransaction *begin_temp_txn();
 
     // returns the next record number
     uint64_t next_record_number() {
@@ -253,14 +234,14 @@ class LocalDatabase : public Database {
     // Increments dupe index of all cursors with a dupe index > |start|;
     // only cursor |skip| is ignored
     void increment_dupe_index(Context *context, TransactionNode *node,
-                    Cursor *skip, uint32_t start);
+                    LocalCursor *skip, uint32_t start);
 
     // Sets all cursors attached to a TransactionNode to nil
-    void nil_all_cursors_in_node(LocalTransaction *txn, Cursor *current,
+    void nil_all_cursors_in_node(LocalTransaction *txn, LocalCursor *current,
                     TransactionNode *node);
 
     // Sets all cursors to nil if they point to |key| in the btree index
-    void nil_all_cursors_in_btree(Context *context, Cursor *current,
+    void nil_all_cursors_in_btree(Context *context, LocalCursor *current,
                     ham_key_t *key);
 
     // the current record number

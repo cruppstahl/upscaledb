@@ -22,9 +22,9 @@
 #include "1os/os.h"
 #include "2page/page.h"
 #include "4context/context.h"
-#include "4cursor/cursor.h"
-#include "4db/db.h"
-#include "4env/env.h"
+#include "4cursor/cursor_local.h"
+#include "4db/db_local.h"
+#include "4env/env_local.h"
 #include "4txn/txn.h"
 #include "4txn/txn_cursor.h"
 
@@ -62,7 +62,7 @@ struct TxnCursorFixture {
   }
 
   void cursorIsNilTest() {
-    TransactionCursor cursor((Cursor *)0);
+    TransactionCursor cursor((LocalCursor *)0);
 
     REQUIRE(true == cursor.is_nil());
     cursor.set_to_nil();
@@ -83,7 +83,7 @@ struct TxnCursorFixture {
                 0, TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op != 0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_key(&k);
@@ -111,7 +111,7 @@ struct TxnCursorFixture {
                 0, TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op != 0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_key(&k);
@@ -136,7 +136,7 @@ struct TxnCursorFixture {
                 0, TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op!=0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_key(&k);
@@ -161,7 +161,7 @@ struct TxnCursorFixture {
                 TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op != 0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
 
     REQUIRE_CATCH(c.copy_coupled_key(&k), HAM_CURSOR_IS_NIL);
 
@@ -185,7 +185,7 @@ struct TxnCursorFixture {
                 TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op!=0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_record(&r);
@@ -216,7 +216,7 @@ struct TxnCursorFixture {
                 TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op!=0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_record(&r);
@@ -241,7 +241,7 @@ struct TxnCursorFixture {
                 TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op!=0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
     c.m_coupled_op = op;
 
     c.copy_coupled_record(&r);
@@ -266,7 +266,7 @@ struct TxnCursorFixture {
                 TransactionOperation::kInsertDuplicate, 55, &key, &record);
     REQUIRE(op!=0);
 
-    TransactionCursor c((Cursor *)m_cursor);
+    TransactionCursor c((LocalCursor *)m_cursor);
 
     REQUIRE_CATCH(c.copy_coupled_record(&r), HAM_CURSOR_IS_NIL);
 
@@ -364,7 +364,7 @@ struct TxnCursorFixture {
   void findInsertEraseTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -395,7 +395,7 @@ struct TxnCursorFixture {
   void findInsertEraseOverwriteTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -424,7 +424,7 @@ struct TxnCursorFixture {
   void findInsertTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -464,7 +464,7 @@ struct TxnCursorFixture {
   void moveFirstTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -498,7 +498,7 @@ struct TxnCursorFixture {
   void moveFirstInEmptyTreeTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -521,7 +521,7 @@ struct TxnCursorFixture {
   void findCreateConflictTest() {
     ham_txn_t *txn, *txn2;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
@@ -543,7 +543,7 @@ struct TxnCursorFixture {
   void moveNextWithNilCursorTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -565,7 +565,7 @@ struct TxnCursorFixture {
   void moveNextTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -609,7 +609,7 @@ struct TxnCursorFixture {
   void moveNextAfterEndTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -635,7 +635,7 @@ struct TxnCursorFixture {
   void moveNextSkipEraseTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -671,7 +671,7 @@ struct TxnCursorFixture {
   void moveNextSkipEraseInNodeTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -711,7 +711,7 @@ struct TxnCursorFixture {
   void moveLastTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -745,7 +745,7 @@ struct TxnCursorFixture {
   void moveLastInEmptyTreeTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -768,7 +768,7 @@ struct TxnCursorFixture {
   void movePrevWithNilCursorTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -790,7 +790,7 @@ struct TxnCursorFixture {
   void movePrevTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -834,7 +834,7 @@ struct TxnCursorFixture {
   void movePrevAfterEndTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -860,7 +860,7 @@ struct TxnCursorFixture {
   void movePrevSkipEraseTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -896,7 +896,7 @@ struct TxnCursorFixture {
   void movePrevSkipEraseInNodeTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -947,7 +947,7 @@ struct TxnCursorFixture {
   void insertKeysTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -976,7 +976,7 @@ struct TxnCursorFixture {
   void negativeInsertKeysTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -996,7 +996,7 @@ struct TxnCursorFixture {
   void insertOverwriteKeysTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1021,7 +1021,7 @@ struct TxnCursorFixture {
   void insertCreateConflictTest() {
     ham_txn_t *txn, *txn2;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
@@ -1046,7 +1046,7 @@ struct TxnCursorFixture {
   void overwriteRecordsTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1076,7 +1076,7 @@ struct TxnCursorFixture {
   void overwriteRecordsNilCursorTest() {
     ham_txn_t *txn;
 
-    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 

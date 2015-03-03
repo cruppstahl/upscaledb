@@ -26,7 +26,7 @@
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
 #include "4txn/txn_remote.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_remote.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -151,9 +151,11 @@ RemoteDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
 }
 
 ham_status_t
-RemoteDatabase::insert(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ham_key_t *key,
             ham_record_t *record, uint32_t flags)
 {
+  RemoteCursor *cursor = (RemoteCursor *)hcursor;
+
   try {
     bool send_key = true;
     RemoteEnvironment *env = renv();
@@ -185,7 +187,7 @@ RemoteDatabase::insert(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     if (cursor) {
       SerializedWrapper request;
       request.id = kCursorInsertRequest;
-      request.cursor_insert_request.cursor_handle = cursor->get_remote_handle();
+      request.cursor_insert_request.cursor_handle = cursor->remote_handle();
       request.cursor_insert_request.flags = flags;
       if (send_key) {
         request.cursor_insert_request.has_key = true;
@@ -204,6 +206,9 @@ RemoteDatabase::insert(Cursor *cursor, Transaction *htxn, ham_key_t *key,
         request.cursor_insert_request.record.partial_size = record->partial_size;
         request.cursor_insert_request.record.partial_offset = record->partial_offset;
       }
+
+      if (get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))
+        request.cursor_insert_request.send_key = true;
 
       env->perform_request(&request, &reply);
 
@@ -264,14 +269,16 @@ RemoteDatabase::insert(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::erase(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ham_key_t *key,
             uint32_t flags)
 {
+  RemoteCursor *cursor = (RemoteCursor *)hcursor;
+
   try {
     if (cursor) {
       SerializedWrapper request;
       request.id = kCursorEraseRequest;
-      request.cursor_erase_request.cursor_handle = cursor->get_remote_handle();
+      request.cursor_erase_request.cursor_handle = cursor->remote_handle();
       request.cursor_erase_request.flags = flags;
 
       SerializedWrapper reply;
@@ -307,9 +314,11 @@ RemoteDatabase::erase(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 }
 
 ham_status_t
-RemoteDatabase::find(Cursor *cursor, Transaction *htxn, ham_key_t *key,
+RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ham_key_t *key,
               ham_record_t *record, uint32_t flags)
 {
+  RemoteCursor *cursor = (RemoteCursor *)hcursor;
+
   try {
     if (cursor && !htxn)
       htxn = cursor->get_txn();
@@ -320,7 +329,7 @@ RemoteDatabase::find(Cursor *cursor, Transaction *htxn, ham_key_t *key,
     SerializedWrapper request;
     request.id = kDbFindRequest;
     request.db_find_request.db_handle = m_remote_handle;
-    request.db_find_request.cursor_handle = cursor ? cursor->get_remote_handle() : 0;
+    request.db_find_request.cursor_handle = cursor ? cursor->remote_handle() : 0;
     request.db_find_request.txn_handle = txn ? txn->get_remote_handle() : 0;
     request.db_find_request.flags = flags;
     request.db_find_request.key.has_data = true;
@@ -377,7 +386,7 @@ RemoteDatabase::find(Cursor *cursor, Transaction *htxn, ham_key_t *key,
 }
 
 Cursor *
-RemoteDatabase::cursor_create_impl(Transaction *htxn, uint32_t flags)
+RemoteDatabase::cursor_create_impl(Transaction *htxn)
 {
   RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
 
@@ -387,7 +396,7 @@ RemoteDatabase::cursor_create_impl(Transaction *htxn, uint32_t flags)
   request.cursor_create_request.txn_handle = txn
                                                 ? txn->get_remote_handle()
                                                 : 0;
-  request.cursor_create_request.flags = flags;
+  request.cursor_create_request.flags = 0;
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
@@ -396,17 +405,19 @@ RemoteDatabase::cursor_create_impl(Transaction *htxn, uint32_t flags)
   if (st)
     return (0);
 
-  Cursor *c = new Cursor((LocalDatabase *)this); // TODO this cast is evil!!
+  RemoteCursor *c = new RemoteCursor(this);
   c->set_remote_handle(reply.cursor_create_reply.cursor_handle);
   return (c);
 }
 
 Cursor *
-RemoteDatabase::cursor_clone_impl(Cursor *src)
+RemoteDatabase::cursor_clone_impl(Cursor *hsrc)
 {
+  RemoteCursor *src = (RemoteCursor *)hsrc;
+
   SerializedWrapper request;
   request.id = kCursorCloneRequest;
-  request.cursor_clone_request.cursor_handle = src->get_remote_handle();
+  request.cursor_clone_request.cursor_handle = src->remote_handle();
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
@@ -415,128 +426,17 @@ RemoteDatabase::cursor_clone_impl(Cursor *src)
   if (st)
     return (0);
 
-  Cursor *c = new Cursor(src->get_db());
+  RemoteCursor *c = new RemoteCursor(this);
   c->set_remote_handle(reply.cursor_clone_reply.cursor_handle);
   return (c);
 }
 
 ham_status_t
-RemoteDatabase::cursor_get_record_count(Cursor *cursor, uint32_t flags,
-                    uint32_t *pcount)
-{
-  try {
-    RemoteEnvironment *env = renv();
-
-    SerializedWrapper request;
-    request.id = kCursorGetRecordCountRequest;
-    request.cursor_get_record_count_request.cursor_handle =
-                    cursor->get_remote_handle();
-    request.cursor_get_record_count_request.flags = flags;
-
-    SerializedWrapper reply;
-    env->perform_request(&request, &reply);
-    ham_assert(reply.id == kCursorGetRecordCountReply);
-
-    ham_status_t st = reply.cursor_get_record_count_reply.status;
-    if (st == 0)
-      *pcount = reply.cursor_get_record_count_reply.count;
-    else
-      *pcount = 0;
-    return (st);
-  }
-  catch (Exception &ex) {
-    *pcount = 0;
-    return (ex.code);
-  }
-}
-
-ham_status_t
-RemoteDatabase::cursor_get_duplicate_position(Cursor *cursor,
-                uint32_t *pposition)
-{
-  try {
-    RemoteEnvironment *env = renv();
-
-    SerializedWrapper request;
-    request.id = kCursorGetDuplicatePositionRequest;
-    request.cursor_get_duplicate_position_request.cursor_handle =
-                    cursor->get_remote_handle();
-
-    SerializedWrapper reply;
-    env->perform_request(&request, &reply);
-    ham_assert(reply.id == kCursorGetDuplicatePositionReply);
-
-    ham_status_t st = reply.cursor_get_duplicate_position_reply.status;
-    if (st == 0)
-      *pposition = reply.cursor_get_duplicate_position_reply.position;
-    return (st);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-RemoteDatabase::cursor_get_record_size(Cursor *cursor, uint64_t *psize)
-{
-  try {
-    RemoteEnvironment *env = renv();
-
-    SerializedWrapper request;
-    request.id = kCursorGetRecordSizeRequest;
-    request.cursor_get_record_size_request.cursor_handle =
-                    cursor->get_remote_handle();
-
-    SerializedWrapper reply;
-    env->perform_request(&request, &reply);
-    ham_assert(reply.id == kCursorGetRecordSizeReply);
-
-    ham_status_t st = reply.cursor_get_record_size_reply.status;
-    if (st == 0)
-      *psize = reply.cursor_get_record_size_reply.size;
-    return (0);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-RemoteDatabase::cursor_overwrite(Cursor *cursor,
-            ham_record_t *record, uint32_t flags)
-{
-  try {
-    RemoteEnvironment *env = renv();
-
-    SerializedWrapper request;
-    request.id = kCursorOverwriteRequest;
-    request.cursor_overwrite_request.cursor_handle = cursor->get_remote_handle();
-    request.cursor_overwrite_request.flags = flags;
-
-    if (record->size > 0) {
-      request.cursor_overwrite_request.record.has_data = true;
-      request.cursor_overwrite_request.record.data.size = record->size;
-      request.cursor_overwrite_request.record.data.value = (uint8_t *)record->data;
-    }
-    request.cursor_overwrite_request.record.flags = record->flags;
-    request.cursor_overwrite_request.record.partial_size = record->partial_size;
-    request.cursor_overwrite_request.record.partial_offset = record->partial_offset;
-
-    SerializedWrapper reply;
-    env->perform_request(&request, &reply);
-    ham_assert(reply.id == kCursorOverwriteReply);
-
-    return (reply.cursor_overwrite_reply.status);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ham_status_t
-RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
+RemoteDatabase::cursor_move(Cursor *hcursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
+  RemoteCursor *cursor = (RemoteCursor *)hcursor;
+
   try {
     RemoteEnvironment *env = renv();
 
@@ -545,7 +445,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
     ByteArray *prec_arena = &record_arena(txn);
 
     Protocol request(Protocol::CURSOR_MOVE_REQUEST);
-    request.mutable_cursor_move_request()->set_cursor_handle(cursor->get_remote_handle());
+    request.mutable_cursor_move_request()->set_cursor_handle(cursor->remote_handle());
     request.mutable_cursor_move_request()->set_flags(flags);
     if (key)
       Protocol::assign_key(request.mutable_cursor_move_request()->mutable_key(),
@@ -591,18 +491,6 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   catch (Exception &ex) {
     return (ex.code);
   }
-}
-
-void
-RemoteDatabase::cursor_close_impl(Cursor *cursor)
-{
-  SerializedWrapper request;
-  request.id = kCursorCloseRequest;
-  request.cursor_close_request.cursor_handle = cursor->get_remote_handle();
-
-  SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorCloseReply);
 }
 
 ham_status_t

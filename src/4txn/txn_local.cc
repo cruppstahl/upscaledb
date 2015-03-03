@@ -19,11 +19,12 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_index.h"
 #include "3journal/journal.h"
+#include "4db/db_local.h"
 #include "4txn/txn_local.h"
 #include "4txn/txn_factory.h"
 #include "4txn/txn_cursor.h"
 #include "4env/env_local.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
 #ifndef HAM_ROOT_H
@@ -643,11 +644,11 @@ LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
     op->set_flushed();
 next_op:
     while ((cursor = op->cursor_list())) {
-      Cursor *pc = cursor->get_parent();
+      LocalCursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?
-      if (!pc->is_nil(Cursor::kTxn))
-        pc->set_to_nil(Cursor::kTxn);
+      if (!pc->is_nil(LocalCursor::kTxn))
+        pc->set_to_nil(LocalCursor::kTxn);
     }
 
     ham_assert(op->get_lsn() > highest_lsn);

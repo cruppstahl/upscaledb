@@ -25,7 +25,7 @@
 
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
-#include "4db/db.h"
+#include "4db/db_local.h"
 #include "4cursor/cursor.h"
 #include "4env/env_local.h"
 #include "4context/context.h"

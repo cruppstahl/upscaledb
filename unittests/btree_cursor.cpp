@@ -24,9 +24,9 @@
 #include "3btree/btree_index.h"
 #include "3page_manager/page_manager.h"
 #include "3btree/btree_cursor.h"
-#include "4db/db.h"
+#include "4db/db_local.h"
 #include "4env/env_local.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
 namespace hamsterdb {
@@ -80,7 +80,7 @@ struct BtreeCursorFixture {
 
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
     REQUIRE(cursor != 0);
-    Cursor *c = new Cursor(*(Cursor *)cursor);
+    LocalCursor *c = new LocalCursor(*(LocalCursor *)cursor);
     clone = (ham_cursor_t *)c;
     REQUIRE(clone != 0);
     REQUIRE(0 == ham_cursor_close(clone));
@@ -304,7 +304,7 @@ struct BtreeCursorFixture {
     memset(&rec, 0, sizeof(rec));
 
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
-    btc = ((Cursor *)c)->get_btree_cursor();
+    btc = ((LocalCursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
     REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);

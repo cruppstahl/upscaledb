@@ -56,8 +56,8 @@
 
 namespace hamsterdb {
 
-struct Context;
-class Cursor;
+class Context;
+class LocalCursor;
 class BtreeIndex;
 class Page;
 
@@ -77,7 +77,7 @@ class BtreeCursor
     };
 
     // Constructor
-    BtreeCursor(Cursor *parent = 0);
+    BtreeCursor(LocalCursor *parent = 0);
 
     // Destructor; asserts that the cursor is nil
     ~BtreeCursor() {
@@ -86,7 +86,7 @@ class BtreeCursor
 
     // Returns the parent cursor
     // TODO this should be private
-    Cursor *get_parent() {
+    LocalCursor *get_parent() {
       return (m_parent);
     }
 
@@ -210,7 +210,7 @@ class BtreeCursor
     ham_status_t move_previous(Context *context, uint32_t flags);
 
     // the parent cursor
-    Cursor *m_parent;
+    LocalCursor *m_parent;
 
     // The BtreeIndex instance
     BtreeIndex *m_btree;

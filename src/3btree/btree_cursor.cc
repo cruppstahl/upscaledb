@@ -25,7 +25,7 @@
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "3btree/btree_node_proxy.h"
-#include "4cursor/cursor.h"
+#include "4cursor/cursor_local.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -33,13 +33,13 @@
 
 namespace hamsterdb {
 
-BtreeCursor::BtreeCursor(Cursor *parent)
+BtreeCursor::BtreeCursor(LocalCursor *parent)
   : m_parent(parent), m_state(0), m_duplicate_index(0),
     m_coupled_page(0), m_coupled_index(0), m_next_in_page(0),
     m_previous_in_page(0)
 {
   memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
-  m_btree = parent->get_db()->btree_index();
+  m_btree = parent->ldb()->btree_index();
 }
 
 void
@@ -203,7 +203,7 @@ BtreeCursor::points_to(Context *context, ham_key_t *key)
 ham_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnvironment *env = m_parent->get_db()->lenv();
+  LocalEnvironment *env = m_parent->ldb()->lenv();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled)
@@ -277,7 +277,7 @@ BtreeCursor::couple(Context *context)
 ham_status_t
 BtreeCursor::move_first(Context *context, uint32_t flags)
 {
-  LocalDatabase *db = m_parent->get_db();
+  LocalDatabase *db = m_parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
@@ -313,7 +313,7 @@ BtreeCursor::move_first(Context *context, uint32_t flags)
 ham_status_t
 BtreeCursor::move_next(Context *context, uint32_t flags)
 {
-  LocalDatabase *db = m_parent->get_db();
+  LocalDatabase *db = m_parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
@@ -371,7 +371,7 @@ BtreeCursor::move_next(Context *context, uint32_t flags)
 ham_status_t
 BtreeCursor::move_previous(Context *context, uint32_t flags)
 {
-  LocalDatabase *db = m_parent->get_db();
+  LocalDatabase *db = m_parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
@@ -431,7 +431,7 @@ BtreeCursor::move_previous(Context *context, uint32_t flags)
 ham_status_t
 BtreeCursor::move_last(Context *context, uint32_t flags)
 {
-  LocalDatabase *db = m_parent->get_db();
+  LocalDatabase *db = m_parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
@@ -525,7 +525,7 @@ void
 BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
 {
   bool skipped = false;
-  Cursor *cursors = page->cursor_list()
+  LocalCursor *cursors = page->cursor_list()
           ? page->cursor_list()->get_parent()
           : 0;
 

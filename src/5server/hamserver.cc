@@ -31,6 +31,7 @@
 #include "2protobuf/protocol.h"
 #include "2protoserde/messages.h"
 #include "4env/env.h"
+#include "4db/db_local.h"
 #include "5server/hamserver.h"
 
 #include <uv.h>
@@ -1253,7 +1254,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ham_key_t key = {0};
   ham_record_t rec = {0};
   ham_status_t st = 0;
-  bool send_key = false;
+  bool send_key;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_insert_request());
@@ -1282,16 +1283,10 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
+  send_key = request->cursor_insert_request().send_key();
+
   st = ham_cursor_insert((ham_cursor_t *)cursor, &key, &rec,
             request->cursor_insert_request().flags());
-
-  /* recno: return the modified key */
-  if (st == 0) {
-    if (cursor->get_db()->get_flags()
-                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
-      send_key = true;
-    }
-  }
 
 bail:
   Protocol reply(Protocol::CURSOR_INSERT_REPLY);
@@ -1309,7 +1304,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp,
   ham_key_t key = {0};
   ham_record_t rec = {0};
   ham_status_t st = 0;
-  bool send_key = false;
+  bool send_key;
 
   Cursor *cursor = srv->get_cursor(request->cursor_insert_request.cursor_handle);
   if (!cursor) {
@@ -1338,13 +1333,7 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp,
   st = ham_cursor_insert((ham_cursor_t *)cursor, &key, &rec,
             request->cursor_insert_request.flags);
 
-  /* recno: return the modified key */
-  if (st == 0) {
-    if (cursor->get_db()->get_flags()
-                  & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
-      send_key = true;
-    }
-  }
+  send_key = request->cursor_insert_request.send_key;
 
 bail:
   SerializedWrapper reply;

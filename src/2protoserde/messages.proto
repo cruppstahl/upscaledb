@@ -216,6 +216,7 @@ MESSAGE_BEGIN(CursorInsertRequest)
   uint32 flags;
   optional Key key;
   optional Record record;
+  bool send_key;
 MESSAGE_END
 
 MESSAGE_BEGIN(CursorInsertReply)
