@@ -35,7 +35,7 @@ using namespace hamsterdb;
 Cursor::Cursor(LocalDatabase *db, Transaction *txn, uint32_t flags)
   : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
     m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
-    m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
+    m_last_operation(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
 {
 }
 
@@ -47,7 +47,7 @@ Cursor::Cursor(Cursor &other)
   m_next = other.m_next;
   m_previous = other.m_previous;
   m_dupecache_index = other.m_dupecache_index;
-  m_lastop = other.m_lastop;
+  m_last_operation = other.m_last_operation;
   m_last_cmp = other.m_last_cmp;
   m_flags = other.m_flags;
   m_is_first_use = other.m_is_first_use;
@@ -120,7 +120,7 @@ Cursor::update_dupecache(Context *context, uint32_t what)
           uint32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= m_dupecache.get_count());
-            DupeCacheLine *e = m_dupecache.get_first_element();
+            DupeCacheLine *e = m_dupecache.get_element(0);
             (&e[ref - 1])->set_txn_op(op);
           }
           else {
@@ -199,7 +199,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
 {
   ham_key_t key = {0};
   TransactionOperation *op;
-  // TODO not threadsafe - will leak if an exception is thrown
+  // TODO will leak if an exception is thrown
   Cursor *clone = get_db()->cursor_clone_impl(this);
 
   ham_status_t st = m_btree_cursor.move(context, &key,
@@ -250,7 +250,7 @@ Cursor::sync(Context *context, uint32_t flags, bool *equal_keys)
       *equal_keys = true;
   }
   else if (is_nil(kTxn)) {
-    // TODO not threadsafe - will leak if an exception is thrown
+    // TODO will leak if an exception is thrown
     Cursor *clone = get_db()->cursor_clone_impl(this);
     clone->m_btree_cursor.uncouple_from_page(context);
     ham_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
@@ -920,13 +920,14 @@ Cursor::move(Context *context, ham_key_t *key, ham_record_t *record,
 
   /* synchronize the btree and transaction cursor if the last operation was
    * not a move next/previous OR if the direction changed */
-  if ((m_lastop == HAM_CURSOR_PREVIOUS) && (flags & HAM_CURSOR_NEXT))
+  if ((m_last_operation == HAM_CURSOR_PREVIOUS)
+        && (flags & HAM_CURSOR_NEXT))
     changed_dir = true;
-  else if ((m_lastop == HAM_CURSOR_NEXT) && (flags & HAM_CURSOR_PREVIOUS))
+  else if ((m_last_operation == HAM_CURSOR_NEXT)
+        && (flags & HAM_CURSOR_PREVIOUS))
     changed_dir = true;
   if (((flags & HAM_CURSOR_NEXT) || (flags & HAM_CURSOR_PREVIOUS))
-      && (m_lastop == Cursor::kLookupOrInsert
-        || changed_dir)) {
+        && (m_last_operation == Cursor::kLookupOrInsert || changed_dir)) {
     if (is_coupled_to_txnop())
       set_to_nil(kBtree);
     else
@@ -1018,6 +1019,7 @@ Cursor::set_to_nil(int what)
       m_txn_cursor.set_to_nil();
       couple_to_btree(); /* reset flag */
       m_is_first_use = true;
+      clear_dupecache();
       break;
   }
 }

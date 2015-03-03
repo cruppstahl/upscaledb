@@ -369,7 +369,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert two different keys, delete the first one */
     REQUIRE(0 == insert(txn, "key1"));
@@ -387,7 +387,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == findCursor(cursor, "key2"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -400,7 +400,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a key and overwrite it twice */
     REQUIRE(0 == insert(txn, "key1", "rec1"));
@@ -416,7 +416,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == findCursor(cursor, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -429,7 +429,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert two different keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -456,7 +456,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == strcmp((char *)key->data, "key2"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -469,7 +469,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a few different keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -490,7 +490,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == moveCursor(cursor, "key1", HAM_CURSOR_FIRST));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -503,7 +503,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* find the first key */
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -513,7 +513,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursor->is_nil());
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -527,14 +527,14 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a key, then erase it */
     REQUIRE(0 == insert(txn2, "key1"));
     REQUIRE(HAM_TXN_CONFLICT == findCursor(cursor, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
@@ -548,7 +548,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* make sure that the cursor is nil */
     REQUIRE(true == cursor->is_nil());
@@ -557,7 +557,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, 0, HAM_CURSOR_NEXT));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -570,7 +570,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a few different keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -601,7 +601,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == strcmp((char *)key->data, "key3"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -614,7 +614,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert one key */
     REQUIRE(0 == insert(txn, "key1"));
@@ -627,7 +627,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key2", HAM_CURSOR_NEXT));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -640,7 +640,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/erase keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -663,7 +663,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -676,7 +676,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/erase keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -703,7 +703,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -716,7 +716,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a few different keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -737,7 +737,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == moveCursor(cursor, "key3", HAM_CURSOR_LAST));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -750,7 +750,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* find the first key */
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -760,7 +760,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursor->is_nil());
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -773,7 +773,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* make sure that the cursor is nil */
     REQUIRE(true == cursor->is_nil());
@@ -782,7 +782,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -795,7 +795,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a few different keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -826,7 +826,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == strcmp((char *)key->data, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -839,7 +839,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert one key */
     REQUIRE(0 == insert(txn, "key1"));
@@ -852,7 +852,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key2", HAM_CURSOR_PREVIOUS));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -865,7 +865,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/erase keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -888,7 +888,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -901,7 +901,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/erase keys */
     REQUIRE(0 == insert(txn, "key1"));
@@ -928,7 +928,7 @@ struct TxnCursorFixture {
           moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -952,7 +952,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a few different keys */
     REQUIRE(0 == insertCursor(cursor, "key1"));
@@ -968,7 +968,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursorIsCoupled(cursor, "key3"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -981,14 +981,14 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a key twice - creates a duplicate key */
     REQUIRE(0 == insertCursor(cursor, "key1"));
     REQUIRE(HAM_DUPLICATE_KEY == insertCursor(cursor, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -1001,7 +1001,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/overwrite keys */
     REQUIRE(0 == insertCursor(cursor, "key1"));
@@ -1013,7 +1013,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursorIsCoupled(cursor, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -1027,7 +1027,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert/overwrite keys */
     REQUIRE(0 == insert(txn2, "key1"));
@@ -1037,7 +1037,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursor->is_nil());
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     REQUIRE(0 == ham_txn_commit(txn2, 0));
@@ -1051,7 +1051,7 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     /* insert a key and overwrite the record */
     REQUIRE(0 == insertCursor(cursor, "key1", "rec1"));
@@ -1068,7 +1068,7 @@ struct TxnCursorFixture {
     REQUIRE(true == cursorIsCoupled(cursor, "key1"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -1081,12 +1081,12 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
+    ((Cursor *)m_cursor)->m_txn = (Transaction *)txn;
 
     REQUIRE(HAM_CURSOR_IS_NIL == overwriteCursor(cursor, "rec2"));
 
     /* reset cursor hack */
-    ((Cursor *)m_cursor)->set_txn(0);
+    ((Cursor *)m_cursor)->m_txn = 0;
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }

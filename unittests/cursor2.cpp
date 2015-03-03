@@ -61,7 +61,7 @@ struct DupeCacheFixture {
       c.append(entries[i]);
     REQUIRE(20u == c.get_count());
 
-    DupeCacheLine *e = c.get_first_element();
+    DupeCacheLine *e = c.get_element(0);
     for (int i = 0; i < 20; i++) {
       REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
@@ -79,7 +79,7 @@ struct DupeCacheFixture {
       c.insert(0, entries[i]);
     REQUIRE(20u == c.get_count());
 
-    DupeCacheLine *e = c.get_first_element();
+    DupeCacheLine *e = c.get_element(0);
     for (int i = 19, j = 0; i >= 0; i--, j++) {
       REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
@@ -97,7 +97,7 @@ struct DupeCacheFixture {
       c.insert(i, entries[i]);
     REQUIRE(20u == c.get_count());
 
-    DupeCacheLine *e = c.get_first_element();
+    DupeCacheLine *e = c.get_element(0);
     for (int i = 0; i < 20; i++) {
       REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
       e++;
@@ -119,7 +119,7 @@ struct DupeCacheFixture {
     }
     REQUIRE(20u == c.get_count());
 
-    DupeCacheLine *e = c.get_first_element();
+    DupeCacheLine *e = c.get_element(0);
     REQUIRE((uint64_t)3 ==  e[ 0].get_btree_dupe_idx());
     REQUIRE((uint64_t)7 ==  e[ 1].get_btree_dupe_idx());
     REQUIRE((uint64_t)11 == e[ 2].get_btree_dupe_idx());
@@ -155,7 +155,7 @@ struct DupeCacheFixture {
 
     int s = 1;
     for (int i = 19; i >= 0; i--) {
-      DupeCacheLine *e = c.get_first_element();
+      DupeCacheLine *e = c.get_element(0);
       c.erase(0);
       REQUIRE((unsigned)i == c.get_count());
       for (int j = 0; j < i; j++) {
@@ -180,7 +180,7 @@ struct DupeCacheFixture {
     REQUIRE(20u == c.get_count());
 
     for (int i = 0; i < 20; i++) {
-      DupeCacheLine *e = c.get_first_element();
+      DupeCacheLine *e = c.get_element(0);
       c.erase(c.get_count() - 1);
       for (int j = 0; j < 20 - i; j++) {
         REQUIRE((uint64_t)j == e->get_btree_dupe_idx());
@@ -205,7 +205,7 @@ struct DupeCacheFixture {
     for (int i = 0; i < 10; i++)
       c.erase(i);
 
-    DupeCacheLine *e = c.get_first_element();
+    DupeCacheLine *e = c.get_element(0);
     for (int i = 0; i < 10; i++) {
       REQUIRE((unsigned)(i * 2 + 1) == e->get_btree_dupe_idx());
       e++;
