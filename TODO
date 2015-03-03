@@ -699,6 +699,21 @@ o Currently, the code uses linear search over small ranges. This is not
             the PRO PaxKeyList
         o run performance comparison
 
+o refactoring: the Cursor should be a top-level entity
+    o introduce a virtual base class, a LocalCursor and a RemoteCursor
+    o the RemoteCursor manages the remote handle
+    o rewrite ham_cursor_create
+    o ham_cursor_clone
+    o ham_cursor_close
+    o ham_cursor_get_duplicate_position
+    o ham_cursor_get_duplicate_count
+    o ham_cursor_get_record_size
+    o ham_cursor_move
+    o ham_cursor_overwrite
+    o ham_cursor_find
+    o ham_cursor_insert
+    o ham_cursor_erase
+
 o refactoring: improve the code separation of cursor, btree_cursor
     and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
     etc
@@ -712,6 +727,8 @@ o refactoring: improve the code separation of cursor, btree_cursor
     o key() returns the current (coupled) key
     o record() returns the current (coupled) record
     o clean up duplicate cache handling; avoid direct access from outside
+    o try to remove parent pointer from BtreeCursor
+    o try to remove parent pointer from TxnCursor
     o fix the TODOs in cursor.cc
     o fix the TODOs in db_local.cc
     o run monster tests
@@ -964,6 +981,11 @@ o Refactoring: the remaining Transaction layer should only manage txn-id and
         txn name; nothing else!
     o then get rid of the TransactionCursor
     o ... and merge Cursor with BtreeCursor
+
+o get rid of the DuplicateCache and the duplicate index in the cursor; if
+    the DeltaUpdates are correctly sorted, then the cursor should not be
+    necessary (unless the duplicate position is explicitly required via
+    ham_cursor_get_duplicate_position())
 
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
