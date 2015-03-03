@@ -49,6 +49,7 @@ ham_status_t
 Cursor::get_duplicate_count(uint32_t flags, uint32_t *pcount)
 {
   try {
+    *pcount = 0;
     return (do_get_duplicate_count(flags, pcount));
   }
   catch (Exception &ex) {
