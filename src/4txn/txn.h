@@ -71,7 +71,7 @@ struct ham_txn_t
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class Environment;
 
 //

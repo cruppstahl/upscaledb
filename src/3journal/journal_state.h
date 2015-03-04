@@ -99,8 +99,6 @@ struct JournalState
   DatabaseMap database_map;
 };
 
-#include "1base/packstop.h"
-
 } // namespace hamsterdb
 
 #endif /* HAM_JOURNAL_STATE_H */

@@ -53,8 +53,6 @@ class JournalTest
     JournalState *m_state;  
 };
 
-#include "1base/packstop.h"
-
 } // namespace hamsterdb
 
 #endif /* HAM_JOURNAL_TEST_H */

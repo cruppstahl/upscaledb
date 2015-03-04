@@ -711,7 +711,7 @@ LocalDatabase::fill_metrics(ham_env_metrics_t *metrics)
     BtreeStatistics::finalize_metrics(&metrics->btree_leaf_metrics);
     BtreeStatistics::finalize_metrics(&metrics->btree_internal_metrics);
   }
-  catch (Exception &ex) {
+  catch (Exception &) {
   }
 }
 
@@ -1032,7 +1032,7 @@ LocalDatabase::insert(Cursor *cursor, Transaction *txn, ham_key_t *key,
         key->data = arena->get_ptr();
       }
       key->size = sizeof(uint32_t);
-      *(uint32_t *)key->data = recno;
+      *(uint32_t *)key->data = (uint32_t)recno;
 
       /* A recno key is always appended sequentially */
       flags |= HAM_HINT_APPEND;

@@ -35,7 +35,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class Environment;
 class RemoteEnvironment;
 

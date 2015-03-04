@@ -341,7 +341,7 @@ Journal::transaction_flushed(LocalTransaction *txn)
 void
 Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
 {
-  size_t filesize;
+  uint64_t filesize;
 
   auxbuffer->clear();
 
@@ -573,7 +573,7 @@ Journal::recover_changeset()
     uint32_t page_size = m_state.env->config().page_size_bytes;
     ByteArray arena(page_size);
 
-    size_t file_size = m_state.env->device()->file_size();
+    uint64_t file_size = m_state.env->device()->file_size();
 
     // for each page in this changeset...
     for (uint32_t i = 0; i < changeset.num_pages; i++) {

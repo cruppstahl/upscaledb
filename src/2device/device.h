@@ -72,10 +72,10 @@ class Device {
     virtual void flush() = 0;
 
     // Truncate/resize the device
-    virtual void truncate(size_t new_size) = 0;
+    virtual void truncate(uint64_t new_size) = 0;
 
     // Returns the current file/storage size
-    virtual size_t file_size() = 0;
+    virtual uint64_t file_size() = 0;
 
     // Seek position in a file
     virtual void seek(uint64_t offset, int whence) = 0;

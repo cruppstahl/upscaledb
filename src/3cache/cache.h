@@ -152,8 +152,8 @@ class Cache
     // be a good limit.
     template<typename Processor>
     void purge(Processor &processor, Page *ignore_page) {
-      int limit = current_elements()
-                - (m_capacity_bytes / m_page_size_bytes);
+      int limit = int(current_elements()
+                        - (m_capacity_bytes / m_page_size_bytes));
 
       Page *page = m_totallist.tail();
       for (int i = 0; i < limit && page != 0; i++) {
@@ -195,7 +195,7 @@ class Cache
     }
 
     // Returns the capacity (in bytes)
-    size_t capacity() const {
+    uint64_t capacity() const {
       return (m_capacity_bytes);
     }
 

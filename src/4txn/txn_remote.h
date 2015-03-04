@@ -35,7 +35,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 
 //
 // A remote Transaction

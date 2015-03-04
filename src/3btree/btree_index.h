@@ -40,7 +40,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 
 #include "1base/packstart.h"
 
@@ -164,7 +164,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 #include "1base/packstop.h"
 
-class Context;
+struct Context;
 class LocalDatabase;
 class BtreeNodeProxy;
 struct PDupeEntry;

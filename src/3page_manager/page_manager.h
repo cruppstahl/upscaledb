@@ -42,7 +42,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class LocalDatabase;
 class LocalEnvironment;
 
@@ -126,9 +126,8 @@ class PageManager
 
   private:
     friend struct Purger;
-    friend struct PageManagerTest;
-    friend struct PageManagerFactory;
-    friend class  PageManagerWorker;
+    friend class PageManagerTest;
+    friend class PageManagerWorker;
 
     // Persists the PageManager's state in the file
     uint64_t store_state(Context *context);

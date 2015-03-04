@@ -46,7 +46,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 struct ScanVisitor;
 
 //

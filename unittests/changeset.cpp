@@ -64,6 +64,7 @@ struct ChangesetFixture {
     REQUIRE((Page *)NULL ==
           page[2]->get_previous(Page::kListChangeset));
 
+	ch.clear();
     for (int i = 0; i < 3; i++)
       delete page[i];
   }
@@ -82,6 +83,7 @@ struct ChangesetFixture {
       REQUIRE(page[i] == ch.get(page[i]->get_address()));
     REQUIRE((Page *)NULL == ch.get(999));
 
+	ch.clear();
     for (int i = 0; i < 3; i++)
       delete page[i];
   }
@@ -121,6 +123,7 @@ TEST_CASE("Changeset/clear",
   for (int i = 0; i < 3; i++)
     REQUIRE((Page *)NULL == ch.get(page[i]->get_address()));
 
+  ch.clear();
   for (int i = 0; i < 3; i++)
     delete page[i];
 }

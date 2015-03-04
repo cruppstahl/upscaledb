@@ -93,7 +93,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class Page;
 class Database;
 class Transaction;

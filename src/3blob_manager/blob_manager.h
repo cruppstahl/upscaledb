@@ -37,7 +37,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class LocalEnvironment;
 
 #include "1base/packstart.h"

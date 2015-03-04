@@ -52,10 +52,10 @@ class DiskDevice : public Device {
       uint8_t *mmapptr;
 
       // the size of mmapptr as used in mmap
-      size_t mapped_size;
+      uint64_t mapped_size;
 
       // the (cached) size of the file
-      size_t file_size;
+      uint64_t file_size;
     };
 
   public:
@@ -129,7 +129,7 @@ class DiskDevice : public Device {
     }
 
     // truncate/resize the device
-    virtual void truncate(size_t new_file_size) {
+    virtual void truncate(uint64_t new_file_size) {
       if (new_file_size > m_config.file_size_limit_bytes)
         throw Exception(HAM_LIMITS_REACHED);
       m_state.file.truncate(new_file_size);
@@ -137,7 +137,7 @@ class DiskDevice : public Device {
     }
 
     // get the current file/storage size
-    virtual size_t file_size() {
+    virtual uint64_t file_size() {
       ham_assert(m_state.file_size == m_state.file.get_file_size());
       return (m_state.file_size);
     }
@@ -167,7 +167,7 @@ class DiskDevice : public Device {
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual uint64_t alloc(size_t len) {
-      size_t address = m_state.file_size;
+      uint64_t address = m_state.file_size;
       truncate(address + len);
       return ((uint64_t)address);
     }
@@ -208,7 +208,7 @@ class DiskDevice : public Device {
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page) {
-      size_t address = m_state.file_size;
+      uint64_t address = m_state.file_size;
 
       truncate(address + m_config.page_size_bytes);
       page->set_address(address);

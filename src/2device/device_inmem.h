@@ -84,11 +84,11 @@ class InMemoryDevice : public Device {
     }
 
     // truncate/resize the device 
-    virtual void truncate(size_t newsize) {
+    virtual void truncate(uint64_t newsize) {
     }
 
     // get the current file/storage size 
-    virtual size_t file_size() {
+    virtual uint64_t file_size() {
       ham_assert(!"this operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
     }

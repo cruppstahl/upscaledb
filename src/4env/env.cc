@@ -231,7 +231,7 @@ Environment::txn_get_name(Transaction *txn)
     ScopedLock lock(m_mutex);
     return (txn->get_name());
   }
-  catch (Exception &ex) {
+  catch (Exception &) {
     return ("");
   }
 }

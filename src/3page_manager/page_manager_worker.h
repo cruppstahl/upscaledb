@@ -75,7 +75,7 @@ class PageManagerWorker : public Worker
             try {
               page->flush();
             }
-            catch (Exception &ex) {
+            catch (Exception &) {
               page->mutex().unlock();
               throw;
             }
