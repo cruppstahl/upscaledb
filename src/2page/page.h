@@ -90,6 +90,24 @@ typedef HAM_PACK_0 union HAM_PACK_1 PPageData {
  */
 class Page {
   public:
+    // A wrapper around the persisted page data
+    struct PersistedData {
+      // The spinlock is locked if the page is in use or written to disk
+      Spinlock mutex;
+
+      // address of this page - the absolute offset in the file
+      uint64_t address;
+
+      // the size of this page
+      uint32_t size;
+
+      // is this page dirty and needs to be flushed to disk?
+      bool is_dirty;
+
+      // the persistent data of this page
+      PPageData *raw_data;
+    };
+
     // Misc. enums
     enum {
       // sizeof the persistent page header
@@ -176,7 +194,7 @@ class Page {
 
     // Returns the spinlock
     Spinlock &mutex() {
-      return (m_mutex);
+      return (m_datap->mutex);
     }
 
     // Returns the device
@@ -186,27 +204,27 @@ class Page {
 
     // Returns true if this is the header page of the Environment
     bool is_header() const {
-      return (m_address == 0);
+      return (m_datap->address == 0);
     }
 
     // Returns the address of this page
     uint64_t get_address() const {
-      return (m_address);
+      return (m_datap->address);
     }
 
     // Sets the address of this page
     void set_address(uint64_t address) {
-      m_address = address;
+      m_datap->address = address;
     }
 
     // Returns true if this page is dirty (and needs to be flushed to disk)
     bool is_dirty() const {
-      return (m_is_dirty);
+      return (m_datap->is_dirty);
     }
 
     // Sets this page dirty/not dirty
     void set_dirty(bool dirty) {
-      m_is_dirty = dirty;
+      m_datap->is_dirty = dirty;
     }
 
     // Returns true if the page's buffer was allocated with malloc
@@ -226,16 +244,16 @@ class Page {
 
     // Assign a buffer which was allocated with malloc()
     void assign_allocated_buffer(void *buffer, uint64_t address) {
-      m_data = (PPageData *)buffer;
+      m_datap->raw_data = (PPageData *)buffer;
       m_is_allocated = true;
-      m_address = address;
+      m_datap->address = address;
     }
 
     // Assign a buffer from mmapped storage
     void assign_mapped_buffer(void *buffer, uint64_t address) {
-      m_data = (PPageData *)buffer;
+      m_datap->raw_data = (PPageData *)buffer;
       m_is_allocated = false;
-      m_address = address;
+      m_datap->address = address;
     }
 
     // Free resources associated with the buffer
@@ -253,52 +271,58 @@ class Page {
 
     // Returns the page's type (kType*)
     uint32_t get_type() const {
-      return (m_data->header.flags);
+      return (m_datap->raw_data->header.flags);
     }
 
     // Sets the page's type (kType*)
     void set_type(uint32_t type) {
-      m_data->header.flags = type;
+      m_datap->raw_data->header.flags = type;
     }
 
     // Returns the lsn of the last modification
     uint64_t get_lsn() const {
-      return (m_data->header.lsn);
+      return (m_datap->raw_data->header.lsn);
     }
 
     // Sets the lsn of the last modification
     void set_lsn(uint64_t lsn) {
-      m_data->header.lsn = lsn;
+      m_datap->raw_data->header.lsn = lsn;
     }
 
     // Sets the pointer to the persistent data
     void set_data(PPageData *data) {
-      m_data = data;
+      m_datap->raw_data = data;
+    }
+
+    // Returns the pointer to the persistent data wrapper structure
+    PersistedData *get_persisted_data() {
+      return (m_datap);
     }
 
     // Returns the pointer to the persistent data
+    // TODO required?
     PPageData *get_data() {
-      return (m_data);
+      return (m_datap->raw_data);
     }
 
     // Returns the persistent payload (after the header!)
     uint8_t *get_payload() {
-      return (m_data->header.payload);
+      return (m_datap->raw_data->header.payload);
     }
     
     // Returns the persistent payload (after the header!)
     const uint8_t *get_payload() const {
-      return (m_data->header.payload);
+      return (m_datap->raw_data->header.payload);
     }
 
     // Returns the persistent payload (including the header!)
     uint8_t *get_raw_payload() {
-      return (m_data->payload);
+      return (m_datap->raw_data->payload);
     }
 
     // Returns the persistent payload (including the header!)
     const uint8_t *get_raw_payload() const {
-      return (m_data->payload);
+      return (m_datap->raw_data->payload);
     }
 
     // Allocates a new page from the device
@@ -308,8 +332,18 @@ class Page {
     // Reads a page from the device
     void fetch(uint64_t address);
 
+    // Writes a page to the device
+    static void flush(Device *device, PersistedData *page_data);
+
     // Writes the page to the device
-    void flush();
+    // TODO remove this
+    void flush() {
+      Page::flush(m_device, m_datap);
+    }
+
+    // Creates a deep copy of the persisted data; returns the old pointer
+    // IF the old pointer was allocated and needs to be released
+    PersistedData *deep_copy_data();
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int list) {
@@ -400,12 +434,6 @@ class Page {
     // the Database handle (can be NULL)
     LocalDatabase *m_db;
 
-    // The spinlock is locked if the page is in use or written to disk
-    Spinlock m_mutex;
-
-    // address of this page
-    uint64_t m_address;
-
     // Page buffer was allocated with malloc() (if not then it was mapped
     // with mmap)
     bool m_is_allocated;
@@ -413,10 +441,7 @@ class Page {
     // Page does not have a persistent header
     bool m_is_without_header;
 
-    // is this page dirty and needs to be flushed to disk?
-    bool m_is_dirty;
-
-    // linked list of all cursors which point to that page
+    // linked list of all cursors which are coupled to that page
     BtreeCursor *m_cursor_list;
 
     // linked lists of pages - see comments above
@@ -427,7 +452,8 @@ class Page {
     BtreeNodeProxy *m_node_proxy;
 
     // the persistent data of this page
-    PPageData *m_data;
+    PersistedData *m_datap;
+    PersistedData m_data_inline;
 };
 
 } // namespace hamsterdb

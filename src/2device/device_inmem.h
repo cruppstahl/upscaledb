@@ -113,18 +113,12 @@ class InMemoryDevice : public Device {
 
     // writes to the device 
     virtual void write(uint64_t offset, void *buffer, size_t len) {
-      ham_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(HAM_NOT_IMPLEMENTED);
     }
 
     // reads a page from the device 
     virtual void read_page(Page *page, uint64_t address) {
       ham_assert(!"operation is not possible for in-memory-databases");
       throw Exception(HAM_NOT_IMPLEMENTED);
-    }
-
-    // writes a page to the device 
-    virtual void write_page(Page *page) {
     }
 
     // allocate storage from this device; this function

@@ -111,10 +111,11 @@ struct DeviceFixture
       m_dev->read_page(pages[i], i * ps);
     }
     for (i = 0; i < 10; i++) {
-      memset(pages[i]->get_raw_payload(), i, ps);
+      ::memset(pages[i]->get_raw_payload(), i, ps);
+      pages[i]->set_dirty(true);
     }
     for (i = 0; i < 10; i++)
-      m_dev->write_page(pages[i]);
+      Page::flush(m_dev, pages[i]->get_persisted_data());
     for (i = 0; i < 10; i++) {
       uint8_t *buffer;
       memset(temp, i, ps);
@@ -172,13 +173,14 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       pages[i] = new Page(((LocalEnvironment *)m_env)->device());
       pages[i]->set_address(ps * i);
+      pages[i]->set_dirty(true);
       m_dev->read_page(pages[i], ps * i);
     }
     for (i = 0; i < 2; i++) {
       REQUIRE(pages[i]->is_allocated());
       memset(pages[i]->get_payload(), i + 1,
                       ps - Page::kSizeofPersistentHeader);
-      m_dev->write_page(pages[i]);
+      Page::flush(m_dev, pages[i]->get_persisted_data());
       delete pages[i];
     }
 

@@ -29,12 +29,17 @@ namespace hamsterdb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_address(0), m_is_allocated(false),
-    m_is_without_header(false), m_is_dirty(false), m_cursor_list(0),
-    m_node_proxy(0), m_data(0)
+  : m_device(device), m_db(db), m_is_allocated(false),
+    m_is_without_header(false), m_cursor_list(0),
+    m_node_proxy(0), m_datap(&m_data_inline)
 {
-  memset(&m_prev[0], 0, sizeof(m_prev));
-  memset(&m_next[0], 0, sizeof(m_next));
+  ::memset(&m_prev[0], 0, sizeof(m_prev));
+  ::memset(&m_next[0], 0, sizeof(m_next));
+
+  m_data_inline.raw_data = 0;
+  m_data_inline.is_dirty = false;
+  m_data_inline.address  = 0;
+  m_data_inline.size     = device->page_size();
 }
 
 Page::~Page()
@@ -43,17 +48,11 @@ Page::~Page()
 
 #ifdef HAM_ENABLE_HELGRIND
   // safely unlock the mutex
-  m_mutex.try_lock();
+  mutex().try_lock();
 #endif
-  m_mutex.unlock();
+  mutex().unlock();
 
-  if (m_node_proxy) {
-    delete m_node_proxy;
-    m_node_proxy = 0;
-  }
-
-  if (m_data != 0)
-    m_device->free_page(this);
+  free_buffer();
 }
 
 void
@@ -63,7 +62,7 @@ Page::alloc(uint32_t type, uint32_t flags)
 
   if (flags & kInitializeWithZeroes) {
     size_t page_size = m_device->page_size();
-    memset(get_raw_payload(), 0, page_size);
+    ::memset(get_raw_payload(), 0, page_size);
   }
 
   if (type)
@@ -78,13 +77,33 @@ Page::fetch(uint64_t address)
 }
 
 void
-Page::flush()
+Page::flush(Device *device, PersistedData *page_data)
 {
-  if (is_dirty()) {
-    m_device->write_page(this);
-    set_dirty(false);
+  if (page_data->is_dirty) {
+    device->write(page_data->address, page_data->raw_data, page_data->size);
+    page_data->is_dirty = false;
     ms_page_count_flushed++;
   }
+}
+
+Page::PersistedData *
+Page::deep_copy_data()
+{
+  PersistedData *ret = m_datap == &m_data_inline ? 0 : m_datap;
+
+  PersistedData *pd = new PersistedData(*m_datap);
+  pd->raw_data = Memory::allocate<PPageData>(pd->size);
+  ::memcpy(pd->raw_data, m_datap->raw_data, pd->size);
+  m_datap = pd;
+
+  // Delete the node proxy; they maintain pointers into the persisted data,
+  // and these pointers are now invalid
+  if (m_node_proxy) {
+    delete m_node_proxy;
+    m_node_proxy = 0;
+  }
+
+  return (ret);
 }
 
 void
@@ -96,8 +115,14 @@ Page::free_buffer()
   }
 
   if (m_is_allocated)
-    Memory::release(m_data);
-  m_data = 0;
+    Memory::release(m_datap->raw_data);
+
+  if (m_datap != &m_data_inline) {
+    delete m_datap;
+    m_datap = &m_data_inline;
+  }
+
+  m_datap->raw_data = 0;
 }
 
 } // namespace hamsterdb

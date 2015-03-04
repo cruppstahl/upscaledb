@@ -39,18 +39,32 @@
 
 namespace hamsterdb {
 
+class Device;
+
+// The available message types
+enum {
+  kFlushPage = 1,
+  kReleasePointer = 2,
+};
+
+
 struct FlushPageMessage : public MessageBase
 {
-  // The available message types
-  enum {
-    kFlushPage = 1,
-  };
-
-  FlushPageMessage()
-    : MessageBase(kFlushPage, 0) {
+  FlushPageMessage(Device *device)
+    : MessageBase(kFlushPage, 0), device(device) {
   }
 
-  std::vector<Page *> list;
+  std::vector<Page::PersistedData *> list;
+  Device *device;
+};
+
+struct ReleasePointerMessage : public MessageBase
+{
+  ReleasePointerMessage(Page::PersistedData *ptr)
+    : MessageBase(kReleasePointer, 0), ptr(ptr) {
+  }
+
+  Page::PersistedData *ptr;
 };
 
 
@@ -64,23 +78,28 @@ class PageManagerWorker : public Worker
   private:
     virtual void handle_message(MessageBase *message) {
       switch (message->type) {
-        case FlushPageMessage::kFlushPage: {
+        case kFlushPage: {
           FlushPageMessage *fpm = (FlushPageMessage *)message;
-          for (std::vector<Page *>::iterator it = fpm->list.begin();
-                          it != fpm->list.end();
-                          ++it) {
-            Page *page = *it;
-            ham_assert(page != 0);
-            ham_assert(page->mutex().try_lock() == false);
+          std::vector<Page::PersistedData *>::iterator it;
+          for (it = fpm->list.begin(); it != fpm->list.end(); ++it) {
+            Page::PersistedData *page_data = *it;
+            ham_assert(page_data != 0);
+            ham_assert(page_data->mutex.try_lock() == false);
             try {
-              page->flush();
+              Page::flush(fpm->device, page_data);
             }
-            catch (Exception &) {
-              page->mutex().unlock();
+            catch (Exception &ex) {
+              page_data->mutex.unlock();
               throw;
             }
-            page->mutex().unlock();
+            page_data->mutex.unlock();
           }
+          break;
+        }
+        case kReleasePointer: {
+          ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
+          Memory::release(rpm->ptr->raw_data);
+          delete rpm->ptr;
           break;
         }
         default:

@@ -62,12 +62,13 @@ class Worker
   private:
     // The thread function
     void run() {
+      MessageBase *message = 0;
+
       while (true) {
-        MessageBase *message = 0;
         {
           ScopedLock lock(m_mutex);
           if (m_stop_requested)
-            return;
+            break;
           message = m_queue.pop();
           if (!message) {
             m_cond.wait(lock); // will unlock m_mutex while waiting
@@ -75,10 +76,18 @@ class Worker
           }
         }
 
-        if (message) {
-          handle_message(message);
-          delete message;
-        }
+        do {
+          if (message) {
+            handle_message(message);
+            delete message;
+          }
+        } while ((message = m_queue.pop()));
+      }
+
+      // pick up remaining messages
+      while ((message = m_queue.pop())) {
+        handle_message(message);
+        delete message;
       }
     }
 

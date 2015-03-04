@@ -226,11 +226,6 @@ class DiskDevice : public Device {
       m_state.file.pread(address, page->get_data(), m_config.page_size_bytes);
     }
 
-    // writes a page to the device
-    virtual void write_page(Page *page) {
-      write(page->get_address(), page->get_data(), m_config.page_size_bytes);
-    }
-
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page) {

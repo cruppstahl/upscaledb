@@ -50,8 +50,8 @@ typedef Mutex Spinlock;
 
 class Spinlock {
     typedef enum {
-      kLocked,
-      kUnlocked,
+      kUnlocked      = 0,
+      kLocked        = 1,
       kSpinThreshold = 10
     } LockState;
 

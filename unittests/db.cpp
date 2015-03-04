@@ -128,55 +128,7 @@ struct DbFixture {
     test.remove_page(page);
     delete page;
   }
-
-  void checkStructurePackingTest() {
-    // checks to make sure structure packing by the compiler is still okay
-    // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
-    REQUIRE(sizeof(PBlobHeader) == 28);
-    REQUIRE(sizeof(PBtreeNode) == 33);
-    REQUIRE(sizeof(PEnvironmentHeader) == 32);
-    REQUIRE(sizeof(PBtreeHeader) == 24);
-    REQUIRE(sizeof(PPageData) == 17);
-    PPageData p;
-    REQUIRE(sizeof(p.header) == 17);
-    REQUIRE(Page::kSizeofPersistentHeader == 16);
-
-    REQUIRE(PBtreeNode::get_entry_offset() == 32);
-    Page page(0);
-    DatabaseConfiguration config;
-    config.db_name = 1;
-    LocalDatabase db((LocalEnvironment *)m_env, config);
-
-    page.set_address(1000);
-    page.set_db(&db);
-    db.m_btree_index.reset(new BtreeIndex(&db, 0, 0, 0,
-                HAM_KEY_SIZE_UNLIMITED));
-    db.m_btree_index->m_key_size = 666;
-    REQUIRE(Page::kSizeofPersistentHeader == 16);
-    // make sure the 'header page' is at least as large as your usual
-    // header page, then hack it...
-    struct {
-      PPageData drit;
-      PEnvironmentHeader drat;
-    } hdrpage_pers = {{{0}}};
-    Page hdrpage(0);
-    hdrpage.set_data((PPageData *)&hdrpage_pers);
-    Page *hp = &hdrpage;
-    uint8_t *pl1 = hp->get_payload();
-    REQUIRE(pl1);
-    REQUIRE((pl1 - (uint8_t *)hdrpage.get_data()) == 16);
-    PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
-    REQUIRE(((uint8_t *)hdrptr - (uint8_t *)hdrpage.get_data()) == 16);
-    hdrpage.set_data(0);
-  }
-
 };
-
-TEST_CASE("Db/checkStructurePackingTest", "")
-{
-  DbFixture f;
-  f.checkStructurePackingTest();
-}
 
 TEST_CASE("Db/headerTest", "")
 {
@@ -196,12 +148,6 @@ TEST_CASE("Db/flushPageTest", "")
   f.flushPageTest();
 }
 
-
-TEST_CASE("Db-inmem/checkStructurePackingTest", "")
-{
-  DbFixture f(true);
-  f.checkStructurePackingTest();
-}
 
 TEST_CASE("Db-inmem/headerTest", "")
 {

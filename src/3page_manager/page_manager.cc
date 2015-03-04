@@ -365,7 +365,7 @@ struct PurgeProcessor
     // the lock in here will be unlocked by the worker thread
     if (page == last_blob_page || !page->mutex().try_lock())
       return (false);
-    message->list.push_back(page);
+    message->list.push_back(page->get_persisted_data());
     return (true);
   }
 
@@ -387,7 +387,7 @@ PageManager::purge_cache(Context *context)
 
   // Purge as many pages as possible to get memory usage down to the
   // cache's limit.
-  FlushPageMessage *message = new FlushPageMessage();
+  FlushPageMessage *message = new FlushPageMessage(m_state.device);
   PurgeProcessor processor(m_state.last_blob_page, message);
   m_state.cache.purge(processor, m_state.last_blob_page);
 
@@ -733,14 +733,23 @@ Page *
 PageManager::safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock)
 {
+  Page::PersistedData *old_data = 0;
+
+  // if the page is not yet in the changeset, but already locked: create a copy!
+  if (!context->changeset.has(page)) {
+    if (page->mutex().try_lock() == false)
+      old_data = page->deep_copy_data();
+    // unlock again, or changeset.put() will block
+    page->mutex().unlock();
+  }
+
   context->changeset.put(page);
 
   ham_assert(page->mutex().try_lock() == false);
 
-  // fetch contents again?
-  if (!page->get_data()) {
-    page->fetch(page->get_address());
-  }
+  // make sure that the old data is not leaked
+  if (old_data != 0)
+    m_worker->add_to_queue(new ReleasePointerMessage(old_data));
 
   return (page);
 }

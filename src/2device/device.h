@@ -96,9 +96,6 @@ class Device {
     // Reads a page from the device; this function CAN use mmap
     virtual void read_page(Page *page, uint64_t address) = 0;
 
-    // Writes a page to the device
-    virtual void write_page(Page *page) = 0;
-
     // Allocate storage for a page from this device; this function
     // can use mmap if available
     virtual void alloc_page(Page *page) = 0;
