@@ -713,25 +713,6 @@ o Currently, the code uses linear search over small ranges. This is not
             the PRO PaxKeyList
         o run performance comparison
 
-o refactoring: improve the code separation of cursor, btree_cursor
-    and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-    o clean up the interface, remove dependencies
-        o there should be 3 states:
-            - nil
-            - coupled to btree
-            - coupled to txn
-            o state() - returns the state
-            o set_state() - changes the state
-    o key() returns the current (coupled) key
-    o record() returns the current (coupled) record
-    o clean up duplicate cache handling; avoid direct access from outside
-    o try to remove parent pointer from BtreeCursor
-    o try to remove parent pointer from TxnCursor
-    o fix the TODOs in cursor.cc
-    o fix the TODOs in db_local.cc
-    o run monster tests
-
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
@@ -744,21 +725,42 @@ o There are performance issues related to cache flushes.
     What if this (previous) page is in other linked lists?
     -> We need a way to swap the data of a page even while it is locked and/or
         flushed
-    -> combine mutex, is_dirty and the data pointer to a separate structure
-    -> the mutex only protects this structure!
-    -> the worker thread does not work on pages but on these structures
-    -> ... and therefore the main thread can swap them!
-    Just try to avoid an extra memory allocation!
+    x combine mutex, is_dirty and the data pointer to a separate structure
+    x try to avoid an extra memory allocation
+    x the mutex only protects this structure!
+    x the worker thread does not work on pages but on these structures
+    x don't forget to free the structure, but only if it was allocated
+    x ... and therefore the main thread can swap them if the page is locked!
+    x compare performance - looks good, peaks are gone
+    x fix unittests
+    o run unittests with posix mutexes
+    o run with helgrind
+    o run monster tests
+
+    o set breakpoint if spinlock spins more than 100 times; identify the
+        bottleneck, try to improve
 
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
+<<<<<<< HEAD
 >>>>>>> Improving reclaim_space functionality
+=======
+    o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+        only the worker thread! otherwise we might have race conditions
+        between the purger and the changeset-flush
+    o compare performance (before/after)
+
+o Refactoring: completely decouple the Page from the Device; pass the Device as
+    a parameter to fetch(), flush()
+    - or vice versa, call device->flush(page), device->fetch(page)
+>>>>>>> Using shadow pages to avoid spinlock contention
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
     page size of a Database (with the exception of header pages).
+<<<<<<< HEAD
 
     These schemes are used for disk-based AND in-memory based databases!
     For this to work, the in-memory device must use a synthetic page ID
@@ -767,6 +769,8 @@ o Make Pages resizable with variable length
     o in-memory device uses a synthetic page ID (atomic discrete counter)
     o rewrite allocation code path for in-memory pages
     o checkpoint - all in-memory tests must run
+=======
+>>>>>>> Using shadow pages to avoid spinlock contention
 
     The page IDs are now compressible and have variable length. The first
     2 bits are specifying the compression. The default page size is 16kb.
@@ -781,6 +785,7 @@ o Make Pages resizable with variable length
              max index size: 30 bits ~ 17 tib
 
     Blob IDs have a similar schema, but in also specify the offset
+<<<<<<< HEAD
     of the blob in this page. The default page size for blobs is 32kb.
         00 - Page ID embedded in flags and the following byte,
         (4b) Page Size is always 1                     32 kib
@@ -797,10 +802,29 @@ o Make Pages resizable with variable length
         11 - Blob is inline with variable length
                 length is encoded in the 6 bits of the first byte (max 63)
         (1+xb)
+=======
+    of the blob in this page.
+=====================
+TODO die werte sind falsch!
+=====================
+        00 - Page ID embedded in flags
+        (3b) Page Size is always 1                     16 kib
+             Blob Offset is 12 bits (4 byte-aligned)   16 kib
+             max index size: 10 bits                   16 mib
+        01 - Page ID embedded in flags and the following 2 bytes,
+        (5b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 18 bits                  4,2 gib
+        10 - Page ID embedded in flags and the following 3 bytes,
+        (6b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 26 bits                    1 tib
+>>>>>>> Using shadow pages to avoid spinlock contention
 
     o deprecate the HAM_PARAM_PAGE_SIZE parameter for the Environment
     o use HAM_PARAM_PAGE_SIZE parameter for the Database
     o each page needs to be aware of its own size
+<<<<<<< HEAD
         o don't forget the journal!
     o store the size persistently
     o print in ham_info
@@ -813,10 +837,21 @@ o Make Pages resizable with variable length
         o blob IDs are addressed as uint8_t *, not uint64_t
     o make sure that PageManager still works (the only user of pickle.h)
     o use compressed page id for root page storage
+=======
+
+    o create code to read and write the page ID
+    o page IDs are addressed as uint8_t *, not uint64_t
+    o create code to read and write the blob ID
+    o blob IDs are addressed as uint8_t *, not uint64_t
+    o The InternalRecordList and the DefaultRecordLists need to use blocks
+        to efficiently manage variable-length IDs
+    o run monster tests
+>>>>>>> Using shadow pages to avoid spinlock contention
 
     o if no page size is specified: come up with good default values for
         blob pages and indices and leafs
         o make blob pages larger than normal pages
+<<<<<<< HEAD
         o make index pages larger if duplicates are used
 
     o create code to write *groups* of PageIds and BlobIds; these groups
@@ -840,6 +875,26 @@ o Make Pages resizable with variable length
     o if no page size is specified: come up with good default values for
         blob pages and indices and leafs
     o checkpoint - all tests need to work
+=======
+    o run monster tests
+    o run performance tests
+
+    Instead of splitting pages, they can now be resized easily. This will help
+    when applying BtreeUpdate. Instead of requiring a split (and a recursive
+    descent of the tree), the BtreeUpdate are applied to a "bigger" page. The
+    original page will be obsolete, pointing to the new page, but still contain
+    valid data (including the BtreeUpdate). As soon as the parent pointer
+    and the sibling pointers are updated, the original page can be
+    garbage-collected.
+
+    The actual update flow is like this:
+        1. (the original page is read-locked)
+        2. a new, larger page is allocated
+        3. BUs are merged into the new page
+        4. the old page's state is "obsolete", with a pointer to the new page
+        5. (the old page's read-lock is released)
+    All other changes can be handled separately (updating pointers etc).
+>>>>>>> Using shadow pages to avoid spinlock contention
 
     o a page needs to know if it's obsolete (and by whom); if the PageManager
         discovers an obsolete page then it needs to return the new one
@@ -848,8 +903,8 @@ o Make Pages resizable with variable length
             - but how do we know if all links are fixed? would need some kind
                 of reference counting in the old leaf...
             o add unittest
-    o when a page is split: resize it (and append to the file), update all
-        references if the pages are cached, and discard the old page.
+    o instead of splitting pages: resize them (and append to the file), update
+        all references if the pages are cached, and discard the old page.
         if other pages are not cached: set the overflow pointer of the old
         page to the new page, flush it.
         o also have the old Page* directly point to the new Page* to speed
@@ -858,7 +913,6 @@ o Make Pages resizable with variable length
             watermark is reached
     o checkpoint - all tests need to work
 
-    o compress the page IDs and store them in a block-organized record list
     o checkpoint - all tests need to work
 
 <<<<<<< HEAD
@@ -979,21 +1033,32 @@ o BtreeUpdate managed in the BtreeNode
         o txn is aborted: set the state of all BUs to "aborted"
         o move the consolidation away from the txn layer towards the BU layer
 
-o Refactoring: remove the TransactionNode structure, it's no longer required
-o Refactoring: remove the TransactionTree structure, it's no longer required
-o Refactoring: temporary txn's should no longer exist as a structure; their
+o Refactoring: rewrite the Transaction layer
+    o remove the TransactionNode structure, it's no longer required
+    o remove the TransactionTree structure, it's no longer required
+    o temporary txn's should no longer exist as a structure; their
         BUs are automatically set to "committed"
-o Refactoring: move duplicate key consolidation down to the BU layer
-o Refactoring: get rid of the TransactionCursor
-o Refactoring: the remaining Transaction layer should only manage txn-id and
+    o move duplicate key consolidation down to the BU layer
+    o the remaining Transaction layer should only manage txn-id and
         txn name; nothing else!
-    o then get rid of the TransactionCursor
-    o ... and merge Cursor with BtreeCursor
+    o the Transactions should no longer form a linked list
+    o temporary Transactions should be created on the stack, without any costs
 
-o get rid of the DuplicateCache and the duplicate index in the cursor; if
-    the DeltaUpdates are correctly sorted, then the cursor should not be
-    necessary (unless the duplicate position is explicitly required via
-    ham_cursor_get_duplicate_position())
+o Refactoring: rewrite the whole cursor layer
+    o clean up the public interface
+    o remove the Transaction cursor, merge BtreeCursor with LocalCursor
+    o there should be 3 states:
+        - nil
+        - coupled to btree
+        - coupled to txn
+        o state() - returns the state
+        o set_state() - changes the state
+    o key() returns the current (coupled) key
+    o record() returns the current (coupled) record
+    o get rid of the DuplicateCache and the duplicate index in the cursor; if
+        the DeltaUpdates are correctly sorted, then the cursor should not be
+        necessary (unless the duplicate position is explicitly required via
+        ham_cursor_get_duplicate_position())
 
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
