@@ -720,6 +720,7 @@ o when splitting and HAM_HINT_APPEND is set, the new page is appended.
         o remove linear search and move mixed binary search/linear search to
             the PRO PaxKeyList
         o run performance comparison
+<<<<<<< HEAD
 >>>>>>> Rewriting binary search interface
 
 o refactoring: db_local.cc has so many TODOs!
@@ -812,6 +813,9 @@ o Refactoring: move functions from btree_index.cc to btree_action.cc. This will
 =======
 >>>>>>> Cleanup of the BlobManager code; no functional changes
 =======
+=======
+
+>>>>>>> Using shadow pages to avoid spinlock contention
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
@@ -824,45 +828,86 @@ o There are performance issues related to cache flushes.
     What if this (previous) page is in other linked lists?
     -> We need a way to swap the data of a page even while it is locked and/or
         flushed
-    -> combine mutex, is_dirty and the data pointer to a separate structure
-    -> the mutex only protects this structure!
-    -> the worker thread does not work on pages but on these structures
-    -> ... and therefore the main thread can swap them!
-    Just try to avoid an extra memory allocation!
+    x combine mutex, is_dirty and the data pointer to a separate structure
+    x try to avoid an extra memory allocation
+    x the mutex only protects this structure!
+    x the worker thread does not work on pages but on these structures
+    x don't forget to free the structure, but only if it was allocated
+    x ... and therefore the main thread can swap them if the page is locked!
+    x compare performance - looks good, peaks are gone
+    x fix unittests
+    o run unittests with posix mutexes
+    o run with helgrind
+    o run monster tests
+
+    o set breakpoint if spinlock spins more than 100 times; identify the
+        bottleneck, try to improve
 
 >>>>>>> More cleanups
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
+    o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+        only the worker thread! otherwise we might have race conditions
+        between the purger and the changeset-flush
+    o compare performance (before/after)
+
+o Refactoring: completely decouple the Page from the Device; pass the Device as
+    a parameter to fetch(), flush()
+    - or vice versa, call device->flush(page), device->fetch(page)
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
-    page size of a Database.
+    page size of a Database (with the exception of header pages).
 
     The page IDs are now compressible and have variable length. The first
     2 bits are specifying the compression:
         00 - Page ID embedded in flags and the following byte,
-             Page Size is always 1
-             max index size: 14 bits ~ 1gb
+        (2b) Page Size is always 1
+             max index size: 14 bits - 268 mib
         01 - Page ID embedded in flags and the following 2 bytes,
-             Page Size: 1 byte
-             max index size: 22 bits ~ 2.7tb
-        11 - Page ID is varbyte-encoded, Size is varbyte-encoded
+        (4b) Page Size: 1 byte
+             max index size: 22 bits ~ 68 gib
+        10 - Page ID embedded in flags and the following 3 bytes,
+        (6b) Page Size: 2 byte
+             max index size: 30 bits ~ 17 tib
 
     Blob IDs have a similar schema, but in also specify the offset
     of the blob in this page.
-        00 - Page ID embedded in flags and the following byte,
-             Page Size is always 1
-             Blob Offset is 2 bytes (4 byte-aligned)
-             max index size: 14 bits ~ 1gb
+=====================
+TODO die werte sind falsch!
+=====================
+        00 - Page ID embedded in flags
+        (3b) Page Size is always 1                     16 kib
+             Blob Offset is 12 bits (4 byte-aligned)   16 kib
+             max index size: 10 bits                   16 mib
         01 - Page ID embedded in flags and the following 2 bytes,
-             Page Size: 1 byte
-             Blob Offset is 2 bytes (4 byte-aligned)
-             max index size: 22 bits ~ 2.7tb
-        11 - Page ID is varbyte-encoded
-             Page Size is varbyte-encoded
-             Blob Offset is varbyte-encoded
+        (5b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 18 bits                  4,2 gib
+        10 - Page ID embedded in flags and the following 3 bytes,
+        (6b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 26 bits                    1 tib
+
+    o deprecate the HAM_PARAM_PAGE_SIZE parameter for the Environment
+    o use HAM_PARAM_PAGE_SIZE parameter for the Database
+    o each page needs to be aware of its own size
+
+    o create code to read and write the page ID
+    o page IDs are addressed as uint8_t *, not uint64_t
+    o create code to read and write the blob ID
+    o blob IDs are addressed as uint8_t *, not uint64_t
+    o The InternalRecordList and the DefaultRecordLists need to use blocks
+        to efficiently manage variable-length IDs
+    o run monster tests
+
+    o if no page size is specified: come up with good default values for
+        blob pages and indices and leafs
+        o make blob pages larger than normal pages
+    o run monster tests
+    o run performance tests
 
     Instead of splitting pages, they can now be resized easily. This will help
     when applying BtreeUpdate. Instead of requiring a split (and a recursive
@@ -880,21 +925,6 @@ o Make Pages resizable with variable length
         5. (the old page's read-lock is released)
     All other changes can be handled separately (updating pointers etc).
 
-    o deprecate the HAM_PARAM_PAGE_SIZE parameter
-    o each page needs to be aware of its own size
-    o create code to read and write the page ID
-    o checkpoint - all tests need to work
-
-    o Blob IDs and Page IDs are addressed through regular pointers, not
-        uint64_t types
-    o The InternalRecordList and the DefaultRecordLists need to use blocks
-        to efficiently manage variable-length IDs
-    o checkpoint - all tests need to work
-
-    o if no page size is specified: come up with good default values for
-        blob pages and indices and leafs
-    o checkpoint - all tests need to work
-
     o a page needs to know if it's obsolete (and by whom); if the PageManager
         discovers an obsolete page then it needs to return the new one
         o BtreeUpdate/BtreeIndex: the "callers" then have to fix their links!
@@ -902,8 +932,8 @@ o Make Pages resizable with variable length
             - but how do we know if all links are fixed? would need some kind
                 of reference counting in the old leaf...
             o add unittest
-    o when a page is split: resize it (and append to the file), update all
-        references if the pages are cached, and discard the old page.
+    o instead of splitting pages: resize them (and append to the file), update
+        all references if the pages are cached, and discard the old page.
         if other pages are not cached: set the overflow pointer of the old
         page to the new page, flush it.
         o also have the old Page* directly point to the new Page* to speed
@@ -912,7 +942,6 @@ o Make Pages resizable with variable length
             watermark is reached
     o checkpoint - all tests need to work
 
-    o compress the page IDs and store them in a block-organized record list
     o checkpoint - all tests need to work
 
 o always use constant sizes for the header page(s)
@@ -1047,21 +1076,32 @@ o BtreeUpdate managed in the BtreeNode
         o txn is aborted: set the state of all BUs to "aborted"
         o move the consolidation away from the txn layer towards the BU layer
 
-o Refactoring: remove the TransactionNode structure, it's no longer required
-o Refactoring: remove the TransactionTree structure, it's no longer required
-o Refactoring: temporary txn's should no longer exist as a structure; their
+o Refactoring: rewrite the Transaction layer
+    o remove the TransactionNode structure, it's no longer required
+    o remove the TransactionTree structure, it's no longer required
+    o temporary txn's should no longer exist as a structure; their
         BUs are automatically set to "committed"
-o Refactoring: move duplicate key consolidation down to the BU layer
-o Refactoring: get rid of the TransactionCursor
-o Refactoring: the remaining Transaction layer should only manage txn-id and
+    o move duplicate key consolidation down to the BU layer
+    o the remaining Transaction layer should only manage txn-id and
         txn name; nothing else!
-    o then get rid of the TransactionCursor
-    o ... and merge Cursor with BtreeCursor
+    o the Transactions should no longer form a linked list
+    o temporary Transactions should be created on the stack, without any costs
 
-o get rid of the DuplicateCache and the duplicate index in the cursor; if
-    the DeltaUpdates are correctly sorted, then the cursor should not be
-    necessary (unless the duplicate position is explicitly required via
-    ham_cursor_get_duplicate_position())
+o Refactoring: rewrite the whole cursor layer
+    o clean up the public interface
+    o remove the Transaction cursor, merge BtreeCursor with LocalCursor
+    o there should be 3 states:
+        - nil
+        - coupled to btree
+        - coupled to txn
+        o state() - returns the state
+        o set_state() - changes the state
+    o key() returns the current (coupled) key
+    o record() returns the current (coupled) record
+    o get rid of the DuplicateCache and the duplicate index in the cursor; if
+        the DeltaUpdates are correctly sorted, then the cursor should not be
+        necessary (unless the duplicate position is explicitly required via
+        ham_cursor_get_duplicate_position())
 
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
