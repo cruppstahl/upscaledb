@@ -61,10 +61,8 @@ class Cache
       }
 
       bool operator()(Page *page) {
-        if (m_purger(page)) {
+        if (m_purger(page))
           m_cache->del(page);
-          delete page;
-        }
         // don't remove page from list; it was already removed above
         return (false);
       }
@@ -144,9 +142,6 @@ class Cache
 
     // Purges the cache. Implements a LRU eviction algorithm. Dirty pages are
     // forwarded to the |processor()| for flushing.
-    //
-    // Tries to purge at least 20 pages. In benchmarks this has proven to
-    // be a good limit.
     template<typename Processor>
     void purge(Processor &processor, Page *ignore_page) {
       int limit = int(current_elements()
@@ -163,10 +158,9 @@ class Cache
           continue;
         }
         // non-dirty pages are deleted if possible
-        if (!page->is_dirty()
-                && page->cursor_list() == 0
-                && page != ignore_page
-                && page->mutex().try_lock()) {
+        else if (page->cursor_list() == 0
+              && page != ignore_page
+              && page->mutex().try_lock()) {
           del(page);
           page->mutex().unlock();
           delete page;

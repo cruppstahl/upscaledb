@@ -89,6 +89,15 @@ class Page {
   public:
     // A wrapper around the persisted page data
     struct PersistedData {
+      PersistedData()
+        : address(0), size(0), is_dirty(false), raw_data(0) {
+      }
+
+      PersistedData(const PersistedData &other)
+        : address(other.address), size(other.size), is_dirty(other.is_dirty),
+          raw_data(other.raw_data) {
+      }
+
       // The spinlock is locked if the page is in use or written to disk
       Spinlock mutex;
 

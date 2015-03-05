@@ -439,25 +439,6 @@ PageManager::reclaim_space(Context *context)
   }
 }
 
-struct DbClosePurger
-{
-  DbClosePurger(LocalDatabase *db)
-    : m_db(db) {
-  }
-
-  bool operator()(Page *page) {
-    if (page->get_db() == m_db && page->get_address() != 0) {
-      ScopedSpinlock lock(page->mutex());
-      ham_assert(page->cursor_list() == 0);
-      page->flush();
-      return (true);
-    }
-    return (false);
-  }
-
-  LocalDatabase *m_db;
-};
-
 void
 PageManager::close_database(Context *context, LocalDatabase *db)
 {
@@ -467,9 +448,14 @@ PageManager::close_database(Context *context, LocalDatabase *db)
   }
 
   context->changeset.clear();
+  DeletePageMessage message(m_state.device, db);
+  m_state.cache.purge_if(message);
+  m_worker->add_to_queue(&message);
 
-  DbClosePurger purger(db);
-  m_state.cache.purge_if(purger);
+  // wait till the worker thread finished
+  ScopedLock lock(message.mutex);
+  while (!message.completed)
+    message.cond.wait(lock);
 }
 
 void
@@ -557,6 +543,15 @@ PageManager::close(Context *context)
   delete m_state.state_page;
   m_state.state_page = 0;
   m_state.last_blob_page = 0;
+}
+
+void
+PageManager::reset(Context *context)
+{
+  close(context);
+
+  /* start the worker thread */
+  m_worker.reset(new PageManagerWorker(&m_state.cache));
 }
 
 Page *

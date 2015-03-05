@@ -1389,6 +1389,8 @@ struct HamsterdbFixture {
   }
 
   void recoveryTest() {
+    teardown();
+
     ham_env_t *env;
     ham_db_t *db;
     REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),

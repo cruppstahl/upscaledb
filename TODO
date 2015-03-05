@@ -836,12 +836,14 @@ o There are performance issues related to cache flushes.
     x ... and therefore the main thread can swap them if the page is locked!
     x compare performance - looks good, peaks are gone
     x fix unittests
-    o run unittests with posix mutexes
-    o run with helgrind
+    x run unittests with posix mutexes
+    x run with helgrind
     o run monster tests
 
-    o set breakpoint if spinlock spins more than 100 times; identify the
-        bottleneck, try to improve
+    o spinlock: only a locked mutex can be unlocked! add an assert
+    o worker: add method add_and_wait(), and add generic message which can
+        block like a promise (basically use the current code but make it
+        generic because we will need this in other places as well)
 
 >>>>>>> More cleanups
 o Concurrency: flush the changeset asynchronously. As soon as the log
@@ -862,7 +864,7 @@ o Make Pages resizable with variable length
     page size of a Database (with the exception of header pages).
 
     The page IDs are now compressible and have variable length. The first
-    2 bits are specifying the compression:
+    2 bits are specifying the compression. The default page size is 16kb.
         00 - Page ID embedded in flags and the following byte,
         (2b) Page Size is always 1
              max index size: 14 bits - 268 mib
@@ -874,22 +876,19 @@ o Make Pages resizable with variable length
              max index size: 30 bits ~ 17 tib
 
     Blob IDs have a similar schema, but in also specify the offset
-    of the blob in this page.
-=====================
-TODO die werte sind falsch!
-=====================
-        00 - Page ID embedded in flags
-        (3b) Page Size is always 1                     16 kib
-             Blob Offset is 12 bits (4 byte-aligned)   16 kib
-             max index size: 10 bits                   16 mib
+    of the blob in this page. The default page size for blobs is 32kb.
+        00 - Page ID embedded in flags and the following byte,
+        (4b) Page Size is always 1                     32 kib
+             Blob Offset is 2 bytes (4 byte-aligned)  262 kib
+             max index size: 14 bits                  536 mib
         01 - Page ID embedded in flags and the following 2 bytes,
-        (5b) Page Size: 1 byte                          4 mib
-             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
-             max index size: 18 bits                  4,2 gib
+        (5b) Page Size: 1 byte                          8 mib
+             Blob Offset is 3 bytes (4 byte-aligned)   64 mib
+             max index size: 22 bits                  137 gib
         10 - Page ID embedded in flags and the following 3 bytes,
-        (6b) Page Size: 1 byte                          4 mib
-             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
-             max index size: 26 bits                    1 tib
+        (6b) Page Size: 1 byte                          8 mib
+             Blob Offset is 2 bytes (4 byte-aligned)   64 mib
+             max index size: 30 bits                   35 tib
 
     o deprecate the HAM_PARAM_PAGE_SIZE parameter for the Environment
     o use HAM_PARAM_PAGE_SIZE parameter for the Database
@@ -1102,6 +1101,9 @@ o Refactoring: rewrite the whole cursor layer
         the DeltaUpdates are correctly sorted, then the cursor should not be
         necessary (unless the duplicate position is explicitly required via
         ham_cursor_get_duplicate_position())
+
+. optimize spinlock contention times: set breakpoint if spinlock spins more
+    than 100 times; identify the bottleneck, try to improve
 
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index

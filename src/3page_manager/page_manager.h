@@ -115,6 +115,10 @@ class PageManager
     // Closes the PageManager; flushes all dirty pages
     void close(Context *context);
 
+    // Calls close(), then re-initializes the PageManager; used to restart
+    // the internal state after recovery was performed
+    void reset(Context *context);
+
     // Returns the Page pointer where we can add more blobs
     Page *get_last_blob_page(Context *context);
 
