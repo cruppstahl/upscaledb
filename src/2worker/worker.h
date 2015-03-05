@@ -79,7 +79,8 @@ class Worker
         do {
           if (message) {
             handle_message(message);
-            delete message;
+            if ((message->flags & MessageBase::kDontDelete) == false)
+              delete message;
           }
         } while ((message = m_queue.pop()));
       }
@@ -87,7 +88,8 @@ class Worker
       // pick up remaining messages
       while ((message = m_queue.pop())) {
         handle_message(message);
-        delete message;
+        if ((message->flags & MessageBase::kDontDelete) == false)
+          delete message;
       }
     }
 

@@ -71,11 +71,9 @@ LocalEnvironment::recover(uint32_t flags)
     }
     else {
       st = HAM_NEED_RECOVERY;
-      goto bail;
     }
   }
 
-bail:
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
     m_journal->close(true);

@@ -45,10 +45,13 @@ struct MessageBase
   // Message flags
   enum {
     // Message is mandatory and must not be skipped
-    kIsMandatory = 0
+    kIsMandatory = 0,
+
+    // Do NOT delete the message after it was processed
+    kDontDelete  = 1,
   };
 
-  MessageBase(int type_, int flags_)
+  MessageBase(int type_, int flags_ = kIsMandatory)
     : type(type_), flags(flags_), previous(0), next(0) {
   }
 
