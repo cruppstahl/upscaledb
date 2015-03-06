@@ -579,7 +579,7 @@ ham_get_version(uint32_t *major, uint32_t *minor,
  *    <li>@ref HAM_PARAM_CACHE_SIZE</li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
- *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advise" for
+ *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advice" for
  *      posix_fadvise(). Only on supported platforms. Allowed values are
  *      @ref HAM_POSIX_FADVICE_NORMAL (which is the default) or
  *      @ref HAM_POSIX_FADVICE_RANDOM.
@@ -682,7 +682,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_CACHE_SIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
- *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advise" for
+ *    <li>@ref HAM_PARAM_POSIX_FADVISE</li> Sets the "advice" for
  *      posix_fadvise(). Only on supported platforms. Allowed values are
  *      @ref HAM_POSIX_FADVICE_NORMAL (which is the default) or
  *      @ref HAM_POSIX_FADVICE_RANDOM.

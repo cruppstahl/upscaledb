@@ -10,15 +10,53 @@ Contents:
 hamsterdb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
+This release has several bug fixes (see below for a list). Thanks to those who
+reported them and invested lots of time to come up with samples to reproduce
+the bugs.
+
+The flag HAM_RECORD_NUMBER is deprecated. It is replaced with
+HAM_RECORD_NUMBER64 for 64bit record numbers, and HAM_RECORD_NUMBER32 for
+32bit record numbers.
+
+A major change under the hood: dirty pages are now flushed asynchronously.
+Expect performance improvements in this release, and more to come in the
+next releases.
 
 2. Changes
 
 New Features
-
+* Added Cursor.TryFind to hamsterdb-dotnet
+	(thanks, mjmckp <matthew.j.m.peacock@gmail.com>)
+* The page cache eviction was moved to a background thread
+* When reading records from mmapped storage, a pointer into the storage
+	is returned and the record data is no longer copied
 
 Bugfixes
+* Fixed FreeBSD compilation errors (thanks, Heping Wen)
+* issue #46: fixed segfault in approx. matching (thanks, Joel
+	Jacobson)
+* issue #45: fixed segfault in Journal recovery (thanks, Michael
+	Moellney)
+* issue #44: approx. matching returned the wrong key (thanks, Joel
+	Jacobson)
+* issue #43: fixed segfault when flushing transactions (thanks, Joel
+	Jacobson)
+* Fixed compilation error on debian Wheezy, gcc 4.7.2, 32bit (thanks,
+	Thomas Fähnle)
+* Fixed compilation error on OSX (thanks, Daniel Lemire)
+* issue #42: ham_cursor_find returned wrong key w/ approx. matching and
+	transactions
+* Fixed large file support on linux (thanks, Thomas Fähnle)
 
 Other Changes
+* Default compilation flag is now -O3
+* Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
+* Removed dependency to malloc.h
+* The github wiki is now linked into documentation/wiki
+* The macro HAM_API_REVISION is now deprecated; use HAM_VERSION_* instead
+* Deprecated HAM_RECORD_NUMBER (use HAM_RECORD_NUMBER64 instead);
+	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
+* Implemented ham_cursor_get_record_size() for remote access
 
 To see a list of all changes, look in the file ChangeLog.
 
