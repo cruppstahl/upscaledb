@@ -95,8 +95,8 @@ class PageManager
     // The pages are locked and stored in |context->changeset|.
     Page *alloc_multiple_blob_pages(Context *context, size_t num_pages);
 
-    // Flushes all pages to disk
-    void flush();
+    // Flushes all pages to disk and deletes them if |delete_pages| is true
+    void flush(bool delete_pages);
 
     // Asks the worker thread to purge the cache if the cache limits are
     // exceeded

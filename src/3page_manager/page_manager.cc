@@ -326,17 +326,23 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
 
 struct FlushAllPagesPurger
 {
+  FlushAllPagesPurger(bool delete_pages)
+    : delete_pages(delete_pages) {
+  }
+
   bool operator()(Page *page) {
     ScopedSpinlock lock(page->mutex());
     page->flush();
-    return (false);
+    return (delete_pages);
   }
+
+  bool delete_pages;
 };
 
 void
-PageManager::flush()
+PageManager::flush(bool delete_pages)
 {
-  FlushAllPagesPurger purger;
+  FlushAllPagesPurger purger(delete_pages);
   m_state.cache.purge_if(purger);
 
   if (m_state.state_page) {
@@ -536,7 +542,7 @@ PageManager::close(Context *context)
   context->changeset.clear();
 
   // flush all dirty pages to disk, then delete them
-  flush();
+  flush(true);
 
   delete m_state.state_page;
   m_state.state_page = 0;

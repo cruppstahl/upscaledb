@@ -355,7 +355,7 @@ LocalEnvironment::do_flush(uint32_t flags)
   m_header->get_header_page()->flush();
 
   /* flush all open pages to disk */
-  m_page_manager->flush();
+  m_page_manager->flush(false);
 
   /* flush the device - this usually causes a fsync() */
   m_device->flush();
