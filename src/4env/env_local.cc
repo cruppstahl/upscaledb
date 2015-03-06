@@ -84,7 +84,7 @@ bail:
   }
 
   /* reset the page manager */
-  m_page_manager->close(&context);
+  m_page_manager->reset(&context);
 }
 
 PBtreeHeader *

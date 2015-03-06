@@ -493,6 +493,15 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 }
 
 void
+PageManager::reset(Context *context)
+{
+  close(context);
+
+  /* start the worker thread */
+  m_worker.reset(new PageManagerWorker(&m_state.cache));
+}
+
+void
 PageManager::close(Context *context)
 {
   /* wait for the worker thread to stop */

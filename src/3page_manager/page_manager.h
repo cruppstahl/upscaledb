@@ -112,6 +112,9 @@ class PageManager
     // to the Freelist. Will not do anything if the Environment is in-memory.
     void del(Context *context, Page *page, size_t page_count = 1);
 
+    // Resets the PageManager; calls clear(), then starts a new worker thread
+    void reset(Context *context);
+
     // Closes the PageManager; flushes all dirty pages
     void close(Context *context);
 
