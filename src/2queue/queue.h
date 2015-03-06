@@ -52,6 +52,9 @@ struct MessageBase
     : type(type_), flags(flags_), previous(0), next(0) {
   }
 
+  virtual ~MessageBase() {
+  }
+
   int type;
   int flags;
   MessageBase *previous;
