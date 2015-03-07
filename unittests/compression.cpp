@@ -315,7 +315,7 @@ static void
 simple_key_test(int library)
 {
   ham_parameter_t params[] = {
-    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_SNAPPY},
+    {HAM_PARAM_RECORD_COMPRESSION, (uint64_t)library},
     {HAM_PARAM_KEY_COMPRESSION, (uint64_t)library},
     {0, 0}
   };
@@ -447,7 +447,7 @@ TEST_CASE("Compression/negativeKeyTest", "")
 TEST_CASE("Compression/userAllocTest", "")
 {
   ham_parameter_t params[] = {
-    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_SNAPPY},
+    {HAM_PARAM_RECORD_COMPRESSION, HAM_COMPRESSOR_LZF},
     {HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_LZF},
     {0, 0}
   };
