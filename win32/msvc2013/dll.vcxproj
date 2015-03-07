@@ -120,7 +120,7 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -161,7 +161,7 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32_debug.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
@@ -196,7 +196,7 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
@@ -235,7 +235,7 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>

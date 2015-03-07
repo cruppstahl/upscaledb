@@ -101,7 +101,7 @@
       <OutputFile>$(OutDir)hamsterdb-2.1.8.dll</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
 >>>>>>> Adding varbyte compression for uint32 keys
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -149,7 +149,7 @@
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
 =======
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>
@@ -191,7 +191,7 @@
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
 =======
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x86</AdditionalLibraryDirectories>
@@ -237,7 +237,7 @@
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
 =======
-      <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>

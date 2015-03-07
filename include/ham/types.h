@@ -105,7 +105,7 @@ extern "C" {
 #  include <stdint.h>
 #endif
 
-/* Deprecated typedefs; used prior to 2.1.9. Please do not use them! */
+/* Deprecated typedefs; used prior to 2.1.10. Please do not use them! */
 typedef int64_t     ham_s64_t;
 typedef uint64_t    ham_u64_t;
 typedef int32_t     ham_s32_t;
