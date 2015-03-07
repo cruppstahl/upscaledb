@@ -108,7 +108,7 @@
 >>>>>>> 345f47f... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
 =======
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
 >>>>>>> 74a01dc... Adding varbyte compression for uint32 keys
     </Lib>
@@ -149,7 +149,7 @@
       <OutputFile>$(OutDir)\libhamsterdb-2.1.8.lib</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
-      <OutputFile>$(OutDir)\libhamsterdb-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)\libhamsterdb-2.1.10.lib</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -185,7 +185,7 @@
       <OutputFile>$(OutDir)libhamsterdb-2.1.8.lib</OutputFile>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -224,7 +224,7 @@
 <<<<<<< HEAD
       <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
 =======
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.8.lib</OutputFile>
@@ -232,7 +232,7 @@
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 =======
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib;..\..\..\hamsterdb-alien\zlib\msvc2010\zlib_x64.lib;..\..\..\hamsterdb-alien\snappy\msvc2010\snappy_x64.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
 >>>>>>> Adding varbyte compression for uint32 keys
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>

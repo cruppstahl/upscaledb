@@ -139,7 +139,7 @@
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 =======
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.9.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.10.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2013;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
     </Lib>

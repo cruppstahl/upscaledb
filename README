@@ -1,17 +1,15 @@
-hamsterdb pro 2.1.9                                So 30. Nov 21:27:07 CET 2014
+hamsterdb pro 2.1.10                               Sa 7. Mär 10:38:11 CET 2015
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb pro.
+This is the README file of hamsterdb.
 
 Contents:
 
 1. About
 
-This release of hamsterdb pro is based on hamsterdb 2.1.9. In addition,
-it contains (experimental) compression for uint32 keys;
-see HAM_COMPRESSOR_UINT32_VARBYTE.
+This release of hamsterdb pro is based on hamsterdb 2.1.10. In addition,
+it adds several (experimental) compression algorithms for uint32 keys.
 
-<<<<<<< HEAD
 This release has several bug fixes (see below for a list). Thanks to those who
 reported them and invested lots of time to come up with samples to reproduce
 the bugs.
@@ -23,14 +21,14 @@ HAM_RECORD_NUMBER64 for 64bit record numbers, and HAM_RECORD_NUMBER32 for
 A major change under the hood: dirty pages are now flushed asynchronously.
 Expect performance improvements in this release, and more to come in the
 next releases.
-=======
-Please visit the webpage for additional documentation.
->>>>>>> 345f47f... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 
 2. Changes
 
 New Features
-<<<<<<< HEAD
+* Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_MASKEDVBYTE)
+* Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_STREAMVBYTE)
+* Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_GROUPVARINT)
+* Added experimental uint32 compression (HAM_COMPRESSOR_UINT32_SIMDCOMP)
 * Added Cursor.TryFind to hamsterdb-dotnet
 	(thanks, mjmckp <matthew.j.m.peacock@gmail.com>)
 * The page cache eviction was moved to a background thread
@@ -63,12 +61,6 @@ Other Changes
 * Deprecated HAM_RECORD_NUMBER (use HAM_RECORD_NUMBER64 instead);
 	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
 * Implemented ham_cursor_get_record_size() for remote access
-=======
->>>>>>> 74a01dc... Adding varbyte compression for uint32 keys
-
-Bugfixes
-
-Other Changes
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -78,7 +70,6 @@ To see a list of all changes, look in the file ChangeLog.
 4. Features
 
 - PRO: SIMD instructions for lookups
-- PRO: CRC32 verification
 - PRO: transparent AES encryption
 - PRO: transparent CRC32 verification
 - PRO: transparent compression for journal, keys and records using 

@@ -3,7 +3,7 @@ environment
 <<<<<<< HEAD
   version:              2.1.10 
 =======
-  version:              2.1.9 pro!
+  version:              2.1.10 pro!
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
   max databases:        676
 
