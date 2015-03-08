@@ -24,7 +24,8 @@ namespace hamsterdb {
 
 #ifdef _WIN32
 //  Windows
-#define cpuid    __cpuid
+#  include <intrin.h>
+#  define cpuid    __cpuid
 #else
 //  GCC Inline Assembly
 static void

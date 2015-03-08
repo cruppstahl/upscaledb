@@ -10,7 +10,7 @@ noinst_LTLIBRARIES = libsimdcomp.la
 libsimdcomp_la_SOURCES = src/simdbitpacking.c \
 						 src/simdcomputil.c \
 						 src/simdintegratedbitpacking.c \
-						 src/varintdecode.c \
+						 src/varintdecode.cc \
 						 include/simdbitpacking.h \
 						 include/simdcomp.h \
 						 include/simdcomputil.h \

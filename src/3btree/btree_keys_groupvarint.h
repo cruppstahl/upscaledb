@@ -761,7 +761,7 @@ class GroupVarintKeyList : public BlockKeyList<GroupVarintIndex>
       }
       while (endbyte > inbyte) {
         uint8_t key = *inbyte++;
-        for (int k = 0; out < endout and k < 4; k++) {
+        for (int k = 0; out < endout && k < 4; k++) {
           const uint32_t howmanybyte = key & 3;
           key = static_cast<uint8_t>(key>>2);
           val = static_cast<uint32_t> (*inbyte++);

@@ -34,19 +34,15 @@
 #  error "root.h was not included"
 #endif
 
-extern "C" {
 extern uint8_t *svb_encode_scalar_d1_init(const uint32_t *in,
                 uint8_t * /*restrict*/ keyPtr, uint8_t * /*restrict */dataPtr,
                 uint32_t count, uint32_t prev);
-
 extern uint8_t *svb_decode_scalar_d1_init(uint32_t *out,
-                uint8_t * keyPtr, uint8_t * dataPtr, uint64_t count,
+                const uint8_t * keyPtr, uint8_t * dataPtr, uint32_t count,
                 uint32_t prev);
 extern uint8_t *svb_decode_avx_d1_init(uint32_t *out,
                 uint8_t * keyPtr, uint8_t * dataPtr, uint64_t count,
                 uint32_t prev);
-
-}
 
 namespace hamsterdb {
 
