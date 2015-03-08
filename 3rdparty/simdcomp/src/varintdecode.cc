@@ -1,8 +1,17 @@
 
 #include <stdint.h>
-#include <x86intrin.h>
+#ifdef WIN32
+#  include <intrin.h>
+#  include "ham/msstdint.h"
+#else
+#  include <x86intrin.h>
+#endif
 
-static const uint8_t vec_lookup[] __attribute__((aligned(0x1000))) = { 0, 32,
+static const uint8_t vec_lookup[]
+#ifndef WIN32
+					__attribute__((aligned(0x1000)))
+#endif
+	 = { 0, 32,
 		16, 118, 8, 48, 82, 160, 4, 40, 24, 127, 70, 109, 148, 165, 2, 36, 20,
 		121, 12, 56, 85, 161, 66, 97, 79, 136, 145, 153, 149, 0, 1, 34, 18, 119,
 		10, 52, 83, 160, 6, 44, 28, 130, 71, 112, 148, 166, 64, 93, 75, 124, 69,
