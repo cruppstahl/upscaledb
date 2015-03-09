@@ -10,6 +10,7 @@
 #  include "ham/msstdint.h"
 #  define restrict
 #else
+#  define restrict
 #  include <x86intrin.h>
 #endif
 #include <stdint.h>
