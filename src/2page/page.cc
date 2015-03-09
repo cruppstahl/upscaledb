@@ -44,6 +44,12 @@ Page::~Page()
 {
   ham_assert(m_cursor_list == 0);
 
+#ifdef HAM_DEBUG
+  // safely unlock the mutex
+  ham_assert(mutex().try_lock() == true);
+  mutex().unlock();
+#endif
+
   free_buffer();
 }
 

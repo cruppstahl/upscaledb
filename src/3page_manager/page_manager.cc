@@ -741,7 +741,8 @@ PageManager::safely_lock_page(Context *context, Page *page,
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
     // unlock again, or changeset.put() will block
-    page->mutex().unlock();
+    else
+      page->mutex().unlock();
   }
 #endif
 
