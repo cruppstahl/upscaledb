@@ -96,7 +96,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;HAM_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;HAM_ENABLE_ENCRYPTION;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -108,7 +108,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -124,7 +124,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;HAM_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;HAM_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -136,7 +136,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32_debug.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32_debug.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -148,7 +148,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;HAM_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;HAM_ENABLE_ENCRYPTION;WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -158,7 +158,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -175,7 +175,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_SIMD;HAM_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;HAM_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -184,7 +184,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)hamsterdb-2.1.9.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -255,7 +255,14 @@
     <ClInclude Include="..\..\src\3btree\btree_index_factory.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_base.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_binary.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_block.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_blockindex.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_groupvarint.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_maskedvbyte.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_pod.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_simdcomp.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_streamvbyte.h" />
+    <ClInclude Include="..\..\src\3btree\btree_keys_varbyte.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_varlen.h" />
     <ClInclude Include="..\..\src\3btree\btree_node.h" />
     <ClInclude Include="..\..\src\3btree\btree_node_proxy.h" />
@@ -265,6 +272,7 @@
     <ClInclude Include="..\..\src\3btree\btree_records_inline.h" />
     <ClInclude Include="..\..\src\3btree\btree_records_internal.h" />
     <ClInclude Include="..\..\src\3btree\btree_stats.h" />
+    <ClInclude Include="..\..\src\3btree\btree_update.h" />
     <ClInclude Include="..\..\src\3btree\btree_visitor.h" />
     <ClInclude Include="..\..\src\3btree\upfront_index.h" />
     <ClInclude Include="..\..\src\3cache\cache.h" />
@@ -290,6 +298,11 @@
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdbitpacking.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdcomputil.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdintegratedbitpacking.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\varintdecode.cc" />
+    <ClCompile Include="..\..\3rdparty\streamvbyte\streamvbyte.cc" />
     <ClCompile Include="..\..\src\1base\error.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
@@ -309,6 +322,7 @@
     <ClCompile Include="..\..\src\3btree\btree_index.cc" />
     <ClCompile Include="..\..\src\3btree\btree_insert.cc" />
     <ClCompile Include="..\..\src\3btree\btree_stats.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_update.cc" />
     <ClCompile Include="..\..\src\3btree\btree_visit.cc" />
     <ClCompile Include="..\..\src\3changeset\changeset.cc" />
     <ClCompile Include="..\..\src\3journal\journal.cc" />
@@ -317,6 +331,7 @@
     <ClCompile Include="..\..\src\4db\db.cc" />
     <ClCompile Include="..\..\src\4db\db_local.cc" />
     <ClCompile Include="..\..\src\4db\db_remote.cc" />
+    <ClCompile Include="..\..\src\4env\env.cc" />
     <ClCompile Include="..\..\src\4env\env_local.cc" />
     <ClCompile Include="..\..\src\4env\env_remote.cc" />
     <ClCompile Include="..\..\src\4txn\txn_cursor.cc" />
