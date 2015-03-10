@@ -862,7 +862,7 @@ o There are performance issues related to cache flushes.
     x check mutex contention times - the Cache mutex hurts...
     o run monster tests
 
-o Concurrency: could be improved if each cache line had its own spinlock.
+x Concurrency: could be improved if each cache line had its own spinlock.
     The likelyhood of contention would then decrease dramatically!
 
 >>>>>>> More cleanups
@@ -923,7 +923,7 @@ o Make Pages resizable with variable length
     o blob IDs are addressed as uint8_t *, not uint64_t
     o The InternalRecordList and the DefaultRecordLists need to use blocks
         to efficiently manage variable-length IDs
-        o use the new code internally, but try to stick to uint64_t for
+        o use the new code in the btree, but try to stick to uint64_t for
             the external interface! this way we reduce the changes to a small
             part of the code
     o also use this for storing duplicates!
@@ -969,8 +969,6 @@ o Make Pages resizable with variable length
             watermark is reached
     o checkpoint - all tests need to work
 
-    o checkpoint - all tests need to work
-
 o always use constant sizes for the header page(s)
     o 1kb for the EnvironmentHeader
     o 4kb for the PageManager state
@@ -989,6 +987,20 @@ o Do not add read-only pages to the Changeset
     concurrency. Even if concurrency is implemented on a database-level
     then there's no need for RW-locks in the pages (as long as blob pages
     are NOT shared between databases!)
+
+    This task is actually way more complex.
+
+    As of now, we could not have multiple threads run operations on the same
+    database because they could deadlock if thread #1 wants to lock a page
+    that is currently used by thread #2.
+
+    OTOH the Changesets are necessary to know when to unlock a page!
+
+    Therefore we have to distinguish:
+        - use a mutex only for exclusive access
+        - use a reference counter whenever the page is used 
+        - the cache also holds a reference. If the last reference is released,
+            the page can be freed (assert that it's no longer dirty!)
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
