@@ -738,18 +738,29 @@ o There are performance issues related to cache flushes.
     x spinlock: only a locked mutex can be unlocked! add an assert
     x spinlock: only an unlocked mutex can be destroyed! add an assert
 
-    o fix helgrind erros and race conditions
-        o the main thread triggers the worker thread, but does not send any
+    x fix helgrind erros and race conditions
+        x the main thread triggers the worker thread, but does not send any
             pages (only the "limit" parameter)
-        o the worker thread then retrieves the purge candidates asynchronously,
+        x the worker thread then retrieves the purge candidates asynchronously,
             locks them in the worker thread
-        o then proceeds as usual
-        o continue checking with helgrind
-    o run monster tests
-
-    o worker: add method add_and_wait(), and add generic message which can
+        x then proceeds as usual
+        x what about the last_blob_page?
+        x is there a race condition when accessing pages in the cache? - yes
+        x fix lock order in Cache::purge_if() selector
+            valgrind --tool=helgrind ./ham_bench --stop-ops=1000 \
+                    --recsize-fixed=0 --cache=10
+        x continue checking with helgrind
+    x test fails: ./ham_bench --seed=1425913620 --cache=1 --recsize-fixed=0 \
+            --recsize=0 --distribution=random --stop-ops=1000
+    x worker: add method add_and_wait(), and add generic message which can
         block like a promise (basically use the current code but make it
         generic because we will need this in other places as well)
+        x rewrite the messages which are currently blocking (flush, close_db)
+    x check mutex contention times - the Cache mutex hurts...
+    o run monster tests
+
+o Concurrency: could be improved if each cache line had its own spinlock.
+    The likelyhood of contention would then decrease dramatically!
 
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
@@ -762,9 +773,6 @@ o Concurrency: flush the changeset asynchronously. As soon as the log
         only the worker thread! otherwise we might have race conditions
         between the purger and the changeset-flush
     o compare performance (before/after)
-
-. Concurrency: could be improved if each cache line had its own spinlock.
-    The likelyhood of contention would then decrease dramatically!
 
 o Refactoring: completely decouple the Page from the Device; pass the Device as
     a parameter to fetch(), flush()

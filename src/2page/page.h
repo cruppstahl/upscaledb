@@ -101,6 +101,15 @@ class Page {
           raw_data(other.raw_data) {
       }
 
+      ~PersistedData() {
+#ifdef HAM_DEBUG
+        // safely unlock the mutex
+        mutex.try_lock();
+        mutex.unlock();
+#endif
+        Memory::release(raw_data);
+      }
+
       // The spinlock is locked if the page is in use or written to disk
       Spinlock mutex;
 

@@ -325,53 +325,17 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
   m_state.cache.fill_metrics(metrics);
 }
 
-struct FlushAllPagesPurger
-{
-  FlushAllPagesPurger(bool delete_pages)
-    : delete_pages(delete_pages) {
-  }
-
-  bool operator()(Page *page) {
-    ScopedSpinlock lock(page->mutex());
-    page->flush();
-    return (delete_pages);
-  }
-
-  bool delete_pages;
-};
-
 void
 PageManager::flush(bool delete_pages)
 {
-  FlushAllPagesPurger purger(delete_pages);
-  m_state.cache.purge_if(purger);
+  FlushPagesMessage message(m_state.device, &m_state.cache);
+  m_worker->add_to_queue_blocking(&message);
 
   if (m_state.state_page) {
     ScopedSpinlock lock(m_state.state_page->mutex());
     m_state.state_page->flush();
   }
 }
-
-// Returns true if the page can be purged: page must use allocated
-// memory instead of an mmapped pointer; page must not be in use (= in
-// a changeset) and not have cursors attached
-struct PurgeProcessor
-{
-  PurgeProcessor(Page *last_blob_page, FlushPageMessage *message)
-    : last_blob_page(last_blob_page), message(message) {
-  }
-
-  bool operator()(Page *page) {
-    // the lock in here will be unlocked by the worker thread
-    if (page == last_blob_page || !page->mutex().try_lock())
-      return (false);
-    message->list.push_back(page->get_persisted_data());
-    return (true);
-  }
-
-  Page *last_blob_page;
-  FlushPageMessage *message;
-};
 
 void
 PageManager::purge_cache(Context *context)
@@ -385,16 +349,23 @@ PageManager::purge_cache(Context *context)
       || !m_state.cache.is_cache_full())
     return;
 
-  // Purge as many pages as possible to get memory usage down to the
-  // cache's limit.
-  FlushPageMessage *message = new FlushPageMessage(m_state.device);
-  PurgeProcessor processor(m_state.last_blob_page, message);
-  m_state.cache.purge(processor, m_state.last_blob_page);
+  std::vector<Page *> garbage;
+  PurgeCacheMessage *message = new PurgeCacheMessage(this, m_state.device,
+                                        &m_state.purge_cache_pending);
+  m_state.cache.purge_candidates(message->page_ids, garbage,
+                  m_state.last_blob_page);
+  m_worker->add_to_queue(message);
 
-  if (message->list.size())
-    m_worker->add_to_queue(message);
-  else
-    delete message;
+  for (std::vector<Page *>::iterator it = garbage.begin();
+                  it != garbage.end();
+                  it++) {
+    Page *page = *it;
+    if (page->mutex().try_lock()) {
+      m_state.cache.del(page);
+      page->mutex().unlock();
+      delete page;
+    }
+  }
 }
 
 void
@@ -443,14 +414,8 @@ PageManager::close_database(Context *context, LocalDatabase *db)
   }
 
   context->changeset.clear();
-  DeletePageMessage message(m_state.device, db);
-  m_state.cache.purge_if(message);
-  m_worker->add_to_queue(&message);
-
-  // wait till the worker thread finished
-  ScopedLock lock(message.mutex);
-  while (!message.completed)
-    message.cond.wait(lock);
+  CloseDatabaseMessage message(m_state.device, &m_state.cache, db);
+  m_worker->add_to_queue_blocking(&message);
 }
 
 void
@@ -488,10 +453,6 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 void
 PageManager::close(Context *context)
 {
-  /* wait for the worker thread to stop */
-  if (m_worker.get())
-    m_worker->stop_and_join();
-
   // store the state of the PageManager
   if ((m_state.config.flags & HAM_IN_MEMORY) == 0
       && (m_state.config.flags & HAM_READ_ONLY) == 0) {
@@ -525,6 +486,10 @@ PageManager::close(Context *context)
 
   // flush all dirty pages to disk, then delete them
   flush(true);
+
+  /* wait for the worker thread to stop */
+  if (m_worker.get())
+    m_worker->stop_and_join();
 
   delete m_state.state_page;
   m_state.state_page = 0;
@@ -721,6 +686,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
 {
   Page::PersistedData *old_data = 0;
 
+#if 0
   // if the page is not yet in the changeset, but already locked: create a copy!
 #if 0
   if (!context->changeset.has(page)) {
@@ -741,6 +707,15 @@ PageManager::safely_lock_page(Context *context, Page *page,
     m_worker->add_to_queue(new ReleasePointerMessage(old_data));
 
   return (page);
+}
+
+Page *
+PageManager::try_fetch(uint64_t page_id)
+{
+  Page *page = m_state.cache.get(page_id);
+  if (page && page->mutex().try_lock())
+    return (page);
+  return (0);
 }
 
 PageManagerTest

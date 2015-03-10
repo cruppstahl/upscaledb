@@ -39,9 +39,6 @@ struct PageCollectionVisitor
     : num_pages(0), pages(pages) {
   }
 
-  void prepare(size_t size) {
-  }
-
   bool operator()(Page *page) {
     if (page->is_dirty() == true) {
       pages[num_pages] = page;

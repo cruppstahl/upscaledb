@@ -71,8 +71,14 @@ class Spinlock {
     }
 
     bool try_lock() {
-      return (m_state.exchange(kLocked, boost::memory_order_acquire)
-                      != kLocked);
+      if (m_state.exchange(kLocked, boost::memory_order_acquire)
+                      != kLocked) {
+#ifdef HAM_DEBUG
+        m_owner = boost::this_thread::get_id();
+#endif
+        return (true);
+      }
+      return (false);
     }
 
     void lock() {
@@ -83,6 +89,7 @@ class Spinlock {
 
     void unlock() {
       ham_assert(m_state == kLocked);
+      ham_assert(m_owner == boost::this_thread::get_id());
       m_state.store(kUnlocked, boost::memory_order_release);
     }
 
@@ -109,6 +116,9 @@ class Spinlock {
 
   private:
     boost::atomic<LockState> m_state;
+#ifdef HAM_DEBUG
+    boost::thread::id m_owner;
+#endif
 };
 #endif // HAM_ENABLE_HELGRIND
 
