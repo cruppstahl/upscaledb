@@ -50,6 +50,34 @@ namespace hamsterdb {
 
 class Cache
 {
+    struct CacheLine {
+      CacheLine()
+        : collection(Page::kListBucket) {
+      }
+
+      CacheLine(const CacheLine &other)
+        : collection(Page::kListBucket) {
+      }
+
+      Page *get(uint64_t page_id) {
+        ScopedSpinlock lock(mutex);
+        return (collection.get(page_id));
+      }
+
+      void put(Page *page) {
+        ScopedSpinlock lock(mutex);
+        collection.put(page);
+      }
+
+      void del(Page *page) {
+        ScopedSpinlock lock(mutex);
+        collection.del(page);
+      }
+
+      Spinlock mutex;
+      PageCollection collection;
+    };
+
     enum {
       // The number of buckets should be a prime number or similar, as it
       // is used in a MODULO hash scheme
@@ -65,7 +93,7 @@ class Cache
 
       bool operator()(Page *page) {
         if (m_purger(page))
-          m_cache->del_impl(page);
+          m_cache->del_impl(page, true);
         // don't remove page from list; it was already removed above
         return (false);
       }
@@ -82,8 +110,7 @@ class Cache
                             : config.cache_size_bytes),
         m_page_size_bytes(config.page_size_bytes),
         m_alloc_elements(0), m_totallist(Page::kListCache),
-        m_buckets(kBucketSize, PageCollection(Page::kListBucket)),
-        m_cache_hits(0), m_cache_misses(0) {
+        m_buckets(kBucketSize), m_cache_hits(0), m_cache_misses(0) {
       ham_assert(m_capacity_bytes > 0);
     }
 
@@ -98,10 +125,9 @@ class Cache
     Page *get(uint64_t address) {
       size_t hash = calc_hash(address);
 
-      ScopedSpinlock lock(m_mutex);
-
-      Page *page = m_buckets[hash].get(address);;
+      Page *page = m_buckets[hash].get(address);
       if (!page) {
+        ScopedSpinlock lock(m_mutex);
         m_cache_misses++;
         return (0);
       }
@@ -109,6 +135,7 @@ class Cache
       // Now re-insert the page at the head of the "totallist", and
       // thus move far away from the tail. The pages at the tail are highest
       // candidates to be deleted when the cache is purged.
+      ScopedSpinlock lock(m_mutex);
       m_totallist.del(page);
       m_totallist.put(page);
       m_cache_hits++;
@@ -120,25 +147,26 @@ class Cache
       ham_assert(page->get_data());
       size_t hash = calc_hash(page->get_address());
 
-      ScopedSpinlock lock(m_mutex);
-
       /* First remove the page from the cache, if it's already cached
        *
        * Then re-insert the page at the head of the list. The tail will
        * point to the least recently used page.
        */
-      m_totallist.del(page);
-      m_totallist.put(page);
+      {
+        ScopedSpinlock lock(m_mutex);
 
-      if (page->is_allocated())
-        m_alloc_elements++;
+        m_totallist.del(page);
+        m_totallist.put(page);
+        if (page->is_allocated())
+          m_alloc_elements++;
+      }
+
       m_buckets[hash].put(page);
     }
 
     // Removes a page from the cache
     void del(Page *page) {
-      ScopedSpinlock lock(m_mutex);
-      del_impl(page);
+      del_impl(page, false);
     }
 
     // Purges the cache. Implements a LRU eviction algorithm. Dirty pages are
@@ -209,16 +237,23 @@ class Cache
     }
 
     // Implementation of del(), sans locking
-    void del_impl(Page *page) {
+    void del_impl(Page *page, bool is_already_locked) {
       ham_assert(page->get_address() != 0);
-      size_t hash = calc_hash(page->get_address());
-
-      /* remove the page from the cache buckets */
-      m_buckets[hash].del(page);
 
       /* remove it from the list of all cached pages */
-      if (m_totallist.del(page) && page->is_allocated())
-        m_alloc_elements--;
+      if (is_already_locked) {
+        if (m_totallist.del(page) && page->is_allocated())
+          m_alloc_elements--;
+      }
+      else {
+        ScopedSpinlock lock(m_mutex);
+        if (m_totallist.del(page) && page->is_allocated())
+          m_alloc_elements--;
+      }
+
+      /* remove the page from the cache buckets */
+      size_t hash = calc_hash(page->get_address());
+      m_buckets[hash].del(page);
     }
 
     // For synchronizing access
@@ -238,7 +273,7 @@ class Cache
     PageCollection m_totallist;
 
     // The hash table buckets - each is a linked list of Page pointers
-    std::vector<PageCollection> m_buckets;
+    std::vector<CacheLine> m_buckets;
 
     // counts the cache hits
     uint64_t m_cache_hits;

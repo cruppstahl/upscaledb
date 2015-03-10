@@ -99,6 +99,11 @@ class PageCollection {
       ham_assert(m_size == 0);
     }
 
+    // Returns the list's id
+    int id() const {
+      return (m_id);
+    }
+
     // Returns the head
     Page *head() const {
       return (m_head);
