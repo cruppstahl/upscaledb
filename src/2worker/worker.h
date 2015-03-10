@@ -50,6 +50,11 @@ class Worker
       m_cond.notify_one();
     }
 
+    void add_to_queue_blocking(BlockingMessageBase *message) {
+      add_to_queue(message);
+      message->wait();
+    }
+
     void stop_and_join() {
       {
         ScopedLock lock(m_mutex);
@@ -78,8 +83,12 @@ class Worker
 
         do {
           if (message) {
+            // it's possible that handle_message() causes the main thread to
+            // delete the message, if kDontDelete is set. Therefore the flags
+            // are copied to a local variable.
+            uint32_t flags = message->flags;
             handle_message(message);
-            if ((message->flags & MessageBase::kDontDelete) == false)
+            if ((flags & MessageBase::kDontDelete) == false)
               delete message;
           }
         } while ((message = m_queue.pop()));
@@ -87,8 +96,10 @@ class Worker
 
       // pick up remaining messages
       while ((message = m_queue.pop())) {
+        // see comment above
+        uint32_t flags = message->flags;
         handle_message(message);
-        if ((message->flags & MessageBase::kDontDelete) == false)
+        if ((flags & MessageBase::kDontDelete) == false)
           delete message;
       }
     }

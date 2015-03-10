@@ -64,6 +64,31 @@ struct MessageBase
   MessageBase *next;
 };
 
+struct BlockingMessageBase : public MessageBase
+{
+  BlockingMessageBase(int type_, int flags_ = kIsMandatory)
+    : MessageBase(type_, flags_ | MessageBase::kDontDelete), completed(false) {
+  }
+
+  // wake up the waiting thread
+  void notify() {
+    ScopedLock lock(mutex);
+    completed = true;
+    cond.notify_all();
+  }
+
+  // lets the caller wait till the operation is completed
+  void wait() {
+    ScopedLock lock(mutex);
+    while (!completed)
+      cond.wait(lock);
+  }
+
+  Mutex mutex;      // to protect |cond| and |completed|
+  Condition cond;
+  bool completed;
+};
+
 
 class Queue
 {

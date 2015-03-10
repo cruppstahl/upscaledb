@@ -125,6 +125,11 @@ class PageManager
     // Sets the Page pointer where we can add more blobs
     void set_last_blob_page(Page *page);
 
+    // Fetches a page from the cache and locks it with try_lock(); returns
+    // the page object, or NULL if try_lock failed. This method is used to
+    // fetch purge candidates.
+    Page *try_fetch(uint64_t page_id);
+
     // Returns additional testing interfaces
     PageManagerTest test();
 

@@ -28,11 +28,8 @@
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
-#include "1base/mutex.h"
-#include "2device/device.h"
 #include "2queue/queue.h"
 #include "2worker/worker.h"
-#include "3cache/cache.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -40,21 +37,41 @@
 
 namespace hamsterdb {
 
+class Cache;
 class Device;
+class PageManager;
 class LocalDatabase;
 
 // The available message types
 enum {
-  kFlushPage = 1,
-  kDeletePage = 2,
-  kReleasePointer = 3,
+  kCloseDatabase = 1,
+  kReleasePointer = 2,
+  kPurgeCache = 3,
+  kFlushPages = 4,
 };
 
-struct DeletePageMessage : public MessageBase
+struct FlushPagesMessage : public BlockingMessageBase
 {
-  DeletePageMessage(Device *device, LocalDatabase *db)
-    : MessageBase(kDeletePage, MessageBase::kDontDelete),
-      device(device), db(db), completed(false) {
+  FlushPagesMessage(Device *device, Cache *cache)
+    : BlockingMessageBase(kFlushPages, MessageBase::kDontDelete),
+      device(device), cache(cache) {
+  }
+
+  bool operator()(Page *page) {
+    list.push_back(page);
+    return (false);
+  }
+
+  std::vector<Page *> list;
+  Device *device;
+  Cache *cache;
+};
+
+struct CloseDatabaseMessage : public BlockingMessageBase
+{
+  CloseDatabaseMessage(Device *device, Cache *cache, LocalDatabase *db)
+    : BlockingMessageBase(kCloseDatabase, MessageBase::kDontDelete),
+      device(device), cache(cache), db(db) {
   }
 
   bool operator()(Page *page) {
@@ -67,20 +84,22 @@ struct DeletePageMessage : public MessageBase
 
   std::vector<Page *> list;
   Device *device;
+  Cache *cache;
   LocalDatabase *db;
-  Mutex mutex;      // to protect |cond| and |complete|
-  Condition cond;
-  bool completed;
 };
 
-struct FlushPageMessage : public MessageBase
+struct PurgeCacheMessage : public MessageBase
 {
-  FlushPageMessage(Device *device)
-    : MessageBase(kFlushPage, 0), device(device) {
+  PurgeCacheMessage(PageManager *page_manager, Device *device,
+                  boost::atomic<bool> *pcompleted)
+    : MessageBase(kPurgeCache, 0), page_manager(page_manager), device(device),
+      pcompleted(pcompleted) {
   }
 
-  std::vector<Page::PersistedData *> list;
+  PageManager *page_manager;
   Device *device;
+  boost::atomic<bool> *pcompleted;
+  std::vector<uint64_t> page_ids;
 };
 
 struct ReleasePointerMessage : public MessageBase
@@ -101,55 +120,7 @@ class PageManagerWorker : public Worker
     }
 
   private:
-    virtual void handle_message(MessageBase *message) {
-      switch (message->type) {
-        case kFlushPage: {
-          FlushPageMessage *fpm = (FlushPageMessage *)message;
-          std::vector<Page::PersistedData *>::iterator it;
-          for (it = fpm->list.begin(); it != fpm->list.end(); ++it) {
-            Page::PersistedData *page_data = *it;
-            ham_assert(page_data != 0);
-            ham_assert(page_data->mutex.try_lock() == false);
-            try {
-              if (page_data->raw_data != 0)
-                Page::flush(fpm->device, page_data);
-            }
-            catch (Exception &ex) {
-              page_data->mutex.unlock();
-              throw;
-            }
-            page_data->mutex.unlock();
-          }
-          break;
-        }
-        case kReleasePointer: {
-          ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
-          Memory::release(rpm->ptr->raw_data);
-#ifdef HAM_ENABLE_HELGRIND
-          rpm->ptr->mutex.try_lock();
-          rpm->ptr->mutex.unlock();
-#endif
-          delete rpm->ptr;
-          break;
-        }
-        case kDeletePage: {
-          DeletePageMessage *dpm = (DeletePageMessage *)message;
-          std::vector<Page *>::iterator it = dpm->list.begin();
-          for (; it != dpm->list.end(); it++) {
-            Page *page = *it;
-            Page::flush(dpm->device, page->get_persisted_data());
-            delete page;
-          } 
-          // when done: wake up the main thread
-          ScopedLock lock(dpm->mutex);
-          dpm->completed = true;
-          dpm->cond.notify_all();
-          break;
-        }
-        default:
-          ham_assert(!"shouldn't be here");
-      }
-    }
+    virtual void handle_message(MessageBase *message);
 
     // The PageManager's cache
     Cache *m_cache;
