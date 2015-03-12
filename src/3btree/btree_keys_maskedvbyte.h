@@ -34,11 +34,9 @@
 #  error "root.h was not included"
 #endif
 
-extern "C" {
 void simdvbyteinit(void);
 size_t masked_vbyte_read_loop_fromcompressedsize_delta(const uint8_t *in,
                 uint32_t *out, size_t inputsize, uint32_t prev);
-}
 
 namespace hamsterdb {
 

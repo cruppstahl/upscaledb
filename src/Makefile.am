@@ -81,6 +81,7 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_keys_binary.h \
 	3btree/btree_keys_varlen.h \
 	3btree/btree_keys_pod.h \
+	3btree/btree_keys_block.h \
 	3btree/btree_keys_blockindex.h \
 	3btree/btree_keys_groupvarint.h \
 	3btree/btree_keys_maskedvbyte.h \
@@ -168,7 +169,6 @@ endif
 if ENABLE_ENCRYPTION
 AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
 endif
->>>>>>> 9d7aea4... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE

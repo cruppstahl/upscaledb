@@ -5,7 +5,14 @@
 // each 8-bit key has four 2-bit lengths: 00=1B, 01=2B, 10=3B, 11=4B
 // no particular alignment is assumed or guaranteed for any elements
 
-#include <x86intrin.h>
+#ifdef _WIN32
+#  include <intrin.h>
+#  include "ham/msstdint.h"
+#  define restrict
+#else
+#  define restrict
+#  include <x86intrin.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
