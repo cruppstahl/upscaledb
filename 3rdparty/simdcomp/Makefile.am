@@ -11,6 +11,7 @@ libsimdcomp_la_SOURCES = src/simdbitpacking.c \
 						 src/simdcomputil.c \
 						 src/simdintegratedbitpacking.c \
 						 src/varintdecode.c \
+						 include/portability.h \
 						 include/simdbitpacking.h \
 						 include/simdcomp.h \
 						 include/simdcomputil.h \
