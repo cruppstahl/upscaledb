@@ -3,7 +3,7 @@
 # then "makefile" will be used and the Automake-"Makefile" is ignored.
 
 # INCLUDES = 
-AM_CPPFLAGS = -Iinclude -mavx
+AM_CPPFLAGS = -Iinclude -msse4
 
 noinst_LTLIBRARIES = libsimdcomp.la
 
