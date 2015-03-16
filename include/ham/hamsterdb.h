@@ -16,7 +16,7 @@
 
 /**
  * @file hamsterdb.h
- * @brief Include file for hamsterdb Embedded Storage
+ * @brief Include file for hamsterdb
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.11
  *
@@ -29,8 +29,8 @@
  * This header file declares all functions and macros that are needed to use
  * hamsterdb. The comments are formatted in Doxygen style and can be extracted
  * to automagically generate documentation. The documentation is also available
- * online here: <a href="http://hamsterdb.com/public/scripts/html_www">
-  http://hamsterdb.com/public/scripts/html_www</a>.
+ * online here: <a href="http://files.hamsterdb.com/scripts/html_www">
+  http://files.hamsterdb.com/scripts/html_www</a>.
  *
  * In addition, there's a tutorial book hosted on github:
  * <a href="http://github.com/cruppstahl/hamsterdb/wiki/Tutorial">
