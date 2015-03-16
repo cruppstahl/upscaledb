@@ -177,11 +177,11 @@ class DiskDevice : public Device {
         // encryption disables direct I/O -> only full pages are allowed
         ham_assert(offset % len == 0);
 
-        m_encryption_buffer.resize(len);
+        uint8_t *encryption_buffer = (uint8_t *)::alloca(len);
         AesCipher aes(m_config.encryption_key, offset);
-        aes.encrypt((uint8_t *)buffer,
-                        (uint8_t *)m_encryption_buffer.get_ptr(), len);
-        buffer = m_encryption_buffer.get_ptr();
+        aes.encrypt((uint8_t *)buffer, encryption_buffer, len);
+        m_state.file.pwrite(offset, encryption_buffer, len);
+        return;
       }
 #endif
       m_state.file.pwrite(offset, buffer, len);
@@ -291,9 +291,6 @@ class DiskDevice : public Device {
 
   private:
     State m_state;
-
-    // dynamic byte array providing temporary space for encryption
-    ByteArray m_encryption_buffer;
 };
 
 } // namespace hamsterdb
