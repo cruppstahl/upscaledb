@@ -110,13 +110,12 @@ Page::free_buffer()
 
   if (m_is_allocated)
     Memory::release(m_datap->raw_data);
+  m_datap->raw_data = 0;
 
   if (m_datap != &m_data_inline) {
     delete m_datap;
     m_datap = &m_data_inline;
   }
-
-  m_datap->raw_data = 0;
 }
 
 } // namespace hamsterdb

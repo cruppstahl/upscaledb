@@ -138,29 +138,33 @@ class BaseNodeImpl
       PBtreeNode::InsertResult result(0, 0);
       size_t node_count = m_node->get_count();
 
-      if (node_count == 0)
-        result.slot = 0;
-      else if (flags & PBtreeNode::kInsertPrepend)
-        result.slot = 0;
-      else if (flags & PBtreeNode::kInsertAppend)
-        result.slot = node_count;
-      else {
-        int cmp;
-        result.slot = find_lower_bound_impl(context, key, comparator, &cmp);
-
-        /* insert the new key at the beginning? */
-        if (result.slot == -1) {
+      /* KeyLists with a custom insert function don't need a slot; only
+       * calculate the slot for the default insert functions */
+      if (!KeyList::kCustomInsert) {
+        if (node_count == 0)
           result.slot = 0;
-          ham_assert(cmp != 0);
+        else if (flags & PBtreeNode::kInsertPrepend)
+          result.slot = 0;
+        else if (flags & PBtreeNode::kInsertAppend)
+          result.slot = node_count;
+        else {
+          int cmp;
+          result.slot = find_lower_bound_impl(context, key, comparator, &cmp);
+
+          /* insert the new key at the beginning? */
+          if (result.slot == -1) {
+            result.slot = 0;
+            ham_assert(cmp != 0);
+          }
+          /* key exists already */
+          else if (cmp == 0) {
+            result.status = HAM_DUPLICATE_KEY;
+            return (result);
+          }
+          /* if the new key is > than the slot key: move to the next slot */
+          else if (cmp > 0)
+            result.slot++;
         }
-        /* key exists already */
-        else if (cmp == 0) {
-          result.status = HAM_DUPLICATE_KEY;
-          return (result);
-        }
-        /* if the new key is > than the slot key: move to the next slot */
-        else if (cmp > 0)
-          result.slot++;
       }
 
       // Uncouple the cursors.

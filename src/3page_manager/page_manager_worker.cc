@@ -34,15 +34,15 @@ PageManagerWorker::handle_message(MessageBase *message)
       PurgeCacheMessage *pcm = (PurgeCacheMessage *)message;
 
       std::vector<uint64_t>::iterator it;
+      Page::PersistedData *page_data;
       for (it = pcm->page_ids.begin(); it != pcm->page_ids.end(); it++) {
-        Page *page = pcm->page_manager->try_fetch(*it);
-        if (!page)
+        page_data = pcm->page_manager->try_fetch_page_data(*it);
+        if (!page_data)
           continue;
-        ham_assert(page->mutex().try_lock() == false);
+        ham_assert(page_data->mutex.try_lock() == false);
 
         // flush dirty pages
-        if (page->is_dirty()) {
-          Page::PersistedData *page_data = page->get_persisted_data();
+        if (page_data->is_dirty) {
           try {
             Page::flush(pcm->device, page_data);
           }
@@ -51,7 +51,7 @@ PageManagerWorker::handle_message(MessageBase *message)
             throw;
           }
         }
-        page->mutex().unlock();
+        page_data->mutex.unlock();
       }
 
       *pcm->pcompleted = true;

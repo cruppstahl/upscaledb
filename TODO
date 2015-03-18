@@ -8,6 +8,7 @@ x a finished TODO item
 ==============================================================================
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 o investigate failure in erlang qc-tests
 
 o refactoring of the whole transaction-mess
@@ -615,6 +616,8 @@ o documentation related issues for 2.1.10
 
 
 
+=======
+>>>>>>> Now 'stealing' the page if it is locked
 
 x PRO: rebase to base/v2
 
@@ -626,12 +629,6 @@ x PRO: zint32: would it make sense to have a block-based "compression" without
 
 x PRO: check recovery.pl - extended_tests are failing on PRO because the
     error inducer hits too early???
-
-
-
-
-
-
 
 x Sometimes the performance peaks when truncating/growing the file. The device
     should therefore allocate more space than required. If the file size is
@@ -698,22 +695,7 @@ x refactoring: the Cursor should be a top-level entity
         (move m_db to derived class?)
         x remove "evil cast"
 
-o Currently, the code uses linear search over small ranges. This is not
-    efficient. If the range is in the cache then binary search is still faster.
-    x rename find_exact() and find_leaf() to find()
-    x rename find_child() to find_lower_bound()
-    x BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
-        -> implement it in BaseKeyList, overwrite in PAX list and in the
-            compressed lists
-    x PAX: replace lower bound implementation with std::lower_bound
-    x PAX: replace exact search implementation with std::lower_bound
-    x run performance tests - not changed
-    o rebase PRO
-        o remove linear search and move mixed binary search/linear search to
-            the PRO PaxKeyList
-        o run performance comparison
-
-o There are performance issues related to cache flushes.
+x There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
         significant latency spike when fetching a locked page
@@ -757,27 +739,63 @@ o There are performance issues related to cache flushes.
         generic because we will need this in other places as well)
         x rewrite the messages which are currently blocking (flush, close_db)
     x check mutex contention times - the Cache mutex hurts...
-    o run monster tests
+    x run monster tests
 
 x Concurrency: could be improved if each cache line had its own spinlock.
     The likelyhood of contention would then decrease dramatically!
+
+x Currently, the code uses linear search over small ranges. This is not
+    efficient. If the range is in the cache then binary search is still faster.
+    x rename find_exact() and find_leaf() to find()
+    x rename find_child() to find_lower_bound()
+    x BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
+        -> implement it in BaseKeyList, overwrite in PAX list and in the
+            compressed lists
+    x PAX: replace lower bound implementation with std::lower_bound
+    x PAX: replace exact search implementation with std::lower_bound
+    x run performance tests - not changed
+    x rebase PRO
+        x remove linear search and move mixed binary search/linear search to
+            the PRO PaxKeyList
+        x make sure that the custom insert routine is used
+
+x Concurrency: re-enable the use of deep_copy_page
 
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> Improving reclaim_space functionality
 =======
+=======
+    o simply pass the Changeset to the worker thread?
+    o the worker thread then unlocks the pages afterwards
+        -> not possible because thread B unlocks mutex which was locked
+            by thread A
+        -> then make it possible! i.e. by moving the mutex ownership to the
+            worker thread
+>>>>>>> Now 'stealing' the page if it is locked
     o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
         only the worker thread! otherwise we might have race conditions
         between the purger and the changeset-flush
+        (remove member function hamsterdb::Page::purge and see where it fails,
+        completely replace usage with the static version)
     o compare performance (before/after)
+    o run monster tests
 
+<<<<<<< HEAD
 o Refactoring: completely decouple the Page from the Device; pass the Device as
     a parameter to fetch(), flush()
     - or vice versa, call device->flush(page), device->fetch(page)
 >>>>>>> Using shadow pages to avoid spinlock contention
+=======
+o mail from Michael Möllney
+    o switch lines in exception handling of ham_env_close/ham_db_close
+    o Destructors should *never* throw exceptions!
+    o try to reproduce with the error inducer
+>>>>>>> Now 'stealing' the page if it is locked
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
@@ -793,6 +811,14 @@ o Make Pages resizable with variable length
     o checkpoint - all in-memory tests must run
 =======
 >>>>>>> Using shadow pages to avoid spinlock contention
+
+    These schemes are used for disk-based AND in-memory based databases!
+    For this to work, the in-memory device must use a synthetic page ID
+    o differentiate between page id and address; the address is only
+        used by the Device!
+    o in-memory device uses a synthetic page ID (atomic discrete counter)
+    o rewrite allocation code path for in-memory pages
+    o checkpoint - all in-memory tests must run
 
     The page IDs are now compressible and have variable length. The first
     2 bits are specifying the compression. The default page size is 16kb.
@@ -888,6 +914,7 @@ TODO die werte sind falsch!
     o page IDs are addressed as uint8_t *, not uint64_t
     o create code to read and write the blob ID
     o blob IDs are addressed as uint8_t *, not uint64_t
+<<<<<<< HEAD
     o The InternalRecordList and the DefaultRecordLists need to use blocks
         to efficiently manage variable-length IDs
         o use the new code in the btree, but try to stick to uint64_t for
@@ -896,6 +923,20 @@ TODO die werte sind falsch!
     o also use this for storing duplicates!
     o run monster tests
 >>>>>>> Using shadow pages to avoid spinlock contention
+=======
+
+    o store the size persistently
+    o print in ham_info
+    o adjust ham_bench (the monster tests should not require any changes)
+
+    o rewrite pickle.h
+        o create code to read and write the page ID (a special type)
+        o page IDs are addressed as uint8_t *, not uint64_t
+        o create code to read and write the blob ID
+        o blob IDs are addressed as uint8_t *, not uint64_t
+    o make sure that PageManager still works (the only user of pickle.h)
+    o use compressed page id for root page storage
+>>>>>>> Now 'stealing' the page if it is locked
 
     o if no page size is specified: come up with good default values for
         blob pages and indices and leafs
@@ -928,10 +969,29 @@ TODO die werte sind falsch!
 =======
 =======
         o make index pages larger if duplicates are used
+<<<<<<< HEAD
 >>>>>>> Fixed uninitialized memory access
+=======
+
+    o create code to write *groups* of PageIds and BlobIds; these groups
+        will be used for the record lists (also for the duplicates)
+
+    o remove the get_record_id()/set_record_id() methods from the record list
+        interface (can be implemented by the BtreeNodeProxy base class)
+    o combine BaseRecordList and BaseKeyList in a common base class
+
+    o The InternalRecordList and the DefaultRecordLists need to use blocks
+        to efficiently manage variable-length IDs
+    o also use this for storing duplicates!
+
+>>>>>>> Now 'stealing' the page if it is locked
     o run monster tests
     o run performance tests
 
+    o when rebasing pro: zint32-encodings currently don't work with
+        page sizes > 16 kb!!
+
+o Grow pages instead of splitting them
     Instead of splitting pages, they can now be resized easily. This will help
     when applying BtreeUpdate. Instead of requiring a split (and a recursive
     descent of the tree), the BtreeUpdate are applied to a "bigger" page. The
@@ -964,7 +1024,19 @@ TODO die werte sind falsch!
             up cache accesses
         o but perform the split synchronously (if possible) if a certain
             watermark is reached
-    o checkpoint - all tests need to work
+    o run monster tests
+
+. monster.pl: use `taskset` to bind ham_bench to a CPU (otherwise it's
+    moved from one core to the other).
+    o same for perftest.pl
+
+. speed up monster tests by running bdb completely in-memory
+    with a new switch --use-berkeleydb=in-memory
+    o use this in the monster lists
+
+o PRO: license header should be identical to APL; just refer to the COPYING file
+    o once again make sure only the relevant changes are in pro; merge all
+        other changes back to the APL version
 
 <<<<<<< HEAD
     o checkpoint - all tests need to work
@@ -982,29 +1054,6 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
-
-o Do not add read-only pages to the Changeset
-    There's no need to add pages to the Changeset if they are not modified.
-    My first thought was that the lock should be replaced with a RW-lock,
-    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
-    read-lock. But the current implementation does not require this level of
-    concurrency. Even if concurrency is implemented on a database-level
-    then there's no need for RW-locks in the pages (as long as blob pages
-    are NOT shared between databases!)
-
-    This task is actually way more complex.
-
-    As of now, we could not have multiple threads run operations on the same
-    database because they could deadlock if thread #1 wants to lock a page
-    that is currently used by thread #2.
-
-    OTOH the Changesets are necessary to know when to unlock a page!
-
-    Therefore we have to distinguish:
-        - use a mutex only for exclusive access
-        - use a reference counter whenever the page is used 
-        - the cache also holds a reference. If the last reference is released,
-            the page can be freed (assert that it's no longer dirty!)
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
@@ -1103,6 +1152,13 @@ o BtreeUpdate managed in the BtreeNode
         o txn is aborted: set the state of all BUs to "aborted"
         o move the consolidation away from the txn layer towards the BU layer
 
+o PRO: the build option to disable compression does not work (linker failures)
+    o remove this switch and HAM_ENABLE_COMPRESSION
+    o selectively enable if zlib, snappy etc are available
+        - HAVE_SNAPPY_H
+        - HAVE_ZLIB_H
+        - HAVE_LZO_LZO1X_H
+
 o Refactoring: rewrite the Transaction layer
     o remove the TransactionNode structure, it's no longer required
     o remove the TransactionTree structure, it's no longer required
@@ -1133,6 +1189,35 @@ o Refactoring: rewrite the whole cursor layer
 . optimize spinlock contention times: set breakpoint if spinlock spins more
     than 100 times; identify the bottleneck, try to improve
 
+. Do not add read-only pages to the Changeset
+    (not yet necessary, but will be necessary soon-ish...)
+
+    There's no need to add pages to the Changeset if they are not modified.
+    My first thought was that the lock should be replaced with a RW-lock,
+    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
+    read-lock. But the current implementation does not require this level of
+    concurrency. Even if concurrency is implemented on a database-level
+    then there's no need for RW-locks in the pages (as long as blob pages
+    are NOT shared between databases!)
+
+    This task is actually way more complex.
+
+    As of now, we could not have multiple threads run operations on the same
+    database because they could deadlock if thread #1 wants to lock a page
+    that is currently used by thread #2.
+
+    OTOH the Changesets are necessary to know when to unlock a page!
+
+    Therefore we have to distinguish:
+        - use a mutex only for exclusive access
+        - use a reference counter whenever the page is used 
+        - the cache also holds a reference. If the last reference is released,
+            the page can be freed (assert that it's no longer dirty!)
+
+    here is a very fast r/w semaphore:
+    http://preshing.com/20150316/semaphores-are-surprisingly-versatile/
+    or in facebook's folly
+
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
         -> use a common behaviour/indexing
@@ -1147,6 +1232,8 @@ o Refactoring: rewrite the whole cursor layer
     and if required also a cursor, a transaction and a context
     o include additional management functions like lenv(), ldb(), ltxn(),
         page_manager(), cache(), context()...
+    o properly clean up, even in case of failure, to avoid error -22 in
+        all following tests
     o what else?
     o then reorganize the tests
         - public API
@@ -1174,6 +1261,7 @@ o Refactoring: would it make sense if each Database has its own BlobManager?
         - ...?
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then
@@ -1181,6 +1269,8 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     o deal with databases < 16kb?
 
 >>>>>>> Improving reclaim_space functionality
+=======
+>>>>>>> Now 'stealing' the page if it is locked
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!

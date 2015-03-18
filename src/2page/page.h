@@ -108,6 +108,7 @@ class Page {
         mutex.unlock();
 #endif
         Memory::release(raw_data);
+        raw_data = 0;
       }
 
       // The spinlock is locked if the page is in use or written to disk
