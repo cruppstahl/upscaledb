@@ -64,9 +64,10 @@ struct ChangesetFixture {
     REQUIRE((Page *)NULL ==
           page[2]->get_previous(Page::kListChangeset));
 
-	ch.clear();
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
+      page[i]->mutex().unlock();
       delete page[i];
+    }
   }
 
   void getPages() {
@@ -83,9 +84,10 @@ struct ChangesetFixture {
       REQUIRE(page[i] == ch.get(page[i]->get_address()));
     REQUIRE((Page *)NULL == ch.get(999));
 
-	ch.clear();
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
+      page[i]->mutex().unlock();
       delete page[i];
+    }
   }
 };
 

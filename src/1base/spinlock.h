@@ -61,24 +61,29 @@ class Spinlock {
     }
 
     // Need user-defined copy constructor because boost::atomic<> is not
-    // copyable
+    // copyable. Initializes an *unlocked* Spinlock.
     Spinlock(const Spinlock &other)
-      : m_state(other.m_state.load()) {
+      : m_state(kUnlocked) {
     }
 
-    void lock() {
-      int k = 0;
-      while (m_state.exchange(kLocked, boost::memory_order_acquire) == kLocked)
-        spin(++k);
-    }
-
-    void unlock() {
-      m_state.store(kUnlocked, boost::memory_order_release);
+    ~Spinlock() {
+      ham_assert(m_state == kUnlocked);
     }
 
     bool try_lock() {
       return (m_state.exchange(kLocked, boost::memory_order_acquire)
                       != kLocked);
+    }
+
+    void lock() {
+      int k = 0;
+      while (!try_lock())
+        spin(k++);
+    }
+
+    void unlock() {
+      ham_assert(m_state == kLocked);
+      m_state.store(kUnlocked, boost::memory_order_release);
     }
 
     static void spin(int loop) {

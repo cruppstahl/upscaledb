@@ -46,11 +46,11 @@ Page::~Page()
 {
   ham_assert(m_cursor_list == 0);
 
-#ifdef HAM_ENABLE_HELGRIND
+#ifdef HAM_DEBUG
   // safely unlock the mutex
-  mutex().try_lock();
-#endif
+  ham_assert(mutex().try_lock() == true);
   mutex().unlock();
+#endif
 
   free_buffer();
 }

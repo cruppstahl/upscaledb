@@ -486,15 +486,6 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 }
 
 void
-PageManager::reset(Context *context)
-{
-  close(context);
-
-  /* start the worker thread */
-  m_worker.reset(new PageManagerWorker(&m_state.cache));
-}
-
-void
 PageManager::close(Context *context)
 {
   /* wait for the worker thread to stop */
@@ -736,7 +727,8 @@ PageManager::safely_lock_page(Context *context, Page *page,
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
     // unlock again, or changeset.put() will block
-    page->mutex().unlock();
+    else
+      page->mutex().unlock();
   }
 #endif
 
