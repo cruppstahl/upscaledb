@@ -45,8 +45,19 @@ namespace hamsterdb {
 typedef boost::mutex::scoped_lock ScopedLock;
 typedef boost::thread Thread;
 typedef boost::condition Condition;
-typedef boost::mutex Mutex;
 typedef boost::recursive_mutex RecursiveMutex;
+
+class Mutex : public boost::mutex 
+{
+  public:
+    void acquire_ownership() {
+    }
+
+    void safe_unlock() {
+      try_lock();
+      unlock();
+    }
+};
 
 } // namespace hamsterdb
 

@@ -70,17 +70,18 @@ struct JournalState
   ByteArray buffer[2];
 
   // For counting all open transactions in the files
-  size_t open_txn[2];
+  uint64_t open_txn[2];
 
   // For counting all closed transactions in the files
-  size_t closed_txn[2];
+  // This needs to be atomic since it's updated from the worker thread
+  boost::atomic<uint64_t> closed_txn[2];
 
   // The lsn of the previous checkpoint
   uint64_t last_cp_lsn;
 
   // When having more than these Transactions in one file, we
   // swap the files
-  size_t threshold;
+  uint64_t threshold;
 
   // Set to false to disable logging; used during recovery
   bool disable_logging;

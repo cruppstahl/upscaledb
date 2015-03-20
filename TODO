@@ -761,10 +761,11 @@ x Currently, the code uses linear search over small ranges. This is not
 
 x Concurrency: re-enable the use of deep_copy_page
 
-o Concurrency: flush the changeset asynchronously. As soon as the log
+x Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> Improving reclaim_space functionality
@@ -772,17 +773,28 @@ o Concurrency: flush the changeset asynchronously. As soon as the log
 =======
     o simply pass the Changeset to the worker thread?
     o the worker thread then unlocks the pages afterwards
+=======
+    x only pass the page_data to the worker, not the Page pointer!
+        (because the page_data pointer can be replaced by the caller)
+    x the worker thread then unlocks the pages afterwards
+>>>>>>> Changeset is now flushed asynchronously
         -> not possible because thread B unlocks mutex which was locked
             by thread A
         -> then make it possible! i.e. by moving the mutex ownership to the
             worker thread
+<<<<<<< HEAD
 >>>>>>> Now 'stealing' the page if it is locked
     o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+=======
+    x we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+>>>>>>> Changeset is now flushed asynchronously
         only the worker thread! otherwise we might have race conditions
         between the purger and the changeset-flush
         (remove member function hamsterdb::Page::purge and see where it fails,
         completely replace usage with the static version)
-    o compare performance (before/after)
+    x compare performance (before/after) - wow! up to 60% faster!
+    x fix unittests
+    x fix recovery tests
     o run monster tests
 
 <<<<<<< HEAD
@@ -896,6 +908,7 @@ TODO die werte sind falsch!
     o use HAM_PARAM_PAGE_SIZE parameter for the Database
     o each page needs to be aware of its own size
 <<<<<<< HEAD
+<<<<<<< HEAD
         o don't forget the journal!
     o store the size persistently
     o print in ham_info
@@ -925,6 +938,9 @@ TODO die werte sind falsch!
 >>>>>>> Using shadow pages to avoid spinlock contention
 =======
 
+=======
+        o don't forget the journal!
+>>>>>>> Changeset is now flushed asynchronously
     o store the size persistently
     o print in ham_info
     o adjust ham_bench (the monster tests should not require any changes)
@@ -1034,6 +1050,9 @@ o Grow pages instead of splitting them
     with a new switch --use-berkeleydb=in-memory
     o use this in the monster lists
 
+o check for memory leaks in the "hola" unittests - a cursor is created and not
+    properly released
+
 o PRO: license header should be identical to APL; just refer to the COPYING file
     o once again make sure only the relevant changes are in pro; merge all
         other changes back to the APL version
@@ -1076,7 +1095,7 @@ o BtreeUpdate managed in the BtreeNode
     Transaction handling will be rewritten. Instead of using separate
     TransactionTrees, the BtreeUpdate are attached to the node.
 
-    BtreeUpdate are a sorted (!) linked list. Prior to merge, those
+    BtreeUpdates are a sorted (!) linked list. Prior to merge, those
     BtreeUpdate that delete keys will be applied.
 
     The Update structure should be parameterized, just like the Btree

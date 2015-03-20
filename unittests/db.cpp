@@ -105,7 +105,8 @@ struct DbFixture {
     uint64_t address;
     uint8_t *p;
 
-    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    PageManager *pm = lenv->page_manager();
     PageManagerTest test = pm->test();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
@@ -117,7 +118,7 @@ struct DbFixture {
       p[i] = (uint8_t)i;
     page->set_dirty(true);
     address = page->get_address();
-    page->flush();
+    Page::flush(lenv->device(), page->get_persisted_data());
     test.remove_page(page);
     delete page;
 

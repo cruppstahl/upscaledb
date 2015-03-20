@@ -265,11 +265,16 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   maybe_flush_buffer(idx);
 }
 
-void
-Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
+int
+Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
+                uint64_t lsn)
 {
+  ham_assert(pages.size() > 0);
+
   if (m_state.disable_logging)
-    return;
+    return (-1);
+
+  (void)switch_files_maybe();
 
   PJournalEntry entry;
   PJournalEntryChangeset changeset;
@@ -280,7 +285,7 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   entry.type = kEntryTypeChangeset;
   // followup_size is incomplete - the actual page sizes are added later
   entry.followup_size = sizeof(PJournalEntryChangeset);
-  changeset.num_pages = num_pages;
+  changeset.num_pages = pages.size();
 
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
@@ -292,8 +297,10 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_state.env->config().page_size_bytes;
-  for (int i = 0; i < num_pages; i++) {
-    entry.followup_size += append_changeset_page(pages[i], page_size);
+  for (std::vector<Page::PersistedData *>::iterator it = pages.begin();
+                  it != pages.end();
+                  ++it) {
+    entry.followup_size += append_changeset_page(*it, page_size);
   }
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
@@ -310,19 +317,29 @@ Journal::append_changeset(const Page **pages, int num_pages, uint64_t lsn)
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // if recovery is enabled (w/o transactions) then simulate a "commit" to
-  // make sure that the log files are switched properly
-  m_state.closed_txn[m_state.current_fd]++;
-  (void)switch_files_maybe();
+  // make sure that the log files are switched properly. Here, the
+  // counter for "opened transactions" is incremented. It will be decremented
+  // by the worker thread as soon as the dirty pages are flushed to disk.
+  m_state.open_txn[m_state.current_fd]++;
+
+  return (m_state.current_fd);
 }
 
 uint32_t
-Journal::append_changeset_page(const Page *page, uint32_t page_size)
+Journal::append_changeset_page(const Page::PersistedData *page_data,
+                uint32_t page_size)
 {
-  PJournalEntryPageHeader header(page->get_address());
+  PJournalEntryPageHeader header(page_data->address);
 
   append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
-                page->get_raw_payload(), page_size);
+                page_data->raw_data->payload, page_size);
   return (page_size + sizeof(header));
+}
+
+void
+Journal::changeset_flushed(int fd_index)
+{
+  m_state.closed_txn[fd_index]++;
 }
 
 void
@@ -488,7 +505,7 @@ Journal::recover(LocalTransactionManager *txn_manager)
 {
   Context context(m_state.env, 0, 0);
 
-  // first re-apply the last changeset
+  // first redo the changesets
   uint64_t start_lsn = recover_changeset();
 
   // load the state of the PageManager; the PageManager state is loaded AFTER
@@ -505,12 +522,11 @@ Journal::recover(LocalTransactionManager *txn_manager)
 }
 
 uint64_t 
-Journal::scan_for_newest_changeset(File *file, uint64_t *position)
+Journal::scan_for_oldest_changeset(File *file)
 {
   Iterator it;
   PJournalEntry entry;
   ByteArray buffer;
-  uint64_t result = 0;
 
   // get the next entry
   try {
@@ -523,111 +539,121 @@ Journal::scan_for_newest_changeset(File *file, uint64_t *position)
         break;
 
       if (entry.type == kEntryTypeChangeset) {
-        *position = it.offset;
-        result = entry.lsn;
+        return (entry.lsn);
       }
 
       // increment the offset
-      it.offset += sizeof(entry);
-      if (entry.followup_size)
-        it.offset += entry.followup_size;
+      it.offset += sizeof(entry) + entry.followup_size;
     }
   }
   catch (Exception &ex) {
     ham_log(("exception (error %d) while reading journal", ex.code));
   }
 
-  return (result);
+  return (0);
 }
 
 uint64_t 
 Journal::recover_changeset()
 {
-  // scan through both files, look for the file with the newest changeset
-  uint64_t position0, position1, position;
-  uint64_t lsn1 = scan_for_newest_changeset(&m_state.files[0], &position0);
-  uint64_t lsn2 = scan_for_newest_changeset(&m_state.files[1], &position1);
+  // scan through both files, look for the file with the oldest changeset.
+  uint64_t lsn1 = scan_for_oldest_changeset(&m_state.files[0]);
+  uint64_t lsn2 = scan_for_oldest_changeset(&m_state.files[1]);
 
   // both files are empty or do not contain a changeset?
   if (lsn1 == 0 && lsn2 == 0)
     return (0);
 
-  // re-apply the newest changeset
-  m_state.current_fd = lsn1 > lsn2 ? 0 : 1;
-  position = lsn1 > lsn2 ? position0 : position1;
+  // now redo all changesets chronologically
+  m_state.current_fd = lsn1 < lsn2 ? 0 : 1;
 
+  uint64_t max_lsn1 = redo_all_changesets(m_state.current_fd);
+  uint64_t max_lsn2 = redo_all_changesets(m_state.current_fd == 0 ? 1 : 0);
+
+  // return the lsn of the newest changeset
+  return (std::max(max_lsn1, max_lsn2));
+}
+
+uint64_t
+Journal::redo_all_changesets(int fdidx)
+{
+  Iterator it;
   PJournalEntry entry;
-  uint64_t start_lsn = 0;
+  ByteArray buffer;
+  uint64_t max_lsn = 0;
 
+  // for each entry...
   try {
-    m_state.files[m_state.current_fd].pread(position, &entry, sizeof(entry));
-    position += sizeof(entry);
-    ham_assert(entry.type == kEntryTypeChangeset);
+    uint64_t log_file_size = m_state.files[fdidx].get_file_size();
 
-    // Read the Changeset header
-    PJournalEntryChangeset changeset;
-    m_state.files[m_state.current_fd].pread(position, &changeset,
-                    sizeof(changeset));
-    position += sizeof(changeset);
+    while (it.offset < log_file_size) {
+      m_state.files[fdidx].pread(it.offset, &entry, sizeof(entry));
 
-    uint32_t page_size = m_state.env->config().page_size_bytes;
-    ByteArray arena(page_size);
-
-    uint64_t file_size = m_state.env->device()->file_size();
-
-    // for each page in this changeset...
-    for (uint32_t i = 0; i < changeset.num_pages; i++) {
-      PJournalEntryPageHeader page_header;
-      m_state.files[m_state.current_fd].pread(position, &page_header,
-                      sizeof(page_header));
-      position += sizeof(page_header);
-      m_state.files[m_state.current_fd].pread(position, arena.get_ptr(),
-                      page_size);
-      position += page_size;
-
-      Page *page;
-
-      // now write the page to disk
-      if (page_header.address == file_size) {
-        file_size += page_size;
-
-        page = new Page(m_state.env->device());
-        page->alloc(0);
-      }
-      else if (page_header.address > file_size) {
-        file_size = (size_t)page_header.address + page_size;
-        m_state.env->device()->truncate(file_size);
-
-        page = new Page(m_state.env->device());
-        page->fetch(page_header.address);
-      }
-      else {
-        page = new Page(m_state.env->device());
-        page->fetch(page_header.address);
+      // Skip all log entries which are NOT from a changeset
+      if (entry.type != kEntryTypeChangeset) {
+        it.offset += sizeof(entry) + entry.followup_size;
+        continue;
       }
 
-      // only overwrite the page data if the page's last modification
-      // is OLDER than the changeset!
-      bool skip = false;
-      if (page->is_without_header() == false) {
-        if (page->get_lsn() > entry.lsn) {
-          skip = true;
-          start_lsn = page->get_lsn();
+      max_lsn = entry.lsn;
+
+      it.offset += sizeof(entry);
+
+      // Read the Changeset header
+      PJournalEntryChangeset changeset;
+      m_state.files[fdidx].pread(it.offset, &changeset, sizeof(changeset));
+      it.offset += sizeof(changeset);
+
+      uint32_t page_size = m_state.env->config().page_size_bytes;
+      ByteArray arena(page_size);
+
+      uint64_t file_size = m_state.env->device()->file_size();
+
+      // for each page in this changeset...
+      for (uint32_t i = 0; i < changeset.num_pages; i++) {
+        PJournalEntryPageHeader page_header;
+        m_state.files[fdidx].pread(it.offset, &page_header,
+                        sizeof(page_header));
+        it.offset += sizeof(page_header);
+        m_state.files[fdidx].pread(it.offset, arena.get_ptr(), page_size);
+        it.offset += page_size;
+
+        Page *page;
+
+        // now write the page to disk
+        if (page_header.address == file_size) {
+          file_size += page_size;
+
+          page = new Page(m_state.env->device());
+          page->alloc(0);
         }
+        else if (page_header.address > file_size) {
+          file_size = (size_t)page_header.address + page_size;
+          m_state.env->device()->truncate(file_size);
+
+          page = new Page(m_state.env->device());
+          page->fetch(page_header.address);
+        }
+        else {
+          page = new Page(m_state.env->device());
+          page->fetch(page_header.address);
+        }
+
+        // only overwrite the page data if the page's last modification
+        // is OLDER than the changeset!
+        if (page->is_without_header() || page->get_lsn() < entry.lsn) {
+          // overwrite the page data
+          ::memcpy(page->get_data(), arena.get_ptr(), page_size);
+
+          ham_assert(page->get_address() == page_header.address);
+
+          // flush the modified page to disk
+          page->set_dirty(true);
+          Page::flush(m_state.env->device(), page->get_persisted_data());
+        }
+
+        delete page;
       }
-
-      if (!skip) {
-        // overwrite the page data
-        memcpy(page->get_data(), arena.get_ptr(), page_size);
-
-        ham_assert(page->get_address() == page_header.address);
-
-        // flush the modified page to disk
-        page->set_dirty(true);
-        page->flush();
-      }
-
-      delete page;
     }
   }
   catch (Exception &) {
@@ -635,7 +661,7 @@ Journal::recover_changeset()
     // fall through
   }
 
-  return (std::max(start_lsn, entry.lsn));
+  return (max_lsn);
 }
 
 void

@@ -143,7 +143,7 @@ LocalEnvironment::do_create()
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    m_header->header_page()->flush();
+    Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
 
   return (0);
 }
@@ -351,14 +351,15 @@ LocalEnvironment::do_flush(uint32_t flags)
   if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & HAM_IN_MEMORY)
     return (0);
 
-  /* flush the header page */
-  m_header->header_page()->flush();
+  /* Flush the header page */
+  Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
 
-  /* flush all open pages to disk */
+  /* Flush all open pages to disk. This operation is blocking. */
   m_page_manager->flush(false);
 
-  /* flush the device - this usually causes a fsync() */
+  /* Flush the device - this usually causes a fsync() */
   m_device->flush();
+
   return (0);
 }
 
@@ -702,7 +703,7 @@ LocalEnvironment::do_close(uint32_t flags)
   if (m_header && m_header->header_page() && !(get_flags() & HAM_IN_MEMORY)
         && m_device.get() && m_device.get()->is_open()
         && (!(get_flags() & HAM_READ_ONLY))) {
-    m_header->header_page()->flush();
+    Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
   }
 
   /* close the header page */

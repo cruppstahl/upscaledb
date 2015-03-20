@@ -100,6 +100,7 @@ class Environment
     ham_status_t get_parameters(ham_parameter_t *param);
 
     // Flushes the environment and its databases to disk (ham_env_flush)
+    // Accepted flags: HAM_FLUSH_BLOCKING
     ham_status_t flush(uint32_t flags);
 
     // Creates a new database in the environment (ham_env_create_db)

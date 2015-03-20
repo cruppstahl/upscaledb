@@ -29,8 +29,7 @@ namespace hamsterdb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_is_allocated(false),
-    m_is_without_header(false), m_cursor_list(0),
+  : m_device(device), m_db(db), m_is_without_header(false), m_cursor_list(0),
     m_node_proxy(0), m_datap(&m_data_inline)
 {
   ::memset(&m_prev[0], 0, sizeof(m_prev));
@@ -38,6 +37,7 @@ Page::Page(Device *device, LocalDatabase *db)
 
   m_data_inline.raw_data = 0;
   m_data_inline.is_dirty = false;
+  m_data_inline.is_allocated = false;
   m_data_inline.address  = 0;
   m_data_inline.size     = device->page_size();
 }
@@ -107,10 +107,6 @@ Page::free_buffer()
     delete m_node_proxy;
     m_node_proxy = 0;
   }
-
-  if (m_is_allocated)
-    Memory::release(m_datap->raw_data);
-  m_datap->raw_data = 0;
 
   if (m_datap != &m_data_inline) {
     delete m_datap;

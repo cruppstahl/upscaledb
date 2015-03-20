@@ -333,7 +333,7 @@ PageManager::flush(bool delete_pages)
 
   if (m_state.state_page) {
     ScopedSpinlock lock(m_state.state_page->mutex());
-    m_state.state_page->flush();
+    Page::flush(m_state.device, m_state.state_page->get_persisted_data());
   }
 }
 
@@ -686,15 +686,23 @@ PageManager::safely_lock_page(Context *context, Page *page,
 {
   Page::PersistedData *old_data = 0;
 
-  // if the page is not yet in the changeset, but already locked: create a copy!
 #if 0
-  if (!context->changeset.has(page)) {
+  //
+  // !!!
+  // benchmarks has shown that - esp. if recovery is enabled - the deep copies
+  // can become a bottleneck if created too often. For now a deep copy is
+  // only created once for each page.
+  //
+  // This could be improved by using the lsn as an epoch counter, or using a
+  // timestamp and i.e. allow one copy per 5 seconds 
+  if (page->has_deep_copied_data() && !context->changeset.has(page)) {
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
     // unlock again, or changeset.put() will block
     else
       page->mutex().unlock();
   }
+#endif
 
   context->changeset.put(page);
 

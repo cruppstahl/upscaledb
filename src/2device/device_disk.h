@@ -259,8 +259,10 @@ class DiskDevice : public Device {
 
     // Removes unused space at the end of the file
     virtual void reclaim_space() {
-      if (m_state.excess_at_end > 0)
+      if (m_state.excess_at_end > 0) {
         truncate(m_state.file_size - m_state.excess_at_end);
+        m_state.excess_at_end = 0;
+      }
     }
 
   private:

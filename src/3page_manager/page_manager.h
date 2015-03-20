@@ -130,6 +130,11 @@ class PageManager
     // fetch purge candidates.
     Page::PersistedData *try_fetch_page_data(uint64_t page_id);
 
+    // Adds a message to the worker's queue
+    void add_to_worker_queue(MessageBase *message) {
+      m_worker->add_to_queue(message);
+    }
+
     // Returns additional testing interfaces
     PageManagerTest test();
 

@@ -86,8 +86,9 @@ struct PageFixture {
     Page *page, *temp;
     uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
 
-    page = new Page(((LocalEnvironment *)m_env)->device());
-    temp = new Page(((LocalEnvironment *)m_env)->device());
+    Device *device = ((LocalEnvironment *)m_env)->device(); 
+    page = new Page(device);
+    temp = new Page(device);
     page->alloc(0, ps);
     REQUIRE(page->get_address() == ps * 2);
 
@@ -97,7 +98,7 @@ struct PageFixture {
 
     memset(page->get_payload(), 0x13, ps - Page::kSizeofPersistentHeader);
     page->set_dirty(true);
-    page->flush();
+    page->flush(device, page->get_persisted_data());
 
     REQUIRE(false == page->is_dirty());
     temp->fetch(ps * 2);

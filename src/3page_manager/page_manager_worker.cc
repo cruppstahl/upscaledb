@@ -17,6 +17,8 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "1errorinducer/errorinducer.h"
+#include "2device/device.h"
 #include "3page_manager/page_manager_worker.h"
 #include "3page_manager/page_manager.h"
 
@@ -72,8 +74,7 @@ PageManagerWorker::handle_message(MessageBase *message)
       for (; it != cdbm->list.end(); it++) {
         Page *page = *it;
         Page::flush(cdbm->device, page->get_persisted_data());
-        page->mutex().try_lock();
-        page->mutex().unlock();
+        page->mutex().safe_unlock();
         delete page;
       } 
       // when done: wake up the main thread
@@ -84,14 +85,41 @@ PageManagerWorker::handle_message(MessageBase *message)
     case kFlushPages: {
       FlushPagesMessage *fpm = (FlushPagesMessage *)message;
       fpm->cache->purge_if(*fpm);
-      std::vector<Page *>::iterator it = fpm->list.begin();
+      std::vector<Page::PersistedData *>::iterator it = fpm->list.begin();
       for (; it != fpm->list.end(); it++) {
-        Page *page = *it;
-        ScopedSpinlock lock(page->mutex());
-        Page::flush(fpm->device, page->get_persisted_data());
+        Page::PersistedData *page_data = *it;
+        ScopedSpinlock lock(page_data->mutex);
+        Page::flush(fpm->device, page_data);
       } 
       // when done: wake up the main thread
       fpm->notify();
+      break;
+    }
+
+    case kFlushChangeset: {
+      FlushChangesetMessage *fcm = (FlushChangesetMessage *)message;
+      std::vector<Page::PersistedData *>::iterator it = fcm->list.begin();
+      for (; it != fcm->list.end(); it++) {
+        Page::PersistedData *page_data = *it;
+
+        // move lock ownership to this thread, otherwise unlocking the mutex
+        // will trigger an exception
+        ham_assert(page_data->mutex.try_lock() == false);
+        page_data->mutex.acquire_ownership();
+
+        Page::flush(fcm->device, page_data);
+        HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+        page_data->mutex.unlock();
+      }
+
+      /* flush the file handle (if required) */
+      if (fcm->enable_fsync)
+        fcm->device->flush();
+
+      /* inform the journal that the Changeset was flushed */
+      fcm->journal->changeset_flushed(fcm->fd_index);
+
+      HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
       break;
     }
 

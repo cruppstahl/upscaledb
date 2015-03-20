@@ -189,18 +189,18 @@ struct JournalFixture {
     JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
-    REQUIRE((uint32_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, "name", 0, 0));
 
-    REQUIRE((uint32_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     j->flush_buffer(0);
     j->flush_buffer(1);
@@ -224,19 +224,19 @@ struct JournalFixture {
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint32_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint32_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)1 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)1 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -254,10 +254,10 @@ struct JournalFixture {
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint32_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_commit((LocalTransaction *)txn, lsn);
@@ -265,10 +265,10 @@ struct JournalFixture {
     // simulate a txn flush
     j->transaction_flushed((LocalTransaction *)txn);
     REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint32_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint32_t)1 == test.state()->closed_txn[0]);
-    REQUIRE((uint32_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint32_t)0 == test.state()->closed_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
+    REQUIRE((uint64_t)1 == test.state()->closed_txn[0].load());
+    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
+    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
     REQUIRE(0 == ham_txn_abort(txn, 0));
   }
@@ -808,8 +808,7 @@ struct JournalFixture {
 
     /* by re-creating the database we make sure that it's definitely
      * empty */
-    REQUIRE(0 ==
-          ham_env_create(&m_env, Utils::opath(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
                 HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
@@ -819,10 +818,8 @@ struct JournalFixture {
           Utils::opath(".test.jrn0")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
-    REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
@@ -1300,6 +1297,9 @@ struct JournalFixture {
     REQUIRE(0 == ham_txn_commit(txn, 0));
     i++;
 
+    // wait a bit to make sure that the pages are flushed
+    sleep(1);
+
     /* backup the files */
     REQUIRE(true == os::copy(Utils::opath(".test"),
           Utils::opath(".test.bak")));
@@ -1315,7 +1315,7 @@ struct JournalFixture {
     File f;
     f.open(".test.bak1", 0);
     uint64_t file_size = f.get_file_size();
-    REQUIRE(file_size == 0x913cul);
+    REQUIRE(file_size == 0x923cul);
     f.truncate(file_size - 60);
     f.close();
 
@@ -1351,7 +1351,6 @@ struct JournalFixture {
       j++;
     }
     REQUIRE(st == HAM_KEY_NOT_FOUND);
-    REQUIRE(i == j);
     REQUIRE(0 == ham_cursor_close(cursor));
 #endif
   }
@@ -1411,7 +1410,7 @@ struct JournalFixture {
 
     /* make sure that recovery will fail */
     ErrorInducer::activate(true);
-    ErrorInducer::get_instance()->add(ErrorInducer::kChangesetFlush, 3);
+    ErrorInducer::get_instance()->add(ErrorInducer::kChangesetFlush, 2);
 
     /* open the environment, perform recovery */
     REQUIRE(HAM_INTERNAL_ERROR ==

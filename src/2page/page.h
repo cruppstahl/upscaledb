@@ -93,21 +93,21 @@ class Page {
     // A wrapper around the persisted page data
     struct PersistedData {
       PersistedData()
-        : address(0), size(0), is_dirty(false), raw_data(0) {
+        : address(0), size(0), is_dirty(false), is_allocated(false),
+          raw_data(0) {
       }
 
       PersistedData(const PersistedData &other)
         : address(other.address), size(other.size), is_dirty(other.is_dirty),
-          raw_data(other.raw_data) {
+          is_allocated(other.is_allocated), raw_data(other.raw_data) {
       }
 
       ~PersistedData() {
 #ifdef HAM_DEBUG
-        // safely unlock the mutex
-        mutex.try_lock();
-        mutex.unlock();
+        mutex.safe_unlock();
 #endif
-        Memory::release(raw_data);
+        if (is_allocated)
+          Memory::release(raw_data);
         raw_data = 0;
       }
 
@@ -122,6 +122,10 @@ class Page {
 
       // is this page dirty and needs to be flushed to disk?
       bool is_dirty;
+
+      // Page buffer was allocated with malloc() (if not then it was mapped
+      // with mmap)
+      bool is_allocated;
 
       // the persistent data of this page
       PPageData *raw_data;
@@ -248,7 +252,7 @@ class Page {
 
     // Returns true if the page's buffer was allocated with malloc
     bool is_allocated() const {
-      return (m_is_allocated);
+      return (m_datap->is_allocated);
     }
 
     // Returns true if the page has no persistent header
@@ -264,14 +268,14 @@ class Page {
     // Assign a buffer which was allocated with malloc()
     void assign_allocated_buffer(void *buffer, uint64_t address) {
       m_datap->raw_data = (PPageData *)buffer;
-      m_is_allocated = true;
+      m_datap->is_allocated = true;
       m_datap->address = address;
     }
 
     // Assign a buffer from mmapped storage
     void assign_mapped_buffer(void *buffer, uint64_t address) {
       m_datap->raw_data = (PPageData *)buffer;
-      m_is_allocated = false;
+      m_datap->is_allocated = false;
       m_datap->address = address;
     }
 
@@ -354,15 +358,14 @@ class Page {
     // Writes a page to the device
     static void flush(Device *device, PersistedData *page_data);
 
-    // Writes the page to the device
-    // TODO remove this
-    void flush() {
-      Page::flush(m_device, m_datap);
-    }
-
     // Creates a deep copy of the persisted data; returns the old pointer
     // IF the old pointer was allocated and needs to be released
     PersistedData *deep_copy_data();
+
+    // Returns true if the page's data already was "deep copied"
+    bool has_deep_copied_data() const {
+      return (m_datap != &m_data_inline);
+    }
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int list) {
@@ -452,10 +455,6 @@ class Page {
 
     // the Database handle (can be NULL)
     LocalDatabase *m_db;
-
-    // Page buffer was allocated with malloc() (if not then it was mapped
-    // with mmap)
-    bool m_is_allocated;
 
     // Page does not have a persistent header
     bool m_is_without_header;

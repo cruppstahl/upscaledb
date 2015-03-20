@@ -44,10 +44,11 @@ class LocalDatabase;
 
 // The available message types
 enum {
-  kCloseDatabase = 1,
-  kReleasePointer = 2,
-  kPurgeCache = 3,
-  kFlushPages = 4,
+  kCloseDatabase        = 1,
+  kReleasePointer       = 2,
+  kPurgeCache           = 3,
+  kFlushPages           = 4,
+  kFlushChangeset       = 5,
 };
 
 struct FlushPagesMessage : public BlockingMessageBase
@@ -58,11 +59,11 @@ struct FlushPagesMessage : public BlockingMessageBase
   }
 
   bool operator()(Page *page) {
-    list.push_back(page);
+    list.push_back(page->get_persisted_data());
     return (false);
   }
 
-  std::vector<Page *> list;
+  std::vector<Page::PersistedData *> list;
   Device *device;
   Cache *cache;
 };
@@ -100,6 +101,35 @@ struct PurgeCacheMessage : public MessageBase
   Device *device;
   boost::atomic<bool> *pcompleted;
   std::vector<uint64_t> page_ids;
+};
+
+struct FlushChangesetMessage : public MessageBase
+{
+  FlushChangesetMessage(Device *device, Journal *journal,
+                  uint64_t lsn, bool enable_fsync)
+    : MessageBase(kFlushChangeset),
+      device(device), journal(journal), lsn(lsn), enable_fsync(enable_fsync) {
+  }
+
+  bool operator()(Page *page) {
+    ham_assert(page->mutex().try_lock() == false);
+
+    if (page->is_dirty()) {
+      if (page->is_without_header() == false)
+        page->set_lsn(lsn);
+      list.push_back(page->get_persisted_data());
+    }
+    else
+      page->mutex().unlock();
+    return (true); // remove this page from the PageCollection
+  }
+
+  std::vector<Page::PersistedData *> list;
+  Device *device;
+  Journal *journal;
+  uint64_t lsn;
+  bool enable_fsync;
+  int fd_index;
 };
 
 struct ReleasePointerMessage : public MessageBase

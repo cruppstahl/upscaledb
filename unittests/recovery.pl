@@ -157,9 +157,6 @@ sub extended_duplicate_test {
   }
 }
 
-print "----------------------------\nbig_records_test\n";
-big_records_test(0);
-
 print "----------------------------\nsimple_test\n";
 simple_test(0);
 
@@ -171,6 +168,9 @@ duplicate_test(0);
 
 print "----------------------------\nextended_duplicate_test\n";
 extended_duplicate_test(0);
+
+print "----------------------------\nbig_records_test\n";
+big_records_test(0);
 
 print "\nsuccess!\n";
 exit(0);

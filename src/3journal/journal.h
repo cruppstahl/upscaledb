@@ -71,7 +71,7 @@
 
 #include "0root/root.h"
 
-#include <map>
+#include <vector>
 #include <cstdio>
 #include <string>
 
@@ -191,7 +191,13 @@ class Journal
                     uint64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
-    void append_changeset(const Page **pages, int num_pages, uint64_t lsn);
+    // Returns the current file descriptor, which is the parameter for
+    // on_changeset_flush()
+    int append_changeset(std::vector<Page::PersistedData *> &pages,
+                    uint64_t lsn);
+
+    // Called by the worker thread as soon as a changeset was flushed
+    void changeset_flushed(int fd_index);
 
     // Adjusts the transaction counters; called whenever |txn| is flushed.
     void transaction_flushed(LocalTransaction *txn);
@@ -233,15 +239,20 @@ class Journal
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression
     // was enabled)
-    uint32_t append_changeset_page(const Page *page, uint32_t page_size);
+    uint32_t append_changeset_page(const Page::PersistedData *page,
+                    uint32_t page_size);
 
     // Recovers (re-applies) the physical changelog; returns the lsn of the
     // Changelog
     uint64_t recover_changeset();
 
-    // Scans a file for the newest changeset. Returns the lsn of this
-    // changeset, and the position (offset) in the file
-    uint64_t scan_for_newest_changeset(File *file, uint64_t *position);
+    // Scans a file for the oldest changeset. Returns the lsn of this
+    // changeset.
+    uint64_t scan_for_oldest_changeset(File *file);
+
+    // Redo all Changesets of a log file, in chronological order
+    // Returns the highest lsn of the last changeset applied
+    uint64_t redo_all_changesets(int fdidx);
 
     // Recovers the logical journal
     void recover_journal(Context *context,
