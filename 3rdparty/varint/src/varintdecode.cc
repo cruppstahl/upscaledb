@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <assert.h>
 #ifdef WIN32
 #  include <intrin.h>
 #  include "ham/msstdint.h"
@@ -7,10 +8,31 @@
 #  include <x86intrin.h>
 #endif
 
-static const uint8_t vec_lookup[]
-#ifndef WIN32
-					__attribute__((aligned(0x1000)))
+#if defined(_MSC_VER)
+#  define ALIGNED(x) __declspec(align(x))
+#else
+#  if defined(__GNUC__)
+#    define ALIGNED(x) __attribute__ ((aligned(x)))
+#  endif
 #endif
+
+#if defined(_MSC_VER)
+# include <intrin.h>
+/* 64-bit needs extending */
+# define SIMDCOMP_CTZ(result, mask) do { \
+        unsigned long index; \
+        if (!_BitScanForward(&(index), (mask))) { \
+            (result) = 32U; \
+        } else { \
+            (result) = (uint32_t)(index); \
+        } \
+    } while (0)
+#else
+# define SIMDCOMP_CTZ(result, mask) \
+    result = __builtin_ctz(mask)
+#endif
+
+static const uint8_t vec_lookup[] ALIGNED(0x1000)
 	 = { 0, 32,
 		16, 118, 8, 48, 82, 160, 4, 40, 24, 127, 70, 109, 148, 165, 2, 36, 20,
 		121, 12, 56, 85, 161, 66, 97, 79, 136, 145, 153, 149, 0, 1, 34, 18, 119,
@@ -254,7 +276,8 @@ static const uint8_t vec_lookup[]
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  };
 
 static int read_int(const uint8_t* in, uint32_t* out) {
 	*out = in[0] & 0x7F;
@@ -480,7 +503,8 @@ static const uint8_t bytes_consumed[] = { 6, 7, 7, 6, 7, 8, 6, 5, 7, 8, 8, 7, 6,
 		5, 7, 7, 5, 7, 5, 5, 7, 4, 7, 7, 4, 7, 4, 4, 7, 2, 3, 3, 7, 2, 7, 0, 0,
 		6, 5, 5, 6, 5, 6, 6, 5, 5, 6, 6, 5, 6, 5, 5, 6, 4, 6, 6, 4, 6, 4, 4, 6,
 		6, 3, 3, 6, 2, 6, 6, 0, 4, 5, 5, 4, 5, 4, 4, 5, 5, 3, 3, 5, 2, 5, 5, 0,
-		4, 3, 3, 4, 2, 4, 4, 0, 2, 3, 3, 0, 2, 0, 0, 0, };
+                                        4, 3, 3, 4, 2, 4, 4, 0, 2, 3, 3, 0, 2, 0, 0, 0,
+                                        };
 
 typedef struct index_bytes_consumed {
 	uint8_t index;
@@ -1773,8 +1797,549 @@ size_t masked_vbyte_read_loop_fromcompressedsize_delta(const uint8_t* in, uint32
 	return out - initout;
 }
 
+static int8_t shuffle_mask_bytes1[16 * 16 ]  ALIGNED(16) = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    4, 5, 6, 7, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    8, 9, 10, 11, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 8, 9, 10, 11, 8, 9, 10, 11, 12, 13, 14, 15,
+    4, 5, 6, 7, 8, 9, 10, 11, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    12, 13, 14, 15, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 12, 13, 14, 15, 8, 9, 10, 11, 12, 13, 14, 15,
+    4, 5, 6, 7, 12, 13, 14, 15, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 12, 13, 14, 15,
+    8, 9, 10, 11, 12, 13, 14, 15, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15, 12, 13, 14, 15,
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+};
 
+static const __m128i *shuffle_mask = (__m128i *) shuffle_mask_bytes1;
+/* perform a lower-bound search for |key| in |out|; the resulting uint32
+* is stored in |*presult|.*/
+#define CHECK_AND_INCREMENT(i, out, key, presult)                           \
+      do {                                                                  \
+        __m128i tmpout = _mm_sub_epi32(out, conversion);                    \
+        uint32_t mask = _mm_movemask_ps(_mm_castsi128_ps(_mm_cmplt_epi32(tmpout, key4))); \
+        if (mask != 15) {                                                   \
+          __m128i p = _mm_shuffle_epi8(out, shuffle_mask[mask ^ 15]);       \
+          int offset;                                                       \
+          SIMDCOMP_CTZ(offset, mask ^ 15);                            \
+          *presult = _mm_cvtsi128_si32(p);                                  \
+          return (i + offset);                                              \
+        }                                                                   \
+        i += 4;                                                             \
+      } while (0)
 
+/* perform a lower-bound search for |key| in |out|; the resulting uint32
+* is stored in |*presult|.*/
+#define CHECK_AND_INCREMENT_2(i, out, key, presult)                           \
+      do {                                                                  \
+        __m128i tmpout = _mm_sub_epi32(out, conversion);                    \
+        uint32_t mask = 3 & _mm_movemask_ps(_mm_castsi128_ps(_mm_cmplt_epi32(tmpout, key4))); \
+        if (mask != 3) {                                                   \
+          __m128i p = _mm_shuffle_epi8(out, shuffle_mask[mask ^ 3]);       \
+          int offset;                                                       \
+          SIMDCOMP_CTZ(offset, mask ^ 3);                            \
+          *presult = _mm_cvtsi128_si32(p);                                  \
+          return (i + offset);                                              \
+        }                                                                   \
+        i += 2;                                                             \
+      } while (0)
 
+static int masked_vbyte_search_group_delta(const uint8_t *in, uint64_t *p,
+                uint64_t mask, uint64_t *ints_read, __m128i *prev,
+                int i, uint32_t key, uint32_t *presult) {
+	__m128i initial = _mm_lddqu_si128((const __m128i *) (in));
+    __m128i conversion = _mm_set1_epi32(2147483648U);
+    __m128i key4 = _mm_set1_epi32(key - 2147483648U);
 
+	if (!(mask & 0xFFFF)) {
+		__m128i result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		*ints_read = 16;
+		*p = 16;
+        return (-1);
+	}
+
+	uint32_t low_12_bits = mask & 0xFFF;
+	// combine index and bytes consumed into a single lookup
+	index_bytes_consumed combined = combined_lookup[low_12_bits];
+	uint64_t consumed = combined.bytes_consumed;
+	uint8_t index = combined.index;
+
+	__m128i shuffle_vector = vectors[index];
+	//	__m128i shuffle_vector = {0, 0};  // speed check: 20% faster at large, less at small
+
+	if (index < 64) {
+		*ints_read = 6;
+		__m128i bytes_to_decode = _mm_shuffle_epi8(initial, shuffle_vector);
+		__m128i low_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi16(0x007F));
+		__m128i high_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi16(0x7F00));
+		__m128i high_bytes_shifted = _mm_srli_epi16(high_bytes, 1);
+		__m128i packed_result = _mm_or_si128(low_bytes, high_bytes_shifted);
+		__m128i unpacked_result_a = _mm_and_si128(packed_result,
+				_mm_set1_epi32(0x0000FFFF));
+		*prev = PrefixSum(unpacked_result_a, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		__m128i unpacked_result_b = _mm_srli_epi32(packed_result, 16);
+		*prev = PrefixSum2ints(unpacked_result_b, *prev);
+        //_mm_storel_epi64(&out, *prev);	
+        CHECK_AND_INCREMENT_2(i, *prev, key, presult);
+		*p = consumed;
+        return (-1);
+	}
+	if (index < 145) {
+
+		*ints_read = 4;
+
+		__m128i bytes_to_decode = _mm_shuffle_epi8(initial, shuffle_vector);
+		__m128i low_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x0000007F));
+		__m128i middle_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x00007F00));
+		__m128i high_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x007F0000));
+		__m128i middle_bytes_shifted = _mm_srli_epi32(middle_bytes, 1);
+		__m128i high_bytes_shifted = _mm_srli_epi32(high_bytes, 2);
+		__m128i low_middle = _mm_or_si128(low_bytes, middle_bytes_shifted);
+		__m128i result = _mm_or_si128(low_middle, high_bytes_shifted);
+		*prev = PrefixSum(result, *prev);
+        CHECK_AND_INCREMENT(i, *prev, key, presult);
+		*p = consumed;
+        return (-1);
+	}
+
+	*ints_read = 2;
+
+	__m128i data_bits = _mm_and_si128(initial, _mm_set1_epi8(0x7F));
+	__m128i bytes_to_decode = _mm_shuffle_epi8(data_bits, shuffle_vector);
+	__m128i split_bytes = _mm_mullo_epi16(bytes_to_decode,
+			_mm_setr_epi16(128, 64, 32, 16, 128, 64, 32, 16));
+	__m128i shifted_split_bytes = _mm_slli_epi64(split_bytes, 8);
+	__m128i recombined = _mm_or_si128(split_bytes, shifted_split_bytes);
+	__m128i low_byte = _mm_srli_epi64(bytes_to_decode, 56);
+	__m128i result_evens = _mm_or_si128(recombined, low_byte);
+	__m128i result = _mm_shuffle_epi8(result_evens,
+			_mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, -1, -1, -1, -1, -1, -1, -1,
+					-1));
+	*prev = PrefixSum2ints(result, *prev);
+    //_mm_storel_epi64(&out, *prev);
+    CHECK_AND_INCREMENT_2(i, *prev, key, presult);
+	*p = consumed;
+    return (-1);
+}
+
+// returns the index of the matching key
+int masked_vbyte_search_delta(const uint8_t *in, int length, uint32_t prev,
+                uint32_t key, uint32_t *presult) {
+	size_t consumed = 0; // number of bytes read
+	__m128i mprev = _mm_set1_epi32(prev);
+	int count = 0; // how many integers we have read so far
+
+	uint64_t sig = 0;
+	int availablebytes = 0;
+	if (96 < length) {
+		size_t scanned = 0;
+
+#ifdef __AVX2__
+		__m256i low = _mm256_loadu_si256((__m256i *)(in + scanned));
+		uint32_t lowSig = _mm256_movemask_epi8(low);
+#else
+		__m128i low1 = _mm_loadu_si128((__m128i *) (in + scanned));
+		uint32_t lowSig1 = _mm_movemask_epi8(low1);
+		__m128i low2 = _mm_loadu_si128((__m128i *) (in + scanned + 16));
+		uint32_t lowSig2 = _mm_movemask_epi8(low2);
+		uint32_t lowSig = lowSig2 << 16;
+		lowSig |= lowSig1;
+#endif
+
+		// excess verbosity to avoid problems with sign extension on conversions
+		// better to think about what's happening and make it clearer
+		__m128i high = _mm_loadu_si128((__m128i *) (in + scanned + 32));
+		uint32_t highSig = _mm_movemask_epi8(high);
+		uint64_t nextSig = highSig;
+		nextSig <<= 32;
+		nextSig |= lowSig;
+		scanned += 48;
+
+		while (count + 96 < length) {  // 96 == 48 + 48 ahead for scanning
+			uint64_t thisSig = nextSig;
+
+#ifdef __AVX2__
+			low = _mm256_loadu_si256((__m256i *)(in + scanned));
+			lowSig = _mm256_movemask_epi8(low);
+#else
+			low1 = _mm_loadu_si128((__m128i *) (in + scanned));
+			lowSig1 = _mm_movemask_epi8(low1);
+			low2 = _mm_loadu_si128((__m128i *) (in + scanned + 16));
+			lowSig2 = _mm_movemask_epi8(low2);
+			lowSig = lowSig2 << 16;
+			lowSig |= lowSig1;
+#endif
+
+			high = _mm_loadu_si128((__m128i *) (in + scanned + 32));
+			highSig = _mm_movemask_epi8(high);
+			nextSig = highSig;
+			nextSig <<= 32;
+			nextSig |= lowSig;
+
+			uint64_t remaining = scanned - (consumed + 48);
+			sig = (thisSig << remaining) | sig;
+
+			uint64_t reload = scanned - 16;
+			scanned += 48;
+
+			// need to reload when less than 16 scanned bytes remain in sig
+			while (consumed < reload) {
+				uint64_t ints_read = 0, bytes = 0;
+		        int ret = masked_vbyte_search_group_delta(in + consumed, &bytes,
+                                    sig, &ints_read, &mprev,
+                                    count, key, presult);
+                if (ret >= 0)
+                    return (ret);
+				sig >>= bytes;
+
+				// seems like this might force the compiler to prioritize shifting sig >>= bytes
+				if (sig == 0xFFFFFFFFFFFFFFFF)
+					return 0; // fake check to force earliest evaluation
+
+				consumed += bytes;
+				count += ints_read;
+			}
+		}
+		sig = (nextSig << (scanned - consumed - 48)) | sig;
+		availablebytes = scanned - consumed;
+	}
+	while (availablebytes + count < length) {
+		if (availablebytes < 16) break;
+
+		if (availablebytes < 16) {
+			if (availablebytes + count + 31 < length) {
+#ifdef __AVX2__
+				uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
+				sig |= (newsigavx << availablebytes);
+#else
+				uint64_t newsig = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes
+										+ consumed)));
+				uint64_t newsig2 = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes + 16
+										+ consumed)));
+				sig |= (newsig << availablebytes)
+						| (newsig2 << (availablebytes + 16));
+#endif
+				availablebytes += 32;
+			} else if (availablebytes + count + 15 < length) {
+				int newsig = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes
+										+ consumed)));
+				sig |= newsig << availablebytes;
+				availablebytes += 16;
+			} else {
+				break;
+			}
+		}
+		uint64_t ints_read = 0, bytes = 0;
+		int ret = masked_vbyte_search_group_delta(in + consumed, &bytes,
+			             sig, &ints_read, &mprev, count, key, presult);
+            if (ret >= 0)
+                return (ret);
+		consumed += bytes;
+		availablebytes -= bytes;
+		sig >>= bytes;
+		count += ints_read;
+	}
+	prev = _mm_extract_epi32(mprev, 3);
+	for (; count < length; count++) {
+        uint32_t out;
+		consumed += read_int_delta(in + consumed, &out, &prev);
+        if (key <= prev) {
+          *presult = prev;
+          return (count);
+        }
+	}
+
+    *presult = key + 1;
+	return length;
+}
+
+static int8_t shuffle_mask_bytes2[16 * 16 ] ALIGNED(16) = {
+		0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,
+		4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0,
+		8,9,10,11,0,0,0,0,0,0,0,0,0,0,0,0,
+		12,13,14,15,0,0,0,0,0,0,0,0,0,0,0,0,
+    };
+
+static const __m128i *shuffle_mask_extract = (__m128i *) shuffle_mask_bytes2;
+
+static uint32_t branchlessextract (__m128i out, int i)  {
+  return _mm_cvtsi128_si32(_mm_shuffle_epi8(out,shuffle_mask_extract[i]));
+}
+
+#define CHECK_SELECT(i, out, slot, presult)                                 \
+            i += 4;                                                         \
+            if (i > slot) {                                                 \
+              *presult = branchlessextract (out, slot - (i - 4));           \
+              return (true);                                                \
+            }
+
+#define CHECK_SELECT_2(i, out, slot, presult)                                 \
+            i += 2;                                                         \
+            if (i > slot) {                                                 \
+              *presult = branchlessextract (out, slot - (i - 2));           \
+              return (1);                                                \
+            }
+
+static bool masked_vbyte_select_group_delta(const uint8_t *in, uint64_t *p,
+                uint64_t mask, uint64_t *ints_read, __m128i *prev,
+                int slot, uint32_t *presult) {
+	__m128i initial = _mm_lddqu_si128((const __m128i *) (in));
+    int i = 0;
+
+	if (!(mask & 0xFFFF)) {
+		__m128i result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		initial = _mm_srli_si128(initial, 4);
+		result = _mm_cvtepi8_epi32(initial);
+		*prev = PrefixSum(result, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		*ints_read = 16;
+		*p = 16;
+        return (false);
+	}
+
+	uint32_t low_12_bits = mask & 0xFFF;
+	// combine index and bytes consumed into a single lookup
+	index_bytes_consumed combined = combined_lookup[low_12_bits];
+	uint64_t consumed = combined.bytes_consumed;
+	uint8_t index = combined.index;
+
+	__m128i shuffle_vector = vectors[index];
+	//	__m128i shuffle_vector = {0, 0};  // speed check: 20% faster at large, less at small
+
+	if (index < 64) {
+		*ints_read = 6;
+		__m128i bytes_to_decode = _mm_shuffle_epi8(initial, shuffle_vector);
+		__m128i low_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi16(0x007F));
+		__m128i high_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi16(0x7F00));
+		__m128i high_bytes_shifted = _mm_srli_epi16(high_bytes, 1);
+		__m128i packed_result = _mm_or_si128(low_bytes, high_bytes_shifted);
+		__m128i unpacked_result_a = _mm_and_si128(packed_result,
+				_mm_set1_epi32(0x0000FFFF));
+		*prev = PrefixSum(unpacked_result_a, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		__m128i unpacked_result_b = _mm_srli_epi32(packed_result, 16);
+		*prev = PrefixSum2ints(unpacked_result_b, *prev);
+        //_mm_storel_epi64(&out, *prev);	
+        CHECK_SELECT_2(i, *prev, slot, presult);
+		*p = consumed;
+        return (false);
+	}
+	if (index < 145) {
+
+		*ints_read = 4;
+
+		__m128i bytes_to_decode = _mm_shuffle_epi8(initial, shuffle_vector);
+		__m128i low_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x0000007F));
+		__m128i middle_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x00007F00));
+		__m128i high_bytes = _mm_and_si128(bytes_to_decode,
+				_mm_set1_epi32(0x007F0000));
+		__m128i middle_bytes_shifted = _mm_srli_epi32(middle_bytes, 1);
+		__m128i high_bytes_shifted = _mm_srli_epi32(high_bytes, 2);
+		__m128i low_middle = _mm_or_si128(low_bytes, middle_bytes_shifted);
+		__m128i result = _mm_or_si128(low_middle, high_bytes_shifted);
+		*prev = PrefixSum(result, *prev);
+        CHECK_SELECT(i, *prev, slot, presult);
+		*p = consumed;
+        return (false);
+	}
+
+	*ints_read = 2;
+
+	__m128i data_bits = _mm_and_si128(initial, _mm_set1_epi8(0x7F));
+	__m128i bytes_to_decode = _mm_shuffle_epi8(data_bits, shuffle_vector);
+	__m128i split_bytes = _mm_mullo_epi16(bytes_to_decode,
+			_mm_setr_epi16(128, 64, 32, 16, 128, 64, 32, 16));
+	__m128i shifted_split_bytes = _mm_slli_epi64(split_bytes, 8);
+	__m128i recombined = _mm_or_si128(split_bytes, shifted_split_bytes);
+	__m128i low_byte = _mm_srli_epi64(bytes_to_decode, 56);
+	__m128i result_evens = _mm_or_si128(recombined, low_byte);
+	__m128i result = _mm_shuffle_epi8(result_evens,
+			_mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, -1, -1, -1, -1, -1, -1, -1,
+					-1));
+	*prev = PrefixSum2ints(result, *prev);
+    //_mm_storel_epi64(&out, *prev);
+    CHECK_SELECT_2(i, *prev, slot, presult);
+	*p = consumed;
+    return (false);
+}
+
+uint32_t masked_vbyte_select_delta(const uint8_t *in, int length,
+                uint32_t prev, int slot) {
+	size_t consumed = 0; // number of bytes read
+	__m128i mprev = _mm_set1_epi32(prev);
+	int count = 0; // how many integers we have read so far
+
+	uint64_t sig = 0;
+	int availablebytes = 0;
+	if (96 < length) {
+		size_t scanned = 0;
+
+#ifdef __AVX2__
+		__m256i low = _mm256_loadu_si256((__m256i *)(in + scanned));
+		uint32_t lowSig = _mm256_movemask_epi8(low);
+#else
+		__m128i low1 = _mm_loadu_si128((__m128i *) (in + scanned));
+		uint32_t lowSig1 = _mm_movemask_epi8(low1);
+		__m128i low2 = _mm_loadu_si128((__m128i *) (in + scanned + 16));
+		uint32_t lowSig2 = _mm_movemask_epi8(low2);
+		uint32_t lowSig = lowSig2 << 16;
+		lowSig |= lowSig1;
+#endif
+
+		// excess verbosity to avoid problems with sign extension on conversions
+		// better to think about what's happening and make it clearer
+		__m128i high = _mm_loadu_si128((__m128i *) (in + scanned + 32));
+		uint32_t highSig = _mm_movemask_epi8(high);
+		uint64_t nextSig = highSig;
+		nextSig <<= 32;
+		nextSig |= lowSig;
+		scanned += 48;
+
+		while (count + 96 < length) {  // 96 == 48 + 48 ahead for scanning
+			uint64_t thisSig = nextSig;
+
+#ifdef __AVX2__
+			low = _mm256_loadu_si256((__m256i *)(in + scanned));
+			lowSig = _mm256_movemask_epi8(low);
+#else
+			low1 = _mm_loadu_si128((__m128i *) (in + scanned));
+			lowSig1 = _mm_movemask_epi8(low1);
+			low2 = _mm_loadu_si128((__m128i *) (in + scanned + 16));
+			lowSig2 = _mm_movemask_epi8(low2);
+			lowSig = lowSig2 << 16;
+			lowSig |= lowSig1;
+#endif
+
+			high = _mm_loadu_si128((__m128i *) (in + scanned + 32));
+			highSig = _mm_movemask_epi8(high);
+			nextSig = highSig;
+			nextSig <<= 32;
+			nextSig |= lowSig;
+
+			uint64_t remaining = scanned - (consumed + 48);
+			sig = (thisSig << remaining) | sig;
+
+			uint64_t reload = scanned - 16;
+			scanned += 48;
+
+			// need to reload when less than 16 scanned bytes remain in sig
+			while (consumed < reload) {
+                uint32_t result;
+				uint64_t ints_read, bytes;
+		        if (masked_vbyte_select_group_delta(in + consumed, &bytes,
+                                    sig, &ints_read, &mprev,
+                                                    slot  - count, &result)) {
+                    return (result);
+                }
+				sig >>= bytes;
+
+				// seems like this might force the compiler to prioritize shifting sig >>= bytes
+				if (sig == 0xFFFFFFFFFFFFFFFF)
+					return 0; // fake check to force earliest evaluation
+
+				consumed += bytes;
+				count += ints_read;
+			}
+		}
+		sig = (nextSig << (scanned - consumed - 48)) | sig;
+		availablebytes = scanned - consumed;
+	}
+	while (availablebytes + count < length) {
+		if (availablebytes < 16) break;
+
+		if (availablebytes < 16) {
+			if (availablebytes + count + 31 < length) {
+#ifdef __AVX2__
+				uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
+				sig |= (newsigavx << availablebytes);
+#else
+				uint64_t newsig = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes
+										+ consumed)));
+				uint64_t newsig2 = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes + 16
+										+ consumed)));
+				sig |= (newsig << availablebytes)
+						| (newsig2 << (availablebytes + 16));
+#endif
+				availablebytes += 32;
+			} else if (availablebytes + count + 15 < length) {
+				int newsig = _mm_movemask_epi8(
+						_mm_lddqu_si128(
+								(const __m128i *) (in + availablebytes
+										+ consumed)));
+				sig |= newsig << availablebytes;
+				availablebytes += 16;
+			} else {
+				break;
+			}
+		}
+
+        uint32_t result;
+		uint64_t ints_read, bytes;
+        if (masked_vbyte_select_group_delta(in + consumed, &bytes,
+                            sig, &ints_read, &mprev,
+                                            slot  - count, &result)) {
+            return (result);
+        }
+		consumed += bytes;
+		availablebytes -= bytes;
+		sig >>= bytes;
+		count += ints_read;
+	}
+	prev = _mm_extract_epi32(mprev, 3);
+    for (; count < slot + 1; count++) {
+        uint32_t out;
+		consumed += read_int_delta(in + consumed, &out, &prev);
+	}
+
+	return prev;
+}
 

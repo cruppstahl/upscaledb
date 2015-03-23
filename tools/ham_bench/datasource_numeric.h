@@ -116,34 +116,71 @@ class NumericDescendingDatasource : public Datasource
     T m_value;
 };
 
-// Zipfian distribution is based on
-// http://www.cse.usf.edu/~christen/tools/toolpage.html
+struct ZipfianGenerator {
+  ZipfianGenerator(size_t items, double alpha, uint32_t seed)
+      : proba(items), m_u01(m_rng) {
+    init(items, alpha, seed);
+  }
+
+  void init(size_t items, double alpha, uint32_t seed) {
+    assert(items > 0);
+
+    if (seed)
+      m_rng.seed(seed);
+
+    double theta = alpha;
+    if (theta > 0) {
+      double zetan = 1 / zeta(items, theta);
+      proba.clear();
+      proba.resize(items, 0);
+      proba[0] = zetan;
+      for (size_t i = 1; i < items; ++i)
+        proba[i] = proba[i - 1] + zetan / pow(i + 1, theta);
+    }
+    else {
+      proba.resize(items, 1.0 / items);
+    }
+  }
+
+  double zeta(int n, double theta) {
+    double sum = 0;
+    for (long i = 0; i < n; i++) {
+      sum += 1.0 / (pow(static_cast<double>(i + 1), theta));
+    }
+    return sum;
+  }
+
+  int nextInt() {
+    // Map z to the value
+    const double u = m_u01();
+    return static_cast<int>(lower_bound(proba.begin(), proba.end(), u)
+                    - proba.begin());
+  }
+
+  std::vector<double> proba;
+  boost::mt19937 m_rng;
+  boost::uniform_01<boost::mt19937> m_u01;
+};
+
+// Zipfian distribution is based on Daniel Lemire's
+// https://github.com/lemire/FastPFor/blob/74c0dc37dcea42c73d3af91e45e234ddc490c091/headers/synthetic.h#L135
 template<typename T>
 class NumericZipfianDatasource : public Datasource
 {
   public:
     NumericZipfianDatasource(size_t n, long seed = 0, double alpha = 0.8)
-      : m_n(n), m_alpha(alpha), m_u01(m_rng), m_seed(seed) {
+      : m_n(n), m_cur(0), m_alpha(alpha), m_seed(seed) {
       reset();
     }
 
     // resets the input and restarts delivering the same sequence
     // from scratch
     virtual void reset() {
-      if (m_seed)
-        m_rng.seed(m_seed);
-
-      // Compute normalization constant
-      for (uint64_t i = 1; i <= m_n; i++)
-        m_c = m_c + (1.0 / pow((double)i, m_alpha));
-      m_c = 1.0 / m_c;
-
       m_values.resize(m_n);
-      double sum_prob = 0;
-      for (size_t i = 1; i <= m_n; i++) {
-        sum_prob = sum_prob + m_c / pow((double) i, m_alpha);
-        m_values[i - 1] = sum_prob;
-      }
+
+      ZipfianGenerator zipf(m_n, m_alpha, m_seed);
+      for (size_t k = 0; k < m_n; ++k)
+        m_values[k] = zipf.nextInt();
     }
 
     // returns the next piece of data
@@ -154,28 +191,14 @@ class NumericZipfianDatasource : public Datasource
     }
 
     T get_next_number() {
-      // Pull a uniform random number (0 < z < 1)
-      double z = m_u01();
-      while (z == 0.0 || z == 1.0)
-        z = m_u01();
-
-      // Map z to the value
-      for (size_t i = 0; i < m_values.size(); i++) {
-        if (m_values[i] >= z)
-          return ((T)(m_values[i] * m_values.size()));
-      }
-
-      assert(!"shouldn't be here");
-      return ((T)0);
+      return (m_values[m_cur++]);
     }
 
   private:
     size_t m_n;
+    size_t m_cur;
     double m_alpha;
-    double m_c;
     std::vector<double> m_values;
-    boost::mt19937 m_rng;
-    boost::uniform_01<boost::mt19937> m_u01;
     long m_seed;
 };
 

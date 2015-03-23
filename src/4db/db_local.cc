@@ -676,8 +676,6 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
 
   m_config.key_type = btree_header->key_type();
   m_config.key_size = btree_header->key_size();
-  /* is key compression enabled? */
-  m_config.key_compressor = btree_header->key_compression();
 
   /* is key compression enabled? */
   m_config.key_compressor = btree_header->key_compression();

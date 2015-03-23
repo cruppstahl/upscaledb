@@ -45,7 +45,6 @@ class TransactionCursor;
 class TransactionOperation;
 class LocalEnvironment;
 class LocalTransaction;
-class Compressor;
 
 template<typename T>
 class RecordNumberFixture;

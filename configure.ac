@@ -184,7 +184,7 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 AC_CONFIG_FILES(Makefile src/Makefile src/2protobuf/Makefile src/2protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/5server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
-AC_CONFIG_FILES(3rdparty/liblzf/Makefile 3rdparty/murmurhash3/Makefile 3rdparty/simdcomp/Makefile 3rdparty/streamvbyte/Makefile)
+AC_CONFIG_FILES(3rdparty/liblzf/Makefile 3rdparty/murmurhash3/Makefile 3rdparty/simdcomp/Makefile 3rdparty/streamvbyte/Makefile 3rdparty/varint/Makefile)
 AC_OUTPUT
 
 # Messages

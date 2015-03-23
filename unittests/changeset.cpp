@@ -66,7 +66,6 @@ struct ChangesetFixture {
 
 	ch.clear();
     for (int i = 0; i < 3; i++) {
-      page[i]->mutex().unlock();
       delete page[i];
     }
   }
@@ -87,7 +86,6 @@ struct ChangesetFixture {
 
 	ch.clear();
     for (int i = 0; i < 3; i++) {
-      page[i]->mutex().unlock();
       delete page[i];
     }
   }

@@ -210,7 +210,6 @@ class Cache
 
     // Returns the capacity (in bytes)
     uint64_t capacity() const {
-      ScopedSpinlock lock(m_mutex);
       return (m_capacity_bytes);
     }
 

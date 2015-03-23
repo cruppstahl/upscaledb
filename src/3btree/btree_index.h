@@ -162,7 +162,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
 #include "1base/packstop.h"
 
-struct Context;
+class Context;
 class LocalDatabase;
 class BtreeNodeProxy;
 struct PDupeEntry;

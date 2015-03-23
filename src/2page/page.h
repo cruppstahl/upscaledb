@@ -90,12 +90,13 @@ class Page {
     // A wrapper around the persisted page data
     struct PersistedData {
       PersistedData()
-        : address(0), size(0), is_dirty(false), raw_data(0) {
+        : address(0), size(0), is_dirty(false), is_without_header(false),
+          raw_data(0) {
       }
 
       PersistedData(const PersistedData &other)
         : address(other.address), size(other.size), is_dirty(other.is_dirty),
-          raw_data(other.raw_data) {
+          is_without_header(other.is_without_header), raw_data(other.raw_data) {
       }
 
       ~PersistedData() {
@@ -118,6 +119,10 @@ class Page {
 
       // is this page dirty and needs to be flushed to disk?
       bool is_dirty;
+
+      // is this page without a persistent header? (this is the case for
+      // large blobs spanning multiple pages)
+      bool is_without_header;
 
       // the persistent data of this page
       PPageData *raw_data;
@@ -249,12 +254,12 @@ class Page {
 
     // Returns true if the page has no persistent header
     bool is_without_header() const {
-      return (m_is_without_header);
+      return (m_datap->is_without_header);
     }
 
     // Sets a flag whether the page has no persistent header
     void set_without_header(bool without_header) {
-      m_is_without_header = without_header;
+      m_datap->is_without_header = without_header;
     }
 
     // Assign a buffer which was allocated with malloc()
@@ -296,12 +301,12 @@ class Page {
  
     // PRO: Returns the crc32
     uint32_t get_crc32() const {
-      return (m_data->header.crc32);
+      return (m_datap->raw_data->header.crc32);
     }
 
     // PRO: Sets the crc32
     void set_crc32(uint32_t crc32) {
-      m_data->header.crc32 = crc32;
+      m_datap->raw_data->header.crc32 = crc32;
     }
 
     // Returns the lsn of the last modification

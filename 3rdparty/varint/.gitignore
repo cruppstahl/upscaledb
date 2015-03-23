@@ -1,0 +1,7 @@
+.gitignore
+.libs/
+Makefile.am
+libvarint.la
+src/.deps/
+src/.dirstamp
+src/varintdecode.lo

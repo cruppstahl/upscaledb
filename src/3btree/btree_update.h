@@ -34,7 +34,7 @@
 
 namespace hamsterdb {
 
-struct Context;
+class Context;
 class BtreeIndex;
 class BtreeCursor;
 

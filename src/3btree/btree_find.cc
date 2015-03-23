@@ -120,6 +120,7 @@ class BtreeFindAction
             stats->find_failed();
             return (HAM_KEY_NOT_FOUND);
           }
+          goto return_result;
         }
 
         /* check the leaf page for the key (long path w/ approx. matching),
@@ -158,6 +159,7 @@ class BtreeFindAction
 
       ham_assert(node->is_leaf());
 
+return_result:
       /* set the cursor-position to this key */
       if (m_cursor) {
         m_cursor->couple_to_page(page, slot, 0);

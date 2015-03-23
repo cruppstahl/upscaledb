@@ -69,9 +69,11 @@ LocalEnvironment::recover(uint32_t flags)
     }
     else {
       st = HAM_NEED_RECOVERY;
+      goto bail;
     }
   }
 
+bail:
   /* in case of errors: close log and journal, but do not delete the files */
   if (st) {
     m_journal->close(true);
@@ -217,7 +219,7 @@ LocalEnvironment::do_open()
       if ((get_flags() & HAM_READ_ONLY) == 0) {
         m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
               HAM_FILE_VERSION | 0x80);
-        m_header->get_header_page()->set_dirty(true);
+        m_header->header_page()->set_dirty(true);
         m_device->write(0, hdrbuf, sizeof(hdrbuf));
       }
     }
@@ -257,7 +259,7 @@ fail_with_fake_cleansing:
 
   /* Now that the header page was fetched we can retrieve the compression
    * information */
-  m_config.journal_compressor = m_header->get_journal_compression();
+  m_config.journal_compressor = m_header->journal_compression();
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
@@ -466,55 +468,6 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
       return (HAM_INV_PARAMETER);
     }
     config.key_type = HAM_TYPE_UINT64;
-  }
-  // Pro: uint32 compression is only allowed for uint32-keys
-  if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE) {
-    if (config.key_type != HAM_TYPE_UINT32) {
-      ham_trace(("Uint32 compression only allowed for uint32 keys "
-                 "(HAM_TYPE_UINT32)"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-
-  // Pro: all heavy-weight compressors are only allowed for
-  // variable-length binary keys
-  if (config.key_compressor == HAM_COMPRESSOR_LZF
-        || config.key_compressor == HAM_COMPRESSOR_SNAPPY
-        || config.key_compressor == HAM_COMPRESSOR_LZO
-        || config.key_compressor == HAM_COMPRESSOR_ZLIB) {
-    if (config.key_type != HAM_TYPE_BINARY
-          || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
-      ham_trace(("Key compression only allowed for unlimited binary keys "
-                 "(HAM_TYPE_BINARY"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-  // Pro: uint32 compression is only allowed for uint32-keys
-  if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_SIMDCOMP
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_GROUPVARINT
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_STREAMVBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_MASKEDVBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_BLOCKINDEX) {
-    if (config.key_type != HAM_TYPE_UINT32) {
-      ham_trace(("Uint32 compression only allowed for uint32 keys "
-                 "(HAM_TYPE_UINT32)"));
-      return (HAM_INV_PARAMETER);
-    }
-  }
-
-  // Pro: all heavy-weight compressors are only allowed for
-  // variable-length binary keys
-  if (config.key_compressor == HAM_COMPRESSOR_LZF
-        || config.key_compressor == HAM_COMPRESSOR_SNAPPY
-        || config.key_compressor == HAM_COMPRESSOR_LZO
-        || config.key_compressor == HAM_COMPRESSOR_ZLIB) {
-    if (config.key_type != HAM_TYPE_BINARY
-          || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
-      ham_trace(("Key compression only allowed for unlimited binary keys "
-                 "(HAM_TYPE_BINARY"));
-      return (HAM_INV_PARAMETER);
-    }
   }
 
   // Pro: uint32 compression is only allowed for uint32-keys

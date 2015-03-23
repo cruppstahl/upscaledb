@@ -50,7 +50,7 @@ struct ScanVisitor {
   virtual void assign_result(hola_result_t *result) = 0;
 };
 
-struct Context;
+class Context;
 class BtreeNodeProxy;
 
 //

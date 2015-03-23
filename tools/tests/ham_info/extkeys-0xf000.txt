@@ -1,0 +1,5 @@
+environment
+  page_size:            16384
+  version:              2.1.10 pro!
+  max databases:        676
+ham_env_open_db() returned error -8: Invalid parameter

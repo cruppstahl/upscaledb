@@ -155,13 +155,15 @@ PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
           && !(flags & PageManager::kReadOnly))
     maybe_store_state(context, false);
 
+  m_state.page_count_fetched++;
+
+  page = safely_lock_page(context, page, false);
+
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
   else if (m_state.config.flags & HAM_ENABLE_CRC32)
     verify_crc32(page);
-
-  m_state.page_count_fetched++;
-  return (safely_lock_page(context, page, false));
+  return (page);
 }
 
 Page *
@@ -221,8 +223,7 @@ done:
   page->set_dirty(true);
   page->set_db(context->db);
   page->set_without_header(false);
-  page->set_crc32(0);
-  page->set_without_header(false);
+
   page->set_crc32(0);
 
   if (page->get_node_proxy()) {
@@ -454,15 +455,6 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 
   // do not call maybe_store_state() - this change in the m_state is not
   // relevant for logging.
-}
-
-void
-PageManager::reset(Context *context)
-{
-  close(context);
-
-  /* start the worker thread */
-  m_worker.reset(new PageManagerWorker(&m_state.cache));
 }
 
 void
@@ -793,7 +785,7 @@ PageManager::verify_crc32(Page *page)
 {
   uint32_t crc32;
   MurmurHash3_x86_32(page->get_payload(),
-                  m_state.config.page_size_bytes - (sizeof(PPageHeader) - 1),
+                  page->get_persisted_data()->size - (sizeof(PPageHeader) - 1),
                   (uint32_t)page->get_address(), &crc32);
   if (crc32 != page->get_crc32()) {
     ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",

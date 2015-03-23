@@ -3,6 +3,7 @@ environment
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   version:              2.1.11 
 =======
 <<<<<<< HEAD
@@ -24,6 +25,9 @@ environment
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> dc4324a... Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
 >>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
+=======
+  version:              2.1.11 pro!
+>>>>>>> Pro 2.1.11: Various improvements, new integer codecs
   max databases:        676
 
   database 1 (0x1)

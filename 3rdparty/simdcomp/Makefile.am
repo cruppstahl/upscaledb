@@ -10,10 +10,17 @@ noinst_LTLIBRARIES = libsimdcomp.la
 libsimdcomp_la_SOURCES = src/simdbitpacking.c \
 						 src/simdcomputil.c \
 						 src/simdintegratedbitpacking.c \
-						 src/varintdecode.cc \
+						 src/simdpackedsearch.c \
+						 src/simdpackedselect.c \
 						 include/portability.h \
 						 include/simdbitpacking.h \
 						 include/simdcomp.h \
 						 include/simdcomputil.h \
 						 include/simdintegratedbitpacking.h
+
+noinst_PROGRAMS = unit
+noinst_BIN      = unit
+
+unit_SOURCES    = src/unit.c
+unit_LDADD      = libsimdcomp.la
 

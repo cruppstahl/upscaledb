@@ -1,0 +1,5 @@
+environment
+  page_size:            16384
+  version:              2.1.10 pro!
+  max databases:        676
+Database 2 (0x2) not found

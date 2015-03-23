@@ -15,19 +15,15 @@
 
 __m128i  iunpack0(__m128i initOffset, const __m128i * _in  , uint32_t *    _out) {
     __m128i       *out = (__m128i*)(_out);
-    const __m128i zero =  _mm_set1_epi32 (0);
+    const __m128i constant = _mm_shuffle_epi32(initOffset, 0xff);
     uint32_t i;
     (void)        _in;
 
     for (i = 0; i < 8; ++i) {
-    	PrefixSum(initOffset, zero, initOffset);
-        _mm_storeu_si128(out++, initOffset);
-    	PrefixSum(initOffset, zero, initOffset);
-    	_mm_storeu_si128(out++, initOffset);
-    	PrefixSum(initOffset, zero, initOffset);
-        _mm_storeu_si128(out++, initOffset);
-    	PrefixSum(initOffset, zero, initOffset);
-        _mm_storeu_si128(out++, initOffset);
+        _mm_storeu_si128(out++, constant);
+    	_mm_storeu_si128(out++, constant);
+        _mm_storeu_si128(out++, constant);
+        _mm_storeu_si128(out++, constant);
     }
 
     return initOffset;

@@ -22,6 +22,8 @@
 #include "3rdparty/catch/catch.hpp"
 #include "3rdparty/simdcomp/include/simdcomp.h"
 
+#include "1os/os.h"
+
 #include "utils.h"
 #include "os.hpp"
 
@@ -114,7 +116,7 @@ struct Zint32Fixture {
   }
 };
 
-TEST_CASE("Varbyte/randomDataTest", "")
+TEST_CASE("Zint32/Varbyte/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -126,7 +128,7 @@ TEST_CASE("Varbyte/randomDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Varbyte/ascendingDataTest", "")
+TEST_CASE("Zint32/Varbyte/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -136,7 +138,7 @@ TEST_CASE("Varbyte/ascendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Varbyte/descendingDataTest", "")
+TEST_CASE("Zint32/Varbyte/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
@@ -146,13 +148,13 @@ TEST_CASE("Varbyte/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("SimdComp/basicSimdcompTest", "")
+TEST_CASE("Zint32/SimdComp/basicSimdcompTest", "")
 {
   Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
   f.basicSimdcompTest();
 }
 
-TEST_CASE("SimdComp/randomDataTest", "")
+TEST_CASE("Zint32/SimdComp/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -164,7 +166,7 @@ TEST_CASE("SimdComp/randomDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("SimdComp/ascendingDataTest", "")
+TEST_CASE("Zint32/SimdComp/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -174,7 +176,7 @@ TEST_CASE("SimdComp/ascendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("SimdComp/descendingDataTest", "")
+TEST_CASE("Zint32/SimdComp/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
@@ -184,7 +186,7 @@ TEST_CASE("SimdComp/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("GroupVarint/randomDataTest", "")
+TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -196,7 +198,7 @@ TEST_CASE("GroupVarint/randomDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("GroupVarint/ascendingDataTest", "")
+TEST_CASE("Zint32/GroupVarint/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -206,7 +208,7 @@ TEST_CASE("GroupVarint/ascendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("GroupVarint/descendingDataTest", "")
+TEST_CASE("Zint32/GroupVarint/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
@@ -216,7 +218,7 @@ TEST_CASE("GroupVarint/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("StreamVbyte/randomDataTest", "")
+TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -228,7 +230,7 @@ TEST_CASE("StreamVbyte/randomDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("StreamVbyte/ascendingDataTest", "")
+TEST_CASE("Zint32/StreamVbyte/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -238,7 +240,7 @@ TEST_CASE("StreamVbyte/ascendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("StreamVbyte/descendingDataTest", "")
+TEST_CASE("Zint32/StreamVbyte/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
@@ -248,7 +250,7 @@ TEST_CASE("StreamVbyte/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("MaskedVbyte/randomDataTest", "")
+TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
 {
   if (os_has_avx()) {
     Zint32Fixture::IntVector ivec;
@@ -262,7 +264,7 @@ TEST_CASE("MaskedVbyte/randomDataTest", "")
   }
 }
 
-TEST_CASE("MaskedVbyte/ascendingDataTest", "")
+TEST_CASE("Zint32/MaskedVbyte/ascendingDataTest", "")
 {
   if (os_has_avx()) {
     Zint32Fixture::IntVector ivec;
@@ -274,7 +276,7 @@ TEST_CASE("MaskedVbyte/ascendingDataTest", "")
   }
 }
 
-TEST_CASE("MaskedVbyte/descendingDataTest", "")
+TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
 {
   if (os_has_avx()) {
     Zint32Fixture::IntVector ivec;
@@ -286,7 +288,7 @@ TEST_CASE("MaskedVbyte/descendingDataTest", "")
   }
 }
 
-TEST_CASE("BlockIndex/randomDataTest", "")
+TEST_CASE("Zint32/BlockIndex/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -298,7 +300,7 @@ TEST_CASE("BlockIndex/randomDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("BlockIndex/ascendingDataTest", "")
+TEST_CASE("Zint32/BlockIndex/ascendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
@@ -308,7 +310,7 @@ TEST_CASE("BlockIndex/ascendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("BlockIndex/descendingDataTest", "")
+TEST_CASE("Zint32/BlockIndex/descendingDataTest", "")
 {
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
@@ -318,8 +320,7 @@ TEST_CASE("BlockIndex/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-<<<<<<< HEAD
-TEST_CASE("Zint32/invalidPagesizeTest", "")
+TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")
 {
   ham_parameter_t p1[] = {
     { HAM_PARAM_PAGE_SIZE, 1024 },
@@ -339,12 +340,6 @@ TEST_CASE("Zint32/invalidPagesizeTest", "")
   ham_env_close(env, 0);
 }
 
-=======
->>>>>>> a3bdef5... Adding stream vbyte-compression for uint32 keys
-=======
-#endif
-
->>>>>>> c528002... Adding MaskedVbyte compression algorithm (wip)
 } // namespace hamsterdb
 
 #endif // HAM_ENABLE_COMPRESSION
