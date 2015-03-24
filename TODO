@@ -795,7 +795,35 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
     x compare performance (before/after) - wow! up to 60% faster!
     x fix unittests
     x fix recovery tests
-    o run monster tests
+    x run monster tests
+
+o zint32: continue with AOL tests
+    x create files for sequential insert, sequential find, random
+        insert, random find
+    x once more review the vacuumize implementations
+    x review the data - are they very "dense"? maybe also test with data
+        that has more gaps - yes they are
+    x ham_bench: use zipfian distribution for testing, compare with Daniel's
+        implementation
+    o optimize each codec for those operations 
+        o varbyte
+        o simdcomp
+        o streamvbyte
+        o maskedvbyte
+        o blockindex
+        o groupvarint
+
+o zint32: wie geht's weiter?
+    o gliederung für paper
+        o abstract
+        o introduction to hamsterdb
+            o integrating compression
+            o btree characteristics
+        o description of codecs
+        o description of data sources, benchmarks
+        o results
+        o interpretation
+        o conclusion
 
 <<<<<<< HEAD
 o Refactoring: completely decouple the Page from the Device; pass the Device as
