@@ -379,11 +379,15 @@ retry:
     if (exact_is_erased)
       flags = flags & (~HAM_FIND_EXACT_MATCH);
 
-    // now lookup in the btree
+    // now lookup in the btree, but make sure that the retrieved key was
+    // not deleted or overwritten in a transaction
     if (cursor)
       cursor->set_to_nil(Cursor::kBtree);
     st = m_btree_index->find(context, cursor, key, pkey_arena, record,
                     precord_arena, flags);
+
+    // if the key was not found in the btree: return the key which was found
+    // in the transaction tree
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
         pkey_arena->resize(txnkey.size);
@@ -406,6 +410,7 @@ retry:
     }
     else if (st)
       return (st);
+
     // the btree key is a direct match? then return it
     if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
         && (flags & HAM_FIND_EXACT_MATCH)) {
@@ -414,6 +419,7 @@ retry:
         cursor->couple_to_btree();
       return (0);
     }
+
     // if there's an approx match in the btree: compare both keys and
     // use the one that is closer. if the btree is closer: make sure
     // that it was not erased or overwritten in a transaction
@@ -435,6 +441,7 @@ retry:
       // lookup again, with the same flags and the btree key.
       // this will check if the key was erased or overwritten
       // in a transaction
+      //flags &= ~(HAM_FIND_GEQ_MATCH | HAM_FIND_LEQ_MATCH);
       st = find_txn(context, cursor, key, record, flags | HAM_FIND_EXACT_MATCH);
       if (st == 0)
         ham_key_set_intflags(key,

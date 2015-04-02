@@ -120,55 +120,73 @@ struct ApproxFixture {
     return (::strcmp(expected, (const char *)r.data));
   }
 
-  void lessThanTest() {
+  void lessThanTest1() {
     // btree < nil
     REQUIRE(0 == insertBtree("1"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "2", "1"));
+  }
 
+  void lessThanTest2() {
     // txn < nil
     REQUIRE(0 == insertTxn("2"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "3", "2"));
+  }
 
+  void lessThanTest3() {
     // btree < txn
     REQUIRE(0 == insertBtree("10"));
     REQUIRE(0 == insertTxn("11"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "11", "10"));
+  }
 
+  void lessThanTest4() {
     // txn < btree
     REQUIRE(0 == insertTxn("20"));
     REQUIRE(0 == insertBtree("21"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "21", "20"));
+  }
 
+  void lessThanTest5() {
     // btree < btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "31", "30"));
+  }
 
+  void lessThanTest6() {
     // txn < txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "41", "40"));
+  }
 
+  void lessThanTest7() {
     // txn < txn w/ empty node
     REQUIRE(0 == insertTxn("50"));
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == insertTxn("52"));
     REQUIRE(0 == eraseTxn("51"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "52", "50"));
+  }
 
+  void lessThanTest8() {
     // txn < txn w/ empty node
     REQUIRE(0 == insertTxn("60"));
     REQUIRE(0 == insertTxn("61"));
     REQUIRE(0 == insertTxn("62"));
     REQUIRE(0 == eraseTxn("61"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "62", "60"));
+  }
 
+  void lessThanTest9() {
     // skip erased btree
     REQUIRE(0 == insertBtree("71"));
     REQUIRE(0 == eraseTxn("71"));
     REQUIRE(0 == insertTxn("70"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "71", "70"));
+  }
 
+  void lessThanTest10() {
     // skip 2 erased btree keys
     REQUIRE(0 == insertBtree("80"));
     REQUIRE(0 == insertBtree("81"));
@@ -177,7 +195,9 @@ struct ApproxFixture {
     REQUIRE(0 == eraseTxn("82"));
     REQUIRE(0 == insertTxn("83"));
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "83", "80"));
+  }
 
+  void lessThanTest11() {
     // overwrite btree
     REQUIRE(0 == insertBtree("92"));
     REQUIRE(0 == insertTxn("92", HAM_OVERWRITE));
@@ -186,62 +206,84 @@ struct ApproxFixture {
     REQUIRE(0 == find(HAM_FIND_LT_MATCH, "93", "92"));
   }
 
-  void lessOrEqualTest() {
+  void lessOrEqualTest1() {
     // btree < nil
     REQUIRE(0 == insertBtree("1"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "2", "1"));
+  }
 
+  void lessOrEqualTest2() {
     // btree = nil
     REQUIRE(0 == insertBtree("2"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "2", "2"));
+  }
 
+  void lessOrEqualTest3() {
     // txn < nil
     REQUIRE(0 == insertTxn("3"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "4", "3"));
+  }
 
+  void lessOrEqualTest4() {
     // txn = nil
     REQUIRE(0 == insertTxn("4"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "5", "4"));
+  }
 
+  void lessOrEqualTest5() {
     // btree < txn
     REQUIRE(0 == insertBtree("10"));
     REQUIRE(0 == insertTxn("11"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "11", "11"));
+  }
 
+  void lessOrEqualTest6() {
     // txn < btree
     REQUIRE(0 == insertTxn("20"));
     REQUIRE(0 == insertBtree("21"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "21", "21"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "22", "21"));
+  }
 
+  void lessOrEqualTest7() {
     // btree < btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "31", "31"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "32", "31"));
+  }
 
+  void lessOrEqualTest8() {
     // txn < txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "41", "41"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "42", "41"));
+  }
 
+  void lessOrEqualTest9() {
     // txn =
     REQUIRE(0 == insertBtree("50"));
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "51", "51"));
+  }
 
+  void lessOrEqualTest10() {
     // btree =
     REQUIRE(0 == insertTxn("60"));
     REQUIRE(0 == insertBtree("61"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "61", "61"));
+  }
 
+  void lessOrEqualTest11() {
     // txn < txn w/ empty node
     REQUIRE(0 == insertTxn("70"));
     REQUIRE(0 == insertTxn("71"));
     REQUIRE(0 == eraseTxn("71"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "71", "70"));
+  }
 
+  void lessOrEqualTest12() {
     // skip 3 erased btree keys
     REQUIRE(0 == insertBtree("80"));
     REQUIRE(0 == insertBtree("81"));
@@ -251,7 +293,9 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("83"));
     REQUIRE(0 == eraseTxn("83"));
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "83", "80"));
+  }
 
+  void lessOrEqualTest13() {
     // overwrite btree
     REQUIRE(0 == insertBtree("92"));
     REQUIRE(0 == insertTxn("92", HAM_OVERWRITE));
@@ -260,42 +304,56 @@ struct ApproxFixture {
     REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "93", "93"));
   }
 
-  void greaterThanTest() {
+  void greaterThanTest1() {
     // btree > nil
     REQUIRE(0 == insertBtree("2"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "1", "2"));
+  }
 
+  void greaterThanTest2() {
     // txn > nil
     REQUIRE(0 == insertTxn("4"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "3", "4"));
+  }
 
+  void greaterThanTest3() {
     // btree > txn
     REQUIRE(0 == insertTxn("10"));
     REQUIRE(0 == insertBtree("11"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "10", "11"));
+  }
 
+  void greaterThanTest4() {
     // txn > btree
     REQUIRE(0 == insertBtree("20"));
     REQUIRE(0 == insertTxn("21"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "20", "21"));
+  }
 
+  void greaterThanTest5() {
     // btree > btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "30", "31"));
+  }
 
+  void greaterThanTest6() {
     // txn > txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "40", "41"));
+  }
 
+  void greaterThanTest7() {
     // txn > txn w/ empty node
     REQUIRE(0 == insertTxn("50"));
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == eraseTxn("51"));
     REQUIRE(0 == insertTxn("52"));
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "50", "52"));
+  }
 
+  void greaterThanTest8() {
     // skip 2 erased btree keys
     REQUIRE(0 == insertBtree("81"));
     REQUIRE(0 == eraseTxn("81"));
@@ -305,61 +363,106 @@ struct ApproxFixture {
     REQUIRE(0 == find(HAM_FIND_GT_MATCH, "80", "83"));
   }
 
-  void greaterOrEqualTest() {
+  void greaterThanTest9() {
+    teardown();
+
+    ham_parameter_t param[] = {
+        {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
+        {HAM_PARAM_KEY_SIZE, 32},
+        {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+
+    char data[32] = {0};
+    ham_key_t key = ham_make_key(&data[0], sizeof(data));
+    ham_record_t rec = {0};
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+
+    data[31] = 1;
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    char newdata[32] = {0};
+    REQUIRE(0 == ::memcmp(key.data, &newdata[0], sizeof(newdata)));
+  }
+
+  void greaterOrEqualTest1() {
     // btree > nil
     REQUIRE(0 == insertBtree("1"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "0", "1"));
+  }
 
+  void greaterOrEqualTest2() {
     // btree = nil
     REQUIRE(0 == insertBtree("3"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "3", "3"));
+  }
 
+  void greaterOrEqualTest3() {
     // txn > nil
     REQUIRE(0 == insertTxn("5"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "4", "5"));
+  }
 
+  void greaterOrEqualTest4() {
     // txn = nil
     REQUIRE(0 == insertTxn("7"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "7", "7"));
+  }
 
+  void greaterOrEqualTest5() {
     // btree > txn
     REQUIRE(0 == insertTxn("11"));
     REQUIRE(0 == insertBtree("12"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "11", "11"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "10", "11"));
+  }
 
+  void greaterOrEqualTest6() {
     // txn > btree
     REQUIRE(0 == insertBtree("20"));
     REQUIRE(0 == insertTxn("21"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "19", "20"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "20", "20"));
+  }
 
+  void greaterOrEqualTest7() {
     // btree > btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "31", "31"));
+  }
 
+  void greaterOrEqualTest8() {
     // txn > txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "41", "41"));
+  }
 
+  void greaterOrEqualTest9() {
     // txn =
     REQUIRE(0 == insertBtree("50"));
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "51", "51"));
+  }
 
+  void greaterOrEqualTest10() {
     // btree =
     REQUIRE(0 == insertTxn("60"));
     REQUIRE(0 == insertBtree("61"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "61", "61"));
+  }
 
+  void greaterOrEqualTest11() {
     // txn > txn w/ empty node
     REQUIRE(0 == insertTxn("71"));
     REQUIRE(0 == eraseTxn("71"));
     REQUIRE(0 == insertTxn("72"));
     REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "71", "72"));
+  }
 
+  void greaterOrEqualTest12() {
     // skip erased btree keys
     REQUIRE(0 == insertBtree("81"));
     REQUIRE(0 == eraseTxn("81"));
@@ -408,29 +511,6 @@ struct ApproxFixture {
     ham_record_t rec = {0};
 
     REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
-  }
-
-  void greaterThanTest2() {
-    teardown();
-
-    ham_parameter_t param[] = {
-        {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
-        {HAM_PARAM_KEY_SIZE, 32},
-        {0, 0}
-    };
-
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
-
-    char data[32] = {0};
-    ham_key_t key = ham_make_key(&data[0], sizeof(data));
-    ham_record_t rec = {0};
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-
-    data[31] = 1;
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
-    char newdata[32] = {0};
-    REQUIRE(0 == ::memcmp(key.data, &newdata[0], sizeof(newdata)));
   }
 
   template<typename Generator>
@@ -1377,24 +1457,229 @@ struct ApproxFixture {
   }
 };
 
-TEST_CASE("Approx/lessThanTest", "") {
+TEST_CASE("Approx/lessThanTest1", "") {
   ApproxFixture f;
-  f.lessThanTest();
+  f.lessThanTest1();
 }
 
-TEST_CASE("Approx/lessOrEqualTest", "") {
+TEST_CASE("Approx/lessThanTest2", "") {
   ApproxFixture f;
-  f.lessOrEqualTest();
+  f.lessThanTest2();
 }
 
-TEST_CASE("Approx/greaterThanTest", "") {
+TEST_CASE("Approx/lessThanTest3", "") {
   ApproxFixture f;
-  f.greaterThanTest();
+  f.lessThanTest3();
 }
 
-TEST_CASE("Approx/greaterOrEqualTest", "") {
+TEST_CASE("Approx/lessThanTest4", "") {
   ApproxFixture f;
-  f.greaterOrEqualTest();
+  f.lessThanTest4();
+}
+
+TEST_CASE("Approx/lessThanTest5", "") {
+  ApproxFixture f;
+  f.lessThanTest5();
+}
+
+TEST_CASE("Approx/lessThanTest6", "") {
+  ApproxFixture f;
+  f.lessThanTest6();
+}
+
+TEST_CASE("Approx/lessThanTest7", "") {
+  ApproxFixture f;
+  f.lessThanTest7();
+}
+
+TEST_CASE("Approx/lessThanTest8", "") {
+  ApproxFixture f;
+  f.lessThanTest8();
+}
+
+TEST_CASE("Approx/lessThanTest9", "") {
+  ApproxFixture f;
+  f.lessThanTest9();
+}
+
+TEST_CASE("Approx/lessThanTest10", "") {
+  ApproxFixture f;
+  f.lessThanTest10();
+}
+
+TEST_CASE("Approx/lessThanTest11", "") {
+  ApproxFixture f;
+  f.lessThanTest11();
+}
+
+TEST_CASE("Approx/lessOrEqualTest1", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest1();
+}
+
+TEST_CASE("Approx/lessOrEqualTest2", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest2();
+}
+
+TEST_CASE("Approx/lessOrEqualTest3", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest3();
+}
+
+TEST_CASE("Approx/lessOrEqualTest4", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest4();
+}
+
+TEST_CASE("Approx/lessOrEqualTest5", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest5();
+}
+
+TEST_CASE("Approx/lessOrEqualTest6", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest6();
+}
+
+TEST_CASE("Approx/lessOrEqualTest7", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest7();
+}
+
+TEST_CASE("Approx/lessOrEqualTest8", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest8();
+}
+
+TEST_CASE("Approx/lessOrEqualTest9", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest9();
+}
+
+TEST_CASE("Approx/lessOrEqualTest10", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest10();
+}
+
+TEST_CASE("Approx/lessOrEqualTest11", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest11();
+}
+
+TEST_CASE("Approx/lessOrEqualTest12", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest12();
+}
+
+TEST_CASE("Approx/lessOrEqualTest13", "") {
+  ApproxFixture f;
+  f.lessOrEqualTest13();
+}
+
+TEST_CASE("Approx/greaterThanTest1", "") {
+  ApproxFixture f;
+  f.greaterThanTest1();
+}
+
+TEST_CASE("Approx/greaterThanTest2", "") {
+  ApproxFixture f;
+  f.greaterThanTest2();
+}
+
+TEST_CASE("Approx/greaterThanTest3", "") {
+  ApproxFixture f;
+  f.greaterThanTest3();
+}
+
+TEST_CASE("Approx/greaterThanTest4", "") {
+  ApproxFixture f;
+  f.greaterThanTest4();
+}
+
+TEST_CASE("Approx/greaterThanTest5", "") {
+  ApproxFixture f;
+  f.greaterThanTest5();
+}
+
+TEST_CASE("Approx/greaterThanTest6", "") {
+  ApproxFixture f;
+  f.greaterThanTest6();
+}
+
+TEST_CASE("Approx/greaterThanTest7", "") {
+  ApproxFixture f;
+  f.greaterThanTest7();
+}
+
+TEST_CASE("Approx/greaterThanTest8", "") {
+  ApproxFixture f;
+  f.greaterThanTest8();
+}
+
+TEST_CASE("Approx/greaterThanTest9", "") {
+  ApproxFixture f;
+  f.greaterThanTest9();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest1", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest1();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest2", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest2();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest3", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest3();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest4", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest4();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest5", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest5();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest6", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest6();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest7", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest7();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest8", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest8();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest9", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest9();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest10", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest10();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest11", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest11();
+}
+
+TEST_CASE("Approx/greaterOrEqualTest12", "") {
+  ApproxFixture f;
+  f.greaterOrEqualTest12();
 }
 
 TEST_CASE("Approx/issue44Test", "") {
@@ -1405,11 +1690,6 @@ TEST_CASE("Approx/issue44Test", "") {
 TEST_CASE("Approx/issue46Test", "") {
   ApproxFixture f;
   f.issue46Test();
-}
-
-TEST_CASE("Approx/greaterThanTest2", "") {
-  ApproxFixture f;
-  f.greaterThanTest2();
 }
 
 template<uint16_t Length>
