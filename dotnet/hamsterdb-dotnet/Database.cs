@@ -322,6 +322,64 @@ namespace Hamster
     }
 
     /// <summary>
+    /// Inserts a Database Item into a Record Number Database
+    /// </summary>
+    /// <remarks>
+    /// This is an overloaded function for
+    ///   Database.InsertRecNo(null, record, 0).
+    /// </remarks>
+    public byte[] InsertRecNo(byte[] record)
+    {
+        return InsertRecNo(null, record, 0);
+    }
+
+    /// <summary>
+    /// Inserts a Database Item into a Record Number Database
+    /// </summary>
+    /// <remarks>
+    /// This is an overloaded function for
+    ///   Database.InsertRecNo(null, record, flags).
+    /// </remarks>
+    public byte[] InsertRecNo(byte[] record, int flags)
+    {
+        return InsertRecNo(null, record, flags);
+    }
+
+    /// <summary>
+    /// Inserts a Database Item into a Record Number Database
+    /// </summary>
+    /// <returns name="key">The key of the new item</returns>
+    /// <remarks>
+    /// This method wraps the native ham_db_insert function.
+    /// <br />
+    /// This function inserts a record as a new Database item.
+    /// <br />
+    /// </remarks>
+    /// <param name="txn">An optional Transaction object</param>
+    /// <param name="record">The record of the new item</param>
+    /// <param name="flags">Optional flags for this operation.</param>
+    /// <exception cref="DatabaseException">
+    ///   <list type="bullet">
+    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///     if you tried to insert a key in a read-only Database</item>
+    ///   </list>
+    /// </exception>
+    public byte [] InsertRecNo(Transaction txn, byte[] record, int flags)
+    {
+        int st;
+        byte[] key = null;
+        lock (this)
+        {
+            st = NativeMethods.InsertRecNo(handle,
+                      txn != null ? txn.Handle : IntPtr.Zero,
+                      ref key, record, flags);
+        }
+        if (st != 0)
+            throw new DatabaseException(st);
+        return key;
+    }
+
+    /// <summary>
     /// Erases a Database Item
     /// </summary>
     public void Erase(byte[] key) {

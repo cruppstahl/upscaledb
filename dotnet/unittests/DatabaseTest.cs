@@ -280,6 +280,39 @@ namespace Unittests
             }
         }
 
+        private void InsertRecNo()
+        {
+            Hamster.Environment env = new Hamster.Environment();
+            Database db = new Database();
+            byte[] r1 = new byte[5];
+            byte[] r2;
+            try
+            {
+                env.Create("ntest.db");
+                db = env.CreateDatabase(1, HamConst.HAM_RECORD_NUMBER);
+                r1[0] = 1;
+                var k = db.InsertRecNo(r1);
+                r2 = db.Find(k);
+                checkEqual(r1, r2);
+
+                r1[0] = 2;
+                k = db.InsertRecNo(r1);
+                r2 = db.Find(k);
+                checkEqual(r1, r2);
+
+                r1[0] = 3;
+                k = db.InsertRecNo(r1);
+                r2 = db.Find(k);
+                checkEqual(r1, r2);
+            }
+            catch (DatabaseException e)
+            {
+                Assert.Fail("unexpected exception " + e);
+            }
+            db.Close();
+            env.Close();
+        }
+
         private void InsertKeyInvalidParam() {
             Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
@@ -643,6 +676,9 @@ namespace Unittests
 
         public void Run()
         {
+            Console.WriteLine("DatabaseTest.InsertRecNo");
+            InsertRecNo();
+
             Console.WriteLine("DatabaseTest.SetErrorHandler");
             SetErrorHandler();
 

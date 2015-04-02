@@ -221,6 +221,28 @@ namespace Hamster
       }
     }
 
+    static public unsafe int InsertRecNo(IntPtr handle, IntPtr txnhandle,
+        ref byte[] keydata, byte[] recordData, int flags)
+    {
+        KeyStruct key = new KeyStruct();
+        RecordStruct record = new RecordStruct();
+        fixed (byte* br = recordData)
+        {
+            record.data = br;
+            record.size = recordData.GetLength(0);
+            key.data = null;
+            key.size = 0;
+            int st = InsertLow(handle, txnhandle, ref key, ref record, flags);
+            if (st != 0)
+                return st;
+            IntPtr keyData = new IntPtr(key.data);
+            byte[] newKeyData = new byte[key.size];
+            Marshal.Copy(keyData, newKeyData, 0, key.size);
+            keydata = newKeyData;            
+            return 0;
+        }
+    }
+
     [DllImport("hamsterdb-2.1.9.dll", EntryPoint = "ham_db_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int EraseLow(IntPtr handle, IntPtr txnhandle,
