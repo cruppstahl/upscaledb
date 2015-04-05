@@ -239,6 +239,43 @@ LocalDatabase::insert_txn(Context *context, ham_key_t *key,
   return (0);
 }
 
+bool
+LocalDatabase::is_key_erased(Context *context, ham_key_t *key)
+{
+  /* get the node for this key (but don't create a new one if it does
+   * not yet exist) */
+  TransactionNode *node = m_txn_index->get(key, 0);
+
+  /*
+   * pick the node of this key, and walk through each operation
+   * in reverse chronological order (from newest to oldest):
+   * - is this op part of an aborted txn? then skip it
+   * - is this op part of a committed txn? then look at the
+   *    operation in detail
+   * - is this op part of an txn which is still active? ignore conflicts
+   * - if a committed txn has erased the item then return true
+   * - otherwise return false
+   */
+  if (!node)
+    return (false);
+
+  TransactionOperation *op = node->get_newest_op();
+  while (op) {
+    Transaction *optxn = op->get_txn();
+    if (optxn->is_aborted())
+      ; /* nop */
+    else {
+      /* if key was erased then it doesn't exist and we can return
+       * immediately */
+      if (op->get_flags() & TransactionOperation::kErase)
+        return (true);
+    }
+
+    op = op->get_previous_in_node();
+  }
+  return (false);
+}
+
 ham_status_t
 LocalDatabase::find_txn(Context *context, Cursor *cursor,
                 ham_key_t *key, ham_record_t *record, uint32_t flags)
@@ -362,16 +399,15 @@ retry:
   /*
    * if there was an approximate match: check if the btree provides
    * a better match
-   *
-   * TODO use alloca or ByteArray instead of Memory::allocate()
    */
+  ByteArray txnkey_arena;
   if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
-    ham_key_t txnkey = {0};
     ham_key_t *k = op->get_node()->get_key();
-    txnkey.size = k->size;
+    txnkey_arena.resize(k->size);
+
+    ham_key_t txnkey = ham_make_key(txnkey_arena.get_ptr(), k->size);
     txnkey._flags = BtreeKey::kApproximate;
-    txnkey.data = Memory::allocate<uint8_t>(txnkey.size);
-    memcpy(txnkey.data, k->data, txnkey.size);
+    ::memcpy(txnkey.data, k->data, txnkey.size);
 
     ham_key_set_intflags(key, 0);
 
@@ -393,10 +429,8 @@ retry:
         pkey_arena->resize(txnkey.size);
         key->data = pkey_arena->get_ptr();
       }
-      if (txnkey.data) {
+      if (txnkey.data)
         ::memcpy(key->data, txnkey.data, txnkey.size);
-        Memory::release(txnkey.data);
-      }
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
 
@@ -414,59 +448,91 @@ retry:
     // the btree key is a direct match? then return it
     if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
         && (flags & HAM_FIND_EXACT_MATCH)) {
-      Memory::release(txnkey.data);
       if (cursor)
         cursor->couple_to_btree();
       return (0);
     }
 
     // if there's an approx match in the btree: compare both keys and
-    // use the one that is closer. if the btree is closer: make sure
-    // that it was not erased or overwritten in a transaction
-    int cmp = m_btree_index->compare_keys(key, &txnkey);
-    bool use_btree = false;
-    if (flags & HAM_FIND_GT_MATCH) {
-      if (cmp < 0)
+    // use the one that is "closer" to the requested key. if the btree
+    // is closer: make sure that it was not erased or overwritten in a
+    // transaction!
+    //
+    // This loop is repeated till we found a valid key.
+    while (st == 0) {
+      // if the txn-op was kErase then ignore it.
+      bool use_btree = false;
+      if ((op->get_flags() & TransactionOperation::kErase) != 0)
         use_btree = true;
-    }
-    else if (flags & HAM_FIND_LT_MATCH) {
-      if (cmp > 0)
-        use_btree = true;
-    }
-    else
-      ham_assert(!"shouldn't be here");
+      else {
+        int cmp = m_btree_index->compare_keys(key, &txnkey);
+        if (flags & HAM_FIND_GT_MATCH) {
+          if (cmp < 0)
+            use_btree = true;
+        }
+        else if (flags & HAM_FIND_LT_MATCH) {
+          if (cmp > 0)
+            use_btree = true;
+        }
+        else
+          ham_assert(!"shouldn't be here");
+      }
 
-    if (use_btree) {
-      Memory::release(txnkey.data);
-      // lookup again, with the same flags and the btree key.
-      // this will check if the key was erased or overwritten
-      // in a transaction
-      //flags &= ~(HAM_FIND_GEQ_MATCH | HAM_FIND_LEQ_MATCH);
-      st = find_txn(context, cursor, key, record, flags | HAM_FIND_EXACT_MATCH);
-      if (st == 0)
-        ham_key_set_intflags(key,
-          (ham_key_get_intflags(key) | BtreeKey::kApproximate));
-      return (st);
-    }
-    else { // use txn
-      if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-        pkey_arena->resize(txnkey.size);
-        key->data = pkey_arena->get_ptr();
+      if (use_btree) {
+        // lookup again, with the same flags and the btree key.
+        // this will check if the key was erased or overwritten
+        // in a transaction
+        if (!is_key_erased(context, key)) {
+          ham_key_set_intflags(key,
+            (ham_key_get_intflags(key) | BtreeKey::kApproximate));
+          return (0);
+        }
       }
-      if (txnkey.data) {
-        ::memcpy(key->data, txnkey.data, txnkey.size);
-        Memory::release(txnkey.data);
-      }
-      key->size = txnkey.size;
-      key->_flags = txnkey._flags;
+      else { // use txn
+        if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
+          pkey_arena->resize(txnkey.size);
+          key->data = pkey_arena->get_ptr();
+        }
+        if (txnkey.data)
+          ::memcpy(key->data, txnkey.data, txnkey.size);
+        key->size = txnkey.size;
+        key->_flags = txnkey._flags;
 
-      if (cursor) { // TODO merge those calls
-        cursor->get_txn_cursor()->couple_to_op(op);
-        cursor->couple_to_txnop();
+        if (cursor) { // TODO merge those calls
+          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->couple_to_txnop();
+        }
+        if (record)
+          return (LocalDatabase::copy_record(this, context->txn, op, record));
+        return (0);
       }
-      if (record)
-        return (LocalDatabase::copy_record(this, context->txn, op, record));
-      return (0);
+
+      // move to the next (or previous) key
+      st = m_btree_index->find(context, cursor, key, pkey_arena, record,
+                      precord_arena, flags);
+      // no btree found, no txn key found?
+      if (st == HAM_KEY_NOT_FOUND
+            && ((op->get_flags() & TransactionOperation::kErase) != 0))
+        break;
+      // no btree found, but txn key is valid?
+      if (st == HAM_KEY_NOT_FOUND) {
+        if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
+          pkey_arena->resize(txnkey.size);
+          key->data = pkey_arena->get_ptr();
+        }
+        if (txnkey.data)
+          ::memcpy(key->data, txnkey.data, txnkey.size);
+        key->size = txnkey.size;
+        key->_flags = txnkey._flags;
+
+        if (cursor) { // TODO merge those calls
+          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->couple_to_txnop();
+        }
+        if (record)
+          return (LocalDatabase::copy_record(this, context->txn, op, record));
+        return (0);
+      }
     }
   }
 
