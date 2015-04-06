@@ -1676,10 +1676,8 @@ TEST_CASE("Approx/greaterThanTest1", "") {
 }
 
 TEST_CASE("Approx/issue52Test", "") {
-    /*
   ApproxFixture f;
   f.issue52Test();
-  */
 }
 
 TEST_CASE("Approx/greaterThanTest2", "") {

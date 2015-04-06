@@ -371,8 +371,7 @@ class Cursor
       if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
         return (0);
 
-      TransactionCursor *txnc = get_txn_cursor();
-      if (txnc->get_coupled_op())
+      if (is_coupled_to_txnop())
         update_dupecache(context, kBtree | kTxn);
       else
         update_dupecache(context, kBtree);
