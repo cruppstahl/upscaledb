@@ -207,19 +207,6 @@ TransactionIndex::store(TransactionNode *node)
 void
 TransactionIndex::remove(TransactionNode *node)
 {
-#ifdef HAM_DEBUG
-  bool found = false;
-  TransactionNode *n = rbt_first(this);
-  while (n) {
-    if (n == node) {
-      found = true;
-      break;
-    }
-    n = rbt_next(this, n);
-  }
-  ham_assert(found == true);
-#endif
-
   rbt_remove(this, node);
 }
 

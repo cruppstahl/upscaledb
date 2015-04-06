@@ -190,6 +190,9 @@ class LocalDatabase : public Database {
     friend class RecordNumberFixture<uint32_t>;
     friend class RecordNumberFixture<uint64_t>;
 
+    // Returns true if a (btree) key was erased in a Transaction
+    bool is_key_erased(Context *context, ham_key_t *key);
+
     // Erases a key/record pair from a txn; on success, cursor will be set to
     // nil
     ham_status_t erase_txn(Context *context, ham_key_t *key, uint32_t flags,
