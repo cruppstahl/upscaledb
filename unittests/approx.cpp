@@ -410,6 +410,71 @@ struct ApproxFixture {
     REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
   }
 
+  void issue52Test() {
+    teardown();
+    uint8_t buffer[525933] = {0};
+
+    ham_parameter_t param[] = {
+        {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT64},
+        {0, 0}
+    };
+
+    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
+                HAM_ENABLE_TRANSACTIONS, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
+                HAM_ENABLE_DUPLICATE_KEYS, &param[0]));
+
+    uint64_t k1 = 1;
+    uint64_t k2 = 2;
+    uint64_t k3 = 3;
+    ham_key_t key1 = ham_make_key(&k1, sizeof(k1));
+    ham_key_t key2 = ham_make_key(&k2, sizeof(k2));
+    ham_key_t key3 = ham_make_key(&k3, sizeof(k3));
+
+    ham_record_t rec1 = ham_make_record(&buffer[0], 46228);
+    ham_record_t rec11 = ham_make_record(&buffer[0], 446380);
+    ham_record_t rec12 = ham_make_record(&buffer[0], 525933);
+    ham_record_t rec21 = ham_make_record(&buffer[0], 334157);
+    ham_record_t rec22 = ham_make_record(&buffer[0], 120392);
+
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key1, &rec1, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec11, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec12, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec21, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec22, HAM_DUPLICATE));
+
+    ham_txn_t *txn;
+    ham_cursor_t *c;
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, txn, 0));
+
+    ham_key_t key = {0};
+    ham_record_t rec = {0};
+
+    REQUIRE(0 == ham_cursor_find(c, &key1, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(1u == *(unsigned long long *)key1.data);
+    REQUIRE(rec1.size == rec.size);
+
+    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(2u == *(unsigned long long *)key.data);
+    REQUIRE(rec11.size == rec.size);
+
+    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(2u == *(unsigned long long *)key.data);
+    REQUIRE(rec12.size == rec.size);
+
+    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(3u == *(unsigned long long *)key.data);
+    REQUIRE(rec21.size == rec.size);
+
+    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(3u == *(unsigned long long *)key.data);
+    REQUIRE(rec22.size == rec.size);
+
+    REQUIRE(0 == ham_cursor_close(c));
+    // cleanup is in teardown()
+  }
+
   void greaterThanTest2() {
     teardown();
 
@@ -1405,6 +1470,11 @@ TEST_CASE("Approx/issue44Test", "") {
 TEST_CASE("Approx/issue46Test", "") {
   ApproxFixture f;
   f.issue46Test();
+}
+
+TEST_CASE("Approx/issue52Test", "") {
+  ApproxFixture f;
+  f.issue52Test();
 }
 
 TEST_CASE("Approx/greaterThanTest2", "") {
