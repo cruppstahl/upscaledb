@@ -450,6 +450,7 @@ retry:
         && (flags & HAM_FIND_EXACT_MATCH)) {
       if (cursor)
         cursor->couple_to_btree();
+      cursor->set_lastop(Cursor::kLookupOrInsert);
       return (0);
     }
 
@@ -501,6 +502,7 @@ retry:
         if (cursor) { // TODO merge those calls
           cursor->get_txn_cursor()->couple_to_op(op);
           cursor->couple_to_txnop();
+          cursor->set_to_nil(Cursor::kBtree);
         }
         if (record)
           return (LocalDatabase::copy_record(this, context->txn, op, record));
@@ -528,6 +530,7 @@ retry:
         if (cursor) { // TODO merge those calls
           cursor->get_txn_cursor()->couple_to_op(op);
           cursor->couple_to_txnop();
+          cursor->set_to_nil(Cursor::kBtree);
         }
         if (record)
           return (LocalDatabase::copy_record(this, context->txn, op, record));
