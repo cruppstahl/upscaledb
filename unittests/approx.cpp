@@ -1665,9 +1665,9 @@ TEST_CASE("Approx/lessOrEqualTest13", "") {
   f.lessOrEqualTest13();
 }
 
-TEST_CASE("Approx/lessThanTest3", "") {
+TEST_CASE("Approx/greaterThanTest", "") {
   ApproxFixture f;
-  f.lessThanTest3();
+  f.greaterThanTest();
 }
 
 TEST_CASE("Approx/greaterThanTest1", "") {
@@ -1775,109 +1775,14 @@ TEST_CASE("Approx/greaterOrEqualTest12", "") {
   f.greaterOrEqualTest12();
 }
 
-TEST_CASE("Approx/lessThanTest5", "") {
+TEST_CASE("Approx/issue44Test", "") {
   ApproxFixture f;
-  f.lessThanTest5();
+  f.issue44Test();
 }
 
-TEST_CASE("Approx/lessThanTest6", "") {
+TEST_CASE("Approx/issue46Test", "") {
   ApproxFixture f;
-  f.lessThanTest6();
-}
-
-TEST_CASE("Approx/lessThanTest7", "") {
-  ApproxFixture f;
-  f.lessThanTest7();
-}
-
-TEST_CASE("Approx/lessThanTest8", "") {
-  ApproxFixture f;
-  f.lessThanTest8();
-}
-
-TEST_CASE("Approx/lessThanTest9", "") {
-  ApproxFixture f;
-  f.lessThanTest9();
-}
-
-TEST_CASE("Approx/lessThanTest10", "") {
-  ApproxFixture f;
-  f.lessThanTest10();
-}
-
-TEST_CASE("Approx/lessThanTest11", "") {
-  ApproxFixture f;
-  f.lessThanTest11();
-}
-
-TEST_CASE("Approx/lessOrEqualTest1", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest1();
-}
-
-TEST_CASE("Approx/lessOrEqualTest2", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest2();
-}
-
-TEST_CASE("Approx/lessOrEqualTest3", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest3();
-}
-
-TEST_CASE("Approx/lessOrEqualTest4", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest4();
-}
-
-TEST_CASE("Approx/lessOrEqualTest5", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest5();
-}
-
-TEST_CASE("Approx/lessOrEqualTest6", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest6();
-}
-
-TEST_CASE("Approx/lessOrEqualTest7", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest7();
-}
-
-TEST_CASE("Approx/lessOrEqualTest8", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest8();
-}
-
-TEST_CASE("Approx/lessOrEqualTest9", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest9();
-}
-
-TEST_CASE("Approx/lessOrEqualTest10", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest10();
-}
-
-TEST_CASE("Approx/lessOrEqualTest11", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest11();
-}
-
-TEST_CASE("Approx/lessOrEqualTest12", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest12();
-}
-
-TEST_CASE("Approx/lessOrEqualTest13", "") {
-  ApproxFixture f;
-  f.lessOrEqualTest13();
-}
-
-TEST_CASE("Approx/greaterThanTest1", "") {
-  ApproxFixture f;
-  f.greaterThanTest1();
+  f.issue46Test();
 }
 
 TEST_CASE("Approx/issue52Test", "") {
