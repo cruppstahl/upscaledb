@@ -222,6 +222,7 @@ done:
   page->set_db(context->db);
   page->set_without_header(false);
   page->set_crc32(0);
+  page->set_without_header(false);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
