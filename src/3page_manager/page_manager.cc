@@ -211,12 +211,13 @@ PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
 done:
   /* clear the page with zeroes?  */
   if (flags & PageManager::kClearWithZero)
-    memset(page->get_data(), 0, page_size);
+    ::memset(page->get_data(), 0, page_size);
 
   /* initialize the page; also set the 'dirty' flag to force logging */
   page->set_type(page_type);
   page->set_dirty(true);
   page->set_db(context->db);
+  page->set_without_header(false);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
