@@ -26,6 +26,7 @@
 #define HAM_FILE_H
 
 #include "0root/root.h"
+#include "1base/mutex.h"
 
 #include <stdio.h>
 #include <limits.h>
@@ -147,6 +148,11 @@ class File
 
     // Parameter for posix_fadvise()
     int m_posix_advice;
+
+#ifdef WIN32
+	// A mutex; required for Win32
+	Mutex m_mutex;
+#endif
 };
 
 } // namespace hamsterdb

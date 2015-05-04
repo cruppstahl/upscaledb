@@ -106,6 +106,8 @@ File::set_posix_advice(int advice)
 void
 File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
+  ScopedLock lock(m_mutex);
+
   ham_status_t st;
   DWORD protect = (readonly ? PAGE_READONLY : PAGE_WRITECOPY);
   DWORD access = FILE_MAP_COPY;
@@ -141,6 +143,7 @@ File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 void
 File::munmap(void *buffer, size_t size)
 {
+  ScopedLock lock(m_mutex);
   ham_status_t st;
 
   if (!UnmapViewOfFile(buffer)) {
@@ -167,6 +170,8 @@ File::munmap(void *buffer, size_t size)
 void
 File::pread(uint64_t addr, void *buffer, size_t len)
 {
+  ScopedLock lock(m_mutex);
+
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
@@ -196,6 +201,8 @@ File::pread(uint64_t addr, void *buffer, size_t len)
 void
 File::pwrite(uint64_t addr, const void *buffer, size_t len)
 {
+  ScopedLock lock(m_mutex);
+
   ham_status_t st;
   OVERLAPPED ov = { 0 };
   ov.Offset = (DWORD)addr;
@@ -225,6 +232,7 @@ File::pwrite(uint64_t addr, const void *buffer, size_t len)
 void
 File::write(const void *buffer, size_t len)
 {
+  ScopedLock lock(m_mutex); 
   ham_status_t st;
   DWORD written = 0;
 
@@ -247,18 +255,18 @@ File::write(const void *buffer, size_t len)
 void
 File::seek(uint64_t offset, int whence)
 {
-  DWORD st;
-  LARGE_INTEGER i;
-  i.QuadPart = offset;
+  LARGE_INTEGER i1, i2;
+  i1.QuadPart = offset;
 
-  i.LowPart = ::SetFilePointer(m_fd, i.LowPart, &i.HighPart, whence);
-  if (i.LowPart == INVALID_SET_FILE_POINTER &&
-    (st = GetLastError())!=NO_ERROR) {
+  if (!::SetFilePointerEx(m_fd, i1, &i2, whence)) {
     char buf[256];
-    ham_log(("SetFilePointer failed with OS status %u (%s)", st,
-                DisplayError(buf, sizeof(buf), st)));
+	DWORD err = GetLastError();
+	ham_log(("SetFilePointer failed with OS status %u (%s)",
+		        (uint32_t)err,
+                DisplayError(buf, sizeof(buf), err)));
     throw Exception(HAM_IO_ERROR);
   }
+  ham_assert(i2.QuadPart == offset);
 }
 
 uint64_t
@@ -269,15 +277,15 @@ File::tell()
   i.QuadPart = 0;
 
   i.LowPart = SetFilePointer(m_fd, i.LowPart, &i.HighPart, kSeekCur);
-  if (i.LowPart == INVALID_SET_FILE_POINTER &&
-    (st = GetLastError()) != NO_ERROR) {
+  if (i.LowPart == INVALID_SET_FILE_POINTER
+        && (st = GetLastError()) != NO_ERROR) {
     char buf[256];
     ham_log(("SetFilePointer failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((size_t)i.QuadPart);
+  return ((uint64_t)i.QuadPart);
 }
 
 #ifndef INVALID_FILE_SIZE
@@ -292,21 +300,24 @@ File::get_file_size()
   i.QuadPart = 0;
   i.LowPart = GetFileSize(m_fd, (LPDWORD)&i.HighPart);
 
-  if (i.LowPart == INVALID_FILE_SIZE && (st = GetLastError()) != NO_ERROR) {
+  if (i.LowPart == INVALID_FILE_SIZE
+        && (st = GetLastError()) != NO_ERROR) {
     char buf[256];
     ham_log(("GetFileSize failed with OS status %u (%s)", st,
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(HAM_IO_ERROR);
   }
 
-  return ((size_t)i.QuadPart);
+  return ((uint64_t)i.QuadPart);
 }
 
 void
 File::truncate(uint64_t newsize)
 {
+  ScopedLock lock(m_mutex);
+  
   File::seek(newsize, kSeekSet);
-
+ 
   if (!SetEndOfFile(m_fd)) {
     char buf[256];
     ham_status_t st = (ham_status_t)GetLastError();
@@ -314,6 +325,7 @@ File::truncate(uint64_t newsize)
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(HAM_IO_ERROR);
   }
+  ham_assert(newsize == get_file_size());
 }
 
 void
