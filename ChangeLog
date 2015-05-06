@@ -1,3 +1,6 @@
+May 07, 2015 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.11
+
 May 06, 2015 - chris ---------------------------------------------------
 o C++ API no longer throws exceptions in destructors (thanks, Michael Möllney)
 o issue #49: fixed approx. matching issue with remote server

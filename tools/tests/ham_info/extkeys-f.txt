@@ -1,21 +1,20 @@
 environment
   page_size:            16384
-  version:              2.1.10 
+  version:              2.1.11 
   max databases:        676
 
   database 1 (0x1)
-    key type:             HAM_TYPE_BINARY
-    max key size:         65535
-    max keys per page:    441
-    flags:                0x0004
-    record size:          unlimited
-    number of items:    20
-    average key size:     490
-    minimum key size:     32
-    maximum key size:     980
-    total keys (bytes):   9801
-    extended keys   :   15
-    average record size:  496
-    minimum record size:  65
-    maximum record size:  65
-    total records (bytes):  9932
+    key type:             HAM_TYPE_UINT32
+    max key size:         4
+    max keys per page:    1361
+    flags:                0x800004
+    record size:          0 (inline: yes)
+    number of items:    390922
+    average key size:     4
+    minimum key size:     4
+    maximum key size:     4
+    total keys (bytes):   1563688
+    average record size:  0
+    minimum record size:  0
+    maximum record size:  0
+    total records (bytes):  0

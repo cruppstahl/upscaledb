@@ -18,7 +18,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.10
+ * @version 2.1.11
  *
  * @mainpage
  *
@@ -138,11 +138,11 @@ extern "C" {
  *   2.1.3: new btree format, file format cleanups; version is 1
  *   2.1.4: new btree format for duplicate keys/var. length keys; version is 2
  *   2.1.5: new freelist; version is 3
- *   2.1.10: changes in btree node format; version is 4
+ *   2.1.11: changes in btree node format; version is 4
  */
 #define HAM_VERSION_MAJ     2
 #define HAM_VERSION_MIN     1
-#define HAM_VERSION_REV     10
+#define HAM_VERSION_REV     11
 #define HAM_FILE_VERSION    4
 
 /**

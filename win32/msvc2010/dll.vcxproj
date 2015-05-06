@@ -72,10 +72,10 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\dll_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\dll_x64\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hamsterdb-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hamsterdb-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hamsterdb-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hamsterdb-2.1.10</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hamsterdb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hamsterdb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hamsterdb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hamsterdb-2.1.11</TargetName>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSdkDir)lib;$(FrameworkSDKDir)\lib;../../../hamsterdb-alien/boost/msvc2010/x86</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -94,7 +94,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;libboost_thread-vc100-mt-gd-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.11.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -122,7 +122,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libboost_thread-vc100-mt-gd-1_49.lib;;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.11.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -144,7 +144,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;libboost_thread-vc100-mt-1_49.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.11.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x86</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -170,7 +170,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>libboost_thread-vc100-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamsterdb-2.1.10.dll</OutputFile>
+      <OutputFile>$(OutDir)hamsterdb-2.1.11.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

@@ -1,7 +1,7 @@
 
 @echo off
 
-set VERSION=2.1.10
+set VERSION=2.1.11
 
 if ["%JDK%"] == [] goto l1
 goto start

@@ -72,10 +72,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\server_lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\server_lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\server_lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamserver-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamserver-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamserver-2.1.10</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamserver-2.1.10</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamserver-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamserver-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamserver-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamserver-2.1.11</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../../hamsterdb-alien/protobuf/msvc2013/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;</IncludePath>
@@ -107,7 +107,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <OutputFile>$(OutDir)libhamserver-2.1.10.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2013/;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv_debug.lib;Iphlpapi.lib;Psapi.lib </AdditionalDependencies>
     </Lib>
@@ -134,7 +134,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.10.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -153,7 +153,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <OutputFile>$(OutDir)libhamserver-2.1.10.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv.lib;Iphlpapi.lib;Psapi.lib </AdditionalDependencies>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2013;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
     </Lib>
@@ -177,7 +177,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.10.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;../../../hamsterdb-alien/libuv/msvc2013;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>

@@ -1,4 +1,4 @@
-hamsterdb 2.1.10                                   Mo 23. Feb 23:07:52 CET 2015
+hamsterdb 2.1.11                                   Mi 6. Mai 09:40:22 CEST 2015
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -10,53 +10,30 @@ Contents:
 hamsterdb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This release has several bug fixes (see below for a list). Thanks to those who
-reported them and invested lots of time to come up with samples to reproduce
-the bugs.
+This release has several bug fixes (see below for a list). One bug is a race
+condition on Win32 which can lead to application crashes. The other bugs can
+lead to wrong query results if Transactions are enabled and approximate
+matching is used.
 
-The flag HAM_RECORD_NUMBER is deprecated. It is replaced with
-HAM_RECORD_NUMBER64 for 64bit record numbers, and HAM_RECORD_NUMBER32 for
-32bit record numbers.
+The file format is compatible to 2.1.10.
 
-A major change under the hood: dirty pages are now flushed asynchronously.
-Expect performance improvements in this release, and more to come in the
-next releases.
+Unless you use Win32 or Transactions w/ approx. matching there is no need
+to upgrade. Otherwise the upgrade is highly recommended.
 
 2. Changes
 
 New Features
-* Added Cursor.TryFind to hamsterdb-dotnet
-	(thanks, mjmckp <matthew.j.m.peacock@gmail.com>)
-* The page cache eviction was moved to a background thread
-* When reading records from mmapped storage, a pointer into the storage
-	is returned and the record data is no longer copied
+* none
 
 Bugfixes
-* Fixed FreeBSD compilation errors (thanks, Heping Wen)
-* issue #46: fixed segfault in approx. matching (thanks, Joel
-	Jacobson)
-* issue #45: fixed segfault in Journal recovery (thanks, Michael
-	Moellney)
-* issue #44: approx. matching returned the wrong key (thanks, Joel
-	Jacobson)
-* issue #43: fixed segfault when flushing transactions (thanks, Joel
-	Jacobson)
-* Fixed compilation error on debian Wheezy, gcc 4.7.2, 32bit (thanks,
-	Thomas Fähnle)
-* Fixed compilation error on OSX (thanks, Daniel Lemire)
-* issue #42: ham_cursor_find returned wrong key w/ approx. matching and
-	transactions
-* Fixed large file support on linux (thanks, Thomas Fähnle)
+* C++ API no longer throws exceptions in destructors (thanks, Michael Möllney)
+* issue #49: fixed approx. matching issue with remote server
+* issue #53: fixed race condition on Win32
+* issue #52: fixed cursor iteration w/ txns and approx matching
+* issue #50: removing problematic debug checks
 
 Other Changes
-* Default compilation flag is now -O3
-* Added a new parameter HAM_PARAM_POSIX_FADVISE (thanks, Thomas Fähnle)
-* Removed dependency to malloc.h
-* The github wiki is now linked into documentation/wiki
-* The macro HAM_API_REVISION is now deprecated; use HAM_VERSION_* instead
-* Deprecated HAM_RECORD_NUMBER (use HAM_RECORD_NUMBER64 instead);
-	introduced a new flag HAM_RECORD_NUMBER32 for 32bit record numbers
-* Implemented ham_cursor_get_record_size() for remote access
+* Add InsertRecNo method to hamsterdb-dotnet (thanks, mjmckp)
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -69,7 +46,7 @@ To see a list of all changes, look in the file ChangeLog.
 - PRO: transparent AES encryption
 - PRO: transparent CRC32 verification
 - PRO: transparent compression for journal, keys and records using 
-    zlib, snappy, lzf or lzo 
+    zlib, snappy, lzf or lzo
 - PRO: compression for uint32 keys
 
 - Very fast sorted B+Tree with variable length keys
