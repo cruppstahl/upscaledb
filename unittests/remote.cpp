@@ -53,8 +53,10 @@ struct RemoteFixture {
             HAM_RECORD_NUMBER64 | HAM_ENABLE_DUPLICATE_KEYS, 0));
     ham_db_close(m_db, 0);
 
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 34,
-            HAM_RECORD_NUMBER32, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 34, HAM_RECORD_NUMBER32, 0));
+    ham_db_close(m_db, 0);
+
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 55, 0, 0));
     ham_db_close(m_db, 0);
 
     REQUIRE(0 == ham_srv_init(&cfg, &m_srv));
@@ -149,7 +151,7 @@ struct RemoteFixture {
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
-    REQUIRE(4u == max_names);
+    REQUIRE(5u == max_names);
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -180,7 +182,7 @@ struct RemoteFixture {
     REQUIRE(15 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
-    REQUIRE(4u == max_names);
+    REQUIRE(5u == max_names);
 
     REQUIRE(HAM_DATABASE_NOT_FOUND ==
           ham_env_rename_db(env, 13, 16, 0));
@@ -191,7 +193,7 @@ struct RemoteFixture {
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
-    REQUIRE(4u == max_names);
+    REQUIRE(5u == max_names);
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -246,26 +248,23 @@ struct RemoteFixture {
     uint16_t names[15];
     uint32_t max_names = 15;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
 
-    REQUIRE(0 ==
-        ham_env_get_database_names(env, &names[0], &max_names));
+    REQUIRE(0 == ham_env_get_database_names(env, &names[0], &max_names));
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
-    REQUIRE(4u == max_names);
+    REQUIRE(5u == max_names);
 
     REQUIRE(0 == ham_env_erase_db(env, 14, 0));
     REQUIRE(0 == ham_env_get_database_names(env, &names[0], &max_names));
     REQUIRE(13 == names[0]);
     REQUIRE(33 == names[1]);
     REQUIRE(34 == names[2]);
-    REQUIRE(3u == max_names);
+    REQUIRE(4u == max_names);
 
-    REQUIRE(HAM_DATABASE_NOT_FOUND ==
-        ham_env_erase_db(env, 14, 0));
+    REQUIRE(HAM_DATABASE_NOT_FOUND == ham_env_erase_db(env, 14, 0));
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
@@ -806,6 +805,87 @@ struct RemoteFixture {
     REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_find(cursor, &key, 0, 0));
     REQUIRE(0 == ham_db_get_key_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
+  void approxMatchTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_key_t key = ham_make_key((void *)"k1", 3);
+    ham_record_t rec = ham_make_record((void *)"r1", 3);
+
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 55, 0, 0));
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+    key.data = (void *)"k2";
+    rec.data = (void *)"r2";
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+    key.data = (void *)"k3";
+    rec.data = (void *)"r3";
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_db_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k1"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r1"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_db_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k2"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_db_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k3"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r3"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_db_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k2"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2"));
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+  }
+
+  void cursorApproxMatchTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_cursor_t *cursor;
+    ham_key_t key = ham_make_key((void *)"k1", 3);
+    ham_record_t rec = ham_make_record((void *)"r1", 3);
+
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 55, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    key.data = (void *)"k2";
+    rec.data = (void *)"r2";
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    key.data = (void *)"k3";
+    rec.data = (void *)"r3";
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k1"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r1"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &rec, HAM_FIND_LEQ_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k2"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k3"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r3"));
+
+    key.data = (void *)"k2";
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k2"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2"));
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -1385,6 +1465,18 @@ TEST_CASE("Remote/cursorInsertFindEraseRecno32Test", "")
 {
   RemoteFixture f;
   f.cursorInsertFindEraseRecnoTest<uint32_t>(34);
+}
+
+TEST_CASE("Remote/approxMatchTest", "")
+{
+  RemoteFixture f;
+  f.approxMatchTest();
+}
+
+TEST_CASE("Remote/cursorApproxMatchTest", "")
+{
+  RemoteFixture f;
+  f.cursorApproxMatchTest();
 }
 
 #endif // HAM_ENABLE_REMOTE

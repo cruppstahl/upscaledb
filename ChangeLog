@@ -1,5 +1,11 @@
+May 06, 2015 - chris ---------------------------------------------------
+o issue #49: fixed approx. matching issue with remote server
+
 May 04, 2015 - chris ---------------------------------------------------
 o issue #53: fixed race condition on Win32
+
+Apr 06, 2015 - chris ---------------------------------------------------
+o issue #52: fixed cursor iteration w/ txns and approx matching
 
 Mar 06, 2015 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.10
