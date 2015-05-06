@@ -904,6 +904,7 @@ ham_status_t
 LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
   ham_status_t st = 0;
+  Cursor *cursor = 0;
 
   try {
     Context context(lenv(), (LocalTransaction *)txn, this);
@@ -915,7 +916,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
-    Cursor *cursor = cursor_create_impl(txn, 0);
+    cursor = cursor_create_impl(txn, 0);
 
     st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
     if (st)
@@ -1015,11 +1016,17 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     }
 
 bail:
-    if (cursor)
+    if (cursor) {
       cursor_close_impl(cursor);
+      delete cursor;
+    }
     return (st == HAM_KEY_NOT_FOUND ? 0 : st);
   }
   catch (Exception &ex) {
+    if (cursor) {
+      cursor_close_impl(cursor);
+      delete cursor;
+    }
     return (ex.code);
   }
 }
