@@ -34,6 +34,7 @@
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
 #include <cstring>
+#include <cassert>
 #include <vector>
 
 #if defined(_MSC_VER) && defined(_DEBUG) && !defined(_CRTDBG_MAP_ALLOC)
@@ -291,9 +292,24 @@ class db {
       : m_db(0) {
     }
 
-    /** Destructor - automatically closes the Database, if necessary. */
+    /**
+     * Destructor - automatically closes the Database, if necessary.
+     *
+     * !!
+     * Any exception is silently discarded. Use of the destructor to clean up
+     * open databases is therefore not recommended, because there are valid
+     * reasons why an Exception can be thrown (i.e. not all Cursors of this
+     * database were closed).
+     *
+     * An assert() was added to catch this condition in debug builds.
+     */
     ~db() {
-      close();
+      try {
+        close();
+      }
+      catch (error &ex) {
+        assert(ex.get_errno() == 0); // this will fail!
+      }
     }
 
     /**
@@ -405,9 +421,9 @@ class db {
       // going out of scope
       flags &= ~HAM_AUTO_CLEANUP;
       ham_status_t st = ham_db_close(m_db, flags);
+      m_db = 0;
       if (st)
         throw error(st);
-      m_db = 0;
     }
 
     /** Returns a pointer to the internal ham_db_t structure. */
@@ -447,9 +463,23 @@ class cursor {
       create(db, t, flags);
     }
 
-    /** Destructor - automatically closes the Cursor, if necessary. */
+    /**
+     * Destructor - automatically closes the Cursor, if necessary.
+     *
+     * !!
+     * Any exception is silently discarded. Use of the destructor to close
+     * cursors is therefore not recommended, because there are valid
+     * reasons why an Exception can be thrown.
+     *
+     * An assert() was added to catch this condition in debug builds.
+     */
     ~cursor() {
-      close();
+      try {
+        close();
+      }
+      catch (error &ex) {
+        assert(ex.get_errno() == 0); // this will fail!
+      }
     }
 
     /** Creates a new Cursor. */
@@ -582,9 +612,24 @@ class env {
       : m_env(0) {
     }
 
-    /** Destructor - automatically closes the Cursor, if necessary. */
+    /**
+     * Destructor - automatically closes the Environment, if necessary.
+     *
+     * !!
+     * Any exception is silently discarded. Use of the destructor to close
+     * environments is therefore not recommended, because there are valid
+     * reasons why an Exception can be thrown (i.e. not all Databases were
+     * closed or not all Transactions were committed/aborted).
+     *
+     * An assert() was added to catch this condition in debug builds.
+     */
     ~env() {
-      close();
+      try {
+        close();
+      }
+      catch (error &ex) {
+        assert(ex.get_errno() == 0); // this will fail!
+      }
     }
 
     /** Creates a new Environment. */
