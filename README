@@ -60,8 +60,8 @@ To see a list of all changes, look in the file ChangeLog.
 - Unlimited number of parallel Transactions
 - Partial reading/writing of records
 - Network access (remote databases) via TCP/Protocol Buffers
-- Very fast database cursors
-- Configurable page size, cache size, key size etc
+- Very fast bi-directional database cursors
+- Configurable page size, cache size, key sizes etc
 - Runs on Linux, Unices, Microsoft Windows and other architectures
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
     mmap is not available)
@@ -83,10 +83,10 @@ To compile hamsterdb, run ./configure, make, make install.
 Run `./configure --help' for more options (i.e. static/dynamic library,
 build with debugging symbols etc).
 
-6.2 Microsoft Visual Studio 8
+6.2 Microsoft Visual Studio
 
 A Solution file is provided for Microsoft Visual C++ in the "win32" folder
-for MSVC 2008 and MSVC 2010.
+for MSVC 2010 and MSVC 2013.
 All libraries can be downloaded precompiled from the hamsterdb webpage.
 
 To download Microsoft Visual Studio Express Edition for free, go to
@@ -152,8 +152,7 @@ newer version of hamsterdb installed). Then use the newest version of
 ham_import to import the data into a new database. You can find ham_export
 and ham_import in the "tools" subdirectory.
 
-    Example (ham_export of 2.1.2 was renamed to ham_export-2.1.2 to document
-        that it's an older version):
+    Example (ham_export of 2.1.2 was renamed to ham_export-2.1.2 for clarity):
 
     ham_export-2.1.2 input.db | ham_import --stdin output.db
 
