@@ -1129,8 +1129,10 @@ LocalCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 {
   Context context(ldb()->lenv(), (LocalTransaction *)m_txn, ldb());
 
-  if (is_nil())
+  if (is_nil()) {
+    *pcount = 0;
     return (HAM_CURSOR_IS_NIL);
+  }
 
   *pcount = get_duplicate_count(&context);
   return (0);

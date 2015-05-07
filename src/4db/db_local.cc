@@ -19,17 +19,11 @@
 #include <boost/scope_exit.hpp>
 
 // Always verify that a file of level N does not include headers > N!
-#include "1mem/mem.h"
-#include "1os/os.h"
-#include "2page/page.h"
-#include "2device/device.h"
 #include "3page_manager/page_manager.h"
 #include "3journal/journal.h"
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_index_factory.h"
-#include "3btree/btree_cursor.h"
-#include "3btree/btree_stats.h"
 #include "4db/db_local.h"
 #include "4context/context.h"
 #include "4cursor/cursor_local.h"
@@ -245,34 +239,32 @@ LocalDatabase::is_key_erased(Context *context, ham_key_t *key)
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
   TransactionNode *node = m_txn_index->get(key, 0);
-
-  /*
-   * pick the node of this key, and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then look at the
-   *    operation in detail
-   * - is this op part of an txn which is still active? ignore conflicts
-   * - if a committed txn has erased the item then return true
-   * - otherwise return false
-   */
   if (!node)
     return (false);
 
+  /* now traverse the tree, check if the key was erased */
   TransactionOperation *op = node->get_newest_op();
   while (op) {
     Transaction *optxn = op->get_txn();
     if (optxn->is_aborted())
       ; /* nop */
-    else {
-      /* if key was erased then it doesn't exist and we can return
-       * immediately */
-      if (op->get_flags() & TransactionOperation::kErase)
+    else if (optxn->is_committed() || context->txn == optxn) {
+      if (op->get_flags() & TransactionOperation::kIsFlushed)
+        ; /* continue */
+      else if (op->get_flags() & TransactionOperation::kErase) {
+        /* TODO does not check duplicates!! */
         return (true);
+      }
+      else if ((op->get_flags() & TransactionOperation::kInsert)
+          || (op->get_flags() & TransactionOperation::kInsertOverwrite)
+          || (op->get_flags() & TransactionOperation::kInsertDuplicate)) {
+        return (false);
+      }
     }
 
     op = op->get_previous_in_node();
   }
+
   return (false);
 }
 
@@ -400,27 +392,32 @@ retry:
    * if there was an approximate match: check if the btree provides
    * a better match
    */
-  ByteArray txnkey_arena;
   if (op && ham_key_get_intflags(key) & BtreeKey::kApproximate) {
     ham_key_t *k = op->get_node()->get_key();
-    txnkey_arena.resize(k->size);
 
-    ham_key_t txnkey = ham_make_key(txnkey_arena.get_ptr(), k->size);
+    ham_key_t txnkey = ham_make_key(::alloca(k->size), k->size);
     txnkey._flags = BtreeKey::kApproximate;
-    ::memcpy(txnkey.data, k->data, txnkey.size);
+    ::memcpy(txnkey.data, k->data, k->size);
 
     ham_key_set_intflags(key, 0);
 
-    // the "exact match" key was erased? then don't fetch it again
-    if (exact_is_erased)
-      flags = flags & (~HAM_FIND_EXACT_MATCH);
-
     // now lookup in the btree, but make sure that the retrieved key was
     // not deleted or overwritten in a transaction
-    if (cursor)
-      cursor->set_to_nil(LocalCursor::kBtree);
-    st = m_btree_index->find(context, cursor, key, pkey_arena, record,
-                    precord_arena, flags);
+    bool first_run = true;
+    do {
+      uint32_t new_flags = flags; 
+
+      // the "exact match" key was erased? then don't fetch it again
+      if (!first_run || exact_is_erased) {
+        first_run = false;
+        new_flags = flags & (~HAM_FIND_EXACT_MATCH);
+      }
+
+      if (cursor)
+        cursor->set_to_nil(LocalCursor::kBtree);
+      st = m_btree_index->find(context, cursor, key, pkey_arena, record,
+                      precord_arena, new_flags);
+    } while (st == 0 && is_key_erased(context, key));
 
     // if the key was not found in the btree: return the key which was found
     // in the transaction tree
@@ -447,95 +444,57 @@ retry:
 
     // the btree key is a direct match? then return it
     if ((!(ham_key_get_intflags(key) & BtreeKey::kApproximate))
-        && (flags & HAM_FIND_EXACT_MATCH)) {
+          && (flags & HAM_FIND_EXACT_MATCH)
+          && !exact_is_erased) {
       if (cursor)
         cursor->couple_to_btree();
-      cursor->set_lastop(Cursor::kLookupOrInsert);
       return (0);
     }
 
     // if there's an approx match in the btree: compare both keys and
-    // use the one that is "closer" to the requested key. if the btree
-    // is closer: make sure that it was not erased or overwritten in a
-    // transaction!
-    //
-    // This loop is repeated till we found a valid key.
-    while (st == 0) {
-      // if the txn-op was kErase then ignore it.
-      bool use_btree = false;
-      if ((op->get_flags() & TransactionOperation::kErase) != 0)
+    // use the one that is closer. if the btree is closer: make sure
+    // that it was not erased or overwritten in a transaction
+    int cmp = m_btree_index->compare_keys(key, &txnkey);
+    bool use_btree = false;
+    if (flags & HAM_FIND_GT_MATCH) {
+      if (cmp < 0)
         use_btree = true;
-      else {
-        int cmp = m_btree_index->compare_keys(key, &txnkey);
-        if (flags & HAM_FIND_GT_MATCH) {
-          if (cmp < 0)
-            use_btree = true;
-        }
-        else if (flags & HAM_FIND_LT_MATCH) {
-          if (cmp > 0)
-            use_btree = true;
-        }
-        else
-          ham_assert(!"shouldn't be here");
-      }
+    }
+    else if (flags & HAM_FIND_LT_MATCH) {
+      if (cmp > 0)
+        use_btree = true;
+    }
+    else
+      ham_assert(!"shouldn't be here");
 
-      if (use_btree) {
-        // lookup again, with the same flags and the btree key.
-        // this will check if the key was erased or overwritten
-        // in a transaction
-        if (!is_key_erased(context, key)) {
-          ham_key_set_intflags(key,
-            (ham_key_get_intflags(key) | BtreeKey::kApproximate));
-          return (0);
-        }
+    if (use_btree) {
+      // lookup again, with the same flags and the btree key.
+      // this will check if the key was erased or overwritten
+      // in a transaction
+      st = find_txn(context, cursor, key, record, flags | HAM_FIND_EXACT_MATCH);
+      if (st == 0)
+        ham_key_set_intflags(key,
+          (ham_key_get_intflags(key) | BtreeKey::kApproximate));
+      return (st);
+    }
+    else { // use txn
+      if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
+        pkey_arena->resize(txnkey.size);
+        key->data = pkey_arena->get_ptr();
       }
-      else { // use txn
-        if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-          pkey_arena->resize(txnkey.size);
-          key->data = pkey_arena->get_ptr();
-        }
-        if (txnkey.data)
-          ::memcpy(key->data, txnkey.data, txnkey.size);
-        key->size = txnkey.size;
-        key->_flags = txnkey._flags;
-
-        if (cursor) { // TODO merge those calls
-          cursor->get_txn_cursor()->couple_to_op(op);
-          cursor->couple_to_txnop();
-          cursor->set_to_nil(Cursor::kBtree);
-        }
-        if (record)
-          return (LocalDatabase::copy_record(this, context->txn, op, record));
-        return (0);
+      if (txnkey.data) {
+        ::memcpy(key->data, txnkey.data, txnkey.size);
       }
+      key->size = txnkey.size;
+      key->_flags = txnkey._flags;
 
-      // move to the next (or previous) key
-      st = m_btree_index->find(context, cursor, key, pkey_arena, record,
-                      precord_arena, flags);
-      // no btree found, no txn key found?
-      if (st == HAM_KEY_NOT_FOUND
-            && ((op->get_flags() & TransactionOperation::kErase) != 0))
-        break;
-      // no btree found, but txn key is valid?
-      if (st == HAM_KEY_NOT_FOUND) {
-        if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
-          pkey_arena->resize(txnkey.size);
-          key->data = pkey_arena->get_ptr();
-        }
-        if (txnkey.data)
-          ::memcpy(key->data, txnkey.data, txnkey.size);
-        key->size = txnkey.size;
-        key->_flags = txnkey._flags;
-
-        if (cursor) { // TODO merge those calls
-          cursor->get_txn_cursor()->couple_to_op(op);
-          cursor->couple_to_txnop();
-          cursor->set_to_nil(Cursor::kBtree);
-        }
-        if (record)
-          return (LocalDatabase::copy_record(this, context->txn, op, record));
-        return (0);
+      if (cursor) { // TODO merge those calls
+        cursor->get_txn_cursor()->couple_to_op(op);
+        cursor->couple_to_txnop();
       }
+      if (record)
+        return (LocalDatabase::copy_record(this, context->txn, op, record));
+      return (0);
     }
   }
 
@@ -916,7 +875,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
-    cursor = (LocalCursor *)cursor_create_impl(txn);
+    LocalCursor *cursor = (LocalCursor *)cursor_create_impl(txn);
 
     st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
     if (st)
@@ -1017,14 +976,14 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
 bail:
     if (cursor) {
-      cursor_close_impl(cursor);
+      cursor->close();
       delete cursor;
     }
     return (st == HAM_KEY_NOT_FOUND ? 0 : st);
   }
   catch (Exception &ex) {
     if (cursor) {
-      cursor_close_impl(cursor);
+      cursor->close();
       delete cursor;
     }
     return (ex.code);
@@ -1212,11 +1171,8 @@ LocalDatabase::find(Cursor *hcursor, Transaction *txn, ham_key_t *key,
     }
 
     // cursor: reset the dupecache, set to nil
-    // TODO merge both calls, only set to nil if find() was successful
-    if (cursor) {
-      cursor->clear_dupecache();
-      cursor->set_to_nil(Cursor::kBoth);
-    }
+    if (cursor)
+      cursor->set_to_nil(LocalCursor::kBoth);
 
     st = find_impl(&context, cursor, key, record, flags);
     if (st)
@@ -1233,15 +1189,7 @@ LocalDatabase::find(Cursor *hcursor, Transaction *txn, ham_key_t *key,
 
       /* if the key has duplicates: build a duplicate table, then couple to the
        * first/oldest duplicate */
-      if (get_flags() & HAM_ENABLE_DUPLICATES)
-        cursor->clear_dupecache();
-
-      if (cursor->get_dupecache_count(&context)) {
-        DupeCacheLine *e = cursor->get_dupecache()->get_first_element();
-        if (e->use_btree())
-          cursor->couple_to_btree();
-        else
-          cursor->couple_to_txnop();
+      if (cursor->get_dupecache_count(&context, true)) {
         cursor->couple_to_dupe(1); // 1-based index!
         if (record) { // TODO don't copy record if it was already
                       // copied in find_impl
@@ -1336,17 +1284,17 @@ LocalDatabase::cursor_move_impl(Context *context, LocalCursor *cursor,
 
   /* store the direction */
   if (flags & HAM_CURSOR_NEXT)
-    cursor->set_lastop(HAM_CURSOR_NEXT);
+    cursor->set_last_operation(HAM_CURSOR_NEXT);
   else if (flags & HAM_CURSOR_PREVIOUS)
-    cursor->set_lastop(HAM_CURSOR_PREVIOUS);
+    cursor->set_last_operation(HAM_CURSOR_PREVIOUS);
   else
-    cursor->set_lastop(0);
+    cursor->set_last_operation(0);
 
   if (st) {
     if (st == HAM_KEY_ERASED_IN_TXN)
       st = HAM_KEY_NOT_FOUND;
     /* trigger a sync when the function is called again */
-    cursor->set_lastop(0);
+    cursor->set_last_operation(0);
     return (st);
   }
 
@@ -1623,13 +1571,9 @@ LocalDatabase::insert_impl(Context *context, LocalCursor *cursor,
       // TODO merge with the line above
       cursor->set_to_nil(LocalCursor::kBtree);
 
-      /* reset the dupecache, otherwise cursor->get_dupecache_count()
-       * does not update the dupecache correctly */
-      dc->clear();
-      
       /* if duplicate keys are enabled: set the duplicate index of
        * the new key  */
-      if (st == 0 && cursor->get_dupecache_count(context)) {
+      if (st == 0 && cursor->get_dupecache_count(context, true)) {
         TransactionOperation *op = cursor->get_txn_cursor()->get_coupled_op();
         ham_assert(op != 0);
 
@@ -1725,13 +1669,11 @@ LocalDatabase::erase_impl(Context *context, LocalCursor *cursor, ham_key_t *key,
     st = m_btree_index->erase(context, cursor, key, 0, flags);
   }
 
-  /* on success: verify that cursor is now nil */
+  /* on success: 'nil' the cursor */
   if (cursor && st == 0) {
     cursor->set_to_nil(0);
-    cursor->couple_to_btree(); // TODO why?
     ham_assert(cursor->get_txn_cursor()->is_nil());
     ham_assert(cursor->is_nil(0));
-    cursor->clear_dupecache(); // TODO merge with set_to_nil()
   }
 
   return (st);

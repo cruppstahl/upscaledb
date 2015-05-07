@@ -274,8 +274,7 @@ class LocalCursor : public Cursor
       if (clear_cache)
         clear_dupecache();
 
-      TransactionCursor *txnc = get_txn_cursor();
-      if (txnc->get_coupled_op())
+      if (is_coupled_to_txnop())
         update_dupecache(context, kBtree | kTxn);
       else
         update_dupecache(context, kBtree);

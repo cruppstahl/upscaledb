@@ -7,12 +7,6 @@ x a finished TODO item
 
 ==============================================================================
 
-------------- hamsterdb-erlang 2.1.9 ---------------------------------
-
-o improve erlang integration
-    o integration for quickcheck-ci.com
-    x look into Thomas' mail
-
 ------------- hamsterdb pro 2.1.9 ------------------------------------
 
 x documentation rewrite
@@ -531,16 +525,9 @@ x zint32: new KeyList for Masked VByte encoding (use StreamVbyte as a
     x add unittests
     x add monster tests
 
-o zint32: would it make sense to have a block-based "compression" without
-      compression?
-
-o documentation related issues for 2.1.10
-    o HAM_RECORD_NUMBER32: add/update tutorial
-    o record data points into mapped storage
-
-
-
-
+x Erlang: investigate test failures
+    x in ham_eqc2 - no longer reproducible
+    x in test.erl
 
 
 x PRO: rebase to base/v2
@@ -594,7 +581,7 @@ x refactoring: the Cursor should be a top-level entity
         (move m_db to derived class?)
         x remove "evil cast"
 
-o Currently, the code uses linear search over small ranges. This is not
+x Currently, the code uses linear search over small ranges. This is not
     efficient. If the range is in the cache then binary search is still faster.
     x rename find_exact() and find_leaf() to find()
     x rename find_child() to find_lower_bound()
@@ -604,69 +591,18 @@ o Currently, the code uses linear search over small ranges. This is not
     x PAX: replace lower bound implementation with std::lower_bound
     x PAX: replace exact search implementation with std::lower_bound
     x run performance tests - not changed
-    o rebase PRO
-        o remove linear search and move mixed binary search/linear search to
+    x rebase PRO
+        x remove linear search and move mixed binary search/linear search to
             the PRO PaxKeyList
-        o run performance comparison
+        x run performance comparison
 
-<<<<<<< HEAD
-o refactoring: improve the code separation of cursor, btree_cursor
-    and txn_cursor, i.e. in db_local::cursor_get_record_size (wtf - is_null(0)?)
-    etc
-<<<<<<< HEAD
-    o the whole cursor state is messed up. there should be 3 states:
-        - nil
-        - coupled to btree
-        - coupled to txn
-        and nothing else!
-    o there should be a key() and a record() method; the caller should
-        not get access to txn_cursor/btree_cursor etc
-    o cursor.cc has so many TODOs!
+./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=500000  --seed=1430998263
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-o internal nodes should use 32bit page IDs!
-    -> but should still work with 64bit IDs for in-memory environments
 
-=======
->>>>>>> d1bb5f4... Improving reclaim_space functionality
-o Refactoring: move functions from btree_index.cc to btree_action.cc. This will
-    be the base class for BtreeAction*.
-    This includes...
-        - find_child()
-        - find_leaf()
-        - all functions from BtreeUpdateAction
-    o remove get_key_type() etc; use the DatabaseConfiguration instead
-    o There should be a function to store the DatabaseConfiguration in
-        the Headerpage, and one to load the configuration. remove those
-        get_*_compression/set_*_compression methods!
-    o rename release() to drop()
-    o db.h: rename erase_me() to drop()
 
-<<<<<<< HEAD
-=======
->>>>>>> 08031fa... Cleanup of the BlobManager code; no functional changes
-=======
-=======
-    o clean up the interface, remove dependencies
-        o there should be 3 states:
-            - nil
-            - coupled to btree
-            - coupled to txn
-            o state() - returns the state
-            o set_state() - changes the state
-    o key() returns the current (coupled) key
-    o record() returns the current (coupled) record
-    o clean up duplicate cache handling; avoid direct access from outside
-    o try to remove parent pointer from BtreeCursor
-    o try to remove parent pointer from TxnCursor
-    o fix the TODOs in cursor.cc
-    o fix the TODOs in db_local.cc
-    o run monster tests
 
->>>>>>> dcc30d0... Rewriting binary search interface
-=======
->>>>>>> 862f47d... Using shadow pages to avoid spinlock contention
+
+
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
@@ -694,7 +630,13 @@ o There are performance issues related to cache flushes.
     o set breakpoint if spinlock spins more than 100 times; identify the
         bottleneck, try to improve
 
->>>>>>> 8db047f... More cleanups
+o release v2 as 2.1.11
+    o master: reset --hard v2, tag, push
+    o rebase topic/next to v2; reset v2 to topic/next;
+    o rebase topic/txn to v2; reset topic/next to topic/txn; remove topic/txn
+    o rebase pro/topic/next to base/v2
+
+
 o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
@@ -836,11 +778,18 @@ o BtreeUpdate managed in the BtreeNode
 
     BtreeUpdate are a sorted (!) linked list. Prior to merge, those
     BtreeUpdate that delete keys will be applied.
-    The Update structure has a pointer to its Transaction. If the Transaction
-    is committed or aborted, then the Update state is set to "committed"
-    (or "aborted"). When merging, aborted Updates are removed. The Transaction
-    pointer is only followed if the state of the Transaction is not clear (i.e.
-    either committed or aborted). 
+
+    The DeltaUpdate structure should be parameterized, just like the Btree
+    (i.e. use the identical type and compare function).
+
+    Pages are not merged or split as long as BUs are attached. Instead of a
+    split the page is grown and moved.
+
+    The DeltaUpdate structure has a pointer to its Transaction. If the
+    Transaction is committed or aborted, then the DeltaUpdate state is set to
+    "committed" (or "aborted"). When merging, aborted BtreeUpdate are removed.
+    The Transaction pointer is only followed if the state of the Transaction is
+    not clear (i.e. either committed or aborted). 
        
     For recovery, only few changes are required. All BtreeUpdates are
     written to the journal. Each has its own lsn, and each page stores the
@@ -851,7 +800,7 @@ o BtreeUpdate managed in the BtreeNode
     During recovery, BUs are appended to their pages. No flushes/commits
     are necessary. It is also not necessary to re-open the journal.
 
-    o create an Update struct
+    o create a DeltaUpdate struct
         o template parmeters for key and compare function
         o key, record, ...
         o the state (committed, aborted)
@@ -877,8 +826,14 @@ o BtreeUpdate managed in the BtreeNode
     o Each BtreeNodeProxy manages a (single) linked list of BtreeUpdate
         o but also keep track of the tail for fast append operations
     o This linked list is always sorted
-    o Add a flag to force-flush immediately (disable queueing)
-    o Merge the updates (naive implementation: insert one by one)
+    o Add a flag to force-flush immediately (disable queueing) - per database!
+        -> this is a counter which specifies the queue length till the queue
+            is merged. default is max<int>, 0 disables queueing
+        o support this in ham_bench
+
+    o Merge the updates (naive implementation: apply one by one)
+        o first apply "delete" operations
+        o then all others
         o ... before flushing the page
         o ... before all other operations
     o When splitting the page: re-distribute the updates to the
@@ -978,22 +933,7 @@ o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
 
-<<<<<<< HEAD
->>>>>>> fda0d1c... Now allocating excess storage at the end of the file to avoid ftruncate()
-. investigate "pointer swizzling": internal btree nodes should store "hints"
-    to the actual Page, not the Page IDs, as soon as the Page was loaded for
-    the first time. This could circumvent the buffer cache and increase
-    performance.
-    How to invalidate those hints or discover that a page was evicted from
-    cache?
-    - Eviction could only free the persistent part of a page, and not the
-        stub.
-    - Could also use reference counting for the page
-
-. improve the webpage documentation
-=======
 o improve the webpage documentation
->>>>>>> d1bb5f4... Improving reclaim_space functionality
     o document the various btree formats on the webpage, with images
         o variable length keys (w/ extended keys)
         o POD keys
