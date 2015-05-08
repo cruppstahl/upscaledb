@@ -86,7 +86,8 @@ class PageManagerWorker : public Worker
             ham_assert(page_data != 0);
             ham_assert(page_data->mutex.try_lock() == false);
             try {
-              Page::flush(fpm->device, page_data);
+              if (page_data->raw_data != 0)
+                Page::flush(fpm->device, page_data);
             }
             catch (Exception &ex) {
               page_data->mutex.unlock();

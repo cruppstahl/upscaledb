@@ -15,10 +15,9 @@ condition on Win32 which can lead to application crashes. The other bugs can
 lead to wrong query results if Transactions are enabled and approximate
 matching is used.
 
-The file format is compatible to 2.1.10.
+In addition, there were minor performance improvements.
 
-Unless you use Win32 or Transactions w/ approx. matching there is no need
-to upgrade. Otherwise the upgrade is highly recommended.
+The file format is compatible to 2.1.10.
 
 2. Changes
 
@@ -33,6 +32,7 @@ Bugfixes
 * issue #50: removing problematic debug checks
 
 Other Changes
+* Reducing I/O operations by allocating large buffers if file grows fast
 * Add InsertRecNo method to hamsterdb-dotnet (thanks, mjmckp)
 
 To see a list of all changes, look in the file ChangeLog.

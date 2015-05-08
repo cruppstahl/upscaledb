@@ -736,12 +736,14 @@ PageManager::safely_lock_page(Context *context, Page *page,
   Page::PersistedData *old_data = 0;
 
   // if the page is not yet in the changeset, but already locked: create a copy!
+#if 0
   if (!context->changeset.has(page)) {
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
     // unlock again, or changeset.put() will block
     page->mutex().unlock();
   }
+#endif
 
   context->changeset.put(page);
 

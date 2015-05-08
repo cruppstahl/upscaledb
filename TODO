@@ -596,7 +596,8 @@ x Currently, the code uses linear search over small ranges. This is not
             the PRO PaxKeyList
         x run performance comparison
 
-./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=500000  --seed=1430998263
+x fix a regression
+    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 --recsize=0 --bulk-erase --distribution=random --extkey-threshold=20 --recsize=0 --stop-ops=500000  --seed=1430998263
 
 
 
@@ -623,6 +624,8 @@ o There are performance issues related to cache flushes.
     x ... and therefore the main thread can swap them if the page is locked!
     x compare performance - looks good, peaks are gone
     x fix unittests
+    ===> implemented, but currenlty disabled. Causes test failures when
+        running i.e. 1/45.tst with --cache=50 vs berkeleydb
     o run unittests with posix mutexes
     o run with helgrind
     o run monster tests
