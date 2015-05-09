@@ -178,18 +178,23 @@ class DiskDevice : public Device {
         m_state.excess_at_end -= len;
       }
       else {
-        uint64_t excess;
+        uint64_t excess = 0;
 
         // if the file is large enough then allocate more space to avoid
         // frequent calls to ftruncate()
-        if (m_state.file_size < len * 100)
-          excess = 0;
-        else if (m_state.file_size < len * 250)
-          excess = len * 100;
-        else if (m_state.file_size < len * 1000)
-          excess = len * 250;
-        else
-          excess = len * 1000;
+        //
+        // this breaks recovery, therefore disable this feature if recovery
+        // is enabled. 
+        if ((m_config.flags & HAM_ENABLE_RECOVERY) == 0) {
+          if (m_state.file_size < len * 100)
+            excess = 0;
+          else if (m_state.file_size < len * 250)
+            excess = len * 100;
+          else if (m_state.file_size < len * 1000)
+            excess = len * 250;
+          else
+            excess = len * 1000;
+        }
 
         address = m_state.file_size;
         truncate(address + len + excess);
