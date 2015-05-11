@@ -394,24 +394,25 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
   // Returns a decompressed value
   static uint32_t select(GroupVarintIndex *index, uint32_t *in, int slot) {
     const uint8_t *inbyte = reinterpret_cast<const uint8_t *> (in);
-    uint32_t out[4];
+    uint32_t out[4] = {0};
     uint32_t initial = index->value();
     uint32_t nvalue = index->key_count() - 1;
     int i = 0;
 
     if (slot + 3 < (int)nvalue) {
       while (true) {
+        while (i + 4 <= slot) {
+          inbyte = scanGroupVarIntDelta(inbyte, &initial);
+          i += 4;
+        }
         inbyte = decodeGroupVarIntDelta(inbyte, &initial, out);
-        i += 4;
-        if (i > slot)
-          return (out[slot - (i - 4)]);
+        return (out[slot - i]);
       }
-      ham_assert(false); // we should never get here
     } // else
 
     // we finish with the uncommon case
     while (i + 3 < slot) { // a single branch will do for this case (bulk of the computation)
-      inbyte = decodeGroupVarIntDelta(inbyte, &initial, out);
+      inbyte = scanGroupVarIntDelta(inbyte, &initial);
       i += 4;
     }
     // lots of branching ahead...
@@ -435,6 +436,30 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
     }
     ham_assert(false); // we should never get here
     throw Exception(HAM_INTERNAL_ERROR);
+  }
+
+  static const uint8_t *scanGroupVarIntDelta(const uint8_t *in, uint32_t *val) {
+    const uint32_t sel = *in++;
+    if (sel == 0) {
+      *val += static_cast<uint32_t>(in[0]);
+      *val += static_cast<uint32_t>(in[1]);
+      *val += static_cast<uint32_t>(in[2]);
+      *val += static_cast<uint32_t>(in[3]);
+      return (in + 4);
+    }
+    const uint32_t sel1 = (sel & 3);
+    *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel1];
+    in += sel1 + 1;
+    const uint32_t sel2 = ((sel >> 2) & 3);
+    *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel2];
+    in += sel2 + 1;
+    const uint32_t sel3 = ((sel >> 4) & 3);
+    *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel3];
+    in += sel3 + 1;
+    const uint32_t sel4 = (sel >> 6);
+    *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel4];
+    in += sel4 + 1;
+    return (in);
   }
 
   static size_t encodeArray(uint32_t initial, const uint32_t *in,
