@@ -47,7 +47,7 @@
 namespace hamsterdb {
 
 class LocalCursor;
-class Context;
+struct Context;
 
 //
 // An cursor which can iterate over Transaction nodes

@@ -266,7 +266,6 @@ File::seek(uint64_t offset, int whence)
                 DisplayError(buf, sizeof(buf), err)));
     throw Exception(HAM_IO_ERROR);
   }
-  ham_assert(i2.QuadPart == offset);
 }
 
 uint64_t

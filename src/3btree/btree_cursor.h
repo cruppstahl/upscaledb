@@ -56,7 +56,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class LocalCursor;
 class BtreeIndex;
 class Page;

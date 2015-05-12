@@ -42,7 +42,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 
 // A single line in the dupecache structure - can reference a btree
 // record or a txn-op

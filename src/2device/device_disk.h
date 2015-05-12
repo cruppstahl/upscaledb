@@ -184,7 +184,10 @@ class DiskDevice : public Device {
         // frequent calls to ftruncate()
         //
         // this breaks recovery, therefore disable this feature if recovery
-        // is enabled. 
+        // is enabled.
+        //
+        // disabled on win32 because truncating a mapped file is not allowed
+#ifndef WIN32
         if ((m_config.flags & HAM_ENABLE_RECOVERY) == 0) {
           if (m_state.file_size < len * 100)
             excess = 0;
@@ -195,6 +198,7 @@ class DiskDevice : public Device {
           else
             excess = len * 1000;
         }
+#endif
 
         address = m_state.file_size;
         truncate(address + len + excess);

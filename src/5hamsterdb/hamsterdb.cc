@@ -86,7 +86,7 @@ ham_txn_get_name(ham_txn_t *htxn)
   if (!txn)
     return (0);
 
-  const std::string &name = txn->get_env()->txn_get_name(txn);
+  const std::string &name = txn->get_name();
   return (name.empty() ? 0 : name.c_str());
 }
 

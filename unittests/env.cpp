@@ -111,16 +111,15 @@ struct EnvFixture {
        { 0, 0 }
     };
 
-    ham_parameter_t ps[]={
+    ham_parameter_t ps[] = {
        { HAM_PARAM_CACHESIZE,0},
        { HAM_PARAM_PAGESIZE, 0},
        { HAM_PARAM_MAX_DATABASES, 0},
        { 0, 0 }
     };
 
-    REQUIRE(0 ==
-      ham_env_create(&env, Utils::opath(".test"),
-        m_flags, 0664, parameters));
+    REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"),
+                        m_flags, 0664, parameters));
     REQUIRE(0 == ham_env_get_parameters(env, ps));
     REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((uint64_t)(64 * 1024u) == ps[1].value);
@@ -144,13 +143,11 @@ struct EnvFixture {
     for (i = 0; i < 128; i++) {
       int j;
 
-      REQUIRE(0 ==
-          ham_env_create_db(env, &db[i], i + 100, 0, 0));
+      REQUIRE(0 == ham_env_create_db(env, &db[i], i + 100, 0, 0));
       REQUIRE(HAM_DATABASE_ALREADY_EXISTS ==
           ham_env_create_db(env, &dbx, i + 100, 0, 0));
       REQUIRE(0 == ham_db_close(db[i], 0));
-      REQUIRE(0 ==
-          ham_env_open_db(env, &db[i], i + 100, 0, 0));
+      REQUIRE(0 == ham_env_open_db(env, &db[i], i + 100, 0, 0));
 
       for (j = 0; ps[j].name; j++)
         ps[j].value = 0;

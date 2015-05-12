@@ -40,7 +40,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class LocalCursor;
 
 #include "1base/packstart.h"

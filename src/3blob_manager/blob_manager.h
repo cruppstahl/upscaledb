@@ -37,7 +37,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 class Device;
 class PageManager;
 class EnvironmentConfiguration;

@@ -1034,6 +1034,45 @@
               </list>
             </exception>
         </member>
+        <member name="M:Hamster.Database.InsertRecNo(System.Byte[])">
+            <summary>
+            Inserts a Database Item into a Record Number Database
+            </summary>
+            <remarks>
+            This is an overloaded function for
+              Database.InsertRecNo(null, record, 0).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.InsertRecNo(System.Byte[],System.Int32)">
+            <summary>
+            Inserts a Database Item into a Record Number Database
+            </summary>
+            <remarks>
+            This is an overloaded function for
+              Database.InsertRecNo(null, record, flags).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.InsertRecNo(Hamster.Transaction,System.Byte[],System.Int32)">
+            <summary>
+            Inserts a Database Item into a Record Number Database
+            </summary>
+            <returns name="key">The key of the new item</returns>
+            <remarks>
+            This method wraps the native ham_db_insert function.
+            <br/>
+            This function inserts a record as a new Database item.
+            <br/>
+            </remarks>
+            <param name="txn">An optional Transaction object</param>
+            <param name="record">The record of the new item</param>
+            <param name="flags">Optional flags for this operation.</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+              <item><see cref="F:Hamster.HamConst.HAM_WRITE_PROTECTED"/>
+                if you tried to insert a key in a read-only Database</item>
+              </list>
+            </exception>
+        </member>
         <member name="M:Hamster.Database.Erase(System.Byte[])">
             <summary>
             Erases a Database Item
