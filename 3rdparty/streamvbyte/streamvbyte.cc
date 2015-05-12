@@ -794,8 +794,8 @@ static inline int find_lower_bound(uint32_t *out, uint32_t length, uint32_t key)
   return (std::lower_bound(out, out + length, key) - out);
 }
 
-int svb_find_avx_d1_init(uint8_t *restrict keyPtr,
-                         uint8_t *restrict dataPtr, uint64_t count,
+int svb_find_avx_d1_init(uint8_t *keyPtr,
+                         uint8_t *dataPtr, uint64_t count,
                          uint32_t prev, uint32_t key, uint32_t *presult) {
     uint32_t out[32];
 	uint64_t keybytes = count / 4; // number of key bytes
@@ -1012,8 +1012,8 @@ int svb_find_avx_d1_init(uint8_t *restrict keyPtr,
     return (count);
 }
 
-int svb_find_scalar_d1_init(uint8_t *restrict keyPtr,
-                         uint8_t *restrict dataPtr, uint64_t count,
+int svb_find_scalar_d1_init(uint8_t *keyPtr,
+                         uint8_t *dataPtr, uint64_t count,
                          uint32_t prev, uint32_t searchkey, uint32_t *presult) {
     uint8_t shift = 0;
     uint32_t key = *keyPtr++;
@@ -1037,11 +1037,12 @@ int svb_find_scalar_d1_init(uint8_t *restrict keyPtr,
 }
 
 
-uint32_t svb_select_scalar_d1_init(uint8_t *restrict keyPtr,
-                         uint8_t *restrict dataPtr, uint64_t count,
-                         uint32_t prev, int slot) {
+uint32_t svb_select_scalar_d1_init(uint8_t *keyPtr, uint8_t *dataPtr,
+                          uint64_t count, uint32_t prev, int slot) {
     uint8_t shift = 0;
     uint32_t key = *keyPtr++;
+
+    (void)count;
 
     // make sure that the loop is run at least once
     for (int c = 0; c <= slot; c++) {
@@ -1056,16 +1057,63 @@ uint32_t svb_select_scalar_d1_init(uint8_t *restrict keyPtr,
     return prev;
 }
 
-uint32_t svb_select_avx_d1_init(uint8_t *restrict keyPtr,
-                         uint8_t *restrict dataPtr, uint64_t count,
+static inline void _scan_16bit_avx_d1(xmm_t Vec, xmm_t &PrevHi, xmm_t &PrevLow) {
+    xmm_t Prev = PrevHi;
+    // vec == [A B C D E F G H] (16 bit values)
+    xmm_t Add = _mm_slli_si128(Vec, 2);               // [- A B C D E F G] 
+    Prev = _mm_shuffle_epi32(Prev, BroadcastLastXMM); // [P P P P] (32-bit)
+    Vec = _mm_add_epi32(Vec, Add);                    // [A AB BC CD DE FG GH]
+    Add = _mm_slli_si128(Vec, 4);                     // [- - A AB BC CD DE EF]
+    Vec = _mm_add_epi32(Vec, Add);                    // [A AB ABC ABCD BCDE CDEF DEFG EFGH]
+    PrevLow = _mm_cvtepu16_epi32(Vec);                // [A AB ABC ABCD] (32-bit)
+    PrevLow = _mm_add_epi32(PrevLow, Prev);           // [PA PAB PABC PABCD] (32-bit)
+    PrevHi = _mm_shuffle_epi8(Vec, High16To32);       // [BCDE CDEF DEFG EFGH] (32-bit)
+    PrevHi = _mm_add_epi32(PrevHi, PrevLow);          // [PABCDE PABCDEF PABCDEFG PABCDEFGH] (32-bit)
+}
+
+static inline xmm_t _scan_avx_d1(xmm_t Vec, xmm_t Prev) {
+    xmm_t Add = _mm_slli_si128(Vec, 4);               // Cycle 1: [- A B C] (already done)
+    Prev = _mm_shuffle_epi32(Prev, BroadcastLastXMM); // Cycle 2: [P P P P]
+    Vec = _mm_add_epi32(Vec, Add);                    // Cycle 2: [A AB BC CD]
+    Add = _mm_slli_si128(Vec, 8);                     // Cycle 3: [- - A AB]
+    Vec = _mm_add_epi32(Vec, Prev);                   // Cycle 3: [PA PAB PBC PCD]
+    return _mm_add_epi32(Vec, Add);                   // Cycle 4: [PA PAB PABC PABCD]
+}
+
+#if defined(_MSC_VER)
+#  define STREAMVBYTE_ALIGNED(x) __declspec(align(x))
+#else
+#  if defined(__GNUC__)
+#    define STREAMVBYTE_ALIGNED(x) __attribute__ ((aligned(x)))
+#  endif
+#endif
+
+STREAMVBYTE_ALIGNED(16) int8_t streamvbyte_shuffle_mask_bytes[256] = {
+        0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,
+        4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0,
+        8,9,10,11,0,0,0,0,0,0,0,0,0,0,0,0,
+        12,13,14,15,0,0,0,0,0,0,0,0,0,0,0,0,
+  };
+
+static const __m128i *shuffle_mask = (__m128i *)streamvbyte_shuffle_mask_bytes;
+
+static inline uint32_t _extract_from_xmm(xmm_t *PrevHi, xmm_t *PrevLow, int i) {
+    static const int indices[] = {0, 0, 0, 0, 1, 1, 1, 1};
+    xmm_t *prevs[2] = {PrevLow, PrevHi};
+    return _mm_cvtsi128_si32(
+                _mm_shuffle_epi8(*prevs[indices[i]], shuffle_mask[i & 3]));
+}
+
+uint32_t svb_select_avx_d1_init(uint8_t *keyPtr,
+                         uint8_t *dataPtr, uint64_t count,
                          uint32_t prev, int slot) {
-    uint32_t out[32];
 	uint64_t keybytes = count / 4; // number of key bytes
     int consumedInts = 0;
 
     // make sure that the loop is run at least once
 	if (keybytes >= 8) {
-		xmm_t Prev = _mm_set1_epi32(prev);
+		xmm_t PrevHi = _mm_set1_epi32(prev);
+		xmm_t PrevLow;
 		xmm_t Data;
 
 		int64_t Offset = -(int64_t) keybytes / 8 + 1;
@@ -1079,28 +1127,28 @@ uint32_t svb_select_avx_d1_init(uint8_t *restrict keyPtr,
 			if (!keys) {  // 32 1-byte ints in a row
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 8)
-                  return out[slot - consumedInts];
+                  return _extract_from_xmm(&PrevHi, &PrevLow, slot - consumedInts);
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr + 8)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 16)
-                  return out[slot - (consumedInts + 8)];
+                  return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 8));
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr + 16)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 24)
-                  return out[slot - (consumedInts + 16)];
+                  return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 16));
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr + 24)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 32)
-                  return out[slot - (consumedInts + 24)];
+                  return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 24));
 
 				dataPtr += 32;
                 consumedInts += 32;
@@ -1108,39 +1156,39 @@ uint32_t svb_select_avx_d1_init(uint8_t *restrict keyPtr,
 			}
 
 			Data = _decode_avx(keys & 0x00FF, &dataPtr);
-			Prev = _write_avx_d1(out, Data, Prev);
+			PrevLow = _scan_avx_d1(Data, PrevHi);
 			Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-			Prev = _write_avx_d1(out + 4, Data, Prev);
+			PrevHi = _scan_avx_d1(Data, PrevLow);
             // check 8 ints
             if (slot < consumedInts + 8)
-                return out[slot - consumedInts];
+                return _extract_from_xmm(&PrevHi, &PrevLow, slot - consumedInts);
 
 			keys >>= 16;
 			Data = _decode_avx((keys & 0x00FF), &dataPtr);
-			Prev = _write_avx_d1(out, Data, Prev);
+			PrevLow = _scan_avx_d1(Data, PrevHi);
 			Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-			Prev = _write_avx_d1(out + 4, Data, Prev);
+			PrevHi = _scan_avx_d1(Data, PrevLow);
             // check 8 ints
             if (slot < consumedInts + 16)
-                return out[slot - (consumedInts + 8)];
+                return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 8));
 
 			keys >>= 16;
 			Data = _decode_avx((keys & 0x00FF), &dataPtr);
-			Prev = _write_avx_d1(out, Data, Prev);
+			PrevLow = _scan_avx_d1(Data, PrevHi);
 			Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-			Prev = _write_avx_d1(out + 4, Data, Prev);
+			PrevHi = _scan_avx_d1(Data, PrevLow);
             // check 8 ints
             if (slot < consumedInts + 24)
-                return out[slot - (consumedInts + 16)];
+                return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 16));
 
 			keys >>= 16;
 			Data = _decode_avx((keys & 0x00FF), &dataPtr);
-			Prev = _write_avx_d1(out, Data, Prev);
+			PrevLow = _scan_avx_d1(Data, PrevHi);
 			Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-			Prev = _write_avx_d1(out + 4, Data, Prev);
+			PrevHi = _scan_avx_d1(Data, PrevLow);
             // check 8 ints
             if (slot < consumedInts + 32)
-                return out[slot - (consumedInts + 24)];
+                return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 24));
 
             consumedInts += 32;
 		}
@@ -1150,75 +1198,78 @@ uint32_t svb_select_avx_d1_init(uint8_t *restrict keyPtr,
 			// faster 16-bit delta since we only have 8-bit values
 			if (!keys) {  // 32 1-byte ints in a row
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 8)
-                    return out[slot - consumedInts];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - consumedInts);
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr + 8)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 16)
-                    return out[slot - (consumedInts + 8)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 8));
 
 				Data = _mm_cvtepu8_epi16(_mm_lddqu_si128((xmm_t *) (dataPtr + 16)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 24)
-                    return out[slot - (consumedInts + 16)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 16));
 
 				Data = _mm_cvtepu8_epi16(_mm_loadl_epi64((xmm_t *) (dataPtr + 24)));
-				Prev = _write_16bit_avx_d1(out, Data, Prev);
+				_scan_16bit_avx_d1(Data, PrevHi, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 32)
-                    return out[slot - (consumedInts + 24)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 24));
 
 				dataPtr += 32;
                 consumedInts += 32;
-		        prev = out[7];
 
 			} else {
 
 				Data = _decode_avx(keys & 0x00FF, &dataPtr);
-				Prev = _write_avx_d1(out, Data, Prev);
+				PrevLow = _scan_avx_d1(Data, PrevHi);
 				Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-				Prev = _write_avx_d1(out + 4, Data, Prev);
+				PrevHi = _scan_avx_d1(Data, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 8)
-                    return out[slot - consumedInts];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - consumedInts);
 
 				keys >>= 16;
 				Data = _decode_avx((keys & 0x00FF), &dataPtr);
-				Prev = _write_avx_d1(out, Data, Prev);
+				PrevLow = _scan_avx_d1(Data, PrevHi);
 				Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-				Prev = _write_avx_d1(out + 4, Data, Prev);
+				PrevHi = _scan_avx_d1(Data, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 16)
-                    return out[slot - (consumedInts + 8)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 8));
 
 				keys >>= 16;
 				Data = _decode_avx((keys & 0x00FF), &dataPtr);
-				Prev = _write_avx_d1(out, Data, Prev);
+				PrevLow = _scan_avx_d1(Data, PrevHi);
 				Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-				Prev = _write_avx_d1(out + 4, Data, Prev);
+				PrevHi = _scan_avx_d1(Data, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 24)
-                    return out[slot - (consumedInts + 16)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 16));
 
 				keys >>= 16;
 				Data = _decode_avx((keys & 0x00FF), &dataPtr);
-				Prev = _write_avx_d1(out, Data, Prev);
+				PrevLow = _scan_avx_d1(Data, PrevHi);
 				Data = _decode_avx((keys & 0xFF00) >> 8, &dataPtr);
-				Prev = _write_avx_d1(out + 4, Data, Prev);
+				PrevHi = _scan_avx_d1(Data, PrevLow);
                 // check 8 ints
                 if (slot < consumedInts + 32)
-                    return out[slot - (consumedInts + 24)];
+                    return _extract_from_xmm(&PrevHi, &PrevLow, slot - (consumedInts + 24));
 
                 consumedInts += 32;
-		        prev = out[7];
 			}
+
+            // extract the highest integer which was stored so far;
+            // it will be the "prev" value for the remaining data
+		    prev = _mm_extract_epi32(PrevHi, 3);
 		}
 	}
+
 	uint64_t consumedkeys = keybytes - (keybytes & 7);
     uint32_t keysleft = count & 31;
     return svb_select_scalar_d1_init(keyPtr + consumedkeys, dataPtr,
