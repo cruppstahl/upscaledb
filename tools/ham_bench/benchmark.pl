@@ -3,8 +3,8 @@
 #@compression=('none', 'zint32_simdcomp', 'zint32_varbyte', 
               #'zint32_groupvarint', 'zint32_streamvbyte',
               #'zint32_maskedvbyte', 'zint32_blockindex');
-@compression=('zint32_simdcomp', 'zint32_groupvarint', 'zint32_maskedvbyte');
-@limit=('50000000');
+@compression=('zint32_streamvbyte');
+@limit=('20000000');
 @records=('0');
 
 for $c (@compression) {
@@ -14,9 +14,9 @@ for $c (@compression) {
       print "==========================================================\n";
       #run_test($c, $l, $r, 'zipfian insert', "./ham_bench --stop-ops=$l  --key=uint32 --key-compression=$c --recsize-fixed=$r --metrics=all --quiet --seed=1 --distribution=zipfian --cache=500000000");
       #`cp test-ham.db test-ham-$c-zipf.db`;
-      `cp test-ham-$c-zipf.db test-ham.db`;
 
-      for (my $i = 0; $i <= 9; $i++) {
+      `cp test-ham-$c-zipf.db test-ham.db`;
+      for (my $i = 0; $i <= 4; $i++) {
         run_test($c, $l, $r, 'zipfian lookup', "./ham_bench --stop-ops=$l  --key=uint32 --key-compression=$c --recsize-fixed=$r --metrics=all --quiet --seed=1 --open --find-pct=100 --distribution=zipfian");
       }
 
@@ -24,7 +24,7 @@ for $c (@compression) {
       #`cp test-ham.db test-ham-$c-seq.db`;
 
       `cp test-ham-$c-seq.db test-ham.db`;
-      for (my $i = 0; $i <= 9; $i++) {
+      for (my $i = 0; $i <= 4; $i++) {
         run_test($c, $l, $r, 'sequential lookup', "./ham_bench --stop-ops=$l  --key=uint32 --key-compression=$c --recsize-fixed=$r --metrics=all --quiet --seed=1 --open --find-pct=100 --distribution=ascending");
       }
     }
