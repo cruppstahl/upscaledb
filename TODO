@@ -7,9 +7,7 @@ x a finished TODO item
 
 ==============================================================================
 
-o zint32: groupvarint: increase "groups per blocks" to 16 (monster tests
-    are failing)
-    o print used size after every modification; is there a pattern?
+o investigate failure in erlang qc-tests
 
 o refactoring of the whole transaction-mess
     goals:
