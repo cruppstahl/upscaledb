@@ -693,7 +693,6 @@ PageManager::safely_lock_page(Context *context, Page *page,
 {
   Page::PersistedData *old_data = 0;
 
-#if 0
   // if the page is not yet in the changeset, but already locked: create a copy!
 #if 0
   if (!context->changeset.has(page)) {

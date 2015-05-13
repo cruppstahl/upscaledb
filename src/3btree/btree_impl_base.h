@@ -39,7 +39,7 @@
 
 namespace hamsterdb {
 
-class Context;
+struct Context;
 
 template<typename KeyList, typename RecordList>
 class BaseNodeImpl
