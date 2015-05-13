@@ -875,7 +875,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     lenv()->page_manager()->purge_cache(&context);
 
     /* create a cursor, move it to the first key */
-    LocalCursor *cursor = (LocalCursor *)cursor_create_impl(txn);
+    cursor = (LocalCursor *)cursor_create_impl(txn);
 
     st = cursor_move_impl(&context, cursor, &key, 0, HAM_CURSOR_FIRST);
     if (st)

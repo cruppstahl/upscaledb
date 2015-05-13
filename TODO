@@ -9,6 +9,7 @@ x a finished TODO item
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 o investigate failure in erlang qc-tests
 
 o refactoring of the whole transaction-mess
@@ -696,6 +697,17 @@ x refactoring: the Cursor should be a top-level entity
         x remove "evil cast"
 
 x There are performance issues related to cache flushes.
+=======
+o release v2 as 2.1.11
+    x master: reset --hard v2, tag, push
+    o rebase topic/next to v2; reset v2 to topic/next;
+    o rebase topic/txn to v2; reset topic/next to topic/txn; remove topic/txn
+    o rebase pro/topic/next to base/v2
+
+o an erlang test case is currently failing - investigate
+
+o There are performance issues related to cache flushes.
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
         significant latency spike when fetching a locked page
@@ -715,56 +727,34 @@ x There are performance issues related to cache flushes.
     x ... and therefore the main thread can swap them if the page is locked!
     x compare performance - looks good, peaks are gone
     x fix unittests
-    x run unittests with posix mutexes
+    ===> implemented, but currenlty disabled. Causes test failures when
+        running i.e. 1/45.tst with --cache=50 vs berkeleydb
+    o run unittests with posix mutexes
+    o run with helgrind
+    o run monster tests
 
-    x spinlock: only a locked mutex can be unlocked! add an assert
-    x spinlock: only an unlocked mutex can be destroyed! add an assert
+    o set breakpoint if spinlock spins more than 100 times; identify the
+        bottleneck, try to improve
 
-    x fix helgrind erros and race conditions
-        x the main thread triggers the worker thread, but does not send any
-            pages (only the "limit" parameter)
-        x the worker thread then retrieves the purge candidates asynchronously,
-            locks them in the worker thread
-        x then proceeds as usual
-        x what about the last_blob_page?
-        x is there a race condition when accessing pages in the cache? - yes
-        x fix lock order in Cache::purge_if() selector
-            valgrind --tool=helgrind ./ham_bench --stop-ops=1000 \
-                    --recsize-fixed=0 --cache=10
-        x continue checking with helgrind
-    x test fails: ./ham_bench --seed=1425913620 --cache=1 --recsize-fixed=0 \
-            --recsize=0 --distribution=random --stop-ops=1000
-    x worker: add method add_and_wait(), and add generic message which can
-        block like a promise (basically use the current code but make it
-        generic because we will need this in other places as well)
-        x rewrite the messages which are currently blocking (flush, close_db)
-    x check mutex contention times - the Cache mutex hurts...
-    x run monster tests
+o ftruncate() allocates larger buffers than required, for performance
+    reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
+    therefore excess allocations were disabled if recovery is enabled
+    (and on Win32)
+    -> enable again if recovery is enabled (but not on Win32)
 
-x Concurrency: could be improved if each cache line had its own spinlock.
-    The likelyhood of contention would then decrease dramatically!
+o PRO: files are hard to "diff" because each file is different from the APL
+    version b/c of the license header. Change all license headers to a generic
+    one, pointing to the COPYING file in the root directory - 
+        - for APL
+        - for commercial, proprietary, closed source
+        - for the evaluation version
+    o then rebase PRO
 
-x Currently, the code uses linear search over small ranges. This is not
-    efficient. If the range is in the cache then binary search is still faster.
-    x rename find_exact() and find_leaf() to find()
-    x rename find_child() to find_lower_bound()
-    x BtreeImplBase simply calls a method of the keylist (find/find_lower_bound)
-        -> implement it in BaseKeyList, overwrite in PAX list and in the
-            compressed lists
-    x PAX: replace lower bound implementation with std::lower_bound
-    x PAX: replace exact search implementation with std::lower_bound
-    x run performance tests - not changed
-    x rebase PRO
-        x remove linear search and move mixed binary search/linear search to
-            the PRO PaxKeyList
-        x make sure that the custom insert routine is used
-
-x Concurrency: re-enable the use of deep_copy_page
-
-x Concurrency: flush the changeset asynchronously. As soon as the log
+o Concurrency: flush the changeset asynchronously. As soon as the log
     is written (and fsync'd), the pages can be flushed to disk in the
     background. All pages are locked and forwarded to the worker thread.
     As soon as they are unlocked, they can be re-used again.
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -836,6 +826,16 @@ o mail from Michael Möllney
     o Destructors should *never* throw exceptions!
     o try to reproduce with the error inducer
 >>>>>>> Now 'stealing' the page if it is locked
+=======
+    o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+        only the worker thread! otherwise we might have race conditions
+        between the purger and the changeset-flush
+    o compare performance (before/after)
+
+o Refactoring: completely decouple the Page from the Device; pass the Device as
+    a parameter to fetch(), flush()
+    - or vice versa, call device->flush(page), device->fetch(page)
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
@@ -852,16 +852,8 @@ o Make Pages resizable with variable length
 =======
 >>>>>>> Using shadow pages to avoid spinlock contention
 
-    These schemes are used for disk-based AND in-memory based databases!
-    For this to work, the in-memory device must use a synthetic page ID
-    o differentiate between page id and address; the address is only
-        used by the Device!
-    o in-memory device uses a synthetic page ID (atomic discrete counter)
-    o rewrite allocation code path for in-memory pages
-    o checkpoint - all in-memory tests must run
-
     The page IDs are now compressible and have variable length. The first
-    2 bits are specifying the compression. The default page size is 16kb.
+    2 bits are specifying the compression:
         00 - Page ID embedded in flags and the following byte,
         (2b) Page Size is always 1
              max index size: 14 bits - 268 mib
@@ -873,6 +865,7 @@ o Make Pages resizable with variable length
              max index size: 30 bits ~ 17 tib
 
     Blob IDs have a similar schema, but in also specify the offset
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -895,6 +888,8 @@ o Make Pages resizable with variable length
                 length is encoded in the 6 bits of the first byte (max 63)
         (1+xb)
 =======
+=======
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
     of the blob in this page.
 =====================
 TODO die werte sind falsch!
@@ -903,6 +898,7 @@ TODO die werte sind falsch!
         (3b) Page Size is always 1                     16 kib
              Blob Offset is 12 bits (4 byte-aligned)   16 kib
              max index size: 10 bits                   16 mib
+<<<<<<< HEAD
 =======
 >>>>>>> Closing a database now flushes pages asynchronously
         01 - Page ID embedded in flags and the following 2 bytes,
@@ -931,10 +927,21 @@ TODO die werte sind falsch!
                 length is encoded in the 6 bits of the first byte (max 63)
         (1+xb)
 >>>>>>> Fixed uninitialized memory access
+=======
+        01 - Page ID embedded in flags and the following 2 bytes,
+        (5b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 18 bits                  4,2 gib
+        10 - Page ID embedded in flags and the following 3 bytes,
+        (6b) Page Size: 1 byte                          4 mib
+             Blob Offset is 1.5 bytes (4 byte-aligned)  4 mib
+             max index size: 26 bits                    1 tib
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
 
     o deprecate the HAM_PARAM_PAGE_SIZE parameter for the Environment
     o use HAM_PARAM_PAGE_SIZE parameter for the Database
     o each page needs to be aware of its own size
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         o don't forget the journal!
@@ -995,11 +1002,18 @@ TODO die werte sind falsch!
     o remove the get_record_id()/set_record_id() methods from the record list
         interface (can be implemented by the BtreeNodeProxy base class)
     o combine BaseRecordList and BaseKeyList in a common base class
+=======
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
 
+    o create code to read and write the page ID
+    o page IDs are addressed as uint8_t *, not uint64_t
+    o create code to read and write the blob ID
+    o blob IDs are addressed as uint8_t *, not uint64_t
     o The InternalRecordList and the DefaultRecordLists need to use blocks
         to efficiently manage variable-length IDs
-    o also use this for storing duplicates!
+    o run monster tests
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     o run monster tests
     o run performance tests
@@ -1029,13 +1043,14 @@ TODO die werte sind falsch!
     o also use this for storing duplicates!
 
 >>>>>>> Now 'stealing' the page if it is locked
+=======
+    o if no page size is specified: come up with good default values for
+        blob pages and indices and leafs
+        o make blob pages larger than normal pages
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
     o run monster tests
     o run performance tests
 
-    o when rebasing pro: zint32-encodings currently don't work with
-        page sizes > 16 kb!!
-
-o Grow pages instead of splitting them
     Instead of splitting pages, they can now be resized easily. This will help
     when applying BtreeUpdate. Instead of requiring a split (and a recursive
     descent of the tree), the BtreeUpdate are applied to a "bigger" page. The
@@ -1068,22 +1083,9 @@ o Grow pages instead of splitting them
             up cache accesses
         o but perform the split synchronously (if possible) if a certain
             watermark is reached
-    o run monster tests
+    o checkpoint - all tests need to work
 
-. monster.pl: use `taskset` to bind ham_bench to a CPU (otherwise it's
-    moved from one core to the other).
-    o same for perftest.pl
-
-. speed up monster tests by running bdb completely in-memory
-    with a new switch --use-berkeleydb=in-memory
-    o use this in the monster lists
-
-o check for memory leaks in the "hola" unittests - a cursor is created and not
-    properly released
-
-o PRO: license header should be identical to APL; just refer to the COPYING file
-    o once again make sure only the relevant changes are in pro; merge all
-        other changes back to the APL version
+    o checkpoint - all tests need to work
 
 <<<<<<< HEAD
     o checkpoint - all tests need to work
@@ -1101,6 +1103,15 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
+
+o Do not add read-only pages to the Changeset
+    There's no need to add pages to the Changeset if they are not modified.
+    My first thought was that the lock should be replaced with a RW-lock,
+    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
+    read-lock. But the current implementation does not require this level of
+    concurrency. Even if concurrency is implemented on a database-level
+    then there's no need for RW-locks in the pages (as long as blob pages
+    are NOT shared between databases!)
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
@@ -1123,10 +1134,10 @@ o BtreeUpdate managed in the BtreeNode
     Transaction handling will be rewritten. Instead of using separate
     TransactionTrees, the BtreeUpdate are attached to the node.
 
-    BtreeUpdates are a sorted (!) linked list. Prior to merge, those
+    BtreeUpdate are a sorted (!) linked list. Prior to merge, those
     BtreeUpdate that delete keys will be applied.
 
-    The Update structure should be parameterized, just like the Btree
+    The DeltaUpdate structure should be parameterized, just like the Btree
     (i.e. use the identical type and compare function).
 
     Pages are not merged or split as long as BUs are attached. Instead of a
@@ -1147,7 +1158,7 @@ o BtreeUpdate managed in the BtreeNode
     During recovery, BUs are appended to their pages. No flushes/commits
     are necessary. It is also not necessary to re-open the journal.
 
-    o create an Update struct
+    o create a DeltaUpdate struct
         o template parmeters for key and compare function
         o key, record, ...
         o the state (committed, aborted)
@@ -1173,8 +1184,14 @@ o BtreeUpdate managed in the BtreeNode
     o Each BtreeNodeProxy manages a (single) linked list of BtreeUpdate
         o but also keep track of the tail for fast append operations
     o This linked list is always sorted
-    o Add a flag to force-flush immediately (disable queueing)
-    o Merge the updates (naive implementation: insert one by one)
+    o Add a flag to force-flush immediately (disable queueing) - per database!
+        -> this is a counter which specifies the queue length till the queue
+            is merged. default is max<int>, 0 disables queueing
+        o support this in ham_bench
+
+    o Merge the updates (naive implementation: apply one by one)
+        o first apply "delete" operations
+        o then all others
         o ... before flushing the page
         o ... before all other operations
     o When splitting the page: re-distribute the updates to the
@@ -1198,13 +1215,6 @@ o BtreeUpdate managed in the BtreeNode
         o txn is committed: set the state of all BUs to "committed"
         o txn is aborted: set the state of all BUs to "aborted"
         o move the consolidation away from the txn layer towards the BU layer
-
-o PRO: the build option to disable compression does not work (linker failures)
-    o remove this switch and HAM_ENABLE_COMPRESSION
-    o selectively enable if zlib, snappy etc are available
-        - HAVE_SNAPPY_H
-        - HAVE_ZLIB_H
-        - HAVE_LZO_LZO1X_H
 
 o Refactoring: rewrite the Transaction layer
     o remove the TransactionNode structure, it's no longer required
@@ -1233,38 +1243,6 @@ o Refactoring: rewrite the whole cursor layer
         necessary (unless the duplicate position is explicitly required via
         ham_cursor_get_duplicate_position())
 
-. optimize spinlock contention times: set breakpoint if spinlock spins more
-    than 100 times; identify the bottleneck, try to improve
-
-. Do not add read-only pages to the Changeset
-    (not yet necessary, but will be necessary soon-ish...)
-
-    There's no need to add pages to the Changeset if they are not modified.
-    My first thought was that the lock should be replaced with a RW-lock,
-    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
-    read-lock. But the current implementation does not require this level of
-    concurrency. Even if concurrency is implemented on a database-level
-    then there's no need for RW-locks in the pages (as long as blob pages
-    are NOT shared between databases!)
-
-    This task is actually way more complex.
-
-    As of now, we could not have multiple threads run operations on the same
-    database because they could deadlock if thread #1 wants to lock a page
-    that is currently used by thread #2.
-
-    OTOH the Changesets are necessary to know when to unlock a page!
-
-    Therefore we have to distinguish:
-        - use a mutex only for exclusive access
-        - use a reference counter whenever the page is used 
-        - the cache also holds a reference. If the last reference is released,
-            the page can be freed (assert that it's no longer dirty!)
-
-    here is a very fast r/w semaphore:
-    http://preshing.com/20150316/semaphores-are-surprisingly-versatile/
-    or in facebook's folly
-
 . More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
         -> use a common behaviour/indexing
@@ -1279,8 +1257,6 @@ o Refactoring: rewrite the whole cursor layer
     and if required also a cursor, a transaction and a context
     o include additional management functions like lenv(), ldb(), ltxn(),
         page_manager(), cache(), context()...
-    o properly clean up, even in case of failure, to avoid error -22 in
-        all following tests
     o what else?
     o then reorganize the tests
         - public API
@@ -1309,15 +1285,21 @@ o Refactoring: would it make sense if each Database has its own BlobManager?
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
 o LocalEnvironment::open creates a "fakepage" to find out the page_size;
     just assume the default page size of 16kb and read the first page. Then
     discard if the real page_size is a different one
     o deal with databases < 16kb?
 
+<<<<<<< HEAD
 >>>>>>> Improving reclaim_space functionality
 =======
 >>>>>>> Now 'stealing' the page if it is locked
+=======
+>>>>>>> Fixed conflicts after rebasing to master/2.1.11
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
@@ -1355,6 +1337,9 @@ o PRO: Group Varint-related improvements
 
 o PRO: allow compression of 32bit record numbers
 
+o PRO: use zint32 compression for internal nodes
+    -> requires 32bit page IDs
+
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
     part in a slot. the keys themselves have then fixed length (2 slot id's)
@@ -1366,6 +1351,33 @@ o PRO: prefix compression for variable-length keys
         too large
     see indexcompression2009.pdf - Efficient index compression in DB2 LUW
     o look for more research papers
+
+o PRO: look for a better compression for DefaultRecordList, i.e.
+    - Each group is a GroupedVarInt w/ 4 bits per entry; a 64bit
+        number can then hold flags for 16 numbers
+        -> (but maybe increase this to hold at least 32 or 64 numbers, to
+            reduce the overhead ratio)
+    o create a GroupedVarInt<Max, T> class, where |Max| is the maximum number
+        of elements that are grouped, and T is the type of these elements
+        (i.e. uint64_t)
+        -> memory is managed by the caller
+        -> the state (i.e. used block size etc) is stored externally, and
+            managed by the caller
+        o append a key
+        o prepend a key
+        o insert a key in the middle
+        o grow blocks
+        o split blocks
+        o can perform copies w/o re-compressing
+
+    o try to move the Zint32 index to a base class
+    o Use small index which stores offset + bits for each group
+    o a separate bit is used to signal whether the (compressed) number is
+        a record id
+    o avoid ripple effects by growing/splitting the block
+
+o PRO: use compression also for duplicate records
+    i.e. use GroupedVarint for inline duplicates
 
 
 
@@ -1382,39 +1394,20 @@ o PRO: prefix compression for variable-length keys
     o PRO: compile callbacks with clang remotely
     o add remote support where it makes sense (only for PRO?)
 
-o architecture for a new webpage
-    - the new page should
-        - look better (i.e. like rethinkdb.com)
-        - better targeted towards conversion (like sidekiq.com)
-        - be more light-weight
-        - allow better integration of the documentation
-        - allow the documentation to reside in the repository, not in github
+. architecture for a new webpage
     o pick an awesome design
         i.e. similar to http://foundationdb.com, http://laravel.com,
         http://rethinkdb.com, http://www.orientechnologies.com
-        - http://pixelarity.com/axiom
-    o use laravel as a routing framework
     o use make/m4/markdown to generate static pages:
         https://github.com/datagrok/m4-bakery
         https://developer.github.com/v3/markdown/
-    o come up with a new header page (similar to rethinkdb.com)
-        o show code snippets for the various APIs (C, C++, python, etc)
-        o "download" button
-        o top sales items, each linking to additional information
-        o small footer with links to github, mailing lists, twitter
-        o big "Upgrade to Pro!" banner - see http://sidekiq.org
     o come up with the full site structure/contents
-        o buy - see http://sidekiq.org/pro/ for a very simplified process
-        o architecture: btree (w/ images), transactions,
-            journalling, analytics...
-        o full documentation
-        o samples
-        o faq
-        o tutorial
+        http://sidekiq.org/pro/
+        o include full documentation, one page per API
+        o ... and for all languages
         o keep the documentation in the source tree, not in -www?
     o documentation comments are hosted on disqus
-    o the blog
-        o comments are hosted on disqus, articles are also written in markup
+    o blog comments are hosted on disqus, articles are also written in markup
 
     o Makefile can "scp -r" everything to the servers (staging or production)
 
