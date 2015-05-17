@@ -28,10 +28,12 @@
     };*/
 
 #if defined(_MSC_VER)
-#  define ALIGNED(x) __declspec(align(x))
+#  define ALIGNED1(x) __declspec(align(x))
+#  define ALIGNED2(x)
 #else
 #  if defined(__GNUC__)
-#    define ALIGNED(x) __attribute__ ((aligned(x)))
+#    define ALIGNED1(x)
+#    define ALIGNED2(x) __attribute__ ((aligned(x)))
 #  endif
 #endif
 
@@ -51,7 +53,7 @@
 	result = __builtin_ctz(mask)
 #endif
 
-static int8_t shuffle_mask_bytes[16 * 16 ]  ALIGNED(16) = {
+ALIGNED1(16) static int8_t shuffle_mask_bytes[16 * 16 ] ALIGNED2(16) = {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
         4, 5, 6, 7, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,

@@ -49,12 +49,11 @@ extern int      svb_find_avx_d1_init(uint8_t * /*restrict*/ keyPtr,
 extern int      svb_find_scalar_d1_init(uint8_t * /*restrict*/ keyPtr,
                 uint8_t * /*restrict*/ dataPtr, uint64_t count,
                 uint32_t prev, uint32_t key, uint32_t *presult);
-extern int      svb_select_avx_d1_init(uint8_t * /*restrict*/ keyPtr,
-                uint8_t * /*restrict*/ dataPtr, uint64_t count,
+extern uint32_t svb_select_avx_d1_init(uint8_t *keyPtr,
+                uint8_t *dataPtr, uint64_t count,
                 uint32_t prev, int slot);
-extern int      svb_select_scalar_d1_init(uint8_t * /*restrict*/ keyPtr,
-                uint8_t * /*restrict*/ dataPtr, uint64_t count,
-                uint32_t prev, int slot);
+extern uint32_t svb_select_scalar_d1_init(uint8_t *keyPtr, uint8_t *dataPtr,
+                uint64_t count, uint32_t prev, int slot);
 
 
 namespace hamsterdb {

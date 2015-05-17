@@ -72,17 +72,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\lib_x64\</IntDir>
-<<<<<<< HEAD
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamsterdb-2.1.11</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamsterdb-2.1.11</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamsterdb-2.1.11</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamsterdb-2.1.11</TargetName>
-=======
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamsterdb-2.1.9</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamsterdb-2.1.9</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamsterdb-2.1.9</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamsterdb-2.1.9</TargetName>
->>>>>>> Fixes for MSVC 2010
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../hamsterdb-alien/snappy;../../../hamsterdb-alien/zlib;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost</IncludePath>
@@ -114,30 +107,8 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
-=======
-<<<<<<< HEAD
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
-=======
-=======
->>>>>>> Fixes for MSVC 2010
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-=======
-=======
->>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
-=======
->>>>>>> Pro 2.1.11: Various improvements, new integer codecs
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
->>>>>>> Fixes for Visual Studio 2013
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -162,30 +133,8 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;../../../hamsterdb-alien/boost/msvc2013/x64/libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)\libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
-=======
-<<<<<<< HEAD
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)\libhamsterdb-2.1.10.lib</OutputFile>
-=======
-=======
->>>>>>> Fixes for MSVC 2010
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32_debug.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-=======
-=======
->>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
-=======
->>>>>>> Pro 2.1.11: Various improvements, new integer codecs
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32_debug.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
->>>>>>> Fixes for Visual Studio 2013
-      <OutputFile>$(OutDir)\libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -204,30 +153,8 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
-=======
-<<<<<<< HEAD
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
-=======
-=======
->>>>>>> Fixes for MSVC 2010
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-=======
-=======
->>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
-=======
->>>>>>> Pro 2.1.11: Various improvements, new integer codecs
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
->>>>>>> Fixes for Visual Studio 2013
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
@@ -250,30 +177,8 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
-=======
-<<<<<<< HEAD
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.10.lib</OutputFile>
-=======
-=======
->>>>>>> Fixes for MSVC 2010
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-=======
-=======
->>>>>>> Pro 2.1.7: commercial fork, heavy-weight compression for records, journal and keys, AES encryption, SIMD
-=======
->>>>>>> Pro 2.1.11: Various improvements, new integer codecs
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;..\..\..\hamsterdb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\hamsterdb-alien\zlib\msvc2013\zlib_x64.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
->>>>>>> Fixes for Visual Studio 2013
-      <OutputFile>$(OutDir)libhamsterdb-2.1.9.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -385,8 +290,10 @@
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdbitpacking.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdcomputil.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdintegratedbitpacking.c" />
-    <ClCompile Include="..\..\3rdparty\simdcomp\src\varintdecode.cc" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedsearch.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedselect.c" />
     <ClCompile Include="..\..\3rdparty\streamvbyte\streamvbyte.cc" />
+    <ClCompile Include="..\..\3rdparty\varint\src\varintdecode.cc" />
     <ClCompile Include="..\..\src\1base\error.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
@@ -411,6 +318,7 @@
     <ClCompile Include="..\..\src\3changeset\changeset.cc" />
     <ClCompile Include="..\..\src\3journal\journal.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
+    <ClCompile Include="..\..\src\3page_manager\page_manager_worker.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />

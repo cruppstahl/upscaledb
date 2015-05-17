@@ -54,7 +54,11 @@ struct Zint32Fixture {
   }
 
   void basicSimdcompTest() {
-    uint32_t din[128];
+#ifdef WIN32
+    uint32_t *din = (uint32_t *)::_aligned_malloc(sizeof(uint32_t) * 128, 16);
+#else
+	uint32_t *din = (uint32_t *)::malloc(sizeof(uint32_t) * 128);
+#endif
     for (uint32_t i = 0; i < 128; i++)
       din[i] = i;
 
@@ -68,6 +72,12 @@ struct Zint32Fixture {
 
     for (uint32_t i = 0; i < 128; i++)
       REQUIRE(din[i] == i);
+
+#ifdef WIN32
+	::_aligned_free(din);
+#else
+	::free(din);
+#endif
   }
 
   void insertFindEraseFind(const IntVector &ivec) {

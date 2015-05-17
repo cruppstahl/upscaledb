@@ -171,8 +171,8 @@ class Cache
     void purge_candidates(std::vector<uint64_t> &candidates,
                     std::vector<Page *> &garbage,
                     Page *ignore_page) {
-      int limit = current_elements()
-                - (m_capacity_bytes / m_page_size_bytes);
+      int limit = (int)(current_elements()
+                    - (m_capacity_bytes / m_page_size_bytes));
 
       ScopedSpinlock lock(m_mutex);
 

@@ -14,14 +14,16 @@ const static __m128i shuffle_mask[4] = {
     };*/
 
 #if defined(_MSC_VER)
-#  define ALIGNED(x) __declspec(align(x))
+#  define ALIGNED1(x) __declspec(align(x))
+#  define ALIGNED2(x)
 #else
 #  if defined(__GNUC__)
-#    define ALIGNED(x) __attribute__ ((aligned(x)))
+#    define ALIGNED1(x)
+#    define ALIGNED2(x) __attribute__ ((aligned(x)))
 #  endif
 #endif
 
-int8_t shuffle_mask_bytes[16 * 16 ] ALIGNED(16) = {
+ALIGNED1(16) int8_t shuffle_mask_bytes[16 * 16 ] ALIGNED2(16) = {
 		0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,
 		4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0,
 		8,9,10,11,0,0,0,0,0,0,0,0,0,0,0,0,

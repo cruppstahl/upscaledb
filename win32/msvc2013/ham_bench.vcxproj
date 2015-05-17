@@ -84,6 +84,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..;../../;../../src;../../include;..;../../../hamsterdb-alien/protobuf/msvc2013/include;../../;../../include;../../../hamsterdb-alien/boost;</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);../../../hamsterdb-alien/boost/msvc2013/x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..;../../;../../src;../../include;..;../../../hamsterdb-alien/protobuf/msvc2013/include;../../;../../include;../../../hamsterdb-alien/boost;</IncludePath>

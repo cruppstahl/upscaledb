@@ -9,10 +9,12 @@
 #endif
 
 #if defined(_MSC_VER)
-#  define ALIGNED(x) __declspec(align(x))
+#  define ALIGNED1(x) __declspec(align(x))
+#  define ALIGNED2(x)
 #else
 #  if defined(__GNUC__)
-#    define ALIGNED(x) __attribute__ ((aligned(x)))
+#    define ALIGNED1(x)
+#    define ALIGNED2(x) __attribute__ ((aligned(x)))
 #  endif
 #endif
 
@@ -32,7 +34,7 @@
     result = __builtin_ctz(mask)
 #endif
 
-static const uint8_t vec_lookup[] ALIGNED(0x1000)
+ALIGNED1(0x1000) static const uint8_t vec_lookup[] ALIGNED2(0x1000)
 	 = { 0, 32,
 		16, 118, 8, 48, 82, 160, 4, 40, 24, 127, 70, 109, 148, 165, 2, 36, 20,
 		121, 12, 56, 85, 161, 66, 97, 79, 136, 145, 153, 149, 0, 1, 34, 18, 119,
@@ -1516,7 +1518,7 @@ static int read_int_group_delta(const uint8_t* in, uint32_t* out,
 
 
 // len_signed : number of ints we want to decode
-size_t masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
+unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 		uint64_t length, uint32_t prev) {
 	//uint64_t length = (uint64_t) len_signed; // number of ints we want to decode
 	size_t consumed = 0; // number of bytes read
@@ -1797,7 +1799,7 @@ size_t masked_vbyte_read_loop_fromcompressedsize_delta(const uint8_t* in, uint32
 	return out - initout;
 }
 
-static int8_t shuffle_mask_bytes1[16 * 16 ]  ALIGNED(16) = {
+ALIGNED1(16) static int8_t shuffle_mask_bytes1[16 * 16 ] ALIGNED2(16) = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     4, 5, 6, 7, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -2084,7 +2086,7 @@ int masked_vbyte_search_delta(const uint8_t *in, int length, uint32_t prev,
 	return length;
 }
 
-static int8_t shuffle_mask_bytes2[16 * 16 ] ALIGNED(16) = {
+ALIGNED1(16) static int8_t shuffle_mask_bytes2[16 * 16 ] ALIGNED2(16) = {
 		0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,
 		4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0,
 		8,9,10,11,0,0,0,0,0,0,0,0,0,0,0,0,

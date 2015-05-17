@@ -46,7 +46,7 @@ namespace hamsterdb {
 struct Context;
 class Device;
 class PageManager;
-class EnvironmentConfiguration;
+struct EnvironmentConfiguration;
 
 #include "1base/packstart.h"
 

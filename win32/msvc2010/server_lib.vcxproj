@@ -92,7 +92,7 @@
     </ProjectReference>
     <Lib>
       <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2010/;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2010/;../../../hamsterdb-alien/boost/msvc2010/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -138,8 +138,8 @@
     </ProjectReference>
     <Lib>
       <OutputFile>$(OutDir)libhamserver-2.1.11.lib</OutputFile>
-      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2010;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories);Iphlpapi.lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);../../../hamsterdb-alien/libuv/msvc2010/libuv.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2010/x86;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories);Iphlpapi.lib</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

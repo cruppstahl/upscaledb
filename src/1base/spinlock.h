@@ -67,6 +67,12 @@ class Spinlock {
       ham_assert(m_state == kUnlocked);
     }
 
+	// Required for MSVC2010
+	Spinlock &operator=(const Spinlock &other) {
+	  m_state = kUnlocked;
+	  return (*this);
+	}
+	
     bool try_lock() {
       if (m_state.exchange(kLocked, boost::memory_order_acquire)
                       != kLocked) {

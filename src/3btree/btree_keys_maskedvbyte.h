@@ -34,12 +34,12 @@
 #  error "root.h was not included"
 #endif
 
-void simdvbyteinit(void);
-size_t masked_vbyte_read_loop_delta(const uint8_t *in,
-                uint32_t *out, size_t inputsize, uint32_t prev);
-int masked_vbyte_search_delta(const uint8_t *block_data, int length,
-                 uint32_t prev, uint32_t key, uint32_t *presult);
-uint32_t masked_vbyte_select_delta(const uint8_t *in, int length,
+extern void simdvbyteinit(void);
+extern uint32_t masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
+		        uint64_t length, uint32_t prev);
+extern int masked_vbyte_search_delta(const uint8_t *block_data, int length,
+                uint32_t prev, uint32_t key, uint32_t *presult);
+extern uint32_t masked_vbyte_select_delta(const uint8_t *in, int length,
                 uint32_t prev, int slot);
 
 namespace hamsterdb {

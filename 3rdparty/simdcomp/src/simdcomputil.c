@@ -80,7 +80,7 @@ uint32_t simdmaxbitsd1_length(uint32_t initvalue, const uint32_t * in,
         newvec = _mm_setr_epi32(in[0], in[1], in[2], in[2]);
         break;
       default:
-        newvec = _mm_load_si128(pin);
+        newvec = _mm_loadu_si128(pin);
         break;
     }
     accumulator = Delta(newvec, initoffset);
@@ -88,7 +88,7 @@ uint32_t simdmaxbitsd1_length(uint32_t initvalue, const uint32_t * in,
 
     /* process 4 integers and build an accumulator */
     while (k * 4 + 4 <= length) {
-        newvec = _mm_load_si128(pin + k);
+        newvec = _mm_loadu_si128(pin + k);
         accumulator = _mm_or_si128(accumulator, Delta(newvec, oldvec));
         oldvec = newvec;
         k++;

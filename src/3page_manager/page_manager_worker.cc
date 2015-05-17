@@ -43,7 +43,7 @@ PageManagerWorker::handle_message(MessageBase *message)
           try {
             Page::flush(pcm->device, page_data);
           }
-          catch (Exception &ex) {
+          catch (Exception &) {
             page_data->mutex.unlock();
             throw;
           }
