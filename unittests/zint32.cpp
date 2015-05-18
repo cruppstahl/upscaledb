@@ -67,7 +67,7 @@ struct Zint32Fixture {
     REQUIRE(bits == 1);
     simdpackwithoutmaskd1(0, &din[0], (__m128i *)&dout[0], bits);
 
-    ::memset(&din[0], 0, sizeof(din));
+    ::memset(&din[0], 0, sizeof(uint32_t) * 128);
     simdunpackd1(0, (__m128i *)&dout[0], &din[0], bits);
 
     for (uint32_t i = 0; i < 128; i++)
