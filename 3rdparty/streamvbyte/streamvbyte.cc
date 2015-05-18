@@ -779,8 +779,6 @@ uint64_t svb_decode(uint32_t *out, uint8_t *in, int delta, int type) {
     abort();
 }
 
-static __m128i conversion = _mm_set1_epi32(2147483648U);
-
 #if defined(_MSC_VER)
 # include <intrin.h>
 /* 64-bit needs extending */
@@ -830,6 +828,8 @@ static const __m128i *streamvbyte_shuffle_mask = (__m128i *) shuffle_mask_bytes;
 static inline int find_lower_bound(xmm_t &PrevHi, xmm_t &PrevLow, uint32_t key,
                 uint32_t *presult)
 {
+    static __m128i conversion = _mm_set1_epi32(2147483648U);
+
     int offset = 0;
     int s;
 
