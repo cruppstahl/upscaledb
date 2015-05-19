@@ -21,6 +21,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
+#include "1eventlog/eventlog.h"
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
 #include "3blob_manager/blob_manager.h"
@@ -225,6 +226,10 @@ BtreeIndex::erase(Context *context, LocalCursor *cursor, ham_key_t *key,
                 int duplicate, uint32_t flags)
 {
   context->db = get_db();
+
+  EVENTLOG_APPEND("b.erase", "%s, %u, 0x%x",
+                  EventLog::escape(key->data, key->size),
+                  (uint32_t)duplicate, flags);
 
   BtreeEraseAction bea(this, context, cursor, key, duplicate, flags);
   return (bea.run());

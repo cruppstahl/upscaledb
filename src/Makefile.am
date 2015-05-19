@@ -22,6 +22,8 @@ libhamsterdb_la_SOURCES = \
 	1base/util.h \
 	1errorinducer/errorinducer.h \
 	1errorinducer/errorinducer.cc \
+	1eventlog/eventlog.h \
+	1eventlog/eventlog.cc \
 	1globals/globals.h \
 	1globals/globals.cc \
 	1mem/mem.cc \

@@ -181,7 +181,9 @@ HamsterDatabase::do_open_env()
 
     flags |= m_config->no_mmap ? HAM_DISABLE_MMAP : 0; 
     flags |= m_config->cacheunlimited ? HAM_CACHE_UNLIMITED : 0;
-    flags |= m_config->use_transactions ? HAM_ENABLE_TRANSACTIONS : 0;
+    flags |= m_config->use_transactions
+                ? (HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY)
+                : 0;
     flags |= m_config->use_fsync ? HAM_ENABLE_FSYNC : 0;
     flags |= m_config->flush_txn_immediately ? HAM_FLUSH_WHEN_COMMITTED : 0;
     flags |= m_config->disable_recovery ? HAM_DISABLE_RECOVERY : 0;

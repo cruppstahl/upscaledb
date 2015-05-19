@@ -26,6 +26,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
+#include "1eventlog/eventlog.h"
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
@@ -205,6 +206,9 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ham_key_t *key,
                 ham_record_t *record, uint32_t flags)
 {
   context->db = get_db();
+
+  EVENTLOG_APPEND("b.insert", "%s, %u, 0x%x",
+                  EventLog::escape(key->data, key->size), record->size, flags);
 
   BtreeInsertAction bia(this, context, cursor, key, record, flags);
   return (bia.run());

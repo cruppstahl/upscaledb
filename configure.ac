@@ -81,8 +81,19 @@ AC_ARG_ENABLE(debug,
 AC_ARG_ENABLE(gcc-hardening,
   AS_HELP_STRING(--enable-gcc-hardening, enable compiler security checks),
     [if test x$enableval = xyes; then
+      settings="$settings (hardening)"
       CFLAGS="$CFLAGS -D_FORTIFY_SOURCE=2 -fstack-protector-all"
       CFLAGS="$CFLAGS -fwrapv -fPIE -Wstack-protector --param ssp-buffer-size=1"
+     fi])
+
+# -------------------------------------------------------------------------
+# Enable event logging?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(logging,
+  AS_HELP_STRING(--enable-logging, enables event logging),
+    [if test x$enableval = xyes; then
+      CFLAGS="$CFLAGS -DHAM_ENABLE_EVENT_LOGGING"
+      settings="$settings (logging)"
      fi])
 
 # -------------------------------------------------------------------------

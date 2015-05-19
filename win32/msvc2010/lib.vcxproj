@@ -190,6 +190,7 @@
     <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
     <ClInclude Include="..\..\src\1base\util.h" />
     <ClInclude Include="..\..\src\1base\version.h" />
+    <ClInclude Include="..\..\src\1eventlog\eventlog.h" />
     <ClInclude Include="..\..\src\1errorinducer\errorinducer.h" />
     <ClInclude Include="..\..\src\1globals\globals.h" />
     <ClInclude Include="..\..\src\1mem\mem.h" />
@@ -255,6 +256,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\1base\error.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
+    <ClCompile Include="..\..\src\1eventlog\eventlog.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
     <ClCompile Include="..\..\src\1globals\globals.cc" />
     <ClCompile Include="..\..\src\1mem\mem.cc" />
