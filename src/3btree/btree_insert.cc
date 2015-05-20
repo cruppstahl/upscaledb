@@ -207,8 +207,9 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ham_key_t *key,
 {
   context->db = get_db();
 
-  EVENTLOG_APPEND("b.insert", "%s, %u, 0x%x",
-                  EventLog::escape(key->data, key->size), record->size, flags);
+  EVENTLOG_APPEND(("b.insert", "%s, %u, 0x%x",
+                  key ? EventLog::escape(key->data, key->size) : "",
+                  record->size, flags));
 
   BtreeInsertAction bia(this, context, cursor, key, record, flags);
   return (bia.run());

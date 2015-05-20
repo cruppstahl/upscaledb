@@ -54,7 +54,7 @@ struct EventLogDesc {
   FILE *f;
 
   // temporary buffer for escaping incoming data
-  char temp[1024 * 2];
+  char temp[1024 * 8];
 };
 
 static EventLogDesc event_log;
@@ -66,7 +66,7 @@ open_or_create(const char *filename, const char *mode)
   if (event_log.f)
     ::fclose(event_log.f);
 
-  std::string path(filename);
+  std::string path(filename ? filename : "hamsterdb-inmem");
   path += ".elog";
   event_log.f = ::fopen(path.c_str(), mode);
   if (!event_log.f) {
@@ -106,6 +106,9 @@ escape(const void *data, size_t size)
 {
   ScopedSpinlock lock(event_log.mutex);
 
+  if (size > 512)
+    size = 512;
+
   const char *d = (const char *)data;
   char *out = &event_log.temp[0];
   *out = '\"';
@@ -116,7 +119,7 @@ escape(const void *data, size_t size)
       out++;
     }
     else {
-      out += ::sprintf(out, "\\x%02x", (unsigned int)d[i]);
+      out += ::sprintf(out, "\\x%02x", d[i]);
     }
   }
   *out = '\"';

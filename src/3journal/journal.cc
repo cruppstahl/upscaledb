@@ -131,8 +131,8 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
   // the newest
   m_state.current_fd = cur;
 
-  EVENTLOG_APPEND("j.txn_begin", "%u, %u, %u", (uint32_t)txn->get_id(),
-                  (uint32_t)lsn, (uint32_t)cur);
+  EVENTLOG_APPEND(("j.txn_begin", "%u, %u, %u", (uint32_t)txn->get_id(),
+                  (uint32_t)lsn, (uint32_t)cur));
 }
 
 void
@@ -158,8 +158,8 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
   maybe_flush_buffer(idx);
   // no need for fsync - incomplete transactions will be aborted anyway
 
-  EVENTLOG_APPEND("j.txn_abort", "%u, %u", (uint32_t)txn->get_id(),
-                  (uint32_t)lsn);
+  EVENTLOG_APPEND(("j.txn_abort", "%u, %u", (uint32_t)txn->get_id(),
+                  (uint32_t)lsn));
 }
 
 void
@@ -185,8 +185,8 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   // and flush the file
   flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
 
-  EVENTLOG_APPEND("j.txn_commit", "%u, %u", (uint32_t)txn->get_id(),
-                  (uint32_t)lsn);
+  EVENTLOG_APPEND(("j.txn_commit", "%u, %u", (uint32_t)txn->get_id(),
+                  (uint32_t)lsn));
 }
 
 void
@@ -237,13 +237,13 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                                 : record->size));
   maybe_flush_buffer(idx);
 
-  EVENTLOG_APPEND("j.insert", "%u, %u, %s, %u, 0x%x, %u",
+  EVENTLOG_APPEND(("j.insert", "%u, %u, %s, %u, 0x%x, %u",
                   (uint32_t)db->name(),
                   txn ? (uint32_t)txn->get_id() : 0,
-                  EventLog::escape(key->data, key->size),
+                  key ? EventLog::escape(key->data, key->size) : "",
                   (uint32_t)record->size,
                   (uint32_t)flags,
-                  (uint32_t)lsn);
+                  (uint32_t)lsn));
 }
 
 void
@@ -282,12 +282,12 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
                 (uint8_t *)key->data, key->size);
   maybe_flush_buffer(idx);
 
-  EVENTLOG_APPEND("j.erase", "%u, %u, %s, 0x%x, %u",
+  EVENTLOG_APPEND(("j.erase", "%u, %u, %s, 0x%x, %u",
                   (uint32_t)db->name(),
                   txn ? (uint32_t)txn->get_id() : 0,
-                  EventLog::escape(key->data, key->size),
+                  key ? EventLog::escape(key->data, key->size) : "",
                   (uint32_t)flags,
-                  (uint32_t)lsn);
+                  (uint32_t)lsn));
 }
 
 int
@@ -347,7 +347,7 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
   // by the worker thread as soon as the dirty pages are flushed to disk.
   m_state.open_txn[m_state.current_fd]++;
 
-  EVENTLOG_APPEND("j.changeset", "%u, %u", pages.size(), (uint32_t)lsn);
+  EVENTLOG_APPEND(("j.changeset", "%u, %u", pages.size(), (uint32_t)lsn));
 
   return (m_state.current_fd);
 }
@@ -356,7 +356,7 @@ uint32_t
 Journal::append_changeset_page(const Page::PersistedData *page_data,
                 uint32_t page_size)
 {
-  EVENTLOG_APPEND("j.changeset_page", "%u", (uint32_t)page_data->address);
+  EVENTLOG_APPEND(("j.changeset_page", "%u", (uint32_t)page_data->address));
   PJournalEntryPageHeader header(page_data->address);
 
   append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
@@ -584,7 +584,7 @@ Journal::scan_for_oldest_changeset(File *file)
 uint64_t 
 Journal::recover_changeset()
 {
-  EVENTLOG_APPEND("j.recover_changeset", "");
+  EVENTLOG_APPEND(("j.recover_changeset", ""));
 
   // scan through both files, look for the file with the oldest changeset.
   uint64_t lsn1 = scan_for_oldest_changeset(&m_state.files[0]);
@@ -634,7 +634,7 @@ Journal::redo_all_changesets(int fdidx)
       m_state.files[fdidx].pread(it.offset, &changeset, sizeof(changeset));
       it.offset += sizeof(changeset);
 
-      EVENTLOG_APPEND("j.redo_changeset", "%u", changeset.num_pages);
+      EVENTLOG_APPEND(("j.redo_changeset", "%u", changeset.num_pages));
 
       uint32_t page_size = m_state.env->config().page_size_bytes;
       ByteArray arena(page_size);
@@ -652,8 +652,8 @@ Journal::redo_all_changesets(int fdidx)
 
         Page *page;
 
-        EVENTLOG_APPEND("j.redo_changeset_page", "%u",
-                        (uint32_t)page_header.address);
+        EVENTLOG_APPEND(("j.redo_changeset_page", "%u",
+                        (uint32_t)page_header.address));
 
         // now write the page to disk
         if (page_header.address == file_size) {
@@ -707,7 +707,7 @@ Journal::recover_journal(Context *context,
   Iterator it;
   ByteArray buffer;
 
-  EVENTLOG_APPEND("j.recover_journal", "");
+  EVENTLOG_APPEND(("j.recover_journal", ""));
 
   /* recovering the journal is rather simple - we iterate over the
    * files and re-apply EVERY operation (incl. txn_begin and txn_abort),
@@ -844,7 +844,7 @@ bail:
   // re-enable the logging
   m_state.disable_logging = false;
 
-  EVENTLOG_APPEND("j.recover_journal_result", "%d", st);
+  EVENTLOG_APPEND(("j.recover_journal_result", "%d", st));
 
   if (st)
     throw Exception(st);
@@ -856,7 +856,7 @@ bail:
 void
 Journal::clear_file(int idx)
 {
-  EVENTLOG_APPEND("j.clear_file", "%d", idx);
+  EVENTLOG_APPEND(("j.clear_file", "%d", idx));
 
   if (m_state.files[idx].is_open()) {
     m_state.files[idx].truncate(0);

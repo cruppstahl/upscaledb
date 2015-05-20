@@ -21,8 +21,6 @@
  * @thread_safe: yes
  */
  
-#ifdef HAM_ENABLE_EVENT_LOGGING
-
 #ifndef HAM_EVENTLOG_H
 #define HAM_EVENTLOG_H
 
@@ -39,6 +37,8 @@
 namespace hamsterdb {
 
 namespace EventLog {
+
+#ifdef HAM_ENABLE_EVENT_LOGGING
 
 // Creates an event log, overwriting any existing file. The filename
 // will be <filename>.elog
@@ -58,9 +58,23 @@ extern const char *
 escape(const void *data, size_t size);
 
 // A few helper macros
-#  define EVENTLOG_CREATE    EventLog::create
-#  define EVENTLOG_OPEN      EventLog::open
-#  define EVENTLOG_APPEND    EventLog::append
+#  define EVENTLOG_CREATE       EventLog::create
+#  define EVENTLOG_OPEN         EventLog::open
+#  define EVENTLOG_APPEND(x)    EventLog::append x
+
+#else /* !HAM_ENABLE_EVENT_LOGGING */
+
+#  define EVENTLOG_CREATE(x)    (void)0
+#  define EVENTLOG_OPEN(x)      (void)0
+#  define EVENTLOG_APPEND(x)    (void)0
+
+inline const char *
+escape(const void *data, size_t size)
+{
+  return (0);
+}
+
+#endif /* HAM_ENABLE_EVENT_LOGGING */
 
 } // namespace EventLog
 
@@ -68,10 +82,3 @@ escape(const void *data, size_t size);
 
 #endif /* HAM_EVENTLOG_H */
 
-#else /* !HAM_ENABLE_EVENT_LOGGING */
-
-#  define EVENTLOG_CREATE    (void)
-#  define EVENTLOG_OPEN      (void)
-#  define EVENTLOG_APPEND    (void)
-
-#endif /* HAM_ENABLE_EVENT_LOGGING */

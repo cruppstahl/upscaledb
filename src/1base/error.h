@@ -44,7 +44,7 @@ struct Exception
 {
   Exception(ham_status_t st)
     : code(st) {
-    EVENTLOG_APPEND("ex.throw", "%u", (uint32_t)st);
+    EVENTLOG_APPEND(("ex.throw", "%d", st));
   }
 
   ham_status_t code;
