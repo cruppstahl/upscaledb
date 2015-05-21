@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <map>
+#include <string>
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/util.h"
@@ -35,23 +37,11 @@ namespace hamsterdb {
 namespace EventLog {
 
 struct EventLogDesc {
-  // Constructor
-  EventLogDesc()
-    : f(0) {
-  }
-
-  // Destructor
-  ~EventLogDesc() {
-    if (f)
-      ::fclose(f);
-    f = 0;
-  }
-
   // For synchronization
   Spinlock mutex;
 
-  // The file handle
-  FILE *f;
+  // The file handles
+  std::map<std::string, FILE *> files;
 
   // temporary buffer for escaping incoming data
   char temp[1024 * 8];
@@ -59,19 +49,62 @@ struct EventLogDesc {
 
 static EventLogDesc event_log;
 
+static std::string
+path_from_filename(const char *filename)
+{
+  std::string path = filename;
+  path += ".elog";
+  return (path);
+}
+
 static void
 open_or_create(const char *filename, const char *mode)
 {
-  ScopedSpinlock lock(event_log.mutex);
-  if (event_log.f)
-    ::fclose(event_log.f);
+  if (!filename || !*filename)
+    filename = "hamsterdb-inmem";
 
-  std::string path(filename ? filename : "hamsterdb-inmem");
-  path += ".elog";
-  event_log.f = ::fopen(path.c_str(), mode);
-  if (!event_log.f) {
+  FILE *f = event_log.files[filename];
+  if (f && ::strcmp(filename, "hamsterdb-inmem") != 0) {
+    ::fprintf(f, "ERROR creating/opening log which already exists (%s, %s)\n",
+            filename, mode);
+    ::fflush(f);
+    return;
+  }
+
+  std::string path = path_from_filename(filename);
+  f = ::fopen(path.c_str(), mode);
+  if (!f) {
     ham_trace(("failed to create event log: %s", ::strerror(errno)));
-    throw Exception(HAM_IO_ERROR);
+    path = "lost+found.elog";
+    f = ::fopen(path.c_str(), mode);
+    if (!f)
+      throw Exception(HAM_IO_ERROR);
+  }
+  event_log.files[filename] = f;
+}
+
+void
+lock()
+{
+  event_log.mutex.lock();
+}
+
+void
+unlock()
+{
+  event_log.mutex.unlock();
+}
+
+void
+close(const char *filename)
+{
+  if (!filename || !*filename)
+    filename = "hamsterdb-inmem";
+
+  FILE *f = event_log.files[filename];
+  if (f) {
+    ::fclose(f);
+    event_log.files.erase(event_log.files.find(filename));
   }
 }
 
@@ -88,24 +121,33 @@ open(const char *filename)
 }
 
 void
-append(const char *tag, const char *format, ...)
+append(const char *filename, const char *tag, const char *format, ...)
 {
+  if (!filename || !*filename)
+    filename = "hamsterdb-inmem";
+
   char buffer[1024 * 4];
   va_list ap;
   va_start(ap, format);
   util_vsnprintf(buffer, sizeof(buffer), format, ap);
   va_end(ap);
 
-  ScopedSpinlock lock(event_log.mutex);
-  ::fprintf(event_log.f, "%s(%s);\n", tag, buffer);
-  ::fflush(event_log.f);
+  FILE *f = event_log.files[filename];
+  if (!f) {
+    create(filename);
+    f = event_log.files[filename];
+  }
+
+  if (!f)
+    return;
+
+  ::fprintf(f, "%s(%s);\n", tag, buffer);
+  ::fflush(f);
 }
 
 const char *
 escape(const void *data, size_t size)
 {
-  ScopedSpinlock lock(event_log.mutex);
-
   if (size > 512)
     size = 512;
 

@@ -61,7 +61,6 @@ ham_status_t
 ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
                 void *, uint32_t flags)
 {
-  EVENTLOG_APPEND(("f.txn_begin", "\"%s\", 0x%x", name ? name : "", flags));
   Transaction **ptxn = (Transaction **)htxn;
 
   if (!ptxn) {
@@ -77,6 +76,9 @@ ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
   }
 
   Environment *env = (Environment *)henv;
+
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.txn_begin", "\"%s\", 0x%x", name ? name : "", flags));
 
   return (env->txn_begin(ptxn, name, flags));
 }
@@ -101,9 +103,10 @@ ham_txn_commit(ham_txn_t *htxn, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.txn_commit", "%u", (uint32_t)txn->get_id()));
-
   Environment *env = txn->get_env();
+
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.txn_commit", "%u", (uint32_t)txn->get_id()));
 
   return (env->txn_commit(txn, flags));
 }
@@ -117,9 +120,10 @@ ham_txn_abort(ham_txn_t *htxn, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.txn_abort", "%u", (uint32_t)txn->get_id()));
-
   Environment *env = txn->get_env();
+
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.txn_abort", "%u", (uint32_t)txn->get_id()));
 
   return (env->txn_abort(txn, flags));
 }
@@ -277,7 +281,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   config.file_mode = mode;
 
   EVENTLOG_CREATE(filename);
-  EVENTLOG_APPEND(("f.env_create", "0x%x, %u", flags, mode));
+  EVENTLOG_APPEND((filename, "f.env_create", "0x%x, %u", flags, mode));
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -440,7 +444,8 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_create_db", "%u, 0x%x", (uint32_t)db_name, flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_create_db", "%u, 0x%x", (uint32_t)db_name, flags));
 
   *hdb = 0;
 
@@ -471,7 +476,8 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb, uint16_t db_name,
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_open_db", "%u, 0x%x", (uint32_t)db_name, flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_open_db", "%u, 0x%x", (uint32_t)db_name, flags));
 
   *hdb = 0;
 
@@ -507,7 +513,7 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
   }
 
   EVENTLOG_OPEN(filename);
-  EVENTLOG_APPEND(("f.env_open", "0x%x", flags));
+  EVENTLOG_APPEND((filename, "f.env_open", "0x%x", flags));
 
   *henv = 0;
 
@@ -642,8 +648,9 @@ ham_env_rename_db(ham_env_t *henv, uint16_t oldname, uint16_t newname,
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_rename_db", "%u, %u", (uint32_t)oldname,
-                  (uint32_t)newname));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_rename_db", "%u, %u", (uint32_t)oldname,
+              (uint32_t)newname));
 
   /* no need to do anything if oldname==newname */
   if (oldname == newname)
@@ -667,7 +674,8 @@ ham_env_erase_db(ham_env_t *henv, uint16_t name, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_erase_db", "%u", (uint32_t)name));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_erase_db", "%u", (uint32_t)name));
 
   /* erase the database */
   return (env->erase_db(name, flags));
@@ -722,7 +730,8 @@ ham_env_flush(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_flush", "0x%x", flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_flush", "0x%x", flags));
 
   if (flags && flags != HAM_FLUSH_COMMITTED_TRANSACTIONS) {
     ham_trace(("parameter 'flags' is unused, set to 0"));
@@ -744,7 +753,9 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND(("f.env_close", "0x%x", flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.env_close", "0x%x", flags));
+  EVENTLOG_CLOSE(env->config().filename.c_str());
 
   try {
     /* close the environment */
@@ -815,7 +826,8 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
     return (HAM_INV_PARAMETER); 
   }
 
-  EVENTLOG_APPEND(("f.db_set_compare_func", "%u", (uint32_t)ldb->name()));
+  EVENTLOG_APPEND((ldb->get_env()->config().filename.c_str(),
+              "f.db_set_compare_func", "%u", (uint32_t)ldb->name()));
 
   ScopedLock lock(ldb->get_env()->mutex());
 
@@ -889,10 +901,11 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
   if (!__prepare_key(key) || !__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  EVENTLOG_APPEND(("f.db_find", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
-                  txn ? (uint32_t)txn->get_id() : 0,
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.db_find", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
+              txn ? (uint32_t)txn->get_id() : 0,
+              key ? EventLog::escape(key->data, key->size) : "",
+              flags));
 
   return (db->set_error(db->find(0, txn, key, record, flags)));
 }
@@ -1012,10 +1025,11 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     }
   }
 
-  EVENTLOG_APPEND(("f.db_insert", "%u, %u, %s, %u, 0x%x", (uint32_t)db->name(),
-                  txn ? (uint32_t)txn->get_id() : 0,
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  (uint32_t)record->size, flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.db_insert", "%u, %u, %s, %u, 0x%x", (uint32_t)db->name(),
+              txn ? (uint32_t)txn->get_id() : 0,
+              key ? EventLog::escape(key->data, key->size) : "",
+              (uint32_t)record->size, flags));
 
   return (db->set_error(db->insert(0, txn, key, record, flags)));
 }
@@ -1059,10 +1073,11 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, uint32_t flags)
   if (!__prepare_key(key))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  EVENTLOG_APPEND(("f.db_erase", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
-                  txn ? (uint32_t)txn->get_id() : 0,
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.db_erase", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
+              txn ? (uint32_t)txn->get_id() : 0,
+              key ? EventLog::escape(key->data, key->size) : "",
+              flags));
 
   return (db->set_error(db->erase(0, txn, key, flags)));
 }
@@ -1105,13 +1120,14 @@ ham_db_close(ham_db_t *hdb, uint32_t flags)
 
   Environment *env = db->get_env();
 
-  EVENTLOG_APPEND(("f.db_close", "%u, 0x%x", (uint32_t)db->name(), flags));
-
   /* it's ok to close an uninitialized Database */
   if (!env) {
     delete db;
     return (0);
   }
+
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.db_close", "%u, 0x%x", (uint32_t)db->name(), flags));
 
   return (env->close_db(db, flags));
 }
@@ -1137,8 +1153,9 @@ ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
   cursor = (Cursor **)hcursor;
   env = db->get_env();
 
-  EVENTLOG_APPEND(("f.cursor_create", "%u, %u, 0x%x", (uint32_t)db->name(),
-                  txn ? (uint32_t)txn->get_id() : 0, flags));
+  EVENTLOG_APPEND((env->config().filename.c_str(),
+              "f.cursor_create", "%u, %u, 0x%x", (uint32_t)db->name(),
+              txn ? (uint32_t)txn->get_id() : 0, flags));
 
   ScopedLock lock;
   if (!(flags & HAM_DONT_LOCK))
@@ -1163,10 +1180,11 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
   src = (Cursor *)hsrc;
   dest = (Cursor **)hdest;
 
-  EVENTLOG_APPEND(("f.cursor_clone", ""));
-
   Database *db = src->db();
   ScopedLock lock(db->get_env()->mutex());
+
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_clone", ""));
 
   return (db->set_error(db->cursor_clone(dest, src)));
 }
@@ -1201,8 +1219,9 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
     return (db->set_error(HAM_WRITE_PROTECTED));
   }
 
-  EVENTLOG_APPEND(("f.cursor_overwrite", "%u, %u, 0x%x", (uint32_t)db->name(),
-                  (uint32_t)record->size, flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_overwrite", "%u, %u, 0x%x", (uint32_t)db->name(),
+              (uint32_t)record->size, flags));
 
   return (db->set_error(cursor->overwrite(record, flags)));
 }
@@ -1252,7 +1271,8 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
   if (record && !__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  EVENTLOG_APPEND(("f.cursor_move", "%u, 0x%x", (uint32_t)db->name(), flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_move", "%u, 0x%x", (uint32_t)db->name(), flags));
 
   return (db->set_error(db->cursor_move(cursor, key, record, flags)));
 }
@@ -1312,9 +1332,10 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
   if (record && !__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  EVENTLOG_APPEND(("f.cursor_find", "%u, %s, 0x%x", (uint32_t)db->name(),
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_find", "%u, %s, 0x%x", (uint32_t)db->name(),
+              key ? EventLog::escape(key->data, key->size) : "",
+              flags));
 
   return (db->set_error(db->find(cursor, cursor->get_txn(),
                                     key, record, flags)));
@@ -1417,9 +1438,10 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
     }
   }
 
-  EVENTLOG_APPEND(("f.cursor_insert", "%u, %s, %u, 0x%x", (uint32_t)db->name(),
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  record->size, flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_insert", "%u, %s, %u, 0x%x", (uint32_t)db->name(),
+              key ? EventLog::escape(key->data, key->size) : "",
+              record->size, flags));
 
   return (db->set_error(db->insert(cursor, cursor->get_txn(), key,
                                   record, flags)));
@@ -1450,7 +1472,8 @@ ham_cursor_erase(ham_cursor_t *hcursor, uint32_t flags)
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  EVENTLOG_APPEND(("f.cursor_erase", "%u, 0x%x", (uint32_t)db->name(), flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_erase", "%u, 0x%x", (uint32_t)db->name(), flags));
 
   return (db->set_error(db->erase(cursor, cursor->get_txn(), 0, flags)));
 }
@@ -1473,8 +1496,9 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, uint32_t *count,
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  EVENTLOG_APPEND(("f.cursor_get_duplicate_count", "%u, 0x%x",
-                  (uint32_t)db->name(), flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_get_duplicate_count", "%u, 0x%x",
+              (uint32_t)db->name(), flags));
 
   return (db->set_error(cursor->get_duplicate_count(flags, count)));
 }
@@ -1496,8 +1520,9 @@ ham_cursor_get_duplicate_position(ham_cursor_t *hcursor, uint32_t *position)
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  EVENTLOG_APPEND(("f.cursor_get_duplicate_position", "%u",
-                  (uint32_t)db->name()));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_get_duplicate_position", "%u",
+              (uint32_t)db->name()));
 
   return (db->set_error(cursor->get_duplicate_position(position)));
 }
@@ -1519,7 +1544,8 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, uint64_t *size)
     return (db->set_error(HAM_INV_PARAMETER));
   }
 
-  EVENTLOG_APPEND(("f.cursor_get_record_size", "%u", (uint32_t)db->name()));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_get_record_size", "%u", (uint32_t)db->name()));
 
   return (db->set_error(cursor->get_record_size(size)));
 }
@@ -1536,7 +1562,8 @@ ham_cursor_close(ham_cursor_t *hcursor)
   Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
-  EVENTLOG_APPEND(("f.cursor_close", "%u", (uint32_t)db->name()));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.cursor_close", "%u", (uint32_t)db->name()));
 
   return (db->set_error(db->cursor_close(cursor)));
 }
@@ -1610,8 +1637,9 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, uint32_t flags,
 
   ScopedLock lock(db->get_env()->mutex());
 
-  EVENTLOG_APPEND(("f.db_get_key_count", "%u, 0x%x", (uint32_t)db->name(),
-                  flags));
+  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
+              "f.db_get_key_count", "%u, 0x%x", (uint32_t)db->name(),
+              flags));
 
   return (db->set_error(db->count(txn, (flags & HAM_SKIP_DUPLICATES) != 0,
                   keycount)));

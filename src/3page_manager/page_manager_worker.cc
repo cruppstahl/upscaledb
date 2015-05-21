@@ -17,7 +17,6 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1eventlog/eventlog.h"
 #include "1errorinducer/errorinducer.h"
 #include "2device/device.h"
 #include "3page_manager/page_manager_worker.h"
@@ -47,8 +46,6 @@ PageManagerWorker::handle_message(MessageBase *message)
         // flush dirty pages
         if (page_data->is_dirty) {
           try {
-            EVENTLOG_APPEND(("pw.purge_page", "%u",
-                            (uint32_t)page_data->address));
             Page::flush(pcm->device, page_data);
           }
           catch (Exception &) {
@@ -76,8 +73,6 @@ PageManagerWorker::handle_message(MessageBase *message)
       std::vector<Page *>::iterator it = cdbm->list.begin();
       for (; it != cdbm->list.end(); it++) {
         Page *page = *it;
-        EVENTLOG_APPEND(("pw.close_page", "%u",
-                        (uint32_t)page->get_persisted_data()->address));
         Page::flush(cdbm->device, page->get_persisted_data());
         page->mutex().safe_unlock();
         delete page;
@@ -94,7 +89,6 @@ PageManagerWorker::handle_message(MessageBase *message)
       for (; it != fpm->list.end(); it++) {
         Page::PersistedData *page_data = *it;
         ScopedSpinlock lock(page_data->mutex);
-        EVENTLOG_APPEND(("pw.flush_page", "%u", (uint32_t)page_data->address));
         Page::flush(fpm->device, page_data);
       } 
       // when done: wake up the main thread
@@ -113,8 +107,6 @@ PageManagerWorker::handle_message(MessageBase *message)
         ham_assert(page_data->mutex.try_lock() == false);
         page_data->mutex.acquire_ownership();
 
-        EVENTLOG_APPEND(("pw.flush_changeset_page", "%u",
-                        (uint32_t)page_data->address));
         Page::flush(fcm->device, page_data);
         HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
         page_data->mutex.unlock();

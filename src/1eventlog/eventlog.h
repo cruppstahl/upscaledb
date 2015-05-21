@@ -40,6 +40,14 @@ namespace EventLog {
 
 #ifdef HAM_ENABLE_EVENT_LOGGING
 
+// Locks the EventLog; used by the helper macros below
+extern void
+lock();
+
+// Unlocks the EventLog; used by the helper macros below
+extern void
+unlock();
+
 // Creates an event log, overwriting any existing file. The filename
 // will be <filename>.elog
 extern void
@@ -49,18 +57,42 @@ create(const char *filename);
 extern void
 open(const char *filename);
 
+// Closes an existing event log.
+extern void
+close(const char *filename);
+
 // Appends a printf-formatted string to the log
 extern void
-append(const char *tag, const char *format, ...);
+append(const char *filename, const char *tag, const char *format, ...);
 
 // Converts a binary string to an escaped C literal
 extern const char *
 escape(const void *data, size_t size);
 
 // A few helper macros
-#  define EVENTLOG_CREATE       EventLog::create
-#  define EVENTLOG_OPEN         EventLog::open
-#  define EVENTLOG_APPEND(x)    EventLog::append x
+#  define EVENTLOG_CREATE(f)    do {                            \
+                                  EventLog::lock();             \
+                                  EventLog::create(f);          \
+                                  EventLog::unlock();           \
+                                } while (0)
+
+#  define EVENTLOG_OPEN(f)      do {                            \
+                                  EventLog::lock();             \
+                                  EventLog::open(f);            \
+                                  EventLog::unlock();           \
+                                } while (0)
+
+#  define EVENTLOG_CLOSE(f)     do {                            \
+                                  EventLog::lock();             \
+                                  EventLog::close(f);           \
+                                  EventLog::unlock();           \
+                                } while (0)
+
+#  define EVENTLOG_APPEND(x)    do {                            \
+                                  EventLog::lock();             \
+                                  EventLog::append x;           \
+                                  EventLog::unlock();           \
+                                } while (0)
 
 #else /* !HAM_ENABLE_EVENT_LOGGING */
 

@@ -227,9 +227,10 @@ BtreeIndex::erase(Context *context, LocalCursor *cursor, ham_key_t *key,
 {
   context->db = get_db();
 
-  EVENTLOG_APPEND(("b.erase", "%s, %u, 0x%x",
-                  key ? EventLog::escape(key->data, key->size) : "",
-                  (uint32_t)duplicate, flags));
+  EVENTLOG_APPEND((context->env->config().filename.c_str(),
+              "b.erase", "%s, %u, 0x%x",
+              key ? EventLog::escape(key->data, key->size) : "",
+              (uint32_t)duplicate, flags));
 
   BtreeEraseAction bea(this, context, cursor, key, duplicate, flags);
   return (bea.run());

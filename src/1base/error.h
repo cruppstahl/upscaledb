@@ -25,7 +25,6 @@
 #define HAM_ERROR_H
 
 #include "0root/root.h"
-#include "1eventlog/eventlog.h"
 
 #include "ham/hamsterdb.h"
 
@@ -44,7 +43,6 @@ struct Exception
 {
   Exception(ham_status_t st)
     : code(st) {
-    EVENTLOG_APPEND(("ex.throw", "%d", st));
   }
 
   ham_status_t code;
