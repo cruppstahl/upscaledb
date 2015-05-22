@@ -9,6 +9,16 @@ x a finished TODO item
 
 o investigate failure in erlang qc-tests
 
+o PRO: increase SIMD lookup performance (-> Meem)
+    o look into SIMD Galloping Search (Lemire et al)
+    o B. Schlegel, R. Gemulla, and W. Lehner. k-ary search on modern
+        processors. In DaMoN, pages 52–60, 2009.
+    o J. Zhou and K. A. Ross. Implementing database operations using simd
+        instructions. In SIGMOD Conference, pages 145–156, 2002.
+    o T. Willhalm, N. Popovici, Y. Boshmaf, H. Plattner, et al. Simd-scan:
+        Ultra fast in-memory scan using vector processing units. PVLDB,
+        2(1):385–394, 2009.
+
 o refactoring of the whole transaction-mess
     goals:
       1. transactions can be created on the stack
@@ -75,10 +85,13 @@ o refactoring of the whole transaction-mess
       o create cursors on the stack as well
             o cursors should form a single-linked list
 
-
-
-
-
+o move template parameters "up" to the LocalDatabase level, or at least
+    The goal of this exercise is to
+    - reduce the number of virtual calls
+    - avoid virtual inheritance of the nodes
+    - reduce the number of classes and object instantiations
+    - clean up the interfaces
+    o Btree or Database? Make a decision
 
 o an erlang test case is currently failing - investigate
 
