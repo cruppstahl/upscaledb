@@ -134,10 +134,13 @@ append(const char *filename, const char *tag, const char *format, ...)
 
   FILE *f = event_log.files[filename];
   if (!f) {
+    open(filename);
+    f = event_log.files[filename];
+  }
+  if (!f) {
     create(filename);
     f = event_log.files[filename];
   }
-
   if (!f)
     return;
 

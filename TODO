@@ -92,6 +92,9 @@ o move template parameters "up" to the LocalDatabase level, or at least
     - reduce the number of classes and object instantiations
     - clean up the interfaces
     o Btree or Database? Make a decision
+    - however, this requires that all template-code is inline. So maybe start
+        with the DB, but do not make all code based on templates, only
+        the Btree and some other things (i.e. key/record verification)
 
 o an erlang test case is currently failing - investigate
 

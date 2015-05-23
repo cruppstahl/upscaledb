@@ -753,9 +753,10 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
     return (HAM_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_close", "0x%x", flags));
-  EVENTLOG_CLOSE(env->config().filename.c_str());
+#ifdef HAM_ENABLE_EVENT_LOGGING
+  std::string filename = env->config().filename;
+  EVENTLOG_APPEND((filename.c_str(), "f.env_close", "0x%x", flags));
+#endif
 
   try {
     /* close the environment */
@@ -764,11 +765,16 @@ ham_env_close(ham_env_t *henv, uint32_t flags)
       return (st);
 
     delete env;
+#ifdef HAM_ENABLE_EVENT_LOGGING
+    EVENTLOG_CLOSE(filename.c_str());
+#endif
     return (0);
   }
   catch (Exception &ex) {
     return (ex.code);
   }
+
+  return (0);
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
