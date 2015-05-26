@@ -25,6 +25,7 @@
 
 #include "../getopts.h"
 #include "../common.h"
+#include "os.h"
 #include "configuration.h"
 #include "datasource.h"
 #include "datasource_numeric.h"
@@ -96,6 +97,7 @@
 #define ARG_RECORD_NUMBER32                     69
 #define ARG_RECORD_NUMBER64                     70
 #define ARG_POSIX_FADVICE                       71
+#define ARG_SIMULATE_CRASHES                    72
 
 /*
  * command line parameters
@@ -446,6 +448,12 @@ static option_t opts[] = {
     "posix-fadvice",
     "Sets the posix_fadvise() parameter: 'random', 'normal' (default)",
     GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_SIMULATE_CRASHES,
+    0,
+    "simulate-crashes",
+    "Simulates a crash after every operation, then performs a fullcheck",
+    0 },
   {0, 0}
 };
 
@@ -816,6 +824,10 @@ parse_config(int argc, char **argv, Configuration *c)
       c->key_size = 8;
       c->key_type = Configuration::kKeyUint64;
       c->distribution = Configuration::kDistributionAscending;
+    }
+    else if (opt == ARG_SIMULATE_CRASHES) {
+      c->simulate_crashes = true;
+      c->use_recovery = true;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;
@@ -1266,6 +1278,33 @@ bail:
 
 template<typename GeneratorType>
 static bool
+simulate_crash(Configuration *conf, GeneratorType *generator)
+{
+  // backup the database files; this is for hamsterdb only!
+  os::copy("test-ham.db", "test-ham.db.bak"); 
+  os::copy("test-ham.db.jrn0", "test-ham.db.jrn0.bak"); 
+  os::copy("test-ham.db.jrn1", "test-ham.db.jrn1.bak"); 
+
+  // close the hamsterdb Environment
+  generator->close();
+  if (generator->get_status() != 0)
+    return (false);
+
+  // restore the database file and the journals
+  os::copy("test-ham.db.bak", "test-ham.db"); 
+  os::copy("test-ham.db.jrn0.bak", "test-ham.db.jrn0"); 
+  os::copy("test-ham.db.jrn1.bak", "test-ham.db.jrn1"); 
+
+  // open the hamsterdb Environment, perform recovery
+  generator->open();
+  if (generator->get_status() != 0)
+    return (false);
+
+  return (true);
+}
+
+template<typename GeneratorType>
+static bool
 run_both_tests(Configuration *conf)
 {
   if (conf->num_threads != 1) {
@@ -1295,6 +1334,13 @@ run_both_tests(Configuration *conf)
             && generator1.get_db()->is_open()
             && generator2.get_db()->is_open())
         fullcheck = true;
+    }
+
+    if (conf->simulate_crashes) {
+      fullcheck = true;
+      ok = simulate_crash(conf, &generator1);
+      if (!ok)
+        break;
     }
 
     if (fullcheck) {

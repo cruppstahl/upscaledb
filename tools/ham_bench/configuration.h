@@ -90,7 +90,8 @@ struct Configuration
       flush_txn_immediately(false), disable_recovery(false),
       journal_compression(0), record_compression(0), key_compression(0),
       read_only(false), enable_crc32(false), record_number32(false),
-      record_number64(false), posix_fadvice(HAM_POSIX_FADVICE_NORMAL) {
+      record_number64(false), posix_fadvice(HAM_POSIX_FADVICE_NORMAL),
+      simulate_crashes(false) {
   }
 
   void print() const {
@@ -186,6 +187,8 @@ struct Configuration
                               ? "random"
                               : "??unknown??")
               << " ";
+    if (simulate_crashes)
+      std::cout << "--simulate-crashes ";
     if (!filename.empty())
       std::cout << filename;
     else {
@@ -295,6 +298,7 @@ struct Configuration
   bool record_number32;
   bool record_number64;
   int posix_fadvice;
+  bool simulate_crashes;
 };
 
 #endif /* HAM_BENCH_CONFIGURATION_H */
