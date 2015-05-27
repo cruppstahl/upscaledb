@@ -403,7 +403,7 @@ RemoteDatabase::cursor_create_impl(Transaction *htxn)
   ham_assert(reply.id == kCursorCreateReply);
   ham_status_t st = reply.cursor_create_reply.status;
   if (st)
-    return (0);
+    throw Exception(st);
 
   RemoteCursor *c = new RemoteCursor(this);
   c->set_remote_handle(reply.cursor_create_reply.cursor_handle);
