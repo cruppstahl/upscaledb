@@ -50,7 +50,8 @@ class Worker
       m_cond.notify_one();
     }
 
-    void add_to_queue_blocking(BlockingMessageBase *message) {
+    void add_to_queue_blocking(MessageBase *message) {
+      message->flags |= MessageBase::kIsBlocking | MessageBase::kDontDelete;
       add_to_queue(message);
       message->wait();
     }
@@ -88,6 +89,8 @@ class Worker
             // are copied to a local variable.
             uint32_t flags = message->flags;
             handle_message(message);
+            if ((flags & MessageBase::kIsBlocking) == true)
+              message->notify();
             if ((flags & MessageBase::kDontDelete) == false)
               delete message;
           }
@@ -99,6 +102,8 @@ class Worker
         // see comment above
         uint32_t flags = message->flags;
         handle_message(message);
+        if ((flags & MessageBase::kIsBlocking) == true)
+          message->notify();
         if ((flags & MessageBase::kDontDelete) == false)
           delete message;
       }

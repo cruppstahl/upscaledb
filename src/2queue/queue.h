@@ -44,35 +44,23 @@ struct MessageBase
 {
   // Message flags
   enum {
-    // Message is mandatory and must not be skipped
-    kIsMandatory = 0,
-
+    // The message is blocking
+    kIsBlocking  = 1,
     // Do NOT delete the message after it was processed
-    kDontDelete  = 1,
+    kDontDelete  = 2,
   };
 
-  MessageBase(int type_, int flags_ = kIsMandatory)
-    : type(type_), flags(flags_), previous(0), next(0) {
+  MessageBase(int type_, int flags_ = 0)
+    : type(type_), flags(flags_), previous(0), next(0), completed(false) {
   }
 
   virtual ~MessageBase() {
   }
 
-  int type;
-  int flags;
-  MessageBase *previous;
-  MessageBase *next;
-};
-
-struct BlockingMessageBase : public MessageBase
-{
-  BlockingMessageBase(int type_, int flags_ = kIsMandatory)
-    : MessageBase(type_, flags_ | MessageBase::kDontDelete), completed(false) {
-  }
-
   // wake up the waiting thread
   void notify() {
     ScopedLock lock(mutex);
+    ham_assert(flags & kIsBlocking);
     completed = true;
     cond.notify_all();
   }
@@ -80,10 +68,15 @@ struct BlockingMessageBase : public MessageBase
   // lets the caller wait till the operation is completed
   void wait() {
     ScopedLock lock(mutex);
+    ham_assert(flags & kIsBlocking);
     while (!completed)
       cond.wait(lock);
   }
 
+  int type;
+  int flags;
+  MessageBase *previous;
+  MessageBase *next;
   Mutex mutex;      // to protect |cond| and |completed|
   Condition cond;
   bool completed;
@@ -93,16 +86,6 @@ struct BlockingMessageBase : public MessageBase
 class Queue
 {
   public:
-    template<typename T>
-    struct Message : public MessageBase
-    {
-      Message(int type, int flags)
-        : MessageBase(type, flags) {
-      }
-
-      T payload;
-    };
-
     Queue()
       : m_head(0), m_tail(0) {
     }

@@ -49,8 +49,7 @@ PageManagerWorker::handle_message(MessageBase *message)
             Page::flush(pcm->device, page_data);
           }
           catch (Exception &) {
-            page_data->mutex.unlock();
-            throw;
+            // fall through, continue with the next page
           }
         }
         page_data->mutex.unlock();
@@ -60,25 +59,35 @@ PageManagerWorker::handle_message(MessageBase *message)
       break;
     }
 
-    case kReleasePointer: {
-      ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
+    case kCloseDatabase: {
+      CloseDatabaseMessage *cdbm = (CloseDatabaseMessage *)message;
 
-      delete rpm->ptr;
+      std::vector<uint64_t>::iterator it = cdbm->page_ids.begin();
+      Page::PersistedData *page_data;
+      for (it = cdbm->page_ids.begin(); it != cdbm->page_ids.end(); it++) {
+        page_data = cdbm->page_manager->try_fetch_page_data(*it);
+        if (!page_data)
+          continue;
+        ham_assert(page_data->mutex.try_lock() == false);
+
+        // flush dirty pages
+        if (page_data->is_dirty) {
+          try {
+            Page::flush(cdbm->device, page_data);
+          }
+          catch (Exception &) {
+            page_data->mutex.unlock();
+            throw;
+          }
+        }
+        page_data->mutex.unlock();
+      }
       break;
     }
 
-    case kCloseDatabase: {
-      CloseDatabaseMessage *cdbm = (CloseDatabaseMessage *)message;
-      cdbm->cache->purge_if(*cdbm);
-      std::vector<Page *>::iterator it = cdbm->list.begin();
-      for (; it != cdbm->list.end(); it++) {
-        Page *page = *it;
-        Page::flush(cdbm->device, page->get_persisted_data());
-        page->mutex().safe_unlock();
-        delete page;
-      } 
-      // when done: wake up the main thread
-      cdbm->notify();
+    case kReleasePointer: {
+      ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
+      delete rpm->ptr;
       break;
     }
 
@@ -91,8 +100,6 @@ PageManagerWorker::handle_message(MessageBase *message)
         ScopedSpinlock lock(page_data->mutex);
         Page::flush(fpm->device, page_data);
       } 
-      // when done: wake up the main thread
-      fpm->notify();
       break;
     }
 

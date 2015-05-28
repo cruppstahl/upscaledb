@@ -616,7 +616,7 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
   st = env->open();
 
   if (st) {
-    (void)env->close(HAM_AUTO_CLEANUP);
+    (void)env->close(HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG);
     delete env;
     return (st);
   }

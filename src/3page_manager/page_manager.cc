@@ -331,7 +331,7 @@ PageManager::flush(bool delete_pages)
   FlushPagesMessage message(m_state.device, &m_state.cache);
   m_worker->add_to_queue_blocking(&message);
 
-  if (m_state.state_page) {
+  if (m_state.state_page) { // TODO add this to FlushPagesMessage!!
     ScopedSpinlock lock(m_state.state_page->mutex());
     Page::flush(m_state.device, m_state.state_page->get_persisted_data());
   }
@@ -405,6 +405,24 @@ PageManager::reclaim_space(Context *context)
   }
 }
 
+struct CloseDatabaseVisitor
+{
+  CloseDatabaseVisitor(CloseDatabaseMessage *message_, LocalDatabase *db_)
+    : message(message_), db(db_) {
+  }
+
+  bool operator()(Page *page) {
+    if (page->get_db() == db && page->get_address() != 0) {
+      message->page_ids.push_back(page->get_address());
+      message->pages.push_back(page);
+    }
+    return (false);
+  }
+
+  CloseDatabaseMessage *message;
+  LocalDatabase *db;
+};
+
 void
 PageManager::close_database(Context *context, LocalDatabase *db)
 {
@@ -414,8 +432,18 @@ PageManager::close_database(Context *context, LocalDatabase *db)
   }
 
   context->changeset.clear();
-  CloseDatabaseMessage message(m_state.device, &m_state.cache, db);
+  CloseDatabaseMessage message(this, m_state.device);
+  CloseDatabaseVisitor visitor(&message, db);
+  m_state.cache.purge_if(visitor);
   m_worker->add_to_queue_blocking(&message);
+
+  // now delete the pages
+  for (std::vector<Page *>::iterator it = message.pages.begin();
+          it != message.pages.end();
+          it++) {
+    m_state.cache.del(*it);
+    delete *it;
+  }
 }
 
 void

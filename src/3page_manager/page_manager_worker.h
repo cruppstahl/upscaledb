@@ -51,11 +51,10 @@ enum {
   kFlushChangeset       = 5,
 };
 
-struct FlushPagesMessage : public BlockingMessageBase
+struct FlushPagesMessage : public MessageBase
 {
   FlushPagesMessage(Device *device, Cache *cache)
-    : BlockingMessageBase(kFlushPages, MessageBase::kDontDelete),
-      device(device), cache(cache) {
+    : MessageBase(kFlushPages), device(device), cache(cache) {
   }
 
   bool operator()(Page *page) {
@@ -68,25 +67,17 @@ struct FlushPagesMessage : public BlockingMessageBase
   Cache *cache;
 };
 
-struct CloseDatabaseMessage : public BlockingMessageBase
+struct CloseDatabaseMessage : public MessageBase
 {
-  CloseDatabaseMessage(Device *device, Cache *cache, LocalDatabase *db)
-    : BlockingMessageBase(kCloseDatabase, MessageBase::kDontDelete),
-      device(device), cache(cache), db(db) {
+  CloseDatabaseMessage(PageManager *page_manager_, Device *device_)
+    : MessageBase(kCloseDatabase),
+      page_manager(page_manager_), device(device_) {
   }
 
-  bool operator()(Page *page) {
-    if (page->get_db() == db && page->get_address() != 0) {
-      list.push_back(page);
-      return (true);
-    }
-    return (false);
-  }
-
-  std::vector<Page *> list;
+  std::vector<uint64_t> page_ids;
+  std::vector<Page *> pages;
+  PageManager *page_manager;
   Device *device;
-  Cache *cache;
-  LocalDatabase *db;
 };
 
 struct PurgeCacheMessage : public MessageBase
