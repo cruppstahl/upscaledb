@@ -20,7 +20,7 @@
  * their physical address in the file.
  *
  * @exception_safe: basic
- * @thread_safe: no
+ * @thread_safe: yes
  */
 
 #ifndef HAM_PAGE_MANAGER_H
@@ -95,8 +95,8 @@ class PageManager
     // The pages are locked and stored in |context->changeset|.
     Page *alloc_multiple_blob_pages(Context *context, size_t num_pages);
 
-    // Flushes all pages to disk and deletes them if |delete_pages| is true
-    void flush(bool delete_pages);
+    // Flushes all pages to disk
+    void flush_all_pages();
 
     // Asks the worker thread to purge the cache if the cache limits are
     // exceeded
@@ -109,7 +109,7 @@ class PageManager
     void close_database(Context *context, LocalDatabase *db);
 
     // Schedules one (or many sequential) pages for deletion and adds them
-    // to the Freelist. Will not do anything if the Environment is in-memory.
+    // to the Freelist
     void del(Context *context, Page *page, size_t page_count = 1);
 
     // Closes the PageManager; flushes all dirty pages
@@ -126,8 +126,8 @@ class PageManager
     void set_last_blob_page(Page *page);
 
     // Fetches a page from the cache and locks it with try_lock(); returns
-    // the page_data object, or NULL if try_lock failed. This method is used to
-    // fetch purge candidates.
+    // the page_data object, or NULL if try_lock failed. This method is used
+    // by the worker thread to fetch purge candidates.
     Page::PersistedData *try_fetch_page_data(uint64_t page_id);
 
     // Adds a message to the worker's queue
@@ -142,6 +142,12 @@ class PageManager
     friend struct Purger;
     friend class PageManagerTest;
     friend class PageManagerWorker;
+
+    // Implementation of fetch(), does not lock the mutex
+    Page *fetch_unlocked(Context *context, uint64_t address, uint32_t flags);
+
+    // Implementation of alloc(), does not lock the mutex
+    Page *alloc_unlocked(Context *context, uint32_t page_type, uint32_t flags);
 
     // Persists the PageManager's state in the file
     uint64_t store_state(Context *context);

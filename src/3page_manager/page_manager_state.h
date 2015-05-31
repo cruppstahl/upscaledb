@@ -32,8 +32,10 @@
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/spinlock.h"
 #include "2config/env_config.h"
 #include "3cache/cache.h"
+#include "3page_manager/page_manager_worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -52,6 +54,9 @@ class LsnManager;
  */
 struct PageManagerState
 {
+  // A mutex for serializing access
+  Spinlock mutex;
+
   // The freelist maps page-id to number of free pages (usually 1)
   typedef std::map<uint64_t, size_t> FreeMap;
 
@@ -78,8 +83,8 @@ struct PageManagerState
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
 
-  // Whether a "purge cache" operation is pending
-  boost::atomic<bool> purge_cache_pending;
+  // The "purge cache" message sent to the worker thread
+  FlushPagesMessage message;
 
   // Page with the persisted state data. If multiple pages are allocated
   // then these pages form a linked list, with |m_state_page| being the head

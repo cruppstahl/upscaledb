@@ -44,54 +44,22 @@ class LocalDatabase;
 
 // The available message types
 enum {
-  kCloseDatabase        = 1,
-  kReleasePointer       = 2,
-  kPurgeCache           = 3,
-  kFlushPages           = 4,
-  kFlushChangeset       = 5,
+  kReleasePointer       = 1,
+  kFlushPages           = 2,
+  kFlushChangeset       = 3,
 };
 
 struct FlushPagesMessage : public MessageBase
 {
-  FlushPagesMessage(Device *device, Cache *cache)
-    : MessageBase(kFlushPages), device(device), cache(cache) {
-  }
-
-  bool operator()(Page *page) {
-    list.push_back(page->get_persisted_data());
-    return (false);
-  }
-
-  std::vector<Page::PersistedData *> list;
-  Device *device;
-  Cache *cache;
-};
-
-struct CloseDatabaseMessage : public MessageBase
-{
-  CloseDatabaseMessage(PageManager *page_manager_, Device *device_)
-    : MessageBase(kCloseDatabase),
+  FlushPagesMessage(PageManager *page_manager_, Device *device_,
+           Mutex *mutex_ = 0, Condition *cond_ = 0)
+    : MessageBase(mutex_, cond_, kFlushPages),
       page_manager(page_manager_), device(device_) {
   }
 
   std::vector<uint64_t> page_ids;
-  std::vector<Page *> pages;
   PageManager *page_manager;
   Device *device;
-};
-
-struct PurgeCacheMessage : public MessageBase
-{
-  PurgeCacheMessage(PageManager *page_manager, Device *device,
-                  boost::atomic<bool> *pcompleted)
-    : MessageBase(kPurgeCache, 0), page_manager(page_manager), device(device),
-      pcompleted(pcompleted) {
-  }
-
-  PageManager *page_manager;
-  Device *device;
-  boost::atomic<bool> *pcompleted;
-  std::vector<uint64_t> page_ids;
 };
 
 struct FlushChangesetMessage : public MessageBase
@@ -135,16 +103,8 @@ struct ReleasePointerMessage : public MessageBase
 
 class PageManagerWorker : public Worker
 {
-  public:
-    PageManagerWorker(Cache *cache)
-      : Worker(), m_cache(cache) {
-    }
-
   private:
-    virtual void handle_message(MessageBase *message);
-
-    // The PageManager's cache
-    Cache *m_cache;
+    virtual ham_status_t handle_message(MessageBase *message);
 };
 
 } // namespace hamsterdb

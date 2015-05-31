@@ -355,7 +355,7 @@ LocalEnvironment::do_flush(uint32_t flags)
   Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
 
   /* Flush all open pages to disk. This operation is blocking. */
-  m_page_manager->flush(false);
+  m_page_manager->flush_all_pages();
 
   /* Flush the device - this usually causes a fsync() */
   m_device->flush();

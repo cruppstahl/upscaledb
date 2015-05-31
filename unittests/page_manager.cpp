@@ -344,7 +344,7 @@ struct PageManagerFixture {
     test.state()->needs_flush = true;
     uint64_t page_id = test.store_state();
 
-    pm->flush(false);
+    pm->flush_all_pages();
     test.state()->free_pages.clear();
 
     pm->initialize(page_id);
@@ -380,7 +380,7 @@ struct PageManagerFixture {
     test.state()->needs_flush = true;
     uint64_t page_id = test.store_state();
 
-    pm->flush(false);
+    pm->flush_all_pages();
     test.state()->free_pages.clear();
     test.state()->last_blob_page_id = 0;
 

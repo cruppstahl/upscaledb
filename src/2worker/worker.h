@@ -45,15 +45,15 @@ class Worker
 
     void add_to_queue(MessageBase *message) {
       m_queue.push(message);
-
-      ScopedLock lock(m_mutex);
       m_cond.notify_one();
     }
 
-    void add_to_queue_blocking(MessageBase *message) {
+    ham_status_t add_to_queue_blocking(MessageBase *message) {
+      message->completed = false;
       message->flags |= MessageBase::kIsBlocking | MessageBase::kDontDelete;
       add_to_queue(message);
       message->wait();
+      return (message->result);
     }
 
     void stop_and_join() {
@@ -77,40 +77,43 @@ class Worker
             break;
           message = m_queue.pop();
           if (!message) {
-            m_cond.wait(lock); // will unlock m_mutex while waiting
+            // TODO fix this...
+            boost::system_time const now = boost::get_system_time();
+            m_cond.timed_wait(lock, now + boost::posix_time::milliseconds(50));
+            //m_cond.wait(lock); // will unlock m_mutex while waiting
             message = m_queue.pop();
           }
         }
 
         do {
           if (message) {
-            // it's possible that handle_message() causes the main thread to
-            // delete the message, if kDontDelete is set. Therefore the flags
-            // are copied to a local variable.
-            uint32_t flags = message->flags;
-            handle_message(message);
-            if ((flags & MessageBase::kIsBlocking) == true)
-              message->notify();
-            if ((flags & MessageBase::kDontDelete) == false)
-              delete message;
+            handle_and_discard_message(message);
           }
         } while ((message = m_queue.pop()));
       }
 
       // pick up remaining messages
       while ((message = m_queue.pop())) {
-        // see comment above
-        uint32_t flags = message->flags;
-        handle_message(message);
-        if ((flags & MessageBase::kIsBlocking) == true)
-          message->notify();
-        if ((flags & MessageBase::kDontDelete) == false)
-          delete message;
+        handle_and_discard_message(message);
       }
     }
 
+    // Calls the derived handle_message() and handles exceptions
+    void handle_and_discard_message(MessageBase *message) {
+      try {
+        message->result = handle_message(message);
+      }
+      catch (Exception &ex) {
+        message->result = ex.code;
+      }
+      if ((message->flags & MessageBase::kIsBlocking) == true)
+        message->notify();
+      if ((message->flags & MessageBase::kDontDelete) == false)
+        delete message;
+    }
+
     // The message handler - has to be overridden
-    virtual void handle_message(MessageBase *message) = 0;
+    virtual ham_status_t handle_message(MessageBase *message) = 0;
 
     // A queue for storing messages
     Queue m_queue;

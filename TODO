@@ -21,23 +21,46 @@ o clean up threading issues
         async
         x no different messages required
         x no notify() call required in the queue handler
-    o PageManagerWorker: implement all functions in the style of kPurgeCache
+    x PageManagerWorker: implement all functions in the style of kPurgeCache
         (rename to kFlushPages, pass a list of page IDs, reuse for Changeset,
         closing databases and everything else)
         x CloseDatabase
         x PurgeCache
-        o FlushPages (when is this used? - rename to
+        x FlushPages (when is this used? - rename to
                 PageManager::flush_all_pages())
-        o merge all three
-        o synchronous messages should return a result
-        o FlushChangeset (can this be async? what happens if it fails?)
-    o Review the PageManager interface; must be serialized
-    o Review the PageManager implementation; must follow the lock order
+        x merge all three into a single message
+        x PurgeCacheMessage: keep as class variable; use FlushPagesMessage
+            type and "result" variable for storage
+        x synchronous messages should return a result
+        x FlushChangeset (can this be async? what happens if it fails?)
+    x If the worker throws then the message object is leaked
+    x Review the PageManager interface; must be serialized
+    x Review the PageManager implementation; must follow the lock order
         as described above
+    x Clean up CacheLine - it's just a PageCollection
+    x make sure that ALL flushes happen in the worker thread!
+    x then switch to SpinLocks instead of mutexes
+    o ChangesetFlush: has many helgrind warnings 
+    o Journal/recoverFromRecoveryTest fails (release build and w/ mutex)
 
-    o If the worker throws then the message object is leaked
+o the PageManager class is becoming a beast! Split it into...
+    o Cache (implementation class)
+    o Freelist (implementation class)
+    o PageManager
+    o Should the PageManager own the Device?
+    x PageManagerWorker
+    o the PageManagerWorker only accesses the Device and the Cache as external
+        objects -> only Device and Cache have to be synchronous
+    o the Cache is serialized with a mutex, it locks the page when the page is
+        fetched or added
+    o the PageCollection is no longer responsible for locking the page
+    o the PageManager no longer needs to be synchronized
 
-o Investigate failure in erlang qc-tests
+o Would it make sense to replace the worker thread with boost::async?
+    https://think-async.com/Asio/Recipes
+    http://stackoverflow.com/questions/6775873/boost-asio-asynchronously-waiting-on-a-condition-variable
+    - use a strand to serialize requests
+    - https://github.com/egalli64/thisthread/blob/master/asio/strand.cpp
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -68,11 +91,16 @@ o There are performance issues related to cache flushes.
     o set breakpoint if spinlock spins more than 100 times; identify the
         bottleneck, try to improve
 
+
+
 o ftruncate() allocates larger buffers than required, for performance
     reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
     therefore excess allocations were disabled if recovery is enabled
     (and on Win32)
-    -> enable again if recovery is enabled (but not on Win32)
+    o enable again if recovery is enabled
+    o disable on Win32 if mmap is used
+
+o Investigate failure in erlang qc-tests
 
 o PRO: files are hard to "diff" because each file is different from the APL
     version b/c of the license header. Change all license headers to a generic

@@ -28,17 +28,17 @@
 
 namespace hamsterdb {
 
-void
+ham_status_t
 PageManagerWorker::handle_message(MessageBase *message)
 {
   switch (message->type) {
-    case kPurgeCache: {
-      PurgeCacheMessage *pcm = (PurgeCacheMessage *)message;
+    case kFlushPages: {
+      FlushPagesMessage *fpm = (FlushPagesMessage *)message;
 
-      std::vector<uint64_t>::iterator it;
+      std::vector<uint64_t>::iterator it = fpm->page_ids.begin();
       Page::PersistedData *page_data;
-      for (it = pcm->page_ids.begin(); it != pcm->page_ids.end(); it++) {
-        page_data = pcm->page_manager->try_fetch_page_data(*it);
+      for (it = fpm->page_ids.begin(); it != fpm->page_ids.end(); it++) {
+        page_data = fpm->page_manager->try_fetch_page_data(*it);
         if (!page_data)
           continue;
         ham_assert(page_data->mutex.try_lock() == false);
@@ -46,65 +46,27 @@ PageManagerWorker::handle_message(MessageBase *message)
         // flush dirty pages
         if (page_data->is_dirty) {
           try {
-            Page::flush(pcm->device, page_data);
+            Page::flush(fpm->device, page_data);
           }
-          catch (Exception &) {
-            // fall through, continue with the next page
-          }
-        }
-        page_data->mutex.unlock();
-      }
-
-      *pcm->pcompleted = true;
-      break;
-    }
-
-    case kCloseDatabase: {
-      CloseDatabaseMessage *cdbm = (CloseDatabaseMessage *)message;
-
-      std::vector<uint64_t>::iterator it = cdbm->page_ids.begin();
-      Page::PersistedData *page_data;
-      for (it = cdbm->page_ids.begin(); it != cdbm->page_ids.end(); it++) {
-        page_data = cdbm->page_manager->try_fetch_page_data(*it);
-        if (!page_data)
-          continue;
-        ham_assert(page_data->mutex.try_lock() == false);
-
-        // flush dirty pages
-        if (page_data->is_dirty) {
-          try {
-            Page::flush(cdbm->device, page_data);
-          }
-          catch (Exception &) {
+          catch (Exception &ex) {
             page_data->mutex.unlock();
-            throw;
+            return (ex.code);;
           }
         }
         page_data->mutex.unlock();
       }
-      break;
+      return (0);
     }
 
     case kReleasePointer: {
       ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
       delete rpm->ptr;
-      break;
-    }
-
-    case kFlushPages: {
-      FlushPagesMessage *fpm = (FlushPagesMessage *)message;
-      fpm->cache->purge_if(*fpm);
-      std::vector<Page::PersistedData *>::iterator it = fpm->list.begin();
-      for (; it != fpm->list.end(); it++) {
-        Page::PersistedData *page_data = *it;
-        ScopedSpinlock lock(page_data->mutex);
-        Page::flush(fpm->device, page_data);
-      } 
-      break;
+      return (0);
     }
 
     case kFlushChangeset: {
       FlushChangesetMessage *fcm = (FlushChangesetMessage *)message;
+
       std::vector<Page::PersistedData *>::iterator it = fcm->list.begin();
       for (; it != fcm->list.end(); it++) {
         Page::PersistedData *page_data = *it;
@@ -127,11 +89,12 @@ PageManagerWorker::handle_message(MessageBase *message)
       fcm->journal->changeset_flushed(fcm->fd_index);
 
       HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-      break;
+      return (0);
     }
 
     default:
       ham_assert(!"shouldn't be here");
+      return (HAM_INTERNAL_ERROR);
   }
 }
 

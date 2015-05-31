@@ -51,7 +51,13 @@ struct MessageBase
   };
 
   MessageBase(int type_, int flags_ = 0)
-    : type(type_), flags(flags_), previous(0), next(0), completed(false) {
+    : type(type_), flags(flags_), previous(0), next(0), completed(false),
+      result(0), mutex(0), cond(0) {
+  }
+
+  MessageBase(Mutex *mutex_, Condition *cond_, int type_, int flags_ = 0)
+    : type(type_), flags(flags_), previous(0), next(0), completed(false),
+      result(0), mutex(mutex_), cond(cond_) {
   }
 
   virtual ~MessageBase() {
@@ -59,27 +65,33 @@ struct MessageBase
 
   // wake up the waiting thread
   void notify() {
-    ScopedLock lock(mutex);
-    ham_assert(flags & kIsBlocking);
-    completed = true;
-    cond.notify_all();
+    {
+      ScopedLock lock(*mutex);
+      ham_assert(flags & kIsBlocking);
+      completed = true;
+    }
+    cond->notify_all();
   }
 
   // lets the caller wait till the operation is completed
   void wait() {
-    ScopedLock lock(mutex);
+    ScopedLock lock(*mutex);
     ham_assert(flags & kIsBlocking);
-    while (!completed)
-      cond.wait(lock);
+    while (!completed) {
+      // TODO fix this...
+      boost::system_time const now = boost::get_system_time();
+      cond->timed_wait(lock, now + boost::posix_time::milliseconds(500));
+    }
   }
 
   int type;
   int flags;
   MessageBase *previous;
   MessageBase *next;
-  Mutex mutex;      // to protect |cond| and |completed|
-  Condition cond;
-  bool completed;
+  boost::atomic<bool> completed;
+  ham_status_t result;
+  Mutex *mutex;      // to protect |cond|
+  Condition *cond;
 };
 
 
@@ -123,6 +135,7 @@ class Queue
         m_head = m_tail = 0;
       else
         m_tail = m_tail->previous;
+
       return (msg);
     }
 

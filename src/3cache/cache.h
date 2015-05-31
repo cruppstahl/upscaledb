@@ -50,32 +50,14 @@ namespace hamsterdb {
 
 class Cache
 {
-    struct CacheLine {
+    struct CacheLine : public PageCollection {
       CacheLine()
-        : collection(Page::kListBucket) {
+        : PageCollection(Page::kListBucket) {
       }
 
       CacheLine(const CacheLine &other)
-        : collection(Page::kListBucket) {
+        : PageCollection(Page::kListBucket) {
       }
-
-      Page *get(uint64_t page_id) {
-        ScopedSpinlock lock(mutex);
-        return (collection.get(page_id));
-      }
-
-      void put(Page *page) {
-        ScopedSpinlock lock(mutex);
-        collection.put(page);
-      }
-
-      void del(Page *page) {
-        ScopedSpinlock lock(mutex);
-        collection.del(page);
-      }
-
-      Spinlock mutex;
-      PageCollection collection;
     };
 
     enum {

@@ -187,6 +187,7 @@ class DiskDevice : public Device {
         // is enabled.
         //
         // disabled on win32 because truncating a mapped file is not allowed
+        // TODO Win32: only disable if mmap is used!
 #ifndef WIN32
         if ((m_config.flags & HAM_ENABLE_RECOVERY) == 0) {
           if (m_state.file_size < len * 100)
