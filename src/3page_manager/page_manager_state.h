@@ -28,7 +28,6 @@
 
 #include "0root/root.h"
 
-#include <map>
 #include <boost/atomic.hpp>
 
 // Always verify that a file of level N does not include headers > N!
@@ -36,6 +35,7 @@
 #include "2config/env_config.h"
 #include "3cache/cache.h"
 #include "3page_manager/page_manager_worker.h"
+#include "3page_manager/freelist.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -57,9 +57,6 @@ struct PageManagerState
   // A mutex for serializing access
   Spinlock mutex;
 
-  // The freelist maps page-id to number of free pages (usually 1)
-  typedef std::map<uint64_t, size_t> FreeMap;
-
   PageManagerState(LocalEnvironment *env);
 
   // Copy of the Environment's configuration
@@ -77,8 +74,8 @@ struct PageManagerState
   // The cache
   Cache cache;
 
-  // The map with free pages
-  FreeMap free_pages;
+  // The freelist
+  Freelist freelist;
 
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
@@ -113,12 +110,6 @@ struct PageManagerState
 
   // tracks number of cache misses
   uint64_t cache_misses;
-
-  // number of successful freelist hits
-  uint64_t freelist_hits;
-
-  // number of freelist misses
-  uint64_t freelist_misses;
 };
 
 } // namespace hamsterdb

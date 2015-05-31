@@ -40,12 +40,11 @@ namespace hamsterdb {
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(env->config()), needs_flush(false),
+    cache(env->config()), freelist(config), needs_flush(false),
     message(env->page_manager(), env->device()),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
-    page_count_page_manager(0), cache_hits(0), cache_misses(0),
-    freelist_hits(0), freelist_misses(0)
+    page_count_page_manager(0), cache_hits(0), cache_misses(0)
 {
 }
 
@@ -61,14 +60,14 @@ PageManager::initialize(uint64_t pageid)
 {
   Context context(0, 0, 0);
 
-  m_state.free_pages.clear();
+  m_state.freelist.clear();
+
   if (m_state.state_page)
     delete m_state.state_page;
   m_state.state_page = new Page(m_state.device);
   m_state.state_page->fetch(pageid);
 
   Page *page = m_state.state_page;
-  uint32_t page_size = m_state.config.page_size_bytes;
 
   // the first page stores the page ID of the last blob
   m_state.last_blob_page_id = *(uint64_t *)page->get_payload();
@@ -84,24 +83,7 @@ PageManager::initialize(uint64_t pageid)
     uint64_t overflow = *(uint64_t *)p;
     p += 8;
 
-    // get the number of stored elements
-    uint32_t counter = *(uint32_t *)p;
-    p += 4;
-
-    // now read all pages
-    for (uint32_t i = 0; i < counter; i++) {
-      // 4 bits page_counter, 4 bits for number of following bytes
-      int page_counter = (*p & 0xf0) >> 4;
-      int num_bytes = *p & 0x0f;
-      ham_assert(page_counter > 0);
-      ham_assert(num_bytes <= 8);
-      p += 1;
-
-      uint64_t id = Pickle::decode_u64(num_bytes, p);
-      p += num_bytes;
-
-      m_state.free_pages[id * page_size] = page_counter;
-    }
+    m_state.freelist.decode_state(p);
 
     // load the overflow page
     if (overflow)
@@ -138,31 +120,21 @@ PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
   uint32_t page_size = m_state.config.page_size_bytes;
 
   // Now check the freelist
-  if (!m_state.free_pages.empty()) {
-    for (PageManagerState::FreeMap::iterator it = m_state.free_pages.begin();
-            it != m_state.free_pages.end();
-            it++) {
-      if (it->second >= num_pages) {
-        for (size_t i = 0; i < num_pages; i++) {
-          if (i == 0) {
-            page = fetch_unlocked(context, it->first, 0);
-            page->set_type(Page::kTypeBlob);
-            page->set_without_header(false);
-          }
-          else {
-            Page *p = fetch_unlocked(context, it->first + (i * page_size), 0);
-            p->set_type(Page::kTypeBlob);
-            p->set_without_header(true);
-          }
-        }
-        if (it->second > num_pages) {
-          m_state.free_pages[it->first + num_pages * page_size]
-                = it->second - num_pages;
-        }
-        m_state.free_pages.erase(it);
-        return (page);
+  uint64_t address = m_state.freelist.alloc(num_pages);
+  if (address != 0) {
+    for (size_t i = 0; i < num_pages; i++) {
+      if (i == 0) {
+        page = fetch_unlocked(context, address, 0);
+        page->set_type(Page::kTypeBlob);
+        page->set_without_header(false);
+      }
+      else {
+        Page *p = fetch_unlocked(context, address + (i * page_size), 0);
+        p->set_type(Page::kTypeBlob);
+        p->set_without_header(true);
       }
     }
+    return (page);
   }
 
   // Freelist lookup was not successful -> allocate new pages. Only the first
@@ -194,8 +166,8 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
   metrics->page_count_type_index = m_state.page_count_index;
   metrics->page_count_type_blob = m_state.page_count_blob;
   metrics->page_count_type_page_manager = m_state.page_count_page_manager;
-  metrics->freelist_hits = m_state.freelist_hits;
-  metrics->freelist_misses = m_state.freelist_misses;
+  metrics->freelist_hits = m_state.freelist.freelist_hits;
+  metrics->freelist_misses = m_state.freelist.freelist_misses;
   m_state.cache.fill_metrics(metrics);
 }
 
@@ -288,24 +260,23 @@ PageManager::reclaim_space(Context *context)
   ham_assert(!(m_state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL));
 
   bool do_truncate = false;
-  size_t file_size = m_state.device->file_size();
   uint32_t page_size = m_state.config.page_size_bytes;
+  uint64_t file_size = m_state.device->file_size();
+  uint64_t address = m_state.freelist.truncate(file_size);
 
-  while (m_state.free_pages.size() > 1) {
-    PageManagerState::FreeMap::iterator fit =
-                m_state.free_pages.find(file_size - page_size);
-    if (fit != m_state.free_pages.end()) {
-      Page *page = m_state.cache.get(fit->first);
+  if (address < file_size) {
+    for (uint64_t page_id = address;
+            page_id <= file_size - page_size;
+            page_id += page_size) {
+      Page *page = m_state.cache.get(page_id);
       if (page) {
         m_state.cache.del(page);
         delete page;
       }
-      file_size -= page_size;
-      do_truncate = true;
-      m_state.free_pages.erase(fit);
-      continue;
     }
-    break;
+
+    do_truncate = true;
+    file_size = address;
   }
 
   if (do_truncate) {
@@ -394,7 +365,7 @@ PageManager::del(Context *context, Page *page, size_t page_count)
   }
 
   m_state.needs_flush = true;
-  m_state.free_pages[page->get_address()] = page_count;
+  m_state.freelist.put(page->get_address(), page_count);
   ham_assert(page->get_address() % m_state.config.page_size_bytes == 0);
 
   if (page->get_node_proxy()) {
@@ -541,29 +512,23 @@ PageManager::alloc_unlocked(Context *context, uint32_t page_type,
   bool allocated = false;
 
   /* first check the internal list for a free page */
-  if ((flags & PageManager::kIgnoreFreelist) == 0
-          && !m_state.free_pages.empty()) {
-    PageManagerState::FreeMap::iterator it = m_state.free_pages.begin();
+  if ((flags & PageManager::kIgnoreFreelist) == 0) {
+    address = m_state.freelist.alloc(1);
 
-    address = it->first;
-    ham_assert(address % page_size == 0);
-    /* remove the page from the freelist */
-    m_state.free_pages.erase(it);
-    m_state.needs_flush = true;
+    if (address != 0) {
+      ham_assert(address % page_size == 0);
+      m_state.needs_flush = true;
 
-    m_state.freelist_hits++;
-
-    /* try to fetch the page from the cache */
-    page = m_state.cache.get(address);
-    if (page)
+      /* try to fetch the page from the cache */
+      page = m_state.cache.get(address);
+      if (page)
+        goto done;
+      /* otherwise fetch the page from disk */
+      page = new Page(m_state.device, context->db);
+      page->fetch(address);
       goto done;
-    /* allocate a new page structure and read the page from disk */
-    page = new Page(m_state.device, context->db);
-    page->fetch(address);
-    goto done;
+    }
   }
-
-  m_state.freelist_misses++;
 
   try {
     if (!page) {
@@ -634,7 +599,7 @@ PageManager::store_state(Context *context)
   m_state.needs_flush = false;
 
   // no freelist pages, no freelist state? then don't store anything
-  if (!m_state.state_page && m_state.free_pages.empty())
+  if (!m_state.state_page && m_state.freelist.empty())
     return (0);
 
   // otherwise allocate a new page, if required
@@ -644,7 +609,8 @@ PageManager::store_state(Context *context)
             Page::kInitializeWithZeroes);
   }
 
-  // don't bother locking the state page
+  // don't bother locking the state page; it will never be accessed by
+  // the worker thread because it's not stored in the cache
   context->changeset.put(m_state.state_page);
 
   uint32_t page_size = m_state.config.page_size_bytes;
@@ -664,8 +630,8 @@ PageManager::store_state(Context *context)
   // a chain. We only save the first. That's not critical but also not nice.
   uint64_t next_pageid = *(uint64_t *)p;
   if (next_pageid) {
-    m_state.free_pages[next_pageid] = 1;
     ham_assert(next_pageid % page_size == 0);
+    m_state.freelist.put(next_pageid, 1);
   }
 
   // No freelist entries? then we're done. Make sure that there's no
@@ -855,8 +821,7 @@ PageManagerTest::remove_page(Page *page)
 bool
 PageManagerTest::is_page_free(uint64_t pageid)
 {
-  return (m_sut->m_state.free_pages.find(pageid)
-                  != m_sut->m_state.free_pages.end());
+  return (m_sut->m_state.freelist.has(pageid));
 }
 
 Page *
