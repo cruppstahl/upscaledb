@@ -353,7 +353,7 @@ PageManager::del(Context *context, Page *page, size_t page_count)
   if (m_state.config.flags & HAM_IN_MEMORY)
     return;
 
-  // remove all pages from the changeset, otherwise they won't be unlocked
+  // remove the page(s) from the changeset
   context->changeset.del(page);
   if (page_count > 1) {
     uint32_t page_size = m_state.config.page_size_bytes;
@@ -388,7 +388,7 @@ PageManager::close(Context *context)
     maybe_store_state(context, true);
   }
 
-  // cut off excessive space at the end of the file; this space is managed
+  // cut off unused space at the end of the file; this space is managed
   // by the device
   m_state.device->reclaim_space();
 
@@ -406,9 +406,8 @@ PageManager::close(Context *context)
     try_reclaim = false;
 #endif
 
-  if (try_reclaim) {
+  if (try_reclaim)
     reclaim_space(context);
-  }
 
   // clear the Changeset because flush() will delete all Page pointers
   context->changeset.clear();
@@ -490,7 +489,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
   /* store the page in the list */
   m_state.cache.put(page);
 
-  /* write to disk (if necessary) */
+  /* write state to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
           && !(flags & PageManager::kReadOnly))
     maybe_store_state(context, false);
@@ -613,12 +612,9 @@ PageManager::store_state(Context *context)
   // the worker thread because it's not stored in the cache
   context->changeset.put(m_state.state_page);
 
-  uint32_t page_size = m_state.config.page_size_bytes;
+  m_state.state_page->set_dirty(true);
 
-  // make sure that the page is logged
   Page *page = m_state.state_page;
-  page->set_dirty(true);
-
   uint8_t *p = page->get_payload();
 
   // store page-ID of the last allocated blob
@@ -629,107 +625,55 @@ PageManager::store_state(Context *context)
   // TODO here we lose a whole chain of overflow pointers if there was such
   // a chain. We only save the first. That's not critical but also not nice.
   uint64_t next_pageid = *(uint64_t *)p;
-  if (next_pageid) {
-    ham_assert(next_pageid % page_size == 0);
+  if (next_pageid)
     m_state.freelist.put(next_pageid, 1);
-  }
 
   // No freelist entries? then we're done. Make sure that there's no
   // overflow pointer or other garbage in the page!
-  if (m_state.free_pages.empty()) {
+  if (m_state.freelist.empty()) {
     *(uint64_t *)p = 0;
     p += sizeof(uint64_t);
     *(uint32_t *)p = 0;
     return (m_state.state_page->get_address());
   }
 
-  PageManagerState::FreeMap::const_iterator it = m_state.free_pages.begin();
-  while (it != m_state.free_pages.end()) {
-    // this is where we will store the data
-    p = page->get_payload();
-    // skip m_state.last_blob_page_id?
-    if (page == m_state.state_page)
-      p += sizeof(uint64_t);
-    p += 8;   // leave room for the pointer to the next page
-    p += 4;   // leave room for the counter
+  std::pair<bool, Freelist::FreeMap::const_iterator> continuation;
+  continuation.first = false;   // initialization
+  do {
+    int offset = page == m_state.state_page
+                      ? sizeof(uint64_t)
+                      : 0;
+    continuation = m_state.freelist.encode_state(continuation,
+                            page->get_payload() + offset,
+                            m_state.config.page_size_bytes
+                                - Page::kSizeofPersistentHeader
+                                - offset);
 
-    uint32_t counter = 0;
+    if (continuation.first == false)
+      break;
 
-    while (it != m_state.free_pages.end()) {
-      // 9 bytes is the maximum amount of storage that we will need for a
-      // new entry; if it does not fit then break
-      if ((p + 9) - page->get_payload()
-              >= (ptrdiff_t)(m_state.config.page_size_bytes
-                                - Page::kSizeofPersistentHeader))
-        break;
+    // load the next page
+    if (!next_pageid) {
+      Page *new_page = alloc(context, Page::kTypePageManager,
+              PageManager::kIgnoreFreelist);
+      // patch the overflow pointer in the old (current) page
+      p = page->get_payload() + offset;
+      *(uint64_t *)p = new_page->get_address();
 
-      // ... and check if the next entry (and the following) are directly
-      // next to the current page
-      uint32_t page_counter = 1;
-      uint64_t base = it->first;
-      ham_assert(base % page_size == 0);
-      uint64_t current = it->first;
-
-      // move to the next entry
-      it++;
-
-      for (; it != m_state.free_pages.end() && page_counter < 16 - 1; it++) {
-        if (it->first != current + page_size)
-          break;
-        current += page_size;
-        page_counter++;
-      }
-
-      // now |base| is the start of a sequence of free pages, and the
-      // sequence has |page_counter| pages
-      //
-      // This is encoded as
-      // - 1 byte header
-      //   - 4 bits for |page_counter|
-      //   - 4 bits for the number of bytes following ("n")
-      // - n byte page-id (div page_size)
-      ham_assert(page_counter < 16);
-      int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
-      *p = (page_counter << 4) | num_bytes;
-      p += 1 + num_bytes;
-
-      counter++;
+      // reset the overflow pointer in the new page
+      page = new_page;
+      p = page->get_payload();
+      *(uint64_t *)p = 0;
+    }
+    else {
+      page = fetch(context, next_pageid, 0);
+      p = page->get_payload();
     }
 
-    p = page->get_payload();
-    if (page == m_state.state_page) // skip m_state.last_blob_page_id?
-      p += sizeof(uint64_t);
-    uint64_t next_pageid = *(uint64_t *)p;
-    *(uint64_t *)p = 0;
-    p += 8;  // overflow page
+    // make sure that the page is logged
+    page->set_dirty(true);
 
-    // now store the counter
-    *(uint32_t *)p = counter;
-
-    // are we done? if not then continue with the next page
-    if (it != m_state.free_pages.end()) {
-      // allocate (or fetch) an overflow page
-      if (!next_pageid) {
-        Page *new_page = alloc(context, Page::kTypePageManager,
-                PageManager::kIgnoreFreelist);
-        // patch the overflow pointer in the old (current) page
-        p = page->get_payload();
-        if (page == m_state.state_page) // skip m_state.last_blob_page_id?
-          p += sizeof(uint64_t);
-        *(uint64_t *)p = new_page->get_address();
-
-        // reset the overflow pointer in the new page
-        page = new_page;
-        p = page->get_payload();
-        *(uint64_t *)p = 0;
-      }
-      else
-        page = fetch(context, next_pageid, 0);
-
-      // make sure that the page is logged
-      page->set_dirty(true);
-    }
-  }
+  } while (true);
 
   return (m_state.state_page->get_address());
 }

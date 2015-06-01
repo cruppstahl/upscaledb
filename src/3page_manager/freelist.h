@@ -61,7 +61,14 @@ struct Freelist {
     return (free_pages.empty());
   }
 
-  uint64_t store_state(Context *context);
+  // Encodes the freelist's state in |data|. Returns a bool which is set to
+  // true if there is additional data, or false if the whole state was
+  // encoded.
+  // Set |cont.first| to false for the first call.
+  std::pair<bool, Freelist::FreeMap::const_iterator>
+                    encode_state(
+                        std::pair<bool, Freelist::FreeMap::const_iterator> cont,
+                        uint8_t *data, size_t data_size);
 
   // Decodes the freelist's state from raw data and adds it to the internal
   // map

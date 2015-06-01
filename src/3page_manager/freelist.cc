@@ -27,10 +27,65 @@
 
 namespace hamsterdb {
 
-uint64_t
-Freelist::store_state(Context *context)
+std::pair<bool, Freelist::FreeMap::const_iterator>
+Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
+                uint8_t *data, size_t data_size)
 {
-  return (0);
+  uint32_t page_size = config.page_size_bytes;
+  Freelist::FreeMap::const_iterator it = cont.second;
+  ham_assert(it != free_pages.end());
+  if (cont.first == false)
+    it = free_pages.begin();
+  
+  uint32_t counter = 0;
+  uint8_t *p = data;
+  p += 8;   // leave room for the pointer to the next page
+  p += 4;   // leave room for the counter
+
+  while (it != free_pages.end()) {
+    // 9 bytes is the maximum amount of storage that we will need for a
+    // new entry; if it does not fit then break
+    if ((p + 9) - data >= (ptrdiff_t)data_size)
+      break;
+
+    // check if the next entry (and the following) are adjacent; if yes then
+    // they are merged. Up to 16 pages can be merged.
+    uint32_t page_counter = 1;
+    uint64_t base = it->first;
+    ham_assert(base % page_size == 0);
+    uint64_t current = it->first;
+
+    // move to the next entry, then merge all adjacent pages
+    for (it++; it != free_pages.end() && page_counter < 16 - 1; it++) {
+      if (it->first != current + page_size)
+        break;
+      current += page_size;
+      page_counter++;
+    }
+
+    // now |base| is the start of a sequence of free pages, and the
+    // sequence has |page_counter| pages
+    //
+    // This is encoded as
+    // - 1 byte header
+    //   - 4 bits for |page_counter|
+    //   - 4 bits for the number of bytes following ("n")
+    // - n byte page-id (div page_size)
+    ham_assert(page_counter < 16);
+    int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
+    *p = (page_counter << 4) | num_bytes;
+    p += 1 + num_bytes;
+
+    counter++;
+  }
+
+  // now store the counter
+  *(uint32_t *)(data + 8) = counter;
+
+  std::pair<bool, Freelist::FreeMap::const_iterator> retval;
+  retval.first = (it != free_pages.end());
+  retval.second = it;
+  return (retval);
 }
 
 void

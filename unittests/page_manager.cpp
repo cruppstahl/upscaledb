@@ -21,6 +21,7 @@
 #include "1base/pickle.h"
 #include "2page/page.h"
 #include "2device/device.h"
+#include "3page_manager/freelist.h"
 #include "3page_manager/page_manager.h"
 #include "3page_manager/page_manager_test.h"
 #include "4context/context.h"
@@ -259,7 +260,7 @@ struct PageManagerFixture {
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
-      test.state()->free_pages[page_size * (i + 100)] = 1;
+      test.state()->freelist.free_pages[page_size * (i + 100)] = 1;
 
     test.state()->needs_flush = true;
     REQUIRE(test.store_state() == page_size * 2);
@@ -272,7 +273,7 @@ struct PageManagerFixture {
     test = lenv->page_manager()->test();
 
     // and check again - the entries must be collapsed
-    PageManagerState::FreeMap::iterator it = test.state()->free_pages.begin();
+    Freelist::FreeMap::iterator it = test.state()->freelist.free_pages.begin();
     REQUIRE(it->first == page_size * 100);
     REQUIRE(it->second == 10);
   }
@@ -288,9 +289,9 @@ struct PageManagerFixture {
     // written AFTER the allocated pages, and disable the reclaim
     test.state()->needs_flush = true;
     // pretend there is data to write, otherwise store_state() is a nop
-    test.state()->free_pages[page_size] = 0;
+    test.state()->freelist.free_pages[page_size] = 0;
     test.store_state();
-    test.state()->free_pages.clear(); // clean up again
+    test.state()->freelist.free_pages.clear(); // clean up again
 
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
@@ -327,7 +328,7 @@ struct PageManagerFixture {
 
     // verify file size
 #ifndef WIN32
-    REQUIRE((uint64_t)(page_size * 6) == lenv->device()->file_size());
+    REQUIRE((uint64_t)(page_size * 5) == lenv->device()->file_size());
 #endif
   }
 
@@ -338,20 +339,20 @@ struct PageManagerFixture {
     uint32_t page_size = lenv->config().page_size_bytes;
 
     for (int i = 1; i <= 150; i++)
-      test.state()->free_pages[page_size * i] = 1;
+      test.state()->freelist.free_pages[page_size * i] = 1;
 
     // store the state on disk
     test.state()->needs_flush = true;
     uint64_t page_id = test.store_state();
 
     pm->flush_all_pages();
-    test.state()->free_pages.clear();
+    test.state()->freelist.free_pages.clear();
 
     pm->initialize(page_id);
 
-    REQUIRE(10 == test.state()->free_pages.size());
+    REQUIRE(10 == test.state()->freelist.free_pages.size());
     for (int i = 1; i < 10; i++)
-      REQUIRE(test.state()->free_pages[page_size * (1 + i * 15)] == 15);
+      REQUIRE(test.state()->freelist.free_pages[page_size * (1 + i * 15)] == 15);
   }
 
   void encodeDecodeTest() {
@@ -373,7 +374,7 @@ struct PageManagerFixture {
 
     for (int i = 1; i <= 30000; i++) {
       if (i & 1) // only store every 2nd page to avoid collapsing
-        test.state()->free_pages[page_size * i] = 1;
+        test.state()->freelist.free_pages[page_size * i] = 1;
     }
 
     // store the state on disk
@@ -381,17 +382,17 @@ struct PageManagerFixture {
     uint64_t page_id = test.store_state();
 
     pm->flush_all_pages();
-    test.state()->free_pages.clear();
+    test.state()->freelist.free_pages.clear();
     test.state()->last_blob_page_id = 0;
 
     pm->initialize(page_id);
 
     REQUIRE(test.state()->last_blob_page_id == page_size * 100);
 
-    REQUIRE(15000 == test.state()->free_pages.size());
+    REQUIRE(15000 == test.state()->freelist.free_pages.size());
     for (int i = 1; i <= 30000; i++) {
       if (i & 1)
-        REQUIRE(test.state()->free_pages[page_size * i] == 1);
+        REQUIRE(test.state()->freelist.free_pages[page_size * i] == 1);
     }
 
     REQUIRE(test.state()->page_count_page_manager == 4u);
