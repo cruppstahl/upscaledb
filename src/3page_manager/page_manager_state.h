@@ -54,10 +54,10 @@ class LsnManager;
  */
 struct PageManagerState
 {
-  // A mutex for serializing access
-  Spinlock mutex;
-
   PageManagerState(LocalEnvironment *env);
+
+  //  For serializing access 
+  Mutex mutex;
 
   // Copy of the Environment's configuration
   const EnvironmentConfiguration config;

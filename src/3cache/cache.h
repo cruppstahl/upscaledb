@@ -75,7 +75,7 @@ class Cache
 
       bool operator()(Page *page) {
         if (m_purger(page))
-          m_cache->del_impl(page, true);
+          m_cache->del(page);
         // don't remove page from list; it was already removed above
         return (false);
       }
@@ -109,7 +109,6 @@ class Cache
 
       Page *page = m_buckets[hash].get(address);
       if (!page) {
-        ScopedSpinlock lock(m_mutex);
         m_cache_misses++;
         return (0);
       }
@@ -117,7 +116,6 @@ class Cache
       // Now re-insert the page at the head of the "totallist", and
       // thus move far away from the tail. The pages at the tail are highest
       // candidates to be deleted when the cache is purged.
-      ScopedSpinlock lock(m_mutex);
       m_totallist.del(page);
       m_totallist.put(page);
       m_cache_hits++;
@@ -134,21 +132,25 @@ class Cache
        * Then re-insert the page at the head of the list. The tail will
        * point to the least recently used page.
        */
-      {
-        ScopedSpinlock lock(m_mutex);
-
-        m_totallist.del(page);
-        m_totallist.put(page);
-        if (page->is_allocated())
-          m_alloc_elements++;
-      }
+      m_totallist.del(page);
+      m_totallist.put(page);
+      if (page->is_allocated())
+        m_alloc_elements++;
 
       m_buckets[hash].put(page);
     }
 
     // Removes a page from the cache
     void del(Page *page) {
-      del_impl(page, false);
+      ham_assert(page->get_address() != 0);
+
+      /* remove it from the list of all cached pages */
+      if (m_totallist.del(page) && page->is_allocated())
+        m_alloc_elements--;
+
+      /* remove the page from the cache buckets */
+      size_t hash = calc_hash(page->get_address());
+      m_buckets[hash].del(page);
     }
 
     // Purges the cache. Implements a LRU eviction algorithm. Dirty pages are
@@ -156,10 +158,8 @@ class Cache
     void purge_candidates(std::vector<uint64_t> &candidates,
                     std::vector<Page *> &garbage,
                     Page *ignore_page) {
-      int limit = current_elements()
-                - (m_capacity_bytes / m_page_size_bytes);
-
-      ScopedSpinlock lock(m_mutex);
+      int limit = (int)(current_elements()
+                        - (m_capacity_bytes / m_page_size_bytes));
 
       Page *page = m_totallist.tail();
       for (int i = 0; i < limit && page != 0; i++) {
@@ -180,35 +180,28 @@ class Cache
     template<typename Purger>
     void purge_if(Purger &purger) {
       PurgeIfSelector<Purger> selector(this, purger);
-
-      ScopedSpinlock lock(m_mutex);
-
       m_totallist.extract(selector);
     }
 
     // Returns true if the capacity limits are exceeded
     bool is_cache_full() {
-      ScopedSpinlock lock(m_mutex);
       return (m_totallist.size() * m_page_size_bytes
                     > m_capacity_bytes);
     }
 
     // Returns the capacity (in bytes)
     size_t capacity() {
-      ScopedSpinlock lock(m_mutex);
       return (m_capacity_bytes);
     }
 
     // Returns the number of currently cached elements
     size_t current_elements() {
-      ScopedSpinlock lock(m_mutex);
       return (m_totallist.size());
     }
 
     // Returns the number of currently cached elements (excluding those that
     // are mmapped)
     size_t allocated_elements() {
-      ScopedSpinlock lock(m_mutex);
       return (m_alloc_elements);
     }
 
@@ -217,29 +210,6 @@ class Cache
     size_t calc_hash(uint64_t value) const {
       return ((size_t)(value % Cache::kBucketSize));
     }
-
-    // Implementation of del(), sans locking
-    void del_impl(Page *page, bool is_already_locked) {
-      ham_assert(page->get_address() != 0);
-
-      /* remove it from the list of all cached pages */
-      if (is_already_locked) {
-        if (m_totallist.del(page) && page->is_allocated())
-          m_alloc_elements--;
-      }
-      else {
-        ScopedSpinlock lock(m_mutex);
-        if (m_totallist.del(page) && page->is_allocated())
-          m_alloc_elements--;
-      }
-
-      /* remove the page from the cache buckets */
-      size_t hash = calc_hash(page->get_address());
-      m_buckets[hash].del(page);
-    }
-
-    // For synchronizing access
-    Spinlock m_mutex;
 
     // the capacity (in bytes)
     uint64_t m_capacity_bytes;

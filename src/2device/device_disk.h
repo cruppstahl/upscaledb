@@ -74,6 +74,8 @@ class DiskDevice : public Device {
 
     // Create a new device
     virtual void create() {
+      ScopedLock lock(m_mutex);
+
       File file;
       file.create(m_config.filename.c_str(), m_config.file_mode);
       file.set_posix_advice(m_config.posix_advice);
@@ -85,6 +87,8 @@ class DiskDevice : public Device {
     // tries to map the file; if it fails then continue with read/write 
     virtual void open() {
       bool read_only = (m_config.flags & HAM_READ_ONLY) != 0;
+
+      ScopedLock lock(m_mutex);
 
       State state = m_state;
       state.file.open(m_config.filename.c_str(), read_only);
@@ -114,11 +118,13 @@ class DiskDevice : public Device {
 
     // returns true if the device is open
     virtual bool is_open() {
+      ScopedLock lock(m_mutex);
       return (m_state.file.is_open());
     }
 
     // closes the device
     virtual void close() {
+      ScopedLock lock(m_mutex);
       State state = m_state;
       if (state.mmapptr)
         state.file.munmap(state.mmapptr, state.mapped_size);
@@ -129,35 +135,38 @@ class DiskDevice : public Device {
 
     // flushes the device
     virtual void flush() {
+      ScopedLock lock(m_mutex);
       m_state.file.flush();
     }
 
     // truncate/resize the device
     virtual void truncate(uint64_t new_file_size) {
-      if (new_file_size > m_config.file_size_limit_bytes)
-        throw Exception(HAM_LIMITS_REACHED);
-      m_state.file.truncate(new_file_size);
-      m_state.file_size = new_file_size;
+      ScopedLock lock(m_mutex);
+      truncate_nolock(new_file_size);
     }
 
     // get the current file/storage size
     virtual uint64_t file_size() {
+      ScopedLock lock(m_mutex);
       ham_assert(m_state.file_size == m_state.file.get_file_size());
       return (m_state.file_size);
     }
 
     // seek to a position in a file
     virtual void seek(uint64_t offset, int whence) {
+      ScopedLock lock(m_mutex);
       m_state.file.seek(offset, whence);
     }
 
     // tell the position in a file
     virtual uint64_t tell() {
+      ScopedLock lock(m_mutex);
       return (m_state.file.tell());
     }
 
     // reads from the device; this function does NOT use mmap
     virtual void read(uint64_t offset, void *buffer, size_t len) {
+      ScopedLock lock(m_mutex);
       m_state.file.pread(offset, buffer, len);
     }
 
@@ -165,12 +174,14 @@ class DiskDevice : public Device {
     // and is responsible for writing the data is run through the file
     // filters
     virtual void write(uint64_t offset, void *buffer, size_t len) {
+      ScopedLock lock(m_mutex);
       m_state.file.pwrite(offset, buffer, len);
     }
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
     virtual uint64_t alloc(size_t len) {
+      ScopedLock lock(m_mutex);
       uint64_t address;
 
       if (m_state.excess_at_end >= len) {
@@ -202,7 +213,7 @@ class DiskDevice : public Device {
 #endif
 
         address = m_state.file_size;
-        truncate(address + len + excess);
+        truncate_nolock(address + len + excess);
         m_state.excess_at_end = excess;
       }
       return (address);
@@ -211,6 +222,7 @@ class DiskDevice : public Device {
     // reads a page from the device; this function CAN return a
 	// pointer to mmapped memory
     virtual void read_page(Page *page, uint64_t address) {
+      ScopedLock lock(m_mutex);
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (address < m_state.mapped_size && m_state.mmapptr != 0) {
@@ -249,6 +261,7 @@ class DiskDevice : public Device {
 
     // Frees a page on the device; plays counterpoint to |alloc_page|
     virtual void free_page(Page *page) {
+      ScopedLock lock(m_mutex);
       ham_assert(page->get_data() != 0);
       page->free_buffer();
     }
@@ -260,13 +273,25 @@ class DiskDevice : public Device {
 
     // Removes unused space at the end of the file
     virtual void reclaim_space() {
+      ScopedLock lock(m_mutex);
       if (m_state.excess_at_end > 0) {
-        truncate(m_state.file_size - m_state.excess_at_end);
+        truncate_nolock(m_state.file_size - m_state.excess_at_end);
         m_state.excess_at_end = 0;
       }
     }
 
   private:
+    // truncate/resize the device, sans locking
+    void truncate_nolock(uint64_t new_file_size) {
+      if (new_file_size > m_config.file_size_limit_bytes)
+        throw Exception(HAM_LIMITS_REACHED);
+      m_state.file.truncate(new_file_size);
+      m_state.file_size = new_file_size;
+    }
+
+    // For synchronizing access
+    Spinlock m_mutex;
+
     State m_state;
 };
 

@@ -7,6 +7,17 @@ x a finished TODO item
 
 ==============================================================================
 
+x the PageManager class is becoming a beast! Split it into...
+    x Freelist (implementation class)
+    x PageManagerWorker
+    x Should the PageManager own the Device? - no, doesn't make sense
+    x the PageManagerWorker only accesses the Device and the Cache as external
+        objects
+        x The PageManager needs to be synchronized
+        x Cache (not synchronized!)
+        x Device (synchronize it!)
+        x Once more review the PageManager and the Worker
+
 o clean up threading issues
     - ./ham_bench --cache=50 fails frequently
     - creating deep copies of locked pages leads to test failures
@@ -42,22 +53,6 @@ o clean up threading issues
     x then switch to SpinLocks instead of mutexes
     o ChangesetFlush: has many helgrind warnings 
     o Journal/recoverFromRecoveryTest fails (release build and w/ mutex)
-
-o the PageManager class is becoming a beast! Split it into...
-    x Freelist (implementation class)
-    x PageManagerWorker
-    x Should the PageManager own the Device? - no, doesn't make sense
-    o Cache (serialize it!)
-    o Device (serialize it!)
-    o PageManager
-    o the PageManagerWorker only accesses the Device and the Cache as external
-        objects -> only Device and Cache have to be synchronous
-    o the Cache is serialized with a mutex, it locks the page when the page is
-        fetched or added
-    o the PageCollection is no longer responsible for locking the page
-    o the PageManager no longer needs to be synchronized
-    o the Page should no longer perform I/O; this should be handled by
-        the device (in non-static methods!)
 
 o Would it make sense to replace the worker thread with boost::async?
     https://think-async.com/Asio/Recipes
