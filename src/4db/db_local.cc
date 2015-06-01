@@ -576,6 +576,10 @@ LocalDatabase::erase_txn(Context *context, ham_key_t *key, uint32_t flags,
 ham_status_t
 LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 {
+  /* the header page is now modified */
+  Page *header = lenv()->page_manager()->fetch(context, 0);
+  header->set_dirty(true);
+
   /* set the flags; strip off run-time (per session) flags for the btree */
   uint32_t persistent_flags = get_flags();
   persistent_flags &= ~(HAM_CACHE_UNLIMITED
@@ -634,10 +638,6 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   /* initialize the btree */
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size);
-
-  /* the header page is now dirty */
-  Page *header = lenv()->page_manager()->fetch(context, 0);
-  header->set_dirty(true);
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));

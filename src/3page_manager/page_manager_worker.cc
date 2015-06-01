@@ -29,9 +29,10 @@
 namespace hamsterdb {
 
 ham_status_t
-PageManagerWorker::handle_message(MessageBase *message)
+PageManagerWorker::handle_message(MessageBase *message) const
 {
   switch (message->type) {
+#if 0
     case kFlushPages: {
       FlushPagesMessage *fpm = (FlushPagesMessage *)message;
 
@@ -50,13 +51,14 @@ PageManagerWorker::handle_message(MessageBase *message)
           }
           catch (Exception &ex) {
             page_data->mutex.unlock();
-            return (ex.code);;
+            return (ex.code);
           }
         }
         page_data->mutex.unlock();
       }
       return (0);
     }
+#endif
 
     case kReleasePointer: {
       ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;

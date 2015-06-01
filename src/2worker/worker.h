@@ -44,12 +44,14 @@ class Worker
     }
 
     void add_to_queue(MessageBase *message) {
+      message->completed = false;
+
+      ScopedLock lock(m_mutex);
       m_queue.push(message);
       m_cond.notify_one();
     }
 
     ham_status_t add_to_queue_blocking(MessageBase *message) {
-      message->completed = false;
       message->flags |= MessageBase::kIsBlocking | MessageBase::kDontDelete;
       add_to_queue(message);
       message->wait();
@@ -73,15 +75,9 @@ class Worker
       while (true) {
         {
           ScopedLock lock(m_mutex);
-          if (m_stop_requested)
-            break;
-          message = m_queue.pop();
-          if (!message) {
-            // TODO fix this...
-            boost::system_time const now = boost::get_system_time();
-            m_cond.timed_wait(lock, now + boost::posix_time::milliseconds(50));
-            //m_cond.wait(lock); // will unlock m_mutex while waiting
-            message = m_queue.pop();
+          while (m_stop_requested == false
+                  && (message = m_queue.pop()) == 0) {
+            m_cond.wait(lock); // will unlock m_mutex while waiting
           }
         }
 
@@ -90,22 +86,22 @@ class Worker
             handle_and_discard_message(message);
           }
         } while ((message = m_queue.pop()));
-      }
 
-      // pick up remaining messages
-      while ((message = m_queue.pop())) {
-        handle_and_discard_message(message);
+        ScopedLock lock(m_mutex);
+        if (m_stop_requested == true)
+          break;
       }
     }
 
     // Calls the derived handle_message() and handles exceptions
-    void handle_and_discard_message(MessageBase *message) {
+    void handle_and_discard_message(MessageBase *message) const {
       try {
         message->result = handle_message(message);
       }
       catch (Exception &ex) {
         message->result = ex.code;
       }
+      message->completed = true;
       if ((message->flags & MessageBase::kIsBlocking) == true)
         message->notify();
       if ((message->flags & MessageBase::kDontDelete) == false)
@@ -113,7 +109,7 @@ class Worker
     }
 
     // The message handler - has to be overridden
-    virtual ham_status_t handle_message(MessageBase *message) = 0;
+    virtual ham_status_t handle_message(MessageBase *message) const = 0;
 
     // A queue for storing messages
     Queue m_queue;

@@ -18,7 +18,7 @@ x the PageManager class is becoming a beast! Split it into...
         x Device (synchronize it!)
         x Once more review the PageManager and the Worker
 
-o clean up threading issues
+x clean up threading issues
     - ./ham_bench --cache=50 fails frequently
     - creating deep copies of locked pages leads to test failures
     - valgrind reports too many issues
@@ -51,14 +51,26 @@ o clean up threading issues
     x Clean up CacheLine - it's just a PageCollection
     x make sure that ALL flushes happen in the worker thread!
     x then switch to SpinLocks instead of mutexes
-    o ChangesetFlush: has many helgrind warnings 
-    o Journal/recoverFromRecoveryTest fails (release build and w/ mutex)
+    x ChangesetFlush: has many helgrind warnings 
+    x Journal/recoverFromRecoveryTest fails (release build and w/ mutex)
+=======================================================
+    o run monster tests
+        o failures when opening existing db: integrity check failed in page 0x20c6400: record of item #8 is in freelist
+        - could be a bug in the freelist
+        o there should not be ANY concurrency right now because every async
+            code is disabled and synchronized (w/ exception of changeset flush)
+        o re-enable async code (or rewrite using boost async?)
+    o switch to SpinLocks instead of mutexes
+        o once more run monster tests
+=======================================================
 
-o Would it make sense to replace the worker thread with boost::async?
-    https://think-async.com/Asio/Recipes
-    http://stackoverflow.com/questions/6775873/boost-asio-asynchronously-waiting-on-a-condition-variable
-    - use a strand to serialize requests
-    - https://github.com/egalli64/thisthread/blob/master/asio/strand.cpp
+o zint32: use FOR encoding (w/o SIMD)
+o zint32: use FOR encoding (w/  SIMD)
+o zint32: create custom insert function for StreamVbyte
+o zint32: create a script which runs all benchmarks
+o zint32: create good looking graphs with the results
+o zint32: continue with the paper
+
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -88,8 +100,6 @@ o There are performance issues related to cache flushes.
 
     o set breakpoint if spinlock spins more than 100 times; identify the
         bottleneck, try to improve
-
-
 
 o ftruncate() allocates larger buffers than required, for performance
     reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,

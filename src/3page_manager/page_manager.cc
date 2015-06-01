@@ -37,6 +37,34 @@
 
 namespace hamsterdb {
 
+static ham_status_t
+handle_flush_pages_message(MessageBase *message)
+{
+  FlushPagesMessage *fpm = (FlushPagesMessage *)message;
+
+  std::vector<uint64_t>::iterator it = fpm->page_ids.begin();
+  Page::PersistedData *page_data;
+  for (it = fpm->page_ids.begin(); it != fpm->page_ids.end(); it++) {
+    page_data = fpm->page_manager->try_fetch_page_data(*it);
+    if (!page_data)
+      continue;
+    ham_assert(page_data->mutex.try_lock() == false);
+
+    // flush dirty pages
+    if (page_data->is_dirty) {
+      try {
+        Page::flush(fpm->device, page_data);
+      }
+      catch (Exception &ex) {
+        page_data->mutex.unlock();
+        return (ex.code);;
+      }
+    }
+    page_data->mutex.unlock();
+  }
+  return (0);
+}
+
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
@@ -46,6 +74,7 @@ PageManagerState::PageManagerState(LocalEnvironment *env)
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
     page_count_page_manager(0), cache_hits(0), cache_misses(0)
 {
+  message.completed = true;
 }
 
 PageManager::PageManager(LocalEnvironment *env)
@@ -204,7 +233,8 @@ PageManager::flush_all_pages()
   }
 
   if (message.page_ids.size() > 0) {
-    ham_status_t result = m_worker->add_to_queue_blocking(&message);
+    //ham_status_t result = m_worker->add_to_queue_blocking(&message);
+    ham_status_t result = handle_flush_pages_message(&message);
     if (result != 0)
       throw Exception(result);
   }
@@ -227,14 +257,21 @@ PageManager::purge_cache(Context *context)
   std::vector<Page *> garbage;
 
   // complete the initialization of the message
+  Condition cond;
+  Mutex mutex;
   m_state.message.page_manager = this;
   m_state.message.flags |= MessageBase::kDontDelete;
   m_state.message.completed = false;
   m_state.message.page_ids.clear();
+  m_state.message.mutex = &mutex;
+  m_state.message.cond = &cond;
 
   m_state.cache.purge_candidates(m_state.message.page_ids, garbage,
                   m_state.last_blob_page);
-  m_worker->add_to_queue(&m_state.message);
+  // m_worker->add_to_queue_blocking(&m_state.message);
+  ham_status_t result = handle_flush_pages_message(&m_state.message);
+  if (result)
+    throw Exception(result);
 
   for (std::vector<Page *>::iterator it = garbage.begin();
                   it != garbage.end();
@@ -328,7 +365,8 @@ PageManager::close_database(Context *context, LocalDatabase *db)
   }
 
   if (message.page_ids.size() > 0) {
-    ham_status_t result = m_worker->add_to_queue_blocking(&message);
+    //ham_status_t result = m_worker->add_to_queue_blocking(&message);
+    ham_status_t result = handle_flush_pages_message(&message);
     if (result != 0)
       throw Exception(result);
   }
@@ -339,6 +377,10 @@ PageManager::close_database(Context *context, LocalDatabase *db)
           it != pages.end();
           it++) {
     m_state.cache.del(*it);
+    // TODO Journal/recoverFromRecoveryTest fails because pages are still
+    // locked; make sure that they're unlocked before they are deleted
+    (*it)->mutex().try_lock();
+    (*it)->mutex().unlock();
     delete *it;
   }
 }
@@ -730,7 +772,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
 Page::PersistedData *
 PageManager::try_fetch_page_data(uint64_t page_id)
 {
-  ScopedSpinlock lock(m_state.mutex);
+  //ScopedSpinlock lock(m_state.mutex);
 
   Page *page = m_state.cache.get(page_id);
   if (page && page->mutex().try_lock())

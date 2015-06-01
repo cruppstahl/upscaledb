@@ -1221,19 +1221,19 @@ struct JournalFixture {
 
     /* backup the files */
     REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".test.bak")));
+          Utils::opath(".testjrn.bak")));
     REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
+          Utils::opath(".testjrn.bak0")));
     REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
+          Utils::opath(".testjrn.bak1")));
 
     /* close the environment, then restore the files */
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
+    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak"),
           Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
+    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak0"),
           Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
+    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak1"),
           Utils::opath(".test.jrn1")));
 
     /* open the environment */
@@ -1673,8 +1673,8 @@ TEST_CASE("Journal/recoverWithCorruptChangesetTest", "")
 
 TEST_CASE("Journal/recoverFromRecoveryTest", "")
 {
-  //JournalFixture f;
-  //f.recoverFromRecoveryTest();
+  JournalFixture f;
+  f.recoverFromRecoveryTest();
 }
 
 TEST_CASE("Journal/switchThresholdTest", "")

@@ -104,7 +104,7 @@ struct ReleasePointerMessage : public MessageBase
 class PageManagerWorker : public Worker
 {
   private:
-    virtual ham_status_t handle_message(MessageBase *message);
+    virtual ham_status_t handle_message(MessageBase *message) const;
 };
 
 } // namespace hamsterdb
