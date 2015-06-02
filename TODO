@@ -88,6 +88,8 @@ o investigate performance issue; when reopening the database operations
     ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 \
         --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=50000
 
+o Win32: ham_recover is missing in the .zip-file
+
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a

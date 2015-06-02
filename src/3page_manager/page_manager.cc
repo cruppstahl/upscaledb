@@ -43,9 +43,16 @@ struct Deleter {
 };
 
 struct AsyncFlushMessage {
-  Signal *signal;
+  AsyncFlushMessage(PageManager *page_manager_, Device *device_,
+          Signal *signal_)
+    : page_manager(page_manager_), device(device_), signal(signal_),
+      in_progress(0) {
+  }
+
   PageManager *page_manager;
   Device *device;
+  Signal *signal;
+  boost::atomic<bool> *in_progress;
   std::vector<uint64_t> page_ids;
 };
 
@@ -67,22 +74,28 @@ async_flush_pages(AsyncFlushMessage *message)
       }
       catch (Exception &ex) {
         page_data->mutex.unlock();
-        message->signal->notify();
+        if (message->signal)
+          message->signal->notify();
+        if (message->in_progress)
+          *message->in_progress = false;
         delete message;
-        throw;
+        throw; // TODO really?
       }
     }
     page_data->mutex.unlock();
   }
-  message->signal->notify();
+  if (message->signal)
+    message->signal->notify();
+  if (message->in_progress)
+    *message->in_progress = false;
   delete message;
 }
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(env->config()), freelist(config), needs_flush(false),
-    state_page(0), last_blob_page(0), last_blob_page_id(0),
+    cache(env->config()), freelist(config), purge_in_progress(false),
+    needs_flush(false), state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
     page_count_page_manager(0), cache_hits(0), cache_misses(0)
 {
@@ -230,10 +243,8 @@ void
 PageManager::flush_all_pages()
 {
   Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage();
-  message->page_manager = this;
-  message->device = m_state.device;
-  message->signal = &signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
+                                    &signal);
 
   FlushAllPagesVisitor visitor(message);
 
@@ -262,17 +273,16 @@ PageManager::purge_cache(Context *context)
   //   2. there's still a "purge cache" operation pending
   //   3. the cache is not full
   if (m_state.config.flags & HAM_IN_MEMORY
-      //|| m_state.message.completed == false
+      || m_state.purge_in_progress == true
       || !m_state.cache.is_cache_full())
     return;
 
   std::vector<Page *> garbage;
 
   Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage();
-  message->page_manager = this;
-  message->device = m_state.device;
-  message->signal = &signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
+                                    &signal);
+  message->in_progress = &m_state.purge_in_progress;
 
   m_state.cache.purge_candidates(message->page_ids, garbage,
           m_state.last_blob_page);
@@ -355,10 +365,8 @@ void
 PageManager::close_database(Context *context, LocalDatabase *db)
 {
   Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage();
-  message->page_manager = this;
-  message->device = m_state.device;
-  message->signal = &signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
+                                    &signal);
 
   CloseDatabaseVisitor visitor(db, message);
 

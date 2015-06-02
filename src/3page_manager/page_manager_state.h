@@ -76,6 +76,9 @@ struct PageManagerState
   // The freelist
   Freelist freelist;
 
+  // Whether a "cache purge" is currently in progress
+  boost::atomic<bool> purge_in_progress;
+
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
 
