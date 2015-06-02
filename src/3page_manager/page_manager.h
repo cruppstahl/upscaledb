@@ -135,6 +135,11 @@ class PageManager
       m_worker->add_to_queue(message);
     }
 
+    // Adds a blocking message to the worker's queue
+    void add_to_worker_queue_blocking(MessageBase *message) {
+      m_worker->add_to_queue_blocking(message);
+    }
+
     // Returns additional testing interfaces
     PageManagerTest test();
 

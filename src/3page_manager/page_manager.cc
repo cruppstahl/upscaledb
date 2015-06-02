@@ -37,34 +37,6 @@
 
 namespace hamsterdb {
 
-static ham_status_t
-handle_flush_pages_message(MessageBase *message)
-{
-  FlushPagesMessage *fpm = (FlushPagesMessage *)message;
-
-  std::vector<uint64_t>::iterator it = fpm->page_ids.begin();
-  Page::PersistedData *page_data;
-  for (it = fpm->page_ids.begin(); it != fpm->page_ids.end(); it++) {
-    page_data = fpm->page_manager->try_fetch_page_data(*it);
-    if (!page_data)
-      continue;
-    ham_assert(page_data->mutex.try_lock() == false);
-
-    // flush dirty pages
-    if (page_data->is_dirty) {
-      try {
-        Page::flush(fpm->device, page_data);
-      }
-      catch (Exception &ex) {
-        page_data->mutex.unlock();
-        return (ex.code);;
-      }
-    }
-    page_data->mutex.unlock();
-  }
-  return (0);
-}
-
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
@@ -233,8 +205,7 @@ PageManager::flush_all_pages()
   }
 
   if (message.page_ids.size() > 0) {
-    //ham_status_t result = m_worker->add_to_queue_blocking(&message);
-    ham_status_t result = handle_flush_pages_message(&message);
+    ham_status_t result = m_worker->add_to_queue_blocking(&message);
     if (result != 0)
       throw Exception(result);
   }
@@ -268,8 +239,7 @@ PageManager::purge_cache(Context *context)
 
   m_state.cache.purge_candidates(m_state.message.page_ids, garbage,
                   m_state.last_blob_page);
-  // m_worker->add_to_queue_blocking(&m_state.message);
-  ham_status_t result = handle_flush_pages_message(&m_state.message);
+  ham_status_t result = m_worker->add_to_queue_blocking(&m_state.message);
   if (result)
     throw Exception(result);
 
@@ -365,8 +335,7 @@ PageManager::close_database(Context *context, LocalDatabase *db)
   }
 
   if (message.page_ids.size() > 0) {
-    //ham_status_t result = m_worker->add_to_queue_blocking(&message);
-    ham_status_t result = handle_flush_pages_message(&message);
+    ham_status_t result = m_worker->add_to_queue_blocking(&message);
     if (result != 0)
       throw Exception(result);
   }
@@ -667,13 +636,14 @@ PageManager::store_state(Context *context)
   // TODO here we lose a whole chain of overflow pointers if there was such
   // a chain. We only save the first. That's not critical but also not nice.
   uint64_t next_pageid = *(uint64_t *)p;
-  if (next_pageid)
+  if (next_pageid) {
     m_state.freelist.put(next_pageid, 1);
+    *(uint64_t *)p = 0;
+  }
 
   // No freelist entries? then we're done. Make sure that there's no
   // overflow pointer or other garbage in the page!
   if (m_state.freelist.empty()) {
-    *(uint64_t *)p = 0;
     p += sizeof(uint64_t);
     *(uint32_t *)p = 0;
     return (m_state.state_page->get_address());

@@ -77,7 +77,10 @@ class Worker
           ScopedLock lock(m_mutex);
           while (m_stop_requested == false
                   && (message = m_queue.pop()) == 0) {
-            m_cond.wait(lock); // will unlock m_mutex while waiting
+            // m_cond.wait(lock); // will unlock m_mutex while waiting
+            // TODO fix this...
+            boost::system_time const now = boost::get_system_time();
+            m_cond.timed_wait(lock, now + boost::posix_time::milliseconds(500));
           }
         }
 

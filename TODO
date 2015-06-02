@@ -53,13 +53,20 @@ x clean up threading issues
     x then switch to SpinLocks instead of mutexes
     x ChangesetFlush: has many helgrind warnings 
     x Journal/recoverFromRecoveryTest fails (release build and w/ mutex)
-=======================================================
-    o run monster tests
-        o failures when opening existing db: integrity check failed in page 0x20c6400: record of item #8 is in freelist
-        - could be a bug in the freelist
-        o there should not be ANY concurrency right now because every async
+    x run monster tests
+        x failures when opening existing db: integrity check failed in page 0x20c6400: record of item #8 is in freelist
+        x could be a bug in the freelist
+        x there should not be ANY concurrency right now because every async
             code is disabled and synchronized (w/ exception of changeset flush)
-        o re-enable async code (or rewrite using boost async?)
+=======================================================
+    o currently, all async operations are synchronous in the main thread
+        o keep them synchronous, but move them to the worker thread
+            o rewrite worker thread using boost async
+        o then - piece by piece - make them async again
+            (one problem was that close_db was async and therefore executed
+            BEFORE a changeset flush was finished
+            o cache flush
+            o changeset flush
     o switch to SpinLocks instead of mutexes
         o once more run monster tests
 =======================================================
@@ -71,6 +78,13 @@ o zint32: create a script which runs all benchmarks
 o zint32: create good looking graphs with the results
 o zint32: continue with the paper
 
+o investigate performance issue; when reopening the database operations
+    are much slower. why?
+    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 \
+        --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 \
+        --stop-ops=50000
+    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 \
+        --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=50000
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time

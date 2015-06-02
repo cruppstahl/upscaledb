@@ -41,12 +41,18 @@ Changeset::flush(uint64_t lsn)
   if (m_collection.is_empty())
     return;
   
+  Condition cond;
+  Mutex mutex;
+
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // Fetch the pages, ignoring all pages that are not dirty
   FlushChangesetMessage *message = new FlushChangesetMessage(
                               m_env->device(), m_env->journal(), lsn,
                               (m_env->config().flags & HAM_ENABLE_FSYNC) != 0);
+  message->mutex = &mutex;
+  message->cond = &cond;
+
   m_collection.extract(*message);
 
   if (message->list.empty()) {
@@ -66,7 +72,8 @@ Changeset::flush(uint64_t lsn)
     g_CHANGESET_POST_LOG_HOOK();
 
   /* The modified pages are now flushed (and unlocked) asynchronously. */
-  m_env->page_manager()->add_to_worker_queue(message);
+  m_env->page_manager()->add_to_worker_queue_blocking(message);
+  delete message;
 }
 
 } // namespace hamsterdb

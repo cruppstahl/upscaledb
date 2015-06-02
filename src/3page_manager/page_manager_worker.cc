@@ -32,7 +32,6 @@ ham_status_t
 PageManagerWorker::handle_message(MessageBase *message) const
 {
   switch (message->type) {
-#if 0
     case kFlushPages: {
       FlushPagesMessage *fpm = (FlushPagesMessage *)message;
 
@@ -58,7 +57,6 @@ PageManagerWorker::handle_message(MessageBase *message) const
       }
       return (0);
     }
-#endif
 
     case kReleasePointer: {
       ReleasePointerMessage *rpm = (ReleasePointerMessage *)message;
@@ -77,6 +75,7 @@ PageManagerWorker::handle_message(MessageBase *message) const
         // will trigger an exception
         ham_assert(page_data->mutex.try_lock() == false);
         page_data->mutex.acquire_ownership();
+        page_data->mutex.try_lock(); // TODO remove this
 
         Page::flush(fcm->device, page_data);
         HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
