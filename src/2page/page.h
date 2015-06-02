@@ -94,12 +94,13 @@ class Page {
     struct PersistedData {
       PersistedData()
         : address(0), size(0), is_dirty(false), is_allocated(false),
-          raw_data(0) {
+          is_without_header(false), raw_data(0) {
       }
 
       PersistedData(const PersistedData &other)
         : address(other.address), size(other.size), is_dirty(other.is_dirty),
-          is_allocated(other.is_allocated), raw_data(other.raw_data) {
+          is_allocated(other.is_allocated),
+          is_without_header(other.is_without_header), raw_data(other.raw_data) {
       }
 
       ~PersistedData() {
@@ -126,6 +127,9 @@ class Page {
       // Page buffer was allocated with malloc() (if not then it was mapped
       // with mmap)
       bool is_allocated;
+
+      // True if page has no persistent header
+      bool is_without_header;
 
       // the persistent data of this page
       PPageData *raw_data;
@@ -257,12 +261,12 @@ class Page {
 
     // Returns true if the page has no persistent header
     bool is_without_header() const {
-      return (m_is_without_header);
+      return (m_datap->is_without_header);
     }
 
     // Sets a flag whether the page has no persistent header
     void set_without_header(bool without_header) {
-      m_is_without_header = without_header;
+      m_datap->is_without_header = without_header;
     }
 
     // Assign a buffer which was allocated with malloc()
@@ -455,9 +459,6 @@ class Page {
 
     // the Database handle (can be NULL)
     LocalDatabase *m_db;
-
-    // Page does not have a persistent header
-    bool m_is_without_header;
 
     // linked list of all cursors which are coupled to that page
     BtreeCursor *m_cursor_list;

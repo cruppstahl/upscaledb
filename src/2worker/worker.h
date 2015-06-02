@@ -15,8 +15,7 @@
  */
 
 /*
- * The worker thread. Asynchronously purges the cache. Thread will start as
- * soon as it's constructed.
+ * The worker thread
  */
 
 #ifndef HAM_WORKER_H
@@ -24,11 +23,11 @@
 
 #include "0root/root.h"
 
-#include <boost/thread.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/asio.hpp>
 
 // Always verify that a file of level N does not include headers > N!
-#include "2queue/queue.h"
-#include "4env/env_local.h"
+#include "2worker/workitem.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -36,100 +35,58 @@
 
 namespace hamsterdb {
 
-class Worker
-{
-  public:
-    Worker()
-      : m_stop_requested(false), m_thread(&Worker::run, this) {
+struct WorkerPool;
+ 
+// our worker thread objects
+struct WorkerThread {
+  WorkerThread(WorkerPool &s)
+    : pool(s) {
+  }
+
+  void operator()();
+
+  WorkerPool &pool; 
+};
+ 
+// the actual thread pool
+struct WorkerPool {
+  // the constructor just launches some amount of workers
+  WorkerPool(size_t threads)
+    : working(service), strand(service) {
+    for (size_t i = 0; i < threads; ++i)
+      workers.push_back(new boost::thread(WorkerThread(*this)));
+  }
+
+  // Add a new work item to the pool
+  template<typename F>
+  void enqueue(F &f) {
+    strand.post(f);
+  }
+
+  // the destructor joins all threads
+  ~WorkerPool() {
+    service.stop();
+
+    for (size_t i = 0; i< workers.size(); ++i) {
+      workers[i]->join();
+      delete workers[i];
     }
+  }
 
-    void add_to_queue(MessageBase *message) {
-      message->completed = false;
-
-      ScopedLock lock(m_mutex);
-      m_queue.push(message);
-      m_cond.notify_one();
-    }
-
-    ham_status_t add_to_queue_blocking(MessageBase *message) {
-      message->flags |= MessageBase::kIsBlocking | MessageBase::kDontDelete;
-      add_to_queue(message);
-      message->wait();
-      return (message->result);
-    }
-
-    void stop_and_join() {
-      {
-        ScopedLock lock(m_mutex);
-        m_stop_requested = true;
-        m_cond.notify_one();
-      }
-      m_thread.join();
-    }
-
-  private:
-    // The thread function
-    void run() {
-      MessageBase *message = 0;
-
-      while (true) {
-        {
-          ScopedLock lock(m_mutex);
-          while (m_stop_requested == false
-                  && (message = m_queue.pop()) == 0) {
-            // m_cond.wait(lock); // will unlock m_mutex while waiting
-            // TODO fix this...
-            boost::system_time const now = boost::get_system_time();
-            m_cond.timed_wait(lock, now + boost::posix_time::milliseconds(500));
-          }
-        }
-
-        do {
-          if (message) {
-            handle_and_discard_message(message);
-          }
-        } while ((message = m_queue.pop()));
-
-        ScopedLock lock(m_mutex);
-        if (m_stop_requested == true)
-          break;
-      }
-    }
-
-    // Calls the derived handle_message() and handles exceptions
-    void handle_and_discard_message(MessageBase *message) const {
-      try {
-        message->result = handle_message(message);
-      }
-      catch (Exception &ex) {
-        message->result = ex.code;
-      }
-      message->completed = true;
-      if ((message->flags & MessageBase::kIsBlocking) == true)
-        message->notify();
-      if ((message->flags & MessageBase::kDontDelete) == false)
-        delete message;
-    }
-
-    // The message handler - has to be overridden
-    virtual ham_status_t handle_message(MessageBase *message) const = 0;
-
-    // A queue for storing messages
-    Queue m_queue;
-
-    // true if the Environment is closed
-    bool m_stop_requested;
-
-    // A mutex for protecting |m_cond|
-    boost::mutex m_mutex;
-
-    // A condition to wait for
-    boost::condition_variable m_cond;
-
-    // The actual thread
-    boost::thread m_thread;
+  // need to keep track of threads so we can join them
+  std::vector<boost::thread *> workers;
+   
+  // the io_service we are wrapping
+  boost::asio::io_service service;
+  boost::asio::io_service::work working;
+  boost::asio::strand strand;
 };
 
+inline void
+WorkerThread::operator()() {
+  pool.service.run();
+}
+ 
 } // namespace hamsterdb
 
 #endif // HAM_WORKER_H

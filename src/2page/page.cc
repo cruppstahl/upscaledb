@@ -29,7 +29,7 @@ namespace hamsterdb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_is_without_header(false), m_cursor_list(0),
+  : m_device(device), m_db(db), m_cursor_list(0),
     m_node_proxy(0), m_datap(&m_data_inline)
 {
   ::memset(&m_prev[0], 0, sizeof(m_prev));

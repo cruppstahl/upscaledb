@@ -34,7 +34,6 @@
 #include "1base/spinlock.h"
 #include "2config/env_config.h"
 #include "3cache/cache.h"
-#include "3page_manager/page_manager_worker.h"
 #include "3page_manager/freelist.h"
 
 #ifndef HAM_ROOT_H
@@ -79,9 +78,6 @@ struct PageManagerState
 
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
-
-  // The "purge cache" message sent to the worker thread
-  FlushPagesMessage message;
 
   // Page with the persisted state data. If multiple pages are allocated
   // then these pages form a linked list, with |m_state_page| being the head

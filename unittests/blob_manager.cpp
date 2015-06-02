@@ -24,7 +24,7 @@
 #include "3page_manager/page_manager_test.h"
 #include "3btree/btree_flags.h"
 #include "3blob_manager/blob_manager_disk.h"
-#include "4env/env.h"
+#include "4env/env_local.h"
 #include "4db/db_local.h"
 #include "4context/context.h"
 

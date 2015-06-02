@@ -19,13 +19,11 @@
 #include <string.h>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1base/signal.h"
 #include "1base/dynamic_array.h"
-#include "1base/pickle.h"
 #include "2page/page.h"
 #include "2device/device.h"
-#include "2queue/queue.h"
 #include "3page_manager/page_manager.h"
-#include "3page_manager/page_manager_worker.h"
 #include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
@@ -37,23 +35,64 @@
 
 namespace hamsterdb {
 
+template <typename T>
+struct Deleter {
+  void operator()(T *p) {
+    delete p;
+  }
+};
+
+struct AsyncFlushMessage {
+  Signal *signal;
+  PageManager *page_manager;
+  Device *device;
+  std::vector<uint64_t> page_ids;
+};
+
+static void
+async_flush_pages(AsyncFlushMessage *message)
+{
+  std::vector<uint64_t>::iterator it = message->page_ids.begin();
+  Page::PersistedData *page_data;
+  for (it = message->page_ids.begin(); it != message->page_ids.end(); it++) {
+    page_data = message->page_manager->try_fetch_page_data(*it);
+    if (!page_data)
+      continue;
+    ham_assert(page_data->mutex.try_lock() == false);
+
+    // flush dirty pages
+    if (page_data->is_dirty) {
+      try {
+        Page::flush(message->device, page_data);
+      }
+      catch (Exception &ex) {
+        page_data->mutex.unlock();
+        message->signal->notify();
+        delete message;
+        throw;
+      }
+    }
+    page_data->mutex.unlock();
+  }
+  message->signal->notify();
+  delete message;
+}
+
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
     cache(env->config()), freelist(config), needs_flush(false),
-    message(env->page_manager(), env->device()),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
     page_count_page_manager(0), cache_hits(0), cache_misses(0)
 {
-  message.completed = true;
 }
 
 PageManager::PageManager(LocalEnvironment *env)
   : m_state(env)
 {
   /* start the worker thread */
-  m_worker.reset(new PageManagerWorker());
+  m_worker.reset(new WorkerPool(1));
 }
 
 void
@@ -174,7 +213,7 @@ PageManager::fill_metrics(ham_env_metrics_t *metrics) const
 
 struct FlushAllPagesVisitor
 {
-  FlushAllPagesVisitor(FlushPagesMessage *message_)
+  FlushAllPagesVisitor(AsyncFlushMessage *message_)
     : message(message_) {
   }
 
@@ -184,30 +223,32 @@ struct FlushAllPagesVisitor
     return (false);
   }
 
-  FlushPagesMessage *message;
+  AsyncFlushMessage *message;
 };
 
 void
 PageManager::flush_all_pages()
 {
-  Condition cond;
-  Mutex mutex;
-  FlushPagesMessage message(this, m_state.device, &mutex, &cond);
+  Signal signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage();
+  message->page_manager = this;
+  message->device = m_state.device;
+  message->signal = &signal;
+
+  FlushAllPagesVisitor visitor(message);
 
   {
     ScopedSpinlock lock(m_state.mutex);
 
-    FlushAllPagesVisitor visitor(&message);
     m_state.cache.purge_if(visitor);
 
     if (m_state.state_page)
       Page::flush(m_state.device, m_state.state_page->get_persisted_data());
   }
 
-  if (message.page_ids.size() > 0) {
-    ham_status_t result = m_worker->add_to_queue_blocking(&message);
-    if (result != 0)
-      throw Exception(result);
+  if (message->page_ids.size() > 0) {
+    run_async(boost::bind(&async_flush_pages, message));
+    signal.wait();
   }
 }
 
@@ -221,27 +262,25 @@ PageManager::purge_cache(Context *context)
   //   2. there's still a "purge cache" operation pending
   //   3. the cache is not full
   if (m_state.config.flags & HAM_IN_MEMORY
-      || m_state.message.completed == false
+      //|| m_state.message.completed == false
       || !m_state.cache.is_cache_full())
     return;
 
   std::vector<Page *> garbage;
 
-  // complete the initialization of the message
-  Condition cond;
-  Mutex mutex;
-  m_state.message.page_manager = this;
-  m_state.message.flags |= MessageBase::kDontDelete;
-  m_state.message.completed = false;
-  m_state.message.page_ids.clear();
-  m_state.message.mutex = &mutex;
-  m_state.message.cond = &cond;
+  Signal signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage();
+  message->page_manager = this;
+  message->device = m_state.device;
+  message->signal = &signal;
 
-  m_state.cache.purge_candidates(m_state.message.page_ids, garbage,
-                  m_state.last_blob_page);
-  ham_status_t result = m_worker->add_to_queue_blocking(&m_state.message);
-  if (result)
-    throw Exception(result);
+  m_state.cache.purge_candidates(message->page_ids, garbage,
+          m_state.last_blob_page);
+
+  if (message->page_ids.size() > 0) {
+    run_async(boost::bind(&async_flush_pages, message));
+    signal.wait();
+  }
 
   for (std::vector<Page *>::iterator it = garbage.begin();
                   it != garbage.end();
@@ -295,31 +334,33 @@ PageManager::reclaim_space(Context *context)
 
 struct CloseDatabaseVisitor
 {
-  CloseDatabaseVisitor(FlushPagesMessage *message_, LocalDatabase *db_,
-            std::vector<Page *> *pages_)
-    : message(message_), db(db_), pages(pages_) {
+  CloseDatabaseVisitor(LocalDatabase *db_, AsyncFlushMessage *message_)
+    : db(db_), message(message_) {
   }
 
   bool operator()(Page *page) {
     if (page->get_db() == db && page->get_address() != 0) {
       message->page_ids.push_back(page->get_address());
-      pages->push_back(page);
+      pages.push_back(page);
     }
     return (false);
   }
 
-  FlushPagesMessage *message;
   LocalDatabase *db;
-  std::vector<Page *> *pages;
+  std::vector<Page *> pages;
+  AsyncFlushMessage *message;
 };
 
 void
 PageManager::close_database(Context *context, LocalDatabase *db)
 {
-  std::vector<Page *> pages;
-  Condition cond;
-  Mutex mutex;
-  FlushPagesMessage message(this, m_state.device, &mutex, &cond);
+  Signal signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage();
+  message->page_manager = this;
+  message->device = m_state.device;
+  message->signal = &signal;
+
+  CloseDatabaseVisitor visitor(db, message);
 
   {
     ScopedSpinlock lock(m_state.mutex);
@@ -330,20 +371,18 @@ PageManager::close_database(Context *context, LocalDatabase *db)
     }
 
     context->changeset.clear();
-    CloseDatabaseVisitor visitor(&message, db, &pages);
     m_state.cache.purge_if(visitor);
   }
 
-  if (message.page_ids.size() > 0) {
-    ham_status_t result = m_worker->add_to_queue_blocking(&message);
-    if (result != 0)
-      throw Exception(result);
+  if (message->page_ids.size() > 0) {
+    run_async(boost::bind(&async_flush_pages, message));
+    signal.wait();
   }
 
   ScopedSpinlock lock(m_state.mutex);
   // now delete the pages
-  for (std::vector<Page *>::iterator it = pages.begin();
-          it != pages.end();
+  for (std::vector<Page *>::iterator it = visitor.pages.begin();
+          it != visitor.pages.end();
           it++) {
     m_state.cache.del(*it);
     // TODO Journal/recoverFromRecoveryTest fails because pages are still
@@ -428,7 +467,7 @@ PageManager::close(Context *context)
 
   /* wait for the worker thread to stop */
   if (m_worker.get())
-    m_worker->stop_and_join();
+    m_worker.reset(0);
 
   delete m_state.state_page;
   m_state.state_page = 0;
@@ -441,7 +480,7 @@ PageManager::reset(Context *context)
   close(context);
 
   /* start the worker thread */
-  m_worker.reset(new PageManagerWorker());
+  m_worker.reset(new WorkerPool(1));
 }
 
 Page *
@@ -733,8 +772,12 @@ PageManager::safely_lock_page(Context *context, Page *page,
   ham_assert(page->mutex().try_lock() == false);
 
   // make sure that the old data is not leaked
-  if (old_data != 0)
-    m_worker->add_to_queue(new ReleasePointerMessage(old_data));
+  if (old_data != 0) {
+    // TODO what if |item| goes out of scope?
+    // ReleasePointerWorkItem item(old_data);
+    // m_worker->enqueue(item);
+    ham_assert(!"not yet implemented");
+  }
 
   return (page);
 }

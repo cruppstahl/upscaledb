@@ -32,9 +32,9 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
+#include "2worker/worker.h"
 #include "3page_manager/page_manager_state.h"
 #include "3page_manager/page_manager_test.h"
-#include "3page_manager/page_manager_worker.h"
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"
@@ -131,13 +131,9 @@ class PageManager
     Page::PersistedData *try_fetch_page_data(uint64_t page_id);
 
     // Adds a message to the worker's queue
-    void add_to_worker_queue(MessageBase *message) {
-      m_worker->add_to_queue(message);
-    }
-
-    // Adds a blocking message to the worker's queue
-    void add_to_worker_queue_blocking(MessageBase *message) {
-      m_worker->add_to_queue_blocking(message);
+    template<typename CompletionHandler>
+    void run_async(CompletionHandler handler) {
+      return (m_worker->enqueue(handler));
     }
 
     // Returns additional testing interfaces
@@ -166,7 +162,7 @@ class PageManager
                 bool allow_recursive_lock);
 
     // The worker thread which flushes dirty pages
-    ScopedPtr<PageManagerWorker> m_worker;
+    ScopedPtr<WorkerPool> m_worker;
 
     // The state
     PageManagerState m_state;

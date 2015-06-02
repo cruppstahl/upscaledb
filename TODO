@@ -60,8 +60,10 @@ x clean up threading issues
             code is disabled and synchronized (w/ exception of changeset flush)
 =======================================================
     o currently, all async operations are synchronous in the main thread
-        o keep them synchronous, but move them to the worker thread
-            o rewrite worker thread using boost async
+        x keep them synchronous, but move them to the worker thread
+            x rewrite worker thread using boost async
+            x verify that cache purge works
+            x use pointers to transfer parameters to thread
         o then - piece by piece - make them async again
             (one problem was that close_db was async and therefore executed
             BEFORE a changeset flush was finished

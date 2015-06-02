@@ -203,6 +203,7 @@
     <ClInclude Include="..\..\src\1base\packstop.h" />
     <ClInclude Include="..\..\src\1base\pickle.h" />
     <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
+    <ClInclude Include="..\..\src\1base\signal.h" />
     <ClInclude Include="..\..\src\1base\util.h" />
     <ClInclude Include="..\..\src\1base\version.h" />
     <ClInclude Include="..\..\src\1eventlog\eventlog.h" />
@@ -252,7 +253,6 @@
     <ClInclude Include="..\..\src\3journal\journal_entries.h" />
     <ClInclude Include="..\..\src\3page_manager\freelist.h" />
     <ClInclude Include="..\..\src\3page_manager\page_manager.h" />
-    <ClInclude Include="..\..\src\3page_manager\page_manager_worker.h" />
     <ClInclude Include="..\..\src\4context\context.h" />
     <ClInclude Include="..\..\src\4cursor\cursor.h" />
     <ClInclude Include="..\..\src\4cursor\cursor_local.h" />
@@ -296,7 +296,6 @@
     <ClCompile Include="..\..\src\3journal\journal.cc" />
     <ClCompile Include="..\..\src\3page_manager\freelist.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
-    <ClCompile Include="..\..\src\3page_manager\page_manager_worker.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />
