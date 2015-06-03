@@ -163,11 +163,14 @@ class Cache
 
       Page *page = m_totallist.tail();
       for (int i = 0; i < limit && page != 0; i++) {
-        if (page->cursor_list() == 0 && page != ignore_page) {
-          if (page->is_dirty())
-            candidates.push_back(page->get_address());
-          else
-            garbage.push_back(page);
+        if (page->mutex().try_lock()) {
+          if (page->cursor_list() == 0 && page != ignore_page) {
+            if (page->is_dirty())
+              candidates.push_back(page->get_address());
+            else
+              garbage.push_back(page);
+          }
+          page->mutex().unlock();
         }
 
         page = page->get_previous(Page::kListCache);

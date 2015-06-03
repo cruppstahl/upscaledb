@@ -261,6 +261,8 @@ PageManager::flush_all_pages()
     run_async(boost::bind(&async_flush_pages, message));
     signal.wait();
   }
+  else
+    delete message;
 }
 
 void
@@ -279,18 +281,18 @@ PageManager::purge_cache(Context *context)
 
   std::vector<Page *> garbage;
 
-  Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
-                                    &signal);
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device, 0);
   message->in_progress = &m_state.purge_in_progress;
 
   m_state.cache.purge_candidates(message->page_ids, garbage,
           m_state.last_blob_page);
 
   if (message->page_ids.size() > 0) {
+    m_state.purge_in_progress = true;
     run_async(boost::bind(&async_flush_pages, message));
-    signal.wait();
   }
+  else
+    delete message;
 
   for (std::vector<Page *>::iterator it = garbage.begin();
                   it != garbage.end();
@@ -386,6 +388,8 @@ PageManager::close_database(Context *context, LocalDatabase *db)
     run_async(boost::bind(&async_flush_pages, message));
     signal.wait();
   }
+  else
+    delete message;
 
   ScopedSpinlock lock(m_state.mutex);
   // now delete the pages
@@ -793,11 +797,15 @@ PageManager::safely_lock_page(Context *context, Page *page,
 Page::PersistedData *
 PageManager::try_fetch_page_data(uint64_t page_id)
 {
-  //ScopedSpinlock lock(m_state.mutex);
+  ScopedSpinlock lock(m_state.mutex);
 
   Page *page = m_state.cache.get(page_id);
-  if (page && page->mutex().try_lock())
-    return (page->get_persisted_data());
+  if (!page)
+    return (0);
+
+  Page::PersistedData *page_data = page->get_persisted_data();
+  if (page_data->mutex.try_lock())
+    return (page_data);
   return (0);
 }
 
