@@ -547,13 +547,15 @@ Journal::recover(LocalTransactionManager *txn_manager)
   // physical recovery because its page might have been restored in
   // recover_changeset()
   uint64_t page_manager_blobid = m_state.env->header()->page_manager_blobid();
-  if (page_manager_blobid != 0) {
+  if (page_manager_blobid != 0)
     m_state.env->page_manager()->initialize(page_manager_blobid);
-  }
 
   // then start the normal recovery
   if (m_state.env->get_flags() & HAM_ENABLE_TRANSACTIONS)
     recover_journal(&context, txn_manager, start_lsn);
+
+  // clear the journal files
+  clear();
 }
 
 uint64_t 
@@ -860,9 +862,6 @@ bail:
 
   if (st)
     throw Exception(st);
-
-  // clear the journal files
-  clear();
 }
 
 void
