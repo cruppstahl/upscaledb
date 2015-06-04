@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#ifdef HAM_ENABLE_REMOTE
+
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -119,3 +121,5 @@ RemoteCursor::do_get_record_size(uint64_t *psize)
 }
 
 } // namespace hamsterdb
+
+#endif /* HAM_ENABLE_REMOTE */

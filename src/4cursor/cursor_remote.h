@@ -21,6 +21,8 @@
  * @thread_safe: unknown
  */
 
+#ifdef HAM_ENABLE_REMOTE
+
 #ifndef HAM_CURSOR_REMOTE_H
 #define HAM_CURSOR_REMOTE_H
 
@@ -91,3 +93,5 @@ class RemoteCursor : public Cursor
 } // namespace hamsterdb
 
 #endif /* HAM_CURSOR_REMOTE_H */
+
+#endif /* HAM_ENABLE_REMOTE */

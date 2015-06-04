@@ -803,9 +803,8 @@ PageManager::try_fetch_page_data(uint64_t page_id)
   if (!page)
     return (0);
 
-  Page::PersistedData *page_data = page->get_persisted_data();
-  if (page_data->mutex.try_lock())
-    return (page_data);
+  if (page->mutex().try_lock())
+    return (page->get_persisted_data());
   return (0);
 }
 
