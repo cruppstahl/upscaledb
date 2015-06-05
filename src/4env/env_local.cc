@@ -351,13 +351,10 @@ LocalEnvironment::do_flush(uint32_t flags)
   if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & HAM_IN_MEMORY)
     return (0);
 
-  /* Flush the header page */
-  Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
-
   /* Flush all open pages to disk. This operation is blocking. */
   m_page_manager->flush_all_pages();
 
-  /* Flush the device - this usually causes a fsync() */
+  /* Flush the device - this can trigger a fsync() if enabled */
   m_device->flush();
 
   return (0);
@@ -697,14 +694,6 @@ LocalEnvironment::do_close(uint32_t flags)
   /* flush all pages and the freelist, reduce the file size */
   if (m_page_manager)
     m_page_manager->close(&context);
-
-  /* if we're not in read-only mode, and not an in-memory-database,
-   * and the dirty-flag is true: flush the page-header to disk */
-  if (m_header && m_header->header_page() && !(get_flags() & HAM_IN_MEMORY)
-        && m_device.get() && m_device.get()->is_open()
-        && (!(get_flags() & HAM_READ_ONLY))) {
-    Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
-  }
 
   /* close the header page */
   if (m_header && m_header->header_page()) {

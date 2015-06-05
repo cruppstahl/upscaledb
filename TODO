@@ -66,20 +66,20 @@ x clean up threading issues
         o then - piece by piece - make them async again
             (one problem was that close_db was async and therefore executed
             BEFORE a changeset flush was finished
-=======================================================
-            o ./ham_bench --use-berkeleydb=true --reopen=true  --cache=50 --use-cursors --overwrite ../../../hamsterdb-tests/testfiles/1/100.tst
-    -> add instrumentation:
-        - when locking/unlocking a page
-        - when fetching a page (device)
-        - when flushing a page (device)
-        - when fetching a page (page_manager)
-=======================================================
-            o cache flush
+            x ./ham_bench --use-berkeleydb=true --reopen=true  --cache=50 \
+                --use-cursors --overwrite \
+                ../../../hamsterdb-tests/testfiles/1/100.tst
+            x cache flush
             o changeset flush
     o switch to SpinLocks instead of mutexes
         o once more run monster tests
 
+======================
 o zint32: use FOR encoding (w/o SIMD)
+descendingDataTest: seems to corrupt data. vacuumize fails b/c the keys
+are not sorted. could hack check_integrity and verify that keys are sorted
+descendingly.
+======================
 o zint32: use FOR encoding (w/  SIMD)
 o zint32: create custom insert function for StreamVbyte
 o zint32: create a script which runs all benchmarks

@@ -216,10 +216,9 @@ File::munmap(void *buffer, size_t size)
 void
 File::pread(uint64_t addr, void *buffer, size_t len)
 {
-#if HAVE_PREAD
-  os_log(("File::pread: fd=%d, address=%lld, size=%lld", m_fd, addr,
-                          len));
+  os_log(("File::pread: fd=%d, address=%lld, size=%lld", m_fd, addr, len));
 
+#if HAVE_PREAD
   int r;
   size_t total = 0;
 

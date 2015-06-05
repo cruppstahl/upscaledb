@@ -156,7 +156,7 @@ class VariableLengthKeyList : public BaseKeyList
       uint8_t *p = m_index.get_chunk_data_by_offset(offset);
 
       if (unlikely(*p & BtreeKey::kExtendedKey)) {
-        memset(&tmp, 0, sizeof(tmp));
+        ::memset(&tmp, 0, sizeof(tmp));
         get_extended_key(context, get_extended_blob_id(slot), &tmp);
       }
       else {
@@ -176,7 +176,7 @@ class VariableLengthKeyList : public BaseKeyList
         arena->resize(tmp.size);
         dest->data = arena->get_ptr();
       }
-      memcpy(dest->data, tmp.data, tmp.size);
+      ::memcpy(dest->data, tmp.data, tmp.size);
     }
 
     // Iterates all keys, calls the |visitor| on each. Not supported by

@@ -62,7 +62,7 @@ async_flush_pages(AsyncFlushMessage *message)
   std::vector<uint64_t>::iterator it = message->page_ids.begin();
   Page::PersistedData *page_data;
   for (it = message->page_ids.begin(); it != message->page_ids.end(); it++) {
-    page_data = message->page_manager->try_fetch_page_data(*it);
+    page_data = message->page_manager->try_lock_purge_candidate(*it);
     if (!page_data)
       continue;
     ham_assert(page_data->mutex.try_lock() == false);
@@ -253,8 +253,11 @@ PageManager::flush_all_pages()
 
     m_state.cache.purge_if(visitor);
 
-    if (m_state.state_page)
-      Page::flush(m_state.device, m_state.state_page->get_persisted_data());
+    if (m_state.header->header_page()->is_dirty())
+      message->page_ids.push_back(0);
+
+    if (m_state.state_page && m_state.state_page->is_dirty())
+      message->page_ids.push_back(m_state.state_page->get_address());
   }
 
   if (message->page_ids.size() > 0) {
@@ -299,6 +302,7 @@ PageManager::purge_cache(Context *context)
                   it++) {
     Page *page = *it;
     if (page->mutex().try_lock()) {
+      ham_assert(page->cursor_list() == 0);
       m_state.cache.del(page);
       page->mutex().unlock();
       delete page;
@@ -382,6 +386,9 @@ PageManager::close_database(Context *context, LocalDatabase *db)
 
     context->changeset.clear();
     m_state.cache.purge_if(visitor);
+
+    if (m_state.header->header_page()->is_dirty())
+      message->page_ids.push_back(0);
   }
 
   if (message->page_ids.size() > 0) {
@@ -512,7 +519,7 @@ PageManager::set_last_blob_page(Page *page)
 {
   ScopedSpinlock lock(m_state.mutex);
 
-  m_state.last_blob_page_id = 0;
+  m_state.last_blob_page_id = page ? page->get_address() : 0;
   m_state.last_blob_page = page;
 }
 
@@ -524,6 +531,8 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
   
   if (address == 0)
     page = m_state.header->header_page();
+  else if (m_state.state_page && address == m_state.state_page->get_address())
+    page = m_state.state_page;
   else
     page = m_state.cache.get(address);
 
@@ -633,7 +642,7 @@ done:
   switch (page_type) {
     case Page::kTypeBindex:
     case Page::kTypeBroot: {
-      memset(page->get_payload(), 0, sizeof(PBtreeNode));
+      ::memset(page->get_payload(), 0, sizeof(PBtreeNode));
       m_state.page_count_index++;
       break;
     }
@@ -795,17 +804,32 @@ PageManager::safely_lock_page(Context *context, Page *page,
 }
 
 Page::PersistedData *
-PageManager::try_fetch_page_data(uint64_t page_id)
+PageManager::try_lock_purge_candidate(uint64_t address)
 {
-  ScopedSpinlock lock(m_state.mutex);
+  Page *page = 0;
 
-  Page *page = m_state.cache.get(page_id);
-  if (!page)
+  ScopedSpinlock lock(m_state.mutex);
+  if (address == 0)
+    page = m_state.header->header_page();
+  else if (m_state.state_page && address == m_state.state_page->get_address())
+    page = m_state.state_page;
+  else
+    page = m_state.cache.get(address);
+
+  if (!page || !page->mutex().try_lock())
     return (0);
 
-  if (page->mutex().try_lock())
-    return (page->get_persisted_data());
-  return (0);
+  // !!
+  // Do not purge pages with cursors, since Cursor::move will return pointers
+  // directly into the page's data, and these pointers will be invalidated
+  // as soon as the page is purged.
+  //
+  if (page->cursor_list() != 0) {
+    page->mutex().unlock();
+    return (0);
+  }
+
+  return (page->get_persisted_data());
 }
 
 PageManagerTest

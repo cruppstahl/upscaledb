@@ -125,10 +125,11 @@ class PageManager
     // Sets the Page pointer where we can add more blobs
     void set_last_blob_page(Page *page);
 
-    // Fetches a page from the cache and locks it with try_lock(); returns
-    // the page_data object, or NULL if try_lock failed. This method is used
-    // by the worker thread to fetch purge candidates.
-    Page::PersistedData *try_fetch_page_data(uint64_t page_id);
+    // Fetches a page from the cache and locks it. Returns
+    // the page_data object. This method is used by the worker thread to
+    // fetch purge candidates. Returns NULL if the page cannot be purged
+    // (i.e. because it cannot be locked or cursors are attached) 
+    Page::PersistedData *try_lock_purge_candidate(uint64_t page_id);
 
     // Adds a message to the worker's queue
     template<typename CompletionHandler>
