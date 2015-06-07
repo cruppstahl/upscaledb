@@ -236,6 +236,8 @@
     <ClInclude Include="..\..\src\2device\device_factory.h" />
     <ClInclude Include="..\..\src\2device\device_inmem.h" />
     <ClInclude Include="..\..\src\2page\page.h" />
+    <ClInclude Include="..\..\src\2worker\worker.h" />
+    <ClInclude Include="..\..\src\2worker\workitem.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager_disk.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager_factory.h" />

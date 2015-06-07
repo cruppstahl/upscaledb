@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include "2worker/worker.h"
+
+#include "0root/root.h"
+
 // Always verify that a file of level N does not include headers > N!
 #include "1base/signal.h"
 #include "1errorinducer/errorinducer.h"

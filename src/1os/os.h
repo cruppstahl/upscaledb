@@ -52,12 +52,13 @@ typedef int	               ham_socket_t;
 /*
  * typedefs for Windows 32- and 64-bit
  */
-#ifdef HAM_OS_WIN32
+#ifdef WIN32
 #  ifdef CYGWIN
 typedef int                ham_fd_t;
 typedef int	               ham_socket_t;
 #  else
 typedef HANDLE             ham_fd_t;
+typedef UINT_PTR           SOCKET; // from WinSock2.h
 typedef SOCKET             ham_socket_t;
 #  endif
 #  define HAM_INVALID_FD   (0)

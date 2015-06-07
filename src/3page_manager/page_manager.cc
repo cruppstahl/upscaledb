@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "2worker/worker.h"
+
 #include "0root/root.h"
 
 #include <string.h>
@@ -72,7 +74,7 @@ async_flush_pages(AsyncFlushMessage *message)
       try {
         Page::flush(message->device, page_data);
       }
-      catch (Exception &ex) {
+      catch (Exception &) {
         page_data->mutex.unlock();
         if (message->signal)
           message->signal->notify();
@@ -105,7 +107,12 @@ PageManager::PageManager(LocalEnvironment *env)
   : m_state(env)
 {
   /* start the worker thread */
-  m_worker.reset(new WorkerPool(1));
+  m_worker = new WorkerPool(1);
+}
+
+PageManager::~PageManager()
+{
+  delete m_worker;
 }
 
 void
@@ -485,8 +492,10 @@ PageManager::close(Context *context)
   flush_all_pages();
 
   /* wait for the worker thread to stop */
-  if (m_worker.get())
-    m_worker.reset(0);
+  if (m_worker) {
+	delete m_worker;
+	m_worker = 0;
+  }
 
   delete m_state.state_page;
   m_state.state_page = 0;
@@ -499,7 +508,7 @@ PageManager::reset(Context *context)
   close(context);
 
   /* start the worker thread */
-  m_worker.reset(new WorkerPool(1));
+  m_worker = new WorkerPool(1);
 }
 
 Page *

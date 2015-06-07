@@ -23,6 +23,9 @@
 #  include <winsock2.h>
 #endif
 
+// include this BEFORE os.h!
+#include <uv.h>
+
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
 #include "1base/error.h"
@@ -33,9 +36,6 @@
 #include "4env/env.h"
 #include "4db/db_local.h"
 #include "5server/hamserver.h"
-
-#include <uv.h>
-
 
 #ifndef HAM_ROOT_H
 #  error "root.h was not included"

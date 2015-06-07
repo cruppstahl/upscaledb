@@ -26,13 +26,15 @@
 #ifndef HAM_PAGE_MANAGER_H
 #define HAM_PAGE_MANAGER_H
 
+// include this first, otherwise WIN32 compilation (boost/asio.hpp) fails
+#include "2worker/worker.h"
+
 #include "0root/root.h"
 
 #include <map>
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
-#include "2worker/worker.h"
 #include "3page_manager/page_manager_state.h"
 #include "3page_manager/page_manager_test.h"
 
@@ -45,6 +47,7 @@ namespace hamsterdb {
 struct Context;
 class LocalDatabase;
 class LocalEnvironment;
+struct WorkerPool;
 
 class PageManager
 {
@@ -71,6 +74,9 @@ class PageManager
 
     // Constructor
     PageManager(LocalEnvironment *env);
+
+	// Destructor
+	~PageManager();
 
     // Loads the state from a blob
     void initialize(uint64_t blobid);
@@ -143,7 +149,6 @@ class PageManager
   private:
     friend struct Purger;
     friend class PageManagerTest;
-    friend class PageManagerWorker;
 
     // Implementation of fetch(), does not lock the mutex
     Page *fetch_unlocked(Context *context, uint64_t address, uint32_t flags);
@@ -163,7 +168,7 @@ class PageManager
                 bool allow_recursive_lock);
 
     // The worker thread which flushes dirty pages
-    ScopedPtr<WorkerPool> m_worker;
+    WorkerPool *m_worker;
 
     // The state
     PageManagerState m_state;

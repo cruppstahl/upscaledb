@@ -73,9 +73,31 @@
 #endif
 
 #ifdef WIN32
+#  pragma warning(disable:4355)
+#  define WIN32_MEAN_AND_LEAN
+#  ifdef USE_ASIO
+//     Set the proper SDK version before including boost/Asio
+#      include <SDKDDKVer.h>
+//     Note boost/ASIO includes Windows.h. 
+#      undef min
+#      undef max
+#      include <boost/asio.hpp>
+#   else //  USE_ASIO
+#      include <Windows.h>
+#   endif //  USE_ASIO
+#else // WIN32
+#  ifdef USE_ASIO
+#     include <boost/asio.hpp>
+#  endif // USE_ASIO
+#endif // WIN32
+
+#ifdef WIN3211
+#  define _WINSOCKAPI_ /* Prevent inclusion of winsock.h in windows.h */ 
 // MSVC: disable warning about use of 'this' in base member initializer list
 #  pragma warning(disable:4355)
 #  define WIN32_MEAN_AND_LEAN
+//#  include <boost/thread/thread.hpp>
+//#  include <boost/asio.hpp>
 #  include <windows.h>
 #endif
 

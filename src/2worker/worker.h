@@ -21,10 +21,16 @@
 #ifndef HAM_WORKER_H
 #define HAM_WORKER_H
 
+// let root.h include boost/asio.hpp (WIN32 only!)
+#define USE_ASIO 1
+
 #include "0root/root.h"
 
-#include <boost/thread/thread.hpp>
-#include <boost/asio.hpp>
+// other platforms need to include boost/asio.hpp directly
+#ifndef WIN32
+#  include <boost/asio.hpp>
+#  include <boost/thread/thread.hpp>
+#endif
 
 // Always verify that a file of level N does not include headers > N!
 #include "2worker/workitem.h"
@@ -51,9 +57,9 @@ struct WorkerThread {
 // the actual thread pool
 struct WorkerPool {
   // the constructor just launches some amount of workers
-  WorkerPool(size_t threads)
+  WorkerPool(size_t num_threads)
     : working(service), strand(service) {
-    for (size_t i = 0; i < threads; ++i)
+    for (size_t i = 0; i < num_threads; ++i)
       workers.push_back(new boost::thread(WorkerThread(*this)));
   }
 
@@ -67,13 +73,13 @@ struct WorkerPool {
   ~WorkerPool() {
     service.stop();
 
-    for (size_t i = 0; i< workers.size(); ++i) {
+    for (size_t i = 0; i < workers.size(); ++i) {
       workers[i]->join();
       delete workers[i];
     }
   }
 
-  // need to keep track of threads so we can join them
+  // keep track of the threads so we can join them
   std::vector<boost::thread *> workers;
    
   // the io_service we are wrapping

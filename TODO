@@ -58,21 +58,42 @@ x clean up threading issues
         x could be a bug in the freelist
         x there should not be ANY concurrency right now because every async
             code is disabled and synchronized (w/ exception of changeset flush)
-    o currently, all async operations are synchronous in the main thread
+    x currently, all async operations are synchronous in the main thread
         x keep them synchronous, but move them to the worker thread
             x rewrite worker thread using boost async
             x verify that cache purge works
             x use pointers to transfer parameters to thread
-        o then - piece by piece - make them async again
+        x then - piece by piece - make them async again
             (one problem was that close_db was async and therefore executed
             BEFORE a changeset flush was finished
             x ./ham_bench --use-berkeleydb=true --reopen=true  --cache=50 \
                 --use-cursors --overwrite \
                 ../../../hamsterdb-tests/testfiles/1/100.tst
             x cache flush
-            o changeset flush
-    o switch to SpinLocks instead of mutexes
-        o once more run monster tests
+            x changeset flush
+    x switch to SpinLocks instead of mutexes
+        x once more run monster tests
+
+x Concurrency: flush the changeset asynchronously. As soon as the log
+    is written (and fsync'd), the pages can be flushed to disk in the
+    background. All pages are locked and forwarded to the worker thread.
+    As soon as they are unlocked, they can be re-used again.
+    x only pass the page_data to the worker, not the Page pointer!
+        (because the page_data pointer can be replaced by the caller)
+    x the worker thread then unlocks the pages afterwards
+        -> not possible because thread B unlocks mutex which was locked
+            by thread A
+        -> then make it possible! i.e. by moving the mutex ownership to the
+            worker thread
+    x we HAVE to make sure that NO OTHER entity is allowed to flush pages,
+        only the worker thread! otherwise we might have race conditions
+        between the purger and the changeset-flush
+        (remove member function hamsterdb::Page::purge and see where it fails,
+        completely replace usage with the static version)
+    x compare performance (before/after) - wow! up to 60% faster!
+    x fix unittests
+    x fix recovery tests
+    x run monster tests
 
 ======================
 o zint32: use FOR encoding (w/o SIMD)
@@ -141,27 +162,6 @@ o PRO: files are hard to "diff" because each file is different from the APL
         - for commercial, proprietary, closed source
         - for the evaluation version
     o then rebase PRO
-
-o Concurrency: flush the changeset asynchronously. As soon as the log
-    is written (and fsync'd), the pages can be flushed to disk in the
-    background. All pages are locked and forwarded to the worker thread.
-    As soon as they are unlocked, they can be re-used again.
-    x only pass the page_data to the worker, not the Page pointer!
-        (because the page_data pointer can be replaced by the caller)
-    x the worker thread then unlocks the pages afterwards
-        -> not possible because thread B unlocks mutex which was locked
-            by thread A
-        -> then make it possible! i.e. by moving the mutex ownership to the
-            worker thread
-    o we HAVE to make sure that NO OTHER entity is allowed to flush pages,
-        only the worker thread! otherwise we might have race conditions
-        between the purger and the changeset-flush
-        (remove member function hamsterdb::Page::purge and see where it fails,
-        completely replace usage with the static version)
-    x compare performance (before/after) - wow! up to 60% faster!
-    x fix unittests
-    x fix recovery tests
-    x run monster tests
 
 o Refactoring: completely decouple the Page from the Device; pass the Device as
     a parameter to fetch(), flush()
