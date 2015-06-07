@@ -56,7 +56,7 @@ struct PageManagerState
   PageManagerState(LocalEnvironment *env);
 
   //  For serializing access 
-  Mutex mutex;
+  Spinlock mutex;
 
   // Copy of the Environment's configuration
   const EnvironmentConfiguration config;

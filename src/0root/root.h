@@ -24,7 +24,7 @@
 #ifndef HAM_ROOT_H
 #define HAM_ROOT_H
 
-#define HAM_ENABLE_HELGRIND       1
+//#define HAM_ENABLE_HELGRIND       1
 
 // some feature macros in config.h must be set *before* inclusion
 // of any system headers to have the desired effect.

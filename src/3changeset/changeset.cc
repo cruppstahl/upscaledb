@@ -50,7 +50,7 @@ struct FlushChangesetVisitor
 };
 
 static void
-async_flush_changeset(Signal *signal, std::vector<Page::PersistedData *> list,
+async_flush_changeset(std::vector<Page::PersistedData *> list,
                 Device *device, Journal *journal, uint64_t lsn,
                 bool enable_fsync, int fd_index)
 {
@@ -78,8 +78,6 @@ async_flush_changeset(Signal *signal, std::vector<Page::PersistedData *> list,
 
   /* inform the journal that the Changeset was flushed */
   journal->changeset_flushed(fd_index);
-
-  signal->notify();
 
   HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 }
@@ -112,12 +110,10 @@ Changeset::flush(uint64_t lsn)
     g_CHANGESET_POST_LOG_HOOK();
 
   /* The modified pages are now flushed (and unlocked) asynchronously. */
-  Signal signal;
-  m_env->page_manager()->run_async(boost::bind(&async_flush_changeset, &signal,
+  m_env->page_manager()->run_async(boost::bind(&async_flush_changeset,
                           visitor.list, m_env->device(), m_env->journal(), lsn,
                           (m_env->config().flags & HAM_ENABLE_FSYNC) != 0,
                           fd_index));
-  signal.wait();
 }
 
 } // namespace hamsterdb
