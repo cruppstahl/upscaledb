@@ -95,17 +95,18 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
     x fix recovery tests
     x run monster tests
 
-======================
-o zint32: use FOR encoding (w/o SIMD)
-descendingDataTest: seems to corrupt data. vacuumize fails b/c the keys
-are not sorted. could hack check_integrity and verify that keys are sorted
-descendingly.
-======================
-o zint32: use FOR encoding (w/  SIMD)
-o zint32: create custom insert function for StreamVbyte
-o zint32: create a script which runs all benchmarks
-o zint32: create good looking graphs with the results
-o zint32: continue with the paper
+o PRO/Zint32: implement FOR encoding, continue with paper
+    o w/o SIMD
+    o use SimdComp repository
+    o w/  SIMD
+    o FOR w/o SIMD: add custom select() method
+    o FOR w/o SIMD: add custom find() method
+    o FOR w/ SIMD: add custom select() method
+    o FOR w/ SIMD: add custom find() method
+    o create a script which runs all benchmarks
+    o create good looking graphs with the results
+    o create custom insert function for StreamVbyte
+    o continue with the paper
 
 o investigate performance issue; when reopening the database operations
     are much slower. why?
@@ -116,6 +117,9 @@ o investigate performance issue; when reopening the database operations
         --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=50000
 
 o Win32: ham_recover is missing in the .zip-file
+
+o Win32: compile a newer boost version - the current one requires a few hacks
+    because it is too old
 
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
@@ -163,10 +167,6 @@ o PRO: files are hard to "diff" because each file is different from the APL
         - for the evaluation version
     o then rebase PRO
 
-o Refactoring: completely decouple the Page from the Device; pass the Device as
-    a parameter to fetch(), flush()
-    - or vice versa, call device->flush(page), device->fetch(page)
-
 o PRO: increase SIMD lookup performance (-> Meem)
     o look into SIMD Galloping Search (Lemire et al)
     o B. Schlegel, R. Gemulla, and W. Lehner. k-ary search on modern
@@ -176,6 +176,9 @@ o PRO: increase SIMD lookup performance (-> Meem)
     o T. Willhalm, N. Popovici, Y. Boshmaf, H. Plattner, et al. Simd-scan:
         Ultra fast in-memory scan using vector processing units. PVLDB,
         2(1):385–394, 2009.
+
+
+
 
 o refactoring of the whole transaction-mess
     goals:
@@ -253,6 +256,7 @@ o move template parameters "up" to the LocalDatabase level, or at least
     - however, this requires that all template-code is inline. So maybe start
         with the DB, but do not make all code based on templates, only
         the Btree and some other things (i.e. key/record verification)
+    - but this will make compilation time really slow :(
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
@@ -266,6 +270,8 @@ o Make Pages resizable with variable length
       - size for a leaf page
       - size for a blob page
       - would this be enough??
+    But one of the advantages is that a split can be postponed by resizing
+    the page. Can we still somehow do this? 
     ==============
 
     These schemes are used for disk-based AND in-memory based databases!
@@ -363,15 +369,6 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
-
-o Do not add read-only pages to the Changeset
-    There's no need to add pages to the Changeset if they are not modified.
-    My first thought was that the lock should be replaced with a RW-lock,
-    and such operations (i.e. get_record_size(), find(), purger etc) acquire a
-    read-lock. But the current implementation does not require this level of
-    concurrency. Even if concurrency is implemented on a database-level
-    then there's no need for RW-locks in the pages (as long as blob pages
-    are NOT shared between databases!)
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
@@ -508,7 +505,7 @@ o Refactoring: rewrite the whole cursor layer
     o EraseAction line 71: if the node is empty then it should be merged and
         moved to the freelist!
 
-. when splitting and HAM_HINT_APPEND is set, the new page is appended.
+o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
 
 . Refactoring: all unittest fixtures should derive from a BaseFixture,
@@ -525,7 +522,6 @@ o Refactoring: rewrite the whole cursor layer
     it is less efficient than the standard varbyte encoding because
     pages > 15 * page_size have to be split. Use a standard vbyte encoding
     instead (it will anyway be required later on).
-
 
 
 
@@ -549,6 +545,19 @@ o LocalEnvironment::open creates a "fakepage" to find out the page_size;
 o migrate to libuv 1.0, it has a stable API
     http://docs.libuv.org/en/latest/migration_010_100.html
     o also for windows!
+
+o Record Compression - a few notes
+    ByteSlice: Pushing the Envelop of Main Memory Data
+    Processing with a New Storage Layout
+    http://delivery.acm.org/10.1145/2750000/2747642/p31-feng.pdf
+
+    1) the user defines the record structure.
+    2) an optimization stage reorders the record columns to optimize storage
+        (i.e. with dynamic programming)
+    3) SIMD code is generated on the fly to pack, unpack records and single
+        elements (see http://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically or ask Ben/Andi...)
+    4) Pack like PAX (group all column values together) or each record
+        standalone?
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images
