@@ -59,6 +59,12 @@ struct AsyncFlushMessage {
 };
 
 static void
+async_delete_page_data(Page::PersistedData *ptr)
+{
+  delete ptr;
+}
+
+static void
 async_flush_pages(AsyncFlushMessage *message)
 {
   std::vector<uint64_t>::iterator it = message->page_ids.begin();
@@ -779,7 +785,9 @@ PageManager::safely_lock_page(Context *context, Page *page,
 {
   Page::PersistedData *old_data = 0;
 
-#if 0
+  //
+  // if a page is already locked then create a copy of the locked data.
+  // the old data is sent to the worker thread to release its memory.
   //
   // !!!
   // benchmarks has shown that - esp. if recovery is enabled - the deep copies
@@ -788,6 +796,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
   //
   // This could be improved by using the lsn as an epoch counter, or using a
   // timestamp and i.e. allow one copy per 5 seconds 
+  //
   if (page->has_deep_copied_data() && !context->changeset.has(page)) {
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
@@ -795,19 +804,14 @@ PageManager::safely_lock_page(Context *context, Page *page,
     else
       page->mutex().unlock();
   }
-#endif
 
   context->changeset.put(page);
 
   ham_assert(page->mutex().try_lock() == false);
 
   // make sure that the old data is not leaked
-  if (old_data != 0) {
-    // TODO what if |item| goes out of scope?
-    // ReleasePointerWorkItem item(old_data);
-    // m_worker->enqueue(item);
-    ham_assert(!"not yet implemented");
-  }
+  if (old_data != 0)
+    run_async(boost::bind(&async_delete_page_data, old_data));
 
   return (page);
 }

@@ -97,24 +97,22 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
 
 o PRO/Zint32: implement FOR encoding, continue with paper
     o w/o SIMD
-    o use SimdComp repository
+        x basic compress/uncompress
+        o add custom select() method
+            -> seems to be buggy; add a test!
+        o add custom find() method
+        o store used size in the index structure? calculating it is a bit costly
     o w/  SIMD
-    o FOR w/o SIMD: add custom select() method
-    o FOR w/o SIMD: add custom find() method
-    o FOR w/ SIMD: add custom select() method
-    o FOR w/ SIMD: add custom find() method
+        o basic compress/uncompress
+            -> not yet working; why?
+        o add custom select() method
+        o add custom find() method
+        o store used size in the index structure? calculating it is a bit costly
     o create a script which runs all benchmarks
     o create good looking graphs with the results
-    o create custom insert function for StreamVbyte
+    o create custom insert function for StreamVbyte (scalar)
+    o create custom insert function for StreamVbyte (SIMD)
     o continue with the paper
-
-o investigate performance issue; when reopening the database operations
-    are much slower. why?
-    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 \
-        --pagesize=1024 --recsize=0 --bulk-erase --cache=104857600 \
-        --stop-ops=50000
-    ./ham_bench --use-berkeleydb=true --reopen=true  --key=binary --keysize=64 \
-        --pagesize=1024 --recsize=0 --open --cache=104857600 --stop-ops=50000
 
 o Win32: ham_recover is missing in the .zip-file
 
@@ -143,39 +141,32 @@ o There are performance issues related to cache flushes.
     x fix unittests
     ===> implemented, but currenlty disabled. Causes test failures when
         running i.e. 1/45.tst with --cache=50 vs berkeleydb
-    o run unittests with posix mutexes
-    o run with helgrind
     o run monster tests
-
-    o set breakpoint if spinlock spins more than 100 times; identify the
-        bottleneck, try to improve
 
 o ftruncate() allocates larger buffers than required, for performance
     reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
     therefore excess allocations were disabled if recovery is enabled
     (and on Win32)
     o enable again if recovery is enabled
-    o disable on Win32 if mmap is used
+    o disable on Win32 if mmap is used (more precisely: if the whole range
+        is mapped)
+
+o more performance improvements: set breakpoint if spinlock spins more than
+    100 times; identify the bottleneck, try to improve
 
 o Investigate failure in erlang qc-tests
 
-o PRO: files are hard to "diff" because each file is different from the APL
-    version b/c of the license header. Change all license headers to a generic
-    one, pointing to the COPYING file in the root directory - 
-        - for APL
-        - for commercial, proprietary, closed source
-        - for the evaluation version
-    o then rebase PRO
-
 o PRO: increase SIMD lookup performance (-> Meem)
-    o look into SIMD Galloping Search (Lemire et al)
     o B. Schlegel, R. Gemulla, and W. Lehner. k-ary search on modern
         processors. In DaMoN, pages 52–60, 2009.
-    o J. Zhou and K. A. Ross. Implementing database operations using simd
-        instructions. In SIGMOD Conference, pages 145–156, 2002.
-    o T. Willhalm, N. Popovici, Y. Boshmaf, H. Plattner, et al. Simd-scan:
-        Ultra fast in-memory scan using vector processing units. PVLDB,
-        2(1):385–394, 2009.
+    Instead of a single pivot element, 4 pivot elements are compared. The
+    search is then narrowed down to the encompassing range. Rinse and repeat.
+    Code (BSD license):
+        https://wwwdb.inf.tu-dresden.de/team/alumni/dipl-inf-benjamin-schlegel/
+    
+    https://schani.wordpress.com/tag/c-optimization-linear-binary-search-sse2-simd/
+    http://wm.ite.pl/articles/simd-search.html
+    http://stackoverflow.com/questions/20616605/using-simd-avx-sse-for-tree-traversal
 
 
 
@@ -526,27 +517,23 @@ o when splitting and HAM_HINT_APPEND is set, the new page is appended.
 
 
 
-o Concurrency: merge BtreeUpdates in the background
 
-o Refactoring: would it make sense if each Database has its own BlobManager?
-    Then ham_env_erase_db would be much faster, and if each Database has its
-    own lock then the blob pages would not block each other
+
+o Concurrency: implement on database level!
+    o Each Database needs its own BlobManager
+        Then ham_env_erase_db would be much faster, and if each Database has its
+        own lock then the blob pages would not block each other
+        o all pages of a database already form a linked list. Move this list
+            to the database
+        o change "close database"
+        o change "drop database"
     o are there other modules that should be "per database" and not
         "per environment"?
         - PageManager
         - Device
         - ...?
 
-o LocalEnvironment::open creates a "fakepage" to find out the page_size;
-    just assume the default page size of 16kb and read the first page. Then
-    discard if the real page_size is a different one
-    o deal with databases < 16kb?
-
-o migrate to libuv 1.0, it has a stable API
-    http://docs.libuv.org/en/latest/migration_010_100.html
-    o also for windows!
-
-o Record Compression - a few notes
+o Implement record compression - a few notes
     ByteSlice: Pushing the Envelop of Main Memory Data
     Processing with a New Storage Layout
     http://delivery.acm.org/10.1145/2750000/2747642/p31-feng.pdf
@@ -559,41 +546,7 @@ o Record Compression - a few notes
     4) Pack like PAX (group all column values together) or each record
         standalone?
 
-o improve the webpage documentation
-    o document the various btree formats on the webpage, with images
-        o variable length keys (w/ extended keys)
-        o POD keys
-        o default records
-        o inline records
-        o fixed-length records
-        o duplicates (w/ overflow tables)
-        o PRO: compressed keys
-        o PRO: compressed records
-
-. investigate "pointer swizzling": internal btree nodes should store "hints"
-    to the actual Page, not the Page IDs, as soon as the Page was loaded for
-    the first time. This could circumvent the buffer cache and increase
-    performance.
-    How to invalidate those hints or discover that a page was evicted from
-    cache?
-    - Eviction could only free the persistent part of a page, and not the
-        stub.
-    - Could also use reference counting for the page
-
-
-
-
-
-o PRO: Group Varint-related improvements
-    o will currently not work with pages > 16kb
-    o vacuumize (internal == false): merge two blocks if they're underfilled?
-        we have to reduce the number of indices
-        o also for varbyte?
-
 o PRO: allow compression of 32bit record numbers
-
-o PRO: use zint32 compression for internal nodes
-    -> requires 32bit page IDs
 
 o PRO: prefix compression for variable-length keys
     use an indirection for the prefixes and suffixes; store each
@@ -633,6 +586,41 @@ o PRO: look for a better compression for DefaultRecordList, i.e.
 
 o PRO: use compression also for duplicate records
     i.e. use GroupedVarint for inline duplicates
+
+
+
+
+
+o Concurrency: merge BtreeUpdates in the background
+
+o migrate to libuv 1.0, it has a stable API
+    http://docs.libuv.org/en/latest/migration_010_100.html
+    o also for windows!
+
+o improve the webpage documentation
+    o document the various btree formats on the webpage, with images
+        o variable length keys (w/ extended keys)
+        o POD keys
+        o default records
+        o inline records
+        o fixed-length records
+        o duplicates (w/ overflow tables)
+        o PRO: compressed keys
+        o PRO: compressed records
+
+. investigate "pointer swizzling": internal btree nodes should store "hints"
+    to the actual Page, not the Page IDs, as soon as the Page was loaded for
+    the first time. This could circumvent the buffer cache and increase
+    performance.
+    How to invalidate those hints or discover that a page was evicted from
+    cache?
+    - Eviction could only free the persistent part of a page, and not the
+        stub.
+    - Could also use reference counting for the page
+
+
+
+
 
 
 
