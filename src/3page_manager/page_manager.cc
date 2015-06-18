@@ -797,6 +797,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
   // This could be improved by using the lsn as an epoch counter, or using a
   // timestamp and i.e. allow one copy per 5 seconds 
   //
+#if 0
   if (page->has_deep_copied_data() && !context->changeset.has(page)) {
     if (page->mutex().try_lock() == false)
       old_data = page->deep_copy_data();
@@ -804,6 +805,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
     else
       page->mutex().unlock();
   }
+#endif
 
   context->changeset.put(page);
 

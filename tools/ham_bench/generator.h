@@ -46,13 +46,14 @@ class Generator
 
     // constructor
     Generator(int id, Configuration *conf, Database *db)
-      : m_id(id), m_config(conf), m_db(db), m_last_status(0), m_graph(0) {
-      memset(&m_record, 0, sizeof(m_record));
-      memset(&m_opspersec, 0, sizeof(m_opspersec));
+      : m_id(id), m_config(conf), m_db(db), m_last_status(0), m_graph(0),
+        m_is_active(false) {
+      ::memset(&m_record, 0, sizeof(m_record));
+      ::memset(&m_opspersec, 0, sizeof(m_opspersec));
 
       // only create graph output for the first hamsterdb thread!
       if (conf->metrics >= Configuration::kMetricsPng
-           && !strcmp(db->get_name(), "hamsterdb")
+           && !::strcmp(db->get_name(), "hamsterdb")
            && id == 0) {
         m_graph = new Graph("hamsterdb");
       }
@@ -103,6 +104,11 @@ class Generator
                     const ham_record_t *record = 0) {
     }
 
+    // returns true if the generator (and database) is still active
+    bool is_active() const {
+      return (m_is_active);
+    }
+
   protected:
     // unique ID - used to create the database
     int m_id;
@@ -126,6 +132,9 @@ class Generator
 
     // accumulating operations-per-seconds for the graphs
     uint32_t m_opspersec[4];
+
+    // true if the generator is active (database is open)
+    bool m_is_active;
 };
 
 #endif /* HAM_BENCH_GENERATOR_H */

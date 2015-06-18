@@ -96,23 +96,25 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
     x run monster tests
 
 o PRO/Zint32: implement FOR encoding, continue with paper
-    o w/o SIMD
-        x basic compress/uncompress
-        o add custom select() method
-            -> seems to be buggy; add a test!
-        o add custom find() method
-        o store used size in the index structure? calculating it is a bit costly
-    o w/  SIMD
-        o basic compress/uncompress
-            -> not yet working; why?
-        o add custom select() method
-        o add custom find() method
-        o store used size in the index structure? calculating it is a bit costly
+    x w/o SIMD
+    x w/  SIMD
+    o create custom insert function for StreamVbyte (scalar)
     o create a script which runs all benchmarks
     o create good looking graphs with the results
-    o create custom insert function for StreamVbyte (scalar)
     o create custom insert function for StreamVbyte (SIMD)
     o continue with the paper
+
+o recovery problem (Rajesh's issue?)
+    ./ham_bench --use-berkeleydb --simulate-crashes --use-recovery --verbose
+    Usually fails after a few attempts to open/recover/fullcheck
+    Files can be verified with ./ham_bench ~/prj/hamsterdb-tests/testfiles/fullcheck.tst --verbose --verbose --use-berkeleydb
+    o fix this
+        o would be nice if ham_dump could write ascii-keys
+        o at least in one case the last insert operation is missing
+                -> verify in more cases
+        o re-apply recovery; check why the last update is missing 
+    o send new DLL to Rajesh
+    o add to monster tests
 
 o Win32: ham_recover is missing in the .zip-file
 
@@ -147,9 +149,9 @@ o ftruncate() allocates larger buffers than required, for performance
     reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
     therefore excess allocations were disabled if recovery is enabled
     (and on Win32)
-    o enable again if recovery is enabled
-    o disable on Win32 if mmap is used (more precisely: if the whole range
-        is mapped)
+    x enable again if recovery is enabled and fix recovery.pl
+    x disable on Win32 if mmap is used
+    o call ftruncate() asynchronous???
 
 o more performance improvements: set breakpoint if spinlock spins more than
     100 times; identify the bottleneck, try to improve

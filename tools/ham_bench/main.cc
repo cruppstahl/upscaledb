@@ -1165,6 +1165,8 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
   ham_status_t st1, st2;
   Database::Cursor *c1 = gen1->get_db()->cursor_create();
   Database::Cursor *c2 = gen2->get_db()->cursor_create();
+  if (!c1 || !c2) // db was already closed
+    return (true);
 
   gen1->tee("FULLCHECK");
 
@@ -1336,7 +1338,7 @@ run_both_tests(Configuration *conf)
         fullcheck = true;
     }
 
-    if (conf->simulate_crashes) {
+    if (conf->simulate_crashes && generator1.is_active()) {
       fullcheck = true;
       ok = simulate_crash(conf, &generator1);
       if (!ok)

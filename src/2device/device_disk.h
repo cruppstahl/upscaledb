@@ -180,40 +180,41 @@ class DiskDevice : public Device {
 
     // allocate storage from this device; this function
     // will *NOT* return mmapped memory
-    virtual uint64_t alloc(size_t len) {
+    virtual uint64_t alloc(size_t requested_length) {
       ScopedSpinlock lock(m_mutex);
       uint64_t address;
 
-      if (m_state.excess_at_end >= len) {
+      if (m_state.excess_at_end >= requested_length) {
         address = m_state.file_size - m_state.excess_at_end;
-        m_state.excess_at_end -= len;
+        m_state.excess_at_end -= requested_length;
       }
       else {
         uint64_t excess = 0;
+        bool allocate_excess = true;
 
-        // if the file is large enough then allocate more space to avoid
-        // frequent calls to ftruncate()
+        // If the file is large enough then allocate more space to avoid
+        // frequent calls to ftruncate(); these calls cause bad performance
+        // spikes.
         //
-        // this breaks recovery, therefore disable this feature if recovery
-        // is enabled.
-        //
-        // disabled on win32 because truncating a mapped file is not allowed
-        // TODO Win32: only disable if mmap is used!
+        // Disabled on win32 because truncating a mapped file is not allowed!
 #ifndef WIN32
-        if ((m_config.flags & HAM_ENABLE_RECOVERY) == 0) {
-          if (m_state.file_size < len * 100)
-            excess = 0;
-          else if (m_state.file_size < len * 250)
-            excess = len * 100;
-          else if (m_state.file_size < len * 1000)
-            excess = len * 250;
-          else
-            excess = len * 1000;
-        }
+        if (m_state.mapped_size != 0)
+          allocate_excess = false;
 #endif
 
+        if (allocate_excess) {
+          if (m_state.file_size < requested_length * 100)
+            excess = 0;
+          else if (m_state.file_size < requested_length * 250)
+            excess = requested_length * 100;
+          else if (m_state.file_size < requested_length * 1000)
+            excess = requested_length * 250;
+          else
+            excess = requested_length * 1000;
+        }
+
         address = m_state.file_size;
-        truncate_nolock(address + len + excess);
+        truncate_nolock(address + requested_length + excess);
         m_state.excess_at_end = excess;
       }
       return (address);

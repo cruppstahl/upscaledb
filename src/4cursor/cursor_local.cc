@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#ifdef HAM_ENABLE_REMOTE
-
 #include "0root/root.h"
 
 #include <string.h>
@@ -1155,4 +1153,3 @@ LocalCursor::do_get_record_size(uint64_t *psize)
   return (0);
 }
 
-#endif // HAM_ENABLE_REMOTE

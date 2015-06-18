@@ -114,6 +114,7 @@ ParserGenerator::create()
     m_success = false;
 
   m_metrics.other_ops++;
+  m_is_active = true;
 }
 
 void
@@ -129,6 +130,7 @@ ParserGenerator::open()
     m_success = false;
 
   m_metrics.other_ops++;
+  m_is_active = true;
 }
  
 void
@@ -147,6 +149,8 @@ ParserGenerator::close()
 
   m_metrics.other_ops++;
   m_metrics.elapsed_wallclock_seconds = m_start.seconds();
+
+  m_is_active = false;
 }
 
 void

@@ -305,6 +305,7 @@ RuntimeGenerator::create()
     m_success = false;
 
   m_metrics.other_ops++;
+  m_is_active = true;
 }
 
 void
@@ -321,6 +322,7 @@ RuntimeGenerator::open()
     m_success = false;
 
   m_metrics.other_ops++;
+  m_is_active = true;
 }
  
 void
@@ -340,6 +342,7 @@ RuntimeGenerator::close()
 
   m_metrics.other_ops++;
   m_metrics.elapsed_wallclock_seconds = m_start.seconds();
+  m_is_active = false;
 }
 
 double

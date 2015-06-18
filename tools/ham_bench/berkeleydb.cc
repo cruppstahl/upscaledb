@@ -376,6 +376,9 @@ BerkeleyDatabase::do_cursor_create()
 {
   DBC *cursor;
 
+  if (!m_db)
+    return (0);
+
   int ret = m_db->cursor(m_db, 0, &cursor, 0);
   if (ret) {
     LOG_ERROR(("db->cursor() failed w/ status %d\n", ret));
