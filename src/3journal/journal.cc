@@ -238,7 +238,12 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
                 (uint8_t *)record->data, (flags & HAM_PARTIAL
                                 ? record->partial_size
                                 : record->size));
-  maybe_flush_buffer(idx);
+
+  // now flush the file
+  if (txn->get_flags() & HAM_TXN_TEMPORARY)
+    flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
+  else
+    maybe_flush_buffer(idx);
 
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.insert", "%u, %u, %s, %u, 0x%x, %u",
@@ -284,7 +289,12 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   append_entry(idx, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
                 (uint8_t *)key->data, key->size);
-  maybe_flush_buffer(idx);
+
+  // now flush the file
+  if (txn->get_flags() & HAM_TXN_TEMPORARY)
+    flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
+  else
+    maybe_flush_buffer(idx);
 
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.erase", "%u, %u, %s, 0x%x, %u",
@@ -685,19 +695,14 @@ Journal::redo_all_changesets(int fdidx)
           page = new Page(m_state.env->device());
           page->fetch(page_header.address);
         }
+        ham_assert(page->get_address() == page_header.address);
 
-        // only overwrite the page data if the page's last modification
-        // is OLDER than the changeset!
-        if (page->is_without_header() || page->get_lsn() < entry.lsn) {
-          // overwrite the page data
-          ::memcpy(page->get_data(), arena.get_ptr(), page_size);
+        // overwrite the page data
+        ::memcpy(page->get_data(), arena.get_ptr(), page_size);
 
-          ham_assert(page->get_address() == page_header.address);
-
-          // flush the modified page to disk
-          page->set_dirty(true);
-          Page::flush(m_state.env->device(), page->get_persisted_data());
-        }
+        // flush the modified page to disk
+        page->set_dirty(true);
+        Page::flush(m_state.env->device(), page->get_persisted_data());
 
         delete page;
       }

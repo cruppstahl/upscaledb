@@ -49,7 +49,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // reserved
   uint32_t reserved;
 
-  // the lsn of the last operation
+  // the lsn of the last operation (unused)
   uint64_t lsn;
 
   // the persistent data blob
@@ -304,16 +304,6 @@ class Page {
     // Sets the page's type (kType*)
     void set_type(uint32_t type) {
       m_datap->raw_data->header.flags = type;
-    }
-
-    // Returns the lsn of the last modification
-    uint64_t get_lsn() const {
-      return (m_datap->raw_data->header.lsn);
-    }
-
-    // Sets the lsn of the last modification
-    void set_lsn(uint64_t lsn) {
-      m_datap->raw_data->header.lsn = lsn;
     }
 
     // Sets the pointer to the persistent data

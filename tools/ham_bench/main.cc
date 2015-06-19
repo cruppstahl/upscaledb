@@ -1338,7 +1338,9 @@ run_both_tests(Configuration *conf)
         fullcheck = true;
     }
 
-    if (conf->simulate_crashes && generator1.is_active()) {
+    if (conf->simulate_crashes
+            && generator1.is_active()
+            && (op % conf->fullcheck_frequency) == 0) {
       fullcheck = true;
       ok = simulate_crash(conf, &generator1);
       if (!ok)

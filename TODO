@@ -95,6 +95,25 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
     x fix recovery tests
     x run monster tests
 
+x ftruncate() allocates larger buffers than required, for performance
+    reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
+    therefore excess allocations were disabled if recovery is enabled
+    (and on Win32)
+    x enable again if recovery is enabled and fix recovery.pl
+    x disable on Win32 if mmap is used
+
+x recovery problem (Rajesh's issue?)
+    x --simulate-crashes --use-recovery --verbose
+    Usually fails after a few attempts to open/recover/fullcheck
+    Files can be verified with ./ham_bench ~/prj/hamsterdb-tests/testfiles/fullcheck.tst --verbose --verbose --use-berkeleydb
+    x fix this
+        x enable event logging
+        x at least in one case the last insert operation is missing
+                -> verify in more cases --> yes, that's the case
+        x re-apply recovery; check why the last update is missing 
+    x --simulate-crashes --verbose --use-transactions=tmp
+    x add to monster tests
+
 o PRO/Zint32: implement FOR encoding, continue with paper
     x w/o SIMD
     x w/  SIMD
@@ -104,74 +123,12 @@ o PRO/Zint32: implement FOR encoding, continue with paper
     o create custom insert function for StreamVbyte (SIMD)
     o continue with the paper
 
-o recovery problem (Rajesh's issue?)
-    ./ham_bench --use-berkeleydb --simulate-crashes --use-recovery --verbose
-    Usually fails after a few attempts to open/recover/fullcheck
-    Files can be verified with ./ham_bench ~/prj/hamsterdb-tests/testfiles/fullcheck.tst --verbose --verbose --use-berkeleydb
-    o fix this
-        o would be nice if ham_dump could write ascii-keys
-        o at least in one case the last insert operation is missing
-                -> verify in more cases
-        o re-apply recovery; check why the last update is missing 
-    o send new DLL to Rajesh
-    o add to monster tests
-
 o Win32: ham_recover is missing in the .zip-file
 
 o Win32: compile a newer boost version - the current one requires a few hacks
     because it is too old
 
-o There are performance issues related to cache flushes.
-    1. if multiple pages are flushed then their locks are held for a long time
-    2. even if a single page is flushed then it's possible that there's a
-        significant latency spike when fetching a locked page
-    A strategy to avoiding these spikes would be to create a copy of the page
-    as soon as a page is fetched but the lock is already acquired.
-    The original page could be hazard-collected after a while (10 sec), or
-    forwarded to the worker thread for cleanup (as long as there's just one
-    thread this will work fine).
-    What if this (previous) page is in other linked lists?
-    -> We need a way to swap the data of a page even while it is locked and/or
-        flushed
-    x combine mutex, is_dirty and the data pointer to a separate structure
-    x try to avoid an extra memory allocation
-    x the mutex only protects this structure!
-    x the worker thread does not work on pages but on these structures
-    x don't forget to free the structure, but only if it was allocated
-    x ... and therefore the main thread can swap them if the page is locked!
-    x compare performance - looks good, peaks are gone
-    x fix unittests
-    ===> implemented, but currenlty disabled. Causes test failures when
-        running i.e. 1/45.tst with --cache=50 vs berkeleydb
-    o run monster tests
-
-o ftruncate() allocates larger buffers than required, for performance
-    reasons (ftruncate() causes I/O spikes). But then recovery.pl fails,
-    therefore excess allocations were disabled if recovery is enabled
-    (and on Win32)
-    x enable again if recovery is enabled and fix recovery.pl
-    x disable on Win32 if mmap is used
-    o call ftruncate() asynchronous???
-
-o more performance improvements: set breakpoint if spinlock spins more than
-    100 times; identify the bottleneck, try to improve
-
 o Investigate failure in erlang qc-tests
-
-o PRO: increase SIMD lookup performance (-> Meem)
-    o B. Schlegel, R. Gemulla, and W. Lehner. k-ary search on modern
-        processors. In DaMoN, pages 52–60, 2009.
-    Instead of a single pivot element, 4 pivot elements are compared. The
-    search is then narrowed down to the encompassing range. Rinse and repeat.
-    Code (BSD license):
-        https://wwwdb.inf.tu-dresden.de/team/alumni/dipl-inf-benjamin-schlegel/
-    
-    https://schani.wordpress.com/tag/c-optimization-linear-binary-search-sse2-simd/
-    http://wm.ite.pl/articles/simd-search.html
-    http://stackoverflow.com/questions/20616605/using-simd-avx-sse-for-tree-traversal
-
-
-
 
 o refactoring of the whole transaction-mess
     goals:
@@ -238,6 +195,45 @@ o refactoring of the whole transaction-mess
 
       o create cursors on the stack as well
             o cursors should form a single-linked list
+
+o There are performance issues related to cache flushes.
+    1. if multiple pages are flushed then their locks are held for a long time
+    2. even if a single page is flushed then it's possible that there's a
+        significant latency spike when fetching a locked page
+    A strategy to avoiding these spikes would be to create a copy of the page
+    as soon as a page is fetched but the lock is already acquired.
+    The original page could be hazard-collected after a while (10 sec), or
+    forwarded to the worker thread for cleanup (as long as there's just one
+    thread this will work fine).
+    What if this (previous) page is in other linked lists?
+    -> We need a way to swap the data of a page even while it is locked and/or
+        flushed
+    x combine mutex, is_dirty and the data pointer to a separate structure
+    x try to avoid an extra memory allocation
+    x the mutex only protects this structure!
+    x the worker thread does not work on pages but on these structures
+    x don't forget to free the structure, but only if it was allocated
+    x ... and therefore the main thread can swap them if the page is locked!
+    x compare performance - looks good, peaks are gone
+    x fix unittests
+    ===> implemented, but currenlty disabled. Causes test failures when
+        running i.e. 1/45.tst with --cache=50 vs berkeleydb
+    o run monster tests
+
+o PRO: increase SIMD lookup performance (-> Meem)
+    o B. Schlegel, R. Gemulla, and W. Lehner. k-ary search on modern
+        processors. In DaMoN, pages 52–60, 2009.
+    Instead of a single pivot element, 4 pivot elements are compared. The
+    search is then narrowed down to the encompassing range. Rinse and repeat.
+    Code (BSD license):
+        https://wwwdb.inf.tu-dresden.de/team/alumni/dipl-inf-benjamin-schlegel/
+    
+    https://schani.wordpress.com/tag/c-optimization-linear-binary-search-sse2-simd/
+    http://wm.ite.pl/articles/simd-search.html
+    http://stackoverflow.com/questions/20616605/using-simd-avx-sse-for-tree-traversal
+
+
+
 
 o move template parameters "up" to the LocalDatabase level, or at least
     The goal of this exercise is to
@@ -362,6 +358,14 @@ o always use constant sizes for the header page(s)
         own header page!
     o clean up EnvironmentHeader, header page in LocalEnvironment
     o clean up BtreeHeader etc
+
+o remove dependency to libuv 1.0, use boost::async instead (makes the build
+    process a lot smoother)
+
+o performance improvement: call ftruncate() asynchronous
+
+o more performance improvements: set breakpoint if spinlock spins more than
+    100 times; identify the bottleneck, try to improve
 
 o clean up BtreeIndex class; it has too many responsibilities, i.e.
     managing configuration, persisting configuration, btree traversal,
@@ -594,10 +598,6 @@ o PRO: use compression also for duplicate records
 
 
 o Concurrency: merge BtreeUpdates in the background
-
-o migrate to libuv 1.0, it has a stable API
-    http://docs.libuv.org/en/latest/migration_010_100.html
-    o also for windows!
 
 o improve the webpage documentation
     o document the various btree formats on the webpage, with images

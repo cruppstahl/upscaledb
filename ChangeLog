@@ -1,3 +1,7 @@
+Jun 19, 2015 - chris ---------------------------------------------------
+o Fixing a bug during recovery where modified pages were not recreated
+o Reducing ftruncate() system calls
+
 Jun 04, 2015 - chris ---------------------------------------------------
 o Fixing compilation with --disable-remote
 
