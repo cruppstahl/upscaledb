@@ -823,7 +823,10 @@ PageManager::try_lock_purge_candidate(uint64_t address)
 {
   Page *page = 0;
 
-  ScopedSpinlock lock(m_state.mutex);
+  //ScopedSpinlock lock(m_state.mutex); -- deadlocks
+  if (!m_state.mutex.try_lock())
+    return (0);
+
   if (address == 0)
     page = m_state.header->header_page();
   else if (m_state.state_page && address == m_state.state_page->get_address())
@@ -831,8 +834,12 @@ PageManager::try_lock_purge_candidate(uint64_t address)
   else
     page = m_state.cache.get(address);
 
-  if (!page || !page->mutex().try_lock())
+  if (!page || !page->mutex().try_lock()) {
+    m_state.mutex.unlock();
     return (0);
+  }
+
+  m_state.mutex.unlock();
 
   // !!
   // Do not purge pages with cursors, since Cursor::move will return pointers
