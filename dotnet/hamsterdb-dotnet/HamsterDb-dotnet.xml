@@ -519,6 +519,12 @@
             <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
             <param name="flags">Additional flags for the movement</param>
         </member>
+        <member name="M:Hamster.Cursor.TryMove(System.Byte[]@,System.Byte[]@,System.Int32)">
+            <summary>
+            Like <see cref="M:Hamster.Cursor.Move(System.Int32)"/>, but returns false only if cursor points to the first (or last) item, and a move to the previous (or next) item was requested
+            (i.e., when ham_cursor_move returns <see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/>).
+            </summary>
+        </member>
         <member name="M:Hamster.Cursor.GetKey">
             <summary>
             Retrieves the Key of the current item

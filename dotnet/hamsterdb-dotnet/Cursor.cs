@@ -233,6 +233,28 @@ namespace Hamster
     }
 
     /// <summary>
+    /// Like <see cref="Cursor.Move" />, but returns false only if cursor points to the first (or last) item, and a move to the previous (or next) item was requested
+    /// (i.e., when ham_cursor_move returns <see cref="HamConst.HAM_KEY_NOT_FOUND" />).
+    /// </summary>
+    public bool TryMove(ref byte [] key, ref byte [] record, int flags)
+    {
+        int st;
+        lock (db)
+        {
+            st = NativeMethods.CursorGet(handle, flags, ref key, ref record);
+        }
+        if (st == 0)
+            return true;
+        if (st == HamConst.HAM_KEY_NOT_FOUND)
+        {
+            key = null;
+            record = null;
+            return false;
+        }
+        throw new DatabaseException(st);
+    }
+
+    /// <summary>
     /// Retrieves the Key of the current item
     /// </summary>
     /// <remarks>

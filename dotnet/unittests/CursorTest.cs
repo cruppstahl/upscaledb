@@ -136,6 +136,21 @@ namespace Unittests
             for (int i = 0; i < lhs.Length; i++)
                 Assert.AreEqual(lhs[i], rhs[i]);
         }
+        
+        private void TryMove()
+        {
+            Cursor c = new Cursor(db);
+            byte[] k1 = BitConverter.GetBytes(1UL);
+            byte[] r1 = BitConverter.GetBytes(2UL);
+            db.Insert(k1, r1);
+            byte[] k2 = null, r2 = null;
+            Assert.IsTrue(c.TryMove(ref k2, ref r2, HamConst.HAM_CURSOR_NEXT));
+            checkEqual(k1, k2);
+            checkEqual(r1, r2);
+            Assert.IsFalse(c.TryMove(ref k2, ref r2, HamConst.HAM_CURSOR_NEXT));
+            Assert.IsNull(k2);
+            Assert.IsNull(r2);
+        }
 
         private void GetKey() {
             Cursor c = new Cursor(db);
@@ -380,6 +395,11 @@ namespace Unittests
             Console.WriteLine("CursorTest.MovePrevious");
             SetUp();
             MovePrevious();
+            TearDown();
+
+            Console.WriteLine("CursorTest.TryMove");
+            SetUp();
+            TryMove();
             TearDown();
 
             Console.WriteLine("CursorTest.GetKey");
