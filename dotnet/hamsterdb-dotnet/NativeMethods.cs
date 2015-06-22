@@ -291,6 +291,11 @@ namespace Hamster
     static private extern int CursorMoveLow(IntPtr handle,
         IntPtr key, ref RecordStruct record, int flags);
 
+    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_move",
+       CallingConvention = CallingConvention.Cdecl)]
+    static private extern int CursorMoveLow(IntPtr handle,
+        ref KeyStruct key, ref RecordStruct record, int flags);
+
     static public int CursorMove(IntPtr handle, int flags) {
       return CursorMoveLow(handle, IntPtr.Zero, IntPtr.Zero, flags);
     }
@@ -319,6 +324,24 @@ namespace Hamster
         return newArray;
       }
       throw new DatabaseException(st);
+    }
+
+    static unsafe public int CursorGet(IntPtr handle, int flags, ref byte[] keyArray, ref byte[] recordArray)
+    {
+        KeyStruct key = new KeyStruct();
+        RecordStruct record = new RecordStruct();
+        int st = CursorMoveLow(handle, ref key, ref record, flags);
+        if (st == 0)
+        {
+            IntPtr keyData = new IntPtr(key.data);
+            keyArray = new byte[key.size];
+            Marshal.Copy(keyData, keyArray, 0, key.size);
+
+            IntPtr recData = new IntPtr(record.data);
+            recordArray = new byte[record.size];
+            Marshal.Copy(recData, recordArray, 0, record.size);
+        }
+        return st;
     }
 
     [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_overwrite",
