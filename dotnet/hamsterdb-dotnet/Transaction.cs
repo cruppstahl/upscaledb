@@ -29,13 +29,6 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Destructor; aborts the Transaction
-    /// </summary>
-    ~Transaction() {
-      Dispose(false);
-    }
-
-    /// <summary>
     /// Commits the Transaction
     /// </summary>
     /// <remarks>
@@ -57,7 +50,7 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Aborts the Transaction
+    /// Aborts the Transaction if it has not already been committed or aborted.
     /// </summary>
     /// <remarks>
     /// This method wraps the native ham_txn_abort function.
@@ -67,31 +60,25 @@ namespace Hamster
     /// not closed.
     /// </remarks>
     public void Abort() {
-      int st;
-      lock (env) {
-        st = NativeMethods.TxnAbort(handle, 0);
-      }
-      if (st != 0)
-        throw new DatabaseException(st);
-      handle = IntPtr.Zero;
-      env = null;
+        if (env != null)
+        {
+            int st;
+            lock (env)
+            {
+                st = NativeMethods.TxnAbort(handle, 0);
+            }
+            if (st != 0)
+                throw new DatabaseException(st);
+            handle = IntPtr.Zero;
+            env = null;
+        }
     }
 
     /// <summary>
-    /// Aborts the Transaction
+    /// Aborts the Transaction if it has not already been committed or aborted.
     /// </summary>
     /// <see cref="Abort" />
     public void Dispose() {
-      Dispose(true);
-      GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Aborts the Transaction
-    /// </summary>
-    /// <see cref="Abort" />
-    protected virtual void Dispose(bool all) {
-      if (all)
         Abort();
     }
 

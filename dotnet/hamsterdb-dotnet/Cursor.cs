@@ -49,13 +49,6 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Destructor; closes the Cursor
-    /// </summary>
-    ~Cursor() {
-      Dispose(false);
-    }
-
-    /// <summary>
     /// Creates a new Cursor
     /// </summary>
     ///
@@ -626,16 +619,6 @@ namespace Hamster
     /// </summary>
     /// <see cref="Close" />
     public void Dispose() {
-      Dispose(true);
-      GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Closes the Cursor
-    /// </summary>
-    /// <see cref="Close" />
-    protected virtual void Dispose(bool all) {
-      if (all)
         Close();
     }
 
