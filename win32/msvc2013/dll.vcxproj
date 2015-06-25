@@ -219,6 +219,7 @@
     <ClInclude Include="..\..\src\1base\pickle.h" />
     <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
     <ClInclude Include="..\..\src\1base\signal.h" />
+    <ClInclude Include="..\..\src\1base\spinlock.h" />
     <ClInclude Include="..\..\src\1base\util.h" />
     <ClInclude Include="..\..\src\1base\version.h" />
     <ClInclude Include="..\..\src\1eventlog\eventlog.h" />

@@ -53,6 +53,15 @@
 // the default page size is 16 kb
 #define HAM_DEFAULT_PAGE_SIZE     (16 * 1024)
 
+// boost/asio has nasty build dependencies and requires Windows.h,
+// therefore it is included here
+#ifdef WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  include <Windows.h>
+#  include <boost/asio.hpp>
+#  include <boost/thread/thread.hpp>
+#endif
+
 // use tcmalloc?
 #if HAVE_GOOGLE_TCMALLOC_H == 1
 #  if HAVE_LIBTCMALLOC_MINIMAL == 1
@@ -72,33 +81,9 @@
 #   define unlikely(x) (x)
 #endif
 
+// MSVC: disable warning about use of 'this' in base member initializer list
 #ifdef WIN32
 #  pragma warning(disable:4355)
-#  define WIN32_MEAN_AND_LEAN
-#  ifdef USE_ASIO
-//     Set the proper SDK version before including boost/Asio
-#      include <SDKDDKVer.h>
-//     Note boost/ASIO includes Windows.h. 
-#      undef min
-#      undef max
-#      include <boost/asio.hpp>
-#   else //  USE_ASIO
-#      include <Windows.h>
-#   endif //  USE_ASIO
-#else // WIN32
-#  ifdef USE_ASIO
-#     include <boost/asio.hpp>
-#  endif // USE_ASIO
-#endif // WIN32
-
-#ifdef WIN3211
-#  define _WINSOCKAPI_ /* Prevent inclusion of winsock.h in windows.h */ 
-// MSVC: disable warning about use of 'this' in base member initializer list
-#  pragma warning(disable:4355)
-#  define WIN32_MEAN_AND_LEAN
-//#  include <boost/thread/thread.hpp>
-//#  include <boost/asio.hpp>
-#  include <windows.h>
 #endif
 
 // some compilers define min and max as macros; this leads to errors

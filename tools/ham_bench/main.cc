@@ -18,6 +18,8 @@
 #include <cstdio>
 #include <ctime>
 
+#include "1globals/globals.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
@@ -39,7 +41,6 @@
 #include "metrics.h"
 #include "misc.h"
 
-#include "1globals/globals.h"
 
 #define ARG_HELP                                1
 #define ARG_VERBOSE                             2

@@ -28,7 +28,7 @@
 #include "0root/root.h"
 
 #include <stdio.h>
-#ifndef HAM_OS_WIN32
+#ifndef WIN32
 #  include <sched.h>
 #  include <unistd.h>
 #endif
@@ -113,7 +113,7 @@ class Spinlock {
 
     static void spin(int loop) {
       if (loop < kSpinThreshold) {
-#ifdef HAM_OS_WIN32
+#ifdef WIN32
         ::Sleep(0);
 #elif HAVE_SCHED_YIELD
         ::sched_yield();
@@ -122,8 +122,8 @@ class Spinlock {
 #endif 
       }
       else {
-#ifdef HAM_OS_WIN32
-        ::Sleep(25);
+#ifdef WIN32
+        ::Sleep(1);
 #elif HAVE_USLEEP
         ::usleep(25);
 #else

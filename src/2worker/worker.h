@@ -21,16 +21,10 @@
 #ifndef HAM_WORKER_H
 #define HAM_WORKER_H
 
-// let root.h include boost/asio.hpp (WIN32 only!)
-#define USE_ASIO 1
-
 #include "0root/root.h"
 
-// other platforms need to include boost/asio.hpp directly
-#ifndef WIN32
-#  include <boost/asio.hpp>
-#  include <boost/thread/thread.hpp>
-#endif
+#include <boost/asio.hpp>
+#include <boost/thread/thread.hpp>
 
 // Always verify that a file of level N does not include headers > N!
 #include "2worker/workitem.h"
