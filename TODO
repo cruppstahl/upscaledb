@@ -117,18 +117,39 @@ x recovery problem (Rajesh's issue?)
 o PRO/Zint32: implement FOR encoding, continue with paper
     x w/o SIMD
     x w/  SIMD
-    o create custom insert function for StreamVbyte (scalar)
+    x create custom insert function for StreamVbyte (scalar)
+    x fix tests
+        x --seed=1435321186 --use-berkeleydb=true --reopen=true  --key=uint32 \
+            --key-compression=zint32_for --recsize-fixed=2 --bulk-erase \
+            --stop-ops=500000
+        x --key=uint32 --key-compression=zint32_streamvbyte --recsize-fixed=2 \
+            --bulk-erase --stop-ops=500000 --seed=1435321036
+            x then w/ berkeleydb
+    x run monster tests
+
     o create a script which runs all benchmarks
+        o w/ zipfian distribution (20 mio keys)
+        o w/ AOL timestamps (20 mio keys)
+        o include hola API
+        o include cursor API
     o create good looking graphs with the results
-    o create custom insert function for StreamVbyte (SIMD)
     o continue with the paper
+
+o Investigate failure in erlang qc-tests
+
+o master branch has new patches; rebase v2 and topic/next, topic/txn etc
+    -> rename topic/txn to topic/next, remove topic/txn
 
 o Win32: ham_recover is missing in the .zip-file
 
 o Win32: compile a newer boost version - the current one requires a few hacks
     because it is too old
 
-o Investigate failure in erlang qc-tests
+o Win32: investigate performance discrepancies between Linux and Windows;
+    Linux is much faster. Tested even against 2.1.10, which suffers from
+    the same bad performance. The regression is therefore not caused by
+    boost::async or other recent changes. It seems that PRO does NOT suffer
+    from this (check again!)
 
 o refactoring of the whole transaction-mess
     goals:
@@ -196,6 +217,9 @@ o refactoring of the whole transaction-mess
       o create cursors on the stack as well
             o cursors should form a single-linked list
 
+
+ --- release 2.1.12 --------------------------------------------------
+
 o There are performance issues related to cache flushes.
     1. if multiple pages are flushed then their locks are held for a long time
     2. even if a single page is flushed then it's possible that there's a
@@ -232,11 +256,8 @@ o PRO: increase SIMD lookup performance (-> Meem)
     http://wm.ite.pl/articles/simd-search.html
     http://stackoverflow.com/questions/20616605/using-simd-avx-sse-for-tree-traversal
 
-
-
-
 o move template parameters "up" to the LocalDatabase level, or at least
-    The goal of this exercise is to
+    to the Btree. The goal of this exercise is to
     - reduce the number of virtual calls
     - avoid virtual inheritance of the nodes
     - reduce the number of classes and object instantiations
@@ -246,6 +267,7 @@ o move template parameters "up" to the LocalDatabase level, or at least
         with the DB, but do not make all code based on templates, only
         the Btree and some other things (i.e. key/record verification)
     - but this will make compilation time really slow :(
+    ==> needs more discussion!
 
 o Make Pages resizable with variable length
     Pages can have different sizes, and are always aligned to the "native"
@@ -261,6 +283,8 @@ o Make Pages resizable with variable length
       - would this be enough??
     But one of the advantages is that a split can be postponed by resizing
     the page. Can we still somehow do this? 
+    -> Also we want to *compress* the records, at least for PRO. The new
+        scheme should require compression.
     ==============
 
     These schemes are used for disk-based AND in-memory based databases!
@@ -520,10 +544,7 @@ o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     pages > 15 * page_size have to be split. Use a standard vbyte encoding
     instead (it will anyway be required later on).
 
-
-
-
-
+ --- release 2.1.13 --------------------------------------------------
 
 o Concurrency: implement on database level!
     o Each Database needs its own BlobManager

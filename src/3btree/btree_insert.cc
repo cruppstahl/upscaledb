@@ -88,6 +88,8 @@ class BtreeInsertAction : public BtreeUpdateAction
       else
         st = insert();
 
+      /* TODO insert() retries the operation, and it will fail again because
+       * the page is full -> immediately split the page! */
       if (st == HAM_LIMITS_REACHED)
         st = insert();
 
