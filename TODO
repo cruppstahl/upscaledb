@@ -127,13 +127,27 @@ o PRO/Zint32: implement FOR encoding, continue with paper
             x then w/ berkeleydb
     x run monster tests
 
-    o create a script which runs all benchmarks
-        o w/ zipfian distribution (20 mio keys)
-        o w/ AOL timestamps (20 mio keys)
-        o include hola API
-        o include cursor API
+    x create a script which runs all benchmarks
+        x w/ zipfian distribution (20 mio keys)
+        x w/ AOL timestamps (20 mio keys)
+        x include hola API
+        x include cursor API
     o create good looking graphs with the results
+        o performance for inserts (AOL)
+        o performance for inserts (zipf)
+        o performance for lookups (AOL)
+        o performance for lookups (zipf)
+        o performance for cursors (AOL)
+        o performance for cursors (zipf)
+        o performance for hola-sum (AOL)
+        o performance for hola-sum (zipf)
+        o file sizes
     o continue with the paper
+        o describe benchmark hardware, hamsterdb configuration parameters
+            (cache size, page size, record size...)
+        o describe test data
+        o show the results
+        o conclusion
 
 o Investigate failure in erlang qc-tests
 
