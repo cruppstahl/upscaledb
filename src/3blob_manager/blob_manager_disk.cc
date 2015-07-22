@@ -204,31 +204,33 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     throw Exception(HAM_BLOB_NOT_FOUND);
   }
 
-  uint32_t blobsize = (uint32_t)blob_header->size;
-  record->size = blobsize;
-
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset > blobsize) {
-      ham_trace(("partial offset is greater than the total record size"));
-      throw Exception(HAM_INV_PARAMETER);
-    }
-    if (record->partial_offset + record->partial_size > blobsize)
-      record->partial_size = blobsize = blobsize - record->partial_offset;
-    else
-      blobsize = record->partial_size;
-  }
-
   // empty blob?
-  if (!blobsize) {
+  if (blob_header->size == 0) {
     record->data = 0;
     record->size = 0;
     return;
   }
 
+  uint32_t size_to_read = (uint32_t)blob_header->size;
+  record->size = size_to_read;
+
+  if (flags & HAM_PARTIAL) {
+    if (record->partial_offset > size_to_read) {
+      ham_trace(("partial offset is greater than the total record size"));
+      throw Exception(HAM_INV_PARAMETER);
+    }
+    if (record->partial_offset + record->partial_size > size_to_read)
+      record->partial_size
+            = size_to_read
+                    = size_to_read - record->partial_offset;
+    else
+      size_to_read = record->partial_size;
+  }
+
   // if the blob is in memory-mapped storage (and the user does not require
   // a copy of the data): simply return a pointer
   if ((flags & HAM_FORCE_DEEP_COPY) == 0
-        && m_device->is_mapped(blob_id, blobsize)
+        && m_device->is_mapped(blob_id, size_to_read)
         && !(record->flags & HAM_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
                         blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
@@ -238,7 +240,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-      arena->resize(blobsize);
+      arena->resize(size_to_read);
       record->data = arena->get_ptr();
     }
 
@@ -246,7 +248,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
                   blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
-                  (uint8_t *)record->data, blobsize, true);
+                  (uint8_t *)record->data, size_to_read, true);
   }
 }
 

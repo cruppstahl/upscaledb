@@ -912,10 +912,9 @@ LocalCursor::move(Context *context, ham_key_t *key, ham_record_t *record,
 {
   ham_status_t st = 0;
   bool changed_dir = false;
-  BtreeCursor *btrc = get_btree_cursor();
 
   /* in non-transactional mode - just call the btree function and return */
-  if (!(ldb()->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
+  if (!(lenv()->get_flags() & HAM_ENABLE_TRANSACTIONS)) {
     return (m_btree_cursor.move(context,
                             key, &ldb()->key_arena(context->txn),
                             record, &ldb()->record_arena(context->txn), flags));
@@ -986,7 +985,7 @@ retrieve_key_and_record:
       }
     }
     else {
-      st = btrc->move(context, key, &db()->key_arena(get_txn()),
+      st = m_btree_cursor.move(context, key, &db()->key_arena(get_txn()),
                       record, &db()->record_arena(get_txn()), 0);
     }
   }
