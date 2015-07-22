@@ -47,6 +47,7 @@ class EnvironmentHeader;
 class LocalDatabase;
 class LocalEnvironment;
 class LsnManager;
+struct AsyncFlushMessage;
 
 /*
  * The internal state of the PageManager
@@ -54,6 +55,8 @@ class LsnManager;
 struct PageManagerState
 {
   PageManagerState(LocalEnvironment *env);
+
+  ~PageManagerState();
 
   //  For serializing access 
   Spinlock mutex;
@@ -75,9 +78,6 @@ struct PageManagerState
 
   // The freelist
   Freelist freelist;
-
-  // Whether a "cache purge" is currently in progress
-  boost::atomic<bool> purge_in_progress;
 
   // Whether |m_free_pages| must be flushed or not
   bool needs_flush;
@@ -109,6 +109,13 @@ struct PageManagerState
 
   // tracks number of cache misses
   uint64_t cache_misses;
+
+  // For sending information to the worker thread; cached to avoid memory
+  // allocations
+  AsyncFlushMessage *message;
+
+  // For collecting unused pages; cached to avoid memory allocations
+  std::vector<Page *> garbage;
 };
 
 } // namespace hamsterdb

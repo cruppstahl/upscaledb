@@ -47,14 +47,13 @@ struct Deleter {
 struct AsyncFlushMessage {
   AsyncFlushMessage(PageManager *page_manager_, Device *device_,
           Signal *signal_)
-    : page_manager(page_manager_), device(device_), signal(signal_),
-      in_progress(0) {
+    : page_manager(page_manager_), device(device_), signal(signal_) {
   }
 
   PageManager *page_manager;
   Device *device;
   Signal *signal;
-  boost::atomic<bool> *in_progress;
+  boost::atomic<bool> in_progress;
   std::vector<uint64_t> page_ids;
 };
 
@@ -84,9 +83,7 @@ async_flush_pages(AsyncFlushMessage *message)
         page_data->mutex.unlock();
         if (message->signal)
           message->signal->notify();
-        if (message->in_progress)
-          *message->in_progress = false;
-        delete message;
+        message->in_progress = false;
         throw; // TODO really?
       }
     }
@@ -95,18 +92,23 @@ async_flush_pages(AsyncFlushMessage *message)
   if (message->signal)
     message->signal->notify();
   if (message->in_progress)
-    *message->in_progress = false;
-  delete message;
+    message->in_progress = false;
 }
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
   : config(env->config()), header(env->header()),
     device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(env->config()), freelist(config), purge_in_progress(false),
-    needs_flush(false), state_page(0), last_blob_page(0), last_blob_page_id(0),
+    cache(env->config()), freelist(config), needs_flush(false),
+    state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
-    page_count_page_manager(0), cache_hits(0), cache_misses(0)
+    page_count_page_manager(0), cache_hits(0), cache_misses(0), message(0)
 {
+}
+
+PageManagerState::~PageManagerState()
+{
+  delete message;
+  message = 0;
 }
 
 PageManager::PageManager(LocalEnvironment *env)
@@ -291,27 +293,27 @@ PageManager::purge_cache(Context *context)
   //   2. there's still a "purge cache" operation pending
   //   3. the cache is not full
   if (m_state.config.flags & HAM_IN_MEMORY
-      || m_state.purge_in_progress == true
+      || (m_state.message && m_state.message->in_progress == true)
       || !m_state.cache.is_cache_full())
     return;
 
-  std::vector<Page *> garbage;
+  if (!m_state.message)
+    m_state.message = new AsyncFlushMessage(this, m_state.device, 0);
 
-  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device, 0);
-  message->in_progress = &m_state.purge_in_progress;
+  m_state.message->page_ids.clear();
+  m_state.garbage.clear();
 
-  m_state.cache.purge_candidates(message->page_ids, garbage,
+  m_state.cache.purge_candidates(m_state.message->page_ids, m_state.garbage,
           m_state.last_blob_page);
 
-  if (message->page_ids.size() > 0) {
-    m_state.purge_in_progress = true;
-    run_async(boost::bind(&async_flush_pages, message));
+  // don't bother if there are only few pages
+  if (m_state.message->page_ids.size() > 10) {
+    m_state.message->in_progress = true;
+    run_async(boost::bind(&async_flush_pages, m_state.message));
   }
-  else
-    delete message;
 
-  for (std::vector<Page *>::iterator it = garbage.begin();
-                  it != garbage.end();
+  for (std::vector<Page *>::iterator it = m_state.garbage.begin();
+                  it != m_state.garbage.end();
                   it++) {
     Page *page = *it;
     if (page->mutex().try_lock()) {
