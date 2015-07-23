@@ -281,6 +281,11 @@ class DiskDevice : public Device {
       }
     }
 
+    // Returns a pointer directly into mapped memory
+    uint8_t *mapped_pointer(uint64_t address) const {
+      return (&m_state.mmapptr[address]);
+    }
+
   private:
     // truncate/resize the device, sans locking
     void truncate_nolock(uint64_t new_file_size) {
