@@ -76,6 +76,29 @@ struct BlobManagerFixture {
         REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
+  void overwriteMappedBlob() {
+    uint8_t buffer[128];
+    ham_key_t key = {0};
+    ham_record_t record = ham_make_record((void *)buffer, sizeof(buffer));
+    ::memset(&buffer, 0x12, sizeof(buffer));
+
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+
+    // reopen the file
+    m_context->changeset.clear();
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+
+    ::memset(&buffer, 0x13, sizeof(buffer));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, HAM_OVERWRITE));
+
+    ham_record_t record2 = {0};
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &record2, 0));
+    REQUIRE(sizeof(buffer) == record2.size);
+    REQUIRE(0 == memcmp(buffer, record2.data, sizeof(buffer)));
+  }
+
   void allocReadFreeTest() {
     uint8_t buffer[64];
     uint64_t blobid;
@@ -357,6 +380,11 @@ struct BlobManagerFixture {
   }
 };
 
+TEST_CASE("BlobManager/overwriteMappedBlob", "")
+{
+  BlobManagerFixture f(false, false);
+  f.overwriteMappedBlob();
+}
 
 TEST_CASE("BlobManager/allocReadFreeTest", "")
 {

@@ -22,7 +22,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
-#include "2device/device.h"
+#include "2device/device_disk.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db_local.h"
@@ -196,7 +196,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
 
   // first step: read the blob header
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
-                  blob_id, true);
+                  blob_id, true, false);
 
   // sanity check
   if (blob_header->blob_id != blob_id) {
@@ -235,7 +235,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     record->data = read_chunk(context, page, 0,
                         blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                                 ? record->partial_offset
-                                : 0), true);
+                                : 0), true, true);
   }
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
@@ -257,7 +257,7 @@ DiskBlobManager::do_get_blob_size(Context *context, uint64_t blob_id)
 {
   // read the blob header
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, 0, blob_id,
-                  true);
+                  true, false);
 
   if (blob_header->blob_id != blob_id)
     throw Exception(HAM_BLOB_NOT_FOUND);
@@ -278,7 +278,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
   // old blob, we overwrite the old blob (and add the remaining
   // space to the freelist, if there is any)
   old_blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
-                    old_blobid, false);
+                    old_blobid, false, false);
 
   // sanity check
   ham_assert(old_blob_header->blob_id == old_blobid);
@@ -354,7 +354,7 @@ DiskBlobManager::do_erase(Context *context, uint64_t blob_id, Page *page,
 {
   // fetch the blob header
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, &page,
-                        blob_id, false);
+                        blob_id, false, false);
 
   // sanity check
   ham_verify(blob_header->blob_id == blob_id);
@@ -613,7 +613,7 @@ DiskBlobManager::copy_chunk(Context *context, Page *page, Page **ppage,
 
 uint8_t *
 DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
-                uint64_t address, bool fetch_read_only)
+                uint64_t address, bool fetch_read_only, bool mapped_pointer)
 {
   // get the page-id from this chunk
   uint32_t page_size = m_config->page_size_bytes;
@@ -624,15 +624,27 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
   if (page && page->get_address() != pageid)
     page = 0;
 
+  uint8_t *data;
+
   if (!page) {
     uint32_t flags = 0;
     if (fetch_read_only)
       flags |= PageManager::kReadOnly;
+    if (mapped_pointer)
+      flags |= PageManager::kOnlyFromCache;
     page = m_page_manager->fetch(context, pageid, flags);
     if (ppage)
       *ppage = page;
+    if (page)
+      data = page->get_raw_payload();
+    else {
+      DiskDevice *dd = (DiskDevice *)m_device;
+      data = dd->mapped_pointer(pageid);
+    }
   }
+  else
+    data = page->get_raw_payload();
 
   uint32_t read_start = (uint32_t)(address - page->get_address());
-  return (&page->get_raw_payload()[read_start]);
+  return (&data[read_start]);
 }

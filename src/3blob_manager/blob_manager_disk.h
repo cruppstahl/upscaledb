@@ -176,7 +176,8 @@ class DiskBlobManager : public BlobManager
 
     // Same as |copy_chunk|, but does not copy the data
     uint8_t *read_chunk(Context *context, Page *page, Page **fpage,
-                    uint64_t addr, bool fetch_read_only);
+                    uint64_t addr, bool fetch_read_only,
+                    bool mapped_pointer);
 
     // adds a free chunk to the freelist
     void add_to_freelist(PBlobPageHeader *header, uint32_t offset,
