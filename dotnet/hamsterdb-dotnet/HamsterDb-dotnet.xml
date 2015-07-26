@@ -377,11 +377,6 @@
             Constructor which creates a new Cursor in a Transaction
             </summary>
         </member>
-        <member name="M:Hamster.Cursor.Finalize">
-            <summary>
-            Destructor; closes the Cursor
-            </summary>
-        </member>
         <member name="M:Hamster.Cursor.Create(Hamster.Database)">
              <summary>
              Creates a new Cursor
@@ -803,12 +798,6 @@
             </remarks>
         </member>
         <member name="M:Hamster.Cursor.Dispose">
-            <summary>
-            Closes the Cursor
-            </summary>
-            <see cref="M:Hamster.Cursor.Close"/>
-        </member>
-        <member name="M:Hamster.Cursor.Dispose(System.Boolean)">
             <summary>
             Closes the Cursor
             </summary>
@@ -1674,11 +1663,6 @@
             A Transaction class
             </summary>
         </member>
-        <member name="M:Hamster.Transaction.Finalize">
-            <summary>
-            Destructor; aborts the Transaction
-            </summary>
-        </member>
         <member name="M:Hamster.Transaction.Commit">
             <summary>
             Commits the Transaction
@@ -1693,7 +1677,7 @@
         </member>
         <member name="M:Hamster.Transaction.Abort">
             <summary>
-            Aborts the Transaction
+            Aborts the Transaction if it has not already been committed or aborted.
             </summary>
             <remarks>
             This method wraps the native ham_txn_abort function.
@@ -1705,13 +1689,7 @@
         </member>
         <member name="M:Hamster.Transaction.Dispose">
             <summary>
-            Aborts the Transaction
-            </summary>
-            <see cref="M:Hamster.Transaction.Abort"/>
-        </member>
-        <member name="M:Hamster.Transaction.Dispose(System.Boolean)">
-            <summary>
-            Aborts the Transaction
+            Aborts the Transaction if it has not already been committed or aborted.
             </summary>
             <see cref="M:Hamster.Transaction.Abort"/>
         </member>

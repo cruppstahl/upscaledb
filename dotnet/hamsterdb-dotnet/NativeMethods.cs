@@ -52,7 +52,12 @@ namespace Hamster
 
     [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_strerror",
       CallingConvention=CallingConvention.Cdecl)]
-    static public extern String StringError(int error);
+    static public extern IntPtr StringErrorImpl(int error);
+
+    static public string StringError(int error) {
+      IntPtr s = StringErrorImpl(error);
+      return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(s);
+    }
 
     [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_get_version",
        CallingConvention = CallingConvention.Cdecl)]
