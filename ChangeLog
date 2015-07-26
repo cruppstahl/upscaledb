@@ -1,3 +1,6 @@
+Aug 26, 2015 - chris ---------------------------------------------------
+o issue #58 (.NET) - fixed crash in ham_strerror
+
 Jun 19, 2015 - chris ---------------------------------------------------
 o Fixing a bug during recovery where modified pages were not recreated
 o Reducing ftruncate() system calls
