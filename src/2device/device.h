@@ -51,6 +51,11 @@ class Device {
     virtual ~Device() {
     }
 
+    // Returns the current configuration
+    const EnvironmentConfiguration &config() const {
+      return (m_config);
+    }
+
     // Returns the current page size
     size_t page_size() const {
       return (m_config.page_size_bytes);

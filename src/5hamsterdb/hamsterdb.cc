@@ -32,6 +32,7 @@
 #ifdef HAM_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
 #endif
+#include "2compressor/compressor_factory.h"
 #include "2device/device.h"
 #include "3btree/btree_stats.h"
 #include "3blob_manager/blob_manager.h"
@@ -303,9 +304,11 @@ ham_env_create(ham_env_t **henv, const char *filename,
     return (HAM_INV_PARAMETER);
   }
 
-  if (flags & HAM_ENABLE_CRC32) {
-    ham_trace(("Crc32 is only available in hamsterdb pro"));
-    return (HAM_NOT_IMPLEMENTED);
+  /* in-memory? crc32 is not possible */
+  if ((flags & HAM_IN_MEMORY) && (flags & HAM_ENABLE_CRC32)) {
+    ham_trace(("combination of HAM_IN_MEMORY and HAM_ENABLE_CRC32 "
+            "not allowed"));
+    return (HAM_INV_PARAMETER);
   }
 
   /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
@@ -325,9 +328,13 @@ ham_env_create(ham_env_t **henv, const char *filename,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        ham_trace(("Journal compression is only available in hamsterdb pro"));
-        return (HAM_NOT_IMPLEMENTED);
-      case HAM_PARAM_CACHE_SIZE:
+        if (!CompressorFactory::is_available(param->value)) {
+          ham_trace(("unknown algorithm for journal compression"));
+          return (HAM_INV_PARAMETER);
+        }
+        config.journal_compressor = (int)param->value;
+        break;
+      case HAM_PARAM_CACHESIZE:
         if (flags & HAM_IN_MEMORY && param->value != 0) {
           ham_trace(("combination of HAM_IN_MEMORY and cache size != 0 "
                 "not allowed"));
@@ -364,8 +371,21 @@ ham_env_create(ham_env_t **henv, const char *filename,
         config.remote_timeout_sec = (uint32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
-        ham_trace(("Encryption is only available in hamsterdb pro"));
+#ifdef HAM_ENABLE_ENCRYPTION
+        /* in-memory? encryption is not possible */
+        if (flags & HAM_IN_MEMORY) {
+          ham_trace(("aes encryption not allowed in combination with "
+                  "HAM_IN_MEMORY"));
+          return (HAM_INV_PARAMETER);
+        }
+        memcpy(config.encryption_key, (uint8_t *)param->value, 16);
+        config.is_encryption_enabled = true;
+        flags |= HAM_DISABLE_MMAP;
+        break;
+#else
+        ham_trace(("aes encrpytion was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
+#endif
       case HAM_PARAM_POSIX_FADVISE:
         config.posix_advice = (int)param->value;
         break;
@@ -414,7 +434,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   st = env->create();
 
   /* flush the environment to make sure that the header page is written
-   * to disk */
+   * to disk TODO required?? */
   if (st == 0)
     st = env->flush(0);
 
@@ -531,11 +551,6 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
     return (HAM_INV_PARAMETER);
   }
 
-  if (flags & HAM_ENABLE_CRC32) {
-    ham_trace(("Crc32 is only available in hamsterdb pro"));
-    return (HAM_NOT_IMPLEMENTED);
-  }
-
   /* HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY, unless explicitly
    * disabled */
   if ((flags & HAM_ENABLE_TRANSACTIONS) && !(flags & HAM_DISABLE_RECOVERY))
@@ -554,8 +569,9 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
     for (; param->name; param++) {
       switch (param->name) {
       case HAM_PARAM_JOURNAL_COMPRESSION:
-        ham_trace(("Journal compression is only available in hamsterdb pro"));
-        return (HAM_NOT_IMPLEMENTED);
+        ham_trace(("Journal compression parameters are only allowed in "
+                    "ham_env_create"));
+        return (HAM_INV_PARAMETER);
       case HAM_PARAM_CACHE_SIZE:
         /* don't allow cache limits with unlimited cache */
         if (flags & HAM_CACHE_UNLIMITED && param->value != 0) {
@@ -580,8 +596,15 @@ ham_env_open(ham_env_t **henv, const char *filename, uint32_t flags,
         config.remote_timeout_sec = (uint32_t)param->value;
         break;
       case HAM_PARAM_ENCRYPTION_KEY:
-        ham_trace(("Encryption is only available in hamsterdb pro"));
+#ifdef HAM_ENABLE_ENCRYPTION
+        memcpy(config.encryption_key, (uint8_t *)param->value, 16);
+        config.is_encryption_enabled = true;
+        flags |= HAM_DISABLE_MMAP;
+        break;
+#else
+        ham_trace(("aes encryption was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
+#endif
       case HAM_PARAM_POSIX_FADVISE:
         config.posix_advice = (int)param->value;
         break;
@@ -1695,7 +1718,7 @@ ham_is_debug()
 ham_bool_t HAM_CALLCONV
 ham_is_pro()
 {
-  return (HAM_FALSE);
+  return (HAM_TRUE);
 }
 
 uint32_t HAM_CALLCONV

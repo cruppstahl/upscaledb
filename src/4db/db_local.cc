@@ -635,9 +635,17 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   m_btree_index.reset(new BtreeIndex(this, btree_header, persistent_flags,
                         m_config.key_type, m_config.key_size));
 
+  if (m_config.key_compressor)
+    enable_key_compression(context, m_config.key_compressor);
+  if (m_config.record_compressor)
+    enable_record_compression(context, m_config.record_compressor);
+
   /* initialize the btree */
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size);
+
+  /* the header page is now dirty */
+  header->set_dirty(true);
 
   /* and the TransactionIndex */
   m_txn_index.reset(new TransactionIndex(this));
@@ -665,6 +673,9 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_config.key_type = btree_header->key_type();
   m_config.key_size = btree_header->key_size();
 
+  /* is key compression enabled? */
+  m_config.key_compressor = btree_header->key_compression();
+
   /* create the BtreeIndex */
   m_btree_index.reset(new BtreeIndex(this, btree_header,
                             flags | btree_header->flags(),
@@ -691,6 +702,13 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_config.key_size = m_btree_index->key_size();
   m_config.key_type = m_btree_index->key_type();
   m_config.record_size = m_btree_index->record_size();
+
+  /* is record compression enabled? */
+  int algo = btree_header->record_compression();
+  if (algo) {
+    enable_record_compression(context, algo);
+    m_record_compressor.reset(CompressorFactory::create(algo));
+  }
 
   // fetch the current record number
   if ((get_flags() & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64))) {
@@ -788,10 +806,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
           }
           break;
         case HAM_PARAM_RECORD_COMPRESSION:
-          p->value = 0;
+          p->value = btree_index()->record_compression();
           break;
         case HAM_PARAM_KEY_COMPRESSION:
-          p->value = 0;
+          p->value = btree_index()->key_compression();
           break;
         default:
           ham_trace(("unknown parameter %d", (int)p->name));
@@ -864,6 +882,9 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 {
   ham_status_t st = 0;
   LocalCursor *cursor = 0;
+
+  if (!(get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+    distinct = true;
 
   try {
     Context context(lenv(), (LocalTransaction *)txn, this);
@@ -1713,6 +1734,20 @@ LocalDatabase::begin_temp_txn()
   if (st)
     throw Exception(st);
   return (txn);
+}
+
+void
+LocalDatabase::enable_record_compression(Context *context, int algo)
+{
+  m_record_compressor.reset(CompressorFactory::create(algo));
+  m_btree_index->set_record_compression(context, algo);
+}
+
+void
+LocalDatabase::enable_key_compression(Context *context, int algo)
+{
+  m_key_compression_algo = algo;
+  m_btree_index->set_key_compression(context, algo);
 }
 
 } // namespace hamsterdb

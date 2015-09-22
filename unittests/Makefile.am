@@ -20,7 +20,9 @@ test_SOURCES    = api110.cpp \
 				  btree_key.cpp \
 				  changeset.cpp \
 				  check.cpp \
+				  compression.cpp \
 				  cppapi.cpp \
+				  crc32.cpp \
 				  cursor1.cpp \
 				  cursor2.cpp \
 				  db.cpp \
@@ -74,9 +76,11 @@ test_SOURCES    = api110.cpp \
 				  partial-write-ps4.h \
 				  partial-write-ps64.h \
 				  recno.cpp \
+				  simd.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp \
-				  utils.h
+				  utils.h \
+				  zint32.cpp
 
 recovery_SOURCES = recovery.cpp
 
@@ -94,6 +98,42 @@ test_LDADD     += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 recovery_LDADD += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
+endif
+
+if ENABLE_ENCRYPTION
+test_SOURCES   += aes.cpp
+test_LDADD     += -lcrypto
+recovery_LDADD += -lcrypto
+endif
+
+if ENABLE_COMPRESSION
+AM_CPPFLAGS    += -DHAM_ENABLE_COMPRESSION
+if WITH_ZLIB
+test_LDADD     += -lz
+recovery_LDADD += -lz
+endif
+if WITH_SNAPPY
+test_LDADD     += -lsnappy
+recovery_LDADD += -lsnappy
+endif
+if WITH_LZOP
+test_LDADD     += -llzo2
+recovery_LDADD += -llzo2
+endif
+endif
+
+AM_CFLAGS	    =
+AM_CXXFLAGS	    =
+if ENABLE_SIMD
+AM_CPPFLAGS    += -DHAM_ENABLE_SIMD
+endif
+if ENABLE_SSE2
+AM_CFLAGS	   += -msse2 -flax-vector-conversions
+AM_CXXFLAGS	   += -msse2 -flax-vector-conversions
+endif
+if ENABLE_SSE4
+AM_CFLAGS	   += -msse4 -flax-vector-conversions
+AM_CXXFLAGS    += -msse4 -flax-vector-conversions
 endif
 
 valgrind:

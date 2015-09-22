@@ -20,6 +20,7 @@
 
 #include <string.h>
 
+#include "3rdparty/murmurhash3/MurmurHash3.h"
 // Always verify that a file of level N does not include headers > N!
 #include "1base/signal.h"
 #include "1base/dynamic_array.h"
@@ -134,6 +135,8 @@ PageManager::initialize(uint64_t pageid)
     delete m_state.state_page;
   m_state.state_page = new Page(m_state.device);
   m_state.state_page->fetch(pageid);
+  if (m_state.config.flags & HAM_ENABLE_CRC32)
+    verify_crc32(m_state.state_page);
 
   Page *page = m_state.state_page;
 
@@ -584,6 +587,8 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
 
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
+  else if (m_state.config.flags & HAM_ENABLE_CRC32)
+    verify_crc32(page);
 
   m_state.page_count_fetched++;
   return (safely_lock_page(context, page, false));
@@ -641,6 +646,7 @@ done:
   page->set_dirty(true);
   page->set_db(context->db);
   page->set_without_header(false);
+  page->set_crc32(0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -908,6 +914,20 @@ PageManagerState *
 PageManagerTest::state()
 {
   return (&m_sut->m_state);
+}
+
+void
+PageManager::verify_crc32(Page *page)
+{
+  uint32_t crc32;
+  MurmurHash3_x86_32(page->get_payload(),
+                  page->get_persisted_data()->size - (sizeof(PPageHeader) - 1),
+                  (uint32_t)page->get_address(), &crc32);
+  if (crc32 != page->get_crc32()) {
+    ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                    page->get_address(), crc32, page->get_crc32()));
+    throw Exception(HAM_INTEGRITY_VIOLATED);
+  }
 }
 
 } // namespace hamsterdb

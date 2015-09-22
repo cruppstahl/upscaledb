@@ -26,6 +26,7 @@
 #include "1eventlog/eventlog.h"
 #include "1os/os.h"
 #include "2device/device.h"
+#include "2compressor/compressor_factory.h"
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
 #include "4db/db.h"
@@ -44,6 +45,9 @@ namespace hamsterdb {
 Journal::Journal(LocalEnvironment *env)
   : m_state(env)
 {
+  int algo = env->config().journal_compressor;
+  if (algo)
+    m_state.compressor.reset(CompressorFactory::create(algo));
 }
 
 void
@@ -202,17 +206,13 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
   PJournalEntry entry;
   PJournalEntryInsert insert;
-  uint32_t size = sizeof(PJournalEntryInsert)
-                        + key->size
-                        + (flags & HAM_PARTIAL
-                            ? record->partial_size
-                            : record->size)
-                        - 1;
 
   entry.lsn = lsn;
   entry.dbname = db->name();
   entry.type = kEntryTypeInsert;
-  entry.followup_size = size;
+  // the followup_size will be filled in later when we know whether
+  // compression is used
+  entry.followup_size = sizeof(PJournalEntryInsert) - 1;
 
   int idx;
   if (txn->get_flags() & HAM_TXN_TEMPORARY) {
@@ -231,19 +231,58 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   insert.record_partial_offset = record->partial_offset;
   insert.insert_flags = flags;
 
-  // append the entry to the logfile
-  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
-                (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1,
-                (uint8_t *)key->data, key->size,
-                (uint8_t *)record->data, (flags & HAM_PARTIAL
-                                ? record->partial_size
-                                : record->size));
+  // we need the current position in the file buffer. if compression is enabled
+  // then we do not know the actual followup-size of this entry. it will be
+  // patched in later.
+  uint32_t entry_position = m_state.buffer[idx].get_size();
 
-  // now flush the file
-  if (txn->get_flags() & HAM_TXN_TEMPORARY)
-    flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
-  else
-    maybe_flush_buffer(idx);
+  // write the header information
+  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
+              (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
+
+  // try to compress the payload; if the compressed result is smaller than
+  // the original (uncompressed) payload then use it
+  const void *key_data = key->data;
+  uint32_t key_size = key->size;
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += key_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)key->data, key->size);
+    if (len < key->size) {
+      key_size = len;
+      key_data = m_state.compressor->get_output_data();
+      insert.compressed_key_size = len;
+    }
+    m_state.count_bytes_after_compression += key_size;
+  }
+  append_entry(idx, (uint8_t *)key_data, key_size);
+  entry.followup_size += key_size;
+
+  // and now the same for the record data
+  const void *record_data = record->data;
+  uint32_t record_size = flags & HAM_PARTIAL
+                                ? record->partial_size
+                            : record->size;
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += record_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)record->data,
+                        record_size);
+    if (len < record_size) {
+      record_size = len;
+      record_data = m_state.compressor->get_output_data();
+      insert.compressed_record_size = len;
+    }
+    m_state.count_bytes_after_compression += record_size;
+  }
+  append_entry(idx, (uint8_t *)record_data, record_size);
+  entry.followup_size += record_size;
+
+  // now overwrite the patched entry
+  m_state.buffer[idx].overwrite(entry_position,
+                  (uint8_t *)&entry, sizeof(entry));
+  m_state.buffer[idx].overwrite(entry_position + sizeof(entry),
+                  (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
+
+  maybe_flush_buffer(idx);
 
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.insert", "%u, %u, %s, %u, 0x%x, %u",
@@ -264,12 +303,26 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
 
   PJournalEntry entry;
   PJournalEntryErase erase;
-  uint32_t size = sizeof(PJournalEntryErase) + key->size - 1;
+  const void *payload_data = key->data;
+  uint32_t payload_size = key->size;
+
+  // try to compress the payload; if the compressed result is smaller than
+  // the original (uncompressed) payload then use it
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += payload_size;
+    uint32_t len = m_state.compressor->compress((uint8_t *)key->data, key->size);
+    if (len < key->size) {
+      payload_data = m_state.compressor->get_output_data();
+      payload_size = len;
+      erase.compressed_key_size = len;
+    }
+    m_state.count_bytes_after_compression += payload_size;
+  }
 
   entry.lsn = lsn;
   entry.dbname = db->name();
   entry.type = kEntryTypeErase;
-  entry.followup_size = size;
+  entry.followup_size = sizeof(PJournalEntryErase) + payload_size - 1;
   erase.key_size = key->size;
   erase.erase_flags = flags;
   erase.duplicate = duplicate_index;
@@ -288,12 +341,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   // append the entry to the logfile
   append_entry(idx, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
-                (uint8_t *)key->data, key->size);
-
-  // now flush the file
-  if (txn->get_flags() & HAM_TXN_TEMPORARY)
-    flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
-  else
+                (uint8_t *)payload_data, payload_size);
     maybe_flush_buffer(idx);
 
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
@@ -375,6 +423,17 @@ Journal::append_changeset_page(const Page::PersistedData *page_data,
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.changeset_page", "%u", (uint32_t)page_data->address));
   PJournalEntryPageHeader header(page_data->address);
+
+  if (m_state.compressor.get()) {
+    m_state.count_bytes_before_compression += page_size;
+    header.compressed_size = m_state.compressor->compress(
+                    page_data->raw_data->payload, page_size);
+    append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
+                    m_state.compressor->get_output_data(),
+                    header.compressed_size);
+    m_state.count_bytes_after_compression += header.compressed_size;
+    return (header.compressed_size + sizeof(header));
+  }
 
   append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
                 page_data->raw_data->payload, page_size);
@@ -659,6 +718,7 @@ Journal::redo_all_changesets(int fdidx)
 
       uint32_t page_size = m_state.env->config().page_size_bytes;
       ByteArray arena(page_size);
+      ByteArray tmp;
 
       uint64_t file_size = m_state.env->device()->file_size();
 
@@ -668,8 +728,18 @@ Journal::redo_all_changesets(int fdidx)
         m_state.files[fdidx].pread(it.offset, &page_header,
                         sizeof(page_header));
         it.offset += sizeof(page_header);
-        m_state.files[fdidx].pread(it.offset, arena.get_ptr(), page_size);
-        it.offset += page_size;
+        if (page_header.compressed_size > 0) {
+          tmp.resize(page_size);
+          m_state.files[m_state.current_fd].pread(it.offset, tmp.get_ptr(),
+                        page_header.compressed_size);
+          it.offset += page_header.compressed_size;
+          m_state.compressor->decompress(tmp.get_ptr(),
+                        page_header.compressed_size, page_size, &arena);
+        }
+        else {
+          m_state.files[fdidx].pread(it.offset, arena.get_ptr(), page_size);
+          it.offset += page_size;
+        }
 
         Page *page;
 
@@ -795,9 +865,35 @@ Journal::recover_journal(Context *context,
         if (entry.lsn <= start_lsn)
           continue;
 
-        key.data = ins->get_key_data();
+        uint8_t *payload = (uint8_t *)ins->get_key_data();
+
+        // extract the key - it can be compressed or uncompressed
+        ByteArray keyarena;
+        if (ins->compressed_key_size != 0) {
+          m_state.compressor->decompress(payload, ins->compressed_key_size,
+                          ins->key_size);
+          keyarena.append(m_state.compressor->get_output_data(), ins->key_size);
+          key.data = keyarena.get_ptr();
+          payload += ins->compressed_key_size;
+        }
+        else {
+          key.data = payload;
+          payload += ins->key_size;
+        }
         key.size = ins->key_size;
-        record.data = ins->get_record_data();
+        // extract the record - it can be compressed or uncompressed
+        ByteArray recarena;
+        if (ins->compressed_record_size != 0) {
+          m_state.compressor->decompress(payload, ins->compressed_record_size,
+                          ins->record_size);
+          recarena.append(m_state.compressor->get_output_data(), ins->record_size);
+          record.data = recarena.get_ptr();
+          payload += ins->compressed_record_size;
+        }
+        else {
+          record.data = payload;
+          payload += ins->record_size;
+        }
         record.size = ins->record_size;
         record.partial_size = ins->record_partial_size;
         record.partial_offset = ins->record_partial_offset;
@@ -826,6 +922,13 @@ Journal::recover_journal(Context *context,
           txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);
         key.data = e->get_key_data();
+        if (e->compressed_key_size != 0) {
+          m_state.compressor->decompress(e->get_key_data(),
+                  e->compressed_key_size, e->key_size);
+          key.data = (void *)m_state.compressor->get_output_data();
+        }
+        else
+          key.data = e->get_key_data();
         key.size = e->key_size;
         st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
                       e->erase_flags | HAM_DONT_LOCK);

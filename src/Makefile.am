@@ -35,8 +35,17 @@ libhamsterdb_la_SOURCES = \
 	1os/os.cc \
 	1os/os_posix.cc \
 	1rb/rb.h \
+	2aes/aes.h \
+	2compressor/compressor.h \
+	2compressor/compressor_factory.h \
+	2compressor/compressor_factory.cc \
+	2compressor/compressor_lzf.h \
+	2compressor/compressor_lzop.h \
+	2compressor/compressor_snappy.h \
+	2compressor/compressor_zlib.h \
 	2config/db_config.h \
 	2config/env_config.h \
+	2simd/simd.h \
 	2page/page.cc \
 	2page/page.h \
 	2page/page_collection.h \
@@ -73,6 +82,15 @@ libhamsterdb_la_SOURCES = \
 	3btree/btree_keys_binary.h \
 	3btree/btree_keys_varlen.h \
 	3btree/btree_keys_pod.h \
+	3btree/btree_zint32_for.h \
+	3btree/btree_zint32_simdfor.h \
+	3btree/btree_zint32_block.h \
+	3btree/btree_zint32_blockindex.h \
+	3btree/btree_zint32_groupvarint.h \
+	3btree/btree_zint32_maskedvbyte.h \
+	3btree/btree_zint32_simdcomp.h \
+	3btree/btree_zint32_streamvbyte.h \
+	3btree/btree_zint32_varbyte.h \
 	3btree/btree_node.h \
 	3btree/btree_node_proxy.h \
 	3btree/btree_records_base.h \
@@ -137,10 +155,48 @@ AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
-libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
+libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
+			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+
+if ENABLE_COMPRESSION
+AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
+libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
+						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
+						   $(top_builddir)/3rdparty/varint/libvarint.la \
+						   $(top_builddir)/3rdparty/for/libfor.la \
+						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
+if WITH_ZLIB
+libhamsterdb_la_LIBADD  += -lz
+endif
+if WITH_SNAPPY
+libhamsterdb_la_LIBADD  += -lsnappy
+endif
+if WITH_LZOP
+libhamsterdb_la_LIBADD  += -llzo2
+endif
+endif
+
+if ENABLE_ENCRYPTION
+AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
+libhamsterdb_la_LIBADD  += -lcrypto
+endif
 
 if ENABLE_REMOTE
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
 libhamsterdb_la_LIBADD += $(top_builddir)/src/2protobuf/libprotocol.la
+endif
+
+AM_CFLAGS	 =
+AM_CXXFLAGS	 =
+if ENABLE_SIMD
+AM_CPPFLAGS += -DHAM_ENABLE_SIMD
+endif
+if ENABLE_SSE2
+AM_CFLAGS	+= -msse2 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse2 -flax-vector-conversions
+endif
+if ENABLE_SSE4
+AM_CFLAGS	+= -msse4 -flax-vector-conversions
+AM_CXXFLAGS	+= -msse4 -flax-vector-conversions
 endif
 

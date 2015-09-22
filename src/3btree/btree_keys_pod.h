@@ -105,6 +105,18 @@ class PodKeyList : public BaseKeyList
     }
 
     // Finds a key
+#ifdef HAM_ENABLE_SIMD
+    // Searches the node for the key and returns the slot of this key
+    // - only for exact matches!
+    //
+    // This is the SIMD implementation. If SIMD is disabled then the
+    // BaseKeyList::find method is used.
+    template<typename Cmp>
+    int find(Context *context, size_t node_count, const ham_key_t *key,
+                    Cmp &comparator) {
+      return (find_simd_sse<T>(node_count, &m_data[0], key));
+    }
+#else
     template<typename Cmp>
     int find(Context *context, size_t node_count, const ham_key_t *hkey,
                     Cmp &comparator) {
@@ -114,6 +126,7 @@ class PodKeyList : public BaseKeyList
         return (-1);
       return (result - &m_data[0]);
     }
+#endif
 
     // Performs a lower-bound search for a key
     template<typename Cmp>

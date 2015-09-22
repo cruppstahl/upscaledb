@@ -19,12 +19,16 @@
 #include <algorithm>
 #include <vector>
 
+#include "3rdparty/murmurhash3/MurmurHash3.h"
+
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
+#include "2compressor/compressor.h"
 #include "2device/device_disk.h"
 #include "3blob_manager/blob_manager_disk.h"
 #include "3page_manager/page_manager.h"
+#include "4context/context.h"
 #include "4db/db_local.h"
 
 #ifndef HAM_ROOT_H
@@ -41,8 +45,24 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
   uint32_t chunk_size[2];
   uint32_t page_size = m_config->page_size_bytes;
 
+  void *record_data = record->data;
+  uint32_t record_size = record->size;
+  uint32_t original_size = record->size;
+
+  // compression enabled? then try to compress the data
+  Compressor *compressor = context->db->get_record_compressor();
+  if (compressor && !(flags & kDisableCompression)) {
+    m_metric_before_compression += record_size;
+    uint32_t len = compressor->compress((uint8_t *)record->data,
+                        record->size);
+    if (len < record->size) {
+      record_data = (void *)compressor->get_output_data();
+      record_size = len;
+    }
+    m_metric_after_compression += record_size;
+  }
   PBlobHeader blob_header;
-  uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
+  uint32_t alloc_size = sizeof(PBlobHeader) + record_size;
 
   // first check if we can add another blob to the last used page
   Page *page = m_page_manager->get_last_blob_page(context);
@@ -86,6 +106,16 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
       header->set_freelist_size(0, header->get_free_bytes() - alloc_size);
     }
 
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(num_pages > 1
+            && (m_config->flags & HAM_ENABLE_CRC32))) {
+      uint32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
+    }
+
     address = page->get_address() + kPageOverhead;
     ham_assert(check_integrity(header));
   }
@@ -104,10 +134,14 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
   blob_header.allocated_size = alloc_size;
   blob_header.size = record->size;
   blob_header.blob_id = address;
+  blob_header.flags = (original_size != record_size ? kIsCompressed : 0);
 
   // PARTIAL WRITE
   //
-  // Are there gaps at the beginning? If yes, then we'll fill with zeros
+  // Are there gaps at the beginning? If yes, then we'll fill with zeros.
+  // Partial updates are not allowed in combination with compression,
+  // therefore we do not have to check any compression conditions if
+  // HAM_PARTIAL is set.
   ByteArray zeroes;
   if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
     uint32_t gapsize = record->partial_offset;
@@ -143,10 +177,10 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
     // not writing partially: write header and data, then we're done
     chunk_data[0] = (uint8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
-    chunk_data[1] = (uint8_t *)record->data;
+    chunk_data[1] = (uint8_t *)record_data;
     chunk_size[1] = (flags & HAM_PARTIAL)
                         ? record->partial_size
-                        : record->size;
+                        : record_size;
 
     write_chunks(context, page, address, chunk_data, chunk_size, 2);
     address += chunk_size[0] + chunk_size[1];
@@ -204,33 +238,32 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     throw Exception(HAM_BLOB_NOT_FOUND);
   }
 
+  uint32_t blobsize = (uint32_t)blob_header->size;
+  record->size = blobsize;
+
+  if (flags & HAM_PARTIAL) {
+    if (record->partial_offset > blobsize) {
+      ham_trace(("partial offset is greater than the total record size"));
+      throw Exception(HAM_INV_PARAMETER);
+    }
+    if (record->partial_offset + record->partial_size > blobsize)
+      record->partial_size = blobsize = blobsize - record->partial_offset;
+    else
+      blobsize = record->partial_size;
+  }
+
   // empty blob?
-  if (blob_header->size == 0) {
+  if (!blobsize) {
     record->data = 0;
     record->size = 0;
     return;
   }
 
-  uint32_t size_to_read = (uint32_t)blob_header->size;
-  record->size = size_to_read;
-
-  if (flags & HAM_PARTIAL) {
-    if (record->partial_offset > size_to_read) {
-      ham_trace(("partial offset is greater than the total record size"));
-      throw Exception(HAM_INV_PARAMETER);
-    }
-    if (record->partial_offset + record->partial_size > size_to_read)
-      record->partial_size
-            = size_to_read
-                    = size_to_read - record->partial_offset;
-    else
-      size_to_read = record->partial_size;
-  }
-
   // if the blob is in memory-mapped storage (and the user does not require
   // a copy of the data): simply return a pointer
   if ((flags & HAM_FORCE_DEEP_COPY) == 0
-        && m_device->is_mapped(blob_id, size_to_read)
+        && m_device->is_mapped(blob_id, blobsize)
+        && !(blob_header->flags & kIsCompressed)
         && !(record->flags & HAM_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
                         blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
@@ -239,8 +272,41 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   }
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
+    // read the blob data. if compression is enabled then
+    // read into the Compressor's arena, otherwise read directly into the
+    // caller's arena
+    if (blob_header->flags & kIsCompressed) {
+      Compressor *compressor = context->db->get_record_compressor();
+      ham_assert(compressor != 0);
+
+      // read into temporary buffer; we reuse the compressor's memory arena
+      // for this
+      ByteArray *dest = compressor->get_arena();
+      dest->resize(blob_header->allocated_size - sizeof(PBlobHeader));
+
+      copy_chunk(context, page, 0, blob_id + sizeof(PBlobHeader),
+                    (uint8_t *)dest->get_ptr(),
+                    blob_header->allocated_size - sizeof(PBlobHeader), true);
+
+      // now uncompress into the caller's memory arena
+      if (record->flags & HAM_RECORD_USER_ALLOC) {
+        compressor->decompress((uint8_t *)dest->get_ptr(),
+                      blob_header->allocated_size - sizeof(PBlobHeader),
+                      blobsize, (uint8_t *)record->data);
+      }
+      else {
+        arena->resize(blobsize);
+        compressor->decompress((uint8_t *)dest->get_ptr(),
+                      blob_header->allocated_size - sizeof(PBlobHeader),
+                      blobsize, arena);
+        record->data = arena->get_ptr();
+      }
+    }
+    // if the data is uncompressed then allocate storage and read
+    // into the allocated buffer
+    else {
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-      arena->resize(size_to_read);
+        arena->resize(blobsize);
       record->data = arena->get_ptr();
     }
 
@@ -248,7 +314,25 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
                   blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
-                  (uint8_t *)record->data, size_to_read, true);
+                  (uint8_t *)record->data, blobsize, true);
+    }
+  }
+
+  // Pro: multi-page blobs store their CRC in the first freelist offset,
+  // but only if partial writes are not used
+  PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+  if (unlikely(header->get_num_pages() > 1
+        && (m_config->flags & HAM_ENABLE_CRC32))
+        && !(flags & HAM_PARTIAL)) {
+    uint32_t old_crc32 = header->get_freelist_offset(0);
+    uint32_t new_crc32;
+    MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
+
+    if (old_crc32 != new_crc32) {
+      ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                      page->get_address(), old_crc32, new_crc32));
+      throw Exception(HAM_INTEGRITY_VIOLATED);
+    }
   }
 }
 
@@ -270,6 +354,16 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                 ham_record_t *record, uint32_t flags)
 {
   PBlobHeader *old_blob_header, new_blob_header;
+
+  // This routine basically ignores compression. The likelyhood that a
+  // compressed buffer has an identical size as the record that's overwritten,
+  // is very small. In most cases this check will be false, and then
+  // the record would be compressed again in do_allocate().
+  //
+  // As a consequence, the existing record is only overwritten if the
+  // uncompressed record would fit in. Otherwise a new record is allocated,
+  // and this one then is compressed.
+
   Page *page;
 
   uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
@@ -326,6 +420,8 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                       chunk_data, chunk_size, 2);
     }
 
+    PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+
     // move remaining data to the freelist
     if (alloc_size < old_blob_header->allocated_size) {
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
@@ -334,6 +430,16 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
       add_to_freelist(header,
                   (uint32_t)(old_blobid + alloc_size) - page->get_address(),
                   (uint32_t)old_blob_header->allocated_size - alloc_size);
+    }
+
+    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // but only if partial writes are not used
+    if (unlikely(header->get_num_pages() > 1
+            && (m_config->flags & HAM_ENABLE_CRC32))) {
+      uint32_t crc32 = 0;
+      if (!(flags & HAM_PARTIAL))
+        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      header->set_freelist_offset(0, crc32);
     }
 
     // the old rid is the new rid

@@ -46,8 +46,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   uint32_t flags;
 
-  // reserved
-  uint32_t reserved;
+  // PRO: crc32
+  uint32_t crc32;
 
   // the lsn of the last operation (unused)
   uint64_t lsn;
@@ -304,6 +304,16 @@ class Page {
     // Sets the page's type (kType*)
     void set_type(uint32_t type) {
       m_datap->raw_data->header.flags = type;
+    }
+
+    // PRO: Returns the crc32
+    uint32_t get_crc32() const {
+      return (m_datap->raw_data->header.crc32);
+    }
+
+    // PRO: Sets the crc32
+    void set_crc32(uint32_t crc32) {
+      m_datap->raw_data->header.crc32 = crc32;
     }
 
     // Sets the pointer to the persistent data

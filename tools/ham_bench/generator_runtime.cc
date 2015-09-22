@@ -68,6 +68,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
+          break;
       }
       break;
     case Configuration::kKeyUint16:
@@ -86,6 +89,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
+          break;
       }
       break;
     case Configuration::kKeyUint32:
@@ -101,6 +107,11 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           break;
         case Configuration::kDistributionZipfian:
           m_datasource = new NumericZipfianDatasource<uint32_t>(
+                          conf->limit_ops ? conf->limit_ops : kZipfianLimit,
+                          conf->seed);
+          break;
+        case Configuration::kDistributionClustered:
+          m_datasource = new NumericClusteredDatasource(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
@@ -121,6 +132,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new NumericZipfianDatasource<uint64_t>(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
+          break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
           break;
       }
       break;
@@ -144,6 +158,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->key_size, conf->key_is_fixed_size, conf->seed);
           break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
+          break;
       }
       break;
     case Configuration::kKeyString:
@@ -165,6 +182,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->key_size, conf->key_is_fixed_size, conf->seed);
           break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
+          break;
       }
       break;
     case Configuration::kKeyReal32:
@@ -183,6 +203,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
           break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
+          break;
       }
       break;
     case Configuration::kKeyReal64:
@@ -200,6 +223,9 @@ RuntimeGenerator::RuntimeGenerator(int id, Configuration *conf, Database *db,
           m_datasource = new NumericZipfianDatasource<double>(
                           conf->limit_ops ? conf->limit_ops : kZipfianLimit,
                           conf->seed);
+          break;
+        case Configuration::kDistributionClustered:
+          printf("'clustered' distribution only available for --key=uint32!\n");
           break;
       }
       break;

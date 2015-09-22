@@ -81,6 +81,7 @@
 #include "1os/file.h"
 #include "1errorinducer/errorinducer.h"
 #include "2page/page_collection.h"
+#include "2compressor/compressor.h"
 #include "3journal/journal_entries.h"
 #include "3journal/journal_state.h"
 #include "3journal/journal_test.h"
@@ -218,6 +219,10 @@ class Journal
     // Fills the metrics
     void fill_metrics(ham_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_state.count_bytes_flushed;
+      metrics->journal_bytes_before_compression
+              = m_state.count_bytes_before_compression;
+      metrics->journal_bytes_after_compression
+              = m_state.count_bytes_after_compression;
     }
 
   private:

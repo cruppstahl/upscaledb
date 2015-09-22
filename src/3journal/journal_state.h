@@ -32,6 +32,7 @@
 #include "ham/hamsterdb_int.h" // for metrics
 
 #include "1base/dynamic_array.h"
+#include "1base/scoped_ptr.h"
 #include "1os/file.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -98,6 +99,9 @@ struct JournalState
   // A map of all opened Databases
   typedef std::map<uint16_t, Database *> DatabaseMap;
   DatabaseMap database_map;
+
+  // The compressor; can be null
+  ScopedPtr<Compressor> compressor;
 };
 
 } // namespace hamsterdb

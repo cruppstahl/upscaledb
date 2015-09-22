@@ -75,6 +75,9 @@
 #include "1globals/globals.h"
 #include "1base/dynamic_array.h"
 #include "2page/page.h"
+#ifdef HAM_ENABLE_SIMD
+#  include "2simd/simd.h"
+#endif
 #include "3blob_manager/blob_manager.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_impl_base.h"

@@ -28,6 +28,10 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
+// need to include the header file, a forward declaration of class Compressor
+// is not sufficient because std::auto_ptr then fails to call the
+// destructor
+#include "2compressor/compressor.h"
 #include "3btree/btree_index.h"
 #include "4txn/txn_local.h"
 #include "4db/db.h"
@@ -148,6 +152,15 @@ class LocalDatabase : public Database {
     ham_status_t flush_txn_operation(Context *context, LocalTransaction *txn,
                     TransactionOperation *op);
 
+    // Returns the compressor for compressing/uncompressing the records
+    Compressor *get_record_compressor() {
+      return (m_record_compressor.get());
+    }
+
+    // Returns the key compression algorithm
+    int get_key_compression_algorithm() {
+      return (m_key_compression_algo);
+    }
   protected:
     friend class LocalCursor;
 
@@ -209,6 +222,11 @@ class LocalDatabase : public Database {
     // The actual implementation of erase()
     ham_status_t erase_impl(Context *context, LocalCursor *cursor,
                     ham_key_t *key, uint32_t flags);
+    // Enables record compression for this database
+    void enable_record_compression(Context *context, int algo);
+
+    // Enables key compression for this database
+    void enable_key_compression(Context *context, int algo);
 
     // returns the next record number
     uint64_t next_record_number() {
@@ -255,6 +273,12 @@ class LocalDatabase : public Database {
 
     // the comparison function
     ham_compare_func_t m_cmp_func;
+
+    // The record compressor; can be null
+    std::auto_ptr<Compressor> m_record_compressor;
+
+    // The key compression algorithm
+    int m_key_compression_algo;
 };
 
 } // namespace hamsterdb

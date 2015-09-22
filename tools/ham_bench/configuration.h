@@ -50,7 +50,8 @@ struct Configuration
     kDistributionRandom = 0,
     kDistributionAscending,
     kDistributionDescending,
-    kDistributionZipfian
+    kDistributionZipfian,
+    kDistributionClustered
   };
 
   enum {
@@ -101,7 +102,14 @@ struct Configuration
       "snappy",
       "lzf",
       "lzo",
-      "bitmap"
+      "zint32_varbyte",
+      "zint32_simdcomp",
+      "zint32_groupvarint",
+      "zint32_streamvbyte",
+      "zint32_maskedvbyte",
+      "zint32_blockindex",
+      "zint32_for",
+      "zint32_simdfor",
     };
     std::cout << "Configuration: --seed=" << seed << " ";
     if (journal_compression)
@@ -183,10 +191,10 @@ struct Configuration
       std::cout << "--record-number64 ";
     if (posix_fadvice)
       std::cout << "--posix-fadvice="
-              << (posix_fadvice == HAM_POSIX_FADVICE_RANDOM
-                              ? "random"
-                              : "??unknown??")
-              << " ";
+                << (posix_fadvice == HAM_POSIX_FADVICE_RANDOM
+                               ? "random"
+                               : "??unknown??")
+                << " ";
     if (simulate_crashes)
       std::cout << "--simulate-crashes ";
     if (!filename.empty())

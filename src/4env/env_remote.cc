@@ -109,7 +109,6 @@ RemoteEnvironment::do_open()
   m_socket.close();
 
   const char *url = m_config.filename.c_str();
-
   ham_assert(url != 0);
   ham_assert(::strstr(url, "ham://") == url);
   const char *ip = url + 6;

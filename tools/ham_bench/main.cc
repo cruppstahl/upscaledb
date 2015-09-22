@@ -92,7 +92,6 @@
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
 #define ARG_PAX_LINEAR_THRESHOLD                65
-#define ARG_PAX_DISABLE_SIMD                    66
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
 #define ARG_RECORD_NUMBER32                     69
@@ -163,7 +162,7 @@ static option_t opts[] = {
     0,
     "distribution",
     "Sets the distribution of the key values ('random', 'ascending',\n"
-            "\t'descending')",
+            "\t'descending', 'clustered')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_INMEMORY,
@@ -404,8 +403,7 @@ static option_t opts[] = {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo', "
-            "'bitmap')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,
@@ -413,12 +411,6 @@ static option_t opts[] = {
     "pax-linear-threshold",
     "Sets the threshold when switching from binary search to linear search",
     GETOPTS_NEED_ARGUMENT },
-  {
-    ARG_PAX_DISABLE_SIMD,
-    0,
-    "pax-disable-simd",
-    "Pro: Enables use of SIMD instructions",
-    0 },
   {
     ARG_READ_ONLY,
     0,
@@ -471,8 +463,28 @@ parse_compression_type(const char *param)
     return (HAM_COMPRESSOR_LZF);
   if (!strcmp(param, "lzo"))
     return (HAM_COMPRESSOR_LZO);
+  if (!strcmp(param, "zint32_varbyte"))
+    return (HAM_COMPRESSOR_UINT32_VARBYTE);
+  if (!strcmp(param, "zint32_simdcomp"))
+    return (HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  if (!strcmp(param, "zint32_for"))
+    return (HAM_COMPRESSOR_UINT32_FOR);
+  if (!strcmp(param, "zint32_simdfor"))
+    return (HAM_COMPRESSOR_UINT32_SIMDFOR);
+  if (!strcmp(param, "zint32_groupvarint"))
+    return (HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  if (!strcmp(param, "zint32_streamvbyte"))
+    return (HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  if (!strcmp(param, "zint32_maskedvbyte"))
+    return (HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+  if (!strcmp(param, "zint32_blockindex"))
+    return (HAM_COMPRESSOR_UINT32_BLOCKINDEX);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-                  "'snappy', 'lzf', 'lzo'\n", param);
+              "'snappy', 'lzf', 'lzo', 'zint32_varbyte', 'zint32_simdcomp', "
+              "'zint32_groupvarint', 'zint32_streamvbyte', "
+              "'zint32_maskedvbyte', 'zint32_blockindex', 'zint32_for', "
+              "'zint32_simdfor'\n",
+              param);
   exit(-1);
   return (HAM_COMPRESSOR_NONE);
 }
@@ -516,6 +528,8 @@ parse_config(int argc, char **argv, Configuration *c)
         c->distribution = Configuration::kDistributionDescending;
       else if (param && !strcmp(param, "zipfian"))
         c->distribution = Configuration::kDistributionZipfian;
+      else if (param && !strcmp(param, "clustered"))
+        c->distribution = Configuration::kDistributionClustered;
       else {
         printf("[FAIL] invalid parameter for --distribution\n");
         exit(-1);
@@ -805,9 +819,6 @@ parse_config(int argc, char **argv, Configuration *c)
         printf("[FAIL] invalid parameter for 'posix-fadvice'\n");
         exit(-1);
       }
-    }
-    else if (opt == ARG_PAX_DISABLE_SIMD) {
-      hamsterdb::Globals::ms_is_simd_enabled = false;
     }
     else if (opt == ARG_ENABLE_CRC32) {
       c->enable_crc32 = true;

@@ -1,0 +1,10 @@
+EXPORTS
+	simdpack
+	simdpackwithoutmask
+	simdunpack
+	bits
+	maxbits
+	simdmaxbitsd1
+	simdpackd1
+	simdpackwithoutmaskd1
+	simdunpackd1

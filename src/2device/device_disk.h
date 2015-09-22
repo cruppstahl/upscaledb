@@ -31,6 +31,10 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1os/file.h"
 #include "1mem/mem.h"
+#include "1base/dynamic_array.h"
+#ifdef HAM_ENABLE_ENCRYPTION
+#  include "2aes/aes.h"
+#endif
 #include "2device/device.h"
 #include "2page/page.h"
 
@@ -168,6 +172,12 @@ class DiskDevice : public Device {
     virtual void read(uint64_t offset, void *buffer, size_t len) {
       ScopedSpinlock lock(m_mutex);
       m_state.file.pread(offset, buffer, len);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_config.is_encryption_enabled) {
+        AesCipher aes(m_config.encryption_key, offset);
+        aes.decrypt((uint8_t *)buffer, (uint8_t *)buffer, len);
+      }
+#endif
     }
 
     // writes to the device; this function does not use mmap,
@@ -175,6 +185,18 @@ class DiskDevice : public Device {
     // filters
     virtual void write(uint64_t offset, void *buffer, size_t len) {
       ScopedSpinlock lock(m_mutex);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_config.is_encryption_enabled) {
+        // encryption disables direct I/O -> only full pages are allowed
+        ham_assert(offset % len == 0);
+
+        uint8_t *encryption_buffer = (uint8_t *)::alloca(len);
+        AesCipher aes(m_config.encryption_key, offset);
+        aes.encrypt((uint8_t *)buffer, encryption_buffer, len);
+        m_state.file.pwrite(offset, encryption_buffer, len);
+        return;
+      }
+#endif
       m_state.file.pwrite(offset, buffer, len);
     }
 
@@ -247,6 +269,13 @@ class DiskDevice : public Device {
       }
 
       m_state.file.pread(address, page->get_data(), m_config.page_size_bytes);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_config.is_encryption_enabled) {
+        AesCipher aes(m_config.encryption_key, page->get_address());
+        aes.decrypt((uint8_t *)page->get_data(),
+        (uint8_t *)page->get_data(), m_config.page_size_bytes);
+      }
+#endif
     }
 
     // Allocates storage for a page from this device; this function

@@ -156,6 +156,9 @@ class PageManager
     // Implementation of alloc(), does not lock the mutex
     Page *alloc_unlocked(Context *context, uint32_t page_type, uint32_t flags);
 
+    // PRO: verifies the crc32 of a page
+    void verify_crc32(Page *page);
+
     // Persists the PageManager's state in the file
     uint64_t store_state(Context *context);
 

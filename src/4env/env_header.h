@@ -154,14 +154,13 @@ class EnvironmentHeader
     }
 
     // Returns the Journal compression configuration
-    int journal_compression(int *level) {
-      *level = header()->journal_compression & 0x0f;
+    int journal_compression() {
       return (header()->journal_compression >> 4);
     }
 
     // Sets the Journal compression configuration
-    void set_journal_compression(int algorithm, int level) {
-      header()->journal_compression = (algorithm << 4) | level;
+    void set_journal_compression(int algorithm) {
+      header()->journal_compression = algorithm << 4;
     }
 
     // Returns the header page with persistent configuration settings
