@@ -2,14 +2,19 @@
  * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
- * NOTICE: All information contained herein is, and remains the property
- * of Christoph Rupp and his suppliers, if any. The intellectual and
- * technical concepts contained herein are proprietary to Christoph Rupp
- * and his suppliers and may be covered by Patents, patents in process,
- * and are protected by trade secret or copyright law. Dissemination of
- * this information or reproduction of this material is strictly forbidden
- * unless prior written permission is obtained from Christoph Rupp.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * See the file COPYING for License information.
  */
+
 
 /*
  * SIMD search functions.

@@ -158,12 +158,11 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb is released under the APL 2.0 license, which allows
-unrestricted use for commercial and non-commercial applications. See the
+hamsterdb is released under the GNU Public License (GPL) 3.0. See the
 file COPYING for more information.
 
-A commercial, closed source version hamsterdb pro with additional functionality
-is available on request. See http://hamsterdb.com for more information.
+For commercial use licenses are available. Visit http://upscaledb.com
+for more information.
 
 13. Contact
 

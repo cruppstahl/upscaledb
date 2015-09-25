@@ -9,10 +9,10 @@ module1=Extension('hamsterdb',
       sources=['src/python.cc'])
 
 setup(name='hamsterdb-python', 
-      version='2.1.8',
+      version='2.1.11',
       author='Christoph Rupp',
       author_email='chris@crupp.de',
       url='http://hamsterdb.com',
       description='This is the hamsterdb wrapper for Python',
-      license='Apache Public License 2',
+      license='GNU Public License 3.0',
       ext_modules=[module1])
