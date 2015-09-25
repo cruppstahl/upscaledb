@@ -1,6 +1,7 @@
 Sep 23, 2015 - chris ---------------------------------------------------
 o Merging the functionality of hamsterdb pro
 o Changed license to GPL 3.0
+o Removed ham_is_pro, ham_is_pro_evaluation
 
 Aug 26, 2015 - chris ---------------------------------------------------
 o issue #58 (.NET) - fixed crash in ham_strerror

@@ -38,14 +38,8 @@ class LibraryTestCase(unittest.TestCase):
   def testGetVersion(self):
     print "version: ", hamsterdb.get_version()
 
-  def testIsPro(self):
-    print "is_pro: ", hamsterdb.is_pro()
-
   def testIsDebug(self):
     print "is_debug: ", hamsterdb.is_debug()
-
-  def testIsProEvaluation(self):
-    print "is_pro_evaluation: ", hamsterdb.is_pro_evaluation()
 
   def testSetErrhandler(self):
     global error_count

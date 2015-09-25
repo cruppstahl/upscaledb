@@ -298,21 +298,6 @@ HAM_EXPORT ham_bool_t HAM_CALLCONV
 ham_is_debug();
 
 /**
- * Returns @ref HAM_TRUE if this hamsterdb library is the commercial
- * closed-source "hamsterdb pro" edition
- */
-HAM_EXPORT ham_bool_t HAM_CALLCONV
-ham_is_pro();
-
-/**
- * Returns the end time of the evaluation period, if this is an evaluation
- * license of the commercial closed-source "hamsterdb pro";
- * returns 0 otherwise
- */
-HAM_EXPORT uint32_t HAM_CALLCONV
-ham_is_pro_evaluation();
-
-/**
  * @}
  */
 

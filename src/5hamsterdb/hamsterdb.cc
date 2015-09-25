@@ -1715,15 +1715,3 @@ ham_is_debug()
   return (HAM_FALSE);
 #endif
 }
-
-ham_bool_t HAM_CALLCONV
-ham_is_pro()
-{
-  return (HAM_TRUE);
-}
-
-uint32_t HAM_CALLCONV
-ham_is_pro_evaluation()
-{
-  return (0);
-}

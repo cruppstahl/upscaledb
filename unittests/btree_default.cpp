@@ -428,13 +428,9 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  // do not run the next test if this is an evaluation version, because
-  // eval-versions have obfuscated symbol names
-  if (ham_is_pro_evaluation() == 0) {
-    std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateDefaultRecordList>, hamsterdb::VariableSizeCompare>");
-  }
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateDefaultRecordList>, hamsterdb::VariableSizeCompare>");
 #endif
 }
 
@@ -573,13 +569,9 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  // do not run the next test if this is an evaluation version, because
-  // eval-versions have obfuscated symbol names
-  if (ham_is_pro_evaluation() == 0) {
-    std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::VariableSizeCompare>");
-  }
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::VariableSizeCompare>");
 #endif
 }
 
@@ -595,13 +587,9 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, 4, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  // do not run the next test if this is an evaluation version, because
-  // eval-versions have obfuscated symbol names
-  if (ham_is_pro_evaluation() == 0) {
-    std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::NumericCompare<unsigned int> >");
-  }
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::NumericCompare<unsigned int> >");
 #endif
 
   f.insertCursorTest(ivec);
@@ -620,13 +608,9 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, HAM_KEY_SIZE_UNLIMITED, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  // do not run the next test if this is an evaluation version, because
-  // eval-versions have obfuscated symbol names
-  if (ham_is_pro_evaluation() == 0) {
-    std::string abi;
-    abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-    REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::VariableSizeCompare>");
-  }
+  std::string abi;
+  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::VariableSizeCompare>");
 #endif
 
   f.insertCursorTest(ivec);

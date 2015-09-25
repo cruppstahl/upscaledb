@@ -73,13 +73,9 @@ struct BtreeFixture {
     REQUIRE(HAM_RECORD_SIZE_UNLIMITED == query[3].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      std::string s;
-      s = ((LocalDatabase *)db)->btree_index()->test_get_classname();
-      REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::VariableSizeCompare>");
-    }
+    std::string s;
+    s = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::VariableSizeCompare>");
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -116,12 +112,8 @@ struct BtreeFixture {
     REQUIRE(maxkeys == (int)query[2].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      abi = ((LocalDatabase *)db)->btree_index()->test_get_classname();
-      REQUIRE(abi == abiname);
-    }
+    abi = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    REQUIRE(abi == abiname);
 #endif
 
     // only keys with that specific length are allowed
@@ -154,13 +146,9 @@ struct BtreeFixture {
     REQUIRE(maxkeys == (int)query[2].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      std::string abi2;
-      abi2 = ((LocalDatabase *)db)->btree_index()->test_get_classname();
-      REQUIRE(abi2 == abi);
-    }
+    std::string abi2;
+    abi2 = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    REQUIRE(abi2 == abi);
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -300,11 +288,7 @@ struct BtreeFixture {
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string expected_internalname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::PaxLayout::InternalRecordList>, hamsterdb::NumericCompare<unsigned int> >";
     std::string expected_leafname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::NumericCompare<unsigned int> >";
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      REQUIRE(node->test_get_classname() == expected_leafname);
-    }
+    REQUIRE(node->test_get_classname() == expected_leafname);
 #endif
 
     char buffer[10] = {0};
@@ -330,11 +314,7 @@ struct BtreeFixture {
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      REQUIRE(node->test_get_classname() == expected_leafname);
-    }
+    REQUIRE(node->test_get_classname() == expected_leafname);
 #endif
 
     // check the other leaf
@@ -344,11 +324,7 @@ struct BtreeFixture {
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      REQUIRE(node->test_get_classname() == expected_leafname);
-    }
+    REQUIRE(node->test_get_classname() == expected_leafname);
 #endif
 
     // and the new root page (must be an internal page)
@@ -357,11 +333,7 @@ struct BtreeFixture {
     node = ldb->btree_index()->get_node_from_page(page);
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    // do not run the next test if this is an evaluation version, because
-    // eval-versions have obfuscated symbol names
-    if (ham_is_pro_evaluation() == 0) {
-      REQUIRE(node->test_get_classname() == expected_internalname);
-    }
+    REQUIRE(node->test_get_classname() == expected_internalname);
 #endif
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));

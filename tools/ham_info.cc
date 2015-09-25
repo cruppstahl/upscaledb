@@ -110,8 +110,8 @@ print_environment(ham_env_t *env) {
 
     printf("environment\n");
     printf("  page_size:            %u\n", (unsigned)params[0].value);
-    printf("  version:              %u.%u.%u %s\n",
-            v1, v2, v3, ham_is_pro() ? "pro!" : "");
+    printf("  version:              %u.%u.%u\n",
+            v1, v2, v3);
     printf("  max databases:        %u\n", (unsigned)params[1].value);
     if (params[2].value)
       printf("  journal compression:  %s\n",

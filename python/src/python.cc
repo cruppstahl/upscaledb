@@ -781,30 +781,12 @@ strerror(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-is_pro(PyObject *self, PyObject *args)
-{
-  if (!PyArg_ParseTuple(args, ":is_pro"))
-    return (0);
-
-  return (Py_BuildValue("i", ham_is_pro() == true ? 1 : 0));
-}
-
-static PyObject *
 is_debug(PyObject *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":is_debug"))
     return (0);
 
   return (Py_BuildValue("i", ham_is_debug() == true ? 1 : 0));
-}
-
-static PyObject *
-is_pro_evaluation(PyObject *self, PyObject *args)
-{
-  if (!PyArg_ParseTuple(args, ":is_pro_evaluation"))
-    return (0);
-
-  return (Py_BuildValue("i", ham_is_pro_evaluation()));
 }
 
 static PyObject *
@@ -865,12 +847,8 @@ static PyMethodDef hamsterdb_methods[] = {
       "returns a descriptive error string"},
   {"set_errhandler", (PyCFunction)set_errhandler, METH_VARARGS, 
       "sets the global error handler callback function"},
-  {"is_pro", (PyCFunction)is_pro, METH_VARARGS, 
-      "checks if the library is hamsterdb pro"},
   {"is_debug", (PyCFunction)is_debug, METH_VARARGS, 
       "checks if the library was built for debugging"},
-  {"is_pro_evaluation", (PyCFunction)is_pro_evaluation, METH_VARARGS, 
-      "checks if the library is an evaluation version for hamsterdb pro"},
   {"env", (PyCFunction)construct_env, METH_VARARGS, 
       "creates a new Environment object"},
   {"db", (PyCFunction)construct_db, METH_VARARGS, 
