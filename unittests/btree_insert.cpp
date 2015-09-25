@@ -31,27 +31,27 @@
 using namespace hamsterdb;
 
 struct BtreeInsertFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   LocalEnvironment *m_environ;
   ScopedPtr<Context> m_context;
 
   BtreeInsertFixture()
     : m_db(0), m_env(0), m_environ(0) {
-    ham_parameter_t p1[] = {
-      { HAM_PARAM_PAGESIZE, 1024 },
+    ups_parameter_t p1[] = {
+      { UPS_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
     };
-    ham_parameter_t p2[] = {
-      { HAM_PARAM_KEYSIZE, 80 },
+    ups_parameter_t p2[] = {
+      { UPS_PARAM_KEYSIZE, 80 },
       { 0, 0 }
     };
 
     os::unlink(Utils::opath(".test"));
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
+        ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
+        ups_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
     m_environ = (LocalEnvironment *)m_env;
 
     m_context.reset(new Context(m_environ, 0, 0));
@@ -60,7 +60,7 @@ struct BtreeInsertFixture {
   ~BtreeInsertFixture() {
     m_context->changeset.clear();
     if (m_env)
-	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   Page *fetch_page(uint64_t address) {
@@ -70,8 +70,8 @@ struct BtreeInsertFixture {
   }
 
   void defaultPivotTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
     char buffer[80] = {0};
     for (int i = 11; i >= 0; i--) {
@@ -79,7 +79,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -107,8 +107,8 @@ struct BtreeInsertFixture {
   }
 
   void defaultLatePivotTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
     char buffer[80] = {0};
     for (int i = 0; i < 12; i++) {
@@ -116,7 +116,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -144,8 +144,8 @@ struct BtreeInsertFixture {
   }
 
   void sequentialInsertPivotTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
     char buffer[80] = {0};
     for (int i = 0; i < 12; i++) {
@@ -153,7 +153,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in

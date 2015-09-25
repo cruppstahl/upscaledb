@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_FREELIST_H
-#define HAM_FREELIST_H
+#ifndef UPS_FREELIST_H
+#define UPS_FREELIST_H
 
 #include "0root/root.h"
 
@@ -32,7 +32,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "2config/env_config.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -105,4 +105,4 @@ struct Freelist {
 
 } // namespace hamsterdb
 
-#endif /* HAM_FREELIST_H */
+#endif /* UPS_FREELIST_H */

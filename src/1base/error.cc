@@ -26,13 +26,13 @@
 #include "1base/util.h"
 #include "1globals/globals.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 namespace hamsterdb {
 
-void (*ham_test_abort)(void);
+void (*ups_test_abort)(void);
 
 static int
 dbg_snprintf(char *str, size_t size, const char *format, ...)
@@ -47,11 +47,11 @@ dbg_snprintf(char *str, size_t size, const char *format, ...)
   return (s);
 }
 
-void HAM_CALLCONV
+void UPS_CALLCONV
 default_errhandler(int level, const char *message)
 {
-#ifndef HAM_DEBUG
-  if (level == HAM_DEBUG_LEVEL_DEBUG)
+#ifndef UPS_DEBUG
+  if (level == UPS_DEBUG_LEVEL_DEBUG)
     return;
 #endif
   fprintf(stderr, "%s\n", message);
@@ -76,7 +76,7 @@ dbg_log(const char *format, ...)
 
   va_list ap;
   va_start(ap, format);
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
   s = dbg_snprintf(buffer,   sizeof(buffer), "%s[%d]: ",
                   Globals::ms_error_file, Globals::ms_error_line);
   util_vsnprintf(buffer + s, sizeof(buffer) - s, format, ap);
@@ -108,8 +108,8 @@ dbg_verify_failed(int level, const char *file, int line, const char *function,
 
   Globals::ms_error_handler(Globals::ms_error_level, buffer);
 
-  if (ham_test_abort)
-    ham_test_abort();
+  if (ups_test_abort)
+    ups_test_abort();
   else
     abort();
 }

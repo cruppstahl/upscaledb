@@ -33,8 +33,8 @@ namespace hamsterdb {
 
 
 struct PageManagerFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_inmemory;
   Device *m_device;
   ScopedPtr<Context> m_context;
@@ -44,19 +44,19 @@ struct PageManagerFixture {
     uint32_t flags = 0;
 
     if (m_inmemory)
-      flags |= HAM_IN_MEMORY;
+      flags |= UPS_IN_MEMORY;
 
-    ham_parameter_t params[2] = {{0, 0}, {0, 0}};
+    ups_parameter_t params[2] = {{0, 0}, {0, 0}};
     if (cachesize) {
-      params[0].name = HAM_PARAM_CACHE_SIZE;
+      params[0].name = UPS_PARAM_CACHE_SIZE;
       params[0].value = cachesize;
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), flags,
+        ups_env_create(&m_env, Utils::opath(".test"), flags,
                 0644, &params[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
                             (LocalDatabase *)m_db));
@@ -64,7 +64,7 @@ struct PageManagerFixture {
 
   ~PageManagerFixture() {
     m_context->changeset.clear();
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void fetchPageTest() {
@@ -96,20 +96,20 @@ struct PageManagerFixture {
   }
 
   void setCacheSizeEnvCreate() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
-    ham_db_t *db = 0;
-    ham_parameter_t param[] = {
-      { HAM_PARAM_CACHE_SIZE, 100 * 1024 },
-      { HAM_PARAM_PAGE_SIZE,  1024 },
+    ups_db_t *db = 0;
+    ups_parameter_t param[] = {
+      { UPS_PARAM_CACHE_SIZE, 100 * 1024 },
+      { UPS_PARAM_PAGE_SIZE,  1024 },
       { 0, 0 }
     };
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),  
+        ups_env_create(&m_env, Utils::opath(".test"),  
             0, 0644, &param[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &db, 13, 0, 0));
+        ups_env_create_db(m_env, &db, 13, 0, 0));
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
 
@@ -117,15 +117,15 @@ struct PageManagerFixture {
   }
 
   void setCacheSizeEnvOpen(uint64_t size) {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
-    ham_parameter_t param[] = {
-      { HAM_PARAM_CACHE_SIZE, size },
+    ups_parameter_t param[] = {
+      { UPS_PARAM_CACHE_SIZE, size },
       { 0, 0 }
     };
 
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),  
+        ups_env_open(&m_env, Utils::opath(".test"),  
             0, &param[0]));
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
@@ -267,8 +267,8 @@ struct PageManagerFixture {
     REQUIRE(test.store_state() == page_size * 2);
 
     // reopen the database
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnvironment *)m_env;
     test = lenv->page_manager()->test();
@@ -315,8 +315,8 @@ struct PageManagerFixture {
 
     // reopen the file
     m_context->changeset.clear();
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),  0, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
                             (LocalDatabase *)m_db));
 
@@ -476,19 +476,19 @@ TEST_CASE("PageManager/cacheNegativeGets", "")
 
 TEST_CASE("PageManager/cacheFullTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
+  PageManagerFixture f(false, 16 * UPS_DEFAULT_PAGE_SIZE);
   f.cacheFullTest();
 }
 
 TEST_CASE("PageManager/storeStateTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
+  PageManagerFixture f(false, 16 * UPS_DEFAULT_PAGE_SIZE);
   f.storeStateTest();
 }
 
 TEST_CASE("PageManager/reclaimTest", "")
 {
-  PageManagerFixture f(false, 16 * HAM_DEFAULT_PAGE_SIZE);
+  PageManagerFixture f(false, 16 * UPS_DEFAULT_PAGE_SIZE);
   f.reclaimTest();
 }
 

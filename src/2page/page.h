@@ -20,8 +20,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_PAGE_H
-#define HAM_PAGE_H
+#ifndef UPS_PAGE_H
+#define UPS_PAGE_H
 
 #include <string.h>
 #include <boost/atomic.hpp>
@@ -43,7 +43,7 @@ class LocalDatabase;
  * This header is only available if the (non-persistent) flag
  * kNpersNoHeader is not set! Blob pages do not have this header.
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
+typedef UPS_PACK_0 struct UPS_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   uint32_t flags;
 
@@ -56,7 +56,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   // the persistent data blob
   uint8_t payload[1];
 
-} HAM_PACK_2 PPageHeader;
+} UPS_PACK_2 PPageHeader;
 
 #include "1base/packstop.h"
 
@@ -69,14 +69,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
  * to allow compile-time OFFSETOF macros to correctly judge the size,
  * depending on platform and compiler settings.
  */
-typedef HAM_PACK_0 union HAM_PACK_1 PPageData {
+typedef UPS_PACK_0 union UPS_PACK_1 PPageData {
   // the persistent header
   struct PPageHeader header;
 
   // a char pointer to the allocated storage on disk
   uint8_t payload[1];
 
-} HAM_PACK_2 PPageData;
+} UPS_PACK_2 PPageData;
 
 #include "1base/packstop.h"
 
@@ -105,7 +105,7 @@ class Page {
       }
 
       ~PersistedData() {
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
         mutex.safe_unlock();
 #endif
         if (is_allocated)
@@ -478,4 +478,4 @@ class Page {
 
 } // namespace hamsterdb
 
-#endif /* HAM_PAGE_H */
+#endif /* UPS_PAGE_H */

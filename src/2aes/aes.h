@@ -23,8 +23,8 @@
 * @thread_safe: no
 */
 
-#ifndef HAM_AES_H
-#define HAM_AES_H
+#ifndef UPS_AES_H
+#define UPS_AES_H
 
 #include "0root/root.h"
 
@@ -33,7 +33,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -70,7 +70,7 @@ EVP_CIPHER_CTX_cleanup(&m_decrypt_ctx);
 * The input data length must be aligned to the aes block size (16 bytes)!
 */
 void encrypt(const uint8_t *plaintext, uint8_t *ciphertext, int len) {
-ham_assert(len % kAesBlockSize == 0);
+ups_assert(len % kAesBlockSize == 0);
 
 /* update ciphertext, c_len is filled with the length of ciphertext
 * generated, len is the size of plaintext in bytes */
@@ -89,7 +89,7 @@ EVP_EncryptFinal(&m_encrypt_ctx, ciphertext + clen, &outlen);
 * The input data length must be aligned to the aes block size (16 bytes)!
 */
 void decrypt(const uint8_t *ciphertext, uint8_t *plaintext, int len) {
-ham_assert(len % kAesBlockSize == 0);
+ups_assert(len % kAesBlockSize == 0);
 
 int plen = len, flen = 0;
 
@@ -104,4 +104,4 @@ EVP_CIPHER_CTX m_decrypt_ctx;
 
 } // namespace hamsterdb
 
-#endif // HAM_AES_H
+#endif // UPS_AES_H

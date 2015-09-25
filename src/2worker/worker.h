@@ -19,8 +19,8 @@
  * The worker thread
  */
 
-#ifndef HAM_WORKER_H
-#define HAM_WORKER_H
+#ifndef UPS_WORKER_H
+#define UPS_WORKER_H
 
 #include "0root/root.h"
 
@@ -30,7 +30,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "2worker/workitem.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -90,4 +90,4 @@ WorkerThread::operator()() {
  
 } // namespace hamsterdb
 
-#endif // HAM_WORKER_H
+#endif // UPS_WORKER_H

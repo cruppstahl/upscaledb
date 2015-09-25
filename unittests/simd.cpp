@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_SIMD
+#ifdef UPS_ENABLE_SIMD
 
 #include "3rdparty/catch/catch.hpp"
 
@@ -90,4 +90,4 @@ TEST_CASE("Simd/doubleSseTest", "")
     REQUIRE(i == linear_search_sse<double>(&arr[0], 0, MAX, (i + 1)));
 }
 
-#endif // HAM_ENABLE_SIMD
+#endif // UPS_ENABLE_SIMD

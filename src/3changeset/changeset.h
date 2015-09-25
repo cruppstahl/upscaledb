@@ -23,8 +23,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_CHANGESET_H
-#define HAM_CHANGESET_H
+#ifndef UPS_CHANGESET_H
+#define UPS_CHANGESET_H
 
 #include "0root/root.h"
 
@@ -34,7 +34,7 @@
 #include "2page/page.h"
 #include "2page/page_collection.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -47,7 +47,7 @@ class Changeset
     struct UnlockPage
     {
       bool operator()(Page *page) {
-    #ifdef HAM_ENABLE_HELGRIND
+    #ifdef UPS_ENABLE_HELGRIND
         page->mutex().try_lock();
     #endif
         page->mutex().unlock();
@@ -116,4 +116,4 @@ class Changeset
 
 } // namespace hamsterdb
 
-#endif /* HAM_CHANGESET_H */
+#endif /* UPS_CHANGESET_H */

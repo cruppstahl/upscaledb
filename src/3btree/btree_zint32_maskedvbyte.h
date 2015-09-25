@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_MASKEDVBYTE_H
-#define HAM_BTREE_KEYS_MASKEDVBYTE_H
+#ifndef UPS_BTREE_KEYS_MASKEDVBYTE_H
+#define UPS_BTREE_KEYS_MASKEDVBYTE_H
 
 #include <sstream>
 #include <iostream>
@@ -34,7 +34,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -57,7 +57,7 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 MaskedVbyteIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 MaskedVbyteIndex : public IndexBase {
   public:
     enum {
       // Initial size of a new block
@@ -124,7 +124,7 @@ HAM_PACK_0 class HAM_PACK_1 MaskedVbyteIndex : public IndexBase {
 
     // the number of keys in this block; max 512 - 1 (kMaxKeysPerBlock)
     unsigned int m_key_count : 9;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
@@ -141,7 +141,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
 
   static uint32_t compress_block(MaskedVbyteIndex *index, const uint32_t *in,
                   uint32_t *out32) {
-    ham_assert(index->key_count() > 0);
+    ups_assert(index->key_count() > 0);
     uint8_t *out = (uint8_t *)out32;
     size_t length = index->key_count() - 1;
   
@@ -249,7 +249,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
   template<typename GrowHandler>
   static void del(MaskedVbyteIndex *index, uint32_t *block_data, int slot,
                   GrowHandler *unused) {
-    ham_assert(index->key_count() > 1);
+    ups_assert(index->key_count() > 1);
 
     uint8_t *data = (uint8_t *)block_data;
     uint8_t *p = (uint8_t *)block_data;
@@ -413,7 +413,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
 
   // writes |value| to |p|
   static int write_int(uint8_t *p, uint32_t value) {
-    ham_assert(value > 0);
+    ups_assert(value > 0);
     if (value < (1U << 7)) {
       *p = value & 0x7F;
       return (1);
@@ -487,4 +487,4 @@ class MaskedVbyteKeyList : public BlockKeyList<MaskedVbyteCodec>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_MASKEDVBYTE_H */
+#endif /* UPS_BTREE_KEYS_MASKEDVBYTE_H */

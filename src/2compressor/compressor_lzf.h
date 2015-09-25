@@ -22,10 +22,10 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_LZF_H
-#define HAM_COMPRESSOR_LZF_H
+#ifndef UPS_COMPRESSOR_LZF_H
+#define UPS_COMPRESSOR_LZF_H
 
-#ifdef HAM_ENABLE_COMPRESSION
+#ifdef UPS_ENABLE_COMPRESSION
 
 #include "0root/root.h"
 
@@ -35,7 +35,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -68,12 +68,12 @@ class LzfCompressor : public Compressor {
     virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
                             uint8_t *outp, uint32_t outlength) {
       if (!::lzf_decompress(inp, inlength, outp, outlength))
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
     }
 };
 
 }; // namespace hamsterdb
 
-#endif // HAM_ENABLE_COMPRESSION
+#endif // UPS_ENABLE_COMPRESSION
 
-#endif // HAM_COMPRESSOR_LZF_H
+#endif // UPS_COMPRESSOR_LZF_H

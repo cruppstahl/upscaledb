@@ -24,22 +24,22 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 #define DATABASE_NAME     1
 
 int
 main(int argc, char **argv) {
-  ham_status_t st;          /* status variable */
-  ham_env_t *env;           /* hamsterdb environment object */
-  ham_db_t *db;             /* hamsterdb database object */
-  ham_cursor_t *cursor;     /* a database cursor */
+  ups_status_t st;          /* status variable */
+  ups_env_t *env;           /* hamsterdb environment object */
+  ups_db_t *db;             /* hamsterdb database object */
+  ups_cursor_t *cursor;     /* a database cursor */
   char line[1024 * 4];      /* a buffer for reading lines */
   uint32_t lineno = 0;     /* the current line number */
-  ham_key_t key;
-  ham_record_t record;
-  ham_parameter_t params[] = {  /* we insert 4 byte records only */
-    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+  ups_key_t key;
+  ups_record_t record;
+  ups_parameter_t params[] = {  /* we insert 4 byte records only */
+    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, 0}
   };
 
@@ -51,15 +51,15 @@ main(int argc, char **argv) {
   printf("Reading from stdin...\n");
 
   /* Create a new Database with support for duplicate keys */
-  st = ham_env_create(&env, 0, HAM_IN_MEMORY, 0664, 0);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_create() failed with error %d\n", st);
+  st = ups_env_create(&env, 0, UPS_IN_MEMORY, 0664, 0);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_create() failed with error %d\n", st);
     return (-1);
   }
-  st = ham_env_create_db(env, &db, DATABASE_NAME,
-                  HAM_ENABLE_DUPLICATE_KEYS, &params[0]);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_create_db() failed with error %d\n", st);
+  st = ups_env_create_db(env, &db, DATABASE_NAME,
+                  UPS_ENABLE_DUPLICATE_KEYS, &params[0]);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_create_db() failed with error %d\n", st);
     return (-1);
   }
 
@@ -82,9 +82,9 @@ main(int argc, char **argv) {
       record.data = &lineno;
       record.size = sizeof(lineno);
 
-      st = ham_db_insert(db, 0, &key, &record, HAM_DUPLICATE);
-      if (st != HAM_SUCCESS) {
-        printf("ham_db_insert() failed with error %d\n", st);
+      st = ups_db_insert(db, 0, &key, &record, UPS_DUPLICATE);
+      if (st != UPS_SUCCESS) {
+        printf("ups_db_insert() failed with error %d\n", st);
         return (-1);
       }
       printf(".");
@@ -94,21 +94,21 @@ main(int argc, char **argv) {
   }
 
   /* Create a cursor */
-  st = ham_cursor_create(&cursor, db, 0, 0);
-  if (st != HAM_SUCCESS) {
-    printf("ham_cursor_create() failed with error %d\n", st);
+  st = ups_cursor_create(&cursor, db, 0, 0);
+  if (st != UPS_SUCCESS) {
+    printf("ups_cursor_create() failed with error %d\n", st);
     return (-1);
   }
 
   /* Iterate over all items and print them */
   while (1) {
-    st = ham_cursor_move(cursor, &key, &record, HAM_CURSOR_NEXT);
-    if (st != HAM_SUCCESS) {
+    st = ups_cursor_move(cursor, &key, &record, UPS_CURSOR_NEXT);
+    if (st != UPS_SUCCESS) {
       /* reached end of the database? */
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         break;
       else {
-        printf("ham_cursor_next() failed with error %d\n", st);
+        printf("ups_cursor_next() failed with error %d\n", st);
         return (-1);
       }
     }
@@ -119,13 +119,13 @@ main(int argc, char **argv) {
   }
 
   /*
-   * Then close the handles; the flag HAM_AUTO_CLEANUP will automatically
-   * close all cursors and we do not need to call ham_cursor_close and
-   * ham_db_close
+   * Then close the handles; the flag UPS_AUTO_CLEANUP will automatically
+   * close all cursors and we do not need to call ups_cursor_close and
+   * ups_db_close
    */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_close() failed with error %d\n", st);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_close() failed with error %d\n", st);
     return (-1);
   }
 

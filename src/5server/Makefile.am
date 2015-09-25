@@ -1,13 +1,13 @@
 
 AM_CPPFLAGS = -I../../include -I.. -I../../3rdparty
 
-lib_LTLIBRARIES = libhamserver.la
+lib_LTLIBRARIES = libupsserver.la
 
-libhamserver_la_SOURCES = hamserver.cc hamserver.h
+libupsserver_la_SOURCES = upsserver.cc upsserver.h
 
-libhamserver_la_LDFLAGS = -version-info 0:0:0
+libupsserver_la_LDFLAGS = -version-info 0:0:0
 
-libhamserver_la_LDFLAGS += $(top_builddir)/3rdparty/json/libjson.la \
+libupsserver_la_LDFLAGS += $(top_builddir)/3rdparty/json/libjson.la \
                            $(top_builddir)/src/2protobuf/libprotocol.la \
 						   $(BOOST_SYSTEM_LIBS) -luv -ldl
 

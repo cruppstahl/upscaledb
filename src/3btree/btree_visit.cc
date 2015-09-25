@@ -27,7 +27,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "3btree/btree_visitor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -81,7 +81,7 @@ class BtreeVisitAction
           break;
       }
 
-      ham_assert(page != 0);
+      ups_assert(page != 0);
 
       // now visit all leaf nodes
       while (page) {

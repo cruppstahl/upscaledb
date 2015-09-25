@@ -15,15 +15,15 @@
  * See the file COPYING for License information.
  */
 
-#ifndef HAM_BLOB_MANAGER_DISK_H
-#define HAM_BLOB_MANAGER_DISK_H
+#ifndef UPS_BLOB_MANAGER_DISK_H
+#define UPS_BLOB_MANAGER_DISK_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "3blob_manager/blob_manager.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -37,7 +37,7 @@ namespace hamsterdb {
  * Contains a fixed length freelist and a couter for the number of free
  * bytes
  */
-HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
+UPS_PACK_0 class UPS_PACK_1 PBlobPageHeader
 {
   public:
     void initialize() {
@@ -109,7 +109,7 @@ HAM_PACK_0 class HAM_PACK_1 PBlobPageHeader
 
     // The freelist - offset/size pairs in this page
     FreelistEntry m_freelist[32];
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -133,14 +133,14 @@ class DiskBlobManager : public BlobManager
   protected:
     // allocate/create a blob
     // returns the blob-id (the start address of the blob header)
-    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ups_record_t *record,
                     uint32_t flags);
 
     // reads a blob and stores the data in |record|. The pointer |record.data|
-    // is backed by the |arena|, unless |HAM_RECORD_USER_ALLOC| is set.
-    // flags: either 0 or HAM_DIRECT_ACCESS
+    // is backed by the |arena|, unless |UPS_RECORD_USER_ALLOC| is set.
+    // flags: either 0 or UPS_DIRECT_ACCESS
     virtual void do_read(Context *context, uint64_t blobid,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // retrieves the size of a blob
@@ -151,7 +151,7 @@ class DiskBlobManager : public BlobManager
     // will return an error if the blob does not exist
     // returns the blob-id (the start address of the blob header) in |blobid|
     virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
-                    ham_record_t *record, uint32_t flags);
+                    ups_record_t *record, uint32_t flags);
 
     // delete an existing blob
     virtual void do_erase(Context *context, uint64_t blobid,
@@ -195,4 +195,4 @@ class DiskBlobManager : public BlobManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_BLOB_MANAGER_DISK_H */
+#endif /* UPS_BLOB_MANAGER_DISK_H */

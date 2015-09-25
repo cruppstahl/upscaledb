@@ -23,17 +23,17 @@
  * @thread_safe: yes
  */
  
-#ifndef HAM_DEVICE_H
-#define HAM_DEVICE_H
+#ifndef UPS_DEVICE_H
+#define UPS_DEVICE_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "2config/env_config.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -62,19 +62,19 @@ class Device {
       return (m_config.page_size_bytes);
     }
 
-    // Create a new device - called in ham_env_create
+    // Create a new device - called in ups_env_create
     virtual void create() = 0;
 
-    // Opens an existing device - called in ham_env_open
+    // Opens an existing device - called in ups_env_open
     virtual void open() = 0;
 
     // Returns true if the device is open
     virtual bool is_open() = 0;
 
-    // Closes the device - called in ham_env_close
+    // Closes the device - called in ups_env_close
     virtual void close() = 0;
 
-    // Flushes the device - called in ham_env_flush
+    // Flushes the device - called in ups_env_flush
     virtual void flush() = 0;
 
     // Truncate/resize the device
@@ -127,4 +127,4 @@ class Device {
 
 } // namespace hamsterdb
 
-#endif /* HAM_DEVICE_H */
+#endif /* UPS_DEVICE_H */

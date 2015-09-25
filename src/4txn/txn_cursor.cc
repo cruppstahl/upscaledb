@@ -27,7 +27,7 @@
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -75,24 +75,24 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
   op->set_cursor_list(this);
 }
 
-ham_status_t
+ups_status_t
 TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
-                ham_record_t *record)
+                ups_record_t *record)
 {
-  ham_assert(context->txn == txn);
+  ups_assert(context->txn == txn);
 
   if (is_nil())
-    return (HAM_CURSOR_IS_NIL);
+    return (UPS_CURSOR_IS_NIL);
 
   TransactionNode *node = m_coupled_op->get_node();
 
-  /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
+  /* an overwrite is actually an insert w/ UPS_OVERWRITE of the
    * current key */
   return (((LocalDatabase *)get_db())->insert_txn(context, node->get_key(),
-                          record, HAM_OVERWRITE, this));
+                          record, UPS_OVERWRITE, this));
 }
 
-ham_status_t
+ups_status_t
 TransactionCursor::move_top_in_node(TransactionNode *node,
         TransactionOperation *op, bool ignore_conflicts, uint32_t flags)
 {
@@ -126,10 +126,10 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
        * deleted!) */
       if (op->get_flags() & TransactionOperation::kErase) {
         couple_to_op(op);
-        return (HAM_KEY_ERASED_IN_TXN);
+        return (UPS_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
-      ham_assert(op->get_flags() == TransactionOperation::kNop);
+      ups_assert(op->get_flags() == TransactionOperation::kNop);
     }
     else if (optxn->is_aborted())
       ; /* nop */
@@ -137,7 +137,7 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
       /* we still have to couple, because higher-level functions
        * will need to know about the op when consolidating the trees */
       couple_to_op(op);
-      return (HAM_TXN_CONFLICT);
+      return (UPS_TXN_CONFLICT);
     }
 
 next:
@@ -145,40 +145,40 @@ next:
     op = op->get_previous_in_node();
   }
 
-  return (HAM_KEY_NOT_FOUND);
+  return (UPS_KEY_NOT_FOUND);
 }
 
-ham_status_t
+ups_status_t
 TransactionCursor::move(uint32_t flags)
 {
-  ham_status_t st;
+  ups_status_t st;
   TransactionNode *node;
 
-  if (flags & HAM_CURSOR_FIRST) {
+  if (flags & UPS_CURSOR_FIRST) {
     /* first set cursor to nil */
     set_to_nil();
 
     node = get_db()->txn_index()->get_first();
     if (!node)
-      return (HAM_KEY_NOT_FOUND);
+      return (UPS_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
   }
-  else if (flags & HAM_CURSOR_LAST) {
+  else if (flags & UPS_CURSOR_LAST) {
     /* first set cursor to nil */
     set_to_nil();
 
     node = get_db()->txn_index()->get_last();
     if (!node)
-      return (HAM_KEY_NOT_FOUND);
+      return (UPS_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
   }
-  else if (flags & HAM_CURSOR_NEXT) {
+  else if (flags & UPS_CURSOR_NEXT) {
     if (is_nil())
-      return (HAM_CURSOR_IS_NIL);
+      return (UPS_CURSOR_IS_NIL);
 
     node = m_coupled_op->get_node();
 
-    ham_assert(!is_nil());
+    ups_assert(!is_nil());
 
     /* first move to the next key in the current node; if we fail,
      * then move to the next node. repeat till we've found a key or
@@ -186,20 +186,20 @@ TransactionCursor::move(uint32_t flags)
     while (1) {
       node = node->get_next_sibling();
       if (!node)
-        return (HAM_KEY_NOT_FOUND);
+        return (UPS_KEY_NOT_FOUND);
       st = move_top_in_node(node, 0, true, flags);
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         continue;
       return (st);
     }
   }
-  else if (flags & HAM_CURSOR_PREVIOUS) {
+  else if (flags & UPS_CURSOR_PREVIOUS) {
     if (is_nil())
-      return (HAM_CURSOR_IS_NIL);
+      return (UPS_CURSOR_IS_NIL);
 
     node = m_coupled_op->get_node();
 
-    ham_assert(!is_nil());
+    ups_assert(!is_nil());
 
     /* first move to the previous key in the current node; if we fail,
      * then move to the previous node. repeat till we've found a key or
@@ -207,22 +207,22 @@ TransactionCursor::move(uint32_t flags)
     while (1) {
       node = node->get_previous_sibling();
       if (!node)
-        return (HAM_KEY_NOT_FOUND);
+        return (UPS_KEY_NOT_FOUND);
       st = move_top_in_node(node, 0, true, flags);
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         continue;
       return (st);
     }
   }
   else {
-    ham_assert(!"this flag is not yet implemented");
+    ups_assert(!"this flag is not yet implemented");
   }
 
   return (0);
 }
 
-ham_status_t
-TransactionCursor::find(ham_key_t *key, uint32_t flags)
+ups_status_t
+TransactionCursor::find(ups_key_t *key, uint32_t flags)
 {
   TransactionNode *node = 0;
 
@@ -233,36 +233,36 @@ TransactionCursor::find(ham_key_t *key, uint32_t flags)
   if (get_db()->txn_index())
     node = get_db()->txn_index()->get(key, flags);
   if (!node)
-    return (HAM_KEY_NOT_FOUND);
+    return (UPS_KEY_NOT_FOUND);
 
   while (1) {
     /* and then move to the newest insert*-op */
-    ham_status_t st = move_top_in_node(node, 0, false, 0);
-    if (st != HAM_KEY_ERASED_IN_TXN)
+    ups_status_t st = move_top_in_node(node, 0, false, 0);
+    if (st != UPS_KEY_ERASED_IN_TXN)
       return (st);
 
     /* if the key was erased and approx. matching is enabled, then move
     * next/prev till we found a valid key. */
-    if (flags & HAM_FIND_GT_MATCH)
+    if (flags & UPS_FIND_GT_MATCH)
       node = node->get_next_sibling();
-    else if (flags & HAM_FIND_LT_MATCH)
+    else if (flags & UPS_FIND_LT_MATCH)
       node = node->get_previous_sibling();
     else
       return (st);
 
     if (!node)
-      return (HAM_KEY_NOT_FOUND);
+      return (UPS_KEY_NOT_FOUND);
   }
 
-  ham_assert(!"should never reach this");
+  ups_assert(!"should never reach this");
   return (0);
 }
 
 void
-TransactionCursor::copy_coupled_key(ham_key_t *key)
+TransactionCursor::copy_coupled_key(ups_key_t *key)
 {
   Transaction *txn = m_parent->get_txn();
-  ham_key_t *source = 0;
+  ups_key_t *source = 0;
 
   ByteArray *arena = &get_db()->key_arena(txn);
 
@@ -270,12 +270,12 @@ TransactionCursor::copy_coupled_key(ham_key_t *key)
   if (!is_nil()) {
     TransactionNode *node = m_coupled_op->get_node();
 
-    ham_assert(get_db() == node->get_db());
+    ups_assert(get_db() == node->get_db());
     source = node->get_key();
 
     key->size = source->size;
     if (source->data && source->size) {
-      if (!(key->flags & HAM_KEY_USER_ALLOC)) {
+      if (!(key->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(source->size);
         key->data = arena->get_ptr();
       }
@@ -287,13 +287,13 @@ TransactionCursor::copy_coupled_key(ham_key_t *key)
   }
 
   /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(HAM_CURSOR_IS_NIL);
+  throw Exception(UPS_CURSOR_IS_NIL);
 }
 
 void
-TransactionCursor::copy_coupled_record(ham_record_t *record)
+TransactionCursor::copy_coupled_record(ups_record_t *record)
 {
-  ham_record_t *source = 0;
+  ups_record_t *source = 0;
   Transaction *txn = m_parent->get_txn();
 
   ByteArray *arena = &get_db()->record_arena(txn);
@@ -304,7 +304,7 @@ TransactionCursor::copy_coupled_record(ham_record_t *record)
 
     record->size = source->size;
     if (source->data && source->size) {
-      if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
         arena->resize(source->size);
         record->data = arena->get_ptr();
       }
@@ -316,7 +316,7 @@ TransactionCursor::copy_coupled_record(ham_record_t *record)
   }
 
   /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(HAM_CURSOR_IS_NIL);
+  throw Exception(UPS_CURSOR_IS_NIL);
 }
 
 uint64_t
@@ -327,7 +327,7 @@ TransactionCursor::get_record_size()
     return (m_coupled_op->get_record()->size);
 
   /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(HAM_CURSOR_IS_NIL);
+  throw Exception(UPS_CURSOR_IS_NIL);
 }
 
 LocalDatabase *
@@ -336,8 +336,8 @@ TransactionCursor::get_db()
   return (m_parent->ldb());
 }
 
-ham_status_t
-TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
+ups_status_t
+TransactionCursor::test_insert(ups_key_t *key, ups_record_t *record,
                 uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
@@ -349,7 +349,7 @@ TransactionCursor::test_insert(ham_key_t *key, ham_record_t *record,
 void
 TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
 {
-  ham_assert(!is_nil());
+  ups_assert(!is_nil());
 
   if (op->cursor_list() == this) {
     op->set_cursor_list(m_coupled_next);

@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <ham/hamsterdb_int.h>
+#include <ups/upscaledb_int.h>
 
 #include "common.h"
 
@@ -26,9 +26,9 @@ void
 print_banner(const char *program_name)
 {
   uint32_t maj, min, rev;
-  ham_get_version(&maj, &min, &rev);
+  ups_get_version(&maj, &min, &rev);
 
-  printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2015 "
+  printf("upscaledb %d.%d.%d - Copyright (C) 2005-2015 "
        "Christoph Rupp (chris@crupp.de).\n\n", maj, min, rev);
 
   printf(

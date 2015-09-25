@@ -20,8 +20,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_PAGE_COLLECTION_H
-#define HAM_PAGE_COLLECTION_H
+#ifndef UPS_PAGE_COLLECTION_H
+#define UPS_PAGE_COLLECTION_H
 
 #include <string.h>
 
@@ -95,9 +95,9 @@ class PageCollection {
         page = next;
       }
 
-      ham_assert(m_head == 0);
-      ham_assert(m_tail == 0);
-      ham_assert(m_size == 0);
+      ups_assert(m_head == 0);
+      ups_assert(m_tail == 0);
+      ups_assert(m_size == 0);
     }
 
     // Returns the list's id
@@ -166,7 +166,7 @@ class PageCollection {
       if (m_tail == page)
         m_tail = page->get_previous(m_id);
       m_head = page->list_remove(m_head, m_id);
-      ham_assert(m_size > 0);
+      ups_assert(m_size > 0);
       --m_size;
     }
 
@@ -185,4 +185,4 @@ class PageCollection {
 
 } // namespace hamsterdb
 
-#endif /* HAM_PAGE_COLLECTION_H */
+#endif /* UPS_PAGE_COLLECTION_H */

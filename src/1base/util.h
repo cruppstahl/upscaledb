@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_UTIL_H
-#define HAM_UTIL_H
+#ifndef UPS_UTIL_H
+#define UPS_UTIL_H
 
 #include "0root/root.h"
 
@@ -33,7 +33,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,7 +52,7 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 //
 // uses sprintf on platforms which do not define snprintf
 //
-#ifndef HAM_OS_POSIX
+#ifndef UPS_OS_POSIX
 #  define util_snprintf _snprintf
 #else
 #  define util_snprintf snprintf
@@ -60,4 +60,4 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
 } // namespace hamsterdb
 
-#endif // HAM_UTIL_H
+#endif // UPS_UTIL_H

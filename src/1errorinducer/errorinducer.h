@@ -22,26 +22,26 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_ERRORINDUCER_H
-#define HAM_ERRORINDUCER_H
+#ifndef UPS_ERRORINDUCER_H
+#define UPS_ERRORINDUCER_H
 
 #include "0root/root.h"
 
 #include <string.h>
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 // a macro to invoke errors
-#define HAM_INDUCE_ERROR(id)                                        \
+#define UPS_INDUCE_ERROR(id)                                        \
   while (ErrorInducer::is_active()) {                               \
-    ham_status_t st = ErrorInducer::get_instance()->induce(id);     \
+    ups_status_t st = ErrorInducer::get_instance()->induce(id);     \
     if (st)                                                         \
       throw Exception(st);                                          \
     break;                                                          \
@@ -52,11 +52,11 @@ namespace hamsterdb {
 class ErrorInducer {
   struct State {
     State()
-      : loops(0), error(HAM_INTERNAL_ERROR) {
+      : loops(0), error(UPS_INTERNAL_ERROR) {
     }
 
     int loops;
-    ham_status_t error;
+    ups_status_t error;
   };
 
   public:
@@ -90,13 +90,13 @@ class ErrorInducer {
     }
 
     void add(Action action, int loops,
-            ham_status_t error = HAM_INTERNAL_ERROR) {
+            ups_status_t error = UPS_INTERNAL_ERROR) {
       m_state[action].loops = loops;
       m_state[action].error = error;
     }
 
-    ham_status_t induce(Action action) {
-      ham_assert(m_state[action].loops >= 0);
+    ups_status_t induce(Action action) {
+      ups_assert(m_state[action].loops >= 0);
       if (m_state[action].loops > 0 && --m_state[action].loops == 0)
         return (m_state[action].error);
       return (0);
@@ -114,4 +114,4 @@ class ErrorInducer {
 
 } // namespace hamsterdb
 
-#endif /* HAM_ERRORINDUCER_H */
+#endif /* UPS_ERRORINDUCER_H */

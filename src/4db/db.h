@@ -20,27 +20,27 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_DB_H
-#define HAM_DB_H
+#ifndef UPS_DB_H
+#define UPS_DB_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb_int.h"
-#include "ham/hamsterdb_ola.h"
+#include "ups/upscaledb_int.h"
+#include "ups/upscaledb_uqi.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/dynamic_array.h"
 #include "2config/db_config.h"
 #include "4env/env.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
-// A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
-// opaque C structure, but internally we use a C++ class. The ham_db_t
+// A helper structure; ups_db_t is declared in ups/upscaledb.h as an
+// opaque C structure, but internally we use a C++ class. The ups_db_t
 // struct satisfies the C compiler, and internally we just cast the pointers.
-struct ham_db_t {
+struct ups_db_t {
   int dummy;
 };
 
@@ -89,67 +89,67 @@ class Database
     }
 
     // Fills in the current metrics
-    virtual void fill_metrics(ham_env_metrics_t *metrics) = 0;
+    virtual void fill_metrics(ups_env_metrics_t *metrics) = 0;
 
-    // Returns Database parameters (ham_db_get_parameters)
-    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
+    // Returns Database parameters (ups_db_get_parameters)
+    virtual ups_status_t get_parameters(ups_parameter_t *param) = 0;
 
-    // Checks Database integrity (ham_db_check_integrity)
-    virtual ham_status_t check_integrity(uint32_t flags) = 0;
+    // Checks Database integrity (ups_db_check_integrity)
+    virtual ups_status_t check_integrity(uint32_t flags) = 0;
 
-    // Returns the number of keys (ham_db_get_key_count)
-    virtual ham_status_t count(Transaction *txn, bool distinct,
+    // Returns the number of keys (ups_db_get_key_count)
+    virtual ups_status_t count(Transaction *txn, bool distinct,
                     uint64_t *pcount) = 0;
 
     // Scans the whole database, applies a processor function
-    virtual ham_status_t scan(Transaction *txn, ScanVisitor *visitor,
+    virtual ups_status_t scan(Transaction *txn, ScanVisitor *visitor,
                     bool distinct) = 0;
 
-    // Inserts a key/value pair (ham_db_insert, ham_cursor_insert)
-    virtual ham_status_t insert(Cursor *cursor, Transaction *txn,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags) = 0;
+    // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
+    virtual ups_status_t insert(Cursor *cursor, Transaction *txn,
+                    ups_key_t *key, ups_record_t *record, uint32_t flags) = 0;
 
-    // Erase a key/value pair (ham_db_erase, ham_cursor_erase)
-    virtual ham_status_t erase(Cursor *cursor, Transaction *txn, ham_key_t *key,
+    // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
+    virtual ups_status_t erase(Cursor *cursor, Transaction *txn, ups_key_t *key,
                     uint32_t flags) = 0;
 
-    // Lookup of a key/value pair (ham_db_find, ham_cursor_find)
-    virtual ham_status_t find(Cursor *cursor, Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags) = 0;
+    // Lookup of a key/value pair (ups_db_find, ups_cursor_find)
+    virtual ups_status_t find(Cursor *cursor, Transaction *txn, ups_key_t *key,
+                    ups_record_t *record, uint32_t flags) = 0;
 
-    // Creates a cursor (ham_cursor_create)
-    virtual ham_status_t cursor_create(Cursor **pcursor, Transaction *txn,
+    // Creates a cursor (ups_cursor_create)
+    virtual ups_status_t cursor_create(Cursor **pcursor, Transaction *txn,
                     uint32_t flags);
 
-    // Clones a cursor (ham_cursor_clone)
-    virtual ham_status_t cursor_clone(Cursor **pdest, Cursor *src);
+    // Clones a cursor (ups_cursor_clone)
+    virtual ups_status_t cursor_clone(Cursor **pdest, Cursor *src);
 
-    // Moves a cursor, returns key and/or record (ham_cursor_move)
-    virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags) = 0;
+    // Moves a cursor, returns key and/or record (ups_cursor_move)
+    virtual ups_status_t cursor_move(Cursor *cursor, ups_key_t *key,
+                    ups_record_t *record, uint32_t flags) = 0;
 
-    // Closes a cursor (ham_cursor_close)
-    ham_status_t cursor_close(Cursor *cursor);
+    // Closes a cursor (ups_cursor_close)
+    ups_status_t cursor_close(Cursor *cursor);
 
-    // Closes the Database (ham_db_close)
-    ham_status_t close(uint32_t flags);
+    // Closes the Database (ups_db_close)
+    ups_status_t close(uint32_t flags);
 
     // Returns the last error code
-    ham_status_t get_error() const {
+    ups_status_t get_error() const {
       return (m_error);
     }
 
     // Sets the last error code
-    ham_status_t set_error(ham_status_t e) {
+    ups_status_t set_error(ups_status_t e) {
       return ((m_error = e));
     }
 
-    // Returns the user-provided context pointer (ham_get_context_data)
+    // Returns the user-provided context pointer (ups_get_context_data)
     void *get_context_data() {
       return (m_context);
     }
 
-    // Sets the user-provided context pointer (ham_set_context_data)
+    // Sets the user-provided context pointer (ups_set_context_data)
     void set_context_data(void *ctxt) {
       m_context = ctxt;
     }
@@ -162,7 +162,7 @@ class Database
     // Returns the memory buffer for the key data: the per-database buffer
     // if |txn| is null or temporary, otherwise the buffer from the |txn|
     ByteArray &key_arena(Transaction *txn) {
-      return ((txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+      return ((txn == 0 || (txn->get_flags() & UPS_TXN_TEMPORARY))
                  ? m_key_arena
                  : txn->key_arena());
     }
@@ -170,7 +170,7 @@ class Database
     // Returns the memory buffer for the record data: the per-database buffer
     // if |txn| is null or temporary, otherwise the buffer from the |txn|
     ByteArray &record_arena(Transaction *txn) {
-      return ((txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+      return ((txn == 0 || (txn->get_flags() & UPS_TXN_TEMPORARY))
                  ? m_record_arena
                  : txn->record_arena());
     }
@@ -183,7 +183,7 @@ class Database
     virtual Cursor *cursor_clone_impl(Cursor *src) = 0;
 
     // Closes a database; this is the actual implementation
-    virtual ham_status_t close_impl(uint32_t flags) = 0;
+    virtual ups_status_t close_impl(uint32_t flags) = 0;
 
     // the current Environment
     Environment *m_env;
@@ -192,7 +192,7 @@ class Database
     DatabaseConfiguration m_config;
 
     // the last error code
-    ham_status_t m_error;
+    ups_status_t m_error;
 
     // the user-provided context data
     void *m_context;
@@ -211,4 +211,4 @@ class Database
 
 } // namespace hamsterdb
 
-#endif /* HAM_DB_H */
+#endif /* UPS_DB_H */

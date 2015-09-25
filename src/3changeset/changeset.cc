@@ -30,7 +30,7 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -42,7 +42,7 @@ void (*g_CHANGESET_POST_LOG_HOOK)(void);
 struct FlushChangesetVisitor
 {
   bool operator()(Page *page) {
-    ham_assert(page->mutex().try_lock() == false);
+    ups_assert(page->mutex().try_lock() == false);
 
     if (page->is_dirty())
       list.push_back(page->get_persisted_data());
@@ -65,7 +65,7 @@ async_flush_changeset(std::vector<Page::PersistedData *> list,
 
     // move lock ownership to this thread, otherwise unlocking the mutex
     // will trigger an exception
-    ham_assert(page_data->mutex.try_lock() == false);
+    ups_assert(page_data->mutex.try_lock() == false);
     page_data->mutex.acquire_ownership();
     page_data->mutex.try_lock(); // TODO remove this
 
@@ -74,7 +74,7 @@ async_flush_changeset(std::vector<Page::PersistedData *> list,
 
     Page::flush(device, page_data);
     page_data->mutex.unlock();
-    HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+    UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
   }
 
   /* flush the file handle (if required) */
@@ -84,7 +84,7 @@ async_flush_changeset(std::vector<Page::PersistedData *> list,
   /* inform the journal that the Changeset was flushed */
   journal->changeset_flushed(fd_index);
 
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 }
 
 void
@@ -94,7 +94,7 @@ Changeset::flush(uint64_t lsn)
   if (m_collection.is_empty())
     return;
   
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // Fetch the pages, ignoring all pages that are not dirty
   FlushChangesetVisitor visitor;
@@ -107,7 +107,7 @@ Changeset::flush(uint64_t lsn)
    * "write-ahead logs" all changes. */
   int fd_index = m_env->journal()->append_changeset(visitor.list, lsn);
 
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   /* execute a post-log hook; this hook is set by the unittest framework
    * and can be used to make a backup copy of the logfile */
@@ -117,7 +117,7 @@ Changeset::flush(uint64_t lsn)
   /* The modified pages are now flushed (and unlocked) asynchronously. */
   m_env->page_manager()->run_async(boost::bind(&async_flush_changeset,
                           visitor.list, m_env->device(), m_env->journal(), lsn,
-                          (m_env->config().flags & HAM_ENABLE_FSYNC) != 0,
+                          (m_env->config().flags & UPS_ENABLE_FSYNC) != 0,
                           fd_index));
 }
 

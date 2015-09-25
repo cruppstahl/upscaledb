@@ -24,11 +24,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 void
-error(const char *foo, ham_status_t st) {
-  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+error(const char *foo, ups_status_t st) {
+  printf("%s() returned error %d: %s\n", foo, st, ups_strerror(st));
   exit(-1);
 }
 
@@ -39,56 +39,56 @@ usage() {
 }
 
 void
-copy_db(ham_db_t *source, ham_db_t *dest) {
-  ham_cursor_t *cursor;  /* hamsterdb cursor object */
-  ham_status_t st;
-  ham_key_t key;
-  ham_record_t rec;
+copy_db(ups_db_t *source, ups_db_t *dest) {
+  ups_cursor_t *cursor;  /* hamsterdb cursor object */
+  ups_status_t st;
+  ups_key_t key;
+  ups_record_t rec;
 
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));
 
   /* create a new cursor */
-  st = ham_cursor_create(&cursor, source, 0, 0);
+  st = ups_cursor_create(&cursor, source, 0, 0);
   if (st)
-    error("ham_cursor_create", st);
+    error("ups_cursor_create", st);
 
   /* get a cursor to the source database */
-  st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST);
-  if (st == HAM_KEY_NOT_FOUND) {
+  st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_FIRST);
+  if (st == UPS_KEY_NOT_FOUND) {
     printf("database is empty!\n");
     return;
   }
   else if (st)
-    error("ham_cursor_move", st);
+    error("ups_cursor_move", st);
 
   do {
     /* insert this element into the new database */
-    st = ham_db_insert(dest, 0, &key, &rec, HAM_DUPLICATE);
+    st = ups_db_insert(dest, 0, &key, &rec, UPS_DUPLICATE);
     if (st)
-      error("ham_db_insert", st);
+      error("ups_db_insert", st);
 
     /* give some feedback to the user */
     printf(".");
 
     /* fetch the next item, and repeat till we've reached the end
      * of the database */
-    st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT);
-    if (st && st != HAM_KEY_NOT_FOUND)
-      error("ham_cursor_move", st);
+    st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT);
+    if (st && st != UPS_KEY_NOT_FOUND)
+      error("ups_cursor_move", st);
 
   } while (st == 0);
 
   /* clean up and return */
-  ham_cursor_close(cursor);
+  ups_cursor_close(cursor);
 }
 
 int
 main(int argc, char **argv) {
-  ham_status_t st;
-  ham_env_t *env = 0;
-  ham_db_t *src_db = 0;
-  ham_db_t *dest_db = 0;
+  ups_status_t st;
+  ups_env_t *env = 0;
+  ups_db_t *src_db = 0;
+  ups_db_t *dest_db = 0;
   uint16_t src_name;
   uint16_t dest_name;
   const char *env_path = 0;
@@ -103,28 +103,28 @@ main(int argc, char **argv) {
     usage();
 
   /* open the Environment */
-  st = ham_env_open(&env, env_path, 0, 0);
+  st = ups_env_open(&env, env_path, 0, 0);
   if (st)
-    error("ham_env_open", st);
+    error("ups_env_open", st);
 
   /* open the source database */
-  st = ham_env_open_db(env, &src_db, src_name, 0, 0);
+  st = ups_env_open_db(env, &src_db, src_name, 0, 0);
   if (st)
-    error("ham_env_open_db", st);
+    error("ups_env_open_db", st);
 
   /* create the destination database */
-  st = ham_env_create_db(env, &dest_db, dest_name,
-                  HAM_ENABLE_DUPLICATE_KEYS, 0);
+  st = ups_env_create_db(env, &dest_db, dest_name,
+                  UPS_ENABLE_DUPLICATE_KEYS, 0);
   if (st)
-    error("ham_env_create_db", st);
+    error("ups_env_create_db", st);
 
   /* copy the data */
   copy_db(src_db, dest_db);
 
   /* clean up and return */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
   if (st)
-    error("ham_env_close", st);
+    error("ups_env_close", st);
 
   printf("\nsuccess!\n");
   return (0);

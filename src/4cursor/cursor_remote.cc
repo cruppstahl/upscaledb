@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 
 #include "0root/root.h"
 
@@ -25,7 +25,7 @@
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -40,11 +40,11 @@ RemoteCursor::close()
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorCloseReply);
+  ups_assert(reply.id == kCursorCloseReply);
 }
 
-ham_status_t
-RemoteCursor::do_overwrite(ham_record_t *record, uint32_t flags)
+ups_status_t
+RemoteCursor::do_overwrite(ups_record_t *record, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorOverwriteRequest;
@@ -62,12 +62,12 @@ RemoteCursor::do_overwrite(ham_record_t *record, uint32_t flags)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorOverwriteReply);
+  ups_assert(reply.id == kCursorOverwriteReply);
 
   return (reply.cursor_overwrite_reply.status);
 }
 
-ham_status_t
+ups_status_t
 RemoteCursor::do_get_duplicate_position(uint32_t *pposition)
 {
   SerializedWrapper request;
@@ -76,15 +76,15 @@ RemoteCursor::do_get_duplicate_position(uint32_t *pposition)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorGetDuplicatePositionReply);
+  ups_assert(reply.id == kCursorGetDuplicatePositionReply);
 
-  ham_status_t st = reply.cursor_get_duplicate_position_reply.status;
+  ups_status_t st = reply.cursor_get_duplicate_position_reply.status;
   if (st == 0)
     *pposition = reply.cursor_get_duplicate_position_reply.position;
   return (st);
 }
 
-ham_status_t
+ups_status_t
 RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 {
   SerializedWrapper request;
@@ -94,9 +94,9 @@ RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorGetRecordCountReply);
+  ups_assert(reply.id == kCursorGetRecordCountReply);
 
-  ham_status_t st = reply.cursor_get_record_count_reply.status;
+  ups_status_t st = reply.cursor_get_record_count_reply.status;
   if (st == 0)
     *pcount = reply.cursor_get_record_count_reply.count;
   else
@@ -104,7 +104,7 @@ RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
   return (st);
 }
 
-ham_status_t
+ups_status_t
 RemoteCursor::do_get_record_size(uint64_t *psize)
 {
   SerializedWrapper request;
@@ -113,9 +113,9 @@ RemoteCursor::do_get_record_size(uint64_t *psize)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ham_assert(reply.id == kCursorGetRecordSizeReply);
+  ups_assert(reply.id == kCursorGetRecordSizeReply);
 
-  ham_status_t st = reply.cursor_get_record_size_reply.status;
+  ups_status_t st = reply.cursor_get_record_size_reply.status;
   if (st == 0)
     *psize = reply.cursor_get_record_size_reply.size;
   return (0);
@@ -123,4 +123,4 @@ RemoteCursor::do_get_record_size(uint64_t *psize)
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENABLE_REMOTE */
+#endif /* UPS_ENABLE_REMOTE */

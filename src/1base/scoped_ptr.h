@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_SCOPED_PTR_H
-#define HAM_SCOPED_PTR_H
+#ifndef UPS_SCOPED_PTR_H
+#define UPS_SCOPED_PTR_H
 
 #include "0root/root.h"
 
@@ -32,7 +32,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,4 +52,4 @@ struct ScopedPtr : public boost::scoped_ptr<T>
 
 } // namespace hamsterdb
 
-#endif /* HAM_SCOPED_PTR_H */
+#endif /* UPS_SCOPED_PTR_H */

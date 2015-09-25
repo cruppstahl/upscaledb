@@ -1,38 +1,38 @@
 #include <assert.h>
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-ham_status_t st;
+ups_status_t st;
 #define CHECK(status)       \
   while ((st = (status))) { \
-    printf("Error in line %d: %s\n", __LINE__, ham_strerror(st)); \
+    printf("Error in line %d: %s\n", __LINE__, ups_strerror(st)); \
     exit(-2); \
   }
 
 static void insert ()
 {
-  ham_env_t *db_env = NULL;
-  ham_db_t *db = NULL;
-  ham_txn_t *txn = NULL;
+  ups_env_t *db_env = NULL;
+  ups_db_t *db = NULL;
+  ups_txn_t *txn = NULL;
 
-  ham_key_t db_key1;
-  ham_key_t db_key2;
+  ups_key_t db_key1;
+  ups_key_t db_key2;
 
-  ham_record_t db_data1;
-  ham_record_t db_data2;
+  ups_record_t db_data1;
+  ups_record_t db_data2;
 
   CHECK(
-    ham_env_create (&db_env, "test.db", HAM_ENABLE_TRANSACTIONS, 0644, NULL));
-  CHECK(ham_env_create_db (db_env, &db, 1, 0, NULL));
-  CHECK(ham_txn_begin (&txn, db_env, NULL, NULL, 0));
+    ups_env_create (&db_env, "test.db", UPS_ENABLE_TRANSACTIONS, 0644, NULL));
+  CHECK(ups_env_create_db (db_env, &db, 1, 0, NULL));
+  CHECK(ups_txn_begin (&txn, db_env, NULL, NULL, 0));
 
-  memset (&db_key1, 0, sizeof (ham_key_t));
-  memset (&db_data1, 0, sizeof (ham_record_t));
+  memset (&db_key1, 0, sizeof (ups_key_t));
+  memset (&db_data1, 0, sizeof (ups_record_t));
 
-  memset (&db_key2, 0, sizeof (ham_key_t));
-  memset (&db_data2, 0, sizeof (ham_record_t));
+  memset (&db_key2, 0, sizeof (ups_key_t));
+  memset (&db_data2, 0, sizeof (ups_record_t));
 
   db_key1.data = "Hello, world 1!";
   db_key1.size = 16;
@@ -40,7 +40,7 @@ static void insert ()
   db_data1.data = strdup ("Goodbye, world 1.");
   db_data1.size = 18;
 
-  CHECK(ham_db_insert (db, txn, &db_key1, &db_data1, HAM_OVERWRITE));
+  CHECK(ups_db_insert (db, txn, &db_key1, &db_data1, UPS_OVERWRITE));
 
   db_key2.data = "Hello, world 2!";
   db_key2.size = 16;
@@ -48,44 +48,44 @@ static void insert ()
   db_data2.data = strdup ("Goodbye, world 2.");
   db_data2.size = 18;
 
-  CHECK(ham_db_insert (db, txn, &db_key2, &db_data2, HAM_OVERWRITE));
-  CHECK(ham_txn_commit (txn, 0));
+  CHECK(ups_db_insert (db, txn, &db_key2, &db_data2, UPS_OVERWRITE));
+  CHECK(ups_txn_commit (txn, 0));
 
   exit (0);
 }
 
 static void recover ()
 {
-  ham_env_t *db_env = NULL;
-  ham_db_t *db = NULL;
-  int ret = ham_env_open 
-    (&db_env, "test.db", HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, NULL);
+  ups_env_t *db_env = NULL;
+  ups_db_t *db = NULL;
+  int ret = ups_env_open 
+    (&db_env, "test.db", UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, NULL);
 
-  if (ret != HAM_SUCCESS)
+  if (ret != UPS_SUCCESS)
     {
-      printf ("recovery failed: %s\n", ham_strerror (ret));
+      printf ("recovery failed: %s\n", ups_strerror (ret));
       exit (1);
     }
-  CHECK(ham_env_open_db (db_env, &db, 1, 0, NULL));
+  CHECK(ups_env_open_db (db_env, &db, 1, 0, NULL));
 
-  ham_key_t db_key1;
-  ham_key_t db_key2;
-  memset (&db_key1, 0, sizeof (ham_key_t));
-  memset (&db_key2, 0, sizeof (ham_key_t));
+  ups_key_t db_key1;
+  ups_key_t db_key2;
+  memset (&db_key1, 0, sizeof (ups_key_t));
+  memset (&db_key2, 0, sizeof (ups_key_t));
 
   db_key1.data = "Hello, world 1!";
   db_key1.size = 16;
   db_key2.data = "Hello, world 2!";
   db_key2.size = 16;
 
-  ham_record_t rec;
+  ups_record_t rec;
   
   memset(&rec, 0, sizeof(rec));
-  CHECK(ham_db_find (db, 0, &db_key1, &rec, 0));
+  CHECK(ups_db_find (db, 0, &db_key1, &rec, 0));
   CHECK(strcmp((char *)rec.data, "Goodbye, world 1."));
 
   memset(&rec, 0, sizeof(rec));
-  CHECK(ham_db_find (db, 0, &db_key2, &rec, 0));
+  CHECK(ups_db_find (db, 0, &db_key2, &rec, 0));
   CHECK(strcmp((char *)rec.data, "Goodbye, world 2."));
 
   exit (0);

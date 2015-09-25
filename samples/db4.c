@@ -24,19 +24,19 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 #define DATABASE_NAME       1
 
 int
 main(int argc, char **argv) {
-  ham_status_t st;    /* status variable */
-  ham_env_t *env;     /* hamsterdb environment object */
-  ham_db_t *db;       /* hamsterdb database object */
-  ham_cursor_t *cursor;   /* a database cursor */
+  ups_status_t st;    /* status variable */
+  ups_env_t *env;     /* hamsterdb environment object */
+  ups_db_t *db;       /* hamsterdb database object */
+  ups_cursor_t *cursor;   /* a database cursor */
   char line[1024 * 4];  /* a buffer for reading lines */
-  ham_key_t key;
-  ham_record_t record;
+  ups_key_t key;
+  ups_record_t record;
 
   memset(&key, 0, sizeof(key));
   memset(&record, 0, sizeof(record));
@@ -49,15 +49,15 @@ main(int argc, char **argv) {
    * Create a new hamsterdb "record number" Database.
    * We could create an in-memory-Environment to speed up the sorting.
    */
-  st = ham_env_create(&env, "test.db", 0, 0664, 0);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_create() failed with error %d\n", st);
+  st = ups_env_create(&env, "test.db", 0, 0664, 0);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_create() failed with error %d\n", st);
     return (-1);
   }
 
-  st = ham_env_create_db(env, &db, DATABASE_NAME, HAM_RECORD_NUMBER32, 0);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_create_db() failed with error %d\n", st);
+  st = ups_env_create_db(env, &db, DATABASE_NAME, UPS_RECORD_NUMBER32, 0);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_create_db() failed with error %d\n", st);
     return (-1);
   }
 
@@ -75,7 +75,7 @@ main(int argc, char **argv) {
     while ((p = strtok(start, " \t\r\n"))) {
       uint32_t recno;
 
-      key.flags = HAM_KEY_USER_ALLOC;
+      key.flags = UPS_KEY_USER_ALLOC;
       key.data = &recno;
       key.size = sizeof(recno);
 
@@ -83,9 +83,9 @@ main(int argc, char **argv) {
       record.size = (uint32_t)strlen(p) + 1; /* also store
                             * terminating 0 */
 
-      st = ham_db_insert(db, 0, &key, &record, 0);
-      if (st != HAM_SUCCESS && st != HAM_DUPLICATE_KEY) {
-        printf("ham_db_insert() failed with error %d\n", st);
+      st = ups_db_insert(db, 0, &key, &record, 0);
+      if (st != UPS_SUCCESS && st != UPS_DUPLICATE_KEY) {
+        printf("ups_db_insert() failed with error %d\n", st);
         return (-1);
       }
       printf(".");
@@ -95,9 +95,9 @@ main(int argc, char **argv) {
   }
 
   /* Create a cursor */
-  st = ham_cursor_create(&cursor, db, 0, 0);
-  if (st != HAM_SUCCESS) {
-    printf("ham_cursor_create() failed with error %d\n", st);
+  st = ups_cursor_create(&cursor, db, 0, 0);
+  if (st != UPS_SUCCESS) {
+    printf("ups_cursor_create() failed with error %d\n", st);
     return (-1);
   }
 
@@ -105,13 +105,13 @@ main(int argc, char **argv) {
 
   /* Iterate over all items and print the records */
   while (1) {
-    st = ham_cursor_move(cursor, &key, &record, HAM_CURSOR_NEXT);
-    if (st != HAM_SUCCESS) {
+    st = ups_cursor_move(cursor, &key, &record, UPS_CURSOR_NEXT);
+    if (st != UPS_SUCCESS) {
       /* reached end of the database? */
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         break;
       else {
-        printf("ham_cursor_next() failed with error %d\n", st);
+        printf("ups_cursor_next() failed with error %d\n", st);
         return (-1);
       }
     }
@@ -121,13 +121,13 @@ main(int argc, char **argv) {
   }
 
   /*
-   * Then close the handles; the flag HAM_AUTO_CLEANUP will automatically 
+   * Then close the handles; the flag UPS_AUTO_CLEANUP will automatically 
    * close all databases and cursors and we do not need to
-   * call ham_cursor_close and ham_db_close
+   * call ups_cursor_close and ups_db_close
    */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
-  if (st != HAM_SUCCESS) {
-    printf("ham_env_close() failed with error %d\n", st);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
+  if (st != UPS_SUCCESS) {
+    printf("ups_env_close() failed with error %d\n", st);
     return (-1);
   }
 

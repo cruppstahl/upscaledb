@@ -20,7 +20,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/globals.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -47,9 +47,9 @@ const char *Globals::ms_error_expr;
 const char *Globals::ms_error_function;
 
 // the default error handler
-void HAM_CALLCONV default_errhandler(int level, const char *message);
+void UPS_CALLCONV default_errhandler(int level, const char *message);
 
-ham_errhandler_fun Globals::ms_error_handler = default_errhandler;
+ups_errhandler_fun Globals::ms_error_handler = default_errhandler;
 
 uint64_t Globals::ms_bytes_before_compression;
 

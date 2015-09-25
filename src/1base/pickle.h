@@ -22,16 +22,16 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_PICKLE_H
-#define HAM_PICKLE_H
+#ifndef UPS_PICKLE_H
+#define UPS_PICKLE_H
 
 #include "0root/root.h"
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -117,4 +117,4 @@ struct Pickle {
 
 } // namespace hamsterdb
 
-#endif // HAM_PICKLE_H
+#endif // UPS_PICKLE_H

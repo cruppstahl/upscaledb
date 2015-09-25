@@ -93,7 +93,7 @@ recovery_LDFLAGS= $(BOOST_FLAGS)
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
-AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
+AM_CPPFLAGS    += -DUPS_ENABLE_REMOTE
 test_LDADD     += $(top_builddir)/src/5server/.libs/libhamserver.a \
 				  -lprotobuf -luv -ldl
 recovery_LDADD += $(top_builddir)/src/5server/.libs/libhamserver.a \
@@ -107,7 +107,7 @@ recovery_LDADD += -lcrypto
 endif
 
 if ENABLE_COMPRESSION
-AM_CPPFLAGS    += -DHAM_ENABLE_COMPRESSION
+AM_CPPFLAGS    += -DUPS_ENABLE_COMPRESSION
 if WITH_ZLIB
 test_LDADD     += -lz
 recovery_LDADD += -lz
@@ -125,7 +125,7 @@ endif
 AM_CFLAGS	    =
 AM_CXXFLAGS	    =
 if ENABLE_SIMD
-AM_CPPFLAGS    += -DHAM_ENABLE_SIMD
+AM_CPPFLAGS    += -DUPS_ENABLE_SIMD
 endif
 if ENABLE_SSE2
 AM_CFLAGS	   += -msse2 -flax-vector-conversions

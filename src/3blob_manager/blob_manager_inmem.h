@@ -15,15 +15,15 @@
  * See the file COPYING for License information.
  */
 
-#ifndef HAM_BLOB_MANAGER_INMEM_H
-#define HAM_BLOB_MANAGER_INMEM_H
+#ifndef UPS_BLOB_MANAGER_INMEM_H
+#define UPS_BLOB_MANAGER_INMEM_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "3blob_manager/blob_manager.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -43,13 +43,13 @@ class InMemoryBlobManager : public BlobManager {
     // Allocates/create a new blob
     // This function returns the blob-id (the start address of the blob
     // header)
-    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ups_record_t *record,
                     uint32_t flags);
 
     // Reads a blob and stores the data in |record|
-    // |flags|: either 0 or HAM_DIRECT_ACCESS
+    // |flags|: either 0 or UPS_DIRECT_ACCESS
     virtual void do_read(Context *context, uint64_t blobid,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // Retrieves the size of a blob
@@ -63,7 +63,7 @@ class InMemoryBlobManager : public BlobManager {
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header) 
     virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
-                    ham_record_t *record, uint32_t flags);
+                    ups_record_t *record, uint32_t flags);
 
     // Deletes an existing blob
     virtual void do_erase(Context *context, uint64_t blobid,
@@ -74,4 +74,4 @@ class InMemoryBlobManager : public BlobManager {
 
 } // namespace hamsterdb
 
-#endif /* HAM_BLOB_MANAGER_INMEM_H */
+#endif /* UPS_BLOB_MANAGER_INMEM_H */

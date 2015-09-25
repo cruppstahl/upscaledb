@@ -32,14 +32,14 @@
 #include "4context/context.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 using namespace hamsterdb;
 
 uint64_t
-DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
+DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
                 uint32_t flags)
 {
   uint8_t *chunk_data[2];
@@ -90,7 +90,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
     page = m_page_manager->alloc_multiple_blob_pages(context, num_pages);
-    ham_assert(page->is_without_header() == false);
+    ups_assert(page->is_without_header() == false);
 
     // initialize the PBlobPageHeader
     header = PBlobPageHeader::from_page(page);
@@ -110,19 +110,19 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
     // Pro: multi-page blobs store their CRC in the first freelist offset,
     // but only if partial writes are not used
     if (unlikely(num_pages > 1
-            && (m_config->flags & HAM_ENABLE_CRC32))) {
+            && (m_config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
-      if (!(flags & HAM_PARTIAL))
+      if (!(flags & UPS_PARTIAL))
         MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
     }
 
     address = page->get_address() + kPageOverhead;
-    ham_assert(check_integrity(header));
+    ups_assert(check_integrity(header));
   }
 
   // addjust "free bytes" counter
-  ham_assert(header->get_free_bytes() >= alloc_size);
+  ups_assert(header->get_free_bytes() >= alloc_size);
   header->set_free_bytes(header->get_free_bytes() - alloc_size);
 
   // store the page id if it still has space left
@@ -142,9 +142,9 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
   // Are there gaps at the beginning? If yes, then we'll fill with zeros.
   // Partial updates are not allowed in combination with compression,
   // therefore we do not have to check any compression conditions if
-  // HAM_PARTIAL is set.
+  // UPS_PARTIAL is set.
   ByteArray zeroes;
-  if ((flags & HAM_PARTIAL) && (record->partial_offset > 0)) {
+  if ((flags & UPS_PARTIAL) && (record->partial_offset > 0)) {
     uint32_t gapsize = record->partial_offset;
 
     // first: write the header
@@ -179,7 +179,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
     chunk_data[0] = (uint8_t *)&blob_header;
     chunk_size[0] = sizeof(blob_header);
     chunk_data[1] = (uint8_t *)record_data;
-    chunk_size[1] = (flags & HAM_PARTIAL)
+    chunk_size[1] = (flags & UPS_PARTIAL)
                         ? record->partial_size
                         : record_size;
 
@@ -195,7 +195,7 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
   // if we have gaps at the end of the blob: just append more chunks to
   // fill these gaps. Since they can be pretty large we split them into
   // smaller chunks if necessary.
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     if (record->partial_offset + record->partial_size < record->size) {
       uint32_t gapsize = record->size
                       - (record->partial_offset + record->partial_size);
@@ -218,14 +218,14 @@ DiskBlobManager::do_allocate(Context *context, ham_record_t *record,
     }
   }
 
-  ham_assert(check_integrity(header));
+  ups_assert(check_integrity(header));
 
   return (blob_id);
 }
 
 void
 DiskBlobManager::do_read(Context *context, uint64_t blob_id,
-                ham_record_t *record, uint32_t flags, ByteArray *arena)
+                ups_record_t *record, uint32_t flags, ByteArray *arena)
 {
   Page *page;
 
@@ -235,17 +235,17 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
 
   // sanity check
   if (blob_header->blob_id != blob_id) {
-    ham_log(("blob %lld not found", blob_id));
-    throw Exception(HAM_BLOB_NOT_FOUND);
+    ups_log(("blob %lld not found", blob_id));
+    throw Exception(UPS_BLOB_NOT_FOUND);
   }
 
   uint32_t blobsize = (uint32_t)blob_header->size;
   record->size = blobsize;
 
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     if (record->partial_offset > blobsize) {
-      ham_trace(("partial offset is greater than the total record size"));
-      throw Exception(HAM_INV_PARAMETER);
+      ups_trace(("partial offset is greater than the total record size"));
+      throw Exception(UPS_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
       record->partial_size = blobsize = blobsize - record->partial_offset;
@@ -262,12 +262,12 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
 
   // if the blob is in memory-mapped storage (and the user does not require
   // a copy of the data): simply return a pointer
-  if ((flags & HAM_FORCE_DEEP_COPY) == 0
+  if ((flags & UPS_FORCE_DEEP_COPY) == 0
         && m_device->is_mapped(blob_id, blobsize)
         && !(blob_header->flags & kIsCompressed)
-        && !(record->flags & HAM_RECORD_USER_ALLOC)) {
+        && !(record->flags & UPS_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
-                        blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
+                        blob_id + sizeof(PBlobHeader) + (flags & UPS_PARTIAL
                                 ? record->partial_offset
                                 : 0), true, true);
   }
@@ -278,7 +278,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     // caller's arena
     if (blob_header->flags & kIsCompressed) {
       Compressor *compressor = context->db->get_record_compressor();
-      ham_assert(compressor != 0);
+      ups_assert(compressor != 0);
 
       // read into temporary buffer; we reuse the compressor's memory arena
       // for this
@@ -290,7 +290,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
                     blob_header->allocated_size - sizeof(PBlobHeader), true);
 
       // now uncompress into the caller's memory arena
-      if (record->flags & HAM_RECORD_USER_ALLOC) {
+      if (record->flags & UPS_RECORD_USER_ALLOC) {
         compressor->decompress((uint8_t *)dest->get_ptr(),
                       blob_header->allocated_size - sizeof(PBlobHeader),
                       blobsize, (uint8_t *)record->data);
@@ -306,13 +306,13 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     // if the data is uncompressed then allocate storage and read
     // into the allocated buffer
     else {
-    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+    if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
         arena->resize(blobsize);
       record->data = arena->get_ptr();
     }
 
     copy_chunk(context, page, 0,
-                  blob_id + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
+                  blob_id + sizeof(PBlobHeader) + (flags & UPS_PARTIAL
                           ? record->partial_offset
                           : 0),
                   (uint8_t *)record->data, blobsize, true);
@@ -323,16 +323,16 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   // but only if partial writes are not used
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   if (unlikely(header->get_num_pages() > 1
-        && (m_config->flags & HAM_ENABLE_CRC32))
-        && !(flags & HAM_PARTIAL)) {
+        && (m_config->flags & UPS_ENABLE_CRC32))
+        && !(flags & UPS_PARTIAL)) {
     uint32_t old_crc32 = header->get_freelist_offset(0);
     uint32_t new_crc32;
     MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
 
     if (old_crc32 != new_crc32) {
-      ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+      ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
                       page->get_address(), old_crc32, new_crc32));
-      throw Exception(HAM_INTEGRITY_VIOLATED);
+      throw Exception(UPS_INTEGRITY_VIOLATED);
     }
   }
 }
@@ -345,14 +345,14 @@ DiskBlobManager::do_get_blob_size(Context *context, uint64_t blob_id)
                   true, false);
 
   if (blob_header->blob_id != blob_id)
-    throw Exception(HAM_BLOB_NOT_FOUND);
+    throw Exception(UPS_BLOB_NOT_FOUND);
 
   return (blob_header->size);
 }
 
 uint64_t
 DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
-                ham_record_t *record, uint32_t flags)
+                ups_record_t *record, uint32_t flags)
 {
   PBlobHeader *old_blob_header, new_blob_header;
 
@@ -376,9 +376,9 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                     old_blobid, false, false);
 
   // sanity check
-  ham_assert(old_blob_header->blob_id == old_blobid);
+  ups_assert(old_blob_header->blob_id == old_blobid);
   if (old_blob_header->blob_id != old_blobid)
-    throw Exception(HAM_BLOB_NOT_FOUND);
+    throw Exception(UPS_BLOB_NOT_FOUND);
 
   // now compare the sizes; does the new data fit in the old allocated
   // space?
@@ -397,7 +397,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     // if we have a gap at the beginning, then we have to write the
     // blob header and the blob data in two steps; otherwise we can
     // write both immediately
-    if ((flags & HAM_PARTIAL) && (record->partial_offset)) {
+    if ((flags & UPS_PARTIAL) && (record->partial_offset)) {
       chunk_data[0] = (uint8_t *)&new_blob_header;
       chunk_size[0] = sizeof(new_blob_header);
       write_chunks(context, page, new_blob_header.blob_id,
@@ -413,7 +413,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
       chunk_data[0] = (uint8_t *)&new_blob_header;
       chunk_size[0] = sizeof(new_blob_header);
       chunk_data[1] = (uint8_t *)record->data;
-      chunk_size[1] = (flags & HAM_PARTIAL)
+      chunk_size[1] = (flags & UPS_PARTIAL)
                           ? record->partial_size
                           : record->size;
 
@@ -436,9 +436,9 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     // Pro: multi-page blobs store their CRC in the first freelist offset,
     // but only if partial writes are not used
     if (unlikely(header->get_num_pages() > 1
-            && (m_config->flags & HAM_ENABLE_CRC32))) {
+            && (m_config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
-      if (!(flags & HAM_PARTIAL))
+      if (!(flags & UPS_PARTIAL))
         MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
     }
@@ -464,9 +464,9 @@ DiskBlobManager::do_erase(Context *context, uint64_t blob_id, Page *page,
                         blob_id, false, false);
 
   // sanity check
-  ham_verify(blob_header->blob_id == blob_id);
+  ups_verify(blob_header->blob_id == blob_id);
   if (blob_header->blob_id != blob_id)
-    throw Exception(HAM_BLOB_NOT_FOUND);
+    throw Exception(UPS_BLOB_NOT_FOUND);
 
   // update the "free bytes" counter in the blob page header
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
@@ -492,7 +492,7 @@ bool
 DiskBlobManager::alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
                 uint64_t *poffset)
 {
-  ham_assert(check_integrity(header));
+  ups_assert(check_integrity(header));
 
   // freelist is not used if this is a multi-page blob
   if (header->get_num_pages() > 1)
@@ -506,7 +506,7 @@ DiskBlobManager::alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
       *poffset = header->get_freelist_offset(i);
       header->set_freelist_offset(i, 0);
       header->set_freelist_size(i, 0);
-      ham_assert(check_integrity(header));
+      ups_assert(check_integrity(header));
       return (true);
     }
     // space in freelist is larger than what we need? return this space,
@@ -515,7 +515,7 @@ DiskBlobManager::alloc_from_freelist(PBlobPageHeader *header, uint32_t size,
       *poffset = header->get_freelist_offset(i);
       header->set_freelist_offset(i, (uint32_t)(*poffset + size));
       header->set_freelist_size(i, header->get_freelist_size(i) - size);
-      ham_assert(check_integrity(header));
+      ups_assert(check_integrity(header));
       return (true);
     }
   }
@@ -528,7 +528,7 @@ void
 DiskBlobManager::add_to_freelist(PBlobPageHeader *header,
                 uint32_t offset, uint32_t size)
 {
-  ham_assert(check_integrity(header));
+  ups_assert(check_integrity(header));
 
   // freelist is not used if this is a multi-page blob
   if (header->get_num_pages() > 1)
@@ -541,13 +541,13 @@ DiskBlobManager::add_to_freelist(PBlobPageHeader *header,
     if (offset + size == header->get_freelist_offset(i)) {
       header->set_freelist_offset(i, offset);
       header->set_freelist_size(i, header->get_freelist_size(i) + size);
-      ham_assert(check_integrity(header));
+      ups_assert(check_integrity(header));
       return;
     }
     if (header->get_freelist_offset(i) + header->get_freelist_size(i)
             == offset) {
       header->set_freelist_size(i, header->get_freelist_size(i) + size);
-      ham_assert(check_integrity(header));
+      ups_assert(check_integrity(header));
       return;
     }
   }
@@ -559,7 +559,7 @@ DiskBlobManager::add_to_freelist(PBlobPageHeader *header,
     if (header->get_freelist_size(i) == 0) {
       header->set_freelist_offset(i, offset);
       header->set_freelist_size(i, size);
-      ham_assert(check_integrity(header));
+      ups_assert(check_integrity(header));
       return;
     }
     // otherwise look for the smallest entry
@@ -575,17 +575,17 @@ DiskBlobManager::add_to_freelist(PBlobPageHeader *header,
     header->set_freelist_size(smallest, size);
   }
 
-  ham_assert(check_integrity(header));
+  ups_assert(check_integrity(header));
 }
 
 bool
 DiskBlobManager::check_integrity(PBlobPageHeader *header) const
 {
-  ham_assert(header->get_num_pages() > 0);
+  ups_assert(header->get_num_pages() > 0);
 
   if (header->get_free_bytes() + kPageOverhead
         > (m_config->page_size_bytes * header->get_num_pages())) {
-    ham_trace(("integrity violated: free bytes exceeds page boundary"));
+    ups_trace(("integrity violated: free bytes exceeds page boundary"));
     return (false);
   }
 
@@ -601,7 +601,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
 
   for (uint32_t i = 0; i < count - 1; i++) {
     if (header->get_freelist_size(i) == 0) {
-      ham_assert(header->get_freelist_offset(i) == 0);
+      ups_assert(header->get_freelist_offset(i) == 0);
       continue;
     }
     total_sizes += header->get_freelist_size(i);
@@ -611,7 +611,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
 
   // the sum of freelist chunks must not exceed total number of free bytes
   if (total_sizes > header->get_free_bytes()) {
-    ham_trace(("integrity violated: total freelist slots exceed free bytes"));
+    ups_trace(("integrity violated: total freelist slots exceed free bytes"));
     return (false);
   }
 
@@ -621,15 +621,15 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
     for (uint32_t i = 0; i < ranges.size() - 1; i++) {
       if (ranges[i].first + ranges[i].second
           > m_config->page_size_bytes * header->get_num_pages()) {
-        ham_trace(("integrity violated: freelist slot %u/%u exceeds page",
+        ups_trace(("integrity violated: freelist slot %u/%u exceeds page",
                     ranges[i].first, ranges[i].second));
         return (false);
       }
       if (ranges[i].first + ranges[i].second > ranges[i + 1].first) {
-        ham_trace(("integrity violated: freelist slot %u/%u overlaps with %lu",
+        ups_trace(("integrity violated: freelist slot %u/%u overlaps with %lu",
                     ranges[i].first, ranges[i].second,
                     ranges[i + 1].first));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
     }
   }

@@ -17,7 +17,7 @@
 
 #include <Python.h>
 #include "structmember.h"
-#include <ham/hamsterdb_int.h>
+#include <ups/upscaledb_int.h>
 
 static PyObject *g_exception = NULL;
 static PyObject *g_errhandler = NULL;
@@ -25,9 +25,9 @@ static PyObject *g_errhandler = NULL;
 #define THROW(st)  { throw_exception(st); return (0); }
 
 static void
-throw_exception(ham_status_t st)
+throw_exception(ups_status_t st)
 {
-  PyObject *tuple = Py_BuildValue("(is)", st, ham_strerror(st));
+  PyObject *tuple = Py_BuildValue("(is)", st, ups_strerror(st));
   PyErr_SetObject(g_exception, tuple);
   Py_DECREF(tuple);
 }
@@ -36,13 +36,13 @@ throw_exception(ham_status_t st)
 typedef struct {
     PyObject_HEAD
     PyObject *dblist;
-    ham_env_t *env;
+    ups_env_t *env;
 } HamEnvironment;
 
 /* a Database Object */
 typedef struct {
     PyObject_HEAD
-    ham_db_t *db;
+    ups_db_t *db;
     uint32_t flags;
     PyObject *comparecb;
     PyObject *cursorlist;
@@ -53,13 +53,13 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
     HamDatabase *db;
-    ham_cursor_t *cursor;
+    ups_cursor_t *cursor;
 } HamCursor;
 
 /* a Transaction Object */
 typedef struct {
     PyObject_HEAD
-    ham_txn_t *txn;
+    ups_txn_t *txn;
 } HamTransaction;
 
 static void
@@ -78,7 +78,7 @@ db_dealloc(HamDatabase *self)
     for (i = 0; i < size; i++) {
       HamCursor *c = (HamCursor *)PyList_GET_ITEM(self->cursorlist, i);
       if (c && c->cursor) {
-        ham_cursor_close(c->cursor);
+        ups_cursor_close(c->cursor);
         c->cursor = 0;
       }
       Py_XDECREF(c);
@@ -87,19 +87,19 @@ db_dealloc(HamDatabase *self)
     self->cursorlist = 0;
   }
 
-  ham_db_close(self->db, 0);
+  ups_db_close(self->db, 0);
   self->db = 0;
 
   PyObject_Del(self);
 }
 
 static bool
-parse_parameters(PyObject *extargs, ham_parameter_t *params)
+parse_parameters(PyObject *extargs, ups_parameter_t *params)
 {
   int name;
   int i, extsize = PyTuple_Size(extargs);
 
-  memset(params, 0, 64 * sizeof(ham_parameter_t));
+  memset(params, 0, 64 * sizeof(ups_parameter_t));
 
   /* sanity check */
   if (extsize > 64)
@@ -127,7 +127,7 @@ parse_parameters(PyObject *extargs, ham_parameter_t *params)
 
     // a few parameters are passed as a string
     params[i].name = name;
-    if (name == HAM_PARAM_LOG_DIRECTORY || name == HAM_PARAM_ENCRYPTION_KEY)
+    if (name == UPS_PARAM_LOG_DIRECTORY || name == UPS_PARAM_ENCRYPTION_KEY)
       params[i].value = (uint64_t)PyBytes_AsString(v);
     else
       params[i].value = PyInt_AsLong(v);
@@ -141,12 +141,12 @@ parse_parameters(PyObject *extargs, ham_parameter_t *params)
 static PyObject *
 env_create(HamEnvironment *self, PyObject *args)
 {
-  ham_status_t st;
+  ups_status_t st;
   const char *filename = 0;
   uint32_t mode = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ham_parameter_t params[64]; /* should be enough */
+  ups_parameter_t params[64]; /* should be enough */
 
   if (!PyArg_ParseTuple(args, "|ziiO!:create", &filename, &flags, &mode,
                         &PyTuple_Type, &extargs))
@@ -157,7 +157,7 @@ env_create(HamEnvironment *self, PyObject *args)
       return (0);
   }
 
-  st = ham_env_create(&self->env, filename, flags, mode, 
+  st = ups_env_create(&self->env, filename, flags, mode, 
                   extargs ? params : 0);
   if (st)
     THROW(st);
@@ -167,11 +167,11 @@ env_create(HamEnvironment *self, PyObject *args)
 static PyObject *
 env_open(HamEnvironment *self, PyObject *args)
 {
-  ham_status_t st;
+  ups_status_t st;
   const char *filename = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ham_parameter_t params[64]; /* should be enough */
+  ups_parameter_t params[64]; /* should be enough */
 
   if (!PyArg_ParseTuple(args, "|ziO!:open", &filename, &flags,
                           &PyTuple_Type, &extargs))
@@ -182,7 +182,7 @@ env_open(HamEnvironment *self, PyObject *args)
       return (0);
   }
 
-  st = ham_env_open(&self->env, filename, flags, extargs ? params : 0);
+  st = ups_env_open(&self->env, filename, flags, extargs ? params : 0);
   if (st)
     THROW(st);
 
@@ -195,7 +195,7 @@ env_close(HamEnvironment *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
 
-  ham_status_t st = ham_env_close(self->env, 0);
+  ups_status_t st = ups_env_close(self->env, 0);
   if (st)
     THROW(st);
   self->env = 0;
@@ -212,11 +212,11 @@ construct_cursor(PyObject *self, PyObject *args);
 static PyObject *
 env_create_db(HamEnvironment *self, PyObject *args)
 {
-  ham_status_t st;
+  ups_status_t st;
   int name = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ham_parameter_t params[64]; /* should be enough */
+  ups_parameter_t params[64]; /* should be enough */
 
   if (!PyArg_ParseTuple(args, "i|iO!:create_db", &name, &flags,
                         &PyTuple_Type, &extargs))
@@ -231,7 +231,7 @@ env_create_db(HamEnvironment *self, PyObject *args)
   if (!db)
     return (0);
 
-  st = ham_env_create_db(self->env, &db->db, (uint16_t)name, flags,
+  st = ups_env_create_db(self->env, &db->db, (uint16_t)name, flags,
                   extargs ? params : 0);
   if (st) {
     db_dealloc(db);
@@ -239,7 +239,7 @@ env_create_db(HamEnvironment *self, PyObject *args)
   }
 
   db->flags = flags;
-  ham_set_context_data(db->db, db);
+  ups_set_context_data(db->db, db);
 
   /* add the new database to the environment */
   if (!self->dblist) {
@@ -257,11 +257,11 @@ env_create_db(HamEnvironment *self, PyObject *args)
 static PyObject *
 env_open_db(HamEnvironment *self, PyObject *args)
 {
-  ham_status_t st;
+  ups_status_t st;
   int name = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ham_parameter_t params[64]; /* should be enough */
+  ups_parameter_t params[64]; /* should be enough */
 
   if (!PyArg_ParseTuple(args, "i|iO!:open_db", &name, &flags,
                         &PyTuple_Type, &extargs))
@@ -276,20 +276,20 @@ env_open_db(HamEnvironment *self, PyObject *args)
   if (!db)
     return (0);
 
-  ham_set_context_data(db->db, db);
+  ups_set_context_data(db->db, db);
 
-  st = ham_env_open_db(self->env, &db->db, (uint16_t)name, flags,
+  st = ups_env_open_db(self->env, &db->db, (uint16_t)name, flags,
                   extargs ? params : 0);
   if (st) {
     db_dealloc(db);
     THROW(st);
   }
 
-  ham_parameter_t flag_params[] = {
-    {HAM_PARAM_FLAGS, 0},
+  ups_parameter_t flag_params[] = {
+    {UPS_PARAM_FLAGS, 0},
     {0, 0}
   };
-  ham_db_get_parameters(db->db, &flag_params[0]);
+  ups_db_get_parameters(db->db, &flag_params[0]);
   db->flags = (uint32_t)flag_params[0].value;
 
   /* add the new database to the environment */
@@ -313,7 +313,7 @@ env_rename_db(HamEnvironment *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "ii|:rename_db", &oldname, &newname))
     return (0);
 
-  ham_status_t st = ham_env_rename_db(self->env,
+  ups_status_t st = ups_env_rename_db(self->env,
                   (uint16_t)oldname, (uint16_t)newname, 0);
   if (st)
     THROW(st);
@@ -328,7 +328,7 @@ env_erase_db(HamEnvironment *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "i|:erase_db", &name))
     return (0);
 
-  ham_status_t st = ham_env_erase_db(self->env, (uint16_t)name, 0);
+  ups_status_t st = ups_env_erase_db(self->env, (uint16_t)name, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -340,7 +340,7 @@ env_flush(HamEnvironment *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":flush"))
     return (0);
 
-  ham_status_t st = ham_env_flush(self->env, 0);
+  ups_status_t st = ups_env_flush(self->env, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -355,7 +355,7 @@ env_get_database_names(HamEnvironment *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":get_database_names"))
     return (0);
 
-  ham_status_t st = ham_env_get_database_names(self->env, names, &count);
+  ups_status_t st = ups_env_get_database_names(self->env, names, &count);
   if (st)
     THROW(st);
 
@@ -374,14 +374,14 @@ env_get_database_names(HamEnvironment *self, PyObject *args)
 static PyObject *
 db_find(HamDatabase *self, PyObject *args)
 {
-  ham_key_t key = {0};
-  ham_record_t record = {0};
+  ups_key_t key = {0};
+  ups_record_t record = {0};
   uint32_t recno32;
   uint64_t recno64;
   HamTransaction *txn = 0;
 
   /* recno: first object is an integer */
-  if (self->flags & HAM_RECORD_NUMBER32) {
+  if (self->flags & UPS_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
@@ -389,7 +389,7 @@ db_find(HamDatabase *self, PyObject *args)
     key.data = &recno32;
     key.size = sizeof(recno32);
   }
-  else if (self->flags & HAM_RECORD_NUMBER64) {
+  else if (self->flags & UPS_RECORD_NUMBER64) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
@@ -404,7 +404,7 @@ db_find(HamDatabase *self, PyObject *args)
   if (txn == (HamTransaction *)Py_None)
     txn = 0;
 
-  ham_status_t st = ham_db_find(self->db, txn ? txn->txn : 0, &key, &record, 0);
+  ups_status_t st = ups_db_find(self->db, txn ? txn->txn : 0, &key, &record, 0);
   if (st) {
     if (self->err_type || self->err_value) {
       PyErr_Restore(self->err_type, self->err_value, self->err_traceback);
@@ -447,19 +447,19 @@ statichere PyTypeObject HamTransaction_Type = {
     0,          /*tp_setattro*/
     0,          /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT,     /* tp_flags */
-    "hamsterdb Transaction"  /* tp_doc */
+    "upscaledb Transaction"  /* tp_doc */
 };
 
 static PyObject *
 db_insert(HamDatabase *self, PyObject *args)
 {
-  ham_key_t key = {0};
-  ham_record_t record = {0};
+  ups_key_t key = {0};
+  ups_record_t record = {0};
   uint32_t flags = 0;
   HamTransaction *txn = 0;
 
   /* recno: ignore the second object */
-  if (self->flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
+  if (self->flags & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OOs#|i:insert", &txn, &temp,
                             &record.data, &record.size, &flags))
@@ -473,7 +473,7 @@ db_insert(HamDatabase *self, PyObject *args)
   if (txn == (HamTransaction *)Py_None)
     txn = 0;
 
-  ham_status_t st = ham_db_insert(self->db, txn ? txn->txn : 0,
+  ups_status_t st = ups_db_insert(self->db, txn ? txn->txn : 0,
                   &key, &record, flags);
   if (st) {
     if (self->err_type || self->err_value) {
@@ -491,13 +491,13 @@ db_insert(HamDatabase *self, PyObject *args)
 static PyObject *
 db_erase(HamDatabase *self, PyObject *args)
 {
-  ham_key_t key = {0};
+  ups_key_t key = {0};
   uint32_t recno32;
   uint64_t recno64;
   HamTransaction *txn;
 
   /* recno: first object is an integer */
-  if (self->flags & HAM_RECORD_NUMBER32) {
+  if (self->flags & UPS_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
@@ -505,7 +505,7 @@ db_erase(HamDatabase *self, PyObject *args)
     key.data = &recno32;
     key.size = sizeof(recno32);
   }
-  else if (self->flags & HAM_RECORD_NUMBER64) {
+  else if (self->flags & UPS_RECORD_NUMBER64) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "OO!:find", &txn, &PyInt_Type, &temp))
       return (0);
@@ -520,7 +520,7 @@ db_erase(HamDatabase *self, PyObject *args)
   if (txn == (HamTransaction *)Py_None)
     txn = 0;
 
-  ham_status_t st = ham_db_erase(self->db, txn ? txn->txn : 0, &key, 0);
+  ups_status_t st = ups_db_erase(self->db, txn ? txn->txn : 0, &key, 0);
   if (st) {
     if (self->err_type || self->err_value) {
       PyErr_Restore(self->err_type, self->err_value, self->err_traceback);
@@ -535,12 +535,12 @@ db_erase(HamDatabase *self, PyObject *args)
 }
 
 static int
-compare_func(ham_db_t *db,
+compare_func(ups_db_t *db,
                 const uint8_t *lhs, uint32_t lhs_length,
                 const uint8_t *rhs, uint32_t rhs_length)
 {
   PyObject *arglist, *result;
-  HamDatabase *self = (HamDatabase *)ham_get_context_data(db, HAM_TRUE);
+  HamDatabase *self = (HamDatabase *)ups_get_context_data(db, UPS_TRUE);
 
   arglist = Py_BuildValue("(s#s#)", lhs, lhs_length, rhs, rhs_length);
   result = PyEval_CallObject(self->comparecb, arglist);
@@ -566,7 +566,7 @@ db_set_compare_func(HamDatabase *self, PyObject *args)
     return (0);
 
   if (cb == Py_None)
-    return (Py_BuildValue("i", ham_db_set_compare_func(self->db, 0)));
+    return (Py_BuildValue("i", ups_db_set_compare_func(self->db, 0)));
 
   if (!PyCallable_Check(cb)) {
     PyErr_SetString(PyExc_TypeError, "parameter must be callable");
@@ -579,7 +579,7 @@ db_set_compare_func(HamDatabase *self, PyObject *args)
   Py_XINCREF(cb);
   self->comparecb = cb;
 
-  ham_status_t st = ham_db_set_compare_func(self->db, compare_func);
+  ups_status_t st = ups_db_set_compare_func(self->db, compare_func);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -591,7 +591,7 @@ db_close(HamDatabase *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
 
-  ham_status_t st = ham_db_close(self->db, 0);
+  ups_status_t st = ups_db_close(self->db, 0);
   if (st)
     THROW(st);
   self->db = 0;
@@ -654,7 +654,7 @@ env_dealloc(HamEnvironment *self)
     for (i = 0; i < size; i++) {
       HamDatabase *db = (HamDatabase *)PyList_GET_ITEM(self->dblist, i);
       if (db && db->db) {
-        ham_db_close(db->db, 0);
+        ups_db_close(db->db, 0);
         db->db = 0;
       }
       Py_XDECREF(db);
@@ -664,7 +664,7 @@ env_dealloc(HamEnvironment *self)
   }
 
   if (self->env) {
-    ham_env_close(self->env, 0);
+    ups_env_close(self->env, 0);
     self->env = 0;
   }
 
@@ -677,7 +677,7 @@ cursor_dealloc(HamCursor *self)
   if (!self->cursor)
     return;
 
-  ham_cursor_close(self->cursor);
+  ups_cursor_close(self->cursor);
   self->cursor = 0;
 
   PyObject_Del(self);
@@ -772,12 +772,12 @@ add_const(PyObject *dict, const char *name, long value)
 static PyObject *
 strerror(PyObject *self, PyObject *args)
 {
-  ham_status_t st;
+  ups_status_t st;
 
   if (!PyArg_ParseTuple(args, "i:strerror", &st))
     return (0);
 
-  return (Py_BuildValue("s", ham_strerror(st)));
+  return (Py_BuildValue("s", ups_strerror(st)));
 }
 
 static PyObject *
@@ -786,7 +786,7 @@ is_debug(PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":is_debug"))
     return (0);
 
-  return (Py_BuildValue("i", ham_is_debug() == true ? 1 : 0));
+  return (Py_BuildValue("i", ups_is_debug() == true ? 1 : 0));
 }
 
 static PyObject *
@@ -798,7 +798,7 @@ get_version(PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":get_version"))
     return (0);
 
-  ham_get_version(&major, &minor, &revision);
+  ups_get_version(&major, &minor, &revision);
   sprintf(buffer, "%u.%u.%u", major, minor, revision);
   return (Py_BuildValue("s", buffer));
 }
@@ -821,7 +821,7 @@ set_errhandler(PyObject *self, PyObject *args)
 
   if (cb == Py_None) {
     Py_XDECREF(g_errhandler);
-    ham_set_errhandler(0);
+    ups_set_errhandler(0);
     return (Py_BuildValue(""));
   }
 
@@ -835,14 +835,14 @@ set_errhandler(PyObject *self, PyObject *args)
 
   Py_XINCREF(cb);
   g_errhandler = cb;
-  ham_set_errhandler(errhandler);
+  ups_set_errhandler(errhandler);
   return (Py_BuildValue(""));
 }
 
 /* all exported static functions */
-static PyMethodDef hamsterdb_methods[] = {
+static PyMethodDef upscaledb_methods[] = {
   {"get_version", (PyCFunction)get_version, METH_VARARGS, 
-      "returns the version of the hamsterdb library"},
+      "returns the version of the upscaledb library"},
   {"strerror", (PyCFunction)strerror, METH_VARARGS, 
       "returns a descriptive error string"},
   {"set_errhandler", (PyCFunction)set_errhandler, METH_VARARGS, 
@@ -863,7 +863,7 @@ static PyMethodDef hamsterdb_methods[] = {
 statichere PyTypeObject HamEnvironment_Type = {
     PyObject_HEAD_INIT(NULL)
     0,          /*ob_size*/
-    "hamsterdb.env",  /*tp_name*/
+    "upscaledb.env",  /*tp_name*/
     sizeof(HamEnvironment),   /*tp_basicsize*/
     0,          /*tp_itemsize*/
     /* methods */
@@ -883,7 +883,7 @@ statichere PyTypeObject HamEnvironment_Type = {
     0,          /*tp_setattro*/
     0,          /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT,     /* tp_flags */
-    "hamsterdb Environment"  /* tp_doc */
+    "upscaledb Environment"  /* tp_doc */
 };
 
 static PyObject *
@@ -921,7 +921,7 @@ statichere PyTypeObject HamDatabase_Type = {
     0,          /*tp_setattro*/
     0,          /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT,     /* tp_flags */
-    "hamsterdb Database"  /* tp_doc */
+    "upscaledb Database"  /* tp_doc */
 };
 
 static PyObject *
@@ -971,7 +971,7 @@ statichere PyTypeObject HamCursor_Type = {
     0,          /*tp_setattro*/
     0,          /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT,     /* tp_flags */
-    "hamsterdb Cursor"  /* tp_doc */
+    "upscaledb Cursor"  /* tp_doc */
 };
 
 static PyObject *
@@ -997,7 +997,7 @@ txn_dealloc(HamTransaction *self)
   if (!self->txn)
     return;
 
-  ham_txn_abort(self->txn, 0);
+  ups_txn_abort(self->txn, 0);
   self->txn = 0;
 
   PyObject_Del(self);
@@ -1012,9 +1012,9 @@ txn_begin(HamTransaction *self, PyObject *args)
     return (0);
 
   if (self->txn)
-    ham_txn_abort(self->txn, 0);
+    ups_txn_abort(self->txn, 0);
 
-  ham_status_t st = ham_txn_begin(&self->txn, env->env, 0, 0, 0);
+  ups_status_t st = ups_txn_begin(&self->txn, env->env, 0, 0, 0);
   if (st)
     THROW(st);
 
@@ -1028,7 +1028,7 @@ txn_abort(HamTransaction *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":txn_abort"))
     return (0);
 
-  ham_status_t st = ham_txn_abort(self->txn, 0);
+  ups_status_t st = ups_txn_abort(self->txn, 0);
   if (st)
     THROW(st);
 
@@ -1043,7 +1043,7 @@ txn_commit(HamTransaction *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":txn_commit"))
     return (0);
 
-  ham_status_t st = ham_txn_commit(self->txn, 0);
+  ups_status_t st = ups_txn_commit(self->txn, 0);
   if (st)
     THROW(st);
 
@@ -1073,13 +1073,13 @@ cursor_create(HamCursor *self, PyObject *args)
     return (0);
 
   if (self->cursor)
-    ham_cursor_close(self->cursor);
+    ups_cursor_close(self->cursor);
 
   /* check if first object is either a Transaction or None */
   if (txn && txn == (HamTransaction *)Py_None)
     txn = 0;
 
-  ham_status_t st = ham_cursor_create(&self->cursor, db->db,
+  ups_status_t st = ups_cursor_create(&self->cursor, db->db,
                   txn ? txn->txn : 0, 0);
   if (st)
     THROW(st);
@@ -1109,7 +1109,7 @@ cursor_clone(HamCursor *self, PyObject *args)
   if (!c)
     return (0);
 
-  ham_status_t st = ham_cursor_clone(self->cursor, &c->cursor);
+  ups_status_t st = ups_cursor_clone(self->cursor, &c->cursor);
   if (st)
     THROW(st);
 
@@ -1133,12 +1133,12 @@ cursor_clone(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_insert(HamCursor *self, PyObject *args)
 {
-  ham_key_t key = {0};
-  ham_record_t record = {0};
+  ups_key_t key = {0};
+  ups_record_t record = {0};
   uint32_t flags = 0;
 
   /* recno: ignore the first object */
-  if (self->db->flags & (HAM_RECORD_NUMBER32 | HAM_RECORD_NUMBER64)) {
+  if (self->db->flags & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "Os#|i:insert", &temp,
               &record.data, &record.size, &flags))
@@ -1148,7 +1148,7 @@ cursor_insert(HamCursor *self, PyObject *args)
               &record.data, &record.size, &flags))
     return (0);
 
-  ham_status_t st = ham_cursor_insert(self->cursor, &key, &record, flags);
+  ups_status_t st = ups_cursor_insert(self->cursor, &key, &record, flags);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -1157,13 +1157,13 @@ cursor_insert(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_find(HamCursor *self, PyObject *args)
 {
-  ham_key_t key = {0};
-  ham_record_t record = {0};
+  ups_key_t key = {0};
+  ups_record_t record = {0};
   uint32_t recno32;
   uint64_t recno64;
 
   /* recno: first object is an integer */
-  if (self->db->flags & HAM_RECORD_NUMBER32) {
+  if (self->db->flags & UPS_RECORD_NUMBER32) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "O!:find", &PyInt_Type, &temp))
       return (0);
@@ -1171,7 +1171,7 @@ cursor_find(HamCursor *self, PyObject *args)
     key.data = &recno32;
     key.size = sizeof(recno32);
   }
-  else if (self->db->flags & HAM_RECORD_NUMBER64) {
+  else if (self->db->flags & UPS_RECORD_NUMBER64) {
     PyObject *temp;
     if (!PyArg_ParseTuple(args, "O!:find", &PyInt_Type, &temp))
       return (0);
@@ -1182,7 +1182,7 @@ cursor_find(HamCursor *self, PyObject *args)
   else if (!PyArg_ParseTuple(args, "s#:find", &key.data, &key.size))
     return (0);
 
-  ham_status_t st = ham_cursor_find(self->cursor, &key, &record, 0);
+  ups_status_t st = ups_cursor_find(self->cursor, &key, &record, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue("s#", record.data, record.size));
@@ -1194,7 +1194,7 @@ cursor_erase(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":erase"))
     return (0);
 
-  ham_status_t st = ham_cursor_erase(self->cursor, 0);
+  ups_status_t st = ups_cursor_erase(self->cursor, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -1208,7 +1208,7 @@ cursor_move_to(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "i:move_to", &flags))
     return (0);
 
-  ham_status_t st = ham_cursor_move(self->cursor, 0, 0, flags);
+  ups_status_t st = ups_cursor_move(self->cursor, 0, 0, flags);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -1217,22 +1217,22 @@ cursor_move_to(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_get_key(HamCursor *self, PyObject *args)
 {
-  ham_key_t key = {0};
+  ups_key_t key = {0};
   HamDatabase *db = self->db;
 
   if (!PyArg_ParseTuple(args, ":get_key"))
     return (0);
 
-  ham_status_t st = ham_cursor_move(self->cursor, &key, 0, 0);
+  ups_status_t st = ups_cursor_move(self->cursor, &key, 0, 0);
   if (st)
     THROW(st);
 
   /* recno: return int, otherwise string */
-  if (db->flags & HAM_RECORD_NUMBER32) {
+  if (db->flags & UPS_RECORD_NUMBER32) {
     uint32_t recno = *(uint32_t *)key.data;
     return (Py_BuildValue("i", (int)recno));
   }
-  if (db->flags & HAM_RECORD_NUMBER64) {
+  if (db->flags & UPS_RECORD_NUMBER64) {
     uint64_t recno = *(uint64_t *)key.data;
     return (Py_BuildValue("i", (int)recno));
   }
@@ -1242,12 +1242,12 @@ cursor_get_key(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_get_record(HamCursor *self, PyObject *args)
 {
-  ham_record_t record = {0};
+  ups_record_t record = {0};
 
   if (!PyArg_ParseTuple(args, ":get_record"))
     return (0);
 
-  ham_status_t st = ham_cursor_move(self->cursor, 0, &record, 0);
+  ups_status_t st = ups_cursor_move(self->cursor, 0, &record, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue("s#", record.data, record.size));
@@ -1256,12 +1256,12 @@ cursor_get_record(HamCursor *self, PyObject *args)
 static PyObject *
 cursor_overwrite(HamCursor *self, PyObject *args)
 {
-  ham_record_t record = {0};
+  ups_record_t record = {0};
 
   if (!PyArg_ParseTuple(args, "s#:overwrite", &record.data, &record.size))
     return (0);
 
-  ham_status_t st = ham_cursor_overwrite(self->cursor, &record, 0);
+  ups_status_t st = ups_cursor_overwrite(self->cursor, &record, 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
@@ -1276,7 +1276,7 @@ cursor_get_duplicate_count(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":get_duplicate_count"))
       return (0);
 
-  ham_status_t st = ham_cursor_get_duplicate_count(self->cursor, &count, 0);
+  ups_status_t st = ups_cursor_get_duplicate_count(self->cursor, &count, 0);
   if (st)
     THROW(st);
 
@@ -1291,7 +1291,7 @@ cursor_get_duplicate_position(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":get_duplicate_position"))
       return (0);
 
-  ham_status_t st = ham_cursor_get_duplicate_position(self->cursor, &position);
+  ups_status_t st = ups_cursor_get_duplicate_position(self->cursor, &position);
   if (st)
     THROW(st);
 
@@ -1306,7 +1306,7 @@ cursor_get_record_size(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":get_record_size"))
       return (0);
 
-  ham_status_t st = ham_cursor_get_record_size(self->cursor, &size);
+  ups_status_t st = ups_cursor_get_record_size(self->cursor, &size);
   if (st)
     THROW(st);
 
@@ -1319,7 +1319,7 @@ cursor_close(HamCursor *self, PyObject *args)
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
 
-  ham_status_t st = ham_cursor_close(self->cursor);
+  ups_status_t st = ups_cursor_close(self->cursor);
   if (st)
     THROW(st);
   self->cursor = 0;
@@ -1327,9 +1327,9 @@ cursor_close(HamCursor *self, PyObject *args)
 }
 
 PyMODINIT_FUNC
-inithamsterdb()
+initupscaledb()
 {
-  PyObject *m = Py_InitModule3("hamsterdb", hamsterdb_methods, "hamsterdb");
+  PyObject *m = Py_InitModule3("upscaledb", upscaledb_methods, "upscaledb");
   if (!m)
     return;
 
@@ -1339,119 +1339,119 @@ inithamsterdb()
   HamTransaction_Type.ob_type = &PyType_Type;
 
   PyObject *d = PyModule_GetDict(m);
-  g_exception = PyErr_NewException((char *)"hamsterdb.error", NULL, NULL);
+  g_exception = PyErr_NewException((char *)"upscaledb.error", NULL, NULL);
   PyDict_SetItemString(d, "error", g_exception);
 
-  add_const(d, "HAM_TYPE_BINARY", HAM_TYPE_BINARY);
-  add_const(d, "HAM_TYPE_CUSTOM", HAM_TYPE_CUSTOM);
-  add_const(d, "HAM_TYPE_UINT8", HAM_TYPE_UINT8);
-  add_const(d, "HAM_TYPE_UINT16", HAM_TYPE_UINT16);
-  add_const(d, "HAM_TYPE_UINT32", HAM_TYPE_UINT32);
-  add_const(d, "HAM_TYPE_UINT64", HAM_TYPE_UINT64);
-  add_const(d, "HAM_TYPE_REAL32", HAM_TYPE_REAL32);
-  add_const(d, "HAM_TYPE_REAL64", HAM_TYPE_REAL64);
-  add_const(d, "HAM_SUCCESS", HAM_SUCCESS);
-  add_const(d, "HAM_INV_RECORD_SIZE", HAM_INV_RECORD_SIZE);
-  add_const(d, "HAM_INV_KEY_SIZE", HAM_INV_KEY_SIZE);
-  add_const(d, "HAM_INV_PAGE_SIZE", HAM_INV_PAGE_SIZE);
-  add_const(d, "HAM_OUT_OF_MEMORY", HAM_OUT_OF_MEMORY);
-  add_const(d, "HAM_INV_PARAMETER", HAM_INV_PARAMETER);
-  add_const(d, "HAM_INV_FILE_HEADER", HAM_INV_FILE_HEADER);
-  add_const(d, "HAM_INV_FILE_VERSION", HAM_INV_FILE_VERSION);
-  add_const(d, "HAM_KEY_NOT_FOUND", HAM_KEY_NOT_FOUND);
-  add_const(d, "HAM_DUPLICATE_KEY", HAM_DUPLICATE_KEY);
-  add_const(d, "HAM_INTEGRITY_VIOLATED", HAM_INTEGRITY_VIOLATED);
-  add_const(d, "HAM_INTERNAL_ERROR", HAM_INTERNAL_ERROR);
-  add_const(d, "HAM_WRITE_PROTECTED", HAM_WRITE_PROTECTED);
-  add_const(d, "HAM_BLOB_NOT_FOUND", HAM_BLOB_NOT_FOUND);
-  add_const(d, "HAM_IO_ERROR", HAM_IO_ERROR);
-  add_const(d, "HAM_NOT_IMPLEMENTED", HAM_NOT_IMPLEMENTED);
-  add_const(d, "HAM_FILE_NOT_FOUND", HAM_FILE_NOT_FOUND);
-  add_const(d, "HAM_WOULD_BLOCK", HAM_WOULD_BLOCK);
-  add_const(d, "HAM_NOT_READY", HAM_NOT_READY);
-  add_const(d, "HAM_LIMITS_REACHED", HAM_LIMITS_REACHED);
-  add_const(d, "HAM_ALREADY_INITIALIZED", HAM_ALREADY_INITIALIZED);
-  add_const(d, "HAM_NEED_RECOVERY", HAM_NEED_RECOVERY);
-  add_const(d, "HAM_CURSOR_STILL_OPEN", HAM_CURSOR_STILL_OPEN);
-  add_const(d, "HAM_FILTER_NOT_FOUND", HAM_FILTER_NOT_FOUND);
-  add_const(d, "HAM_TXN_CONFLICT", HAM_TXN_CONFLICT);
-  add_const(d, "HAM_KEY_ERASED_IN_TXN", HAM_KEY_ERASED_IN_TXN);
-  add_const(d, "HAM_TXN_STILL_OPEN", HAM_TXN_STILL_OPEN);
-  add_const(d, "HAM_CURSOR_IS_NIL", HAM_CURSOR_IS_NIL);
-  add_const(d, "HAM_DATABASE_NOT_FOUND", HAM_DATABASE_NOT_FOUND);
-  add_const(d, "HAM_DATABASE_ALREADY_EXISTS", HAM_DATABASE_ALREADY_EXISTS);
-  add_const(d, "HAM_DATABASE_ALREADY_OPEN", HAM_DATABASE_ALREADY_OPEN);
-  add_const(d, "HAM_ENVIRONMENT_ALREADY_OPEN", HAM_ENVIRONMENT_ALREADY_OPEN);
-  add_const(d, "HAM_LOG_INV_FILE_HEADER", HAM_LOG_INV_FILE_HEADER);
-  add_const(d, "HAM_NETWORK_ERROR", HAM_NETWORK_ERROR);
-  add_const(d, "HAM_DEBUG_LEVEL_DEBUG", HAM_DEBUG_LEVEL_DEBUG);
-  add_const(d, "HAM_DEBUG_LEVEL_NORMAL", HAM_DEBUG_LEVEL_NORMAL);
-  add_const(d, "HAM_DEBUG_LEVEL_FATAL", HAM_DEBUG_LEVEL_FATAL);
-  add_const(d, "HAM_TXN_READ_ONLY", HAM_TXN_READ_ONLY);
-  add_const(d, "HAM_TXN_TEMPORARY", HAM_TXN_TEMPORARY);
-  add_const(d, "HAM_ENABLE_FSYNC", HAM_ENABLE_FSYNC);
-  add_const(d, "HAM_READ_ONLY", HAM_READ_ONLY);
-  add_const(d, "HAM_IN_MEMORY", HAM_IN_MEMORY);
-  add_const(d, "HAM_DISABLE_MMAP", HAM_DISABLE_MMAP);
-  add_const(d, "HAM_RECORD_NUMBER", HAM_RECORD_NUMBER64); // deprecated
-  add_const(d, "HAM_RECORD_NUMBER32", HAM_RECORD_NUMBER32);
-  add_const(d, "HAM_RECORD_NUMBER64", HAM_RECORD_NUMBER64);
-  add_const(d, "HAM_ENABLE_DUPLICATE_KEYS", HAM_ENABLE_DUPLICATE_KEYS);
-  add_const(d, "HAM_ENABLE_RECOVERY", HAM_ENABLE_RECOVERY);
-  add_const(d, "HAM_AUTO_RECOVERY", HAM_AUTO_RECOVERY);
-  add_const(d, "HAM_ENABLE_TRANSACTIONS", HAM_ENABLE_TRANSACTIONS);
-  add_const(d, "HAM_CACHE_UNLIMITED", HAM_CACHE_UNLIMITED);
-  add_const(d, "HAM_DISABLE_RECOVERY", HAM_DISABLE_RECOVERY);
-  add_const(d, "HAM_IS_REMOTE_INTERNAL", HAM_IS_REMOTE_INTERNAL);
-  add_const(d, "HAM_DISABLE_RECLAIM_INTERNAL", HAM_DISABLE_RECLAIM_INTERNAL);
-  add_const(d, "HAM_FORCE_RECORDS_INLINE", HAM_FORCE_RECORDS_INLINE);
-  add_const(d, "HAM_FLUSH_WHEN_COMMITTED", HAM_FLUSH_WHEN_COMMITTED);
-  add_const(d, "HAM_ENABLE_CRC32", HAM_ENABLE_CRC32);
-  add_const(d, "HAM_OVERWRITE", HAM_OVERWRITE);
-  add_const(d, "HAM_DUPLICATE", HAM_DUPLICATE);
-  add_const(d, "HAM_DUPLICATE_INSERT_BEFORE", HAM_DUPLICATE_INSERT_BEFORE);
-  add_const(d, "HAM_DUPLICATE_INSERT_AFTER", HAM_DUPLICATE_INSERT_AFTER);
-  add_const(d, "HAM_DUPLICATE_INSERT_FIRST", HAM_DUPLICATE_INSERT_FIRST);
-  add_const(d, "HAM_DUPLICATE_INSERT_LAST", HAM_DUPLICATE_INSERT_LAST);
-  add_const(d, "HAM_DIRECT_ACCESS", HAM_DIRECT_ACCESS);
-  add_const(d, "HAM_HINT_APPEND", HAM_HINT_APPEND);
-  add_const(d, "HAM_HINT_PREPEND", HAM_HINT_PREPEND);
-  add_const(d, "HAM_ERASE_ALL_DUPLICATES", HAM_ERASE_ALL_DUPLICATES);
-  add_const(d, "HAM_PARAM_CACHE_SIZE", HAM_PARAM_CACHE_SIZE);
-  add_const(d, "HAM_PARAM_CACHESIZE", HAM_PARAM_CACHESIZE);
-  add_const(d, "HAM_PARAM_PAGE_SIZE", HAM_PARAM_PAGE_SIZE);
-  add_const(d, "HAM_PARAM_PAGESIZE", HAM_PARAM_PAGESIZE);
-  add_const(d, "HAM_PARAM_FILE_SIZE_LIMIT", HAM_PARAM_FILE_SIZE_LIMIT);
-  add_const(d, "HAM_PARAM_KEY_SIZE", HAM_PARAM_KEY_SIZE);
-  add_const(d, "HAM_PARAM_KEYSIZE", HAM_PARAM_KEYSIZE);
-  add_const(d, "HAM_PARAM_MAX_DATABASES", HAM_PARAM_MAX_DATABASES);
-  add_const(d, "HAM_PARAM_KEY_TYPE", HAM_PARAM_KEY_TYPE);
-  add_const(d, "HAM_PARAM_LOG_DIRECTORY", HAM_PARAM_LOG_DIRECTORY);
-  add_const(d, "HAM_PARAM_ENCRYPTION_KEY", HAM_PARAM_ENCRYPTION_KEY);
-  add_const(d, "HAM_PARAM_NETWORK_TIMEOUT_SEC", HAM_PARAM_NETWORK_TIMEOUT_SEC);
-  add_const(d, "HAM_PARAM_RECORD_SIZE", HAM_PARAM_RECORD_SIZE);
-  add_const(d, "HAM_RECORD_SIZE_UNLIMITED", HAM_RECORD_SIZE_UNLIMITED);
-  add_const(d, "HAM_KEY_SIZE_UNLIMITED", HAM_KEY_SIZE_UNLIMITED);
-  add_const(d, "HAM_PARAM_FLAGS", HAM_PARAM_FLAGS);
-  add_const(d, "HAM_PARAM_FILEMODE", HAM_PARAM_FILEMODE);
-  add_const(d, "HAM_PARAM_FILENAME", HAM_PARAM_FILENAME);
-  add_const(d, "HAM_PARAM_DATABASE_NAME", HAM_PARAM_DATABASE_NAME);
-  add_const(d, "HAM_PARAM_MAX_KEYS_PER_PAGE", HAM_PARAM_MAX_KEYS_PER_PAGE);
-  add_const(d, "HAM_PARAM_JOURNAL_COMPRESSION", HAM_PARAM_JOURNAL_COMPRESSION);
-  add_const(d, "HAM_PARAM_RECORD_COMPRESSION", HAM_PARAM_RECORD_COMPRESSION);
-  add_const(d, "HAM_PARAM_KEY_COMPRESSION", HAM_PARAM_KEY_COMPRESSION);
-  add_const(d, "HAM_COMPRESSOR_NONE", HAM_COMPRESSOR_NONE);
-  add_const(d, "HAM_COMPRESSOR_ZLIB", HAM_COMPRESSOR_ZLIB);
-  add_const(d, "HAM_COMPRESSOR_SNAPPY", HAM_COMPRESSOR_SNAPPY);
-  add_const(d, "HAM_COMPRESSOR_LZF", HAM_COMPRESSOR_LZF);
-  add_const(d, "HAM_COMPRESSOR_LZO", HAM_COMPRESSOR_LZO);
-  add_const(d, "HAM_TXN_AUTO_ABORT", HAM_TXN_AUTO_ABORT);
-  add_const(d, "HAM_TXN_AUTO_COMMIT", HAM_TXN_AUTO_COMMIT);
-  add_const(d, "HAM_CURSOR_FIRST", HAM_CURSOR_FIRST);
-  add_const(d, "HAM_CURSOR_LAST", HAM_CURSOR_LAST);
-  add_const(d, "HAM_CURSOR_NEXT", HAM_CURSOR_NEXT);
-  add_const(d, "HAM_CURSOR_PREVIOUS", HAM_CURSOR_PREVIOUS);
-  add_const(d, "HAM_SKIP_DUPLICATES", HAM_SKIP_DUPLICATES);
-  add_const(d, "HAM_ONLY_DUPLICATES", HAM_ONLY_DUPLICATES);
+  add_const(d, "UPS_TYPE_BINARY", UPS_TYPE_BINARY);
+  add_const(d, "UPS_TYPE_CUSTOM", UPS_TYPE_CUSTOM);
+  add_const(d, "UPS_TYPE_UINT8", UPS_TYPE_UINT8);
+  add_const(d, "UPS_TYPE_UINT16", UPS_TYPE_UINT16);
+  add_const(d, "UPS_TYPE_UINT32", UPS_TYPE_UINT32);
+  add_const(d, "UPS_TYPE_UINT64", UPS_TYPE_UINT64);
+  add_const(d, "UPS_TYPE_REAL32", UPS_TYPE_REAL32);
+  add_const(d, "UPS_TYPE_REAL64", UPS_TYPE_REAL64);
+  add_const(d, "UPS_SUCCESS", UPS_SUCCESS);
+  add_const(d, "UPS_INV_RECORD_SIZE", UPS_INV_RECORD_SIZE);
+  add_const(d, "UPS_INV_KEY_SIZE", UPS_INV_KEY_SIZE);
+  add_const(d, "UPS_INV_PAGE_SIZE", UPS_INV_PAGE_SIZE);
+  add_const(d, "UPS_OUT_OF_MEMORY", UPS_OUT_OF_MEMORY);
+  add_const(d, "UPS_INV_PARAMETER", UPS_INV_PARAMETER);
+  add_const(d, "UPS_INV_FILE_HEADER", UPS_INV_FILE_HEADER);
+  add_const(d, "UPS_INV_FILE_VERSION", UPS_INV_FILE_VERSION);
+  add_const(d, "UPS_KEY_NOT_FOUND", UPS_KEY_NOT_FOUND);
+  add_const(d, "UPS_DUPLICATE_KEY", UPS_DUPLICATE_KEY);
+  add_const(d, "UPS_INTEGRITY_VIOLATED", UPS_INTEGRITY_VIOLATED);
+  add_const(d, "UPS_INTERNAL_ERROR", UPS_INTERNAL_ERROR);
+  add_const(d, "UPS_WRITE_PROTECTED", UPS_WRITE_PROTECTED);
+  add_const(d, "UPS_BLOB_NOT_FOUND", UPS_BLOB_NOT_FOUND);
+  add_const(d, "UPS_IO_ERROR", UPS_IO_ERROR);
+  add_const(d, "UPS_NOT_IMPLEMENTED", UPS_NOT_IMPLEMENTED);
+  add_const(d, "UPS_FILE_NOT_FOUND", UPS_FILE_NOT_FOUND);
+  add_const(d, "UPS_WOULD_BLOCK", UPS_WOULD_BLOCK);
+  add_const(d, "UPS_NOT_READY", UPS_NOT_READY);
+  add_const(d, "UPS_LIMITS_REACHED", UPS_LIMITS_REACHED);
+  add_const(d, "UPS_ALREADY_INITIALIZED", UPS_ALREADY_INITIALIZED);
+  add_const(d, "UPS_NEED_RECOVERY", UPS_NEED_RECOVERY);
+  add_const(d, "UPS_CURSOR_STILL_OPEN", UPS_CURSOR_STILL_OPEN);
+  add_const(d, "UPS_FILTER_NOT_FOUND", UPS_FILTER_NOT_FOUND);
+  add_const(d, "UPS_TXN_CONFLICT", UPS_TXN_CONFLICT);
+  add_const(d, "UPS_KEY_ERASED_IN_TXN", UPS_KEY_ERASED_IN_TXN);
+  add_const(d, "UPS_TXN_STILL_OPEN", UPS_TXN_STILL_OPEN);
+  add_const(d, "UPS_CURSOR_IS_NIL", UPS_CURSOR_IS_NIL);
+  add_const(d, "UPS_DATABASE_NOT_FOUND", UPS_DATABASE_NOT_FOUND);
+  add_const(d, "UPS_DATABASE_ALREADY_EXISTS", UPS_DATABASE_ALREADY_EXISTS);
+  add_const(d, "UPS_DATABASE_ALREADY_OPEN", UPS_DATABASE_ALREADY_OPEN);
+  add_const(d, "UPS_ENVIRONMENT_ALREADY_OPEN", UPS_ENVIRONMENT_ALREADY_OPEN);
+  add_const(d, "UPS_LOG_INV_FILE_HEADER", UPS_LOG_INV_FILE_HEADER);
+  add_const(d, "UPS_NETWORK_ERROR", UPS_NETWORK_ERROR);
+  add_const(d, "UPS_DEBUG_LEVEL_DEBUG", UPS_DEBUG_LEVEL_DEBUG);
+  add_const(d, "UPS_DEBUG_LEVEL_NORMAL", UPS_DEBUG_LEVEL_NORMAL);
+  add_const(d, "UPS_DEBUG_LEVEL_FATAL", UPS_DEBUG_LEVEL_FATAL);
+  add_const(d, "UPS_TXN_READ_ONLY", UPS_TXN_READ_ONLY);
+  add_const(d, "UPS_TXN_TEMPORARY", UPS_TXN_TEMPORARY);
+  add_const(d, "UPS_ENABLE_FSYNC", UPS_ENABLE_FSYNC);
+  add_const(d, "UPS_READ_ONLY", UPS_READ_ONLY);
+  add_const(d, "UPS_IN_MEMORY", UPS_IN_MEMORY);
+  add_const(d, "UPS_DISABLE_MMAP", UPS_DISABLE_MMAP);
+  add_const(d, "UPS_RECORD_NUMBER", UPS_RECORD_NUMBER64); // deprecated
+  add_const(d, "UPS_RECORD_NUMBER32", UPS_RECORD_NUMBER32);
+  add_const(d, "UPS_RECORD_NUMBER64", UPS_RECORD_NUMBER64);
+  add_const(d, "UPS_ENABLE_DUPLICATE_KEYS", UPS_ENABLE_DUPLICATE_KEYS);
+  add_const(d, "UPS_ENABLE_RECOVERY", UPS_ENABLE_RECOVERY);
+  add_const(d, "UPS_AUTO_RECOVERY", UPS_AUTO_RECOVERY);
+  add_const(d, "UPS_ENABLE_TRANSACTIONS", UPS_ENABLE_TRANSACTIONS);
+  add_const(d, "UPS_CACHE_UNLIMITED", UPS_CACHE_UNLIMITED);
+  add_const(d, "UPS_DISABLE_RECOVERY", UPS_DISABLE_RECOVERY);
+  add_const(d, "UPS_IS_REMOTE_INTERNAL", UPS_IS_REMOTE_INTERNAL);
+  add_const(d, "UPS_DISABLE_RECLAIM_INTERNAL", UPS_DISABLE_RECLAIM_INTERNAL);
+  add_const(d, "UPS_FORCE_RECORDS_INLINE", UPS_FORCE_RECORDS_INLINE);
+  add_const(d, "UPS_FLUSH_WHEN_COMMITTED", UPS_FLUSH_WHEN_COMMITTED);
+  add_const(d, "UPS_ENABLE_CRC32", UPS_ENABLE_CRC32);
+  add_const(d, "UPS_OVERWRITE", UPS_OVERWRITE);
+  add_const(d, "UPS_DUPLICATE", UPS_DUPLICATE);
+  add_const(d, "UPS_DUPLICATE_INSERT_BEFORE", UPS_DUPLICATE_INSERT_BEFORE);
+  add_const(d, "UPS_DUPLICATE_INSERT_AFTER", UPS_DUPLICATE_INSERT_AFTER);
+  add_const(d, "UPS_DUPLICATE_INSERT_FIRST", UPS_DUPLICATE_INSERT_FIRST);
+  add_const(d, "UPS_DUPLICATE_INSERT_LAST", UPS_DUPLICATE_INSERT_LAST);
+  add_const(d, "UPS_DIRECT_ACCESS", UPS_DIRECT_ACCESS);
+  add_const(d, "UPS_HINT_APPEND", UPS_HINT_APPEND);
+  add_const(d, "UPS_HINT_PREPEND", UPS_HINT_PREPEND);
+  add_const(d, "UPS_ERASE_ALL_DUPLICATES", UPS_ERASE_ALL_DUPLICATES);
+  add_const(d, "UPS_PARAM_CACHE_SIZE", UPS_PARAM_CACHE_SIZE);
+  add_const(d, "UPS_PARAM_CACHESIZE", UPS_PARAM_CACHESIZE);
+  add_const(d, "UPS_PARAM_PAGE_SIZE", UPS_PARAM_PAGE_SIZE);
+  add_const(d, "UPS_PARAM_PAGESIZE", UPS_PARAM_PAGESIZE);
+  add_const(d, "UPS_PARAM_FILE_SIZE_LIMIT", UPS_PARAM_FILE_SIZE_LIMIT);
+  add_const(d, "UPS_PARAM_KEY_SIZE", UPS_PARAM_KEY_SIZE);
+  add_const(d, "UPS_PARAM_KEYSIZE", UPS_PARAM_KEYSIZE);
+  add_const(d, "UPS_PARAM_MAX_DATABASES", UPS_PARAM_MAX_DATABASES);
+  add_const(d, "UPS_PARAM_KEY_TYPE", UPS_PARAM_KEY_TYPE);
+  add_const(d, "UPS_PARAM_LOG_DIRECTORY", UPS_PARAM_LOG_DIRECTORY);
+  add_const(d, "UPS_PARAM_ENCRYPTION_KEY", UPS_PARAM_ENCRYPTION_KEY);
+  add_const(d, "UPS_PARAM_NETWORK_TIMEOUT_SEC", UPS_PARAM_NETWORK_TIMEOUT_SEC);
+  add_const(d, "UPS_PARAM_RECORD_SIZE", UPS_PARAM_RECORD_SIZE);
+  add_const(d, "UPS_RECORD_SIZE_UNLIMITED", UPS_RECORD_SIZE_UNLIMITED);
+  add_const(d, "UPS_KEY_SIZE_UNLIMITED", UPS_KEY_SIZE_UNLIMITED);
+  add_const(d, "UPS_PARAM_FLAGS", UPS_PARAM_FLAGS);
+  add_const(d, "UPS_PARAM_FILEMODE", UPS_PARAM_FILEMODE);
+  add_const(d, "UPS_PARAM_FILENAME", UPS_PARAM_FILENAME);
+  add_const(d, "UPS_PARAM_DATABASE_NAME", UPS_PARAM_DATABASE_NAME);
+  add_const(d, "UPS_PARAM_MAX_KEYS_PER_PAGE", UPS_PARAM_MAX_KEYS_PER_PAGE);
+  add_const(d, "UPS_PARAM_JOURNAL_COMPRESSION", UPS_PARAM_JOURNAL_COMPRESSION);
+  add_const(d, "UPS_PARAM_RECORD_COMPRESSION", UPS_PARAM_RECORD_COMPRESSION);
+  add_const(d, "UPS_PARAM_KEY_COMPRESSION", UPS_PARAM_KEY_COMPRESSION);
+  add_const(d, "UPS_COMPRESSOR_NONE", UPS_COMPRESSOR_NONE);
+  add_const(d, "UPS_COMPRESSOR_ZLIB", UPS_COMPRESSOR_ZLIB);
+  add_const(d, "UPS_COMPRESSOR_SNAPPY", UPS_COMPRESSOR_SNAPPY);
+  add_const(d, "UPS_COMPRESSOR_LZF", UPS_COMPRESSOR_LZF);
+  add_const(d, "UPS_COMPRESSOR_LZO", UPS_COMPRESSOR_LZO);
+  add_const(d, "UPS_TXN_AUTO_ABORT", UPS_TXN_AUTO_ABORT);
+  add_const(d, "UPS_TXN_AUTO_COMMIT", UPS_TXN_AUTO_COMMIT);
+  add_const(d, "UPS_CURSOR_FIRST", UPS_CURSOR_FIRST);
+  add_const(d, "UPS_CURSOR_LAST", UPS_CURSOR_LAST);
+  add_const(d, "UPS_CURSOR_NEXT", UPS_CURSOR_NEXT);
+  add_const(d, "UPS_CURSOR_PREVIOUS", UPS_CURSOR_PREVIOUS);
+  add_const(d, "UPS_SKIP_DUPLICATES", UPS_SKIP_DUPLICATES);
+  add_const(d, "UPS_ONLY_DUPLICATES", UPS_ONLY_DUPLICATES);
 }
 

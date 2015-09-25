@@ -21,18 +21,18 @@
  *
  */
 
-#ifndef HAM_BLOB_MANAGER_H
-#define HAM_BLOB_MANAGER_H
+#ifndef UPS_BLOB_MANAGER_H
+#define UPS_BLOB_MANAGER_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb_int.h"
+#include "ups/upscaledb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/dynamic_array.h"
 #include "2page/page.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -49,7 +49,7 @@ struct EnvironmentConfiguration;
 //
 // This header is prepended to the blob's payload. It holds the blob size and
 // the blob's address (which is not required but useful for error checking.)
-HAM_PACK_0 struct HAM_PACK_1 PBlobHeader
+UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 {
   PBlobHeader() {
     ::memset(this, 0, sizeof(PBlobHeader));
@@ -76,7 +76,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBlobHeader
   // The size of the blob from the user's point of view (excluding the header)
   uint64_t size;
 
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -95,7 +95,7 @@ class BlobManager
 
   public:
     // Flags for allocate(); make sure that they do not conflict with
-    // the flags for ham_db_insert()
+    // the flags for ups_db_insert()
     enum {
       // Do not compress the blob, even if compression is enabled
       kDisableCompression = 0x10000000
@@ -115,12 +115,12 @@ class BlobManager
     // This function returns the blob-id (the start address of the blob
     // header)
     //
-    // |flags| can be HAM_PARTIAL, kDisableCompression
-    uint64_t allocate(Context *context, ham_record_t *record, uint32_t flags);
+    // |flags| can be UPS_PARTIAL, kDisableCompression
+    uint64_t allocate(Context *context, ups_record_t *record, uint32_t flags);
 
     // Reads a blob and stores the data in @a record.
-    // @ref flags: either 0 or HAM_DIRECT_ACCESS
-    void read(Context *context, uint64_t blob_id, ham_record_t *record,
+    // @ref flags: either 0 or UPS_DIRECT_ACCESS
+    void read(Context *context, uint64_t blob_id, ups_record_t *record,
                     uint32_t flags, ByteArray *arena);
 
     // Retrieves the size of a blob
@@ -131,14 +131,14 @@ class BlobManager
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
     uint64_t overwrite(Context *context, uint64_t old_blob_id,
-                    ham_record_t *record, uint32_t flags);
+                    ups_record_t *record, uint32_t flags);
 
     // Deletes an existing blob
     void erase(Context *context, uint64_t blob_id, Page *page = 0,
                     uint32_t flags = 0);
 
     // Fills in the current metrics
-    void fill_metrics(ham_env_metrics_t *metrics) const {
+    void fill_metrics(ups_env_metrics_t *metrics) const {
       metrics->blob_total_allocated = m_metric_total_allocated;
       metrics->blob_total_read = m_metric_total_read;
       metrics->record_bytes_before_compression = m_metric_before_compression;
@@ -149,13 +149,13 @@ class BlobManager
     // Allocates/create a new blob.
     // This function returns the blob-id (the start address of the blob
     // header)
-    virtual uint64_t do_allocate(Context *context, ham_record_t *record,
+    virtual uint64_t do_allocate(Context *context, ups_record_t *record,
                     uint32_t flags) = 0;
 
     // Reads a blob and stores the data in @a record.
-    // @ref flags: either 0 or HAM_DIRECT_ACCESS
+    // @ref flags: either 0 or UPS_DIRECT_ACCESS
     virtual void do_read(Context *context, uint64_t blob_id,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
@@ -167,7 +167,7 @@ class BlobManager
     // Will return an error if the blob does not exist. Returns the blob-id
     // (the start address of the blob header)
     virtual uint64_t do_overwrite(Context *context, uint64_t old_blob_id,
-                    ham_record_t *record, uint32_t flags) = 0;
+                    ups_record_t *record, uint32_t flags) = 0;
 
     // Deletes an existing blob
     virtual void do_erase(Context *context, uint64_t blob_id,
@@ -198,4 +198,4 @@ class BlobManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_BLOB_MANAGER_H */
+#endif /* UPS_BLOB_MANAGER_H */

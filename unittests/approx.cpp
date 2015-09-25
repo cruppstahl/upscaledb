@@ -34,7 +34,7 @@
 using namespace hamsterdb;
 
 static int
-slot_key_cmp(ham_db_t *db, const uint8_t *lhs, uint32_t lsz,
+slot_key_cmp(ups_db_t *db, const uint8_t *lhs, uint32_t lsz,
         const uint8_t *rhs, uint32_t rsz)
 {
   uint32_t i;
@@ -48,18 +48,18 @@ slot_key_cmp(ham_db_t *db, const uint8_t *lhs, uint32_t lsz,
 }
 
 struct ApproxFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
-  ham_txn_t *m_txn;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
+  ups_txn_t *m_txn;
 
   ApproxFixture() {
     (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-          ham_env_create(&m_env, Utils::opath(".test"),
-              HAM_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+          ups_env_create(&m_env, Utils::opath(".test"),
+              UPS_ENABLE_TRANSACTIONS, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
   }
 
   ~ApproxFixture() {
@@ -68,17 +68,17 @@ struct ApproxFixture {
 
   void teardown() {
     if (m_txn) {
-      REQUIRE(0 == ham_txn_abort(m_txn, 0));
+      REQUIRE(0 == ups_txn_abort(m_txn, 0));
       m_txn = 0;
     }
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
-  ham_status_t insertBtree(const char *s) {
-    ham_key_t k = {};
+  ups_status_t insertBtree(const char *s) {
+    ups_key_t k = {};
     k.data = (void *)s;
     k.size = strlen(s) + 1;
-    ham_record_t r = {};
+    ups_record_t r = {};
     r.data = k.data;
     r.size = k.size;
 
@@ -88,77 +88,77 @@ struct ApproxFixture {
     return (be->insert(&context, 0, &k, &r, 0));
   }
 
-  ham_status_t insertTxn(const char *s, uint32_t flags = 0) {
-    ham_key_t k = {};
+  ups_status_t insertTxn(const char *s, uint32_t flags = 0) {
+    ups_key_t k = {};
     k.data = (void *)s;
     k.size = strlen(s) + 1;
-    ham_record_t r = {};
+    ups_record_t r = {};
     r.data = k.data;
     r.size = k.size;
 
-    return (ham_db_insert(m_db, m_txn, &k, &r, flags));
+    return (ups_db_insert(m_db, m_txn, &k, &r, flags));
   }
 
-  ham_status_t eraseTxn(const char *s) {
-    ham_key_t k = {};
+  ups_status_t eraseTxn(const char *s) {
+    ups_key_t k = {};
     k.data = (void *)s;
     k.size = strlen(s)+1;
 
-    return (ham_db_erase(m_db, m_txn, &k, 0));
+    return (ups_db_erase(m_db, m_txn, &k, 0));
   }
 
-  ham_status_t find(uint32_t flags, const char *search, const char *expected) {
-    ham_key_t k = {};
+  ups_status_t find(uint32_t flags, const char *search, const char *expected) {
+    ups_key_t k = {};
     k.data = (void *)search;
     k.size = strlen(search) + 1;
-    ham_record_t r = {};
+    ups_record_t r = {};
 
-    ham_status_t st = ham_db_find(m_db, m_txn, &k, &r, flags);
+    ups_status_t st = ups_db_find(m_db, m_txn, &k, &r, flags);
     if (st)
       return (st);
     if (strcmp(expected, (const char *)k.data))
-      REQUIRE((ham_key_get_intflags(&k) & BtreeKey::kApproximate));
+      REQUIRE((ups_key_get_intflags(&k) & BtreeKey::kApproximate));
     return (::strcmp(expected, (const char *)r.data));
   }
 
   void lessThanTest1() {
     // btree < nil
     REQUIRE(0 == insertBtree("1"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "2", "1"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "2", "1"));
   }
 
   void lessThanTest2() {
     // txn < nil
     REQUIRE(0 == insertTxn("2"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "3", "2"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "3", "2"));
   }
 
   void lessThanTest3() {
     // btree < txn
     REQUIRE(0 == insertBtree("10"));
     REQUIRE(0 == insertTxn("11"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "11", "10"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "11", "10"));
   }
 
   void lessThanTest4() {
     // txn < btree
     REQUIRE(0 == insertTxn("20"));
     REQUIRE(0 == insertBtree("21"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "21", "20"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "21", "20"));
   }
 
   void lessThanTest5() {
     // btree < btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "31", "30"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "31", "30"));
   }
 
   void lessThanTest6() {
     // txn < txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "41", "40"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "41", "40"));
   }
 
   void lessThanTest7() {
@@ -167,7 +167,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == insertTxn("52"));
     REQUIRE(0 == eraseTxn("51"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "52", "50"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "52", "50"));
   }
 
   void lessThanTest8() {
@@ -176,7 +176,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("61"));
     REQUIRE(0 == insertTxn("62"));
     REQUIRE(0 == eraseTxn("61"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "62", "60"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "62", "60"));
   }
 
   void lessThanTest9() {
@@ -184,7 +184,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertBtree("71"));
     REQUIRE(0 == eraseTxn("71"));
     REQUIRE(0 == insertTxn("70"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "71", "70"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "71", "70"));
   }
 
   void lessThanTest10() {
@@ -195,85 +195,85 @@ struct ApproxFixture {
     REQUIRE(0 == insertBtree("82"));
     REQUIRE(0 == eraseTxn("82"));
     REQUIRE(0 == insertTxn("83"));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "83", "80"));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "83", "80"));
   }
 
   void lessThanTest11() {
     // overwrite btree
     REQUIRE(0 == insertBtree("92"));
-    REQUIRE(0 == insertTxn("92", HAM_OVERWRITE));
+    REQUIRE(0 == insertTxn("92", UPS_OVERWRITE));
     REQUIRE(0 == insertBtree("93"));
-    REQUIRE(0 == insertTxn("93", HAM_OVERWRITE));
-    REQUIRE(0 == find(HAM_FIND_LT_MATCH, "93", "92"));
+    REQUIRE(0 == insertTxn("93", UPS_OVERWRITE));
+    REQUIRE(0 == find(UPS_FIND_LT_MATCH, "93", "92"));
   }
 
   void lessOrEqualTest1() {
     // btree < nil
     REQUIRE(0 == insertBtree("1"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "2", "1"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "2", "1"));
   }
 
   void lessOrEqualTest2() {
     // btree = nil
     REQUIRE(0 == insertBtree("2"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "2", "2"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "2", "2"));
   }
 
   void lessOrEqualTest3() {
     // txn < nil
     REQUIRE(0 == insertTxn("3"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "4", "3"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "4", "3"));
   }
 
   void lessOrEqualTest4() {
     // txn = nil
     REQUIRE(0 == insertTxn("4"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "5", "4"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "5", "4"));
   }
 
   void lessOrEqualTest5() {
     // btree < txn
     REQUIRE(0 == insertBtree("10"));
     REQUIRE(0 == insertTxn("11"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "11", "11"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "11", "11"));
   }
 
   void lessOrEqualTest6() {
     // txn < btree
     REQUIRE(0 == insertTxn("20"));
     REQUIRE(0 == insertBtree("21"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "21", "21"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "22", "21"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "21", "21"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "22", "21"));
   }
 
   void lessOrEqualTest7() {
     // btree < btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "31", "31"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "32", "31"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "31", "31"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "32", "31"));
   }
 
   void lessOrEqualTest8() {
     // txn < txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "41", "41"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "42", "41"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "41", "41"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "42", "41"));
   }
 
   void lessOrEqualTest9() {
     // txn =
     REQUIRE(0 == insertBtree("50"));
     REQUIRE(0 == insertTxn("51"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "51", "51"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "51", "51"));
   }
 
   void lessOrEqualTest10() {
     // btree =
     REQUIRE(0 == insertTxn("60"));
     REQUIRE(0 == insertBtree("61"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "61", "61"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "61", "61"));
   }
 
   void lessOrEqualTest11() {
@@ -281,7 +281,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("70"));
     REQUIRE(0 == insertTxn("71"));
     REQUIRE(0 == eraseTxn("71"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "71", "70"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "71", "70"));
   }
 
   void lessOrEqualTest12() {
@@ -293,56 +293,56 @@ struct ApproxFixture {
     REQUIRE(0 == eraseTxn("82"));
     REQUIRE(0 == insertTxn("83"));
     REQUIRE(0 == eraseTxn("83"));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "83", "80"));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "83", "80"));
   }
 
   void lessOrEqualTest13() {
     // overwrite btree
     REQUIRE(0 == insertBtree("92"));
-    REQUIRE(0 == insertTxn("92", HAM_OVERWRITE));
+    REQUIRE(0 == insertTxn("92", UPS_OVERWRITE));
     REQUIRE(0 == insertBtree("93"));
-    REQUIRE(0 == insertTxn("93", HAM_OVERWRITE));
-    REQUIRE(0 == find(HAM_FIND_LEQ_MATCH, "93", "93"));
+    REQUIRE(0 == insertTxn("93", UPS_OVERWRITE));
+    REQUIRE(0 == find(UPS_FIND_LEQ_MATCH, "93", "93"));
   }
 
   void greaterThanTest1() {
     // btree > nil
     REQUIRE(0 == insertBtree("2"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "1", "2"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "1", "2"));
   }
 
   void greaterThanTest2() {
     // txn > nil
     REQUIRE(0 == insertTxn("4"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "3", "4"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "3", "4"));
   }
 
   void greaterThanTest3() {
     // btree > txn
     REQUIRE(0 == insertTxn("10"));
     REQUIRE(0 == insertBtree("11"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "10", "11"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "10", "11"));
   }
 
   void greaterThanTest4() {
     // txn > btree
     REQUIRE(0 == insertBtree("20"));
     REQUIRE(0 == insertTxn("21"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "20", "21"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "20", "21"));
   }
 
   void greaterThanTest5() {
     // btree > btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "30", "31"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "30", "31"));
   }
 
   void greaterThanTest6() {
     // txn > txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "40", "41"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "40", "41"));
   }
 
   void greaterThanTest7() {
@@ -351,7 +351,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("51"));
     REQUIRE(0 == eraseTxn("51"));
     REQUIRE(0 == insertTxn("52"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "50", "52"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "50", "52"));
   }
 
   void greaterThanTest8() {
@@ -361,28 +361,28 @@ struct ApproxFixture {
     REQUIRE(0 == insertBtree("82"));
     REQUIRE(0 == eraseTxn("82"));
     REQUIRE(0 == insertTxn("83"));
-    REQUIRE(0 == find(HAM_FIND_GT_MATCH, "80", "83"));
+    REQUIRE(0 == find(UPS_FIND_GT_MATCH, "80", "83"));
   }
 
   void greaterThanTest9() {
     teardown();
 
-    ham_parameter_t param[] = {
-        {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
-        {HAM_PARAM_KEY_SIZE, 32},
+    ups_parameter_t param[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_BINARY},
+        {UPS_PARAM_KEY_SIZE, 32},
         {0, 0}
     };
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &param[0]));
 
     char data[32] = {0};
-    ham_key_t key = ham_make_key(&data[0], sizeof(data));
-    ham_record_t rec = {0};
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    ups_key_t key = ups_make_key(&data[0], sizeof(data));
+    ups_record_t rec = {0};
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     data[31] = 1;
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
     char newdata[32] = {0};
     REQUIRE(0 == ::memcmp(key.data, &newdata[0], sizeof(newdata)));
   }
@@ -390,69 +390,69 @@ struct ApproxFixture {
   void greaterOrEqualTest1() {
     // btree > nil
     REQUIRE(0 == insertBtree("1"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "0", "1"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "0", "1"));
   }
 
   void greaterOrEqualTest2() {
     // btree = nil
     REQUIRE(0 == insertBtree("3"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "3", "3"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "3", "3"));
   }
 
   void greaterOrEqualTest3() {
     // txn > nil
     REQUIRE(0 == insertTxn("5"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "4", "5"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "4", "5"));
   }
 
   void greaterOrEqualTest4() {
     // txn = nil
     REQUIRE(0 == insertTxn("7"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "7", "7"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "7", "7"));
   }
 
   void greaterOrEqualTest5() {
     // btree > txn
     REQUIRE(0 == insertTxn("11"));
     REQUIRE(0 == insertBtree("12"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "11", "11"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "10", "11"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "11", "11"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "10", "11"));
   }
 
   void greaterOrEqualTest6() {
     // txn > btree
     REQUIRE(0 == insertBtree("20"));
     REQUIRE(0 == insertTxn("21"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "19", "20"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "20", "20"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "19", "20"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "20", "20"));
   }
 
   void greaterOrEqualTest7() {
     // btree > btree
     REQUIRE(0 == insertBtree("30"));
     REQUIRE(0 == insertBtree("31"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "31", "31"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "31", "31"));
   }
 
   void greaterOrEqualTest8() {
     // txn > txn
     REQUIRE(0 == insertTxn("40"));
     REQUIRE(0 == insertTxn("41"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "41", "41"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "41", "41"));
   }
 
   void greaterOrEqualTest9() {
     // txn =
     REQUIRE(0 == insertBtree("50"));
     REQUIRE(0 == insertTxn("51"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "51", "51"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "51", "51"));
   }
 
   void greaterOrEqualTest10() {
     // btree =
     REQUIRE(0 == insertTxn("60"));
     REQUIRE(0 == insertBtree("61"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "61", "61"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "61", "61"));
   }
 
   void greaterOrEqualTest11() {
@@ -460,7 +460,7 @@ struct ApproxFixture {
     REQUIRE(0 == insertTxn("71"));
     REQUIRE(0 == eraseTxn("71"));
     REQUIRE(0 == insertTxn("72"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "71", "72"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "71", "72"));
   }
 
   void greaterOrEqualTest12() {
@@ -470,36 +470,36 @@ struct ApproxFixture {
     REQUIRE(0 == insertBtree("82"));
     REQUIRE(0 == eraseTxn("82"));
     REQUIRE(0 == insertTxn("83"));
-    REQUIRE(0 == find(HAM_FIND_GEQ_MATCH, "81", "83"));
+    REQUIRE(0 == find(UPS_FIND_GEQ_MATCH, "81", "83"));
   }
 
   void issue44Test() {
     teardown();
 
-    ham_parameter_t param[] = {
-        {HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM},
-        {HAM_PARAM_KEY_SIZE, 41},
+    ups_parameter_t param[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM},
+        {UPS_PARAM_KEY_SIZE, 41},
         {0, 0}
     };
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
-    REQUIRE(0 == ham_db_set_compare_func(m_db, slot_key_cmp));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+    REQUIRE(0 == ups_db_set_compare_func(m_db, slot_key_cmp));
 
     const char *values[] = { "11", "22", "33", "44", "55" };
     for (int i = 0; i < 5; i++) {
       char keydata[41];
       ::memcpy(&keydata[0], values[i], 3);
-      ham_key_t key = ham_make_key(&keydata[0], sizeof(keydata));
-      ham_record_t rec = ham_make_record((void *)values[i], 3);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&keydata[0], sizeof(keydata));
+      ups_record_t rec = ups_make_record((void *)values[i], 3);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     char keydata[41];
     ::memcpy(&keydata[0], "10", 3);
-    ham_key_t key = ham_make_key((void *)keydata, sizeof(keydata));
-    ham_record_t rec = {0};
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+    ups_key_t key = ups_make_key((void *)keydata, sizeof(keydata));
+    ups_record_t rec = {0};
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
     REQUIRE(0 == ::strcmp((char *)key.data, "11"));
     REQUIRE(0 == ::strcmp((char *)rec.data, "11"));
   }
@@ -508,96 +508,96 @@ struct ApproxFixture {
     REQUIRE(0 == insertBtree("aa"));
     REQUIRE(0 == eraseTxn("aa"));
 
-    ham_key_t key = ham_make_key((void *)"aa", 3);
-    ham_record_t rec = {0};
+    ups_key_t key = ups_make_key((void *)"aa", 3);
+    ups_record_t rec = {0};
 
-    REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_GEQ_MATCH));
   }
 
   void issue52Test() {
     teardown();
     uint8_t buffer[525933] = {0};
 
-    ham_parameter_t param[] = {
-        {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT64},
+    ups_parameter_t param[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT64},
         {0, 0}
     };
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
-                HAM_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
-                HAM_ENABLE_DUPLICATE_KEYS, &param[0]));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
+                UPS_ENABLE_DUPLICATE_KEYS, &param[0]));
 
     uint64_t k1 = 1;
     uint64_t k2 = 2;
     uint64_t k3 = 3;
-    ham_key_t key1 = ham_make_key(&k1, sizeof(k1));
-    ham_key_t key2 = ham_make_key(&k2, sizeof(k2));
-    ham_key_t key3 = ham_make_key(&k3, sizeof(k3));
+    ups_key_t key1 = ups_make_key(&k1, sizeof(k1));
+    ups_key_t key2 = ups_make_key(&k2, sizeof(k2));
+    ups_key_t key3 = ups_make_key(&k3, sizeof(k3));
 
-    ham_record_t rec1 = ham_make_record(&buffer[0], 46228);
-    ham_record_t rec11 = ham_make_record(&buffer[0], 446380);
-    ham_record_t rec12 = ham_make_record(&buffer[0], 525933);
-    ham_record_t rec21 = ham_make_record(&buffer[0], 334157);
-    ham_record_t rec22 = ham_make_record(&buffer[0], 120392);
+    ups_record_t rec1 = ups_make_record(&buffer[0], 46228);
+    ups_record_t rec11 = ups_make_record(&buffer[0], 446380);
+    ups_record_t rec12 = ups_make_record(&buffer[0], 525933);
+    ups_record_t rec21 = ups_make_record(&buffer[0], 334157);
+    ups_record_t rec22 = ups_make_record(&buffer[0], 120392);
 
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key1, &rec1, HAM_DUPLICATE));
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec11, HAM_DUPLICATE));
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec12, HAM_DUPLICATE));
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec21, HAM_DUPLICATE));
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec22, HAM_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key1, &rec1, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &rec11, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &rec12, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key3, &rec21, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key3, &rec22, UPS_DUPLICATE));
 
-    ham_txn_t *txn;
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ham_cursor_create(&c, m_db, txn, 0));
+    ups_txn_t *txn;
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
 
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(0 == ham_cursor_find(c, &key1, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ups_cursor_find(c, &key1, &rec, UPS_FIND_GEQ_MATCH));
     REQUIRE(1u == *(unsigned long long *)key1.data);
     REQUIRE(rec1.size == rec.size);
 
-    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(2u == *(unsigned long long *)key.data);
     REQUIRE(rec11.size == rec.size);
 
-    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(2u == *(unsigned long long *)key.data);
     REQUIRE(rec12.size == rec.size);
 
-    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(3u == *(unsigned long long *)key.data);
     REQUIRE(rec21.size == rec.size);
 
-    REQUIRE(0 == ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(3u == *(unsigned long long *)key.data);
     REQUIRE(rec22.size == rec.size);
 
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_close(c));
     // cleanup is in teardown()
   }
 
   void greaterThanTest() {
     teardown();
 
-    ham_parameter_t param[] = {
-        {HAM_PARAM_KEY_TYPE, HAM_TYPE_BINARY},
-        {HAM_PARAM_KEY_SIZE, 32},
+    ups_parameter_t param[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_BINARY},
+        {UPS_PARAM_KEY_SIZE, 32},
         {0, 0}
     };
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &param[0]));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &param[0]));
 
     char data[32] = {0};
-    ham_key_t key = ham_make_key(&data[0], sizeof(data));
-    ham_record_t rec = {0};
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    ups_key_t key = ups_make_key(&data[0], sizeof(data));
+    ups_record_t rec = {0};
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     data[31] = 1;
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
     char newdata[32] = {0};
     REQUIRE(0 == ::memcmp(key.data, &newdata[0], sizeof(newdata)));
   }
@@ -607,49 +607,49 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     gen.generate(0, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
 
     for (i = 1; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i - 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -660,45 +660,45 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i - 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -709,52 +709,52 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 1; i <= 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(5000, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
   }
 
   template<typename Generator>
@@ -762,51 +762,51 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i <= 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i + 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(10000, &key);
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
   }
 
   template<typename Generator>
@@ -814,51 +814,51 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
-    REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
+    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
     }
 
     gen.generate(0, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_LT_MATCH));
 
     for (i = 1; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i - 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_LT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -869,47 +869,47 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
-    REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
+    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i - 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -920,54 +920,54 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
-    REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
+    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 1; i <= 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
     }
 
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_GT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(5000, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_GT_MATCH));
   }
 
   template<typename Generator>
@@ -975,53 +975,53 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
-    REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
+    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i <= 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i + 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(10000, &key);
-    REQUIRE(0 == ham_db_find(m_db, m_txn, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, UPS_FIND_GEQ_MATCH));
   }
 
   template<typename Generator>
@@ -1029,50 +1029,50 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     gen.generate(0, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
 
     for (i = 1; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i - 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -1083,46 +1083,46 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i - 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -1133,53 +1133,53 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 1; i <= 5000; i++) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(5000, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
   }
 
   template<typename Generator>
@@ -1187,52 +1187,52 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i <= 10000; i += 2) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     for (i = 0; i < 10000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i & 1 ? i + 1 : i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(10000, &key);
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
   }
 
   template<typename Generator>
@@ -1240,62 +1240,62 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 5000; i += 4) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
       gen.generate(i + 1, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-      REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
       gen.generate(i + 2, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
 
       gen.generate(i + 3, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
-      REQUIRE(0 == ham_txn_commit(m_txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_txn_commit(m_txn, 0));
     }
     m_txn = 0;
 
     gen.generate(0, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
 
     for (i = 1; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i - 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -1306,65 +1306,65 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 1; i <= 5000; i += 4) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
       gen.generate(i + 1, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-      REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
       gen.generate(i + 2, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
 
       gen.generate(i + 3, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
-      REQUIRE(0 == ham_txn_commit(m_txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_txn_commit(m_txn, 0));
     }
     m_txn = 0;
 
     for (i = 0; i < 5000; i++) {
       gen.generate(i, &key);
 
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
 
     gen.generate(5000, &key);
-    REQUIRE(HAM_KEY_NOT_FOUND
-            == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+    REQUIRE(UPS_KEY_NOT_FOUND
+            == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GT_MATCH));
   }
 
   template<typename Generator>
@@ -1372,84 +1372,84 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 10000; i += 5) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
       gen.generate(i + 1, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-      REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
       gen.generate(i + 2, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
 
       gen.generate(i + 3, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
-      REQUIRE(0 == ham_txn_commit(m_txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_txn_commit(m_txn, 0));
 
       // skip i + 4
     }
     m_txn = 0;
 
     for (i = 0; i < 10000; i += 5) {
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
 
       gen.generate(i, &key);
       gen2.generate(i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 1, &key);
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 2, &key);
       gen2.generate(i + 2, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 3, &key);
       gen2.generate(i + 3, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 4, &key);
       gen2.generate(i + 3, &key2); // !!
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
     }
@@ -1460,85 +1460,85 @@ struct ApproxFixture {
     teardown();
     Generator gen, gen2;
 
-    ham_parameter_t envparam[] = {
-        {HAM_PARAM_PAGE_SIZE, 1024},
+    ups_parameter_t envparam[] = {
+        {UPS_PARAM_PAGE_SIZE, 1024},
         {0, 0}
     };
 
-    ham_parameter_t dbparam[] = {
-        {HAM_PARAM_KEY_TYPE, gen.get_key_type()},
-        {HAM_PARAM_RECORD_SIZE, 32},
+    ups_parameter_t dbparam[] = {
+        {UPS_PARAM_KEY_TYPE, gen.get_key_type()},
+        {UPS_PARAM_RECORD_SIZE, 32},
         {0, 0},
         {0, 0}
     };
 
     if (gen.get_key_size() > 0) {
-      dbparam[2].name = HAM_PARAM_KEY_SIZE;
+      dbparam[2].name = UPS_PARAM_KEY_SIZE;
       dbparam[2].value = gen.get_key_size();
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0664, &envparam[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1,
-                    HAM_FORCE_RECORDS_INLINE, &dbparam[0]));
+        ups_env_create_db(m_env, &m_db, 1,
+                    UPS_FORCE_RECORDS_INLINE, &dbparam[0]));
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     char recbuffer[32] = {0};
-    ham_record_t rec = ham_make_record(&recbuffer[0], sizeof(recbuffer));
+    ups_record_t rec = ups_make_record(&recbuffer[0], sizeof(recbuffer));
 
     int i;
     for (i = 0; i < 10000; i += 5) {
       gen.generate(i, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
       gen.generate(i + 1, &key);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-      REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
       gen.generate(i + 2, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
 
       gen.generate(i + 3, &key);
-      REQUIRE(0 == ham_db_insert(m_db, m_txn, &key, &rec, 0));
-      REQUIRE(0 == ham_txn_commit(m_txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
+      REQUIRE(0 == ups_txn_commit(m_txn, 0));
 
       // skip i + 4
     }
     m_txn = 0;
 
     for (i = 0; i < 10000; i += 5) {
-      ham_key_t key2 = {0};
+      ups_key_t key2 = {0};
 
       gen.generate(i, &key);
       gen2.generate(i, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 1, &key);
       gen2.generate(i + 1, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 2, &key);
       gen2.generate(i + 2, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       gen.generate(i + 3, &key);
       gen2.generate(i + 3, &key2);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
       REQUIRE(key2.size == key.size);
       REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
 
       if (i + 5 < 10000) {
         gen.generate(i + 4, &key);
         gen2.generate(i + 5, &key2); // !!
-        REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+        REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, UPS_FIND_GEQ_MATCH));
         REQUIRE(key2.size == key.size);
         REQUIRE(0 == ::memcmp(key.data, key2.data, key2.size));
       }
@@ -1797,7 +1797,7 @@ struct BinaryGenerator {
     ::memset(buffer, 0, Length);
   }
 
-  void generate(int i, ham_key_t *key) {
+  void generate(int i, ups_key_t *key) {
     ::sprintf(buffer, "%05d", i);
     key->data = buffer;
     key->size = Length;
@@ -1808,7 +1808,7 @@ struct BinaryGenerator {
   }
 
   uint64_t get_key_type() const {
-    return (HAM_TYPE_BINARY);
+    return (UPS_TYPE_BINARY);
   }
 
   char buffer[Length];
@@ -1816,7 +1816,7 @@ struct BinaryGenerator {
 
 struct BinaryVarLenGenerator : public BinaryGenerator<32> {
   uint16_t get_key_size() const {
-    return (HAM_KEY_SIZE_UNLIMITED);
+    return (UPS_KEY_SIZE_UNLIMITED);
   }
 };
 
@@ -1825,7 +1825,7 @@ struct PodGenerator {
   PodGenerator() : t(0) {
   }
 
-  void generate(int i, ham_key_t *key) {
+  void generate(int i, ups_key_t *key) {
     t = (T)i;
     key->data = &t;
     key->size = sizeof(t);
@@ -1842,7 +1842,7 @@ struct PodGenerator {
   T t;
 };
 
-// Btree tests for HAM_FIND_LT_MATCH
+// Btree tests for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/btreeLessThanBinary8Test", "") {
   ApproxFixture f;
@@ -1866,30 +1866,30 @@ TEST_CASE("Approx/btreeLessThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/btreeLessThanUint16Test", "") {
   ApproxFixture f;
-  f.btreeLessThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.btreeLessThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/btreeLessThanUint32Test", "") {
   ApproxFixture f;
-  f.btreeLessThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.btreeLessThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/btreeLessThanUint64Test", "") {
   ApproxFixture f;
-  f.btreeLessThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.btreeLessThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/btreeLessThanReal32Test", "") {
   ApproxFixture f;
-  f.btreeLessThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.btreeLessThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/btreeLessThanReal64Test", "") {
   ApproxFixture f;
-  f.btreeLessThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.btreeLessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Btree tests for HAM_FIND_GT_MATCH
+// Btree tests for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/btreeGreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -1913,30 +1913,30 @@ TEST_CASE("Approx/btreeGreaterThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/btreeGreaterThanUint16Test", "") {
   ApproxFixture f;
-  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.btreeGreaterThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterThanUint32Test", "") {
   ApproxFixture f;
-  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.btreeGreaterThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterThanUint64Test", "") {
   ApproxFixture f;
-  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.btreeGreaterThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterThanReal32Test", "") {
   ApproxFixture f;
-  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.btreeGreaterThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/btreeGreaterThanReal64Test", "") {
   ApproxFixture f;
-  f.btreeGreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.btreeGreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Btree tests for HAM_FIND_LEQ_MATCH
+// Btree tests for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/btreeLessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -1960,30 +1960,30 @@ TEST_CASE("Approx/btreeLessEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/btreeLessEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.btreeLessEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.btreeLessEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/btreeLessEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.btreeLessEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.btreeLessEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/btreeLessEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.btreeLessEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.btreeLessEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/btreeLessEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.btreeLessEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.btreeLessEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/btreeLessEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.btreeLessEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.btreeLessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Btree tests for HAM_FIND_GEQ_MATCH
+// Btree tests for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/btreeGreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2007,30 +2007,30 @@ TEST_CASE("Approx/btreeGreaterEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/btreeGreaterEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/btreeGreaterEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/btreeGreaterEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.btreeGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for HAM_FIND_LT_MATCH
+// Transaction tests for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/txnLessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2054,30 +2054,30 @@ TEST_CASE("Approx/txnLessThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/txnLessThanUint16Test", "") {
   ApproxFixture f;
-  f.txnLessThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.txnLessThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/txnLessThanUint32Test", "") {
   ApproxFixture f;
-  f.txnLessThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.txnLessThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/txnLessThanUint64Test", "") {
   ApproxFixture f;
-  f.txnLessThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.txnLessThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/txnLessThanReal32Test", "") {
   ApproxFixture f;
-  f.txnLessThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.txnLessThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/txnLessThanReal64Test", "") {
   ApproxFixture f;
-  f.txnLessThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.txnLessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for HAM_FIND_GT_MATCH
+// Transaction tests for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/txnGreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2101,30 +2101,30 @@ TEST_CASE("Approx/txnGreaterThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/txnGreaterThanUint16Test", "") {
   ApproxFixture f;
-  f.txnGreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.txnGreaterThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterThanUint32Test", "") {
   ApproxFixture f;
-  f.txnGreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.txnGreaterThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterThanUint64Test", "") {
   ApproxFixture f;
-  f.txnGreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.txnGreaterThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterThanReal32Test", "") {
   ApproxFixture f;
-  f.txnGreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.txnGreaterThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/txnGreaterThanReal64Test", "") {
   ApproxFixture f;
-  f.txnGreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.txnGreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for HAM_FIND_LEQ_MATCH
+// Transaction tests for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/txnLessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2148,30 +2148,30 @@ TEST_CASE("Approx/txnLessEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/txnLessEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.txnLessEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/txnLessEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.txnLessEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/txnLessEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.txnLessEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/txnLessEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.txnLessEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/txnLessEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.txnLessEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for HAM_FIND_GEQ_MATCH
+// Transaction tests for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/txnGreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2195,30 +2195,30 @@ TEST_CASE("Approx/txnGreaterEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/txnGreaterEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/txnGreaterEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/txnGreaterEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.txnGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_LT_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/mixedLessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2242,30 +2242,30 @@ TEST_CASE("Approx/mixedLessThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixedLessThanUint16Test", "") {
   ApproxFixture f;
-  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixedLessThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixedLessThanUint32Test", "") {
   ApproxFixture f;
-  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixedLessThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixedLessThanUint64Test", "") {
   ApproxFixture f;
-  f.mixedLessThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixedLessThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixedLessThanReal32Test", "") {
   ApproxFixture f;
-  f.mixedLessThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixedLessThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixedLessThanReal64Test", "") {
   ApproxFixture f;
-  f.mixedLessThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixedLessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_GT_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/mixedGreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2289,30 +2289,30 @@ TEST_CASE("Approx/mixedGreaterThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixedGreaterThanUint16Test", "") {
   ApproxFixture f;
-  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterThanUint32Test", "") {
   ApproxFixture f;
-  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterThanUint64Test", "") {
   ApproxFixture f;
-  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterThanReal32Test", "") {
   ApproxFixture f;
-  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixedGreaterThanReal64Test", "") {
   ApproxFixture f;
-  f.mixedGreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_LEQ_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/mixedLessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2336,30 +2336,30 @@ TEST_CASE("Approx/mixedLessEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixedLessEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixedLessEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixedLessEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixedLessEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixedLessEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.mixedLessEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_GEQ_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/mixedGreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2383,30 +2383,30 @@ TEST_CASE("Approx/mixedGreaterEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixedGreaterEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixedGreaterEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixedGreaterEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.mixedGreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_LT_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/mixed2LessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2430,30 +2430,30 @@ TEST_CASE("Approx/mixed2LessThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixed2LessThanUint16Test", "") {
   ApproxFixture f;
-  f.mixed2LessThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixed2LessThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessThanUint32Test", "") {
   ApproxFixture f;
-  f.mixed2LessThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixed2LessThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessThanUint64Test", "") {
   ApproxFixture f;
-  f.mixed2LessThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixed2LessThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessThanReal32Test", "") {
   ApproxFixture f;
-  f.mixed2LessThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixed2LessThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixed2LessThanReal64Test", "") {
   ApproxFixture f;
-  f.mixed2LessThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixed2LessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_GT_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/mixed2GreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2477,30 +2477,30 @@ TEST_CASE("Approx/mixed2GreaterThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixed2GreaterThanUint16Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterThanUint32Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterThanUint64Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterThanReal32Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterThanReal64Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_LEQ_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/mixed2LessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2524,30 +2524,30 @@ TEST_CASE("Approx/mixed2LessEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixed2LessEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.mixed2LessEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.mixed2LessEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.mixed2LessEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixed2LessEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.mixed2LessEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixed2LessEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.mixed2LessEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for HAM_FIND_GEQ_MATCH
+// Mixed tests (Transaction + Btree) for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/mixed2GreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2571,26 +2571,26 @@ TEST_CASE("Approx/mixed2GreaterEqualThanBinaryVarlenTest", "") {
 
 TEST_CASE("Approx/mixed2GreaterEqualThanUint16Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT16, uint16_t> >();
+  f.mixed2GreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT16, uint16_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterEqualThanUint32Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT32, uint32_t> >();
+  f.mixed2GreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT32, uint32_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterEqualThanUint64Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterEqualThanTest<PodGenerator<HAM_TYPE_UINT64, uint64_t> >();
+  f.mixed2GreaterEqualThanTest<PodGenerator<UPS_TYPE_UINT64, uint64_t> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterEqualThanReal32Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL32, float> >();
+  f.mixed2GreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL32, float> >();
 }
 
 TEST_CASE("Approx/mixed2GreaterEqualThanReal64Test", "") {
   ApproxFixture f;
-  f.mixed2GreaterEqualThanTest<PodGenerator<HAM_TYPE_REAL64, double> >();
+  f.mixed2GreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 

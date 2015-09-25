@@ -22,18 +22,18 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_STATS_H
-#define HAM_BTREE_STATS_H
+#ifndef UPS_BTREE_STATS_H
+#define UPS_BTREE_STATS_H
 
 #include "0root/root.h"
 
 #include <limits>
 
-#include "ham/hamsterdb_int.h"
+#include "ups/upscaledb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,7 +52,7 @@ class BtreeStatistics {
     };
 
     struct FindHints {
-      // the original flags of ham_find
+      // the original flags of ups_find
       uint32_t original_flags;
 
       // the modified flags
@@ -66,7 +66,7 @@ class BtreeStatistics {
     };
 
     struct InsertHints {
-      // the original flags of ham_insert
+      // the original flags of ups_insert
       uint32_t original_flags;
 
       // the modified flags
@@ -91,28 +91,28 @@ class BtreeStatistics {
     // Constructor
     BtreeStatistics();
 
-    // Returns the btree hints for ham_find
+    // Returns the btree hints for ups_find
     FindHints get_find_hints(uint32_t flags);
 
     // Returns the btree hints for insert
     InsertHints get_insert_hints(uint32_t flags);
 
-    // Reports that a ham_find/ham_cusor_find succeeded
+    // Reports that a ups_find/ups_cusor_find succeeded
     void find_succeeded(Page *page);
 
-    // Reports that a ham_find/ham_cursor_find failed
+    // Reports that a ups_find/ups_cursor_find failed
     void find_failed();
 
-    // Reports that a ham_insert/ham_cursor_insert succeeded
+    // Reports that a ups_insert/ups_cursor_insert succeeded
     void insert_succeeded(Page *page, uint16_t slot);
 
-    // Reports that a ham_insert/ham_cursor_insert failed
+    // Reports that a ups_insert/ups_cursor_insert failed
     void insert_failed();
 
-    // Reports that a ham_erase/ham_cusor_erase succeeded
+    // Reports that a ups_erase/ups_cusor_erase succeeded
     void erase_succeeded(Page *page);
 
-    // Reports that a ham_erase/ham_cursor_erase failed
+    // Reports that a ups_erase/ups_cursor_erase failed
     void erase_failed();
 
     // Resets the statistics for a single page
@@ -177,4 +177,4 @@ class BtreeStatistics {
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_STATS_H */
+#endif /* UPS_BTREE_STATS_H */

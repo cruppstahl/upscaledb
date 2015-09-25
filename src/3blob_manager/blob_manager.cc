@@ -22,30 +22,30 @@
 #include "4context/context.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 using namespace hamsterdb;
 
 uint64_t
-BlobManager::allocate(Context *context, ham_record_t *record,
+BlobManager::allocate(Context *context, ups_record_t *record,
             uint32_t flags)
 {
   // PARTIAL WRITE
 
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
     if (context->db && context->db->get_record_compressor()) {
-      ham_trace(("Partial operations are not allowed if records "
+      ups_trace(("Partial operations are not allowed if records "
                               "are compressed"));
-      throw Exception(HAM_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
     // if offset + partial_size equals the full record size then there won't
     // be any gaps. In this case we just write the full record and ignore
     // the partial parameters.
     if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
+      flags &= ~UPS_PARTIAL;
   }
 
   m_metric_total_allocated++;
@@ -54,16 +54,16 @@ BlobManager::allocate(Context *context, ham_record_t *record,
 }
 
 void
-BlobManager::read(Context *context, uint64_t blobid, ham_record_t *record,
+BlobManager::read(Context *context, uint64_t blobid, ups_record_t *record,
                 uint32_t flags, ByteArray *arena)
 {
   // PARTIAL READ
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
     if (context->db && context->db->get_record_compressor()) {
-      ham_trace(("Partial operations are not allowed if records "
+      ups_trace(("Partial operations are not allowed if records "
                               "are compressed"));
-      throw Exception(HAM_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
   }
   m_metric_total_read++;
@@ -73,21 +73,21 @@ BlobManager::read(Context *context, uint64_t blobid, ham_record_t *record,
 
 uint64_t
 BlobManager::overwrite(Context *context, uint64_t old_blobid,
-                ham_record_t *record, uint32_t flags)
+                ups_record_t *record, uint32_t flags)
 {
   // PARTIAL WRITE
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     // Partial updates are not allowed if the records are compressed
     if (context->db && context->db->get_record_compressor()) {
-      ham_trace(("Partial operations are not allowed if records "
+      ups_trace(("Partial operations are not allowed if records "
                               "are compressed"));
-      throw Exception(HAM_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
     // if offset+partial_size equals the full record size, then we won't
     // have any gaps. In this case we just write the full record and ignore
     // the partial parameters.
     if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~HAM_PARTIAL;
+      flags &= ~UPS_PARTIAL;
   }
 
   return (do_overwrite(context, old_blobid, record, flags));

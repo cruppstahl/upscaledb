@@ -17,7 +17,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "ham/hamsterdb_ola.h"
+#include "ups/upscaledb_uqi.h"
 
 #include "utils.h"
 #include "os.hpp"
@@ -30,7 +30,7 @@
 namespace hamsterdb {
 
 // only select even numbers
-static ham_bool_t
+static ups_bool_t
 sum_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
   uint32_t *p = (uint32_t *)key_data;
@@ -38,14 +38,14 @@ sum_if_predicate(const void *key_data, uint16_t key_size, void *context)
 }
 
 // only select numbers < 10
-static ham_bool_t
+static ups_bool_t
 average_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
   float *p = (float *)key_data;
   return (*p < 10.f);
 }
 
-static ham_bool_t
+static ups_bool_t
 count_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
   uint8_t *p = (uint8_t *)key_data;
@@ -53,25 +53,25 @@ count_if_predicate(const void *key_data, uint16_t key_size, void *context)
 }
 
 struct HolaFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_use_transactions;
 
   HolaFixture(bool use_transactions, int type, bool use_duplicates = false)
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
-    ham_parameter_t params[] = {
-        {HAM_PARAM_KEY_TYPE, (uint64_t)type},
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, (uint64_t)type},
         {0, 0}
     };
-    REQUIRE(0 == ham_env_create(&m_env, ".test",
+    REQUIRE(0 == ups_env_create(&m_env, ".test",
                             use_transactions
-                                ? HAM_ENABLE_TRANSACTIONS
+                                ? UPS_ENABLE_TRANSACTIONS
                                 : 0,
                             0, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
                             use_duplicates
-                                ? HAM_ENABLE_DUPLICATES
+                                ? UPS_ENABLE_DUPLICATES
                                 : 0, &params[0]));
   }
 
@@ -81,42 +81,42 @@ struct HolaFixture {
 
   void teardown() {
     if (m_env)
-      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     m_env = 0;
     m_db = 0;
   }
 
   void sumTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     uint32_t sum = 0;
 
-    ham_txn_t *txn = 0;
+    ups_txn_t *txn = 0;
     if (m_use_transactions)
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &record, 0));
       sum += i;
     }
 
     hola_result_t result;
     REQUIRE(0 == hola_sum(m_db, txn, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
     if (m_use_transactions)
-      ham_txn_abort(txn, 0);
+      ups_txn_abort(txn, 0);
   }
 
-  ham_status_t insertBtree(uint32_t key) {
-    ham_key_t k = {0};
+  ups_status_t insertBtree(uint32_t key) {
+    ups_key_t k = {0};
     k.data = &key;
     k.size = sizeof(key);
-    ham_record_t r = {0};
+    ups_record_t r = {0};
 
     Context context((LocalEnvironment *)m_env, 0, 0);
 
@@ -124,13 +124,13 @@ struct HolaFixture {
     return (be->insert(&context, 0, &k, &r, 0));
   }
 
-  ham_status_t insertTxn(ham_txn_t *txn, uint32_t key) {
-    ham_key_t k = {0};
+  ups_status_t insertTxn(ups_txn_t *txn, uint32_t key) {
+    ups_key_t k = {0};
     k.data = &key;
     k.size = sizeof(key);
-    ham_record_t r = {0};
+    ups_record_t r = {0};
 
-    return (ham_db_insert(m_db, txn, &k, &r, 0));
+    return (ups_db_insert(m_db, txn, &k, &r, 0));
   }
 
   // tests the following sequences:
@@ -141,8 +141,8 @@ struct HolaFixture {
   // btree, txn, btree, txn, btree
   void sumMixedTest() {
     uint32_t sum = 0;
-    ham_txn_t *txn = 0;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_txn_t *txn = 0;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
     REQUIRE(0 == insertBtree(1));  sum += 1;
@@ -152,7 +152,7 @@ struct HolaFixture {
     // check the sum
     hola_result_t result;
     REQUIRE(0 == hola_sum(m_db, txn, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
     // continue with more keys
@@ -188,7 +188,7 @@ struct HolaFixture {
     REQUIRE(0 == hola_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
-    ham_txn_abort(txn, 0);
+    ups_txn_abort(txn, 0);
   }
 
   // tests the following sequences:
@@ -199,8 +199,8 @@ struct HolaFixture {
   // txn, btree, txn, btree, txn
   void sumMixedReverseTest() {
     uint32_t sum = 0;
-    ham_txn_t *txn = 0;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_txn_t *txn = 0;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
     REQUIRE(0 == insertTxn(txn, 1));  sum += 1;
@@ -210,7 +210,7 @@ struct HolaFixture {
     // check the sum
     hola_result_t result;
     REQUIRE(0 == hola_sum(m_db, txn, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
     // continue with more keys
@@ -246,19 +246,19 @@ struct HolaFixture {
     REQUIRE(0 == hola_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
-    ham_txn_abort(txn, 0);
+    ups_txn_abort(txn, 0);
   }
 
   void sumIfTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     uint32_t sum = 0;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         sum += i;
     }
@@ -269,13 +269,13 @@ struct HolaFixture {
 
     hola_result_t result;
     REQUIRE(0 == hola_sum_if(m_db, 0, &predicate, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
   }
 
   void averageTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     float sum = 0;
 
     // insert a few keys
@@ -283,19 +283,19 @@ struct HolaFixture {
       float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       sum += f;
     }
 
     hola_result_t result;
     REQUIRE(0 == hola_average(m_db, 0, &result));
-    REQUIRE(result.type == HAM_TYPE_REAL64);
+    REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / count);
   }
 
   void averageIfTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     float sum = 0;
     int c = 0;
 
@@ -304,7 +304,7 @@ struct HolaFixture {
       float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       if (f < 10.f) {
         sum += f;
         c++;
@@ -317,13 +317,13 @@ struct HolaFixture {
 
     hola_result_t result;
     REQUIRE(0 == hola_average_if(m_db, 0, &predicate, &result));
-    REQUIRE(result.type == HAM_TYPE_REAL64);
+    REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / c);
   }
 
   void countIfTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     char buffer[200] = {0};
     uint64_t c = 0;
 
@@ -332,7 +332,7 @@ struct HolaFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         c++;
     }
@@ -343,13 +343,13 @@ struct HolaFixture {
 
     hola_result_t result;
     REQUIRE(0 == hola_count_if(m_db, 0, &predicate, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
 
   void countDistinctIfTest(int count) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
     char buffer[200] = {0};
     uint64_t c = 0;
 
@@ -358,7 +358,7 @@ struct HolaFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         c++;
     }
@@ -368,7 +368,7 @@ struct HolaFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, HAM_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
       if ((i & 1) == 0)
         c++;
     }
@@ -379,74 +379,74 @@ struct HolaFixture {
 
     hola_result_t result;
     REQUIRE(0 == hola_count_distinct_if(m_db, 0, &predicate, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
 };
 
 TEST_CASE("Hola/sumTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_UINT32);
+  HolaFixture f(false, UPS_TYPE_UINT32);
   f.sumTest(10);
 }
 
 TEST_CASE("Hola/sumLargeTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_UINT32);
+  HolaFixture f(false, UPS_TYPE_UINT32);
   f.sumTest(10000);
 }
 
 TEST_CASE("Hola/sumTxnTest", "")
 {
-  HolaFixture f(true, HAM_TYPE_UINT32);
+  HolaFixture f(true, UPS_TYPE_UINT32);
   f.sumTest(10);
 }
 
 TEST_CASE("Hola/sumTxnLargeTest", "")
 {
-  HolaFixture f(true, HAM_TYPE_UINT32);
+  HolaFixture f(true, UPS_TYPE_UINT32);
   f.sumTest(10000);
 }
 
 TEST_CASE("Hola/sumMixedTest", "")
 {
-  HolaFixture f(true, HAM_TYPE_UINT32);
+  HolaFixture f(true, UPS_TYPE_UINT32);
   f.sumMixedTest();
 }
 
 TEST_CASE("Hola/sumMixedReverseTest", "")
 {
-  HolaFixture f(true, HAM_TYPE_UINT32);
+  HolaFixture f(true, UPS_TYPE_UINT32);
   f.sumMixedReverseTest();
 }
 
 TEST_CASE("Hola/sumIfTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_UINT32);
+  HolaFixture f(false, UPS_TYPE_UINT32);
   f.sumIfTest(10);
 }
 
 TEST_CASE("Hola/averageTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_REAL32);
+  HolaFixture f(false, UPS_TYPE_REAL32);
   f.averageTest(20);
 }
 
 TEST_CASE("Hola/averageIfTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_REAL32);
+  HolaFixture f(false, UPS_TYPE_REAL32);
   f.averageIfTest(20);
 }
 
 TEST_CASE("Hola/countIfTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_BINARY);
+  HolaFixture f(false, UPS_TYPE_BINARY);
   f.countIfTest(20);
 }
 
 TEST_CASE("Hola/countDistinctIfTest", "")
 {
-  HolaFixture f(false, HAM_TYPE_BINARY, true);
+  HolaFixture f(false, UPS_TYPE_BINARY, true);
   f.countIfTest(20);
 }
 

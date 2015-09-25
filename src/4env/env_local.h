@@ -20,10 +20,10 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_ENV_LOCAL_H
-#define HAM_ENV_LOCAL_H
+#ifndef UPS_ENV_LOCAL_H
+#define UPS_ENV_LOCAL_H
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 #include "0root/root.h"
 
@@ -36,7 +36,7 @@
 #include "4env/env_local_test.h"
 #include "4context/context.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -102,53 +102,53 @@ class LocalEnvironment : public Environment
     LocalEnvironmentTest test();
 
   protected:
-    // Creates a new Environment (ham_env_create)
-    virtual ham_status_t do_create();
+    // Creates a new Environment (ups_env_create)
+    virtual ups_status_t do_create();
 
-    // Opens a new Environment (ham_env_open)
-    virtual ham_status_t do_open();
+    // Opens a new Environment (ups_env_open)
+    virtual ups_status_t do_open();
 
-    // Returns all database names (ham_env_get_database_names)
-    virtual ham_status_t do_get_database_names(uint16_t *names,
+    // Returns all database names (ups_env_get_database_names)
+    virtual ups_status_t do_get_database_names(uint16_t *names,
                     uint32_t *count);
 
-    // Returns environment parameters and flags (ham_env_get_parameters)
-    virtual ham_status_t do_get_parameters(ham_parameter_t *param);
+    // Returns environment parameters and flags (ups_env_get_parameters)
+    virtual ups_status_t do_get_parameters(ups_parameter_t *param);
 
-    // Flushes the environment and its databases to disk (ham_env_flush)
-    virtual ham_status_t do_flush(uint32_t flags);
+    // Flushes the environment and its databases to disk (ups_env_flush)
+    virtual ups_status_t do_flush(uint32_t flags);
 
-    // Creates a new database in the environment (ham_env_create_db)
-    virtual ham_status_t do_create_db(Database **db,
+    // Creates a new database in the environment (ups_env_create_db)
+    virtual ups_status_t do_create_db(Database **db,
                     DatabaseConfiguration &config,
-                    const ham_parameter_t *param);
+                    const ups_parameter_t *param);
 
-    // Opens an existing database in the environment (ham_env_open_db)
-    virtual ham_status_t do_open_db(Database **db,
+    // Opens an existing database in the environment (ups_env_open_db)
+    virtual ups_status_t do_open_db(Database **db,
                     DatabaseConfiguration &config,
-                    const ham_parameter_t *param);
+                    const ups_parameter_t *param);
 
-    // Renames a database in the Environment (ham_env_rename_db)
-    virtual ham_status_t do_rename_db(uint16_t oldname, uint16_t newname,
+    // Renames a database in the Environment (ups_env_rename_db)
+    virtual ups_status_t do_rename_db(uint16_t oldname, uint16_t newname,
                     uint32_t flags);
 
-    // Erases (deletes) a database from the Environment (ham_env_erase_db)
-    virtual ham_status_t do_erase_db(uint16_t name, uint32_t flags);
+    // Erases (deletes) a database from the Environment (ups_env_erase_db)
+    virtual ups_status_t do_erase_db(uint16_t name, uint32_t flags);
 
-    // Begins a new transaction (ham_txn_begin)
+    // Begins a new transaction (ups_txn_begin)
     virtual Transaction *do_txn_begin(const char *name, uint32_t flags);
 
-    // Commits a transaction (ham_txn_commit)
-    virtual ham_status_t do_txn_commit(Transaction *txn, uint32_t flags);
+    // Commits a transaction (ups_txn_commit)
+    virtual ups_status_t do_txn_commit(Transaction *txn, uint32_t flags);
 
-    // Commits a transaction (ham_txn_abort)
-    virtual ham_status_t do_txn_abort(Transaction *txn, uint32_t flags);
+    // Commits a transaction (ups_txn_abort)
+    virtual ups_status_t do_txn_abort(Transaction *txn, uint32_t flags);
 
-    // Closes the Environment (ham_env_close)
-    virtual ham_status_t do_close(uint32_t flags);
+    // Closes the Environment (ups_env_close)
+    virtual ups_status_t do_close(uint32_t flags);
 
     // Fills in the current metrics
-    virtual void do_fill_metrics(ham_env_metrics_t *metrics) const;
+    virtual void do_fill_metrics(ups_env_metrics_t *metrics) const;
 
   private:
     friend class LocalEnvironmentTest;
@@ -165,7 +165,7 @@ class LocalEnvironment : public Environment
     void mark_header_page_dirty(Context *context) {
       Page *page = m_header->header_page();
       page->set_dirty(true);
-      if (get_flags() & HAM_ENABLE_RECOVERY)
+      if (get_flags() & UPS_ENABLE_RECOVERY)
         context->changeset.put(page);
     }
 
@@ -190,4 +190,4 @@ class LocalEnvironment : public Environment
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENV_LOCAL_H */
+#endif /* UPS_ENV_LOCAL_H */

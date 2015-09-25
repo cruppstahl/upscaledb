@@ -42,8 +42,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_CURSORS_H
-#define HAM_BTREE_CURSORS_H
+#ifndef UPS_BTREE_CURSORS_H
+#define UPS_BTREE_CURSORS_H
 
 #include "0root/root.h"
 
@@ -51,7 +51,7 @@
 #include "1base/dynamic_array.h"
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -82,7 +82,7 @@ class BtreeCursor
 
     // Destructor; asserts that the cursor is nil
     ~BtreeCursor() {
-      ham_assert(m_state == kStateNil);
+      ups_assert(m_state == kStateNil);
     }
 
     // Returns the parent cursor
@@ -109,7 +109,7 @@ class BtreeCursor
     // Asserts that the cursor is coupled.
     void get_coupled_key(Page **page, int *index = 0,
                     int *duplicate_index = 0) const {
-      ham_assert(m_state == kStateCoupled);
+      ups_assert(m_state == kStateCoupled);
       if (page)
         *page = m_coupled_page;
       if (index)
@@ -120,8 +120,8 @@ class BtreeCursor
 
     // Returns the uncoupled key of this cursor.
     // Asserts that the cursor is uncoupled.
-    ham_key_t *get_uncoupled_key() {
-      ham_assert(m_state == kStateUncoupled);
+    ups_key_t *get_uncoupled_key() {
+      ups_assert(m_state == kStateUncoupled);
       return (&m_uncoupled_key);
     }
 
@@ -150,27 +150,27 @@ class BtreeCursor
     bool points_to(Context *context, Page *page, int slot);
 
     // Returns true if a cursor points to this external key
-    bool points_to(Context *context, ham_key_t *key);
+    bool points_to(Context *context, ups_key_t *key);
 
     // Moves the btree cursor to the next page
-    ham_status_t move_to_next_page(Context *context);
+    ups_status_t move_to_next_page(Context *context);
 
     // Positions the cursor on a key and retrieves the record (if |record|
     // is a valid pointer)
-    ham_status_t find(Context *context, ham_key_t *key, ByteArray *key_arena,
-                    ham_record_t *record, ByteArray *record_arena,
+    ups_status_t find(Context *context, ups_key_t *key, ByteArray *key_arena,
+                    ups_record_t *record, ByteArray *record_arena,
                     uint32_t flags);
 
     // Moves the cursor to the first, last, next or previous element
-    ham_status_t move(Context *context, ham_key_t *key, ByteArray *key_arena,
-                    ham_record_t *record, ByteArray *record_arena,
+    ups_status_t move(Context *context, ups_key_t *key, ByteArray *key_arena,
+                    ups_record_t *record, ByteArray *record_arena,
                     uint32_t flags);
 
     // Returns the number of records of the referenced key
     int get_record_count(Context *context, uint32_t flags);
 
     // Overwrite the record of this cursor
-    void overwrite(Context *context, ham_record_t *record, uint32_t flags);
+    void overwrite(Context *context, ups_record_t *record, uint32_t flags);
 
     // retrieves the record size of the current record
     uint64_t get_record_size(Context *context);
@@ -199,16 +199,16 @@ class BtreeCursor
     void couple(Context *context);
 
     // move cursor to the very first key
-    ham_status_t move_first(Context *context, uint32_t flags);
+    ups_status_t move_first(Context *context, uint32_t flags);
 
     // move cursor to the very last key
-    ham_status_t move_last(Context *context, uint32_t flags);
+    ups_status_t move_last(Context *context, uint32_t flags);
 
     // move cursor to the next key
-    ham_status_t move_next(Context *context, uint32_t flags);
+    ups_status_t move_next(Context *context, uint32_t flags);
 
     // move cursor to the previous key
-    ham_status_t move_previous(Context *context, uint32_t flags);
+    ups_status_t move_previous(Context *context, uint32_t flags);
 
     // the parent cursor
     LocalCursor *m_parent;
@@ -233,7 +233,7 @@ class BtreeCursor
     int m_coupled_index;
 
     // for uncoupled cursors: a copy of the key at which we're pointing
-    ham_key_t m_uncoupled_key;
+    ups_key_t m_uncoupled_key;
 
     // a ByteArray which backs |m_uncoupled_key.data|
     ByteArray m_uncoupled_arena;
@@ -244,4 +244,4 @@ class BtreeCursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_CURSORS_H */
+#endif /* UPS_BTREE_CURSORS_H */

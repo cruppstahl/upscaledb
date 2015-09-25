@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
  
-#ifndef HAM_EVENTLOG_H
-#define HAM_EVENTLOG_H
+#ifndef UPS_EVENTLOG_H
+#define UPS_EVENTLOG_H
 
 #include "0root/root.h"
 
@@ -31,7 +31,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -39,7 +39,7 @@ namespace hamsterdb {
 
 namespace EventLog {
 
-#ifdef HAM_ENABLE_EVENT_LOGGING
+#ifdef UPS_ENABLE_EVENT_LOGGING
 
 // Locks the EventLog; used by the helper macros below
 extern void
@@ -95,7 +95,7 @@ escape(const void *data, size_t size);
                                   EventLog::unlock();           \
                                 } while (0)
 
-#else /* !HAM_ENABLE_EVENT_LOGGING */
+#else /* !UPS_ENABLE_EVENT_LOGGING */
 
 #  define EVENTLOG_CREATE(x)    (void)0
 #  define EVENTLOG_OPEN(x)      (void)0
@@ -107,11 +107,11 @@ escape(const void *data, size_t size)
   return (0);
 }
 
-#endif /* HAM_ENABLE_EVENT_LOGGING */
+#endif /* UPS_ENABLE_EVENT_LOGGING */
 
 } // namespace EventLog
 
 } // namespace hamsterdb
 
-#endif /* HAM_EVENTLOG_H */
+#endif /* UPS_EVENTLOG_H */
 

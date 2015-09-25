@@ -29,8 +29,8 @@
 using namespace hamsterdb;
 
 struct PageFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_inmemory;
   bool m_usemmap;
 
@@ -39,18 +39,18 @@ struct PageFixture {
     uint32_t flags = 0;
 
     if (m_inmemory)
-      flags |= HAM_IN_MEMORY;
+      flags |= UPS_IN_MEMORY;
     if (!m_usemmap)
-      flags |= HAM_DISABLE_MMAP;
+      flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"), flags, 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"), flags, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   ~PageFixture() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void newDeleteTest() {

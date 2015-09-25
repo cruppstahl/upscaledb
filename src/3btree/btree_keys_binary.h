@@ -28,8 +28,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_KEYS_BINARY_H
-#define HAM_BTREE_KEYS_BINARY_H
+#ifndef UPS_BTREE_KEYS_BINARY_H
+#define UPS_BTREE_KEYS_BINARY_H
 
 #include "0root/root.h"
 
@@ -46,7 +46,7 @@
 #include "3btree/btree_keys_base.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -76,7 +76,7 @@ class BinaryKeyList : public BaseKeyList
     BinaryKeyList(LocalDatabase *db)
         : m_data(0) {
       m_key_size = db->config().key_size;
-      ham_assert(m_key_size != 0);
+      ups_assert(m_key_size != 0);
     }
 
     // Creates a new KeyList starting at |data|, total size is
@@ -98,12 +98,12 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Returns the actual key size including overhead
-    size_t get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ups_key_t *key = 0) const {
       return (m_key_size);
     }
 
     // Copies a key into |dest|
-    void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *context, int slot, ByteArray *arena, ups_key_t *dest,
                     bool deep_copy = true) const {
       dest->size = (uint16_t)m_key_size;
       if (likely(deep_copy == false)) {
@@ -112,7 +112,7 @@ class BinaryKeyList : public BaseKeyList
       }
 
       // allocate memory (if required)
-      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+      if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(dest->size);
         dest->data = arena->get_ptr();
       }
@@ -136,7 +136,7 @@ class BinaryKeyList : public BaseKeyList
     // Inserts a key
     template<typename Cmp>
     PBtreeNode::InsertResult insert(Context *context, size_t node_count,
-                    const ham_key_t *key, uint32_t flags, Cmp &comparator,
+                    const ups_key_t *key, uint32_t flags, Cmp &comparator,
                     int slot) {
       if (node_count > (size_t)slot)
         memmove(&m_data[(slot + 1) * m_key_size], &m_data[slot * m_key_size],
@@ -146,7 +146,7 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Returns true if the |key| no longer fits into the node
-    bool requires_split(size_t node_count, const ham_key_t *key) const {
+    bool requires_split(size_t node_count, const ups_key_t *key) const {
       return ((node_count + 1) * m_key_size >= m_range_size);
     }
 
@@ -209,7 +209,7 @@ class BinaryKeyList : public BaseKeyList
     // Overwrites a key's data. The |size| of the new data HAS
     // to be identical to the "official" key size
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ham_assert(size == get_key_size(slot));
+      ups_assert(size == get_key_size(slot));
       memcpy(&m_data[slot * m_key_size], ptr, size);
     }
 
@@ -224,4 +224,4 @@ class BinaryKeyList : public BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_BINARY_H */
+#endif /* UPS_BTREE_KEYS_BINARY_H */

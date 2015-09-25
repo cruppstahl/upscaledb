@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_NODE_PROXY_H
-#define HAM_BTREE_NODE_PROXY_H
+#ifndef UPS_BTREE_NODE_PROXY_H
+#define UPS_BTREE_NODE_PROXY_H
 
 #include "0root/root.h"
 
@@ -41,7 +41,7 @@
 #include "4env/env_local.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -140,7 +140,7 @@ class BtreeNodeProxy
     virtual size_t estimate_capacity() const = 0;
 
     // Checks the integrity of the node. Throws an exception if it is
-    // not. Called by ham_db_check_integrity().
+    // not. Called by ups_db_check_integrity().
     virtual void check_integrity(Context *context) const = 0;
 
     // Iterates all keys, calls the |visitor| on each
@@ -149,31 +149,31 @@ class BtreeNodeProxy
 
     // Compares the two keys. Returns 0 if both are equal, otherwise -1 (if
     // |lhs| is greater) or +1 (if |rhs| is greater).
-    virtual int compare(const ham_key_t *lhs, const ham_key_t *rhs) const = 0;
+    virtual int compare(const ups_key_t *lhs, const ups_key_t *rhs) const = 0;
 
     // Compares a public key and an internal key
-    virtual int compare(Context *context, const ham_key_t *lhs, int rhs) = 0;
+    virtual int compare(Context *context, const ups_key_t *lhs, int rhs) = 0;
 
     // Returns true if the public key (|lhs|) and an internal key (slot
     // |rhs|) are equal
-    virtual bool equals(Context *context, const ham_key_t *lhs, int rhs) = 0;
+    virtual bool equals(Context *context, const ups_key_t *lhs, int rhs) = 0;
 
     // Searches the node for the |key|, and returns the slot of this key.
     // If |record_id| is not null then it will store the result of the last
     // compare operation.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_lower_bound(Context *context, ham_key_t *key,
+    virtual int find_lower_bound(Context *context, ups_key_t *key,
                     uint64_t *record_id = 0, int *pcmp = 0) = 0;
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find(Context *context, ham_key_t *key) = 0;
+    virtual int find(Context *context, ups_key_t *key) = 0;
 
     // Returns the full key at the |slot|. Also resolves extended keys
-    // and respects HAM_KEY_USER_ALLOC in dest->flags.
+    // and respects UPS_KEY_USER_ALLOC in dest->flags.
     virtual void get_key(Context *context, int slot, ByteArray *arena,
-                    ham_key_t *dest) = 0;
+                    ups_key_t *dest) = 0;
 
     // Returns the number of records of a key at the given |slot|. This is
     // either 1 or higher, but only if duplicate keys exist.
@@ -193,19 +193,19 @@ class BtreeNodeProxy
 
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
-    // correctly, as well as HAM_DIRECT_ACCESS.
+    // correctly, as well as UPS_DIRECT_ACCESS.
     virtual void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     int duplicate_index = 0) = 0;
 
     // High-level function to set a new record
     //
     // flags can be
-    // - HAM_OVERWRITE
-    // - HAM_DUPLICATE*
+    // - UPS_OVERWRITE
+    // - UPS_DUPLICATE*
     //
     // a previously existing blob will be deleted if necessary
-    virtual void set_record(Context *context, int slot, ham_record_t *record,
+    virtual void set_record(Context *context, int slot, ups_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) = 0;
 
@@ -226,11 +226,11 @@ class BtreeNodeProxy
 
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
-    virtual PBtreeNode::InsertResult insert(Context *context, ham_key_t *key,
+    virtual PBtreeNode::InsertResult insert(Context *context, ups_key_t *key,
                     uint32_t flags) = 0;
 
     // Returns true if a node requires a split to insert a new |key|
-    virtual bool requires_split(Context *context, const ham_key_t *key = 0) = 0;
+    virtual bool requires_split(Context *context, const ups_key_t *key = 0) = 0;
 
     // Returns true if a node requires a merge or a shift
     virtual bool requires_merge() const = 0;
@@ -261,7 +261,7 @@ class BtreeNodeProxy
 
 //
 // A comparator which uses a user-supplied callback function (installed
-// with |ham_db_set_compare_func|) to compare two keys
+// with |ups_db_set_compare_func|) to compare two keys
 //
 struct CallbackCompare
 {
@@ -271,7 +271,7 @@ struct CallbackCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    return (m_db->compare_func()((::ham_db_t *)m_db, (uint8_t *)lhs_data,
+    return (m_db->compare_func()((::ups_db_t *)m_db, (uint8_t *)lhs_data,
                             lhs_size, (uint8_t *)rhs_data, rhs_size));
   }
 
@@ -291,8 +291,8 @@ struct NumericCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    ham_assert(lhs_size == rhs_size);
-    ham_assert(lhs_size == sizeof(T));
+    ups_assert(lhs_size == rhs_size);
+    ups_assert(lhs_size == sizeof(T));
     T l = *(T *)lhs_data;
     T r = *(T *)rhs_data;
     return (l < r ? -1 : (l > r ? +1 : 0));
@@ -310,7 +310,7 @@ struct FixedSizeCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    ham_assert(lhs_size == rhs_size);
+    ups_assert(lhs_size == rhs_size);
     return (::memcmp(lhs_data, rhs_data, lhs_size));
   }
 };
@@ -373,26 +373,26 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Compares two internal keys using the supplied comparator
-    virtual int compare(const ham_key_t *lhs, const ham_key_t *rhs) const {
+    virtual int compare(const ups_key_t *lhs, const ups_key_t *rhs) const {
       Comparator cmp(m_page->get_db());
       return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
     }
 
     // Compares a public key and an internal key
-    virtual int compare(Context *context, const ham_key_t *lhs, int rhs) {
+    virtual int compare(Context *context, const ups_key_t *lhs, int rhs) {
       Comparator cmp(m_page->get_db());
       return (m_impl.compare(context, lhs, rhs, cmp));
     }
 
     // Returns true if the public key and an internal key are equal
-    virtual bool equals(Context *context, const ham_key_t *lhs, int rhs) {
+    virtual bool equals(Context *context, const ups_key_t *lhs, int rhs) {
       return (0 == compare(context, lhs, rhs));
     }
 
     // Searches the node for the key and returns the slot of this key.
     // If |pcmp| is not null then it will store the result of the last
     // compare operation.
-    virtual int find_lower_bound(Context *context, ham_key_t *key,
+    virtual int find_lower_bound(Context *context, ups_key_t *key,
                     uint64_t *precord_id = 0, int *pcmp = 0) {
       int dummy;
       if (get_count() == 0) {
@@ -410,7 +410,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Searches the node for the |key|, but will always return -1 if
     // an exact match was not found
-    virtual int find(Context *context, ham_key_t *key) {
+    virtual int find(Context *context, ups_key_t *key) {
       if (get_count() == 0)
         return (-1);
       Comparator cmp(m_page->get_db());
@@ -418,29 +418,29 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns the full key at the |slot|. Also resolves extended keys
-    // and respects HAM_KEY_USER_ALLOC in dest->flags.
+    // and respects UPS_KEY_USER_ALLOC in dest->flags.
     virtual void get_key(Context *context, int slot, ByteArray *arena,
-                    ham_key_t *dest) {
+                    ups_key_t *dest) {
       m_impl.get_key(context, slot, arena, dest);
     }
 
     // Returns the number of records of a key at the given |slot|
     virtual int get_record_count(Context *context, int slot) {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       return (m_impl.get_record_count(context, slot));
     }
 
     // Returns the full record and stores it in |dest|. The record is identified
     // by |slot| and |duplicate_index|. TINY and SMALL records are handled
-    // correctly, as well as HAM_DIRECT_ACCESS.
+    // correctly, as well as UPS_DIRECT_ACCESS.
     virtual void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     int duplicate_index = 0) {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       m_impl.get_record(context, slot, arena, record, flags, duplicate_index);
     }
 
-    virtual void set_record(Context *context, int slot, ham_record_t *record,
+    virtual void set_record(Context *context, int slot, ups_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) {
       m_impl.set_record(context, slot, record, duplicate_index, flags,
@@ -450,14 +450,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the record size of a key or one of its duplicates
     virtual uint64_t get_record_size(Context *context, int slot,
                     int duplicate_index) {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       return (m_impl.get_record_size(context, slot, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
     virtual uint64_t get_record_id(Context *context, int slot) const {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       return (m_impl.get_record_id(context, slot));
     }
 
@@ -471,7 +471,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // |erase_extended_key| to clean up (a potential) extended key,
     // and |erase_record| on each record that is associated with the key.
     virtual void erase(Context *context, int slot) {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       m_impl.erase(context, slot);
       set_count(get_count() - 1);
     }
@@ -482,7 +482,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // after the current one was deleted.
     virtual void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates, bool *has_duplicates_left) {
-      ham_assert(slot < (int)get_count());
+      ups_assert(slot < (int)get_count());
       m_impl.erase_record(context, slot, duplicate_index, all_duplicates);
       if (has_duplicates_left)
         *has_duplicates_left = get_record_count(context, slot) > 0;
@@ -507,10 +507,10 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // High level function to insert a new key. Only inserts the key. The
     // actual record is then updated with |set_record|.
     virtual PBtreeNode::InsertResult insert(Context *context,
-                    ham_key_t *key, uint32_t flags) {
+                    ups_key_t *key, uint32_t flags) {
       PBtreeNode::InsertResult result(0, 0);
       if (m_impl.requires_split(context, key)) {
-        result.status = HAM_LIMITS_REACHED;
+        result.status = UPS_LIMITS_REACHED;
         return (result);
       }
 
@@ -523,7 +523,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
       }
 
       // split required? then reorganize the node, try again
-      if (result.status == HAM_LIMITS_REACHED) {
+      if (result.status == UPS_LIMITS_REACHED) {
         try {
           if (m_impl.reorganize(context, key))
             result = m_impl.insert(context, key, flags, cmp);
@@ -533,14 +533,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         }
       }
 
-      if (result.status == HAM_SUCCESS)
+      if (result.status == UPS_SUCCESS)
         set_count(get_count() + 1);
 
       return (result);
     }
 
     // Returns true if a node requires a split to insert |key|
-    virtual bool requires_split(Context *context, const ham_key_t *key = 0) {
+    virtual bool requires_split(Context *context, const ups_key_t *key = 0) {
       return (m_impl.requires_split(context, key));
     }
 
@@ -553,7 +553,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void split(Context *context, BtreeNodeProxy *other_node,
                     int pivot) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ham_assert(other != 0);
+      ups_assert(other != 0);
 
       m_impl.split(context, &other->m_impl, pivot);
 
@@ -569,7 +569,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Merges all keys from the |other| node into this node
     virtual void merge_from(Context *context, BtreeNodeProxy *other_node) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ham_assert(other != 0);
+      ups_assert(other != 0);
 
       m_impl.merge_from(context, &other->m_impl);
 
@@ -607,4 +607,4 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_NODE_PROXY_H */
+#endif /* UPS_BTREE_NODE_PROXY_H */

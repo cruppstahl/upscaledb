@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_STREAMVBYTE_H
-#define HAM_BTREE_KEYS_STREAMVBYTE_H
+#ifndef UPS_BTREE_KEYS_STREAMVBYTE_H
+#define UPS_BTREE_KEYS_STREAMVBYTE_H
 
 #include <sstream>
 #include <iostream>
@@ -34,7 +34,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -78,7 +78,7 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 StreamVbyteIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase {
   public:
     enum {
       // Initial size of a new block
@@ -145,7 +145,7 @@ HAM_PACK_0 class HAM_PACK_1 StreamVbyteIndex : public IndexBase {
 
     // the number of keys in this block; max 1024-1 (kMaxKeysPerBlock)
     unsigned int m_key_count : 10;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
@@ -171,7 +171,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
 
   static uint32_t compress_block(StreamVbyteIndex *index, const uint32_t *in,
                   uint32_t *out32) {
-    ham_assert(index->key_count() > 0);
+    ups_assert(index->key_count() > 0);
     uint8_t *out = (uint8_t *)out32;
     uint32_t count = index->key_count() - 1;
     uint32_t key_len = round_up(count);
@@ -377,4 +377,4 @@ class StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_STREAMVBYTE_H */
+#endif /* UPS_BTREE_KEYS_STREAMVBYTE_H */

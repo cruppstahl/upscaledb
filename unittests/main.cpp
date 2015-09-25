@@ -19,7 +19,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "1base/error.h"
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
 #endif
 
@@ -28,7 +28,7 @@ main(int argc, char *const argv[])
 {
   int result = Catch::Main(argc, argv);
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
   Protocol::shutdown();
 #endif
 

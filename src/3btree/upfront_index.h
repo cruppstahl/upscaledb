@@ -50,8 +50,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_UPFRONT_INDEX_H
-#define HAM_BTREE_UPFRONT_INDEX_H
+#ifndef UPS_BTREE_UPFRONT_INDEX_H
+#define UPS_BTREE_UPFRONT_INDEX_H
 
 #include "0root/root.h"
 
@@ -61,7 +61,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/globals.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -147,7 +147,7 @@ class UpfrontIndex
       // get rid of the freelist and collect the garbage
       if (get_freelist_count() > 0)
         vacuumize(node_count);
-      ham_assert(get_freelist_count() == 0);
+      ups_assert(get_freelist_count() == 0);
 
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
@@ -162,7 +162,7 @@ class UpfrontIndex
             && m_data == new_data_ptr )
         return;
 
-      ham_assert(dst - new_data_ptr + used_data_size <= new_range_size);
+      ups_assert(dst - new_data_ptr + used_data_size <= new_range_size);
 
       // shift "to the right"? Then first move the data and afterwards
       // the index
@@ -217,7 +217,7 @@ class UpfrontIndex
       if (m_sizeof_offset == 2)
         return (*(uint16_t *)p);
       else {
-        ham_assert(m_sizeof_offset == 4);
+        ups_assert(m_sizeof_offset == 4);
         return (*(uint32_t *)p);
       }
     }
@@ -230,7 +230,7 @@ class UpfrontIndex
 
     // Sets the size of a chunk (does NOT actually resize the chunk!)
     void set_chunk_size(int slot, uint16_t size) {
-      ham_assert(size <= 255);
+      ups_assert(size <= 255);
       m_data[kPayloadOffset + get_full_index_size() * slot + m_sizeof_offset]
               = (uint8_t)size;
     }
@@ -260,7 +260,7 @@ class UpfrontIndex
     // Inserts a slot at the position |slot|. |node_count| is the number of
     // used slots (this is managed by the caller)
     void insert(size_t node_count, int slot) {
-      ham_assert(can_insert(node_count) == true);
+      ups_assert(can_insert(node_count) == true);
 
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
@@ -280,7 +280,7 @@ class UpfrontIndex
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
 
-      ham_assert(slot < (int)total_count);
+      ups_assert(slot < (int)total_count);
 
       set_freelist_count(get_freelist_count() + 1);
 
@@ -336,7 +336,7 @@ class UpfrontIndex
     // Allocates space for a |slot| and returns the offset of that chunk
     uint32_t allocate_space(size_t node_count, int slot,
                     size_t num_bytes) {
-      ham_assert(can_allocate_space(node_count, num_bytes));
+      ups_assert(can_allocate_space(node_count, num_bytes));
 
       size_t next_offset = get_next_offset(node_count);
 
@@ -383,8 +383,8 @@ class UpfrontIndex
         }
       }
 
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_INTERNAL_ERROR);
+      ups_assert(!"shouldn't be here");
+      throw Exception(UPS_INTERNAL_ERROR);
     }
 
     // Returns true if |key| cannot be inserted because a split is required.
@@ -401,15 +401,15 @@ class UpfrontIndex
       //typedef std::vector<Range> RangeVec;
       uint32_t total_count = node_count + get_freelist_count();
 
-      ham_assert(node_count > 1
+      ups_assert(node_count > 1
                     ? get_next_offset(node_count) > 0
                     : true);
 
       if (total_count > get_capacity()) {
-        ham_trace(("integrity violated: total count %u (%u+%u) > capacity %u",
+        ups_trace(("integrity violated: total count %u (%u+%u) > capacity %u",
                     total_count, node_count, get_freelist_count(),
                     get_capacity()));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
 
       //RangeVec ranges;
@@ -429,24 +429,24 @@ class UpfrontIndex
       if (!ranges.empty()) {
         for (uint32_t i = 0; i < ranges.size() - 1; i++) {
           if (ranges[i].first + ranges[i].second > ranges[i + 1].first) {
-            ham_trace(("integrity violated: slot %u/%u overlaps with %lu",
+            ups_trace(("integrity violated: slot %u/%u overlaps with %lu",
                         ranges[i].first, ranges[i].second,
                         ranges[i + 1].first));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
         }
       }
 #endif
 
       if (next_offset != get_next_offset(node_count)) {
-        ham_trace(("integrity violated: next offset %d, cached offset %d",
+        ups_trace(("integrity violated: next offset %d, cached offset %d",
                     next_offset, get_next_offset(node_count)));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
       if (next_offset != calc_next_offset(node_count)) {
-        ham_trace(("integrity violated: next offset %d, calculated offset %d",
+        ups_trace(("integrity violated: next offset %d, calculated offset %d",
                     next_offset, calc_next_offset(node_count)));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
     }
 
@@ -638,7 +638,7 @@ class UpfrontIndex
 
     // Sets the number of freelist entries
     void set_freelist_count(size_t freelist_count) {
-      ham_assert(freelist_count <= get_capacity());
+      ups_assert(freelist_count <= get_capacity());
       *(uint32_t *)m_data = freelist_count;
     }
 
@@ -661,7 +661,7 @@ class UpfrontIndex
 
     // Sets the capacity (number of slots)
     void set_capacity(size_t capacity) {
-      ham_assert(capacity > 0);
+      ups_assert(capacity > 0);
       *(uint32_t *)(m_data + 8) = (uint32_t)capacity;
     }
 
@@ -682,4 +682,4 @@ class UpfrontIndex
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_UPFRONT_INDEX_H */
+#endif /* UPS_BTREE_UPFRONT_INDEX_H */

@@ -26,8 +26,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_RECORDS_DEFAULT_H
-#define HAM_BTREE_RECORDS_DEFAULT_H
+#ifndef UPS_BTREE_RECORDS_DEFAULT_H
+#define UPS_BTREE_RECORDS_DEFAULT_H
 
 #include "0root/root.h"
 
@@ -43,7 +43,7 @@
 #include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -73,7 +73,7 @@ class DefaultRecordList : public BaseRecordList
       size_t capacity = range_size / get_full_record_size();
       m_range_size = range_size;
 
-      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED) {
         m_flags = data;
         m_data = (uint64_t *)&data[capacity];
       }
@@ -88,7 +88,7 @@ class DefaultRecordList : public BaseRecordList
       size_t capacity = range_size / get_full_record_size();
       m_range_size = range_size;
 
-      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED) {
         m_flags = data;
         m_data = (uint64_t *)&data[capacity];
       }
@@ -106,7 +106,7 @@ class DefaultRecordList : public BaseRecordList
     // Returns the actual record size including overhead
     size_t get_full_record_size() const {
       return (sizeof(uint64_t) +
-                  (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED
+                  (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED
                     ? 1
                     : 0));
     }
@@ -131,9 +131,9 @@ class DefaultRecordList : public BaseRecordList
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
+      bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
       if (is_record_inline(slot)) {
@@ -142,15 +142,15 @@ class DefaultRecordList : public BaseRecordList
           record->data = 0;
           return;
         }
-        if (flags & HAM_PARTIAL) {
-          ham_trace(("flag HAM_PARTIAL is not allowed if record is "
+        if (flags & UPS_PARTIAL) {
+          ups_trace(("flag UPS_PARTIAL is not allowed if record is "
                      "stored inline"));
-          throw Exception(HAM_INV_PARAMETER);
+          throw Exception(UPS_INV_PARAMETER);
         }
         if (direct_access)
           record->data = (void *)&m_data[slot];
         else {
-          if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+          if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
             record->data = arena->get_ptr();
           }
@@ -167,7 +167,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Updates the record of a key
     void set_record(Context *context, int slot, int duplicate_index,
-                ham_record_t *record, uint32_t flags,
+                ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
       uint64_t ptr = get_record_id(slot);
       LocalEnvironment *env = m_db->lenv();
@@ -220,8 +220,8 @@ class DefaultRecordList : public BaseRecordList
         return;
       }
 
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_INTERNAL_ERROR);
+      ups_assert(!"shouldn't be here");
+      throw Exception(UPS_INTERNAL_ERROR);
     }
 
     // Erases the record
@@ -309,7 +309,7 @@ class DefaultRecordList : public BaseRecordList
         }
       }
 
-      if (m_db->config().record_size == HAM_RECORD_SIZE_UNLIMITED) {
+      if (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED) {
         m_flags = new_data_ptr;
         m_data = (uint64_t *)&new_data_ptr[new_capacity];
       }
@@ -356,7 +356,7 @@ class DefaultRecordList : public BaseRecordList
         set_record_flags(slot, flags | BtreeRecord::kBlobSizeSmall);
       }
       else {
-        ham_assert(!"shouldn't be here");
+        ups_assert(!"shouldn't be here");
         set_record_flags(slot, flags);
       }
     }
@@ -369,14 +369,14 @@ class DefaultRecordList : public BaseRecordList
 
     // Sets the record flags of a given |slot|
     void set_record_flags(int slot, uint8_t flags) {
-      ham_assert(m_flags != 0);
+      ups_assert(m_flags != 0);
       m_flags[slot] = flags;
     }
 
     // Returns the size of an inline record
     uint32_t get_inline_record_size(int slot) const {
       uint8_t flags = get_record_flags(slot);
-      ham_assert(is_record_inline(slot));
+      ups_assert(is_record_inline(slot));
       if (flags & BtreeRecord::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
         char *p = (char *)&m_data[slot];
@@ -386,7 +386,7 @@ class DefaultRecordList : public BaseRecordList
         return (sizeof(uint64_t));
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
-      ham_assert(!"shouldn't be here");
+      ups_assert(!"shouldn't be here");
       return (0);
     }
 
@@ -422,4 +422,4 @@ class DefaultRecordList : public BaseRecordList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_RECORDS_DEFAULT_H */
+#endif /* UPS_BTREE_RECORDS_DEFAULT_H */

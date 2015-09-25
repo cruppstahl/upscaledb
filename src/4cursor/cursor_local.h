@@ -22,8 +22,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_CURSOR_LOCAL_H
-#define HAM_CURSOR_LOCAL_H
+#ifndef UPS_CURSOR_LOCAL_H
+#define UPS_CURSOR_LOCAL_H
 
 #include "0root/root.h"
 
@@ -37,7 +37,7 @@
 #include "4env/env.h"
 #include "4cursor/cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,12 +52,12 @@ class DupeCacheLine
   public:
     DupeCacheLine(bool use_btree = true, uint64_t btree_dupeidx = 0)
       : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
-      ham_assert(use_btree == true);
+      ups_assert(use_btree == true);
     }
 
     DupeCacheLine(bool use_btree, TransactionOperation *op)
       : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
-      ham_assert(use_btree == false);
+      ups_assert(use_btree == false);
     }
 
     // Returns true if this cache entry is a duplicate in the btree index
@@ -68,7 +68,7 @@ class DupeCacheLine
 
     // Returns the btree duplicate index
     uint64_t get_btree_dupe_idx() {
-      ham_assert(m_use_btree == true);
+      ups_assert(m_use_btree == true);
       return (m_btree_dupeidx);
     }
 
@@ -81,7 +81,7 @@ class DupeCacheLine
 
     // Returns the txn-op duplicate
     TransactionOperation *get_txn_op() {
-      ham_assert(m_use_btree == false);
+      ups_assert(m_use_btree == false);
       return (m_op);
     }
 
@@ -244,11 +244,11 @@ class LocalCursor : public Cursor
       return ((m_flags & kCoupledToTxn) ? true : false);
     }
 
-    // Moves a Cursor (ham_cursor_move)
-    ham_status_t move(Context *context, ham_key_t *key, ham_record_t *record,
+    // Moves a Cursor (ups_cursor_move)
+    ups_status_t move(Context *context, ups_key_t *key, ups_record_t *record,
                     uint32_t flags);
 
-    // Closes the cursor (ham_cursor_close)
+    // Closes the cursor (ups_cursor_close)
     virtual void close();
 
     // Couples the cursor to a duplicate in the dupe table
@@ -269,7 +269,7 @@ class LocalCursor : public Cursor
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
     uint32_t get_dupecache_count(Context *context, bool clear_cache = false) {
-      if (!(m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS))
+      if (!(m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
         return (0);
 
       if (clear_cache)
@@ -310,14 +310,14 @@ class LocalCursor : public Cursor
       return (m_is_first_use);
     }
 
-    // Stores the current operation; needed for ham_cursor_move
+    // Stores the current operation; needed for ups_cursor_move
     // TODO should be private
     void set_last_operation(uint32_t last_operation) {
       m_last_operation = last_operation;
       m_is_first_use = false;
     }
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
     uint32_t get_duplicate_count(Context *context);
 
   private:
@@ -329,17 +329,17 @@ class LocalCursor : public Cursor
     }
 
     // Implementation of overwrite()
-    virtual ham_status_t do_overwrite(ham_record_t *record, uint32_t flags);
+    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags);
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    virtual ham_status_t do_get_duplicate_count(uint32_t flags,
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
+    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
                                 uint32_t *pcount);
 
-    // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t do_get_record_size(uint64_t *psize);
+    // Get current record size (ups_cursor_get_record_size)
+    virtual ups_status_t do_get_record_size(uint64_t *psize);
 
     // Implementation of get_duplicate_position()
-    virtual ham_status_t do_get_duplicate_position(uint32_t *pposition);
+    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition);
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
     void clear_dupecache() {
@@ -362,7 +362,7 @@ class LocalCursor : public Cursor
     //
     // This is needed when moving the cursor backwards/forwards
     // and consolidating the btree and the txn-tree
-    ham_status_t check_if_btree_key_is_erased_or_overwritten(Context *context);
+    ups_status_t check_if_btree_key_is_erased_or_overwritten(Context *context);
 
     // Compares btree and txn-cursor; stores result in lastcmp
     int compare(Context *context);
@@ -373,40 +373,40 @@ class LocalCursor : public Cursor
     }
 
     // Moves cursor to the first duplicate
-    ham_status_t move_first_dupe(Context *context);
+    ups_status_t move_first_dupe(Context *context);
 
     // Moves cursor to the last duplicate
-    ham_status_t move_last_dupe(Context *context);
+    ups_status_t move_last_dupe(Context *context);
 
     // Moves cursor to the next duplicate
-    ham_status_t move_next_dupe(Context *context);
+    ups_status_t move_next_dupe(Context *context);
 
     // Moves cursor to the previous duplicate
-    ham_status_t move_previous_dupe(Context *context);
+    ups_status_t move_previous_dupe(Context *context);
 
     // Moves cursor to the first key
-    ham_status_t move_first_key(Context *context, uint32_t flags);
+    ups_status_t move_first_key(Context *context, uint32_t flags);
 
     // Moves cursor to the last key
-    ham_status_t move_last_key(Context *context, uint32_t flags);
+    ups_status_t move_last_key(Context *context, uint32_t flags);
 
     // Moves cursor to the next key
-    ham_status_t move_next_key(Context *context, uint32_t flags);
+    ups_status_t move_next_key(Context *context, uint32_t flags);
 
     // Moves cursor to the previous key
-    ham_status_t move_previous_key(Context *context, uint32_t flags);
+    ups_status_t move_previous_key(Context *context, uint32_t flags);
 
     // Moves cursor to the first key - helper function
-    ham_status_t move_first_key_singlestep(Context *context);
+    ups_status_t move_first_key_singlestep(Context *context);
 
     // Moves cursor to the last key - helper function
-    ham_status_t move_last_key_singlestep(Context *context);
+    ups_status_t move_last_key_singlestep(Context *context);
 
     // Moves cursor to the next key - helper function
-    ham_status_t move_next_key_singlestep(Context *context);
+    ups_status_t move_next_key_singlestep(Context *context);
 
     // Moves cursor to the previous key - helper function
-    ham_status_t move_previous_key_singlestep(Context *context);
+    ups_status_t move_previous_key_singlestep(Context *context);
 
     // A Cursor which can walk over Transaction trees
     TransactionCursor m_txn_cursor;
@@ -415,7 +415,7 @@ class LocalCursor : public Cursor
     BtreeCursor m_btree_cursor;
 
     // A cache for all duplicates of the current key. needed for
-    // ham_cursor_move, ham_find and other functions. The cache is
+    // ups_cursor_move, ups_find and other functions. The cache is
     // used to consolidate all duplicates of btree and txn.
     DupeCache m_dupecache;
 
@@ -424,8 +424,8 @@ class LocalCursor : public Cursor
     uint32_t m_dupecache_index;
 
     // The last operation (insert/find or move); needed for
-    // ham_cursor_move. Values can be HAM_CURSOR_NEXT,
-    // HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT
+    // ups_cursor_move. Values can be UPS_CURSOR_NEXT,
+    // UPS_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT
     uint32_t m_last_operation;
 
     // flags & state of the cursor
@@ -440,4 +440,4 @@ class LocalCursor : public Cursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_CURSOR_LOCAL_H */
+#endif /* UPS_CURSOR_LOCAL_H */

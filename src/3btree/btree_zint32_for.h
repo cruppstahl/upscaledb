@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_FOR_H
-#define HAM_BTREE_KEYS_FOR_H
+#ifndef UPS_BTREE_KEYS_FOR_H
+#define UPS_BTREE_KEYS_FOR_H
 
 #include <sstream>
 #include <iostream>
@@ -35,7 +35,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -111,7 +111,7 @@ for_select(const uint8_t *in, uint32_t index)
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 ForIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 ForIndex : public IndexBase {
   public:
     enum {
       // Initial size of a new block
@@ -178,7 +178,7 @@ HAM_PACK_0 class HAM_PACK_1 ForIndex : public IndexBase {
 
     // the number of keys in this block; max 511 (kMaxKeysPerBlock)
     unsigned int m_key_count : 9;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 struct ForCodecImpl : public BlockCodecBase<ForIndex>
@@ -199,7 +199,7 @@ struct ForCodecImpl : public BlockCodecBase<ForIndex>
 
   static uint32_t compress_block(ForIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ham_assert(index->key_count() > 0);
+    ups_assert(index->key_count() > 0);
     uint32_t count = index->key_count() - 1;
     uint32_t s = for_compress_sorted(in, (uint8_t *)out, count);
     index->set_used_size(s);
@@ -268,4 +268,4 @@ class ForKeyList : public BlockKeyList<ForCodec>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_FOR_H */
+#endif /* UPS_BTREE_KEYS_FOR_H */

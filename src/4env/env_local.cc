@@ -33,7 +33,7 @@
 #include "4context/context.h"
 #include "4txn/txn_cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -51,16 +51,16 @@ LocalEnvironment::recover(uint32_t flags)
 {
   Context context(this);
 
-  ham_status_t st = 0;
+  ups_status_t st = 0;
   m_journal.reset(new Journal(this));
 
-  ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
+  ups_assert(get_flags() & UPS_ENABLE_RECOVERY);
 
   try {
     m_journal->open();
   }
   catch (Exception &ex) {
-    if (ex.code == HAM_FILE_NOT_FOUND) {
+    if (ex.code == UPS_FILE_NOT_FOUND) {
       m_journal->create();
       return;
     }
@@ -68,11 +68,11 @@ LocalEnvironment::recover(uint32_t flags)
 
   /* success - check if we need recovery */
   if (!m_journal->is_empty()) {
-    if (flags & HAM_AUTO_RECOVERY) {
+    if (flags & UPS_AUTO_RECOVERY) {
       m_journal->recover((LocalTransactionManager *)m_txn_manager.get());
     }
     else {
-      st = HAM_NEED_RECOVERY;
+      st = UPS_NEED_RECOVERY;
     }
   }
 
@@ -100,15 +100,15 @@ LocalEnvironment::test()
   return (LocalEnvironmentTest(this));
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_create()
 {
-  if (m_config.flags & HAM_IN_MEMORY)
-    m_config.flags |= HAM_DISABLE_RECLAIM_INTERNAL;
+  if (m_config.flags & UPS_IN_MEMORY)
+    m_config.flags |= UPS_DISABLE_RECLAIM_INTERNAL;
 
   /* initialize the device if it does not yet exist */
   m_device.reset(DeviceFactory::create(m_config));
-  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
+  if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
 
   /* create the file */
@@ -125,8 +125,8 @@ LocalEnvironment::do_create()
 
   /* initialize the header */
   m_header->set_magic('H', 'A', 'M', '\0');
-  m_header->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
-          HAM_FILE_VERSION);
+  m_header->set_version(UPS_VERSION_MAJ, UPS_VERSION_MIN, UPS_VERSION_REV,
+          UPS_FILE_VERSION);
   m_header->set_page_size(m_config.page_size_bytes);
   m_header->set_max_databases(m_config.max_databases);
 
@@ -137,7 +137,7 @@ LocalEnvironment::do_create()
   m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
 
   /* create a logfile and a journal (if requested) */
-  if (get_flags() & HAM_ENABLE_RECOVERY) {
+  if (get_flags() & UPS_ENABLE_RECOVERY) {
     m_journal.reset(new Journal(this));
     m_journal->create();
   }
@@ -149,16 +149,16 @@ LocalEnvironment::do_create()
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
+  if (get_flags() & UPS_ENABLE_RECOVERY)
     Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
 
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_open()
 {
-  ham_status_t st = 0;
+  ups_status_t st = 0;
 
   Context context(this);
 
@@ -169,7 +169,7 @@ LocalEnvironment::do_open()
   /* open the file */
   m_device->open();
 
-  if (m_config.flags & HAM_ENABLE_TRANSACTIONS)
+  if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTransactionManager(this));
 
   /*
@@ -208,23 +208,23 @@ LocalEnvironment::do_open()
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
-      ham_log(("invalid file type"));
-      st =  HAM_INV_FILE_HEADER;
+      ups_log(("invalid file type"));
+      st =  UPS_INV_FILE_HEADER;
       goto fail_with_fake_cleansing;
     }
 
     /* check the database version; everything with a different file version
      * is incompatible */
-    if (m_header->version(3) != HAM_FILE_VERSION) {
-      ham_log(("invalid file version"));
-      st = HAM_INV_FILE_VERSION;
+    if (m_header->version(3) != UPS_FILE_VERSION) {
+      ups_log(("invalid file version"));
+      st = UPS_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
     }
     else if (m_header->version(0) == 1 &&
       m_header->version(1) == 0 &&
       m_header->version(2) <= 9) {
-      ham_log(("invalid file version; < 1.0.9 is not supported"));
-      st = HAM_INV_FILE_VERSION;
+      ups_log(("invalid file version; < 1.0.9 is not supported"));
+      st = UPS_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
     }
 
@@ -260,7 +260,7 @@ fail_with_fake_cleansing:
   m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
 
   /* check if recovery is required */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
+  if (get_flags() & UPS_ENABLE_RECOVERY)
     recover(m_config.flags);
 
   /* load the state of the PageManager */
@@ -270,7 +270,7 @@ fail_with_fake_cleansing:
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 {
   uint16_t name;
@@ -281,14 +281,14 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   *count = 0;
 
   /* copy each database name to the array */
-  ham_assert(m_header->max_databases() > 0);
+  ups_assert(m_header->max_databases() > 0);
   for (i = 0; i < m_header->max_databases(); i++) {
     name = btree_header(i)->database_name();
     if (name == 0)
       continue;
 
     if (*count >= max_names)
-      return (HAM_LIMITS_REACHED);
+      return (UPS_LIMITS_REACHED);
 
     names[(*count)++] = name;
   }
@@ -296,53 +296,53 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   return 0;
 }
 
-ham_status_t
-LocalEnvironment::do_get_parameters(ham_parameter_t *param)
+ups_status_t
+LocalEnvironment::do_get_parameters(ups_parameter_t *param)
 {
-  ham_parameter_t *p = param;
+  ups_parameter_t *p = param;
 
   if (p) {
     for (; p->name; p++) {
       switch (p->name) {
-      case HAM_PARAM_CACHE_SIZE:
+      case UPS_PARAM_CACHE_SIZE:
         p->value = m_config.cache_size_bytes;
         break;
-      case HAM_PARAM_PAGE_SIZE:
+      case UPS_PARAM_PAGE_SIZE:
         p->value = m_config.page_size_bytes;
         break;
-      case HAM_PARAM_MAX_DATABASES:
+      case UPS_PARAM_MAX_DATABASES:
         p->value = m_header->max_databases();
         break;
-      case HAM_PARAM_FLAGS:
+      case UPS_PARAM_FLAGS:
         p->value = get_flags();
         break;
-      case HAM_PARAM_FILEMODE:
+      case UPS_PARAM_FILEMODE:
         p->value = m_config.file_mode;
         break;
-      case HAM_PARAM_FILENAME:
+      case UPS_PARAM_FILENAME:
         if (m_config.filename.size())
           p->value = (uint64_t)(PTR_TO_U64(m_config.filename.c_str()));
         else
           p->value = 0;
         break;
-      case HAM_PARAM_LOG_DIRECTORY:
+      case UPS_PARAM_LOG_DIRECTORY:
         if (m_config.log_filename.size())
           p->value = (uint64_t)(PTR_TO_U64(m_config.log_filename.c_str()));
         else
           p->value = 0;
         break;
-      case HAM_PARAM_JOURNAL_SWITCH_THRESHOLD:
+      case UPS_PARAM_JOURNAL_SWITCH_THRESHOLD:
         p->value = m_config.journal_switch_threshold;
         break;
-      case HAM_PARAM_JOURNAL_COMPRESSION:
+      case UPS_PARAM_JOURNAL_COMPRESSION:
         p->value = m_config.journal_compressor;
         break;
-      case HAM_PARAM_POSIX_FADVISE:
+      case UPS_PARAM_POSIX_FADVISE:
         p->value = m_config.posix_advice;
         break;
       default:
-        ham_trace(("unknown parameter %d", (int)p->name));
-        return (HAM_INV_PARAMETER);
+        ups_trace(("unknown parameter %d", (int)p->name));
+        return (UPS_INV_PARAMETER);
       }
     }
   }
@@ -350,7 +350,7 @@ LocalEnvironment::do_get_parameters(ham_parameter_t *param)
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_flush(uint32_t flags)
 {
   Context context(this, 0, 0);
@@ -359,7 +359,7 @@ LocalEnvironment::do_flush(uint32_t flags)
   if (m_txn_manager)
     m_txn_manager->flush_committed_txns(&context);
 
-  if (flags & HAM_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & HAM_IN_MEMORY)
+  if (flags & UPS_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & UPS_IN_MEMORY)
     return (0);
 
   /* Flush all open pages to disk. This operation is blocking. */
@@ -371,137 +371,137 @@ LocalEnvironment::do_flush(uint32_t flags)
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
-                const ham_parameter_t *param)
+                const ups_parameter_t *param)
 {
-  if (get_flags() & HAM_READ_ONLY) {
-    ham_trace(("cannot create database in a read-only environment"));
-    return (HAM_WRITE_PROTECTED);
+  if (get_flags() & UPS_READ_ONLY) {
+    ups_trace(("cannot create database in a read-only environment"));
+    return (UPS_WRITE_PROTECTED);
   }
 
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-        case HAM_PARAM_RECORD_COMPRESSION:
+        case UPS_PARAM_RECORD_COMPRESSION:
           if (!CompressorFactory::is_available(param->value)) {
-            ham_trace(("unknown algorithm for record compression"));
-            return (HAM_INV_PARAMETER);
+            ups_trace(("unknown algorithm for record compression"));
+            return (UPS_INV_PARAMETER);
           }
           config.record_compressor = (int)param->value;
           break;
-        case HAM_PARAM_KEY_COMPRESSION:
+        case UPS_PARAM_KEY_COMPRESSION:
           if (!CompressorFactory::is_available(param->value)) {
-            ham_trace(("unknown algorithm for key compression"));
-            return (HAM_INV_PARAMETER);
+            ups_trace(("unknown algorithm for key compression"));
+            return (UPS_INV_PARAMETER);
           }
           config.key_compressor = (int)param->value;
           break;
-        case HAM_PARAM_KEY_TYPE:
+        case UPS_PARAM_KEY_TYPE:
           config.key_type = (uint16_t)param->value;
           break;
-        case HAM_PARAM_KEY_SIZE:
+        case UPS_PARAM_KEY_SIZE:
           if (param->value != 0) {
             if (param->value > 0xffff) {
-              ham_trace(("invalid key size %u - must be < 0xffff"));
-              return (HAM_INV_KEY_SIZE);
+              ups_trace(("invalid key size %u - must be < 0xffff"));
+              return (UPS_INV_KEY_SIZE);
             }
-            if (config.flags & HAM_RECORD_NUMBER32) {
+            if (config.flags & UPS_RECORD_NUMBER32) {
               if (param->value > 0 && param->value != sizeof(uint32_t)) {
-                ham_trace(("invalid key size %u - must be 4 for "
-                           "HAM_RECORD_NUMBER32 databases",
+                ups_trace(("invalid key size %u - must be 4 for "
+                           "UPS_RECORD_NUMBER32 databases",
                            (unsigned)param->value));
-                return (HAM_INV_KEY_SIZE);
+                return (UPS_INV_KEY_SIZE);
               }
             }
-            if (config.flags & HAM_RECORD_NUMBER64) {
+            if (config.flags & UPS_RECORD_NUMBER64) {
               if (param->value > 0 && param->value != sizeof(uint64_t)) {
-                ham_trace(("invalid key size %u - must be 8 for "
-                           "HAM_RECORD_NUMBER64 databases",
+                ups_trace(("invalid key size %u - must be 8 for "
+                           "UPS_RECORD_NUMBER64 databases",
                            (unsigned)param->value));
-                return (HAM_INV_KEY_SIZE);
+                return (UPS_INV_KEY_SIZE);
               }
             }
             config.key_size = (uint16_t)param->value;
           }
           break;
-        case HAM_PARAM_RECORD_SIZE:
+        case UPS_PARAM_RECORD_SIZE:
           config.record_size = (uint32_t)param->value;
           break;
         default:
-          ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
-          return (HAM_INV_PARAMETER);
+          ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
+          return (UPS_INV_PARAMETER);
       }
     }
   }
 
-  if (config.flags & HAM_RECORD_NUMBER32) {
-    if (config.key_type == HAM_TYPE_UINT8
-        || config.key_type == HAM_TYPE_UINT16
-        || config.key_type == HAM_TYPE_UINT64
-        || config.key_type == HAM_TYPE_REAL32
-        || config.key_type == HAM_TYPE_REAL64) {
-      ham_trace(("HAM_RECORD_NUMBER32 not allowed in combination with "
+  if (config.flags & UPS_RECORD_NUMBER32) {
+    if (config.key_type == UPS_TYPE_UINT8
+        || config.key_type == UPS_TYPE_UINT16
+        || config.key_type == UPS_TYPE_UINT64
+        || config.key_type == UPS_TYPE_REAL32
+        || config.key_type == UPS_TYPE_REAL64) {
+      ups_trace(("UPS_RECORD_NUMBER32 not allowed in combination with "
                       "fixed length type"));
-      return (HAM_INV_PARAMETER);
+      return (UPS_INV_PARAMETER);
     }
-    config.key_type = HAM_TYPE_UINT32;
+    config.key_type = UPS_TYPE_UINT32;
   }
-  else if (config.flags & HAM_RECORD_NUMBER64) {
-    if (config.key_type == HAM_TYPE_UINT8
-        || config.key_type == HAM_TYPE_UINT16
-        || config.key_type == HAM_TYPE_UINT32
-        || config.key_type == HAM_TYPE_REAL32
-        || config.key_type == HAM_TYPE_REAL64) {
-      ham_trace(("HAM_RECORD_NUMBER64 not allowed in combination with "
+  else if (config.flags & UPS_RECORD_NUMBER64) {
+    if (config.key_type == UPS_TYPE_UINT8
+        || config.key_type == UPS_TYPE_UINT16
+        || config.key_type == UPS_TYPE_UINT32
+        || config.key_type == UPS_TYPE_REAL32
+        || config.key_type == UPS_TYPE_REAL64) {
+      ups_trace(("UPS_RECORD_NUMBER64 not allowed in combination with "
                       "fixed length type"));
-      return (HAM_INV_PARAMETER);
+      return (UPS_INV_PARAMETER);
     }
-    config.key_type = HAM_TYPE_UINT64;
+    config.key_type = UPS_TYPE_UINT64;
   }
 
   // Pro: uint32 compression is only allowed for uint32-keys
-  if (config.key_compressor == HAM_COMPRESSOR_UINT32_VARBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_FOR
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_SIMDFOR
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_SIMDCOMP
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_GROUPVARINT
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_STREAMVBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_MASKEDVBYTE
-      || config.key_compressor == HAM_COMPRESSOR_UINT32_BLOCKINDEX) {
-    if (config.key_type != HAM_TYPE_UINT32) {
-      ham_trace(("Uint32 compression only allowed for uint32 keys "
-                 "(HAM_TYPE_UINT32)"));
-      return (HAM_INV_PARAMETER);
+  if (config.key_compressor == UPS_COMPRESSOR_UINT32_VARBYTE
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_FOR
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDFOR
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDCOMP
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_GROUPVARINT
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
+    if (config.key_type != UPS_TYPE_UINT32) {
+      ups_trace(("Uint32 compression only allowed for uint32 keys "
+                 "(UPS_TYPE_UINT32)"));
+      return (UPS_INV_PARAMETER);
     }
     if (m_config.page_size_bytes != 16 * 1024) {
-      ham_trace(("Uint32 compression only allowed for page size of 16k"));
-      return (HAM_INV_PARAMETER);
+      ups_trace(("Uint32 compression only allowed for page size of 16k"));
+      return (UPS_INV_PARAMETER);
     }
   }
 
   // Pro: all heavy-weight compressors are only allowed for
   // variable-length binary keys
-  if (config.key_compressor == HAM_COMPRESSOR_LZF
-        || config.key_compressor == HAM_COMPRESSOR_SNAPPY
-        || config.key_compressor == HAM_COMPRESSOR_LZO
-        || config.key_compressor == HAM_COMPRESSOR_ZLIB) {
-    if (config.key_type != HAM_TYPE_BINARY
-          || config.key_size != HAM_KEY_SIZE_UNLIMITED) {
-      ham_trace(("Key compression only allowed for unlimited binary keys "
-                 "(HAM_TYPE_BINARY"));
-      return (HAM_INV_PARAMETER);
+  if (config.key_compressor == UPS_COMPRESSOR_LZF
+        || config.key_compressor == UPS_COMPRESSOR_SNAPPY
+        || config.key_compressor == UPS_COMPRESSOR_LZO
+        || config.key_compressor == UPS_COMPRESSOR_ZLIB) {
+    if (config.key_type != UPS_TYPE_BINARY
+          || config.key_size != UPS_KEY_SIZE_UNLIMITED) {
+      ups_trace(("Key compression only allowed for unlimited binary keys "
+                 "(UPS_TYPE_BINARY"));
+      return (UPS_INV_PARAMETER);
     }
   }
 
-  uint32_t mask = HAM_FORCE_RECORDS_INLINE
-                    | HAM_FLUSH_WHEN_COMMITTED
-                    | HAM_ENABLE_DUPLICATE_KEYS
-                    | HAM_RECORD_NUMBER32
-                    | HAM_RECORD_NUMBER64;
+  uint32_t mask = UPS_FORCE_RECORDS_INLINE
+                    | UPS_FLUSH_WHEN_COMMITTED
+                    | UPS_ENABLE_DUPLICATE_KEYS
+                    | UPS_RECORD_NUMBER32
+                    | UPS_RECORD_NUMBER64;
   if (config.flags & ~mask) {
-    ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
-    return (HAM_INV_PARAMETER);
+    ups_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
+    return (UPS_INV_PARAMETER);
   }
 
   /* create a new Database object */
@@ -517,7 +517,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
       continue;
     if (name == config.db_name) {
       delete db;
-      return (HAM_DATABASE_ALREADY_EXISTS);
+      return (UPS_DATABASE_ALREADY_EXISTS);
     }
   }
 
@@ -531,54 +531,54 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   }
   if (dbi == m_header->max_databases()) {
     delete db;
-    return (HAM_LIMITS_REACHED);
+    return (UPS_LIMITS_REACHED);
   }
 
   mark_header_page_dirty(&context);
 
   /* initialize the Database */
-  ham_status_t st = db->create(&context, btree_header(dbi));
+  ups_status_t st = db->create(&context, btree_header(dbi));
   if (st) {
     delete db;
     return (st);
   }
 
   /* force-flush the changeset */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
+  if (get_flags() & UPS_ENABLE_RECOVERY)
     context.changeset.flush(next_lsn());
 
   *pdb = db;
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
-                const ham_parameter_t *param)
+                const ups_parameter_t *param)
 {
   *pdb = 0;
 
-  uint32_t mask = HAM_FORCE_RECORDS_INLINE
-                    | HAM_FLUSH_WHEN_COMMITTED
-                    | HAM_READ_ONLY;
+  uint32_t mask = UPS_FORCE_RECORDS_INLINE
+                    | UPS_FLUSH_WHEN_COMMITTED
+                    | UPS_READ_ONLY;
   if (config.flags & ~mask) {
-    ham_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
-    return (HAM_INV_PARAMETER);
+    ups_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
+    return (UPS_INV_PARAMETER);
   }
 
   if (param) {
     for (; param->name; param++) {
       switch (param->name) {
-        case HAM_PARAM_RECORD_COMPRESSION:
-          ham_trace(("Record compression parameters are only allowed in "
-                     "ham_env_create_db"));
-          return (HAM_INV_PARAMETER);
-        case HAM_PARAM_KEY_COMPRESSION:
-          ham_trace(("Key compression parameters are only allowed in "
-                     "ham_env_create_db"));
-          return (HAM_INV_PARAMETER);
+        case UPS_PARAM_RECORD_COMPRESSION:
+          ups_trace(("Record compression parameters are only allowed in "
+                     "ups_env_create_db"));
+          return (UPS_INV_PARAMETER);
+        case UPS_PARAM_KEY_COMPRESSION:
+          ups_trace(("Key compression parameters are only allowed in "
+                     "ups_env_create_db"));
+          return (UPS_INV_PARAMETER);
         default:
-          ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
-          return (HAM_INV_PARAMETER);
+          ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
+          return (UPS_INV_PARAMETER);
       }
     }
   }
@@ -588,7 +588,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   Context context(this, 0, db);
 
-  ham_assert(0 != m_header->header_page());
+  ups_assert(0 != m_header->header_page());
 
   /* search for a database with this name */
   uint16_t dbi;
@@ -602,14 +602,14 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   if (dbi == m_header->max_databases()) {
     delete db;
-    return (HAM_DATABASE_NOT_FOUND);
+    return (UPS_DATABASE_NOT_FOUND);
   }
 
   /* open the database */
-  ham_status_t st = db->open(&context, btree_header(dbi));
+  ups_status_t st = db->open(&context, btree_header(dbi));
   if (st) {
     delete db;
-    ham_trace(("Database could not be opened"));
+    ups_trace(("Database could not be opened"));
     return (st);
   }
 
@@ -617,7 +617,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
                 uint32_t flags)
 {
@@ -629,17 +629,17 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
    */
   uint16_t max = m_header->max_databases();
   uint16_t slot = max;
-  ham_assert(max > 0);
+  ups_assert(max > 0);
   for (uint16_t dbi = 0; dbi < max; dbi++) {
     uint16_t name = btree_header(dbi)->database_name();
     if (name == newname)
-      return (HAM_DATABASE_ALREADY_EXISTS);
+      return (UPS_DATABASE_ALREADY_EXISTS);
     if (name == oldname)
       slot = dbi;
   }
 
   if (slot == max)
-    return (HAM_DATABASE_NOT_FOUND);
+    return (UPS_DATABASE_NOT_FOUND);
 
   /* replace the database name with the new name */
   btree_header(slot)->set_database_name(newname);
@@ -657,18 +657,18 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
   return (0);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 {
   /* check if this database is still open */
   if (m_database_map.find(name) != m_database_map.end())
-    return (HAM_DATABASE_ALREADY_OPEN);
+    return (UPS_DATABASE_ALREADY_OPEN);
 
   /*
    * if it's an in-memory environment then it's enough to purge the
    * database from the environment header
    */
-  if (get_flags() & HAM_IN_MEMORY) {
+  if (get_flags() & UPS_IN_MEMORY) {
     for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
       PBtreeHeader *desc = btree_header(dbi);
       if (name == desc->database_name()) {
@@ -676,14 +676,14 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
         return (0);
       }
     }
-    return (HAM_DATABASE_NOT_FOUND);
+    return (UPS_DATABASE_NOT_FOUND);
   }
 
   /* temporarily load the database */
   LocalDatabase *db;
   DatabaseConfiguration config;
   config.db_name = name;
-  ham_status_t st = do_open_db((Database **)&db, config, 0);
+  ups_status_t st = do_open_db((Database **)&db, config, 0);
   if (st)
     return (st);
 
@@ -712,7 +712,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   mark_header_page_dirty(&context);
   context.changeset.clear();
 
-  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+  (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
 
   return (0);
 }
@@ -725,19 +725,19 @@ LocalEnvironment::do_txn_begin(const char *name, uint32_t flags)
   return (txn);
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 {
   return (m_txn_manager->commit(txn, flags));
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
 {
   return (m_txn_manager->abort(txn, flags));
 }
 
-ham_status_t
+ups_status_t
 LocalEnvironment::do_close(uint32_t flags)
 {
   Context context(this);
@@ -762,7 +762,7 @@ LocalEnvironment::do_close(uint32_t flags)
   /* close the device */
   if (m_device) {
     if (m_device->is_open()) {
-      if (!(get_flags() & HAM_READ_ONLY))
+      if (!(get_flags() & UPS_READ_ONLY))
         m_device->flush();
       m_device->close();
     }
@@ -770,13 +770,13 @@ LocalEnvironment::do_close(uint32_t flags)
 
   /* close the log and the journal */
   if (m_journal)
-    m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
+    m_journal->close(!!(flags & UPS_DONT_CLEAR_LOG));
 
   return (0);
 }
 
 void
-LocalEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
+LocalEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
 {
   // PageManager metrics (incl. cache and freelist)
   m_page_manager->fill_metrics(metrics);

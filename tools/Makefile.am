@@ -1,5 +1,5 @@
 
-SUBDIRS 			= ham_bench
+SUBDIRS 			= ups_bench
 
 COMMON				= getopts.h getopts.c common.h common.c
 BOOST_LIBS			= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
@@ -7,44 +7,44 @@ BOOST_LIBS			= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
 AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \
 					  -I../3rdparty/json
 
-hamzilla_SOURCES    = hamzilla.cc config.h config.c $(COMMON)
-hamzilla_LDADD      = $(top_builddir)/src/libhamsterdb.la \
-                      $(top_builddir)/src/5server/libhamserver.la
+upszilla_SOURCES    = upszilla.cc config.h config.c $(COMMON)
+upszilla_LDADD      = $(top_builddir)/src/libupscaledb.la \
+                      $(top_builddir)/src/5server/libupsserver.la
 
-ham_info_SOURCES    = ham_info.cc $(COMMON)
-ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la $(BOOST_LIBS)
+ups_info_SOURCES    = ups_info.cc $(COMMON)
+ups_info_LDADD      = $(top_builddir)/src/libupscaledb.la $(BOOST_LIBS)
 
-ham_dump_SOURCES    = ham_dump.cc $(COMMON)
-ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la
+ups_dump_SOURCES    = ups_dump.cc $(COMMON)
+ups_dump_LDADD      = $(top_builddir)/src/libupscaledb.la
 
-ham_export_SOURCES  = export.pb.cc ham_export.cc $(COMMON)
-ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a \
+ups_export_SOURCES  = export.pb.cc ups_export.cc $(COMMON)
+ups_export_LDADD    = $(top_builddir)/src/.libs/libupscaledb.a \
 					  -lprotobuf $(BOOST_LIBS)
-ham_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
+ups_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
 if ENABLE_COMPRESSION
 if WITH_ZLIB
-ham_export_LDADD   += -lz
+ups_export_LDADD   += -lz
 endif
 if WITH_SNAPPY
-ham_export_LDADD   += -lsnappy
+ups_export_LDADD   += -lsnappy
 endif
 if WITH_LZOP
-ham_export_LDADD   += -llzo2
+ups_export_LDADD   += -llzo2
 endif
 endif
 
-ham_import_SOURCES  = export.pb.cc ham_import.cc export.pb.h $(COMMON)
-ham_import_LDADD    = $(top_builddir)/src/libhamsterdb.la -lprotobuf \
+ups_import_SOURCES  = export.pb.cc ups_import.cc export.pb.h $(COMMON)
+ups_import_LDADD    = $(top_builddir)/src/libupscaledb.la -lprotobuf \
 					  $(top_builddir)/3rdparty/json/libjson.la
 
-ham_recover_SOURCES = ham_recover.cc $(COMMON)
-ham_recover_LDADD   = $(top_builddir)/src/libhamsterdb.la
+ups_recover_SOURCES = ups_recover.cc $(COMMON)
+ups_recover_LDADD   = $(top_builddir)/src/libupscaledb.la
 
-EXTRA_DIST			= hamzilla.config export.proto
+EXTRA_DIST			= upszilla.config export.proto
 
-bin_PROGRAMS        = ham_info ham_dump ham_recover
+bin_PROGRAMS        = ups_info ups_dump ups_recover
 if ENABLE_REMOTE
-bin_PROGRAMS        += hamzilla ham_export ham_import
+bin_PROGRAMS        += upszilla ups_export ups_import
 endif
 
 export.pb.cc proto: $(srcdir)/export.proto

@@ -20,21 +20,21 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_ENV_HEADER_H
-#define HAM_ENV_HEADER_H
+#ifndef UPS_ENV_HEADER_H
+#define UPS_ENV_HEADER_H
 
 #include "0root/root.h"
 
 #include <map>
 #include <string>
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "2page/page.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -45,7 +45,7 @@ namespace hamsterdb {
 /*
  * the persistent file header
  */
-typedef HAM_PACK_0 struct HAM_PACK_1
+typedef UPS_PACK_0 struct UPS_PACK_1
 {
   // magic cookie - always "ham\0"
   uint8_t  magic[4];
@@ -77,7 +77,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
    * 1. the private data of the index btree(s)
    *      -> see get_btree_header()
    */
-} HAM_PACK_2 PEnvironmentHeader;
+} UPS_PACK_2 PEnvironmentHeader;
 
 #include "1base/packstop.h"
 
@@ -181,4 +181,4 @@ class EnvironmentHeader
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENV_HEADER_H */
+#endif /* UPS_ENV_HEADER_H */

@@ -30,7 +30,7 @@
 #include "4env/env.h"
 #include "4cursor/cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -55,7 +55,7 @@ void
 BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
                 uint32_t rec_size)
 {
-  ham_assert(key_size != 0);
+  ups_assert(key_size != 0);
 
   /* allocate a new root page */
   Page *root = m_db->lenv()->page_manager()->alloc(context,
@@ -88,8 +88,8 @@ BtreeIndex::open()
   rootadd = m_btree_header->root_address();
   flags = m_btree_header->flags();
 
-  ham_assert(key_size > 0);
-  ham_assert(rootadd > 0);
+  ups_assert(key_size > 0);
+  ups_assert(rootadd > 0);
 
   m_root_address = rootadd;
   m_key_size = key_size;
@@ -127,7 +127,7 @@ BtreeIndex::key_compression()
 void
 BtreeIndex::flush_descriptor(Context *context)
 {
-  if (m_db->get_flags() & HAM_READ_ONLY)
+  if (m_db->get_flags() & UPS_READ_ONLY)
     return;
 
   m_btree_header->set_database_name(m_db->name());
@@ -139,17 +139,17 @@ BtreeIndex::flush_descriptor(Context *context)
 }
 
 Page *
-BtreeIndex::find_lower_bound(Context *context, Page *page, const ham_key_t *key,
+BtreeIndex::find_lower_bound(Context *context, Page *page, const ups_key_t *key,
                 uint32_t page_manager_flags, int *idxptr)
 {
   BtreeNodeProxy *node = get_node_from_page(page);
 
   // make sure that we're not in a leaf page, and that the
   // page is not empty
-  ham_assert(node->get_ptr_down() != 0);
+  ups_assert(node->get_ptr_down() != 0);
 
   uint64_t record_id;
-  int slot = node->find_lower_bound(context, (ham_key_t *)key, &record_id);
+  int slot = node->find_lower_bound(context, (ups_key_t *)key, &record_id);
 
   if (idxptr)
     *idxptr = slot;
@@ -175,7 +175,7 @@ class CalcKeysVisitor : public BtreeVisitor {
       size_t node_count = node->get_count();
 
       if (m_distinct
-          || (m_db->get_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
+          || (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) == 0) {
         m_count += node_count;
         return;
       }

@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 typedef struct config_table_t
 {
@@ -44,7 +44,7 @@ typedef struct config_table_t
     char *path;
     char *flags;
     unsigned int open_exclusive;
-    ham_env_t *env;
+    ups_env_t *env;
 
     struct config_db_t {
       unsigned int name;
@@ -61,7 +61,7 @@ typedef struct config_table_t
  *
  * returns HAM_INV_PARAMETER if the string is badly formatted
  */
-extern ham_status_t
+extern ups_status_t
 config_parse_string(const char *string, config_table_t **params);
 
 /*

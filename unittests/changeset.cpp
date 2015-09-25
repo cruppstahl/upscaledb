@@ -29,18 +29,18 @@ namespace hamsterdb {
 struct ChangesetFixture {
   ChangesetFixture() {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                HAM_ENABLE_RECOVERY, 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_RECOVERY, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   ~ChangesetFixture() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
 
   void addPages() {
     Changeset ch((LocalEnvironment *)m_env);

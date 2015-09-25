@@ -47,7 +47,7 @@ TEST_CASE("OsTest/openReadOnlyClose",
 
   File f;
   f.open("Makefile.am", true);
-  REQUIRE_CATCH(f.pwrite(0, p, (uint32_t)strlen(p)), HAM_IO_ERROR);
+  REQUIRE_CATCH(f.pwrite(0, p, (uint32_t)strlen(p)), UPS_IO_ERROR);
 }
 
 TEST_CASE("OsTest/negativeOpenTest",
@@ -55,7 +55,7 @@ TEST_CASE("OsTest/negativeOpenTest",
 {
   File f;
 
-  REQUIRE_CATCH(f.open("__98324kasdlf.blöd", false), HAM_FILE_NOT_FOUND);
+  REQUIRE_CATCH(f.open("__98324kasdlf.blöd", false), UPS_FILE_NOT_FOUND);
 }
 
 TEST_CASE("OsTest/createCloseTest",
@@ -92,7 +92,7 @@ TEST_CASE("OsTest/openExclusiveTest",
   f1.close();
 
   f1.open(Utils::opath(".test"), false);
-  REQUIRE_CATCH(f2.open(Utils::opath(".test"), false), HAM_WOULD_BLOCK);
+  REQUIRE_CATCH(f2.open(Utils::opath(".test"), false), UPS_WOULD_BLOCK);
   f1.close();
   f2.open(Utils::opath(".test"), false);
   f2.close();
@@ -237,7 +237,7 @@ TEST_CASE("OsTest/negativeMmapTest",
   // bad address && page size! - i don't know why this succeeds
   // on MacOS...
 #ifndef __MACH__
-  REQUIRE_CATCH(f.mmap(33, 66, 0, &page), HAM_IO_ERROR);
+  REQUIRE_CATCH(f.mmap(33, 66, 0, &page), UPS_IO_ERROR);
 #endif
 }
 

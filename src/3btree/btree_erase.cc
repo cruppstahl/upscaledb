@@ -33,7 +33,7 @@
 #include "4db/db.h"
 #include "4cursor/cursor_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -46,7 +46,7 @@ class BtreeEraseAction : public BtreeUpdateAction
 {
   public:
     BtreeEraseAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
-                    ham_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
+                    ups_key_t *key, int duplicate_index = 0, uint32_t flags = 0)
       : BtreeUpdateAction(btree, context, cursor
                                             ? cursor->get_btree_cursor()
                                             : 0, duplicate_index),
@@ -56,7 +56,7 @@ class BtreeEraseAction : public BtreeUpdateAction
     }
 
     // This is the entry point for the erase operation
-    ham_status_t run() {
+    ups_status_t run() {
       // Coupled cursor: try to remove the key directly from the page
       if (m_cursor) {
         if (m_cursor->get_state() == BtreeCursor::kStateCoupled) {
@@ -65,7 +65,7 @@ class BtreeEraseAction : public BtreeUpdateAction
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
 
           BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
-          ham_assert(node->is_leaf());
+          ups_assert(node->is_leaf());
 
           // Now try to delete the key. This can require a page split if the
           // KeyList is not "delete-stable" (some compressed lists can
@@ -74,7 +74,7 @@ class BtreeEraseAction : public BtreeUpdateAction
             remove_entry(coupled_page, 0, coupled_index);
           }
           catch (Exception &ex) {
-            if (ex.code != HAM_LIMITS_REACHED)
+            if (ex.code != UPS_LIMITS_REACHED)
               throw ex;
             goto fall_through;
           }
@@ -93,7 +93,7 @@ fall_through:
     }
 
   private:
-    ham_status_t erase() {
+    ups_status_t erase() {
       // traverse the tree to the leaf, splitting/merging nodes as required
       Page *parent;
       BtreeStatistics::InsertHints hints;
@@ -104,19 +104,19 @@ fall_through:
       int slot = node->find(m_context, m_key);
       if (slot < 0) {
         m_btree->get_statistics()->erase_failed();
-        return (HAM_KEY_NOT_FOUND);
+        return (UPS_KEY_NOT_FOUND);
       }
 
       // remove the key from the leaf
       return (remove_entry(page, parent, slot));
     }
 
-    ham_status_t remove_entry(Page *page, Page *parent, int slot) {
+    ups_status_t remove_entry(Page *page, Page *parent, int slot) {
       LocalDatabase *db = m_btree->get_db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-      ham_assert(slot >= 0);
-      ham_assert(slot < (int)node->get_count());
+      ups_assert(slot >= 0);
+      ups_assert(slot < (int)node->get_count());
 
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete
@@ -202,7 +202,7 @@ fall_through:
         node->erase(m_context, slot);
       }
       catch (Exception &ex) {
-        if (ex.code != HAM_LIMITS_REACHED)
+        if (ex.code != UPS_LIMITS_REACHED)
           throw ex;
 
         // Split the page in the middle. This will invalidate the |node| pointer
@@ -216,14 +216,14 @@ fall_through:
     }
 
     // the key that is retrieved
-    ham_key_t *m_key;
+    ups_key_t *m_key;
 
-    // flags of ham_db_erase()
+    // flags of ups_db_erase()
     uint32_t m_flags;
 };
 
-ham_status_t
-BtreeIndex::erase(Context *context, LocalCursor *cursor, ham_key_t *key,
+ups_status_t
+BtreeIndex::erase(Context *context, LocalCursor *cursor, ups_key_t *key,
                 int duplicate, uint32_t flags)
 {
   context->db = get_db();

@@ -31,19 +31,19 @@
 namespace hamsterdb {
 
 struct MiscFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   LocalDatabase *m_dbp;
   BtreeIndex *m_btree;
   ScopedPtr<Context> m_context;
 
   MiscFixture() {
-    ham_parameter_t p[] = { { HAM_PARAM_PAGESIZE, 4096 }, { 0, 0 } };
+    ups_parameter_t p[] = { { UPS_PARAM_PAGESIZE, 4096 }, { 0, 0 } };
 
     REQUIRE(0 ==
-          ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0644, &p[0]));
+          ups_env_create(&m_env, 0, UPS_IN_MEMORY, 0644, &p[0]));
     REQUIRE(0 ==
-          ham_env_create_db(m_env, &m_db, 1, 0, 0));
+          ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
     m_dbp = (LocalDatabase *)m_db;
     m_btree = m_dbp->btree_index();
@@ -52,7 +52,7 @@ struct MiscFixture {
 
   ~MiscFixture() {
     m_context->changeset.clear();
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void copyKeyInt2PubEmptyTest() {
@@ -62,7 +62,7 @@ struct MiscFixture {
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
 
     node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
 
@@ -82,7 +82,7 @@ struct MiscFixture {
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     key.data = (void *)"a";
     key.size = 1;
 
@@ -104,7 +104,7 @@ struct MiscFixture {
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     key.data = (void *)"1234567\0";
     key.size = 8;
 
@@ -126,7 +126,7 @@ struct MiscFixture {
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-    ham_key_t key = {0};
+    ups_key_t key = {0};
     key.data = (void *)"123456781234567\0";
     key.size = 16;
 

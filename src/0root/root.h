@@ -22,10 +22,10 @@
  * @exception_safe: nothrow
  */
 
-#ifndef HAM_ROOT_H
-#define HAM_ROOT_H
+#ifndef UPS_ROOT_H
+#define UPS_ROOT_H
 
-//#define HAM_ENABLE_HELGRIND       1
+//#define UPS_ENABLE_HELGRIND       1
 
 // some feature macros in config.h must be set *before* inclusion
 // of any system headers to have the desired effect.
@@ -39,20 +39,20 @@
 #   define HAVE_PWRITE            1
 #endif
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // check for a valid build
-#if (!defined(HAM_DEBUG))
+#if (!defined(UPS_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
-#     define HAM_DEBUG 1
+#     define UPS_DEBUG 1
 #   endif
 #endif
 
 // the default cache size is 2 MB
-#define HAM_DEFAULT_CACHE_SIZE    (2 * 1024 * 1024)
+#define UPS_DEFAULT_CACHE_SIZE    (2 * 1024 * 1024)
 
 // the default page size is 16 kb
-#define HAM_DEFAULT_PAGE_SIZE     (16 * 1024)
+#define UPS_DEFAULT_PAGE_SIZE     (16 * 1024)
 
 // boost/asio has nasty build dependencies and requires Windows.h,
 // therefore it is included here
@@ -66,7 +66,7 @@
 // use tcmalloc?
 #if HAVE_GOOGLE_TCMALLOC_H == 1
 #  if HAVE_LIBTCMALLOC_MINIMAL == 1
-#    define HAM_USE_TCMALLOC 1
+#    define UPS_USE_TCMALLOC 1
 #  endif
 #endif
 
@@ -99,7 +99,7 @@
 
 // a macro to cast pointers to u64 and vice versa to avoid compiler
 // warnings if the sizes of ptr and u64 are not equal
-#if defined(HAM_32BIT) && (!defined(_MSC_VER))
+#if defined(UPS_32BIT) && (!defined(_MSC_VER))
 #   define U64_TO_PTR(p)  (uint8_t *)(int)p
 #   define PTR_TO_U64(p)  (uint64_t)(int)p
 #else
@@ -107,4 +107,4 @@
 #   define PTR_TO_U64(p)  p
 #endif
 
-#endif /* HAM_ROOT_H */
+#endif /* UPS_ROOT_H */

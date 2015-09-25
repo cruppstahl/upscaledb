@@ -33,28 +33,28 @@
 namespace hamsterdb {
 
 struct BtreeCursorFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_inmemory;
   uint32_t m_page_size;
   ScopedPtr<Context> m_context;
 
   BtreeCursorFixture(bool inmemory = false, uint32_t page_size = 0)
     : m_db(0), m_inmemory(inmemory), m_page_size(page_size) {
-    ham_parameter_t params[] = {
+    ups_parameter_t params[] = {
       // set page_size, otherwise 16-bit limit bugs in freelist
       // will fire on Win32
-      { HAM_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
+      { UPS_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
       { 0, 0 }
     };
 
     os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-              m_inmemory ? HAM_IN_MEMORY : 0, 0664, params));
+        ups_env_create(&m_env, Utils::opath(".test"),
+              m_inmemory ? UPS_IN_MEMORY : 0, 0664, params));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
+        ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
   }
@@ -66,32 +66,32 @@ struct BtreeCursorFixture {
   void teardown() {
     m_context->changeset.clear();
     if (m_env)
-      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void createCloseTest() {
-    ham_cursor_t *c;
+    ups_cursor_t *c;
 
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_close(c));
   }
 
   void cloneTest() {
-    ham_cursor_t *cursor, *clone;
+    ups_cursor_t *cursor, *clone;
 
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
     REQUIRE(cursor != 0);
     LocalCursor *c = new LocalCursor(*(LocalCursor *)cursor);
-    clone = (ham_cursor_t *)c;
+    clone = (ups_cursor_t *)c;
     REQUIRE(clone != 0);
-    REQUIRE(0 == ham_cursor_close(clone));
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(clone));
+    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
   void overwriteTest() {
-    ham_cursor_t *cursor;
-    ham_key_t key;
-    ham_record_t rec;
+    ups_cursor_t *cursor;
+    ups_key_t key;
+    ups_record_t rec;
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
     int x = 5;
@@ -100,9 +100,9 @@ struct BtreeCursorFixture {
     rec.size = sizeof(x);
     rec.data = &x;
 
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
     Page *page;
@@ -112,21 +112,21 @@ struct BtreeCursorFixture {
     m_context->changeset.clear(); // unlock the pages
     BtreeCursor::uncouple_all_cursors(m_context.get(), page);
 
-    REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
   void moveSplitTest() {
-    ham_cursor_t *cursor, *cursor2, *cursor3;
-    ham_key_t key;
-    ham_record_t rec;
-    ham_parameter_t p1[] = {
-      { HAM_PARAM_PAGESIZE, 1024 },
+    ups_cursor_t *cursor, *cursor2, *cursor3;
+    ups_key_t key;
+    ups_record_t rec;
+    ups_parameter_t p1[] = {
+      { UPS_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
     };
-    ham_parameter_t p2[] = {
-      { HAM_PARAM_KEYSIZE, 70 },
+    ups_parameter_t p2[] = {
+      { UPS_PARAM_KEYSIZE, 70 },
       { 0, 0 }
     };
     memset(&key, 0, sizeof(key));
@@ -134,15 +134,15 @@ struct BtreeCursorFixture {
 
     teardown();
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            (m_inmemory ? HAM_IN_MEMORY : 0),
+        ups_env_create(&m_env, Utils::opath(".test"),
+            (m_inmemory ? UPS_IN_MEMORY : 0),
             0664, &p1[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
+        ups_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
 
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, 0, 0));
-    REQUIRE(0 == ham_cursor_create(&cursor3, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor3, m_db, 0, 0));
 
     char buffer[70] = {0};
 
@@ -153,108 +153,108 @@ struct BtreeCursorFixture {
       rec.size = sizeof(buffer);
       rec.data = &buffer[0];
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_FIRST));
     REQUIRE(0 == *(int *)key.data);
     REQUIRE(0 == *(int *)rec.data);
-    REQUIRE(0 == ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_LAST));
     REQUIRE(63 == *(int *)key.data);
     REQUIRE(63 == *(int *)rec.data);
 
     for (int i = 0; i < 64; i++) {
-      REQUIRE(0 == ham_cursor_move(cursor2, &key, &rec, HAM_CURSOR_NEXT));
+      REQUIRE(0 == ups_cursor_move(cursor2, &key, &rec, UPS_CURSOR_NEXT));
       REQUIRE(i == *(int *)key.data);
       REQUIRE(i == *(int *)rec.data);
     }
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-        ham_cursor_move(cursor2, 0, 0, HAM_CURSOR_NEXT));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+        ups_cursor_move(cursor2, 0, 0, UPS_CURSOR_NEXT));
     for (int i = 63; i >= 0; i--) {
-      REQUIRE(0 == ham_cursor_move(cursor3, &key, &rec, HAM_CURSOR_PREVIOUS));
+      REQUIRE(0 == ups_cursor_move(cursor3, &key, &rec, UPS_CURSOR_PREVIOUS));
       REQUIRE(i == *(int *)key.data);
       REQUIRE(i == *(int *)rec.data);
     }
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-        ham_cursor_move(cursor3, 0, 0, HAM_CURSOR_PREVIOUS));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+        ups_cursor_move(cursor3, 0, 0, UPS_CURSOR_PREVIOUS));
 
-    REQUIRE(0 == ham_cursor_close(cursor));
-    REQUIRE(0 == ham_cursor_close(cursor2));
-    REQUIRE(0 == ham_cursor_close(cursor3));
+    REQUIRE(0 == ups_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor2));
+    REQUIRE(0 == ups_cursor_close(cursor3));
   }
 
   void moveTest() {
-    ham_cursor_t *cursor;
+    ups_cursor_t *cursor;
 
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
 
     /* no move, and cursor is nil: returns 0 if key/rec is 0 */
     REQUIRE(0 ==
-          ham_cursor_move(cursor, 0, 0, 0));
+          ups_cursor_move(cursor, 0, 0, 0));
 
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_move(cursor, 0, 0, HAM_CURSOR_LAST));
-    REQUIRE(HAM_KEY_NOT_FOUND ==
-          ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_PREVIOUS));
 
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
   void linkedListTest() {
-    ham_cursor_t *cursor[5], *clone;
+    ups_cursor_t *cursor[5], *clone;
 
     REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE((Cursor *)cursor[i]
                       == ((LocalDatabase *)m_db)->cursor_list());
     }
 
-    REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
+    REQUIRE(0 == ups_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
     REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->cursor_list());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 ==
-          ham_cursor_close(cursor[i]));
+          ups_cursor_close(cursor[i]));
     }
-    REQUIRE(0 == ham_cursor_close(clone));
+    REQUIRE(0 == ups_cursor_close(clone));
 
     REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
   }
 
   void linkedListReverseCloseTest() {
-    ham_cursor_t *cursor[5], *clone;
+    ups_cursor_t *cursor[5], *clone;
 
     REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE(cursor[i] != 0);
       REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->cursor_list());
     }
 
-    REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
+    REQUIRE(0 == ups_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
     REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->cursor_list());
 
     for (int i = 4; i >= 0; i--) {
-      REQUIRE(0 == ham_cursor_close(cursor[i]));
+      REQUIRE(0 == ups_cursor_close(cursor[i]));
     }
-    REQUIRE(0 == ham_cursor_close(clone));
+    REQUIRE(0 == ups_cursor_close(clone));
 
     REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
   }
 
   void cursorGetErasedItemTest() {
-    ham_cursor_t *cursor, *cursor2;
-    ham_key_t key;
-    ham_record_t rec;
+    ups_cursor_t *cursor, *cursor2;
+    ups_key_t key;
+    ups_record_t rec;
     int value = 0;
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -262,35 +262,35 @@ struct BtreeCursorFixture {
     key.size = sizeof(value);
 
     value = 1;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     value = 2;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor2, m_db, 0, 0));
     value = 1;
-    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
-    REQUIRE(HAM_CURSOR_IS_NIL ==
-        ham_cursor_move(cursor, &key, 0, 0));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL ==
+        ups_cursor_move(cursor, &key, 0, 0));
     REQUIRE(0 ==
-        ham_cursor_move(cursor, &key, 0, HAM_CURSOR_FIRST));
+        ups_cursor_move(cursor, &key, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-        ham_cursor_move(cursor2, &key, 0, HAM_CURSOR_FIRST));
+        ups_cursor_move(cursor2, &key, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-        ham_cursor_erase(cursor, 0));
-    REQUIRE(HAM_CURSOR_IS_NIL ==
-        ham_cursor_move(cursor2, &key, 0, 0));
+        ups_cursor_erase(cursor, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL ==
+        ups_cursor_move(cursor2, &key, 0, 0));
 
-    REQUIRE(0 == ham_cursor_close(cursor));
-    REQUIRE(0 == ham_cursor_close(cursor2));
+    REQUIRE(0 == ups_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor2));
   }
 
   void couplingTest() {
-    ham_cursor_t *c, *clone;
+    ups_cursor_t *c, *clone;
     BtreeCursor *btc;
-    ham_key_t key1, key2, key3;
-    ham_record_t rec;
+    ups_key_t key1, key2, key3;
+    ups_record_t rec;
     int v1 = 1, v2 = 2, v3 = 3;
 
     memset(&key1, 0, sizeof(key1));
@@ -304,47 +304,47 @@ struct BtreeCursorFixture {
     key3.data = (void *)&v3;
     memset(&rec, 0, sizeof(rec));
 
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
     btc = ((LocalCursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
     REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* after insert: cursor is NIL */
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &rec, 0));
     REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* move to item: cursor is coupled */
-    REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
+    REQUIRE(0 == ups_cursor_find(c, &key2, 0, 0));
     REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* clone the coupled cursor */
-    REQUIRE(0 == ham_cursor_clone(c, &clone));
-    REQUIRE(0 == ham_cursor_close(clone));
+    REQUIRE(0 == ups_cursor_clone(c, &clone));
+    REQUIRE(0 == ups_cursor_close(clone));
 
     /* insert item BEFORE the first item - cursor is uncoupled */
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key1, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key1, &rec, 0));
     REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() == BtreeCursor::kStateUncoupled);
 
     /* move to item: cursor is coupled */
-    REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
+    REQUIRE(0 == ups_cursor_find(c, &key2, 0, 0));
     REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* insert duplicate - cursor stays coupled */
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &rec, UPS_DUPLICATE));
     REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* insert item AFTER the middle item - cursor stays coupled */
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key3, &rec, 0));
     REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
     REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_close(c));
   }
 
 };

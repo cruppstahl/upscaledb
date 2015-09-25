@@ -18,7 +18,7 @@
 #include "0root/root.h"
 
 #include <string.h>
-#ifndef HAM_OS_WIN32
+#ifndef UPS_OS_WIN32
 #  include <libgen.h>
 #endif
 
@@ -37,7 +37,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -108,7 +108,7 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
   if (m_state.disable_logging)
     return;
 
-  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+  ups_assert((txn->get_flags() & UPS_TXN_TEMPORARY) == 0);
 
   PJournalEntry entry;
   entry.txn_id = txn->get_id();
@@ -147,7 +147,7 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
   if (m_state.disable_logging)
     return;
 
-  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+  ups_assert((txn->get_flags() & UPS_TXN_TEMPORARY) == 0);
 
   int idx;
   PJournalEntry entry;
@@ -175,7 +175,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   if (m_state.disable_logging)
     return;
 
-  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+  ups_assert((txn->get_flags() & UPS_TXN_TEMPORARY) == 0);
 
   PJournalEntry entry;
   entry.lsn = lsn;
@@ -190,7 +190,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   append_entry(idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
-  flush_buffer(idx, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
+  flush_buffer(idx, m_state.env->get_flags() & UPS_ENABLE_FSYNC);
 
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.txn_commit", "%u, %u", (uint32_t)txn->get_id(),
@@ -199,7 +199,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
 
 void
 Journal::append_insert(Database *db, LocalTransaction *txn,
-                ham_key_t *key, ham_record_t *record, uint32_t flags,
+                ups_key_t *key, ups_record_t *record, uint32_t flags,
                 uint64_t lsn)
 {
   if (m_state.disable_logging)
@@ -216,7 +216,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   entry.followup_size = sizeof(PJournalEntryInsert) - 1;
 
   int idx;
-  if (txn->get_flags() & HAM_TXN_TEMPORARY) {
+  if (txn->get_flags() & UPS_TXN_TEMPORARY) {
     entry.txn_id = 0;
     idx = switch_files_maybe();
     m_state.closed_txn[idx]++;
@@ -260,7 +260,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
   // and now the same for the record data
   const void *record_data = record->data;
-  uint32_t record_size = flags & HAM_PARTIAL
+  uint32_t record_size = flags & UPS_PARTIAL
                                 ? record->partial_size
                             : record->size;
   if (m_state.compressor.get()) {
@@ -296,7 +296,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 }
 
 void
-Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
+Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
                 int duplicate_index, uint32_t flags, uint64_t lsn)
 {
   if (m_state.disable_logging)
@@ -329,7 +329,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ham_key_t *key,
   erase.duplicate = duplicate_index;
 
   int idx;
-  if (txn->get_flags() & HAM_TXN_TEMPORARY) {
+  if (txn->get_flags() & UPS_TXN_TEMPORARY) {
     entry.txn_id = 0;
     idx = switch_files_maybe();
     m_state.closed_txn[idx]++;
@@ -358,7 +358,7 @@ int
 Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
                 uint64_t lsn)
 {
-  ham_assert(pages.size() > 0);
+  ups_assert(pages.size() > 0);
 
   if (m_state.disable_logging)
     return (-1);
@@ -392,18 +392,18 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
     entry.followup_size += append_changeset_page(*it, page_size);
   }
 
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // and patch in the followup-size
   m_state.buffer[m_state.current_fd].overwrite(entry_position,
           (uint8_t *)&entry, sizeof(entry));
 
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // and flush the file
-  flush_buffer(m_state.current_fd, m_state.env->get_flags() & HAM_ENABLE_FSYNC);
+  flush_buffer(m_state.current_fd, m_state.env->get_flags() & UPS_ENABLE_FSYNC);
 
-  HAM_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // if recovery is enabled (w/o transactions) then simulate a "commit" to
   // make sure that the log files are switched properly. Here, the
@@ -450,12 +450,12 @@ Journal::changeset_flushed(int fd_index)
 void
 Journal::transaction_flushed(LocalTransaction *txn)
 {
-  ham_assert((txn->get_flags() & HAM_TXN_TEMPORARY) == 0);
+  ups_assert((txn->get_flags() & UPS_TXN_TEMPORARY) == 0);
   if (m_state.disable_logging) // ignore this call during recovery
     return;
 
   int idx = txn->get_log_desc();
-  ham_assert(m_state.open_txn[idx] > 0);
+  ups_assert(m_state.open_txn[idx] > 0);
   m_state.open_txn[idx]--;
   m_state.closed_txn[idx]++;
 }
@@ -517,7 +517,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
     }
   }
   catch (Exception &) {
-    ham_trace(("failed to read journal entry, aborting recovery"));
+    ups_trace(("failed to read journal entry, aborting recovery"));
     entry->lsn = 0; // this triggers the end of recovery
   }
 }
@@ -556,7 +556,7 @@ Journal::get_db(uint16_t dbname)
   Database *db = 0;
   DatabaseConfiguration config;
   config.db_name = dbname;
-  ham_status_t st = m_state.env->open_db(&db, config, 0);
+  ups_status_t st = m_state.env->open_db(&db, config, 0);
   if (st)
     throw Exception(st);
   m_state.database_map[dbname] = db;
@@ -579,14 +579,14 @@ Journal::get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id)
 void
 Journal::close_all_databases()
 {
-  ham_status_t st = 0;
+  ups_status_t st = 0;
 
   JournalState::DatabaseMap::iterator it = m_state.database_map.begin();
   while (it != m_state.database_map.end()) {
     JournalState::DatabaseMap::iterator it2 = it; it++;
-    st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
+    st = ups_db_close((ups_db_t *)it2->second, UPS_DONT_LOCK);
     if (st) {
-      ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
+      ups_log(("ups_db_close() failed w/ error %d (%s)", st, ups_strerror(st)));
       throw Exception(st);
     }
   }
@@ -621,7 +621,7 @@ Journal::recover(LocalTransactionManager *txn_manager)
     m_state.env->page_manager()->initialize(page_manager_blobid);
 
   // then start the normal recovery
-  if (m_state.env->get_flags() & HAM_ENABLE_TRANSACTIONS)
+  if (m_state.env->get_flags() & UPS_ENABLE_TRANSACTIONS)
     recover_journal(&context, txn_manager, start_lsn);
 
   // clear the journal files
@@ -654,7 +654,7 @@ Journal::scan_for_oldest_changeset(File *file)
     }
   }
   catch (Exception &ex) {
-    ham_log(("exception (error %d) while reading journal", ex.code));
+    ups_log(("exception (error %d) while reading journal", ex.code));
   }
 
   return (0);
@@ -766,7 +766,7 @@ Journal::redo_all_changesets(int fdidx)
           page = new Page(m_state.env->device());
           page->fetch(page_header.address);
         }
-        ham_assert(page->get_address() == page_header.address);
+        ups_assert(page->get_address() == page_header.address);
 
         // overwrite the page data
         ::memcpy(page->get_data(), arena.get_ptr(), page_size);
@@ -780,7 +780,7 @@ Journal::redo_all_changesets(int fdidx)
     }
   }
   catch (Exception &) {
-    ham_trace(("Exception when applying changeset; skipping changeset"));
+    ups_trace(("Exception when applying changeset; skipping changeset"));
     // fall through
   }
 
@@ -791,7 +791,7 @@ void
 Journal::recover_journal(Context *context,
                 LocalTransactionManager *txn_manager, uint64_t start_lsn)
 {
-  ham_status_t st = 0;
+  ups_status_t st = 0;
   Iterator it;
   ByteArray buffer;
 
@@ -811,9 +811,9 @@ Journal::recover_journal(Context *context,
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  ham_assert(txn_manager->get_oldest_txn() == 0);
-  ham_assert(m_state.env->get_flags() & HAM_ENABLE_TRANSACTIONS);
-  ham_assert(m_state.env->get_flags() & HAM_ENABLE_RECOVERY);
+  ups_assert(txn_manager->get_oldest_txn() == 0);
+  ups_assert(m_state.env->get_flags() & UPS_ENABLE_TRANSACTIONS);
+  ups_assert(m_state.env->get_flags() & UPS_ENABLE_RECOVERY);
 
   // do not append to the journal during recovery
   m_state.disable_logging = true;
@@ -832,8 +832,8 @@ Journal::recover_journal(Context *context,
     switch (entry.type) {
       case kEntryTypeTxnBegin: {
         Transaction *txn = 0;
-        st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_state.env, 
-                (const char *)buffer.get_ptr(), 0, HAM_DONT_LOCK);
+        st = ups_txn_begin((ups_txn_t **)&txn, (ups_env_t *)m_state.env, 
+                (const char *)buffer.get_ptr(), 0, UPS_DONT_LOCK);
         // on success: patch the txn ID
         if (st == 0) {
           txn->set_id(entry.txn_id);
@@ -843,22 +843,22 @@ Journal::recover_journal(Context *context,
       }
       case kEntryTypeTxnAbort: {
         Transaction *txn = get_txn(txn_manager, entry.txn_id);
-        st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
+        st = ups_txn_abort((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
       case kEntryTypeTxnCommit: {
         Transaction *txn = get_txn(txn_manager, entry.txn_id);
-        st = ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
+        st = ups_txn_commit((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
       case kEntryTypeInsert: {
         PJournalEntryInsert *ins = (PJournalEntryInsert *)buffer.get_ptr();
         Transaction *txn = 0;
         Database *db;
-        ham_key_t key = {0};
-        ham_record_t record = {0};
+        ups_key_t key = {0};
+        ups_record_t record = {0};
         if (!ins) {
-          st = HAM_IO_ERROR;
+          st = UPS_IO_ERROR;
           goto bail;
         }
 
@@ -901,17 +901,17 @@ Journal::recover_journal(Context *context,
         if (entry.txn_id)
           txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);
-        st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, 
-                    &key, &record, ins->insert_flags | HAM_DONT_LOCK);
+        st = ups_db_insert((ups_db_t *)db, (ups_txn_t *)txn, 
+                    &key, &record, ins->insert_flags | UPS_DONT_LOCK);
         break;
       }
       case kEntryTypeErase: {
         PJournalEntryErase *e = (PJournalEntryErase *)buffer.get_ptr();
         Transaction *txn = 0;
         Database *db;
-        ham_key_t key = {0};
+        ups_key_t key = {0};
         if (!e) {
-          st = HAM_IO_ERROR;
+          st = UPS_IO_ERROR;
           goto bail;
         }
 
@@ -931,11 +931,11 @@ Journal::recover_journal(Context *context,
         else
           key.data = e->get_key_data();
         key.size = e->key_size;
-        st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
-                      e->erase_flags | HAM_DONT_LOCK);
+        st = ups_db_erase((ups_db_t *)db, (ups_txn_t *)txn, &key,
+                      e->erase_flags | UPS_DONT_LOCK);
         // key might have already been erased when the changeset
         // was flushed
-        if (st == HAM_KEY_NOT_FOUND)
+        if (st == UPS_KEY_NOT_FOUND)
           st = 0;
         break;
       }
@@ -944,8 +944,8 @@ Journal::recover_journal(Context *context,
         break;
       }
       default:
-        ham_log(("invalid journal entry type or journal is corrupt"));
-        st = HAM_IO_ERROR;
+        ups_log(("invalid journal entry type or journal is corrupt"));
+        st = UPS_IO_ERROR;
       }
 
       if (st)
@@ -961,7 +961,7 @@ bail:
 
   // flush all committed transactions
   if (st == 0)
-    st = m_state.env->flush(HAM_FLUSH_COMMITTED_TRANSACTIONS);
+    st = m_state.env->flush(UPS_FLUSH_COMMITTED_TRANSACTIONS);
 
   // re-enable the logging
   m_state.disable_logging = false;
@@ -1006,7 +1006,7 @@ Journal::get_path(int i)
   }
   else {
     path = m_state.env->config().log_filename;
-#ifdef HAM_OS_WIN32
+#ifdef UPS_OS_WIN32
     path += "\\";
     char fname[_MAX_FNAME];
     char ext[_MAX_EXT];
@@ -1023,7 +1023,7 @@ Journal::get_path(int i)
   else if (i == 1)
     path += ".jrn1";
   else
-    ham_assert(!"invalid index");
+    ups_assert(!"invalid index");
   return (path);
 }
 

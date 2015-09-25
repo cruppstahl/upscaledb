@@ -20,8 +20,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_CONTEXT_H
-#define HAM_CONTEXT_H
+#ifndef UPS_CONTEXT_H
+#define UPS_CONTEXT_H
 
 #include "0root/root.h"
 
@@ -55,4 +55,4 @@ struct Context
 
 } // namespace hamsterdb
 
-#endif /* HAM_CONTEXT_H */
+#endif /* UPS_CONTEXT_H */

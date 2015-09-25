@@ -22,16 +22,16 @@
  * @thread_safe no
  */
 
-#ifndef HAM_DB_CONFIG_H
-#define HAM_DB_CONFIG_H
+#ifndef UPS_DB_CONFIG_H
+#define UPS_DB_CONFIG_H
 
 #include "0root/root.h"
 
-#include <ham/types.h>
+#include <ups/types.h>
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -41,8 +41,8 @@ struct DatabaseConfiguration
 {
   // Constructor initializes with default values
   DatabaseConfiguration()
-    : db_name(0), flags(0), key_type(HAM_TYPE_BINARY),
-      key_size(HAM_KEY_SIZE_UNLIMITED), record_size(HAM_RECORD_SIZE_UNLIMITED),
+    : db_name(0), flags(0), key_type(UPS_TYPE_BINARY),
+      key_size(UPS_KEY_SIZE_UNLIMITED), record_size(UPS_RECORD_SIZE_UNLIMITED),
       key_compressor(0), record_compressor(0) {
   }
 
@@ -71,4 +71,4 @@ struct DatabaseConfiguration
 
 } // namespace hamsterdb
 
-#endif // HAM_DB_CONFIG_H
+#endif // UPS_DB_CONFIG_H

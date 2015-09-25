@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 
 #include "0root/root.h"
 
@@ -26,7 +26,7 @@
 #include "4txn/txn_remote.h"
 #include "4env/env_remote.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -59,7 +59,7 @@ RemoteTransactionManager::begin(Transaction *txn)
   append_txn_at_tail(txn);
 }
 
-ham_status_t 
+ups_status_t 
 RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
 {
   try {
@@ -74,7 +74,7 @@ RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
   return (0);
 }
 
-ham_status_t 
+ups_status_t 
 RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
 {
   try {
@@ -106,4 +106,4 @@ RemoteTransactionManager::flush_committed_txns(Context *context /* = 0 */)
 
 } // namespace hamsterdb
 
-#endif // HAM_ENABLE_REMOTE
+#endif // UPS_ENABLE_REMOTE

@@ -22,18 +22,18 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_TXN_FACTORY_H
-#define HAM_TXN_FACTORY_H
+#ifndef UPS_TXN_FACTORY_H
+#define UPS_TXN_FACTORY_H
 
 #include "0root/root.h"
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1mem/mem.h"
 #include "4txn/txn.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -44,7 +44,7 @@ struct TransactionFactory
   // Creates a new TransactionOperation
   static TransactionOperation *create_operation(LocalTransaction *txn,
             TransactionNode *node, uint32_t flags, uint32_t orig_flags,
-            uint64_t lsn, ham_key_t *key, ham_record_t *record) {
+            uint64_t lsn, ups_key_t *key, ups_record_t *record) {
     TransactionOperation *op;
     op = Memory::allocate<TransactionOperation>(sizeof(*op)
                                             + (record ? record->size : 0)
@@ -61,4 +61,4 @@ struct TransactionFactory
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_FACTORY_H */
+#endif /* UPS_TXN_FACTORY_H */

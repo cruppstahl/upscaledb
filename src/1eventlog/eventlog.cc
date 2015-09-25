@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_EVENT_LOGGING
+#ifdef UPS_ENABLE_EVENT_LOGGING
 
 #include "0root/root.h"
 
@@ -29,7 +29,7 @@
 #include "1base/spinlock.h"
 #include "1eventlog/eventlog.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -75,11 +75,11 @@ open_or_create(const char *filename, const char *mode)
   std::string path = path_from_filename(filename);
   f = ::fopen(path.c_str(), mode);
   if (!f) {
-    ham_trace(("failed to create event log: %s", ::strerror(errno)));
+    ups_trace(("failed to create event log: %s", ::strerror(errno)));
     path = "lost+found.elog";
     f = ::fopen(path.c_str(), mode);
     if (!f)
-      throw Exception(HAM_IO_ERROR);
+      throw Exception(UPS_IO_ERROR);
   }
   event_log.files[filename] = f;
 }
@@ -178,4 +178,4 @@ escape(const void *data, size_t size)
 
 } // namespace hamsterdb
 
-#endif /* HAM_ENABLE_EVENT_LOGGING */
+#endif /* UPS_ENABLE_EVENT_LOGGING */

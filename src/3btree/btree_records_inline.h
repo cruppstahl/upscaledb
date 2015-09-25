@@ -25,8 +25,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_RECORDS_INLINE_H
-#define HAM_BTREE_RECORDS_INLINE_H
+#ifndef UPS_BTREE_RECORDS_INLINE_H
+#define UPS_BTREE_RECORDS_INLINE_H
 
 #include "0root/root.h"
 
@@ -42,7 +42,7 @@
 #include "3btree/btree_records_base.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -65,7 +65,7 @@ class InlineRecordList : public BaseRecordList
     // Constructor
     InlineRecordList(LocalDatabase *db, PBtreeNode *node)
       : m_db(db), m_record_size(db->config().record_size), m_data(0) {
-      ham_assert(m_record_size != HAM_RECORD_SIZE_UNLIMITED);
+      ups_assert(m_record_size != UPS_RECORD_SIZE_UNLIMITED);
     }
 
     // Sets the data pointer
@@ -104,14 +104,14 @@ class InlineRecordList : public BaseRecordList
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
+      bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
-      if (flags & HAM_PARTIAL) {
-        ham_trace(("flag HAM_PARTIAL is not allowed if record is "
+      if (flags & UPS_PARTIAL) {
+        ups_trace(("flag UPS_PARTIAL is not allowed if record is "
                    "stored inline"));
-        throw Exception(HAM_INV_PARAMETER);
+        throw Exception(UPS_INV_PARAMETER);
       }
 
       // the record is stored inline
@@ -122,7 +122,7 @@ class InlineRecordList : public BaseRecordList
       else if (direct_access)
         record->data = &m_data[slot * m_record_size];
       else {
-        if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+        if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
           arena->resize(record->size);
           record->data = arena->get_ptr();
         }
@@ -132,9 +132,9 @@ class InlineRecordList : public BaseRecordList
 
     // Updates the record of a key
     void set_record(Context *context, int slot, int duplicate_index,
-                ham_record_t *record, uint32_t flags,
+                ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
-      ham_assert(record->size == m_record_size);
+      ups_assert(record->size == m_record_size);
       // it's possible that the records have size 0 - then don't copy anything
       if (m_record_size)
         memcpy(&m_data[m_record_size * slot], record->data, m_record_size);
@@ -176,13 +176,13 @@ class InlineRecordList : public BaseRecordList
     // Returns the record id. Not required for fixed length leaf nodes
     uint64_t get_record_id(int slot, int duplicate_index = 0)
                     const {
-      ham_assert(!"shouldn't be here");
+      ups_assert(!"shouldn't be here");
       return (0);
     }
 
     // Sets the record id. Not required for fixed length leaf nodes
     void set_record_id(int slot, uint64_t ptr) {
-      ham_assert(!"shouldn't be here");
+      ups_assert(!"shouldn't be here");
     }
 
     // Returns true if there's not enough space for another record
@@ -228,4 +228,4 @@ class InlineRecordList : public BaseRecordList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_RECORDS_INLINE_H */
+#endif /* UPS_BTREE_RECORDS_INLINE_H */

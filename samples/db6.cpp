@@ -21,7 +21,7 @@
  */
 
 #include <iostream>
-#include <ham/hamsterdb.hpp>
+#include <ups/upscaledb.hpp>
 
 #define LOOP 10
 
@@ -32,9 +32,9 @@ run_demo() {
   hamsterdb::db db;            /* hamsterdb database object */
   hamsterdb::key key;          /* a key */
   hamsterdb::record record;    /* a record */
-  ham_parameter_t params[] = { /* parameters for ham_env_create_db */
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+  ups_parameter_t params[] = { /* parameters for ups_env_create_db */
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
@@ -61,7 +61,7 @@ run_demo() {
   /*
    * Now lookup all values
    *
-   * for db::find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
+   * for db::find(), we could use the flag UPS_RECORD_USER_ALLOC, if WE
    * allocate record.data (otherwise the memory is automatically allocated
    * by hamsterdb)
    */
@@ -97,7 +97,7 @@ run_demo() {
 
   /*
    * Once more we try to find all values. Every db::find() call must
-   * now fail with HAM_KEY_NOT_FOUND
+   * now fail with UPS_KEY_NOT_FOUND
    */
   for (i = 0; i < LOOP; i++) {
     key.set_size(sizeof(i));
@@ -107,7 +107,7 @@ run_demo() {
       record = db.find(&key);
     }
     catch (hamsterdb::error &e) {
-      if (e.get_errno() != HAM_KEY_NOT_FOUND) {
+      if (e.get_errno() != UPS_KEY_NOT_FOUND) {
         std::cerr << "db::find() returned error " << e.get_string()
               << std::endl;
         return (-1);

@@ -4,9 +4,9 @@ if ENABLE_REMOTE
 SUBDIRS += 2protobuf 5server
 endif # ENABLE_REMOTE
 
-lib_LTLIBRARIES = libhamsterdb.la
+lib_LTLIBRARIES = libupscaledb.la
 
-libhamsterdb_la_SOURCES = \
+libupscaledb_la_SOURCES = \
 	0root/root.h \
 	1base/abi.h \
 	1base/dynamic_array.h \
@@ -146,50 +146,50 @@ libhamsterdb_la_SOURCES = \
 	4txn/txn_remote.cc \
 	4txn/txn_remote.h \
 	4txn/txn.h \
-	5hamsterdb/hamsterdb.cc \
-	5hamsterdb/hola.cc
+	5upscaledb/upscaledb.cc \
+	5upscaledb/hola.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
-libhamsterdb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS) \
+libupscaledb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
-libhamsterdb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
+libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
 
 if ENABLE_COMPRESSION
-AM_CPPFLAGS += -DHAM_ENABLE_COMPRESSION
-libhamsterdb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
+AM_CPPFLAGS += -DUPS_ENABLE_COMPRESSION
+libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
 						   $(top_builddir)/3rdparty/varint/libvarint.la \
 						   $(top_builddir)/3rdparty/for/libfor.la \
 						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
 if WITH_ZLIB
-libhamsterdb_la_LIBADD  += -lz
+libupscaledb_la_LIBADD  += -lz
 endif
 if WITH_SNAPPY
-libhamsterdb_la_LIBADD  += -lsnappy
+libupscaledb_la_LIBADD  += -lsnappy
 endif
 if WITH_LZOP
-libhamsterdb_la_LIBADD  += -llzo2
+libupscaledb_la_LIBADD  += -llzo2
 endif
 endif
 
 if ENABLE_ENCRYPTION
-AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
-libhamsterdb_la_LIBADD  += -lcrypto
+AM_CPPFLAGS += -DUPS_ENABLE_ENCRYPTION
+libupscaledb_la_LIBADD  += -lcrypto
 endif
 
 if ENABLE_REMOTE
-AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
-libhamsterdb_la_LIBADD += $(top_builddir)/src/2protobuf/libprotocol.la
+AM_CPPFLAGS += -DUPS_ENABLE_REMOTE
+libupscaledb_la_LIBADD += $(top_builddir)/src/2protobuf/libprotocol.la
 endif
 
 AM_CFLAGS	 =
 AM_CXXFLAGS	 =
 if ENABLE_SIMD
-AM_CPPFLAGS += -DHAM_ENABLE_SIMD
+AM_CPPFLAGS += -DUPS_ENABLE_SIMD
 endif
 if ENABLE_SSE2
 AM_CFLAGS	+= -msse2 -flax-vector-conversions

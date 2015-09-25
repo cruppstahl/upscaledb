@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_MUTEX_H
-#define HAM_MUTEX_H
+#ifndef UPS_MUTEX_H
+#define UPS_MUTEX_H
 
 #include "0root/root.h"
 
@@ -37,7 +37,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -62,4 +62,4 @@ class Mutex : public boost::mutex
 
 } // namespace hamsterdb
 
-#endif /* HAM_MUTEX_H */
+#endif /* UPS_MUTEX_H */

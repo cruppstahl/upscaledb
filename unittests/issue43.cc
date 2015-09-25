@@ -1,47 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 typedef uint8_t u8;
 #define NUM_DBS 9
-static ham_parameter_t params[][NUM_DBS] = {
+static ups_parameter_t params[][NUM_DBS] = {
   {
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 41},
+   {UPS_PARAM_KEY_SIZE, 41},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 25},
+   {UPS_PARAM_KEY_SIZE, 25},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 25},
-   {HAM_PARAM_RECORD_SIZE, 0},
+   {UPS_PARAM_KEY_SIZE, 25},
+   {UPS_PARAM_RECORD_SIZE, 0},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 33},
-   {HAM_PARAM_RECORD_SIZE, 16},
+   {UPS_PARAM_KEY_SIZE, 33},
+   {UPS_PARAM_RECORD_SIZE, 16},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 17},
+   {UPS_PARAM_KEY_SIZE, 17},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 17},
+   {UPS_PARAM_KEY_SIZE, 17},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, 265},
+   {UPS_PARAM_KEY_SIZE, 265},
    {0, 0}
    },
   {
-   {HAM_PARAM_KEY_SIZE, sizeof (u8)}
+   {UPS_PARAM_KEY_SIZE, sizeof (u8)}
    ,
-   {HAM_PARAM_RECORD_SIZE, 40}
+   {UPS_PARAM_RECORD_SIZE, 40}
    ,
    {0, 0}
    }
@@ -49,37 +49,37 @@ static ham_parameter_t params[][NUM_DBS] = {
 };
 
 static const int hamflags = 229376;
-static ham_env_t *env;
-static ham_db_t *db[NUM_DBS];
+static ups_env_t *env;
+static ups_db_t *db[NUM_DBS];
 static void
-error (const char *msg, ham_status_t st)
+error (const char *msg, ups_status_t st)
 {
-  printf ("%s() return error %d: %s\n", msg, st, ham_strerror (st));
+  printf ("%s() return error %d: %s\n", msg, st, ups_strerror (st));
 }
 
 static int
 open_db (void)
 {
-  ham_status_t st;
+  ups_status_t st;
   int i;
 
-  st = ham_env_create (&env, "testdb", hamflags, 0644, 0);
-  if (st != HAM_SUCCESS)
+  st = ups_env_create (&env, "testdb", hamflags, 0644, 0);
+  if (st != UPS_SUCCESS)
     {
-      error ("ham_env_create", st);
+      error ("ups_env_create", st);
       exit (-1);
     }
 
   for (i = 0; i < NUM_DBS; ++i)
     {
-      st = ham_env_create_db (env, &db[i], i + 1, 0, params[i]);
-      if (st != HAM_SUCCESS)
+      st = ups_env_create_db (env, &db[i], i + 1, 0, params[i]);
+      if (st != UPS_SUCCESS)
 	{
-	  error ("ham_db_create", st);
-	  st = ham_env_close (env, 0);
-	  if (st != HAM_SUCCESS)
+	  error ("ups_db_create", st);
+	  st = ups_env_close (env, 0);
+	  if (st != UPS_SUCCESS)
 	    {
-	      error ("ham_env_close", st);
+	      error ("ups_env_close", st);
 	    }
 	  exit (-1);
 	}
@@ -90,51 +90,51 @@ open_db (void)
 static void
 close_db (void)
 {
-  ham_status_t st;
+  ups_status_t st;
 
-  st = ham_env_close (env, 0);
-  if (st != HAM_SUCCESS)
+  st = ups_env_close (env, 0);
+  if (st != UPS_SUCCESS)
     {
-      error ("ham_env_close", st);
+      error ("ups_env_close", st);
     }
 }
 
 #define TXN_BEGIN() do {\
-	st = ham_txn_begin(&txn, env, __func__, NULL, 0);\
-	if (st != HAM_SUCCESS) {\
-	error("ham_txn_begin", st);\
+	st = ups_txn_begin(&txn, env, __func__, NULL, 0);\
+	if (st != UPS_SUCCESS) {\
+	error("ups_txn_begin", st);\
 	return ENOMEM;\
 }\
 } while(0)
 
 #define TXN_COMMIT() do {\
-	st = ham_txn_commit(txn, 0);\
-	if (st != HAM_SUCCESS) {\
-		error("ham_txn_commit", st);\
+	st = ups_txn_commit(txn, 0);\
+	if (st != UPS_SUCCESS) {\
+		error("ups_txn_commit", st);\
 		return EIO;\
 	}\
 } while (0)
 
 #define TXN_INSERT(key,val) do {\
-	ham_record_t _r = ham_make_record((void *)val, sizeof(val));\
-	ham_key_t _k = ham_make_key((void *)key, sizeof(key));\
-	st = ham_db_insert(db[key[0]], txn, &_k, &_r, HAM_OVERWRITE);\
-	if (st != HAM_SUCCESS) {\
-		error("ham_db_insert", st);\
+	ups_record_t _r = ups_make_record((void *)val, sizeof(val));\
+	ups_key_t _k = ups_make_key((void *)key, sizeof(key));\
+	st = ups_db_insert(db[key[0]], txn, &_k, &_r, UPS_OVERWRITE);\
+	if (st != UPS_SUCCESS) {\
+		error("ups_db_insert", st);\
 	}\
 } while (0)
 #define TXN_DELETE(key) do {\
-	ham_key_t _k = ham_make_key((void *)key, sizeof(key));\
-	st = ham_db_erase(db[key[0]], txn, &_k, 0);\
-	if (st != HAM_SUCCESS) {\
-		error("ham_db_erase", st);\
+	ups_key_t _k = ups_make_key((void *)key, sizeof(key));\
+	st = ups_db_erase(db[key[0]], txn, &_k, 0);\
+	if (st != UPS_SUCCESS) {\
+		error("ups_db_erase", st);\
 	}\
 } while (0)
 int
 main (int ac, char **av)
 {
-  ham_status_t st;
-  ham_txn_t *txn;
+  ups_status_t st;
+  ups_txn_t *txn;
 
   open_db ();
   TXN_BEGIN ();

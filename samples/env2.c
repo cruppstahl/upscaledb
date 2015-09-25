@@ -24,11 +24,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 void
-error(const char *foo, ham_status_t st) {
-  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+error(const char *foo, ups_status_t st) {
+  printf("%s() returned error %d: %s\n", foo, st, ups_strerror(st));
   exit(-1);
 }
 
@@ -63,27 +63,27 @@ typedef struct {
 int
 main(int argc, char **argv) {
   int i;
-  ham_status_t st;               /* status variable */
-  ham_db_t *db[MAX_DBS];         /* hamsterdb database objects */
-  ham_env_t *env;                /* hamsterdb environment */
-  ham_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
-  ham_key_t key = {0};
-  ham_key_t cust_key = {0};
-  ham_key_t ord_key = {0};
-  ham_key_t c2o_key = {0};
-  ham_record_t record = {0};
-  ham_record_t cust_record = {0};
-  ham_record_t ord_record = {0};
-  ham_record_t c2o_record = {0};
+  ups_status_t st;               /* status variable */
+  ups_db_t *db[MAX_DBS];         /* hamsterdb database objects */
+  ups_env_t *env;                /* hamsterdb environment */
+  ups_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
+  ups_key_t key = {0};
+  ups_key_t cust_key = {0};
+  ups_key_t ord_key = {0};
+  ups_key_t c2o_key = {0};
+  ups_record_t record = {0};
+  ups_record_t cust_record = {0};
+  ups_record_t ord_record = {0};
+  ups_record_t c2o_record = {0};
 
-  ham_parameter_t params[] = {
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+  ups_parameter_t params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
     {0, }
   };
 
-  ham_parameter_t c2o_params[] = {
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+  ups_parameter_t c2o_params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
@@ -106,9 +106,9 @@ main(int argc, char **argv) {
   };
 
   /* Now create a new database file for the Environment */
-  st = ham_env_create(&env, "test.db", 0, 0664, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create", st);
+  st = ups_env_create(&env, "test.db", 0, 0664, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create", st);
 
   /*
    * Then create the two Databases in this Environment; each Database
@@ -116,23 +116,23 @@ main(int argc, char **argv) {
    * is for the "orders"; the third manages our 1:n relation and
    * therefore needs to enable duplicate keys
    */
-  st = ham_env_create_db(env, &db[DBIDX_CUSTOMER], DBNAME_CUSTOMER,
+  st = ups_env_create_db(env, &db[DBIDX_CUSTOMER], DBNAME_CUSTOMER,
                   0, &params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create_db(customer)", st);
-  st = ham_env_create_db(env, &db[DBIDX_ORDER], DBNAME_ORDER, 0, &params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create_db(order)", st);
-  st = ham_env_create_db(env, &db[DBIDX_C2O], DBNAME_C2O,
-                  HAM_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create_db(c2o)", st);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create_db(customer)", st);
+  st = ups_env_create_db(env, &db[DBIDX_ORDER], DBNAME_ORDER, 0, &params[0]);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create_db(order)", st);
+  st = ups_env_create_db(env, &db[DBIDX_C2O], DBNAME_C2O,
+                  UPS_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create_db(c2o)", st);
 
   /* Create a Cursor for each Database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_cursor_create" , st);
+    st = ups_cursor_create(&cursor[i], db[i], 0, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_cursor_create" , st);
   }
 
   /*
@@ -149,9 +149,9 @@ main(int argc, char **argv) {
     record.size = sizeof(customer_t);
     record.data = &customers[i];
 
-    st = ham_db_insert(db[0], 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert (customer)", st);
+    st = ups_db_insert(db[0], 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert (customer)", st);
   }
 
   /*
@@ -168,13 +168,13 @@ main(int argc, char **argv) {
     record.size = sizeof(orders[i].assignee);
     record.data = orders[i].assignee;
 
-    st = ham_db_insert(db[1], 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert (order)", st);
+    st = ups_db_insert(db[1], 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert (order)", st);
   }
 
   /*
-   * And now the 1:n relationships; the flag HAM_DUPLICATE creates
+   * And now the 1:n relationships; the flag UPS_DUPLICATE creates
    * a duplicate key, if the key already exists
    *
    * INSERT INTO c2o VALUES (1, 1);
@@ -188,9 +188,9 @@ main(int argc, char **argv) {
     record.size = sizeof(int);
     record.data = &orders[i].id;
 
-    st = ham_db_insert(db[2], 0, &key, &record, HAM_DUPLICATE);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert(c2o)", st);
+    st = ups_db_insert(db[2], 0, &key, &record, UPS_DUPLICATE);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert(c2o)", st);
   }
 
   /*
@@ -207,13 +207,13 @@ main(int argc, char **argv) {
   while (1) {
     customer_t *customer;
 
-    st = ham_cursor_move(cursor[0], &cust_key, &cust_record, HAM_CURSOR_NEXT);
-    if (st != HAM_SUCCESS) {
+    st = ups_cursor_move(cursor[0], &cust_key, &cust_record, UPS_CURSOR_NEXT);
+    if (st != UPS_SUCCESS) {
       /* reached end of the database? */
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         break;
       else
-        error("ham_cursor_next(customer)", st);
+        error("ups_cursor_next(customer)", st);
     }
 
     customer = (customer_t *)cust_record.data;
@@ -233,15 +233,15 @@ main(int argc, char **argv) {
      */
     c2o_key.data = &customer->id;
     c2o_key.size = sizeof(int);
-    st = ham_cursor_find(cursor[2], &c2o_key, 0, 0);
-    if (st != HAM_SUCCESS) {
-      if (st == HAM_KEY_NOT_FOUND)
+    st = ups_cursor_find(cursor[2], &c2o_key, 0, 0);
+    if (st != UPS_SUCCESS) {
+      if (st == UPS_KEY_NOT_FOUND)
         continue;
-      error("ham_cursor_find(c2o)", st);
+      error("ups_cursor_find(c2o)", st);
     }
-    st = ham_cursor_move(cursor[2], 0, &c2o_record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_cursor_move(c2o)", st);
+    st = ups_cursor_move(cursor[2], 0, &c2o_record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_cursor_move(c2o)", st);
 
     do {
       int order_id;
@@ -254,37 +254,37 @@ main(int argc, char **argv) {
        * load the order
        * SELECT * FROM orders WHERE id = order_id;
        */
-      st = ham_db_find(db[1], 0, &ord_key, &ord_record, 0);
-      if (st != HAM_SUCCESS)
-        error("ham_db_find(order)", st);
+      st = ups_db_find(db[1], 0, &ord_key, &ord_record, 0);
+      if (st != UPS_SUCCESS)
+        error("ups_db_find(order)", st);
 
       printf("  order: %d (assigned to %s)\n",
           order_id, (char *)ord_record.data);
 
       /*
-       * The flag HAM_ONLY_DUPLICATES restricts the cursor
+       * The flag UPS_ONLY_DUPLICATES restricts the cursor
        * movement to the duplicate list.
        */
-      st = ham_cursor_move(cursor[2], &c2o_key,
-          &c2o_record, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES);
-      if (st != HAM_SUCCESS) {
+      st = ups_cursor_move(cursor[2], &c2o_key,
+          &c2o_record, UPS_CURSOR_NEXT|UPS_ONLY_DUPLICATES);
+      if (st != UPS_SUCCESS) {
         /* reached end of the database? */
-        if (st == HAM_KEY_NOT_FOUND)
+        if (st == UPS_KEY_NOT_FOUND)
           break;
         else
-          error("ham_cursor_next(c2o)", st);
+          error("ups_cursor_next(c2o)", st);
       }
     } while (1);
   }
 
   /*
    * Now close the Environment handle; the flag
-   * HAM_AUTO_CLEANUP will automatically close all Databases and
+   * UPS_AUTO_CLEANUP will automatically close all Databases and
    * Cursors
    */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
-  if (st != HAM_SUCCESS)
-    error("ham_env_close", st);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
+  if (st != UPS_SUCCESS)
+    error("ups_env_close", st);
 
   printf("success!\n");
   return (0);

@@ -29,21 +29,21 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_CACHE_H
-#define HAM_CACHE_H
+#ifndef UPS_CACHE_H
+#define UPS_CACHE_H
 
 #include "0root/root.h"
 
 #include <vector>
 
-#include "ham/hamsterdb_int.h"
+#include "ups/upscaledb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "2page/page.h"
 #include "2page/page_collection.h"
 #include "2config/env_config.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -88,17 +88,17 @@ class Cache
   public:
     // The default constructor
     Cache(const EnvironmentConfiguration &config)
-      : m_capacity_bytes(config.flags & HAM_CACHE_UNLIMITED
+      : m_capacity_bytes(config.flags & UPS_CACHE_UNLIMITED
                             ? 0xffffffffffffffffull
                             : config.cache_size_bytes),
         m_page_size_bytes(config.page_size_bytes),
         m_alloc_elements(0), m_totallist(Page::kListCache),
         m_buckets(kBucketSize), m_cache_hits(0), m_cache_misses(0) {
-      ham_assert(m_capacity_bytes > 0);
+      ups_assert(m_capacity_bytes > 0);
     }
 
     // Fills in the current metrics
-    void fill_metrics(ham_env_metrics_t *metrics) const {
+    void fill_metrics(ups_env_metrics_t *metrics) const {
       metrics->cache_hits = m_cache_hits;
       metrics->cache_misses = m_cache_misses;
     }
@@ -125,7 +125,7 @@ class Cache
 
     // Stores a page in the cache
     void put(Page *page) {
-      ham_assert(page->get_data());
+      ups_assert(page->get_data());
       size_t hash = calc_hash(page->get_address());
 
       /* First remove the page from the cache, if it's already cached
@@ -143,7 +143,7 @@ class Cache
 
     // Removes a page from the cache
     void del(Page *page) {
-      ham_assert(page->get_address() != 0);
+      ups_assert(page->get_address() != 0);
 
       /* remove it from the list of all cached pages */
       if (m_totallist.del(page) && page->is_allocated())
@@ -240,4 +240,4 @@ class Cache
 
 } // namespace hamsterdb
 
-#endif /* HAM_CACHE_H */
+#endif /* UPS_CACHE_H */

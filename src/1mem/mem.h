@@ -22,27 +22,27 @@
  * @thread_safe: no (b/c of metrics)
  */
 
-#ifndef HAM_MEM_H
-#define HAM_MEM_H
+#ifndef UPS_MEM_H
+#define UPS_MEM_H
 
 #include "0root/root.h"
 
 #include <new>
 #include <stdlib.h>
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #endif
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
-struct ham_env_metrics_t;
+struct ups_env_metrics_t;
 
 namespace hamsterdb {
 
@@ -68,13 +68,13 @@ class Memory {
     static T *allocate(size_t size) {
       ms_total_allocations++;
       ms_current_allocations++;
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
       T *t = (T *)::tc_malloc(size);
 #else
       T *t = (T *)::malloc(size);
 #endif
       if (!t)
-        throw Exception(HAM_OUT_OF_MEMORY);
+        throw Exception(UPS_OUT_OF_MEMORY);
       return (t);
     }
 
@@ -89,13 +89,13 @@ class Memory {
       ms_total_allocations++;
       ms_current_allocations++;
 
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
       T *t = (T *)::tc_calloc(1, size);
 #else
       T *t = (T *)::calloc(1, size);
 #endif
       if (!t)
-        throw Exception(HAM_OUT_OF_MEMORY);
+        throw Exception(UPS_OUT_OF_MEMORY);
       return (t);
     }
 
@@ -111,13 +111,13 @@ class Memory {
         ms_total_allocations++;
         ms_current_allocations++;
       }
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
       T *t = (T *)::tc_realloc(ptr, size);
 #else
       T *t = (T *)::realloc(ptr, size);
 #endif
       if (!t)
-        throw Exception(HAM_OUT_OF_MEMORY);
+        throw Exception(UPS_OUT_OF_MEMORY);
       return (t);
     }
 
@@ -125,7 +125,7 @@ class Memory {
     static void release(void *ptr) {
       if (ptr) {
         ms_current_allocations--;
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
         ::tc_free(ptr);
 #else
         ::free(ptr);
@@ -134,7 +134,7 @@ class Memory {
     }
 
     // updates and returns the collected metrics
-    static void get_global_metrics(ham_env_metrics_t *metrics);
+    static void get_global_metrics(ups_env_metrics_t *metrics);
 
   private:
     // peak memory usage
@@ -149,4 +149,4 @@ class Memory {
 
 } // namespace hamsterdb
 
-#endif /* HAM_MEM_H */
+#endif /* UPS_MEM_H */

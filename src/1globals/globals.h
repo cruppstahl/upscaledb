@@ -22,17 +22,17 @@
  * @thread_safe: no
  */
  
-#ifndef HAM_GLOBALS_H
-#define HAM_GLOBALS_H
+#ifndef UPS_GLOBALS_H
+#define UPS_GLOBALS_H
 
 #include "0root/root.h"
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -73,7 +73,7 @@ struct Globals {
   static const char *ms_error_function;
 
   // used in error.h/error.cc
-  static ham_errhandler_fun ms_error_handler;
+  static ups_errhandler_fun ms_error_handler;
 
   // PRO: Tracking key bytes before compression
   static uint64_t ms_bytes_before_compression;
@@ -87,4 +87,4 @@ struct Globals {
 
 } // namespace hamsterdb
 
-#endif /* HAM_GLOBALS_H */
+#endif /* UPS_GLOBALS_H */

@@ -29,7 +29,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "4cursor/cursor_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -43,7 +43,7 @@ void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
 // Returns the leaf page and the |parent| of the leaf (can be null if
 // there is no parent).
 Page *
-BtreeUpdateAction::traverse_tree(const ham_key_t *key,
+BtreeUpdateAction::traverse_tree(const ups_key_t *key,
                         BtreeStatistics::InsertHints &hints,
                         Page **parent)
 {
@@ -174,7 +174,7 @@ BtreeUpdateAction::collapse_root(Page *root_page)
 {
   LocalEnvironment *env = root_page->get_db()->lenv();
   BtreeNodeProxy *node = m_btree->get_node_from_page(root_page);
-  ham_assert(node->get_count() == 0);
+  ups_assert(node->get_count() == 0);
 
   m_btree->get_statistics()->reset_page(root_page);
   m_btree->set_root_address(m_context, node->get_ptr_down());
@@ -190,7 +190,7 @@ BtreeUpdateAction::collapse_root(Page *root_page)
 
 Page *
 BtreeUpdateAction::split_page(Page *old_page, Page *parent,
-                                const ham_key_t *key,
+                                const ups_key_t *key,
                                 BtreeStatistics::InsertHints &hints)
 {
   LocalDatabase *db = m_btree->get_db();
@@ -214,12 +214,12 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
   Page *to_return = 0;
   ByteArray pivot_key_arena;
-  ham_key_t pivot_key = {0};
+  ups_key_t pivot_key = {0};
 
   /* if the key is appended then don't split the page; simply allocate
    * a new page and insert the new key. */
   int pivot = 0;
-  if (hints.flags & HAM_HINT_APPEND && old_node->is_leaf()) {
+  if (hints.flags & UPS_HINT_APPEND && old_node->is_leaf()) {
     int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
     if (cmp == +1) {
       to_return = new_page;
@@ -248,7 +248,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
     // if the new key is >= the pivot key then continue with the right page,
     // otherwise continue with the left page
-    to_return = m_btree->compare_keys((ham_key_t *)key, &pivot_key) >= 0
+    to_return = m_btree->compare_keys((ups_key_t *)key, &pivot_key) >= 0
                       ? new_page
                       : old_page;
   }
@@ -256,8 +256,8 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   /* update the parent page */
   BtreeNodeProxy *parent_node = m_btree->get_node_from_page(parent);
   uint64_t rid = new_page->get_address();
-  ham_record_t record = ham_make_record(&rid, sizeof(rid));
-  ham_status_t st = insert_in_page(parent, &pivot_key, &record, hints);
+  ups_record_t record = ups_make_record(&rid, sizeof(rid));
+  ups_status_t st = insert_in_page(parent, &pivot_key, &record, hints);
   if (st)
     throw Exception(st);
   /* new root page? then also set ptr_down! */
@@ -308,14 +308,14 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
 }
 
 int
-BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ham_key_t *key,
+BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ups_key_t *key,
                             BtreeStatistics::InsertHints &hints) const
 {
   uint32_t old_count = old_node->get_count();
-  ham_assert(old_count > 2);
+  ups_assert(old_count > 2);
 
   bool pivot_at_end = false;
-  if (hints.flags & HAM_HINT_APPEND && hints.append_count > 5)
+  if (hints.flags & UPS_HINT_APPEND && hints.append_count > 5)
     pivot_at_end = true;
   else if (old_node->get_right() == 0) {
     int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
@@ -337,14 +337,14 @@ BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ham_key_t *key,
   else
     pivot = old_count / 2;
 
-  ham_assert(pivot > 0 && pivot <= (int)old_count - 2);
+  ups_assert(pivot > 0 && pivot <= (int)old_count - 2);
 
   return (pivot);
 }
 
-ham_status_t
-BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
-                            ham_record_t *record,
+ups_status_t
+BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
+                            ups_record_t *record,
                             BtreeStatistics::InsertHints &hints,
                             bool force_prepend, bool force_append)
 {
@@ -360,19 +360,19 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
 
   PBtreeNode::InsertResult result = node->insert(m_context, key, flags);
   switch (result.status) {
-    case HAM_DUPLICATE_KEY:
-      if (hints.flags & HAM_OVERWRITE) {
+    case UPS_DUPLICATE_KEY:
+      if (hints.flags & UPS_OVERWRITE) {
         /* key already exists; only overwrite the data */
         if (!node->is_leaf())
-          return (HAM_SUCCESS);
+          return (UPS_SUCCESS);
       }
-      else if (!(hints.flags & HAM_DUPLICATE))
-        return (HAM_DUPLICATE_KEY);
+      else if (!(hints.flags & UPS_DUPLICATE))
+        return (UPS_DUPLICATE_KEY);
       /* do NOT shift keys up to make room; just overwrite the
        * current [slot] */
       exists = true;
       break;
-    case HAM_SUCCESS:
+    case UPS_SUCCESS:
       break;
     default:
       return (result.status);
@@ -390,7 +390,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
     }
     else {
       // overwrite record id
-      ham_assert(record->size == sizeof(uint64_t));
+      ups_assert(record->size == sizeof(uint64_t));
       node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
     }
   }
@@ -407,7 +407,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
       }
       else {
         // set the internal record id
-        ham_assert(record->size == sizeof(uint64_t));
+        ups_assert(record->size == sizeof(uint64_t));
         node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
       }
     }
@@ -427,11 +427,11 @@ BtreeUpdateAction::insert_in_page(Page *page, ham_key_t *key,
   // TODO only when performing an insert(), not an erase()!
   if (m_cursor && node->is_leaf()) {
     m_cursor->get_parent()->set_to_nil(LocalCursor::kBtree);
-    ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
+    ups_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
     m_cursor->couple_to_page(page, result.slot, new_duplicate_id);
   }
 
-  return (HAM_SUCCESS);
+  return (UPS_SUCCESS);
 }
 
 } // namespace hamsterdb

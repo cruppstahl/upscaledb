@@ -17,19 +17,19 @@
 
 #include "0root/root.h"
 
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #  include <google/malloc_extension.h>
 #endif
 #include <stdlib.h>
 
-#include "ham/hamsterdb_int.h"
+#include "ups/upscaledb_int.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/file.h"
 #include "1mem/mem.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -40,9 +40,9 @@ uint64_t Memory::ms_total_allocations;
 uint64_t Memory::ms_current_allocations;
 
 void
-Memory::get_global_metrics(ham_env_metrics_t *metrics)
+Memory::get_global_metrics(ups_env_metrics_t *metrics)
 {
-#ifdef HAM_USE_TCMALLOC
+#ifdef UPS_USE_TCMALLOC
   size_t value = 0;
   MallocExtension::instance()->GetNumericProperty(
                   "generic.current_allocated_bytes", &value);

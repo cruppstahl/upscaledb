@@ -22,9 +22,9 @@
  *
  *  #include "packstart.h"
  *
- *  typedef HAM_PACK_0 struct HAM_PACK_1 foo {
+ *  typedef UPS_PACK_0 struct UPS_PACK_1 foo {
  *    int bar;
- *  } HAM_PACK_2 foo_t;
+ *  } UPS_PACK_2 foo_t;
  *
  *  #include "packstop.h"
  *
@@ -36,13 +36,13 @@
 
 #ifdef __GNUC__
 #  if (((__GNUC__==2) && (__GNUC_MINOR__>=7)) || (__GNUC__>2))
-#  define HAM_PACK_2 __attribute__ ((packed))
+#  define UPS_PACK_2 __attribute__ ((packed))
 #  define _NEWGNUC_
 #  endif
 #endif
 
 #ifdef __WATCOMC__
-#  define HAM_PACK_0 _Packed
+#  define UPS_PACK_0 _Packed
 #endif
 
 #if (defined(_MSC_VER) && (_MSC_VER >= 900)) || defined(__BORLANDC__)
@@ -53,23 +53,23 @@
 #endif
 #ifdef _NEWMSC_
 #  pragma pack(push, 1)
-#  define HAM_PACK_2 __declspec(align(1))
+#  define UPS_PACK_2 __declspec(align(1))
 #endif
 
 #if defined(_NEWMSC_) && !defined(_WIN32_WCE)
 #  pragma pack(push, 1)
-#  define HAM_PACK_2 __declspec(align(1))
+#  define UPS_PACK_2 __declspec(align(1))
 #endif
 
-#ifndef HAM_PACK_0
-#  define HAM_PACK_0
+#ifndef UPS_PACK_0
+#  define UPS_PACK_0
 #endif
 
-#ifndef HAM_PACK_1
-#  define HAM_PACK_1
+#ifndef UPS_PACK_1
+#  define UPS_PACK_1
 #endif
 
-#ifndef HAM_PACK_2
-#  define HAM_PACK_2
+#ifndef UPS_PACK_2
+#  define UPS_PACK_2
 #endif
 

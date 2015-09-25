@@ -27,7 +27,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -74,7 +74,7 @@ BtreeStatistics::insert_succeeded(Page *page, uint16_t slot)
 
   BtreeNodeProxy *node;
   node = page->get_db()->btree_index()->get_node_from_page(page);
-  ham_assert(node->is_leaf());
+  ups_assert(node->is_leaf());
   
   if (!node->get_right() && slot == node->get_count() - 1)
     m_append_count++;
@@ -149,9 +149,9 @@ BtreeStatistics::get_insert_hints(uint32_t flags)
    * appending/prepending.
    */
   if (m_append_count > 0)
-    hints.flags |= HAM_HINT_APPEND;
+    hints.flags |= UPS_HINT_APPEND;
   else if (m_prepend_count > 0)
-    hints.flags |= HAM_HINT_PREPEND;
+    hints.flags |= UPS_HINT_PREPEND;
 
   hints.append_count = m_append_count;
   hints.prepend_count = m_prepend_count;

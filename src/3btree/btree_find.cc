@@ -35,7 +35,7 @@
 #include "4cursor/cursor_local.h"
 #include "4db/db.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -45,8 +45,8 @@ class BtreeFindAction
 {
   public:
     BtreeFindAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
-                    ham_key_t *key, ByteArray *key_arena,
-                    ham_record_t *record, ByteArray *record_arena,
+                    ups_key_t *key, ByteArray *key_arena,
+                    ups_record_t *record, ByteArray *record_arena,
                     uint32_t flags)
       : m_btree(btree), m_context(context), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags), m_key_arena(key_arena),
@@ -55,7 +55,7 @@ class BtreeFindAction
         m_cursor = cursor->get_btree_cursor();
     }
 
-    ham_status_t run() {
+    ups_status_t run() {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->lenv();
       Page *page = 0;
@@ -79,7 +79,7 @@ class BtreeFindAction
                                             | PageManager::kReadOnly);
         if (page) {
           node = m_btree->get_node_from_page(page);
-          ham_assert(node->is_leaf());
+          ups_assert(node->is_leaf());
 
           uint32_t approx_match;
           slot = find(m_context, page, m_key, m_flags, &approx_match);
@@ -111,7 +111,7 @@ class BtreeFindAction
                                 PageManager::kReadOnly, 0);
           if (!page) {
             stats->find_failed();
-            return (HAM_KEY_NOT_FOUND);
+            return (UPS_KEY_NOT_FOUND);
           }
 
           node = m_btree->get_node_from_page(page);
@@ -122,7 +122,7 @@ class BtreeFindAction
           slot = node->find(m_context, m_key);
           if (slot == -1) {
             stats->find_failed();
-            return (HAM_KEY_NOT_FOUND);
+            return (UPS_KEY_NOT_FOUND);
           }
           goto return_result;
         }
@@ -158,10 +158,10 @@ class BtreeFindAction
 
       if (slot < 0) {
         stats->find_failed();
-        return (HAM_KEY_NOT_FOUND);
+        return (UPS_KEY_NOT_FOUND);
       }
 
-      ham_assert(node->is_leaf());
+      ups_assert(node->is_leaf());
 
 return_result:
       /* set the cursor-position to this key */
@@ -171,7 +171,7 @@ return_result:
 
       /* approx. match: patch the key flags */
       if (approx_match) {
-        ham_key_set_intflags(m_key, approx_match);
+        ups_key_set_intflags(m_key, approx_match);
       }
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
@@ -195,7 +195,7 @@ return_result:
     //
     // Returns the index of the key, or -1 if the key was not found, or
     // another negative status code value when an unexpected error occurred.
-    int find(Context *context, Page *page, ham_key_t *key, uint32_t flags,
+    int find(Context *context, Page *page, ups_key_t *key, uint32_t flags,
                     uint32_t *approx_match) {
       *approx_match = 0;
 
@@ -208,17 +208,17 @@ return_result:
       int slot = node->find_lower_bound(context, key, 0, &cmp);
 
       /* successfull match */
-      if (cmp == 0 && (flags == 0 || flags & HAM_FIND_EXACT_MATCH))
+      if (cmp == 0 && (flags == 0 || flags & UPS_FIND_EXACT_MATCH))
         return (slot);
 
       /* approx. matching: smaller key is required */
-      if (flags & HAM_FIND_LT_MATCH) {
-        if (cmp == 0 && (flags & HAM_FIND_GT_MATCH)) {
+      if (flags & UPS_FIND_LT_MATCH) {
+        if (cmp == 0 && (flags & UPS_FIND_GT_MATCH)) {
           *approx_match = BtreeKey::kLower;
           return (slot + 1);
         }
 
-        if (slot < 0 && (flags & HAM_FIND_GT_MATCH)) {
+        if (slot < 0 && (flags & UPS_FIND_GT_MATCH)) {
           *approx_match = BtreeKey::kGreater;
           return (0);
         }
@@ -229,7 +229,7 @@ return_result:
       }
 
       /* approx. matching: greater key is required */
-      if (flags & HAM_FIND_GT_MATCH) {
+      if (flags & UPS_FIND_GT_MATCH) {
         *approx_match = BtreeKey::kGreater;
         return (slot + 1);
       }
@@ -247,12 +247,12 @@ return_result:
     BtreeCursor *m_cursor;
 
     // the key that is retrieved
-    ham_key_t *m_key;
+    ups_key_t *m_key;
 
     // the record that is retrieved
-    ham_record_t *m_record;
+    ups_record_t *m_record;
 
-    // flags of ham_db_find()
+    // flags of ups_db_find()
     uint32_t m_flags;
 
     // allocator for the key data
@@ -262,9 +262,9 @@ return_result:
     ByteArray *m_record_arena;
 };
 
-ham_status_t
-BtreeIndex::find(Context *context, LocalCursor *cursor, ham_key_t *key,
-                ByteArray *key_arena, ham_record_t *record,
+ups_status_t
+BtreeIndex::find(Context *context, LocalCursor *cursor, ups_key_t *key,
+                ByteArray *key_arena, ups_record_t *record,
                 ByteArray *record_arena, uint32_t flags)
 {
   BtreeFindAction bfa(this, context, cursor, key, key_arena, record,

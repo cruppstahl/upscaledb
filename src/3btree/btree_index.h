@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_INDEX_H
-#define HAM_BTREE_INDEX_H
+#ifndef UPS_BTREE_INDEX_H
+#define UPS_BTREE_INDEX_H
 
 #include "0root/root.h"
 
@@ -35,7 +35,7 @@
 #include "3btree/btree_stats.h"
 #include "3btree/btree_node.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -50,7 +50,7 @@ class LocalCursor;
 // The persistent btree index descriptor. This structure manages the
 // persistent btree metadata.
 //
-HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
+UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
 {
   public:
     PBtreeHeader() {
@@ -162,7 +162,7 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // the record size
     uint32_t m_rec_size;
 
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -185,8 +185,8 @@ class BtreeIndexTraits
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
-                    ham_key_t *rhs) const = 0;
+    virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
+                    ups_key_t *rhs) const = 0;
 
     // Returns the class name (for testing)
     virtual std::string test_get_classname() const = 0;
@@ -258,14 +258,14 @@ class BtreeIndex
 
     // Creates and initializes the btree
     //
-    // This function is called after the ham_db_t structure was allocated
+    // This function is called after the ups_db_t structure was allocated
     // and the file was opened
     void create(Context *context, uint16_t key_type, uint32_t key_size,
                     uint32_t rec_size);
 
     // Opens and initializes the btree
     //
-    // This function is called after the ham_db_t structure was allocated
+    // This function is called after the ups_db_t structure was allocated
     // and the file was opened
     void open();
 
@@ -281,26 +281,26 @@ class BtreeIndex
     // Returns the key compression algorithm
     int key_compression();
 
-    // Lookup a key in the index (ham_db_find)
-    ham_status_t find(Context *context, LocalCursor *cursor, ham_key_t *key,
-                    ByteArray *key_arena, ham_record_t *record,
+    // Lookup a key in the index (ups_db_find)
+    ups_status_t find(Context *context, LocalCursor *cursor, ups_key_t *key,
+                    ByteArray *key_arena, ups_record_t *record,
                     ByteArray *record_arena, uint32_t flags);
 
-    // Inserts (or updates) a key/record in the index (ham_db_insert)
-    ham_status_t insert(Context *context, LocalCursor *cursor, ham_key_t *key,
-                    ham_record_t *record, uint32_t flags);
+    // Inserts (or updates) a key/record in the index (ups_db_insert)
+    ups_status_t insert(Context *context, LocalCursor *cursor, ups_key_t *key,
+                    ups_record_t *record, uint32_t flags);
 
-    // Erases a key/record from the index (ham_db_erase).
+    // Erases a key/record from the index (ups_db_erase).
     // If |duplicate_index| is 0 then all duplicates are erased, otherwise only
     // the specified duplicate is erased.
-    ham_status_t erase(Context *context, LocalCursor *cursor, ham_key_t *key,
+    ups_status_t erase(Context *context, LocalCursor *cursor, ups_key_t *key,
                     int duplicate_index, uint32_t flags);
 
     // Iterates over the whole index and calls |visitor| on every node
     void visit_nodes(Context *context, BtreeVisitor &visitor,
                     bool visit_internal_nodes);
 
-    // Checks the integrity of the btree (ham_db_check_integrity)
+    // Checks the integrity of the btree (ups_db_check_integrity)
     void check_integrity(Context *context, uint32_t flags);
 
     // Counts the keys in the btree
@@ -315,7 +315,7 @@ class BtreeIndex
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const {
+    int compare_keys(ups_key_t *lhs, ups_key_t *rhs) const {
       return (m_leaf_traits->compare_keys(m_db, lhs, rhs));
     }
 
@@ -336,7 +336,7 @@ class BtreeIndex
     }
 
     // Returns the usage metrics
-    static void fill_metrics(ham_env_metrics_t *metrics) {
+    static void fill_metrics(ups_env_metrics_t *metrics) {
       metrics->btree_smo_split = ms_btree_smo_split;
       metrics->btree_smo_merge = ms_btree_smo_merge;
       metrics->extended_keys = Globals::ms_extended_keys;
@@ -397,7 +397,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    Page *find_lower_bound(Context *context, Page *parent, const ham_key_t *key,
+    Page *find_lower_bound(Context *context, Page *parent, const ups_key_t *key,
                     uint32_t page_manager_flags, int *idxptr);
 
     // pointer to the database object
@@ -444,4 +444,4 @@ class BtreeIndex
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_INDEX_H */
+#endif /* UPS_BTREE_INDEX_H */

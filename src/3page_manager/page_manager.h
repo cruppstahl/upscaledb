@@ -24,8 +24,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_PAGE_MANAGER_H
-#define HAM_PAGE_MANAGER_H
+#ifndef UPS_PAGE_MANAGER_H
+#define UPS_PAGE_MANAGER_H
 
 // include this first, otherwise WIN32 compilation (boost/asio.hpp) fails
 #include "2worker/worker.h"
@@ -39,7 +39,7 @@
 #include "3page_manager/page_manager_state.h"
 #include "3page_manager/page_manager_test.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -84,7 +84,7 @@ class PageManager
 
     // Fills in the current metrics for the PageManager, the Cache and the
     // Freelist
-    void fill_metrics(ham_env_metrics_t *metrics) const;
+    void fill_metrics(ups_env_metrics_t *metrics) const;
 
     // Fetches a page from disk. |flags| are bitwise OR'd: kOnlyFromCache,
     // kReadOnly, kNoHeader...
@@ -180,4 +180,4 @@ class PageManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_PAGE_MANAGER_H */
+#endif /* UPS_PAGE_MANAGER_H */

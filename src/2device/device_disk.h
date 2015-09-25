@@ -24,8 +24,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_DEVICE_DISK_H
-#define HAM_DEVICE_DISK_H
+#ifndef UPS_DEVICE_DISK_H
+#define UPS_DEVICE_DISK_H
 
 #include "0root/root.h"
 
@@ -33,13 +33,13 @@
 #include "1os/file.h"
 #include "1mem/mem.h"
 #include "1base/dynamic_array.h"
-#ifdef HAM_ENABLE_ENCRYPTION
+#ifdef UPS_ENABLE_ENCRYPTION
 #  include "2aes/aes.h"
 #endif
 #include "2device/device.h"
 #include "2page/page.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -91,7 +91,7 @@ class DiskDevice : public Device {
     //
     // tries to map the file; if it fails then continue with read/write 
     virtual void open() {
-      bool read_only = (m_config.flags & HAM_READ_ONLY) != 0;
+      bool read_only = (m_config.flags & UPS_READ_ONLY) != 0;
 
       ScopedSpinlock lock(m_mutex);
 
@@ -102,7 +102,7 @@ class DiskDevice : public Device {
       // the file size which backs the mapped ptr
       state.file_size = state.file.get_file_size();
 
-      if (m_config.flags & HAM_DISABLE_MMAP) {
+      if (m_config.flags & UPS_DISABLE_MMAP) {
         std::swap(m_state, state);
         return;
       }
@@ -153,7 +153,7 @@ class DiskDevice : public Device {
     // get the current file/storage size
     virtual uint64_t file_size() {
       ScopedSpinlock lock(m_mutex);
-      ham_assert(m_state.file_size == m_state.file.get_file_size());
+      ups_assert(m_state.file_size == m_state.file.get_file_size());
       return (m_state.file_size);
     }
 
@@ -173,7 +173,7 @@ class DiskDevice : public Device {
     virtual void read(uint64_t offset, void *buffer, size_t len) {
       ScopedSpinlock lock(m_mutex);
       m_state.file.pread(offset, buffer, len);
-#ifdef HAM_ENABLE_ENCRYPTION
+#ifdef UPS_ENABLE_ENCRYPTION
       if (m_config.is_encryption_enabled) {
         AesCipher aes(m_config.encryption_key, offset);
         aes.decrypt((uint8_t *)buffer, (uint8_t *)buffer, len);
@@ -186,10 +186,10 @@ class DiskDevice : public Device {
     // filters
     virtual void write(uint64_t offset, void *buffer, size_t len) {
       ScopedSpinlock lock(m_mutex);
-#ifdef HAM_ENABLE_ENCRYPTION
+#ifdef UPS_ENABLE_ENCRYPTION
       if (m_config.is_encryption_enabled) {
         // encryption disables direct I/O -> only full pages are allowed
-        ham_assert(offset % len == 0);
+        ups_assert(offset % len == 0);
 
         uint8_t *encryption_buffer = (uint8_t *)::alloca(len);
         AesCipher aes(m_config.encryption_key, offset);
@@ -270,7 +270,7 @@ class DiskDevice : public Device {
       }
 
       m_state.file.pread(address, page->get_data(), m_config.page_size_bytes);
-#ifdef HAM_ENABLE_ENCRYPTION
+#ifdef UPS_ENABLE_ENCRYPTION
       if (m_config.is_encryption_enabled) {
         AesCipher aes(m_config.encryption_key, page->get_address());
         aes.decrypt((uint8_t *)page->get_data(),
@@ -293,7 +293,7 @@ class DiskDevice : public Device {
     // Frees a page on the device; plays counterpoint to |alloc_page|
     virtual void free_page(Page *page) {
       ScopedSpinlock lock(m_mutex);
-      ham_assert(page->get_data() != 0);
+      ups_assert(page->get_data() != 0);
       page->free_buffer();
     }
 
@@ -320,7 +320,7 @@ class DiskDevice : public Device {
     // truncate/resize the device, sans locking
     void truncate_nolock(uint64_t new_file_size) {
       if (new_file_size > m_config.file_size_limit_bytes)
-        throw Exception(HAM_LIMITS_REACHED);
+        throw Exception(UPS_LIMITS_REACHED);
       m_state.file.truncate(new_file_size);
       m_state.file_size = new_file_size;
     }
@@ -333,4 +333,4 @@ class DiskDevice : public Device {
 
 } // namespace hamsterdb
 
-#endif /* HAM_DEVICE_DISK_H */
+#endif /* UPS_DEVICE_DISK_H */

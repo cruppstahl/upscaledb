@@ -8,9 +8,9 @@
 *.db
 *.db.*
 export.pb.*
-ham_dump
-ham_info
-ham_export
-ham_import
-hamzilla
-ham_recover
+ups_dump
+ups_info
+ups_export
+ups_import
+upszilla
+ups_recover

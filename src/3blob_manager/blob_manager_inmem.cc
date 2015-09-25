@@ -25,14 +25,14 @@
 #include "4context/context.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 using namespace hamsterdb;
 
 uint64_t
-InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
+InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
                 uint32_t flags)
 {
   void *record_data = record->data;
@@ -65,9 +65,9 @@ InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
 
   // do we have gaps? if yes, fill them with zeroes
   //
-  // HAM_PARTIAL is not allowed in combination with compression,
+  // UPS_PARTIAL is not allowed in combination with compression,
   // therefore we do not have to check compression stuff in here.
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     uint8_t *s = p + sizeof(PBlobHeader);
     if (record->partial_offset)
       memset(s, 0, record->partial_offset);
@@ -85,7 +85,7 @@ InMemoryBlobManager::do_allocate(Context *context, ham_record_t *record,
 
 void
 InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
-                ham_record_t *record, uint32_t flags,
+                ups_record_t *record, uint32_t flags,
                 ByteArray *arena)
 {
   // in-memory-database: the blobid is actually a pointer to the memory
@@ -102,10 +102,10 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
   uint32_t blobsize = (uint32_t)blob_header->size;
   record->size = blobsize;
 
-  if (flags & HAM_PARTIAL) {
+  if (flags & UPS_PARTIAL) {
     if (record->partial_offset > blobsize) {
-      ham_trace(("partial offset is greater than the total record size"));
-      throw Exception(HAM_INV_PARAMETER);
+      ups_trace(("partial offset is greater than the total record size"));
+      throw Exception(UPS_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
       record->partial_size = blobsize = blobsize - record->partial_offset;
@@ -119,7 +119,7 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
     record->size = 0;
   }
   else {
-    if (flags & HAM_PARTIAL)
+    if (flags & UPS_PARTIAL)
       data += record->partial_offset;
 
     // is the record compressed? if yes then decompress directly in the
@@ -127,9 +127,9 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
     if (blob_header->flags & kIsCompressed) {
       Compressor *compressor = context->db->get_record_compressor();
       if (!compressor)
-        throw Exception(HAM_NOT_READY);
+        throw Exception(UPS_NOT_READY);
 
-      if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
         compressor->decompress(data,
                       blob_header->allocated_size - sizeof(PBlobHeader),
                       blobsize, arena);
@@ -144,13 +144,13 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
       record->data = data;
     }
     else { // no compression
-    if ((flags & HAM_DIRECT_ACCESS)
-          && !(record->flags & HAM_RECORD_USER_ALLOC)) {
+    if ((flags & UPS_DIRECT_ACCESS)
+          && !(record->flags & UPS_RECORD_USER_ALLOC)) {
         record->data = data;
     }
     else {
       // resize buffer if necessary
-      if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
           arena->resize(blobsize);
           record->data = arena->get_ptr();
       }
@@ -163,7 +163,7 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
 
 uint64_t
 InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
-                ham_record_t *record, uint32_t flags)
+                ups_record_t *record, uint32_t flags)
 {
   // This routine basically ignores compression. It is very unlikely that
   // the record size remains identical after the payload was compressed.
@@ -178,7 +178,7 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
 
   if (phdr->allocated_size == record->size + sizeof(PBlobHeader)) {
     uint8_t *p = (uint8_t *)phdr;
-    if (flags & HAM_PARTIAL) {
+    if (flags & UPS_PARTIAL) {
       ::memmove(p + sizeof(PBlobHeader) + record->partial_offset,
               record->data, record->partial_size);
     }

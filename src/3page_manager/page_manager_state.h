@@ -24,8 +24,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_PAGE_MANAGER_STATE_H
-#define HAM_PAGE_MANAGER_STATE_H
+#ifndef UPS_PAGE_MANAGER_STATE_H
+#define UPS_PAGE_MANAGER_STATE_H
 
 #include "0root/root.h"
 
@@ -37,7 +37,7 @@
 #include "3cache/cache.h"
 #include "3page_manager/freelist.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -121,4 +121,4 @@ struct PageManagerState
 
 } // namespace hamsterdb
 
-#endif /* HAM_PAGE_MANAGER_STATE_H */
+#endif /* UPS_PAGE_MANAGER_STATE_H */

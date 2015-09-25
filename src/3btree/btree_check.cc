@@ -24,7 +24,7 @@
 #include <set>
 #include <string.h>
 #include <stdio.h>
-#if HAM_DEBUG
+#if UPS_DEBUG
 #  include <sstream>
 #  include <fstream>
 #endif
@@ -39,7 +39,7 @@
 #include "4db/db.h"
 #include "4env/env.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -64,8 +64,8 @@ class BtreeCheckAction
       page = env->page_manager()->fetch(m_context, m_btree->root_address(),
                                     PageManager::kReadOnly);
 
-#if HAM_DEBUG
-      if (m_flags & HAM_PRINT_GRAPH) {
+#if UPS_DEBUG
+      if (m_flags & UPS_PRINT_GRAPH) {
         m_graph << "digraph g {" << std::endl
                 << "  graph [" << std::endl
                 << "    rankdir = \"TD\"" << std::endl
@@ -98,8 +98,8 @@ class BtreeCheckAction
         ++level;
       }
 
-#if HAM_DEBUG
-      if (m_flags & HAM_PRINT_GRAPH) {
+#if UPS_DEBUG
+      if (m_flags & UPS_PRINT_GRAPH) {
         m_graph << "}" << std::endl;
 
         std::ofstream file;
@@ -123,10 +123,10 @@ class BtreeCheckAction
       if (parent && node->get_left()) {
         int cmp = compare_keys(db, page, 0, node->get_count() - 1);
         if (cmp <= 0) {
-          ham_log(("integrity check failed in page 0x%llx: parent item "
+          ups_log(("integrity check failed in page 0x%llx: parent item "
                   "#0 <= item #%d\n", page->get_address(),
                   node->get_count() - 1));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+          throw Exception(UPS_INTEGRITY_VIOLATED);
         }
       }
 
@@ -146,7 +146,7 @@ class BtreeCheckAction
 
         if (leftsib) {
           BtreeNodeProxy *leftnode = m_btree->get_node_from_page(leftsib);
-          ham_assert(leftnode->is_leaf() == node->is_leaf());
+          ups_assert(leftnode->is_leaf() == node->is_leaf());
         }
 
         leftsib = page;
@@ -160,8 +160,8 @@ class BtreeCheckAction
       LocalEnvironment *env = db->lenv();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-#if HAM_DEBUG
-      if (m_flags & HAM_PRINT_GRAPH) {
+#if UPS_DEBUG
+      if (m_flags & UPS_PRINT_GRAPH) {
         std::stringstream ss;
         ss << "node" << page->get_address();
         m_graph << "  \"" << ss.str() << "\" [" << std::endl
@@ -208,9 +208,9 @@ class BtreeCheckAction
 
         // for internal nodes: ptr_down HAS to be set!
         if (!node->is_leaf() && node->get_ptr_down() == 0) {
-          ham_log(("integrity check failed in page 0x%llx: empty page!\n",
+          ups_log(("integrity check failed in page 0x%llx: empty page!\n",
                   page->get_address()));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+          throw Exception(UPS_INTEGRITY_VIOLATED);
         }
       }
 
@@ -218,8 +218,8 @@ class BtreeCheckAction
       // the smallest item of this page
       if (leftsib) {
         BtreeNodeProxy *sibnode = m_btree->get_node_from_page(leftsib);
-        ham_key_t key1 = {0};
-        ham_key_t key2 = {0};
+        ups_key_t key1 = {0};
+        ups_key_t key2 = {0};
 
         node->check_integrity(m_context);
 
@@ -230,10 +230,10 @@ class BtreeCheckAction
 
           int cmp = node->compare(&key1, &key2);
           if (cmp >= 0) {
-            ham_log(("integrity check failed in page 0x%llx: item #0 "
+            ups_log(("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page->get_address(),
                     sibnode->get_count() - 1));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
         }
       }
@@ -247,9 +247,9 @@ class BtreeCheckAction
         for (uint32_t i = 0; i < node->get_count() - 1; i++) {
           int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
           if (cmp >= 0) {
-            ham_log(("integrity check failed in page 0x%llx: item #%d "
+            ups_log(("integrity check failed in page 0x%llx: item #%d "
                     "< item #%d", page->get_address(), i, i + 1));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
         }
       }
@@ -257,24 +257,24 @@ class BtreeCheckAction
       // internal nodes: make sure that all record IDs are unique
       if (!node->is_leaf()) {
         if (m_children.find(node->get_ptr_down()) != m_children.end()) {
-          ham_log(("integrity check failed in page 0x%llx: record of item "
+          ups_log(("integrity check failed in page 0x%llx: record of item "
                   "-1 is not unique", page->get_address()));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+          throw Exception(UPS_INTEGRITY_VIOLATED);
         }
         m_children.insert(node->get_ptr_down());
 
         for (uint32_t i = 0; i < node->get_count(); i++) {
           uint64_t child_id = node->get_record_id(m_context, i);
           if (m_children.find(child_id) != m_children.end()) {
-            ham_log(("integrity check failed in page 0x%llx: record of item "
+            ups_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is not unique", page->get_address(), i));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
           PageManagerTest test = env->page_manager()->test();
           if (test.is_page_free(child_id)) {
-            ham_log(("integrity check failed in page 0x%llx: record of item "
+            ups_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->get_address(), i));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
           m_children.insert(child_id);
        }
@@ -283,8 +283,8 @@ class BtreeCheckAction
 
     int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      ham_key_t key1 = {0};
-      ham_key_t key2 = {0};
+      ups_key_t key1 = {0};
+      ups_key_t key2 = {0};
 
       node->get_key(m_context, lhs, &m_barray1, &key1);
       node->get_key(m_context, rhs, &m_barray2, &key2);
@@ -298,7 +298,7 @@ class BtreeCheckAction
     // The current Context
     Context *m_context;
 
-    // The flags as specified when calling ham_db_check_integrity
+    // The flags as specified when calling ups_db_check_integrity
     uint32_t m_flags;
 
     // ByteArrays to avoid frequent memory allocations
@@ -308,7 +308,7 @@ class BtreeCheckAction
     // For checking uniqueness of record IDs on an internal level
     std::set<uint64_t> m_children;
 
-#if HAM_DEBUG
+#if UPS_DEBUG
     // For printing the graph
     std::ostringstream m_graph;
 #endif

@@ -18,7 +18,7 @@
 #define TEST_PREFIX "-direct-ps2"
 #define TEST_PAGESIZE 1024 * 2
 #define TEST_INMEMORY true
-#define TEST_FLAGS HAM_DIRECT_ACCESS
+#define TEST_FLAGS UPS_DIRECT_ACCESS
 
 namespace read_direct_ps2 {
 

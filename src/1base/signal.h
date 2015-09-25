@@ -22,15 +22,15 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_SIGNAL_H
-#define HAM_SIGNAL_H
+#ifndef UPS_SIGNAL_H
+#define UPS_SIGNAL_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/mutex.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -61,4 +61,4 @@ struct Signal
 
 } // namespace hamsterdb
 
-#endif /* HAM_SIGNAL_H */
+#endif /* UPS_SIGNAL_H */

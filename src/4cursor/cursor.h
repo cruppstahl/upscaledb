@@ -34,7 +34,7 @@
  * A Cursor can have several states. It can be
  * 1. NIL (not in list) - this is the default state, meaning that the Cursor
  *      does not point to any key. If the Cursor was initialized, then it's
- *      "NIL". If the Cursor was erased (i.e. with ham_cursor_erase) then it's
+ *      "NIL". If the Cursor was erased (i.e. with ups_cursor_erase) then it's
  *      also "NIL".
  *
  *      relevant functions:
@@ -78,22 +78,22 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_CURSOR_H
-#define HAM_CURSOR_H
+#ifndef UPS_CURSOR_H
+#define UPS_CURSOR_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
-// A helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
-// opaque C structure, but internally we use a C++ class. The ham_cursor_t
+// A helper structure; ups_cursor_t is declared in ups/upscaledb.h as an
+// opaque C structure, but internally we use a C++ class. The ups_cursor_t
 // struct satisfies the C compiler, and internally we just cast the pointers.
-struct ham_cursor_t
+struct ups_cursor_t
 {
   bool _dummy;
 };
@@ -154,17 +154,17 @@ class Cursor
       m_previous = previous;
     }
 
-    // Overwrites the record of a cursor (ham_cursor_overwrite)
-    ham_status_t overwrite(ham_record_t *record, uint32_t flags);
+    // Overwrites the record of a cursor (ups_cursor_overwrite)
+    ups_status_t overwrite(ups_record_t *record, uint32_t flags);
 
-    // Returns position in duplicate list (ham_cursor_get_duplicate_position)
-    ham_status_t get_duplicate_position(uint32_t *pposition);
+    // Returns position in duplicate list (ups_cursor_get_duplicate_position)
+    ups_status_t get_duplicate_position(uint32_t *pposition);
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    ham_status_t get_duplicate_count(uint32_t flags, uint32_t *pcount);
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
+    ups_status_t get_duplicate_count(uint32_t flags, uint32_t *pcount);
 
-    // Get current record size (ham_cursor_get_record_size)
-    ham_status_t get_record_size(uint64_t *psize);
+    // Get current record size (ups_cursor_get_record_size)
+    ups_status_t get_record_size(uint64_t *psize);
 
     // Closes the cursor
     virtual void close() = 0;
@@ -183,19 +183,19 @@ class Cursor
 
   private:
     // Implementation of overwrite()
-    virtual ham_status_t do_overwrite(ham_record_t *record, uint32_t flags) = 0;
+    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags) = 0;
 
     // Implementation of get_duplicate_position()
-    virtual ham_status_t do_get_duplicate_position(uint32_t *pposition) = 0;
+    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition) = 0;
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    virtual ham_status_t do_get_duplicate_count(uint32_t flags,
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
+    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
                         uint32_t *pcount) = 0;
 
-    // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t do_get_record_size(uint64_t *psize) = 0;
+    // Get current record size (ups_cursor_get_record_size)
+    virtual ups_status_t do_get_record_size(uint64_t *psize) = 0;
 };
 
 } // namespace hamsterdb
 
-#endif /* HAM_CURSOR_H */
+#endif /* UPS_CURSOR_H */

@@ -27,23 +27,23 @@ using namespace hamsterdb;
 
 struct DeviceFixture
 {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   Device *m_dev;
 
   DeviceFixture(bool inmemory) {
     (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"),
+            inmemory ? UPS_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
     m_dev = ((LocalEnvironment *)m_env)->device();
   }
 
   ~DeviceFixture() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void newDeleteTest() {
@@ -102,7 +102,7 @@ struct DeviceFixture
     Page *pages[10];
     for (int i = 0; i < 10; i++)
       pages[i] = new Page(m_dev, (LocalDatabase *)m_db);
-    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 
     REQUIRE(true == m_dev->is_open());
@@ -136,11 +136,11 @@ struct DeviceFixture
   void readWriteTest() {
     int i;
     uint8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 
     EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
-    cfg.flags |= HAM_DISABLE_MMAP;
+    cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(true == m_dev->is_open());
     m_dev->truncate(ps * 10);
@@ -164,10 +164,10 @@ struct DeviceFixture
   void readWritePageTest() {
     int i;
     Page *pages[2];
-    uint32_t ps = HAM_DEFAULT_PAGE_SIZE;
+    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
 
     EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
-    cfg.flags |= HAM_DISABLE_MMAP;
+    cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);
@@ -186,7 +186,7 @@ struct DeviceFixture
     }
 
     for (i = 0; i < 2; i++) {
-      char temp[HAM_DEFAULT_PAGE_SIZE];
+      char temp[UPS_DEFAULT_PAGE_SIZE];
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->device())));
       pages[i]->set_address(ps * i);

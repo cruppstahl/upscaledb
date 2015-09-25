@@ -15,12 +15,12 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_COMPRESSION
+#ifdef UPS_ENABLE_COMPRESSION
 
 #include <vector>
 #include <algorithm>
 
-#include <ham/hamsterdb_ola.h>
+#include <ups/upscaledb_uqi.h>
 
 #include "3rdparty/catch/catch.hpp"
 #include "3rdparty/simdcomp/include/simdcomp.h"
@@ -33,17 +33,17 @@
 namespace hamsterdb {
 
 struct Zint32Fixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
 
   typedef std::vector<uint32_t> IntVector;
 
   Zint32Fixture(uint64_t compressor, uint64_t record_size = 4)
     : m_db(0), m_env(0) {
-    ham_parameter_t p[] = {
-      { HAM_PARAM_RECORD_SIZE, record_size },
-      { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
-      { HAM_PARAM_KEY_COMPRESSION, compressor },
+    ups_parameter_t p[] = {
+      { UPS_PARAM_RECORD_SIZE, record_size },
+      { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
+      { UPS_PARAM_KEY_COMPRESSION, compressor },
       { 0, 0 }
     };
 
@@ -52,13 +52,13 @@ struct Zint32Fixture {
       p[2].value = 0;
     }
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, &p[0]));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &p[0]));
   }
 
   ~Zint32Fixture() {
     if (m_env)
-	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void basicSimdcompTest() {
@@ -89,8 +89,8 @@ struct Zint32Fixture {
   }
 
   void insertFindEraseFind(const IntVector &ivec) {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
 
     for (IntVector::const_iterator it = ivec.begin(); it != ivec.end(); it++) {
       uint32_t k = *it;
@@ -99,7 +99,7 @@ struct Zint32Fixture {
       record.data = (void *)&k;
       record.size = sizeof(k);
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
     }
 
     for (IntVector::const_iterator it = ivec.begin();
@@ -108,7 +108,7 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &record, 0));
       REQUIRE(record.size == sizeof(uint32_t));
       REQUIRE(*(uint32_t *)record.data == k);
     }
@@ -119,7 +119,7 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
     }
 
     for (IntVector::const_iterator it = ivec.begin();
@@ -128,29 +128,29 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, 0, &key, &record, 0));
+      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &record, 0));
     }
   }
 
   void holaTest() {
-    ham_key_t key = {0};
-    ham_record_t record = {0};
+    ups_key_t key = {0};
+    ups_record_t record = {0};
 
     for (uint32_t i = 0; i < 30000; i++) {
       key.data = (void *)&i;
       key.size = sizeof(i);
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
     }
 
     hola_result_t result;
 
     REQUIRE(0 == hola_sum(m_db, 0, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 449985000ull);
 
     REQUIRE(0 == hola_average(m_db, 0, &result));
-    REQUIRE(result.type == HAM_TYPE_UINT64);
+    REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 14999ul);
   }
 };
@@ -201,7 +201,7 @@ TEST_CASE("Zint32/Varbyte/randomDataTest", "")
   std::srand(0); // make this reproducable
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
   f.insertFindEraseFind(ivec);
 }
 
@@ -211,7 +211,7 @@ TEST_CASE("Zint32/Varbyte/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
   f.insertFindEraseFind(ivec);
 }
 
@@ -221,19 +221,19 @@ TEST_CASE("Zint32/Varbyte/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/Varbyte/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_VARBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, 0);
   f.holaTest();
 }
 
 TEST_CASE("Zint32/SimdComp/basicSimdcompTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
   f.basicSimdcompTest();
 }
 
@@ -245,7 +245,7 @@ TEST_CASE("Zint32/SimdComp/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
   f.insertFindEraseFind(ivec);
 }
 
@@ -255,7 +255,7 @@ TEST_CASE("Zint32/SimdComp/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
   f.insertFindEraseFind(ivec);
 }
 
@@ -265,13 +265,13 @@ TEST_CASE("Zint32/SimdComp/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/SimdComp/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDCOMP, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, 0);
   f.holaTest();
 }
 
@@ -283,7 +283,7 @@ TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
   f.insertFindEraseFind(ivec);
 }
 
@@ -293,7 +293,7 @@ TEST_CASE("Zint32/GroupVarint/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
   f.insertFindEraseFind(ivec);
 }
 
@@ -303,13 +303,13 @@ TEST_CASE("Zint32/GroupVarint/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/GroupVarint/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_GROUPVARINT, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, 0);
   f.holaTest();
 }
 
@@ -321,7 +321,7 @@ TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
   f.insertFindEraseFind(ivec);
 }
 
@@ -331,7 +331,7 @@ TEST_CASE("Zint32/StreamVbyte/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
   f.insertFindEraseFind(ivec);
 }
 
@@ -341,13 +341,13 @@ TEST_CASE("Zint32/StreamVbyte/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/StreamVbyte/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_STREAMVBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, 0);
   f.holaTest();
 }
 
@@ -360,7 +360,7 @@ TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
     std::srand(0); // make this reproducible
     std::random_shuffle(ivec.begin(), ivec.end());
 
-    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
     f.insertFindEraseFind(ivec);
   }
 }
@@ -372,7 +372,7 @@ TEST_CASE("Zint32/MaskedVbyte/ascendingDataTest", "")
     for (int i = 0; i < 30000; i++)
       ivec.push_back(i);
 
-    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
     f.insertFindEraseFind(ivec);
   }
 }
@@ -384,14 +384,14 @@ TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
     for (int i = 30000; i >= 0; i--)
       ivec.push_back(i);
 
-    Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
     f.insertFindEraseFind(ivec);
   }
 }
 
 TEST_CASE("Zint32/MaskedVbyte/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_MASKEDVBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, 0);
   f.holaTest();
 }
 
@@ -403,7 +403,7 @@ TEST_CASE("Zint32/BlockIndex/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
   f.insertFindEraseFind(ivec);
 }
 
@@ -413,7 +413,7 @@ TEST_CASE("Zint32/BlockIndex/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
   f.insertFindEraseFind(ivec);
 }
 
@@ -423,13 +423,13 @@ TEST_CASE("Zint32/BlockIndex/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/BlockIndex/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_BLOCKINDEX, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX, 0);
   f.holaTest();
 }
 
@@ -441,7 +441,7 @@ TEST_CASE("Zint32/FOR/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
   f.insertFindEraseFind(ivec);
 }
 
@@ -451,7 +451,7 @@ TEST_CASE("Zint32/FOR/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
   f.insertFindEraseFind(ivec);
 }
 
@@ -461,13 +461,13 @@ TEST_CASE("Zint32/FOR/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/FOR/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_FOR, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, 0);
   f.holaTest();
 }
 
@@ -479,7 +479,7 @@ TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
   f.insertFindEraseFind(ivec);
 }
 
@@ -489,7 +489,7 @@ TEST_CASE("Zint32/SimdFOR/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
   f.insertFindEraseFind(ivec);
 }
 
@@ -499,36 +499,36 @@ TEST_CASE("Zint32/SimdFOR/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/SimdFOR/holaTest", "")
 {
-  Zint32Fixture f(HAM_COMPRESSOR_UINT32_SIMDFOR, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, 0);
   f.holaTest();
 }
 
 TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")
 {
-  ham_parameter_t p1[] = {
-    { HAM_PARAM_PAGE_SIZE, 1024 },
+  ups_parameter_t p1[] = {
+    { UPS_PARAM_PAGE_SIZE, 1024 },
     { 0, 0 }
   };
-  ham_parameter_t p2[] = {
-    { HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32 },
-    { HAM_PARAM_KEY_COMPRESSION, HAM_COMPRESSOR_UINT32_VARBYTE},
+  ups_parameter_t p2[] = {
+    { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
+    { UPS_PARAM_KEY_COMPRESSION, UPS_COMPRESSOR_UINT32_VARBYTE},
     { 0, 0 }
   };
 
-  ham_env_t *env;
-  ham_db_t *db;
+  ups_env_t *env;
+  ups_db_t *db;
 
-  REQUIRE(0 == ham_env_create(&env, Utils::opath(".test"), 0, 0644, &p1[0]));
-  REQUIRE(HAM_INV_PARAMETER == ham_env_create_db(env, &db, 1, 0, &p2[0]));
-  ham_env_close(env, 0);
+  REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0644, &p1[0]));
+  REQUIRE(UPS_INV_PARAMETER == ups_env_create_db(env, &db, 1, 0, &p2[0]));
+  ups_env_close(env, 0);
 }
 
 } // namespace hamsterdb
 
-#endif // HAM_ENABLE_COMPRESSION
+#endif // UPS_ENABLE_COMPRESSION

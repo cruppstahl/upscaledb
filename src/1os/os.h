@@ -23,19 +23,19 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_OS_H
-#define HAM_OS_H
+#ifndef UPS_OS_H
+#define UPS_OS_H
 
 #include "0root/root.h"
 
 #include <stdio.h>
 #include <limits.h>
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -44,10 +44,10 @@ namespace hamsterdb {
 /*
  * typedefs for posix
  */
-#ifdef HAM_OS_POSIX
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
-#  define HAM_INVALID_FD  (-1)
+#ifdef UPS_OS_POSIX
+typedef int                ups_fd_t;
+typedef int	               ups_socket_t;
+#  define UPS_INVALID_FD  (-1)
 #endif
 
 /*
@@ -55,14 +55,14 @@ typedef int	               ham_socket_t;
  */
 #ifdef WIN32
 #  ifdef CYGWIN
-typedef int                ham_fd_t;
-typedef int	               ham_socket_t;
+typedef int                ups_fd_t;
+typedef int	               ups_socket_t;
 #  else
-typedef HANDLE             ham_fd_t;
+typedef HANDLE             ups_fd_t;
 typedef UINT_PTR           SOCKET; // from WinSock2.h
-typedef SOCKET             ham_socket_t;
+typedef SOCKET             ups_socket_t;
 #  endif
-#  define HAM_INVALID_FD   (0)
+#  define UPS_INVALID_FD   (0)
 #endif
 
 // Returns true if the CPU supports AVX
@@ -76,4 +76,4 @@ os_get_simd_lane_width();
 
 } // namespace hamsterdb
 
-#endif /* HAM_OS_H */
+#endif /* UPS_OS_H */

@@ -21,7 +21,7 @@
 
 #include <iostream>
 #include <stdlib.h> /* for exit() */
-#include <ham/hamsterdb.hpp>
+#include <ups/upscaledb.hpp>
 
 #define MAX_DBS           3
 
@@ -89,8 +89,8 @@ run_demo() {
    *
    * All database keys are uint32 types.
    */
-  ham_parameter_t params[] = {
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+  ups_parameter_t params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
     {0, }
   };
 
@@ -98,16 +98,16 @@ run_demo() {
    * The "mapping" between customers and orders stores uint32 customer IDs
    * as a key and uint32 order IDs as a record
    */
-  ham_parameter_t c2o_params[] = {
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+  ups_parameter_t c2o_params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
   db[DBIDX_CUSTOMER] = env.create_db(DBNAME_CUSTOMER, 0, &params[0]);
   db[DBIDX_ORDER]  = env.create_db(DBNAME_ORDER, 0, &params[0]);
   db[DBIDX_C2O]    = env.create_db(DBNAME_C2O,
-                  HAM_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
+                  UPS_ENABLE_DUPLICATE_KEYS, &c2o_params[0]);
 
   /* Create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++)
@@ -148,7 +148,7 @@ run_demo() {
   }
 
   /*
-   * And now the 1:n relationships; the flag HAM_DUPLICATE creates
+   * And now the 1:n relationships; the flag UPS_DUPLICATE creates
    * a duplicate key, if the key already exists
    *
    * INSERT INTO c2o VALUES (1, 1);
@@ -162,7 +162,7 @@ run_demo() {
     record.set_size(sizeof(int));
     record.set_data(&orders[i].id);
 
-    db[2].insert(&key, &record, HAM_DUPLICATE);
+    db[2].insert(&key, &record, UPS_DUPLICATE);
   }
 
   /*
@@ -184,7 +184,7 @@ run_demo() {
     }
     catch (hamsterdb::error &e) {
       /* reached end of the database? */
-      if (e.get_errno() == HAM_KEY_NOT_FOUND)
+      if (e.get_errno() == UPS_KEY_NOT_FOUND)
         break;
       else {
         std::cerr << "cursor.move_next() failed: " << e.get_string()
@@ -216,7 +216,7 @@ run_demo() {
       cursor[2].find(&c2o_key);
     }
     catch (hamsterdb::error &e) {
-      if (e.get_errno() == HAM_KEY_NOT_FOUND)
+      if (e.get_errno() == UPS_KEY_NOT_FOUND)
         continue;
       else {
         std::cerr << "cursor.find() failed: " << e.get_string()
@@ -245,16 +245,16 @@ run_demo() {
             << (char *)ord_record.get_data() << ")" << std::endl;
 
       /*
-       * the flag HAM_ONLY_DUPLICATES restricts the cursor
+       * the flag UPS_ONLY_DUPLICATES restricts the cursor
        * movement to the duplicate list.
        */
       try {
         cursor[2].move(&c2o_key, &c2o_record,
-              HAM_CURSOR_NEXT | HAM_ONLY_DUPLICATES);
+              UPS_CURSOR_NEXT | UPS_ONLY_DUPLICATES);
       }
       catch (hamsterdb::error &e) {
         /* reached end of the database? */
-        if (e.get_errno() == HAM_KEY_NOT_FOUND)
+        if (e.get_errno() == UPS_KEY_NOT_FOUND)
           break;
         else {
           std::cerr << "cursor.move() failed: " << e.get_string()

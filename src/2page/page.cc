@@ -46,7 +46,7 @@ Page::Page(Device *device, LocalDatabase *db)
 
 Page::~Page()
 {
-  ham_assert(m_cursor_list == 0);
+  ups_assert(m_cursor_list == 0);
 
   free_buffer();
 }
@@ -77,7 +77,7 @@ Page::flush(Device *device, PersistedData *page_data)
 {
   if (page_data->is_dirty) {
     // Pro: update crc32
-    if ((device->config().flags & HAM_ENABLE_CRC32)
+    if ((device->config().flags & UPS_ENABLE_CRC32)
         && likely(!page_data->is_without_header)) {
       MurmurHash3_x86_32(page_data->raw_data->header.payload,
                          page_data->size - (sizeof(PPageHeader) - 1),

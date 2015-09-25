@@ -22,14 +22,14 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_JOURNAL_ENTRIES_H
-#define HAM_JOURNAL_ENTRIES_H
+#ifndef UPS_JOURNAL_ENTRIES_H
+#define UPS_JOURNAL_ENTRIES_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -44,7 +44,7 @@ namespace hamsterdb {
  * (PJournalEntryInsert or PJournalEntryERASE); the field |followup_size|
  * is the structure size of this follow-up structure.
  */
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
+UPS_PACK_0 struct UPS_PACK_1 PJournalEntry {
   // Constructor - sets all fields to 0
   PJournalEntry()
     : lsn(0), followup_size(0), txn_id(0), type(0),
@@ -68,7 +68,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
 
   // a reserved value - reqd for padding
   uint16_t _reserved;
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -78,7 +78,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
 //
 // a Journal entry for an 'insert' operation
 //
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
+UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
   // Constructor - sets all fields to 0
   PJournalEntryInsert()
     : key_size(0), compressed_key_size(0), record_size(0),
@@ -105,7 +105,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   // record partial offset
   uint32_t record_partial_offset;
 
-  // flags of ham_insert(), ham_cursor_insert()
+  // flags of ups_insert(), ups_cursor_insert()
   uint32_t insert_flags;
 
   // data follows here - first |key_size| bytes for the key, then
@@ -123,7 +123,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
   uint8_t *get_record_data() {
     return (&data[key_size]);
   }
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -133,7 +133,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
 //
 // a Journal entry for 'erase' operations
 //
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
+UPS_PACK_0 struct UPS_PACK_1 PJournalEntryErase {
   // Constructor - sets all fields to 0
   PJournalEntryErase()
     : key_size(0), compressed_key_size(0), erase_flags(0), duplicate(0) {
@@ -146,7 +146,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   // PRO: compressed key size
   uint16_t compressed_key_size;
 
-  // flags of ham_erase(), ham_cursor_erase()
+  // flags of ups_erase(), ups_cursor_erase()
   uint32_t erase_flags;
 
   // which duplicate to erase
@@ -161,7 +161,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
   uint8_t *get_key_data() {
     return (&data[0]);
   }
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -171,7 +171,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
 //
 // a Journal entry for a 'changeset' group
 //
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
+UPS_PACK_0 struct UPS_PACK_1 PJournalEntryChangeset {
   // Constructor - sets all fields to 0
   PJournalEntryChangeset()
     : num_pages(0) {
@@ -179,7 +179,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
 
   // number of pages in this changeset
   uint32_t num_pages;
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
@@ -189,7 +189,7 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryChangeset {
 //
 // a Journal entry for a single page
 //
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
+UPS_PACK_0 struct UPS_PACK_1 PJournalEntryPageHeader {
   // Constructor - sets all fields to 0
   PJournalEntryPageHeader(uint64_t _address = 0)
     : address(_address), compressed_size(0) {
@@ -200,10 +200,10 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryPageHeader {
 
   // PRO: the compressed size, if compression is enabled
   uint32_t compressed_size;
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
 } // namespace hamsterdb
 
-#endif /* HAM_JOURNAL_ENTRIES_H */
+#endif /* UPS_JOURNAL_ENTRIES_H */

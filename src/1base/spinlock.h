@@ -23,8 +23,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_SPINLOCK_H
-#define HAM_SPINLOCK_H
+#ifndef UPS_SPINLOCK_H
+#define UPS_SPINLOCK_H
 
 #include "0root/root.h"
 
@@ -39,13 +39,13 @@
 #include "1base/error.h"
 #include "1base/mutex.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 namespace hamsterdb {
 
-#ifdef HAM_ENABLE_HELGRIND
+#ifdef UPS_ENABLE_HELGRIND
 typedef Mutex Spinlock;
 #else
 
@@ -68,14 +68,14 @@ class Spinlock {
     }
 
     ~Spinlock() {
-      ham_assert(m_state == kUnlocked);
+      ups_assert(m_state == kUnlocked);
     }
 
     // Only for test verification: lets the current thread acquire ownership
     // of a locked mutex
     void acquire_ownership() {
-#ifdef HAM_DEBUG
-      ham_assert(m_state != kUnlocked);
+#ifdef UPS_DEBUG
+      ups_assert(m_state != kUnlocked);
       m_owner = boost::this_thread::get_id();
 #endif
     }
@@ -83,7 +83,7 @@ class Spinlock {
     // For debugging and verification; unlocks the mutex, even if it was
     // locked by a different thread
     void safe_unlock() {
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       m_owner = boost::this_thread::get_id();
 #endif
       m_state.store(kUnlocked, boost::memory_order_release);
@@ -92,7 +92,7 @@ class Spinlock {
     bool try_lock() {
       if (m_state.exchange(kLocked, boost::memory_order_acquire)
                       != kLocked) {
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
         m_owner = boost::this_thread::get_id();
 #endif
         return (true);
@@ -107,8 +107,8 @@ class Spinlock {
     }
 
     void unlock() {
-      ham_assert(m_state == kLocked);
-      ham_assert(m_owner == boost::this_thread::get_id());
+      ups_assert(m_state == kLocked);
+      ups_assert(m_owner == boost::this_thread::get_id());
       m_state.store(kUnlocked, boost::memory_order_release);
     }
 
@@ -119,7 +119,7 @@ class Spinlock {
 #elif HAVE_SCHED_YIELD
         ::sched_yield();
 #else
-        ham_assert(!"Please implement me");
+        ups_assert(!"Please implement me");
 #endif 
       }
       else {
@@ -128,18 +128,18 @@ class Spinlock {
 #elif HAVE_USLEEP
         ::usleep(25);
 #else
-        ham_assert(!"Please implement me");
+        ups_assert(!"Please implement me");
 #endif 
       }
     }
 
   private:
     boost::atomic<LockState> m_state;
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
     boost::thread::id m_owner;
 #endif
 };
-#endif // HAM_ENABLE_HELGRIND
+#endif // UPS_ENABLE_HELGRIND
 
 class ScopedSpinlock {
   public:
@@ -158,4 +158,4 @@ class ScopedSpinlock {
 
 } // namespace hamsterdb
 
-#endif /* HAM_SPINLOCK_H */
+#endif /* UPS_SPINLOCK_H */

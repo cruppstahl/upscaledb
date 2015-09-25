@@ -35,9 +35,9 @@
 namespace hamsterdb {
 
 struct BtreeKeyFixture {
-  ham_db_t *m_db;
+  ups_db_t *m_db;
   LocalDatabase *m_dbp;
-  ham_env_t *m_env;
+  ups_env_t *m_env;
   Page *m_page;
   ScopedPtr<Context> m_context;
 
@@ -46,9 +46,9 @@ struct BtreeKeyFixture {
 
     uint32_t flags = 0;
     if (duplicate)
-      flags |= HAM_ENABLE_DUPLICATE_KEYS;
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, flags, 0));
+      flags |= UPS_ENABLE_DUPLICATE_KEYS;
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, 0));
 
     m_dbp = (LocalDatabase *)m_db;
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
@@ -65,13 +65,13 @@ struct BtreeKeyFixture {
     m_context->changeset.clear();
 
     if (m_env)
-	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void insertEmpty(uint32_t flags) {
     BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
     PBtreeNode::InsertResult result(0, 0);
     if (!flags)
@@ -85,18 +85,18 @@ struct BtreeKeyFixture {
   }
 
   void overwriteEmpty() {
-    insertEmpty(HAM_OVERWRITE);
+    insertEmpty(UPS_OVERWRITE);
   }
 
   void duplicateEmpty() {
-    insertEmpty(HAM_DUPLICATE);
+    insertEmpty(UPS_DUPLICATE);
   }
 
   void insertTiny(const char *data, uint32_t size, uint32_t flags) {
     BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
     ByteArray arena;
-    ham_record_t rec, rec2;
-    ham_key_t key = {0};
+    ups_record_t rec, rec2;
+    ups_key_t key = {0};
 
     PBtreeNode::InsertResult result(0, 0);
     if (!flags)
@@ -109,7 +109,7 @@ struct BtreeKeyFixture {
 
     node->set_record(m_context.get(), result.slot, &rec, 0, flags, 0);
 
-    if (!(flags & HAM_DUPLICATE)) {
+    if (!(flags & UPS_DUPLICATE)) {
       node->get_record(m_context.get(), result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -123,18 +123,18 @@ struct BtreeKeyFixture {
   }
 
   void overwriteTiny(const char *data, uint32_t size) {
-    insertTiny(data, size, HAM_OVERWRITE);
+    insertTiny(data, size, UPS_OVERWRITE);
   }
 
   void duplicateTiny(const char *data, uint32_t size) {
-    insertTiny(data, size, HAM_DUPLICATE);
+    insertTiny(data, size, UPS_DUPLICATE);
   }
 
   void insertSmall(const char *data, uint32_t flags) {
     ByteArray arena;
     BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
-    ham_record_t rec, rec2;
-    ham_key_t key = {0};
+    ups_record_t rec, rec2;
+    ups_key_t key = {0};
 
     PBtreeNode::InsertResult result(0, 0);
     if (!flags)
@@ -146,11 +146,11 @@ struct BtreeKeyFixture {
     rec.size = sizeof(uint64_t);
 
     node->set_record(m_context.get(), result.slot, &rec, 0, flags, 0);
-    if (flags & HAM_DUPLICATE) {
+    if (flags & UPS_DUPLICATE) {
       REQUIRE(node->get_record_count(m_context.get(), result.slot) > 1);
     }
 
-    if (!(flags & HAM_DUPLICATE)) {
+    if (!(flags & UPS_DUPLICATE)) {
       node->get_record(m_context.get(), result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -162,18 +162,18 @@ struct BtreeKeyFixture {
   }
 
   void overwriteSmall(const char *data) {
-    insertSmall(data, HAM_OVERWRITE);
+    insertSmall(data, UPS_OVERWRITE);
   }
 
   void duplicateSmall(const char *data) {
-    insertSmall(data, HAM_DUPLICATE);
+    insertSmall(data, UPS_DUPLICATE);
   }
 
   void insertNormal(const char *data, uint32_t size, uint32_t flags) {
     ByteArray arena;
     BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
-    ham_record_t rec, rec2;
-    ham_key_t key = {0};
+    ups_record_t rec, rec2;
+    ups_key_t key = {0};
 
     PBtreeNode::InsertResult result(0, 0);
     if (!flags)
@@ -185,10 +185,10 @@ struct BtreeKeyFixture {
     rec.size = size;
 
     node->set_record(m_context.get(), result.slot, &rec, 0, flags, 0);
-    if (flags & HAM_DUPLICATE)
+    if (flags & UPS_DUPLICATE)
       REQUIRE(node->get_record_count(m_context.get(), result.slot) > 1);
 
-    if (!(flags & HAM_DUPLICATE)) {
+    if (!(flags & UPS_DUPLICATE)) {
       node->get_record(m_context.get(), result.slot, &arena, &rec2, 0);
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -200,11 +200,11 @@ struct BtreeKeyFixture {
   }
 
   void overwriteNormal(const char *data, uint32_t size) {
-    insertNormal(data, size, HAM_OVERWRITE);
+    insertNormal(data, size, UPS_OVERWRITE);
   }
 
   void duplicateNormal(const char *data, uint32_t size) {
-    insertNormal(data, size, HAM_DUPLICATE);
+    insertNormal(data, size, UPS_DUPLICATE);
   }
 
   void resetPage() {
@@ -282,7 +282,7 @@ struct BtreeKeyFixture {
     int slot = 0;
     REQUIRE(node->get_record_count(m_context.get(), slot) >= 1);
 
-    ham_record_t rec;
+    ups_record_t rec;
     memset(&rec, 0, sizeof(rec));
 
     ByteArray arena;

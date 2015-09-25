@@ -19,10 +19,10 @@
 
 #include "utils.h"
 
-#include "ham/hamsterdb.hpp"
+#include "ups/upscaledb.hpp"
 
 static int
-my_compare_func(ham_db_t *db,
+my_compare_func(ups_db_t *db,
     const uint8_t *lhs, uint32_t lhs_length,
     const uint8_t *rhs, uint32_t rhs_length) {
   (void)db;
@@ -37,7 +37,7 @@ TEST_CASE("CppApi/keyTest", "")
 {
   void *p = (void *)"123";
   void *q = (void *)"234";
-  hamsterdb::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
+  hamsterdb::key k1, k2(p, 4, UPS_KEY_USER_ALLOC);
 
   REQUIRE((void *)0 == k1.get_data());
   REQUIRE((uint16_t)0 == k1.get_size());
@@ -45,17 +45,17 @@ TEST_CASE("CppApi/keyTest", "")
 
   REQUIRE(p == k2.get_data());
   REQUIRE((uint16_t)4 == k2.get_size());
-  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k2.get_flags());
+  REQUIRE((uint32_t)UPS_KEY_USER_ALLOC == k2.get_flags());
 
   k1 = k2;
   REQUIRE(p == k1.get_data());
   REQUIRE((uint16_t)4 == k1.get_size());
-  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k1.get_flags());
+  REQUIRE((uint32_t)UPS_KEY_USER_ALLOC == k1.get_flags());
 
   hamsterdb::key k3(k1);
   REQUIRE(p == k3.get_data());
   REQUIRE((uint16_t)4 == k3.get_size());
-  REQUIRE((uint32_t)HAM_KEY_USER_ALLOC == k3.get_flags());
+  REQUIRE((uint32_t)UPS_KEY_USER_ALLOC == k3.get_flags());
 
   int i = 3;
   hamsterdb::key k4;
@@ -75,7 +75,7 @@ TEST_CASE("CppApi/recordTest", "")
 {
   void *p = (void *)"123";
   void *q = (void *)"234";
-  hamsterdb::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
+  hamsterdb::record r1, r2(p, 4, UPS_RECORD_USER_ALLOC);
 
   REQUIRE((void *)0 == r1.get_data());
   REQUIRE((uint32_t)0 == r1.get_size());
@@ -83,17 +83,17 @@ TEST_CASE("CppApi/recordTest", "")
 
   REQUIRE(p == r2.get_data());
   REQUIRE((uint32_t)4 == r2.get_size());
-  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r2.get_flags());
+  REQUIRE((uint32_t)UPS_RECORD_USER_ALLOC == r2.get_flags());
 
   r1=r2;
   REQUIRE(p == r1.get_data());
   REQUIRE((uint32_t)4 == r1.get_size());
-  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r1.get_flags());
+  REQUIRE((uint32_t)UPS_RECORD_USER_ALLOC == r1.get_flags());
 
   hamsterdb::record r3(r1);
   REQUIRE(p == r3.get_data());
   REQUIRE((uint32_t)4 == r3.get_size());
-  REQUIRE((uint32_t)HAM_RECORD_USER_ALLOC == r3.get_flags());
+  REQUIRE((uint32_t)UPS_RECORD_USER_ALLOC == r3.get_flags());
 
   r1.set_data(q);
   r1.set_size(2);
@@ -114,8 +114,8 @@ TEST_CASE("CppApi/staticFunctionsTest", "")
 
 TEST_CASE("CppApi/compareTest", "")
 {
-  ham_parameter_t p[] = {
-      { HAM_PARAM_KEY_TYPE, HAM_TYPE_CUSTOM },
+  ups_parameter_t p[] = {
+      { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
       { 0, 0 }
   };
 
@@ -123,7 +123,7 @@ TEST_CASE("CppApi/compareTest", "")
   env.create(Utils::opath(".test"));
   hamsterdb::db db = env.create_db(1, 0, &p[0]);
   db.set_compare_func(my_compare_func);
-  env.close(HAM_AUTO_CLEANUP);
+  env.close(UPS_AUTO_CLEANUP);
 }
 
 TEST_CASE("CppApi/createOpenCloseDbTest", "")
@@ -205,7 +205,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
     out = db.find(&k);
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(HAM_KEY_NOT_FOUND == e.get_errno());
+    REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
     REQUIRE(0 == strcmp("Key not found", e.get_string()));
   }
 
@@ -278,14 +278,14 @@ TEST_CASE("CppApi/cursorTest", "")
     c.move_next();
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(e.get_errno() == HAM_KEY_NOT_FOUND);
+    REQUIRE(e.get_errno() == UPS_KEY_NOT_FOUND);
   }
 
   try {
     c.move_previous();
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(e.get_errno() == HAM_KEY_NOT_FOUND);
+    REQUIRE(e.get_errno() == UPS_KEY_NOT_FOUND);
   }
 
   c.find(&k);
@@ -328,7 +328,7 @@ TEST_CASE("CppApi/envTest", "")
     env.erase_db(2);
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(HAM_DATABASE_ALREADY_OPEN == e.get_errno());
+    REQUIRE(UPS_DATABASE_ALREADY_OPEN == e.get_errno());
   }
   db1.close();
   env.erase_db(2);
@@ -375,7 +375,7 @@ TEST_CASE("CppApi/beginAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   db.insert(&txn, &k, &r);
@@ -384,7 +384,7 @@ TEST_CASE("CppApi/beginAbortTest", "")
     out = db.find(&k);
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(HAM_KEY_NOT_FOUND == e.get_errno());
+    REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
   }
 }
 
@@ -401,7 +401,7 @@ TEST_CASE("CppApi/beginCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin("name");
   db.insert(&txn, &k, &r);
@@ -424,7 +424,7 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   hamsterdb::cursor c(&db, &txn);
@@ -436,7 +436,7 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
     out = db.find(&k);
   }
   catch (hamsterdb::error &e) {
-    REQUIRE(HAM_KEY_NOT_FOUND == e.get_errno());
+    REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
   }
 }
 
@@ -453,7 +453,7 @@ TEST_CASE("CppApi/beginCursorCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), HAM_ENABLE_TRANSACTIONS);
+  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   hamsterdb::cursor c(&db, &txn);

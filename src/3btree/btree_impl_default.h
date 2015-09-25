@@ -62,8 +62,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_IMPL_DEFAULT_H
-#define HAM_BTREE_IMPL_DEFAULT_H
+#ifndef UPS_BTREE_IMPL_DEFAULT_H
+#define UPS_BTREE_IMPL_DEFAULT_H
 
 #include "0root/root.h"
 
@@ -76,7 +76,7 @@
 #include "1globals/globals.h"
 #include "1base/dynamic_array.h"
 #include "2page/page.h"
-#ifdef HAM_ENABLE_SIMD
+#ifdef UPS_ENABLE_SIMD
 #  include "2simd/simd.h"
 #endif
 #include "3blob_manager/blob_manager.h"
@@ -87,7 +87,7 @@
 #include "4env/env_local.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -141,7 +141,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Iterates all keys, calls the |visitor| on each
     void scan(Context *context, ScanVisitor *visitor, uint32_t start,
                     bool distinct) {
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, P::m_node->get_count());
 #endif
 
@@ -152,7 +152,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       }
 
       // otherwise iterate over the keys, call visitor for each key
-      ham_key_t key = {0};
+      ups_key_t key = {0};
       ByteArray arena;
       size_t node_count = P::m_node->get_count() - start;
 
@@ -166,20 +166,20 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns the full record and stores it in |dest|
     void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags, int duplicate_index) {
-#ifdef HAM_DEBUG
+                    ups_record_t *record, uint32_t flags, int duplicate_index) {
+#ifdef UPS_DEBUG
       check_index_integrity(context, P::m_node->get_count());
 #endif
       P::get_record(context, slot, arena, record, flags, duplicate_index);
     }
 
     // Updates the record of a key
-    void set_record(Context *context, int slot, ham_record_t *record,
+    void set_record(Context *context, int slot, ups_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) {
       P::set_record(context, slot, record, duplicate_index,
                       flags, new_duplicate_index);
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, P::m_node->get_count());
 #endif
     }
@@ -188,7 +188,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates) {
       P::erase_record(context, slot, duplicate_index, all_duplicates);
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, P::m_node->get_count());
 #endif
     }
@@ -196,7 +196,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Erases a key
     void erase(Context *context, int slot) {
       P::erase(context, slot);
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, P::m_node->get_count() - 1);
 #endif
     }
@@ -204,7 +204,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Returns true if |key| cannot be inserted because a split is required.
     // This function will try to re-arrange the node in order for the new
     // key to fit in.
-    bool requires_split(Context *context, const ham_key_t *key) {
+    bool requires_split(Context *context, const ups_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
       // the node is empty? that's either because nothing was inserted yet,
@@ -238,13 +238,13 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // now adjust the ranges and the capacity
       if (reorganize(context, key)) {
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
         check_index_integrity(context, node_count);
 #endif
         return (false);
       }
 
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, node_count);
 #endif
 
@@ -261,9 +261,9 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     void split(Context *context, DefaultNodeImpl *other, int pivot) {
       size_t node_count = P::m_node->get_count();
 
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, node_count);
-      ham_assert(other->m_node->get_count() == 0);
+      ups_assert(other->m_node->get_count() == 0);
 #endif
 
       // make sure that the other node has enough free space
@@ -274,7 +274,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       P::m_keys.vacuumize(pivot, true);
       P::m_records.vacuumize(pivot, true);
 
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, pivot);
       if (P::m_node->is_leaf())
         other->check_index_integrity(context, node_count - pivot);
@@ -292,7 +292,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       P::merge_from(context, other);
 
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, node_count + other->m_node->get_count());
 #endif
     }
@@ -301,12 +301,12 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // it (in order to free up space for variable length data).
     // Returns true if |key| and an additional record can be inserted, or
     // false if not; in this case the caller must perform a split.
-    bool reorganize(Context *context, const ham_key_t *key) {
+    bool reorganize(Context *context, const ups_key_t *key) {
       size_t node_count = P::m_node->get_count();
 
       // One of the lists must be resizable (otherwise they would be managed
       // by the PaxLayout)
-      ham_assert(!KeyList::kHasSequentialData
+      ups_assert(!KeyList::kHasSequentialData
               || !RecordList::kHasSequentialData);
 
       // Retrieve the minimum sizes that both lists require to store their
@@ -350,7 +350,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
               * P::m_keys.get_full_key_size(0);
       record_range_size = usable_size - key_range_size;
 
-      ham_assert(key_range_size + record_range_size <= usable_size);
+      ups_assert(key_range_size + record_range_size <= usable_size);
 
       // Check if the required record space is large enough, and make sure
       // there is enough room for a new item
@@ -403,7 +403,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // make sure that the page is flushed to disk
       P::m_page->set_dirty(true);
 
-#ifdef HAM_DEBUG
+#ifdef UPS_DEBUG
       check_index_integrity(context, node_count);
 #endif
 
@@ -436,7 +436,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       }
       // initialize a new page from scratch
       else if ((P::m_node->get_count() == 0
-                && !(db->get_flags() & HAM_READ_ONLY))) {
+                && !(db->get_flags() & UPS_READ_ONLY))) {
         size_t key_range_size;
         size_t record_range_size;
 
@@ -462,7 +462,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         record_range_size = usable_size - key_range_size;
 
-        ham_assert(key_range_size + record_range_size <= usable_size);
+        ups_assert(key_range_size + record_range_size <= usable_size);
 
         // persist the key range size
         store_range_size(key_range_size);
@@ -533,4 +533,4 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_IMPL_DEFAULT_H */
+#endif /* UPS_BTREE_IMPL_DEFAULT_H */

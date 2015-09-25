@@ -22,14 +22,14 @@
  * @thread_safe: no
  */
  
-#ifndef HAM_LSN_MANAGER_TEST_H
-#define HAM_LSN_MANAGER_TEST_H
+#ifndef UPS_LSN_MANAGER_TEST_H
+#define UPS_LSN_MANAGER_TEST_H
 
 #include "0root/root.h"
 
 #include "2lsn_manager/lsn_manager.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,4 +52,4 @@ struct LsnManagerTest
 
 } // namespace hamsterdb
 
-#endif /* HAM_LSN_MANAGER_TEST_H */
+#endif /* UPS_LSN_MANAGER_TEST_H */

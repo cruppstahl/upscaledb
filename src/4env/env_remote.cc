@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 
 #include "0root/root.h"
 
@@ -28,7 +28,7 @@
 #include "4env/env_remote.h"
 #include "4txn/txn_remote.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -46,8 +46,8 @@ RemoteEnvironment::perform_request(Protocol *request)
   m_buffer.clear();
 
   if (!request->pack(&m_buffer)) {
-    ham_log(("protoype Protocol::pack failed"));
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_log(("protoype Protocol::pack failed"));
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   m_socket.send((uint8_t *)m_buffer.get_ptr(), m_buffer.get_size());
@@ -70,12 +70,12 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 {
   int size_left = (int)request->get_size();
   request->size = size_left;
-  request->magic = HAM_TRANSFER_MAGIC_V2;
+  request->magic = UPS_TRANSFER_MAGIC_V2;
   m_buffer.resize(request->size);
 
   uint8_t *ptr = (uint8_t *)m_buffer.get_ptr();
   request->serialize(&ptr, &size_left);
-  ham_assert(size_left == 0);
+  ups_assert(size_left == 0);
 
   m_socket.send((uint8_t *)m_buffer.get_ptr(), request->size);
 
@@ -85,8 +85,8 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 
   // now check the magic and receive the remaining data
   uint32_t magic = *(uint32_t *)((char *)m_buffer.get_ptr() + 0);
-  if (magic != HAM_TRANSFER_MAGIC_V2)
-    throw Exception(HAM_INTERNAL_ERROR);
+  if (magic != UPS_TRANSFER_MAGIC_V2)
+    throw Exception(UPS_INTERNAL_ERROR);
   // TODO check the magic
   int size = (int)*(uint32_t *)((char *)m_buffer.get_ptr() + 4);
   m_buffer.resize(size);
@@ -94,36 +94,36 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 
   ptr = (uint8_t *)m_buffer.get_ptr();
   reply->deserialize(&ptr, &size);
-  ham_assert(size == 0);
+  ups_assert(size == 0);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_create()
 {
   // the 'create' operation is identical to 'open'
   return (do_open());
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_open()
 {
   m_socket.close();
 
   const char *url = m_config.filename.c_str();
-  ham_assert(url != 0);
-  ham_assert(::strstr(url, "ham://") == url);
+  ups_assert(url != 0);
+  ups_assert(::strstr(url, "ham://") == url);
   const char *ip = url + 6;
   const char *port_str = strstr(ip, ":");
   if (!port_str) {
-    ham_trace(("remote uri does not include port - expected "
+    ups_trace(("remote uri does not include port - expected "
                 "`ham://<ip>:<port>`"));
-    return (HAM_INV_PARAMETER);
+    return (UPS_INV_PARAMETER);
   }
   uint16_t port = (uint16_t)atoi(port_str + 1);
   if (!port) {
-    ham_trace(("remote uri includes invalid port - expected "
+    ups_trace(("remote uri includes invalid port - expected "
                 "`ham://<ip>:<port>`"));
-    return (HAM_INV_PARAMETER);
+    return (UPS_INV_PARAMETER);
   }
 
   const char *filename = strstr(port_str, "/");
@@ -136,21 +136,21 @@ RemoteEnvironment::do_open()
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->type() == Protocol::CONNECT_REPLY);
+  ups_assert(reply->type() == Protocol::CONNECT_REPLY);
 
-  ham_status_t st = reply->connect_reply().status();
+  ups_status_t st = reply->connect_reply().status();
   if (st == 0) {
     m_config.flags |= reply->connect_reply().env_flags();
     m_remote_handle = reply->connect_reply().env_handle();
 
-    if (get_flags() & HAM_ENABLE_TRANSACTIONS)
+    if (get_flags() & UPS_ENABLE_TRANSACTIONS)
       m_txn_manager.reset(new RemoteTransactionManager(this));
   }
 
   return (st);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 {
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
@@ -159,9 +159,9 @@ RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_get_database_names_reply());
+  ups_assert(reply->has_env_get_database_names_reply());
 
-  ham_status_t st = reply->env_get_database_names_reply().status();
+  ups_status_t st = reply->env_get_database_names_reply().status();
   if (st)
     return (st);
 
@@ -178,11 +178,11 @@ RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   return (0);
 }
 
-ham_status_t
-RemoteEnvironment::do_get_parameters(ham_parameter_t *param)
+ups_status_t
+RemoteEnvironment::do_get_parameters(ups_parameter_t *param)
 {
   static char filename[1024]; // TODO not threadsafe!!
-  ham_parameter_t *p = param;
+  ups_parameter_t *p = param;
 
   Protocol request(Protocol::ENV_GET_PARAMETERS_REQUEST);
   request.mutable_env_get_parameters_request()->set_env_handle(m_remote_handle);
@@ -193,36 +193,36 @@ RemoteEnvironment::do_get_parameters(ham_parameter_t *param)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_get_parameters_reply());
+  ups_assert(reply->has_env_get_parameters_reply());
 
-  ham_status_t st = reply->env_get_parameters_reply().status();
+  ups_status_t st = reply->env_get_parameters_reply().status();
   if (st)
     return (st);
 
   p = param;
   while (p && p->name) {
     switch (p->name) {
-    case HAM_PARAM_CACHESIZE:
-      ham_assert(reply->env_get_parameters_reply().has_cache_size());
+    case UPS_PARAM_CACHESIZE:
+      ups_assert(reply->env_get_parameters_reply().has_cache_size());
       p->value = reply->env_get_parameters_reply().cache_size();
       break;
-    case HAM_PARAM_PAGESIZE:
-      ham_assert(reply->env_get_parameters_reply().has_page_size());
+    case UPS_PARAM_PAGESIZE:
+      ups_assert(reply->env_get_parameters_reply().has_page_size());
       p->value = reply->env_get_parameters_reply().page_size();
       break;
-    case HAM_PARAM_MAX_DATABASES:
-      ham_assert(reply->env_get_parameters_reply().has_max_env_databases());
+    case UPS_PARAM_MAX_DATABASES:
+      ups_assert(reply->env_get_parameters_reply().has_max_env_databases());
       p->value = reply->env_get_parameters_reply().max_env_databases();
       break;
-    case HAM_PARAM_FLAGS:
-      ham_assert(reply->env_get_parameters_reply().has_flags());
+    case UPS_PARAM_FLAGS:
+      ups_assert(reply->env_get_parameters_reply().has_flags());
       p->value = reply->env_get_parameters_reply().flags();
       break;
-    case HAM_PARAM_FILEMODE:
-      ham_assert(reply->env_get_parameters_reply().has_filemode());
+    case UPS_PARAM_FILEMODE:
+      ups_assert(reply->env_get_parameters_reply().has_filemode());
       p->value = reply->env_get_parameters_reply().filemode();
       break;
-    case HAM_PARAM_FILENAME:
+    case UPS_PARAM_FILENAME:
       if (reply->env_get_parameters_reply().has_filename()) {
         strncpy(filename, reply->env_get_parameters_reply().filename().c_str(),
               sizeof(filename) - 1);
@@ -231,7 +231,7 @@ RemoteEnvironment::do_get_parameters(ham_parameter_t *param)
       }
       break;
     default:
-      ham_trace(("unknown parameter %d", (int)p->name));
+      ups_trace(("unknown parameter %d", (int)p->name));
       break;
     }
     p++;
@@ -239,7 +239,7 @@ RemoteEnvironment::do_get_parameters(ham_parameter_t *param)
   return (0);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_flush(uint32_t flags)
 {
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
@@ -248,21 +248,21 @@ RemoteEnvironment::do_flush(uint32_t flags)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_flush_reply());
+  ups_assert(reply->has_env_flush_reply());
 
   return (reply->env_flush_reply().status());
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
-                const ham_parameter_t *param)
+                const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
   request.mutable_env_create_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_create_db_request()->set_dbname(config.db_name);
   request.mutable_env_create_db_request()->set_flags(config.flags);
 
-  const ham_parameter_t *p = param;
+  const ups_parameter_t *p = param;
   if (p) {
     for (; p->name; p++) {
       request.mutable_env_create_db_request()->add_param_names(p->name);
@@ -272,9 +272,9 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_create_db_reply());
+  ups_assert(reply->has_env_create_db_reply());
 
-  ham_status_t st = reply->env_create_db_reply().status();
+  ups_status_t st = reply->env_create_db_reply().status();
   if (st)
     return (st);
 
@@ -286,16 +286,16 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   return (0);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
-                const ham_parameter_t *param)
+                const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
   request.mutable_env_open_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_open_db_request()->set_dbname(config.db_name);
   request.mutable_env_open_db_request()->set_flags(config.flags);
 
-  const ham_parameter_t *p = param;
+  const ups_parameter_t *p = param;
   if (p) {
     for (; p->name; p++) {
       request.mutable_env_open_db_request()->add_param_names(p->name);
@@ -305,9 +305,9 @@ RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_open_db_reply());
+  ups_assert(reply->has_env_open_db_reply());
 
-  ham_status_t st = reply->env_open_db_reply().status();
+  ups_status_t st = reply->env_open_db_reply().status();
   if (st)
     return (st);
 
@@ -319,7 +319,7 @@ RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   return (0);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_rename_db( uint16_t oldname, uint16_t newname,
                 uint32_t flags)
 {
@@ -331,12 +331,12 @@ RemoteEnvironment::do_rename_db( uint16_t oldname, uint16_t newname,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_rename_reply());
+  ups_assert(reply->has_env_rename_reply());
 
   return (reply->env_rename_reply().status());
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 {
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
@@ -346,7 +346,7 @@ RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ham_assert(reply->has_env_erase_db_reply());
+  ups_assert(reply->has_env_erase_db_reply());
 
   return (reply->env_erase_db_reply().status());
 }
@@ -365,9 +365,9 @@ RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnBeginReply);
+  ups_assert(reply.id == kTxnBeginReply);
 
-  ham_status_t st = reply.txn_begin_reply.status;
+  ups_status_t st = reply.txn_begin_reply.status;
   if (st)
     throw Exception(st);
 
@@ -377,7 +377,7 @@ RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
   return (txn);
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 {
   RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
@@ -389,16 +389,16 @@ RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnCommitReply);
+  ups_assert(reply.id == kTxnCommitReply);
 
-  ham_status_t st = reply.txn_commit_reply.status;
+  ups_status_t st = reply.txn_commit_reply.status;
   if (st)
     return (st);
 
   return (m_txn_manager->commit(txn, flags));
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
 {
   RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
@@ -410,15 +410,15 @@ RemoteEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ham_assert(reply.id == kTxnAbortReply);
-  ham_status_t st = reply.txn_abort_reply.status;
+  ups_assert(reply.id == kTxnAbortReply);
+  ups_status_t st = reply.txn_abort_reply.status;
   if (st)
     return (st);
 
   return (m_txn_manager->abort(txn, flags));
 }
 
-ham_status_t
+ups_status_t
 RemoteEnvironment::do_close(uint32_t flags)
 {
   Protocol request(Protocol::DISCONNECT_REQUEST);
@@ -434,12 +434,12 @@ RemoteEnvironment::do_close(uint32_t flags)
 }
 
 void
-RemoteEnvironment::do_fill_metrics(ham_env_metrics_t *metrics) const
+RemoteEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
 {
-  throw Exception(HAM_NOT_IMPLEMENTED);
+  throw Exception(UPS_NOT_IMPLEMENTED);
 }
 
 } // namespace hamsterdb
 
-#endif // HAM_ENABLE_REMOTE
+#endif // UPS_ENABLE_REMOTE
 

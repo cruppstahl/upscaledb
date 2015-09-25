@@ -23,9 +23,9 @@ namespace hamsterdb {
 int
 util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 {
-#if defined(HAM_OS_POSIX)
+#if defined(UPS_OS_POSIX)
   return vsnprintf(str, size, format, ap);
-#elif defined(HAM_OS_WIN32)
+#elif defined(UPS_OS_WIN32)
   return _vsnprintf(str, size, format, ap);
 #else
   (void)size;

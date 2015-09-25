@@ -20,7 +20,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1errorinducer/errorinducer.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 

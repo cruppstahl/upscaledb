@@ -19,17 +19,17 @@
  * A work item for the worker thread.
  */
 
-#ifndef HAM_WORK_ITEM_H
-#define HAM_WORK_ITEM_H
+#ifndef UPS_WORK_ITEM_H
+#define UPS_WORK_ITEM_H
 
 #include "0root/root.h"
 
-#include <ham/types.h>
+#include <ups/types.h>
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/spinlock.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -62,5 +62,5 @@ struct WorkItem
 
 } // namespace hamsterdb
 
-#endif // HAM_WORK_ITEM_H
+#endif // UPS_WORK_ITEM_H
 

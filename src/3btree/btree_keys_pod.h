@@ -28,8 +28,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_KEYS_POD_H
-#define HAM_BTREE_KEYS_POD_H
+#ifndef UPS_BTREE_KEYS_POD_H
+#define UPS_BTREE_KEYS_POD_H
 
 #include "0root/root.h"
 
@@ -43,7 +43,7 @@
 #include "3btree/btree_node.h"
 #include "3btree/btree_keys_base.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -101,25 +101,25 @@ class PodKeyList : public BaseKeyList
     }
 
     // Returns the actual key size including overhead
-    size_t get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ups_key_t *key = 0) const {
       return (sizeof(T));
     }
 
     // Finds a key
-#ifdef HAM_ENABLE_SIMD
+#ifdef UPS_ENABLE_SIMD
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     //
     // This is the SIMD implementation. If SIMD is disabled then the
     // BaseKeyList::find method is used.
     template<typename Cmp>
-    int find(Context *context, size_t node_count, const ham_key_t *key,
+    int find(Context *context, size_t node_count, const ups_key_t *key,
                     Cmp &comparator) {
       return (find_simd_sse<T>(node_count, &m_data[0], key));
     }
 #else
     template<typename Cmp>
-    int find(Context *context, size_t node_count, const ham_key_t *hkey,
+    int find(Context *context, size_t node_count, const ups_key_t *hkey,
                     Cmp &comparator) {
       T key = *(T *)hkey->data;
       T *result = std::lower_bound(&m_data[0], &m_data[node_count], key);
@@ -132,7 +132,7 @@ class PodKeyList : public BaseKeyList
     // Performs a lower-bound search for a key
     template<typename Cmp>
     int find_lower_bound(Context *context, size_t node_count,
-                    const ham_key_t *hkey, Cmp &comparator, int *pcmp) {
+                    const ups_key_t *hkey, Cmp &comparator, int *pcmp) {
       T key = *(T *)hkey->data;
       T *result = std::lower_bound(&m_data[0], &m_data[node_count], key);
       if (result == &m_data[node_count]) {
@@ -144,8 +144,8 @@ class PodKeyList : public BaseKeyList
           *pcmp = -1;
           return (0);
         }
-        ham_assert(!"shouldn't be here");
-        throw Exception(HAM_INTERNAL_ERROR);
+        ups_assert(!"shouldn't be here");
+        throw Exception(UPS_INTERNAL_ERROR);
       }
 
       if (key > *result)
@@ -160,7 +160,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *context, int slot, ByteArray *arena, ups_key_t *dest,
                     bool deep_copy = true) const {
       dest->size = sizeof(T);
       if (deep_copy == false) {
@@ -169,7 +169,7 @@ class PodKeyList : public BaseKeyList
       }
 
       // allocate memory (if required)
-      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+      if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(dest->size);
         dest->data = arena->get_ptr();
       }
@@ -193,7 +193,7 @@ class PodKeyList : public BaseKeyList
     // Inserts a key
     template<typename Cmp>
     PBtreeNode::InsertResult insert(Context *context, size_t node_count,
-                    const ham_key_t *key, uint32_t flags, Cmp &comparator,
+                    const ups_key_t *key, uint32_t flags, Cmp &comparator,
                     int slot) {
       if (node_count > (size_t)slot)
         memmove(&m_data[slot + 1], &m_data[slot],
@@ -210,7 +210,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Returns true if the |key| no longer fits into the node
-    bool requires_split(size_t node_count, const ham_key_t *key) const {
+    bool requires_split(size_t node_count, const ups_key_t *key) const {
       return ((node_count + 1) * sizeof(T) >= m_range_size);
     }
 
@@ -253,7 +253,7 @@ class PodKeyList : public BaseKeyList
     // Overwrites an existing key; the |size| of the new data HAS to be
     // identical with the key size specified when the database was created!
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ham_assert(size == sizeof(T));
+      ups_assert(size == sizeof(T));
       m_data[slot] = *(T *)ptr;
     }
 
@@ -265,4 +265,4 @@ class PodKeyList : public BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_POD_H */
+#endif /* UPS_BTREE_KEYS_POD_H */

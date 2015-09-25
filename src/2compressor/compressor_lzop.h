@@ -22,10 +22,10 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_LZOP_H
-#define HAM_COMPRESSOR_LZOP_H
+#ifndef UPS_COMPRESSOR_LZOP_H
+#define UPS_COMPRESSOR_LZOP_H
 
-#ifdef HAM_ENABLE_COMPRESSION
+#ifdef UPS_ENABLE_COMPRESSION
 
 #ifdef HAVE_LZO_LZO1X_H
 
@@ -38,7 +38,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -50,7 +50,7 @@ class LzopCompressor : public Compressor {
     LzopCompressor()
       : m_work(LZO1X_1_MEM_COMPRESS) {
       if (::lzo_init() != LZO_E_OK)
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
     }
 
   protected:
@@ -69,7 +69,7 @@ class LzopCompressor : public Compressor {
       int r = ::lzo1x_1_compress(inp, inlength, outp, (lzo_uint *)&outlength,
                       (uint8_t *)m_work.get_ptr());
       if (r != 0)
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
       return (outlength);
     }
 
@@ -80,7 +80,7 @@ class LzopCompressor : public Compressor {
       int r = ::lzo1x_decompress(inp, inlength,
                       outp, (lzo_uint *)&outlength, 0);
       if (r != 0)
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
     }
 
   private:
@@ -91,6 +91,6 @@ class LzopCompressor : public Compressor {
 
 #endif // HAVE_LZO_LZO1X_H
 
-#endif // HAM_ENABLE_COMPRESSION
+#endif // UPS_ENABLE_COMPRESSION
 
-#endif // HAM_COMPRESSOR_LZOP_H
+#endif // UPS_COMPRESSOR_LZOP_H

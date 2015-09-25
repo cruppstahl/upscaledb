@@ -21,8 +21,8 @@
 #include "os.hpp"
 
 struct CheckIntegrityFixture {
-  CheckIntegrityFixture(bool inmemory = false, ham_parameter_t *env_params = 0,
-                  ham_parameter_t *db_params = 0)
+  CheckIntegrityFixture(bool inmemory = false, ups_parameter_t *env_params = 0,
+                  ups_parameter_t *db_params = 0)
     : m_inmemory(inmemory) {
     setup(env_params, db_params);
   }
@@ -31,51 +31,51 @@ struct CheckIntegrityFixture {
     teardown();
   }
 
-  void setup(ham_parameter_t *env_params, ham_parameter_t *db_params) {
+  void setup(ups_parameter_t *env_params, ups_parameter_t *db_params) {
     os::unlink(Utils::opath(".test"));
     REQUIRE(0 ==
-      ham_env_create(&m_env, Utils::opath(".test"),
-          m_inmemory ? HAM_IN_MEMORY : 0, 0644, env_params));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33, 0, db_params));
+      ups_env_create(&m_env, Utils::opath(".test"),
+          m_inmemory ? UPS_IN_MEMORY : 0, 0644, env_params));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 33, 0, db_params));
   } 
 
   void teardown() {
-    REQUIRE(0 == ham_db_close(m_db, 0));
-    REQUIRE(0 == ham_env_close(m_env, 0));
+    REQUIRE(0 == ups_db_close(m_db, 0));
+    REQUIRE(0 == ups_env_close(m_env, 0));
   }
 
   bool m_inmemory;
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
 
   void emptyDatabaseTest() {
-    REQUIRE(HAM_INV_PARAMETER == ham_db_check_integrity(0, 0));
-    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_check_integrity(0, 0));
+    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
   }
 
   void smallDatabaseTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
     for (int i = 0; i < 5; i++) {
       key.size = sizeof(i);
       key.data = &i;
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
   }
 
   void levelledDatabaseTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
-    ham_parameter_t env_params[] = {
-      { HAM_PARAM_PAGESIZE, 1024 },
+    ups_parameter_t env_params[] = {
+      { UPS_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
     };
-    ham_parameter_t db_params[] = {
-      { HAM_PARAM_KEYSIZE, 80 },
+    ups_parameter_t db_params[] = {
+      { UPS_PARAM_KEYSIZE, 80 },
       { 0, 0 }
     };
 
@@ -88,8 +88,8 @@ struct CheckIntegrityFixture {
       key.size = sizeof(buffer);
       key.data = &buffer[0];
 
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(0 == ham_db_check_integrity(m_db, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_check_integrity(m_db, 0));
     }
   }
 };

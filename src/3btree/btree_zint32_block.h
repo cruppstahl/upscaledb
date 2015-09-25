@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_BLOCK_H
-#define HAM_BTREE_KEYS_BLOCK_H
+#ifndef UPS_BTREE_KEYS_BLOCK_H
+#define UPS_BTREE_KEYS_BLOCK_H
 
 #include "0root/root.h"
 
@@ -31,7 +31,7 @@
 #include "3btree/btree_node.h"
 #include "3btree/btree_keys_base.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -63,7 +63,7 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 IndexBase {
+UPS_PACK_0 class UPS_PACK_1 IndexBase {
   public:
     // initialize this block index
     void initialize(uint32_t offset) {
@@ -111,7 +111,7 @@ HAM_PACK_0 class HAM_PACK_1 IndexBase {
 
     // the highest value of this block
     uint32_t m_highest;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 // Base class for a BlockCodec
@@ -130,44 +130,44 @@ struct BlockCodecBase
 
   static uint32_t compress_block(Index *index, const uint32_t *in,
                   uint32_t *out) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static uint32_t *uncompress_block(Index *index, const uint32_t *block_data,
                   uint32_t *out) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static int find_lower_bound(Index *index, const uint32_t *block_data,
                   uint32_t key, uint32_t *result) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static bool insert(Index *index, uint32_t *block_data,
                   uint32_t key, int *pslot) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static bool append(Index *index, uint32_t *block_data,
                   uint32_t key, int *pslot) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   template<typename GrowHandler>
   static void del(Index *index, uint32_t *block_data, int slot,
                   GrowHandler *grow_handler) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static uint32_t select(Index *index, uint32_t *block_data, int slot) {
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 };
 
@@ -181,8 +181,8 @@ struct Zint32Codec
                   uint32_t *out) {
     if (Codec::kHasCompressApi)
       return (Codec::compress_block(index, in, out));
-    ham_assert(!"shouldn't be here");
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static uint32_t *uncompress_block(Index *index, const uint32_t *block_data,
@@ -302,7 +302,7 @@ struct Zint32Codec
     // compress block and write it back
     if (index->key_count() > 1) {
       index->set_used_size(compress_block(index, data, block_data));
-      ham_assert(index->used_size() <= index->block_size());
+      ups_assert(index->used_size() <= index->block_size());
     }
     else
       index->set_used_size(0);
@@ -377,7 +377,7 @@ class BlockKeyList : public BaseKeyList
 
     // Returns the size or a single key including overhead. This is an estimate,
     // required to calculate the capacity of a node.
-    size_t get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ups_key_t *key = 0) const {
       return (3);
     }
 
@@ -390,7 +390,7 @@ class BlockKeyList : public BaseKeyList
     //
     // This code path only works for leaf nodes, but the zint32 compression
     // is anyway disabled for internal nodes.
-    bool requires_split(size_t node_count, const ham_key_t *key) const {
+    bool requires_split(size_t node_count, const ups_key_t *key) const {
       return (false);
     }
 
@@ -409,21 +409,21 @@ class BlockKeyList : public BaseKeyList
     // "Vacuumizes" the KeyList; packs all blocks tightly to reduce the size
     // that is consumed by this KeyList.
     void vacuumize(size_t node_count, bool force) {
-      ham_assert(check_integrity(0, node_count));
-      ham_assert(get_block_count() > 0);
+      ups_assert(check_integrity(0, node_count));
+      ups_assert(get_block_count() > 0);
 
       if (node_count == 0)
         initialize();
       else
         vacuumize_full();
 
-      ham_assert(check_integrity(0, node_count));
+      ups_assert(check_integrity(0, node_count));
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
     bool check_integrity(Context *, size_t node_count) const {
-      ham_assert(get_block_count() > 0);
+      ups_assert(get_block_count() > 0);
       Index *index = get_block_index(0);
       Index *end = get_block_index(get_block_count());
 
@@ -432,35 +432,35 @@ class BlockKeyList : public BaseKeyList
       // uint32_t highest = 0;
 
       for (; index < end; index++) {
-        ham_assert(index->used_size() <= index->block_size());
-        ham_assert(index->key_count() <= Index::kMaxKeysPerBlock + 1);
-        ham_assert(index->highest() >= index->value());
+        ups_assert(index->used_size() <= index->block_size());
+        ups_assert(index->key_count() <= Index::kMaxKeysPerBlock + 1);
+        ups_assert(index->highest() >= index->value());
 
         if (index > get_block_index(0))
-          ham_assert(index->value() > (index - 1)->value());
+          ups_assert(index->value() > (index - 1)->value());
         if (node_count > 0)
-          ham_assert(index->key_count() > 0);
+          ups_assert(index->key_count() > 0);
         total_keys += index->key_count();
         if ((uint32_t)used_size < index->offset() + index->block_size())
           used_size = index->offset() + index->block_size();
 
         if (index->key_count() == 1)
-          ham_assert(index->highest() == index->value());
+          ups_assert(index->highest() == index->value());
 
         if (index->key_count() > 1) {
-          ham_assert(index->used_size() > 0);
+          ups_assert(index->used_size() > 0);
 #if 0
           uint32_t data[Index::kMaxKeysPerBlock];
           uint32_t *pdata = uncompress_block(index, &data[0]);
-          ham_assert(pdata[0] > index->value());
-          ham_assert(highest <= index->value());
+          ups_assert(pdata[0] > index->value());
+          ups_assert(highest <= index->value());
 
           if (index->key_count() > 2) {
             for (uint32_t i = 1; i < index->key_count() - 1; i++)
-              ham_assert(pdata[i - 1] < pdata[i]);
+              ups_assert(pdata[i - 1] < pdata[i]);
           }
           highest = pdata[index->key_count() - 2];
-          ham_assert(index->highest() == highest);
+          ups_assert(index->highest() == highest);
 #endif
         }
       }
@@ -469,21 +469,21 @@ class BlockKeyList : public BaseKeyList
       used_size += kSizeofOverhead + sizeof(Index) * get_block_count();
 
       if (used_size != (int)get_used_size()) {
-        ham_log(("used size %d differs from expected %d",
+        ups_log(("used size %d differs from expected %d",
                 (int)used_size, (int)get_used_size()));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
 
       if (used_size > (int)m_range_size) {
-        ham_log(("used size %d exceeds range size %d",
+        ups_log(("used size %d exceeds range size %d",
                 (int)used_size, (int)m_range_size));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
 
       if (total_keys != node_count) {
-        ham_log(("key count %d differs from expected %d",
+        ups_log(("key count %d differs from expected %d",
                 (int)total_keys, (int)node_count));
-        throw Exception(HAM_INTEGRITY_VIOLATED);
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
 
       return (true);
@@ -492,14 +492,14 @@ class BlockKeyList : public BaseKeyList
     // Returns the size of a key; only required to appease the compiler,
     // but never called
     size_t get_key_size(int slot) const {
-      ham_assert(!"shouldn't be here");
+      ups_assert(!"shouldn't be here");
       return (sizeof(uint32_t));
     }
 
     // Returns a pointer to the key's data; only required to appease the
     // compiler, but never called
     uint8_t *get_key_data(int slot) {
-      ham_assert(!"shouldn't be here");
+      ups_assert(!"shouldn't be here");
       return (0);
     }
 
@@ -526,7 +526,7 @@ class BlockKeyList : public BaseKeyList
 
     // Erases the key at the specified |slot|
     void erase(Context *, size_t node_count, int slot) {
-      ham_assert(check_integrity(0, node_count));
+      ups_assert(check_integrity(0, node_count));
 
       // get the block and the position of the key inside the block
       int position_in_block;
@@ -554,12 +554,12 @@ class BlockKeyList : public BaseKeyList
         remove_block(index);
       }
 
-      ham_assert(check_integrity(0, node_count - 1));
+      ups_assert(check_integrity(0, node_count - 1));
     }
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find(Context *context, size_t node_count, const ham_key_t *hkey,
+    int find(Context *context, size_t node_count, const ups_key_t *hkey,
                     Cmp &comparator) {
       int cmp;
       int slot = find_lower_bound(context, node_count, hkey, comparator, &cmp);
@@ -568,9 +568,9 @@ class BlockKeyList : public BaseKeyList
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_lower_bound(Context *, size_t node_count, const ham_key_t *hkey,
+    int find_lower_bound(Context *, size_t node_count, const ups_key_t *hkey,
                     Cmp &comparator, int *pcmp) {
-      ham_assert(get_block_count() > 0);
+      ups_assert(get_block_count() > 0);
 
       *pcmp = 0;
 
@@ -582,7 +582,7 @@ class BlockKeyList : public BaseKeyList
 
       // key is the new minimum in this node?
       if (key < index->value()) {
-        ham_assert(slot == -1);
+        ups_assert(slot == -1);
         *pcmp = -1;
         return (slot);
       }
@@ -602,10 +602,10 @@ class BlockKeyList : public BaseKeyList
     // Inserts a key
     template<typename Cmp>
     PBtreeNode::InsertResult insert(Context *, size_t node_count,
-                    const ham_key_t *hkey, uint32_t flags, Cmp &comparator,
+                    const ups_key_t *hkey, uint32_t flags, Cmp &comparator,
                     int /* unused */ slot) {
-      ham_assert(check_integrity(0, node_count));
-      ham_assert(hkey->size == sizeof(uint32_t));
+      ups_assert(check_integrity(0, node_count));
+      ups_assert(hkey->size == sizeof(uint32_t));
 
       uint32_t key = *(uint32_t *)hkey->data;
 
@@ -614,7 +614,7 @@ class BlockKeyList : public BaseKeyList
         return (insert_impl(node_count, key, flags));
       }
       catch (Exception &ex) {
-        if (ex.code != HAM_LIMITS_REACHED)
+        if (ex.code != UPS_LIMITS_REACHED)
           throw (ex);
 
         vacuumize_full();
@@ -627,14 +627,14 @@ class BlockKeyList : public BaseKeyList
 
     // Grows a block's size to |new_size| bytes
     void grow_block_size(Index *index, uint32_t new_size) {
-      ham_assert(new_size > index->block_size());
+      ups_assert(new_size > index->block_size());
 
       check_available_size(new_size - index->block_size());
 
       uint32_t additional_size = new_size - index->block_size();
 
       if (get_used_size() + additional_size > m_range_size)
-        throw Exception(HAM_LIMITS_REACHED);
+        throw Exception(UPS_LIMITS_REACHED);
 
       // move all other blocks unless the current block is the last one
       if ((size_t)index->offset() + index->block_size()
@@ -657,13 +657,13 @@ class BlockKeyList : public BaseKeyList
     }
 
     // Returns the key at the given |slot|.
-    void get_key(Context *, int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *, int slot, ByteArray *arena, ups_key_t *dest,
                     bool deep_copy = true) {
       // uncompress the key value, store it in a member (not in a local
       // variable!), otherwise couldn't return a pointer to it
       int position_in_block;
       Index *index = find_block_by_slot(slot, &position_in_block);
-      ham_assert(position_in_block < (int)index->key_count());
+      ups_assert(position_in_block < (int)index->key_count());
 
       m_dummy = Zint32Codec::select(index, (uint32_t *)get_block_data(index),
                                         position_in_block);
@@ -675,7 +675,7 @@ class BlockKeyList : public BaseKeyList
       }
 
       // allocate memory (if required)
-      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+      if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(dest->size);
         dest->data = arena->get_ptr();
       }
@@ -718,7 +718,7 @@ class BlockKeyList : public BaseKeyList
         if (start > 0)
           data += start - 1;
         (*visitor)(data, length);
-        ham_assert(count >= length);
+        ups_assert(count >= length);
         count -= length;
       }
     }
@@ -727,7 +727,7 @@ class BlockKeyList : public BaseKeyList
     // is used to split and merge btree nodes.
     void copy_to(int sstart, size_t node_count, BlockKeyList &dest,
                     size_t other_count, int dstart) {
-      ham_assert(check_integrity(0, node_count));
+      ups_assert(check_integrity(0, node_count));
 
       // if the destination node is empty (often the case when merging nodes)
       // then re-initialize it.
@@ -758,13 +758,13 @@ class BlockKeyList : public BaseKeyList
         uint32_t *d = &ddata[srci->key_count()];
 
         if (src_position_in_block == 0) {
-          ham_assert(dst_position_in_block != 0);
+          ups_assert(dst_position_in_block != 0);
           srci->set_highest(srci->value());
           *d = srci->value();
           d++;
         }
         else {
-          ham_assert(dst_position_in_block == 0);
+          ups_assert(dst_position_in_block == 0);
           dsti->set_value(sdata[src_position_in_block - 1]);
           if (src_position_in_block == 1)
             srci->set_highest(sdata[src_position_in_block - 1]);
@@ -784,12 +784,12 @@ class BlockKeyList : public BaseKeyList
           dsti->set_highest(ddata[dsti->key_count() - 2]);
         srci->set_key_count(srci->key_count() - dsti->key_count());
         srci->set_used_size(compress_block(srci, sdata));
-        ham_assert(srci->used_size() <= srci->block_size());
+        ups_assert(srci->used_size() <= srci->block_size());
         if (srci->key_count() == 1)
           srci->set_highest(srci->value());
 
         dsti->set_used_size(dest.compress_block(dsti, ddata));
-        ham_assert(dsti->used_size() <= dsti->block_size());
+        ups_assert(dsti->used_size() <= dsti->block_size());
 
         srci++;
         dsti++;
@@ -829,8 +829,8 @@ class BlockKeyList : public BaseKeyList
         initialize();
       }
 
-      ham_assert(dest.check_integrity(0, other_count + (node_count - sstart)));
-      ham_assert(check_integrity(0, sstart));
+      ups_assert(dest.check_integrity(0, other_count + (node_count - sstart)));
+      ups_assert(check_integrity(0, sstart));
     }
 
   protected:
@@ -873,7 +873,7 @@ class BlockKeyList : public BaseKeyList
 
       // fail if the key already exists
       if (key == index->value() || key == index->highest())
-        throw Exception(HAM_DUPLICATE_KEY);
+        throw Exception(UPS_DUPLICATE_KEY);
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];
@@ -903,7 +903,7 @@ class BlockKeyList : public BaseKeyList
           // swap the indices, done
           std::swap(*index, *new_index);
 
-          ham_assert(check_integrity(0, node_count + 1));
+          ups_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot));
         }
 
@@ -914,7 +914,7 @@ class BlockKeyList : public BaseKeyList
           new_index->set_value(key);
           new_index->set_highest(key);
 
-          ham_assert(check_integrity(0, node_count + 1));
+          ups_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot + index->key_count()));
         }
 
@@ -924,13 +924,13 @@ class BlockKeyList : public BaseKeyList
         // The pivot position is aligned to 4.
         uint32_t *data = uncompress_block(index, datap);
         uint32_t to_copy = (index->key_count() / 2) & ~0x03;
-        ham_assert(to_copy > 0);
+        ups_assert(to_copy > 0);
         uint32_t new_key_count = index->key_count() - to_copy - 1;
         uint32_t new_value = data[to_copy];
 
         // once more check if the key already exists
         if (new_value == key)
-          throw Exception(HAM_DUPLICATE_KEY);
+          throw Exception(UPS_DUPLICATE_KEY);
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
@@ -954,7 +954,7 @@ class BlockKeyList : public BaseKeyList
         // Now check if the new key will be inserted in the old or the new block
         if (key >= new_index->value()) {
           index->set_used_size(compress_block(index, data));
-          ham_assert(index->used_size() <= index->block_size());
+          ups_assert(index->used_size() <= index->block_size());
           slot += index->key_count();
 
           // continue with the new block
@@ -963,7 +963,7 @@ class BlockKeyList : public BaseKeyList
         }
         else {
           new_index->set_used_size(compress_block(new_index, new_data));
-          ham_assert(new_index->used_size() <= new_index->block_size());
+          ups_assert(new_index->used_size() <= new_index->block_size());
 
           // hack for BlockIndex: fetch data pointer once more because
           // it was invalidated when the new block was added
@@ -974,7 +974,7 @@ class BlockKeyList : public BaseKeyList
         // the block was modified and needs to be compressed again, even if
         // the actual insert operation fails (i.e. b/c the key already exists)
         index->set_used_size(compress_block(index, data));
-        ham_assert(index->used_size() <= index->block_size());
+        ups_assert(index->used_size() <= index->block_size());
 
         // fall through...
       }
@@ -991,11 +991,11 @@ class BlockKeyList : public BaseKeyList
         bool inserted = Zint32Codec::insert(index,
                       (uint32_t *)get_block_data(index), key, &s);
         if (!inserted)
-          throw Exception(HAM_DUPLICATE_KEY);
+          throw Exception(UPS_DUPLICATE_KEY);
       }
 
-      ham_assert(index->used_size() <= index->block_size());
-      ham_assert(check_integrity(0, node_count + 1));
+      ups_assert(index->used_size() <= index->block_size());
+      ups_assert(check_integrity(0, node_count + 1));
       return (PBtreeNode::InsertResult(0, slot + s));
     }
 
@@ -1012,7 +1012,7 @@ class BlockKeyList : public BaseKeyList
 
     // Returns the index for a block with that slot
     Index *find_block_by_slot(int slot, int *position_in_block) const {
-      ham_assert(get_block_count() > 0);
+      ups_assert(get_block_count() > 0);
       Index *index = get_block_index(0);
       Index *end = get_block_index(get_block_count());
 
@@ -1055,7 +1055,7 @@ class BlockKeyList : public BaseKeyList
     Index *add_block(int position, int initial_size) {
       check_available_size(initial_size + sizeof(Index));
 
-      ham_assert(initial_size > 0);
+      ups_assert(initial_size > 0);
 
       // shift the whole data to the right to make space for the new block
       // index
@@ -1080,8 +1080,8 @@ class BlockKeyList : public BaseKeyList
 
     // Removes the specified block
     void remove_block(Index *index) {
-      ham_assert(get_block_count() > 1);
-      ham_assert(index->key_count() == 0);
+      ups_assert(get_block_count() > 1);
+      ups_assert(index->key_count() == 0);
 
       bool do_reset_used_size = false;
       // is this the last block? then re-calculate the |used_size|, because
@@ -1113,7 +1113,7 @@ class BlockKeyList : public BaseKeyList
         return;
       vacuumize_weak();
       if (get_used_size() + additional_size > m_range_size)
-        throw Exception(HAM_LIMITS_REACHED);
+        throw Exception(UPS_LIMITS_REACHED);
     }
 
     // Vacuumizes the node, without modifying the block pointers
@@ -1199,7 +1199,7 @@ class BlockKeyList : public BaseKeyList
 
     // Sets the used size of the range
     void set_used_size(size_t used_size) {
-      ham_assert(used_size <= m_range_size);
+      ups_assert(used_size <= m_range_size);
       *(uint32_t *)(m_data + 4) = (uint32_t)used_size;
     }
 
@@ -1239,4 +1239,4 @@ class BlockKeyList : public BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_BLOCK_H */
+#endif /* UPS_BTREE_KEYS_BLOCK_H */

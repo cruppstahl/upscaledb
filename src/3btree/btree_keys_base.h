@@ -22,14 +22,14 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_KEYS_BASE_H
-#define HAM_BTREE_KEYS_BASE_H
+#ifndef UPS_BTREE_KEYS_BASE_H
+#define UPS_BTREE_KEYS_BASE_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -71,15 +71,15 @@ struct BaseKeyList
   // Performs a lower-bound search for a key
   template<typename Cmp>
   int find_lower_bound(Context *context, size_t node_count,
-                  const ham_key_t *hkey, Cmp &comparator, int *pcmp) {
-    throw Exception(HAM_NOT_IMPLEMENTED);
+                  const ups_key_t *hkey, Cmp &comparator, int *pcmp) {
+    throw Exception(UPS_NOT_IMPLEMENTED);
   }
 
   // Finds a key
   template<typename Cmp>
-  int find(Context *context, size_t node_count, const ham_key_t *hkey,
+  int find(Context *context, size_t node_count, const ups_key_t *hkey,
                   Cmp &comparator) {
-    throw Exception(HAM_NOT_IMPLEMENTED);
+    throw Exception(UPS_NOT_IMPLEMENTED);
   }
 
   // Fills the btree_metrics structure
@@ -93,4 +93,4 @@ struct BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_BASE_H */
+#endif /* UPS_BTREE_KEYS_BASE_H */

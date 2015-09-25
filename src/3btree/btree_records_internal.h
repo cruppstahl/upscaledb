@@ -32,8 +32,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_RECORDS_INTERNAL_H
-#define HAM_BTREE_RECORDS_INTERNAL_H
+#ifndef UPS_BTREE_RECORDS_INTERNAL_H
+#define UPS_BTREE_RECORDS_INTERNAL_H
 
 #include "0root/root.h"
 
@@ -49,7 +49,7 @@
 #include "3btree/btree_node.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -74,7 +74,7 @@ class InternalRecordList : public BaseRecordList
       : m_db(db), m_data(0) {
       m_page_size = m_db->lenv()->config().page_size_bytes;
       m_store_raw_id = (m_db->lenv()->config().flags
-                            & HAM_IN_MEMORY) == HAM_IN_MEMORY;
+                            & UPS_IN_MEMORY) == UPS_IN_MEMORY;
     }
 
     // Sets the data pointer
@@ -114,9 +114,9 @@ class InternalRecordList : public BaseRecordList
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
     void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags,
+                    ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
-      bool direct_access = (flags & HAM_DIRECT_ACCESS) != 0;
+      bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
       record->size = sizeof(uint64_t);
@@ -124,7 +124,7 @@ class InternalRecordList : public BaseRecordList
       if (direct_access)
         record->data = (void *)&m_data[slot];
       else {
-        if ((record->flags & HAM_RECORD_USER_ALLOC) == 0) {
+        if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
           arena->resize(record->size);
           record->data = arena->get_ptr();
         }
@@ -134,9 +134,9 @@ class InternalRecordList : public BaseRecordList
 
     // Updates the record of a key
     void set_record(Context *context, int slot, int duplicate_index,
-                ham_record_t *record, uint32_t flags,
+                ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
-      ham_assert(record->size == sizeof(uint64_t));
+      ups_assert(record->size == sizeof(uint64_t));
       m_data[slot] = *(uint64_t *)record->data;
     }
 
@@ -171,14 +171,14 @@ class InternalRecordList : public BaseRecordList
 
     // Sets the record id
     void set_record_id(int slot, uint64_t value) {
-      ham_assert(m_store_raw_id ? 1 : value % m_page_size == 0);
+      ups_assert(m_store_raw_id ? 1 : value % m_page_size == 0);
       m_data[slot] = m_store_raw_id ? value : value / m_page_size;
     }
 
     // Returns the record id
     uint64_t get_record_id(int slot,
                     int duplicate_index = 0) const {
-      ham_assert(duplicate_index == 0);
+      ups_assert(duplicate_index == 0);
       return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
     }
 
@@ -228,4 +228,4 @@ class InternalRecordList : public BaseRecordList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_RECORDS_INTERNAL_H */
+#endif /* UPS_BTREE_RECORDS_INTERNAL_H */

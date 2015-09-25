@@ -33,15 +33,15 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_TXN_CURSOR_H
-#define HAM_TXN_CURSOR_H
+#ifndef UPS_TXN_CURSOR_H
+#define UPS_TXN_CURSOR_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "4txn/txn_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -66,7 +66,7 @@ class TransactionCursor
 
     // Destructor; asserts that the cursor is nil
     ~TransactionCursor() {
-      ham_assert(is_nil());
+      ups_assert(is_nil());
     }
 
     // Clones another TransactionCursor
@@ -96,27 +96,27 @@ class TransactionCursor
 
     // Retrieves the key from the current item; creates a deep copy.
     //
-    // If the cursor is uncoupled, HAM_CURSOR_IS_NIL is returned. this
+    // If the cursor is uncoupled, UPS_CURSOR_IS_NIL is returned. this
     // means that the item was already flushed to the btree, and the caller has
     // to use the btree lookup function to retrieve the key.
-    void copy_coupled_key(ham_key_t *key);
+    void copy_coupled_key(ups_key_t *key);
 
     // Retrieves the record from the current item; creates a deep copy.
     //
-    // If the cursor is uncoupled, HAM_CURSOR_IS_NIL will be returned. this
+    // If the cursor is uncoupled, UPS_CURSOR_IS_NIL will be returned. this
     // means that the item was already flushed to the btree, and the caller has
     // to use the btree lookup function to retrieve the record.
-    void copy_coupled_record(ham_record_t *record);
+    void copy_coupled_record(ups_record_t *record);
 
     // Moves the cursor to first, last, previous or next
-    ham_status_t move(uint32_t flags);
+    ups_status_t move(uint32_t flags);
 
     // Overwrites the record of a cursor
-    ham_status_t overwrite(Context *context, LocalTransaction *txn,
-                    ham_record_t *record);
+    ups_status_t overwrite(Context *context, LocalTransaction *txn,
+                    ups_record_t *record);
 
     // Looks up an item, places the cursor
-    ham_status_t find(ham_key_t *key, uint32_t flags);
+    ups_status_t find(ups_key_t *key, uint32_t flags);
 
     // Retrieves the record size of the current item
     uint64_t get_record_size();
@@ -140,14 +140,14 @@ class TransactionCursor
 
     // Inserts an item, places the cursor on the new item.
     // This function is only used in the unittests.
-    ham_status_t test_insert(ham_key_t *key, ham_record_t *record,
+    ups_status_t test_insert(ups_key_t *key, ups_record_t *record,
                     uint32_t flags);
 
     // Returns the database pointer
     LocalDatabase *get_db();
 
     // Moves the cursor to the first valid Operation in a Node
-    ham_status_t move_top_in_node(TransactionNode *node,
+    ups_status_t move_top_in_node(TransactionNode *node,
                     TransactionOperation *op, bool ignore_conflicts,
                     uint32_t flags);
 
@@ -168,4 +168,4 @@ class TransactionCursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_CURSOR_H */
+#endif /* UPS_TXN_CURSOR_H */

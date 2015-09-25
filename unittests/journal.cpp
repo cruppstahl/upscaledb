@@ -64,28 +64,28 @@ struct LogEntry {
 
 struct InsertLogEntry : public LogEntry {
   InsertLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
-        ham_key_t *_key, ham_record_t *_record)
+        ups_key_t *_key, ups_record_t *_record)
     : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key), record(_record) {
   }
 
-  ham_key_t *key;
-  ham_record_t *record;
+  ups_key_t *key;
+  ups_record_t *record;
 };
 
 struct EraseLogEntry : public LogEntry {
   EraseLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
-        ham_key_t *_key)
+        ups_key_t *_key)
     : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
       key(_key) {
   }
 
-  ham_key_t *key;
+  ups_key_t *key;
 };
 
 struct JournalFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   LocalEnvironment *m_lenv;
 
   JournalFixture() {
@@ -105,25 +105,25 @@ struct JournalFixture {
     (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-                (flush_when_committed ? HAM_FLUSH_WHEN_COMMITTED : 0)
-                | HAM_ENABLE_TRANSACTIONS
-                | HAM_ENABLE_RECOVERY, 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"),
+                (flush_when_committed ? UPS_FLUSH_WHEN_COMMITTED : 0)
+                | UPS_ENABLE_TRANSACTIONS
+                | UPS_ENABLE_RECOVERY, 0644, 0));
     REQUIRE(0 ==
-            ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
+            ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
     m_lenv = (LocalEnvironment *)m_env;
   }
 
   void teardown() {
     if (m_env)
-      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   Journal *disconnect_and_create_new_journal() {
     Journal *j = new Journal(m_lenv);
 
-    REQUIRE_CATCH(j->create(), HAM_WOULD_BLOCK);
+    REQUIRE_CATCH(j->create(), UPS_WOULD_BLOCK);
     delete j;
 
     /*
@@ -157,7 +157,7 @@ struct JournalFixture {
     std::string oldfilename = m_lenv->config().filename;
     EnvironmentTest test = ((Environment *)m_lenv)->test();
     test.set_filename("/::asdf");
-    REQUIRE_CATCH(j->create(), HAM_IO_ERROR);
+    REQUIRE_CATCH(j->create(), UPS_IO_ERROR);
     test.set_filename(oldfilename);
     j->close();
     delete (j);
@@ -168,7 +168,7 @@ struct JournalFixture {
     std::string oldfilename = m_lenv->config().filename;
     EnvironmentTest test = ((Environment *)m_lenv)->test();
     test.set_filename("xxx$$test");
-    REQUIRE_CATCH(j->open(), HAM_FILE_NOT_FOUND);
+    REQUIRE_CATCH(j->open(), UPS_FILE_NOT_FOUND);
 
     /* if journal::open() fails, it will call journal::close()
      * internally and journal::close() overwrites the header structure.
@@ -179,7 +179,7 @@ struct JournalFixture {
     f.close();
 
     test.set_filename("data/log-broken-magic");
-    REQUIRE_CATCH(j->open(), HAM_LOG_INV_FILE_HEADER);
+    REQUIRE_CATCH(j->open(), UPS_LOG_INV_FILE_HEADER);
     test.set_filename(oldfilename);
     j->close();
     delete j;
@@ -195,8 +195,8 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
     REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
-    ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, "name", 0, 0));
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, "name", 0, 0));
 
     REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
     REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
@@ -209,7 +209,7 @@ struct JournalFixture {
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendTxnAbortTest() {
@@ -217,8 +217,8 @@ struct JournalFixture {
     JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
-    ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     j->flush_buffer(0);
     j->flush_buffer(1);
@@ -239,7 +239,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
     REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendTxnCommitTest() {
@@ -247,8 +247,8 @@ struct JournalFixture {
     JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
-    ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     j->flush_buffer(0);
     j->flush_buffer(1);
@@ -271,23 +271,23 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
     REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendInsertTest() {
     Journal *j = disconnect_and_create_new_journal();
-    ham_txn_t *txn;
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_txn_t *txn;
+    ups_key_t key = {};
+    ups_record_t rec = {};
     key.data = (void *)"key1";
     key.size = 5;
     rec.data = (void *)"rec1";
     rec.size = 5;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
-              &key, &rec, HAM_OVERWRITE, lsn);
+              &key, &rec, UPS_OVERWRITE, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
@@ -305,29 +305,29 @@ struct JournalFixture {
     REQUIRE(5u == ins->record_size);
     REQUIRE(0ull == ins->record_partial_size);
     REQUIRE(0ull == ins->record_partial_offset);
-    REQUIRE((unsigned)HAM_OVERWRITE == ins->insert_flags);
+    REQUIRE((unsigned)UPS_OVERWRITE == ins->insert_flags);
     REQUIRE(0 == strcmp("key1", (char *)ins->get_key_data()));
     REQUIRE(0 == strcmp("rec1", (char *)ins->get_record_data()));
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendPartialInsertTest() {
     Journal *j = disconnect_and_create_new_journal();
-    ham_txn_t *txn;
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_txn_t *txn;
+    ups_key_t key = {};
+    ups_record_t rec = {};
     key.data = (void *)"key1";
     key.size = 5;
     rec.data = (void *)"rec1";
     rec.size = 1024;
     rec.partial_size = 5;
     rec.partial_offset = 10;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_insert((Database *)m_db, (LocalTransaction *)txn,
-              &key, &rec, HAM_PARTIAL, lsn);
+              &key, &rec, UPS_PARTIAL, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
@@ -347,20 +347,20 @@ struct JournalFixture {
     REQUIRE(1024u == ins->record_size);
     REQUIRE(5u == ins->record_partial_size);
     REQUIRE(10u == ins->record_partial_offset);
-    REQUIRE((unsigned)HAM_PARTIAL == ins->insert_flags);
+    REQUIRE((unsigned)UPS_PARTIAL == ins->insert_flags);
     REQUIRE(0 == strcmp("key1", (char *)ins->get_key_data()));
     REQUIRE(0 == strcmp("rec1", (char *)ins->get_record_data()));
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendEraseTest() {
     Journal *j = disconnect_and_create_new_journal();
-    ham_txn_t *txn;
-    ham_key_t key = {};
+    ups_txn_t *txn;
+    ups_key_t key = {};
     key.data = (void *)"key1";
     key.size = 5;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
@@ -382,15 +382,15 @@ struct JournalFixture {
     REQUIRE(1u == er->duplicate);
     REQUIRE(0 == strcmp("key1", (char *)er->get_key_data()));
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void clearTest() {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(true == j->is_empty());
 
-    ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     j->flush_buffer(0);
     j->flush_buffer(1);
@@ -402,7 +402,7 @@ struct JournalFixture {
     REQUIRE(true == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
     REQUIRE((uint64_t)4 == get_lsn());
 
     j->close();
@@ -424,10 +424,10 @@ struct JournalFixture {
   }
 
   void iterateOverLogOneEntryTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(2ull == get_lsn());
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     j->append_txn_begin((LocalTransaction *)txn, 0, get_lsn());
     j->close(true);
     j->open();
@@ -445,7 +445,7 @@ struct JournalFixture {
     REQUIRE(0 == auxbuffer.get_size());
     REQUIRE((uint32_t)Journal::kEntryTypeTxnBegin == entry.type);
 
-    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void compareJournal(Journal *journal, LogEntry *vec, size_t size) {
@@ -494,28 +494,28 @@ struct JournalFixture {
   }
 
   void iterateOverLogMultipleEntryTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     disconnect_and_create_new_journal();
     unsigned p = 0;
 
     LogEntry vec[20];
     for (int i = 0; i < 5; i++) {
-      // ham_txn_begin and ham_txn_abort will automatically add a
+      // ups_txn_begin and ups_txn_abort will automatically add a
       // journal entry
       char name[16];
       sprintf(name, "name%d", i);
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, name, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, name, 0, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0, &name[0]);
       vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
-      REQUIRE(0 == ham_txn_abort(txn, 0));
+      REQUIRE(0 == ups_txn_abort(txn, 0));
     }
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
@@ -525,7 +525,7 @@ struct JournalFixture {
   }
 
   void iterateOverLogMultipleEntrySwapTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
     JournalTest test = j->test();
     test.state()->threshold = 5;
@@ -533,18 +533,18 @@ struct JournalFixture {
     LogEntry vec[20];
 
     for (int i = 0; i <= 7; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0);
       vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
-      REQUIRE(0 == ham_txn_abort(txn, 0));
+      REQUIRE(0 == ups_txn_abort(txn, 0));
     }
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
@@ -554,7 +554,7 @@ struct JournalFixture {
   }
 
   void iterateOverLogMultipleEntrySwapTwiceTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
     JournalTest test = j->test();
     test.state()->threshold = 5;
@@ -563,20 +563,20 @@ struct JournalFixture {
     LogEntry vec[20];
 
     for (int i = 0; i <= 10; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
       if (i >= 5) {
         vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnBegin, 0);
         vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
               Journal::kEntryTypeTxnAbort, 0);
       }
-      REQUIRE(0 == ham_txn_abort(txn, 0));
+      REQUIRE(0 == ups_txn_abort(txn, 0));
     }
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
@@ -598,34 +598,34 @@ struct JournalFixture {
   }
 
   void recoverVerifyTxnIdsTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     LogEntry vec[20];
     unsigned p = 0;
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, (ups_env_t *)m_env, 0, 0, 0));
       REQUIRE((uint64_t)(i + 1) == ((Transaction *)txn)->get_id());
       vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
       vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeTxnCommit, 0);
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
     }
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     /* reopen the database */
-    REQUIRE(HAM_NEED_RECOVERY ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-                HAM_FLUSH_WHEN_COMMITTED
-                | HAM_ENABLE_TRANSACTIONS
-                | HAM_ENABLE_RECOVERY, 0));
+    REQUIRE(UPS_NEED_RECOVERY ==
+        ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED
+                | UPS_ENABLE_TRANSACTIONS
+                | UPS_ENABLE_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-                HAM_FLUSH_WHEN_COMMITTED
-                | HAM_ENABLE_TRANSACTIONS
-                | HAM_AUTO_RECOVERY, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED
+                | UPS_ENABLE_TRANSACTIONS
+                | UPS_AUTO_RECOVERY, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     /* verify that the journal is empty */
@@ -639,41 +639,41 @@ struct JournalFixture {
 
     /* create another transaction and make sure that the transaction
      * IDs and the lsn's continue seamlessly */
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(6ull == ((Transaction *)txn)->get_id());
-    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void recoverCommittedTxnsTest() {
-    ham_txn_t *txn[5];
+    ups_txn_t *txn[5];
     LogEntry vec[20];
     unsigned p = 0;
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     Journal *j = new Journal(m_lenv);
     uint64_t lsn = 2;
 
     /* create a couple of transaction which insert a key, and commit
      * them */
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeInsert, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnCommit, 0);
-      REQUIRE(0 == ham_txn_commit(txn[i], 0));
+      REQUIRE(0 == ups_txn_commit(txn[i], 0));
     }
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j->close();
     delete j;
@@ -681,13 +681,13 @@ struct JournalFixture {
     j->open();
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS
+            | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -697,28 +697,28 @@ struct JournalFixture {
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
     }
   }
 
   void recoverAutoAbortTxnsTest() {
 #ifndef WIN32
-    ham_txn_t *txn[5];
+    ups_txn_t *txn[5];
     LogEntry vec[20];
     unsigned p = 0;
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint64_t lsn = 2;
 
     /* create a couple of transaction which insert a key, but do not
      * commit them! */
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeInsert, 1);
     }
@@ -734,30 +734,30 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
           Utils::opath(".test.bak1")));
     for (int i = 0; i < 5; i++)
-      REQUIRE(0 == ham_txn_commit(txn[i], 0));
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+      REQUIRE(0 == ups_txn_commit(txn[i], 0));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
           Utils::opath(".test.jrn0")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     
     Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ham_env_create(&m_env, Utils::opath(".test"),
-                HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+          ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
     /* now open and recover */
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
@@ -765,10 +765,10 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS
+            | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -777,21 +777,21 @@ struct JournalFixture {
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
 
   void recoverTempTxns() {
 #ifndef WIN32
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
     /* insert keys with anonymous transactions */
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     m_lenv = (LocalEnvironment *)m_env;
@@ -804,24 +804,24 @@ struct JournalFixture {
           Utils::opath(".test.bak0")));
     REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
           Utils::opath(".test.bak1")));
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     /* by re-creating the database we make sure that it's definitely
      * empty */
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
-                HAM_FLUSH_WHEN_COMMITTED, 0644, 0));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
     /* now open and recover */
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
           Utils::opath(".test.jrn0")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
-                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -830,18 +830,18 @@ struct JournalFixture {
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
 
   void recoverSkipAlreadyFlushedTest() {
 #ifndef WIN32
-    ham_txn_t *txn[2];
+    ups_txn_t *txn[2];
     LogEntry vec[20];
     unsigned p = 0;
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     Journal *j = m_lenv->journal();
     uint64_t lsn = 2;
 
@@ -849,18 +849,18 @@ struct JournalFixture {
      * first; instead, manually append the "commit" of the second
      * transaction to the journal (but not to the database!) */
     for (int i = 0; i < 2; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn[i], &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeInsert, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnCommit, 0);
       if (i == 0)
-        REQUIRE(0 == ham_txn_commit(txn[i], 0));
+        REQUIRE(0 == ups_txn_commit(txn[i], 0));
       else
         j->append_txn_commit((LocalTransaction *)txn[i], lsn - 1);
     }
@@ -874,21 +874,21 @@ struct JournalFixture {
           Utils::opath(".test.bak0")));
     REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
           Utils::opath(".test.bak1")));
-    REQUIRE(0 == ham_txn_commit(txn[1], 0));
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_txn_commit(txn[1], 0));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
           Utils::opath(".test.jrn0")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     /* now open and recover */
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
@@ -896,10 +896,10 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS
+            | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     /* verify that the journal is empty */
@@ -909,45 +909,45 @@ struct JournalFixture {
     for (int i = 0; i < 2; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
 
   void recoverInsertTest() {
-    ham_txn_t *txn[2];
+    ups_txn_t *txn[2];
     LogEntry vec[200];
     unsigned p = 0;
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
     uint64_t lsn = 2;
 
     /* create two transactions with many keys that are inserted */
     for (int i = 0; i < 2; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn[i], m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::kEntryTypeTxnBegin, 0);
     }
     for (int i = 0; i < 100; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_insert(m_db, txn[i & 1], &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn[i & 1], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i & 1])->get_id(),
             Journal::kEntryTypeInsert, 1);
     }
     /* commit the first txn, abort the second */
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn[0])->get_id(),
           Journal::kEntryTypeTxnCommit, 0);
-    REQUIRE(0 == ham_txn_commit(txn[0], 0));
+    REQUIRE(0 == ups_txn_commit(txn[0], 0));
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn[1])->get_id(),
           Journal::kEntryTypeTxnAbort, 0);
-    REQUIRE(0 == ham_txn_abort(txn[1], 0));
+    REQUIRE(0 == ups_txn_abort(txn[1], 0));
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     Journal *j = new Journal(m_lenv);
@@ -955,13 +955,13 @@ struct JournalFixture {
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS
+            | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -972,30 +972,30 @@ struct JournalFixture {
       key.data = &i;
       key.size = sizeof(i);
       if (i & 1)
-        REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, 0, &key, &rec, 0));
+        REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
       else
-        REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+        REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
     }
   }
 
   void recoverEraseTest() {
-    ham_txn_t *txn;
+    ups_txn_t *txn;
     LogEntry vec[200];
     unsigned p = 0;
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
     uint64_t lsn = 2;
 
     /* create a transaction with many keys that are inserted, mostly
      * duplicates */
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
           Journal::kEntryTypeTxnBegin, 0);
     for (int i = 0; i < 100; i++) {
       int val = i % 10;
       key.data = &val;
       key.size = sizeof(val);
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeInsert, 1);
     }
@@ -1003,20 +1003,20 @@ struct JournalFixture {
     for (int i = 0; i < 10; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ham_db_erase(m_db, txn, &key, 0));
+      REQUIRE(0 == ups_db_erase(m_db, txn, &key, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::kEntryTypeErase, 1);
     }
     /* commit the txn */
     vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
           Journal::kEntryTypeTxnCommit, 0);
-    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
 
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = new Journal(m_lenv);
@@ -1024,13 +1024,13 @@ struct JournalFixture {
     m_lenv->test().set_journal(j);
     compareJournal(j, vec, p);
 
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS
-            | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS
+            | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -1038,13 +1038,13 @@ struct JournalFixture {
     /* now verify that the committed transaction was re-played from
      * the journal; the database must be empty */
     uint64_t keycount;
-    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
 
   void recoverAfterChangesetTest() {
 #ifndef WIN32
-    ham_txn_t *txn;
+    ups_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
     teardown();
@@ -1055,13 +1055,13 @@ struct JournalFixture {
 
     int i = 0;
     while (!g_changeset_flushed) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-      ham_key_t key = ham_make_key((void *)"key", 4);
-      ham_record_t rec = ham_make_record(&i, sizeof(i));
+      ups_key_t key = ups_make_key((void *)"key", 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
 
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
 
       i++;
     }
@@ -1075,7 +1075,7 @@ struct JournalFixture {
           Utils::opath(".test.bak1")));
 
     /* close the environment, then restore the files */
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(true == os::copy(Utils::opath(".test.bak"),
           Utils::opath(".test")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
@@ -1085,33 +1085,33 @@ struct JournalFixture {
 
     /* open the environment */
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* now verify that the database is complete */
-    ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    ham_status_t st;
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_status_t st;
     int j = 0;
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(0 == strcmp("key", (const char *)key.data));
       REQUIRE(key.size == 4);
       REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
       REQUIRE(rec.size == sizeof(j));
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void recoverAfterChangesetAndCommitTest() {
 #ifndef WIN32
-    ham_txn_t *txn;
+    ups_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
     teardown();
@@ -1122,23 +1122,23 @@ struct JournalFixture {
 
     int i = 0;
     while (!g_changeset_flushed) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-      ham_key_t key = ham_make_key((void *)"key", 4);
-      ham_record_t rec = ham_make_record(&i, sizeof(i));
+      ups_key_t key = ups_make_key((void *)"key", 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
 
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
 
       i++;
     }
 
     // changeset was flushed, now add another commit
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    ham_key_t key = ham_make_key((void *)"kez", 4);
-    ham_record_t rec = ham_make_record((void *)"rec", 4);
-    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_key_t key = ups_make_key((void *)"kez", 4);
+    ups_record_t rec = ups_make_record((void *)"rec", 4);
+    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
     i++;
 
     /* backup the files */
@@ -1150,7 +1150,7 @@ struct JournalFixture {
           Utils::opath(".test.bak1")));
 
     /* close the environment, then restore the files */
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(true == os::copy(Utils::opath(".test.bak"),
           Utils::opath(".test")));
     REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
@@ -1160,16 +1160,16 @@ struct JournalFixture {
 
     /* open the environment */
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* now verify that the database is complete */
-    ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    ham_status_t st;
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_status_t st;
     int j = 0;
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(key.size == 4);
       if (j <= 64) {
         REQUIRE(0 == strcmp("key", (const char *)key.data));
@@ -1181,22 +1181,22 @@ struct JournalFixture {
       }
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void recoverAfterChangesetAndCommit2Test() {
 #ifndef WIN32
-    ham_txn_t *txn;
-    ham_txn_t *longtxn;
+    ups_txn_t *txn;
+    ups_txn_t *longtxn;
 
     // do not immediately flush the changeset after a commit
     teardown();
     setup(false);
 
-    REQUIRE(0 == ham_txn_begin(&longtxn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&longtxn, m_env, 0, 0, 0));
 
     int i = 0;
     // txn's are only flushed if the oldest txn is committed, and this is
@@ -1204,20 +1204,20 @@ struct JournalFixture {
     // invoked. Just write 100 transactions instead of testing against
     // g_changeset_flushed
     for (i = 0; i < 100; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-      ham_key_t key = ham_make_key((void *)"key", 4);
-      ham_record_t rec = ham_make_record(&i, sizeof(i));
+      ups_key_t key = ups_make_key((void *)"key", 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
 
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
     }
 
     // now commit the previous transaction
-    ham_key_t key = ham_make_key((void *)"kez", 4);
-    ham_record_t rec = ham_make_record((void *)"rec", 4);
-    REQUIRE(0 == ham_db_insert(m_db, longtxn, &key, &rec, HAM_DUPLICATE));
-    REQUIRE(0 == ham_txn_commit(longtxn, 0));
+    ups_key_t key = ups_make_key((void *)"kez", 4);
+    ups_record_t rec = ups_make_record((void *)"rec", 4);
+    REQUIRE(0 == ups_db_insert(m_db, longtxn, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_txn_commit(longtxn, 0));
     i++;
 
     /* backup the files */
@@ -1229,7 +1229,7 @@ struct JournalFixture {
           Utils::opath(".testjrn.bak1")));
 
     /* close the environment, then restore the files */
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(true == os::copy(Utils::opath(".testjrn.bak"),
           Utils::opath(".test")));
     REQUIRE(true == os::copy(Utils::opath(".testjrn.bak0"),
@@ -1239,16 +1239,16 @@ struct JournalFixture {
 
     /* open the environment */
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* now verify that the database is complete */
-    ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    ham_status_t st;
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_status_t st;
     int j = 0;
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(key.size == 4);
       if (j < 100) {
         REQUIRE(0 == strcmp("key", (const char *)key.data));
@@ -1260,15 +1260,15 @@ struct JournalFixture {
       }
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void recoverWithCorruptChangesetTest() {
 #ifndef WIN32
-    ham_txn_t *txn;
+    ups_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
     teardown();
@@ -1279,23 +1279,23 @@ struct JournalFixture {
 
     int i = 0;
     while (!g_changeset_flushed) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-      ham_key_t key = ham_make_key((void *)"key", 4);
-      ham_record_t rec = ham_make_record(&i, sizeof(i));
+      ups_key_t key = ups_make_key((void *)"key", 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
 
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
 
       i++;
     }
 
     // changeset was flushed, now add another commit
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    ham_key_t key = ham_make_key((void *)"kez", 4);
-    ham_record_t rec = ham_make_record((void *)"rec", 4);
-    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_key_t key = ups_make_key((void *)"kez", 4);
+    ups_record_t rec = ups_make_record((void *)"rec", 4);
+    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
     i++;
 
     // wait a bit to make sure that the pages are flushed
@@ -1310,7 +1310,7 @@ struct JournalFixture {
           Utils::opath(".test.bak1")));
 
     /* close the environment */
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
     /* make sure that the changesets is corrupt by truncating the file */
     File f;
@@ -1330,16 +1330,16 @@ struct JournalFixture {
 
     /* open the environment */
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     /* now verify that the database is complete */
-    ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    ham_status_t st;
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_status_t st;
     int j = 0;
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(key.size == 4);
       if (j <= 64) {
         REQUIRE(0 == strcmp("key", (const char *)key.data));
@@ -1351,44 +1351,44 @@ struct JournalFixture {
       }
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
+    REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void recoverFromRecoveryTest() {
 #ifndef WIN32
-    ham_txn_t *txn;
+    ups_txn_t *txn;
 
     // do not immediately flush the changeset after a commit
     teardown();
     setup(false);
 
     // need a second database
-    ham_db_t *db2;
-    REQUIRE(0 == ham_env_create_db(m_env, &db2, 2,
-                            HAM_ENABLE_DUPLICATE_KEYS, 0));
+    ups_db_t *db2;
+    REQUIRE(0 == ups_env_create_db(m_env, &db2, 2,
+                            UPS_ENABLE_DUPLICATE_KEYS, 0));
 
     // add 5 commits
     int i;
     for (i = 0; i < 5; i++) {
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-      ham_key_t key = ham_make_key((void *)"key", 4);
-      ham_record_t rec = ham_make_record(&i, sizeof(i));
+      ups_key_t key = ups_make_key((void *)"key", 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
 
-      REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
     }
 
     // changeset was flushed, now add another commit in the other database,
     // to make sure that it affects a different page
     i = 0;
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    ham_key_t key = ham_make_key((void *)"key", 4);
-    ham_record_t rec = ham_make_record(&i, sizeof(i));
-    REQUIRE(0 == ham_db_insert(db2, txn, &key, &rec, HAM_DUPLICATE));
-    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    ups_key_t key = ups_make_key((void *)"key", 4);
+    ups_record_t rec = ups_make_record(&i, sizeof(i));
+    REQUIRE(0 == ups_db_insert(db2, txn, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     /* backup the files */
     REQUIRE(true == os::copy(Utils::opath(".test"),
@@ -1399,7 +1399,7 @@ struct JournalFixture {
           Utils::opath(".test.bak1")));
 
     /* close the environment */
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
     /* restore the files */
     REQUIRE(true == os::copy(Utils::opath(".test.bak"),
@@ -1414,61 +1414,61 @@ struct JournalFixture {
     ErrorInducer::get_instance()->add(ErrorInducer::kChangesetFlush, 2);
 
     /* open the environment, perform recovery */
-    REQUIRE(HAM_INTERNAL_ERROR ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
+    REQUIRE(UPS_INTERNAL_ERROR ==
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
 
     /* disable error inducer, try again */
     ErrorInducer::activate(false);
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-            HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &db2, 2, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &db2, 2, 0, 0));
 
     /* now verify that the database is complete */
-    ham_cursor_t *cursor;
-    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
-    ham_status_t st;
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_status_t st;
     int j = 0;
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(0 == strcmp("key", (const char *)key.data));
       REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
       REQUIRE(rec.size == sizeof(j));
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(j == 5);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
 
-    REQUIRE(0 == ham_cursor_create(&cursor, db2, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db2, 0, 0));
     j = 0;
-    while ((st = ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT)) == 0) {
+    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(0 == strcmp("key", (const char *)key.data));
       REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
       REQUIRE(rec.size == sizeof(j));
       j++;
     }
-    REQUIRE(st == HAM_KEY_NOT_FOUND);
+    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(j == 1);
-    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void switchThresholdTest() {
     teardown();
 
-    ham_parameter_t params[] = {
-      {HAM_PARAM_JOURNAL_SWITCH_THRESHOLD, 33}, 
+    ups_parameter_t params[] = {
+      {UPS_PARAM_JOURNAL_SWITCH_THRESHOLD, 33}, 
       {0, 0}
     };
 
-    REQUIRE(0 == ham_env_create(&m_env, Utils::opath(".test"),
-                HAM_ENABLE_TRANSACTIONS, 0644, &params[0]));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS, 0644, &params[0]));
 
-    // verify threshold through ham_env_get_parameters
+    // verify threshold through ups_env_get_parameters
     params[0].value = 0;
-    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
     REQUIRE(params[0].value == 33);
 
     // verify threshold in the Journal object
@@ -1478,41 +1478,41 @@ struct JournalFixture {
     test.state()->threshold = 5;
 
     // open w/o parameter
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, 0));
     params[0].value = 0;
-    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
     REQUIRE(params[0].value == 0);
 
     // open w/ parameter
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     params[0].value = 44;
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"),
-                    HAM_ENABLE_TRANSACTIONS, &params[0]));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
+                    UPS_ENABLE_TRANSACTIONS, &params[0]));
     params[0].value = 0;
-    REQUIRE(0 == ham_env_get_parameters(m_env, &params[0]));
+    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
     REQUIRE(params[0].value == 44);
   }
 
   void issue45Test() {
-    ham_txn_t *txn;
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_txn_t *txn;
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
     /* create a transaction with one insert */
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     key.data = (void *)"aaaaa";
     key.size = 6;
-    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, 0));
 
     /* reopen and recover. issue 45 causes a segfault */
-    REQUIRE(0 == ham_env_close(m_env,
-                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 ==
-        ham_env_open(&m_env, Utils::opath(".test"),
-                HAM_ENABLE_TRANSACTIONS | HAM_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+        ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
   }
 };
 

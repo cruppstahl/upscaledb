@@ -23,8 +23,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_FILE_H
-#define HAM_FILE_H
+#ifndef UPS_FILE_H
+#define UPS_FILE_H
 
 #include "0root/root.h"
 #include "1base/mutex.h"
@@ -32,12 +32,12 @@
 #include <stdio.h>
 #include <limits.h>
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -47,7 +47,7 @@ class File
 {
   public:
     enum {
-#ifdef HAM_OS_POSIX
+#ifdef UPS_OS_POSIX
       kSeekSet = SEEK_SET,
       kSeekEnd = SEEK_END,
       kSeekCur = SEEK_CUR,
@@ -62,15 +62,15 @@ class File
 
     // Constructor: creates an empty File handle
     File()
-      : m_fd(HAM_INVALID_FD), m_mmaph(HAM_INVALID_FD), m_posix_advice(0) {
+      : m_fd(UPS_INVALID_FD), m_mmaph(UPS_INVALID_FD), m_posix_advice(0) {
     }
 
     // Copy constructor: moves ownership of the file handle
     File(File &other)
       : m_fd(other.m_fd), m_mmaph(other.m_mmaph),
         m_posix_advice(other.m_posix_advice) {
-      other.m_fd = HAM_INVALID_FD;
-	  other.m_mmaph = HAM_INVALID_FD;
+      other.m_fd = UPS_INVALID_FD;
+	  other.m_mmaph = UPS_INVALID_FD;
     }
 
     // Destructor: closes the file
@@ -81,7 +81,7 @@ class File
     // Assignment operator: moves ownership of the file handle
     File &operator=(File &other) {
       m_fd = other.m_fd;
-      other.m_fd = HAM_INVALID_FD;
+      other.m_fd = UPS_INVALID_FD;
       return (*this);
     }
 
@@ -93,7 +93,7 @@ class File
 
     // Returns true if the file is open
     bool is_open() const {
-      return (m_fd != HAM_INVALID_FD);
+      return (m_fd != UPS_INVALID_FD);
     }
 
     // Flushes a file
@@ -142,10 +142,10 @@ class File
 
   private:
     // The file handle
-    ham_fd_t m_fd;
+    ups_fd_t m_fd;
 
     // The mmap handle - required for Win32
-    ham_fd_t m_mmaph;
+    ups_fd_t m_mmaph;
 
     // Parameter for posix_fadvise()
     int m_posix_advice;
@@ -158,4 +158,4 @@ class File
 
 } // namespace hamsterdb
 
-#endif /* HAM_FILE_H */
+#endif /* UPS_FILE_H */

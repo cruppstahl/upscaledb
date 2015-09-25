@@ -22,18 +22,18 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_JOURNAL_TEST_H
-#define HAM_JOURNAL_TEST_H
+#ifndef UPS_JOURNAL_TEST_H
+#define UPS_JOURNAL_TEST_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb_int.h" // for metrics
+#include "ups/upscaledb_int.h" // for metrics
 
 #include "3journal/journal_state.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -56,4 +56,4 @@ class JournalTest
 
 } // namespace hamsterdb
 
-#endif /* HAM_JOURNAL_TEST_H */
+#endif /* UPS_JOURNAL_TEST_H */

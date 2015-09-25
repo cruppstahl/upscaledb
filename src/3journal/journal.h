@@ -34,10 +34,10 @@
  * For writing, files are buffered. The buffers are flushed when they
  * exceed a certain threshold, when a Transaction is committed or a Changeset
  * was written. In case of a commit or a changeset there will also be an
- * fsync, if HAM_ENABLE_FSYNC is enabled.
+ * fsync, if UPS_ENABLE_FSYNC is enabled.
  *
  * The physical information is a collection of pages which are modified in
- * one or more database operations (i.e. ham_db_erase). This collection is
+ * one or more database operations (i.e. ups_db_erase). This collection is
  * called a "changeset" and implemented in changeset.h/.cc. As soon as the
  * operation is finished, the changeset is flushed: if the changeset contains
  * just a single page, then this operation is atomic and is NOT logged.
@@ -67,8 +67,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_JOURNAL_H
-#define HAM_JOURNAL_H
+#ifndef UPS_JOURNAL_H
+#define UPS_JOURNAL_H
 
 #include "0root/root.h"
 
@@ -76,7 +76,7 @@
 #include <cstdio>
 #include <string>
 
-#include "ham/hamsterdb_int.h" // for metrics
+#include "ups/upscaledb_int.h" // for metrics
 
 #include "1base/dynamic_array.h"
 #include "1os/file.h"
@@ -89,7 +89,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -172,24 +172,24 @@ class Journal
       return (true);
     }
 
-    // Appends a journal entry for ham_txn_begin/kEntryTypeTxnBegin
+    // Appends a journal entry for ups_txn_begin/kEntryTypeTxnBegin
     void append_txn_begin(LocalTransaction *txn, const char *name,
                     uint64_t lsn);
 
-    // Appends a journal entry for ham_txn_abort/kEntryTypeTxnAbort
+    // Appends a journal entry for ups_txn_abort/kEntryTypeTxnAbort
     void append_txn_abort(LocalTransaction *txn, uint64_t lsn);
 
-    // Appends a journal entry for ham_txn_commit/kEntryTypeTxnCommit
+    // Appends a journal entry for ups_txn_commit/kEntryTypeTxnCommit
     void append_txn_commit(LocalTransaction *txn, uint64_t lsn);
 
-    // Appends a journal entry for ham_insert/kEntryTypeInsert
+    // Appends a journal entry for ups_insert/kEntryTypeInsert
     void append_insert(Database *db, LocalTransaction *txn,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags,
+                    ups_key_t *key, ups_record_t *record, uint32_t flags,
                     uint64_t lsn);
 
-    // Appends a journal entry for ham_erase/kEntryTypeErase
+    // Appends a journal entry for ups_erase/kEntryTypeErase
     void append_erase(Database *db, LocalTransaction *txn,
-                    ham_key_t *key, int duplicate_index, uint32_t flags,
+                    ups_key_t *key, int duplicate_index, uint32_t flags,
                     uint64_t lsn);
 
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
@@ -218,7 +218,7 @@ class Journal
     void recover(LocalTransactionManager *txn_manager);
 
     // Fills the metrics
-    void fill_metrics(ham_env_metrics_t *metrics) {
+    void fill_metrics(ups_env_metrics_t *metrics) {
       metrics->journal_bytes_flushed = m_state.count_bytes_flushed;
       metrics->journal_bytes_before_compression
               = m_state.count_bytes_before_compression;
@@ -315,7 +315,7 @@ class Journal
               && ErrorInducer::get_instance()->induce(ErrorInducer::kChangesetFlush)) {
           m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
                   m_state.buffer[idx].get_size() - 5);
-          throw Exception(HAM_INTERNAL_ERROR);
+          throw Exception(UPS_INTERNAL_ERROR);
         }
 
         m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
@@ -343,4 +343,4 @@ class Journal
 
 } // namespace hamsterdb
 
-#endif /* HAM_JOURNAL_H */
+#endif /* UPS_JOURNAL_H */

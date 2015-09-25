@@ -33,7 +33,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "4context/context.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -74,7 +74,7 @@ async_flush_pages(AsyncFlushMessage *message)
     page_data = message->page_manager->try_lock_purge_candidate(*it);
     if (!page_data)
       continue;
-    ham_assert(page_data->mutex.try_lock() == false);
+    ups_assert(page_data->mutex.try_lock() == false);
 
     // flush dirty pages
     if (page_data->is_dirty) {
@@ -136,7 +136,7 @@ PageManager::initialize(uint64_t pageid)
     delete m_state.state_page;
   m_state.state_page = new Page(m_state.device);
   m_state.state_page->fetch(pageid);
-  if (m_state.config.flags & HAM_ENABLE_CRC32)
+  if (m_state.config.flags & UPS_ENABLE_CRC32)
     verify_crc32(m_state.state_page);
 
   Page *page = m_state.state_page;
@@ -145,7 +145,7 @@ PageManager::initialize(uint64_t pageid)
   m_state.last_blob_page_id = *(uint64_t *)page->get_payload();
 
   while (1) {
-    ham_assert(page->get_type() == Page::kTypePageManager);
+    ups_assert(page->get_type() == Page::kTypePageManager);
     uint8_t *p = page->get_payload();
     // skip m_state.last_blob_page_id?
     if (page == m_state.state_page)
@@ -231,7 +231,7 @@ PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
 }
 
 void
-PageManager::fill_metrics(ham_env_metrics_t *metrics) const
+PageManager::fill_metrics(ups_env_metrics_t *metrics) const
 {
   metrics->page_count_fetched = m_state.page_count_fetched;
   metrics->page_count_flushed = Page::ms_page_count_flushed;
@@ -296,7 +296,7 @@ PageManager::purge_cache(Context *context)
   //   1. this is an in-memory Environment
   //   2. there's still a "purge cache" operation pending
   //   3. the cache is not full
-  if (m_state.config.flags & HAM_IN_MEMORY
+  if (m_state.config.flags & UPS_IN_MEMORY
       || (m_state.message && m_state.message->in_progress == true)
       || !m_state.cache.is_cache_full())
     return;
@@ -321,7 +321,7 @@ PageManager::purge_cache(Context *context)
                   it++) {
     Page *page = *it;
     if (page->mutex().try_lock()) {
-      ham_assert(page->cursor_list() == 0);
+      ups_assert(page->cursor_list() == 0);
       m_state.cache.del(page);
       page->mutex().unlock();
       delete page;
@@ -338,7 +338,7 @@ PageManager::reclaim_space(Context *context)
     m_state.last_blob_page_id = m_state.last_blob_page->get_address();
     m_state.last_blob_page = 0;
   }
-  ham_assert(!(m_state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL));
+  ups_assert(!(m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL));
 
   bool do_truncate = false;
   uint32_t page_size = m_state.config.page_size_bytes;
@@ -436,9 +436,9 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 {
   ScopedSpinlock lock(m_state.mutex);
 
-  ham_assert(page_count > 0);
+  ups_assert(page_count > 0);
 
-  if (m_state.config.flags & HAM_IN_MEMORY)
+  if (m_state.config.flags & UPS_IN_MEMORY)
     return;
 
   // remove the page(s) from the changeset
@@ -454,7 +454,7 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 
   m_state.needs_flush = true;
   m_state.freelist.put(page->get_address(), page_count);
-  ham_assert(page->get_address() % m_state.config.page_size_bytes == 0);
+  ups_assert(page->get_address() % m_state.config.page_size_bytes == 0);
 
   if (page->get_node_proxy()) {
     delete page->get_node_proxy();
@@ -471,8 +471,8 @@ PageManager::close(Context *context)
   // no need to lock the mutex; this method is called during shutdown
 
   // store the state of the PageManager
-  if ((m_state.config.flags & HAM_IN_MEMORY) == 0
-      && (m_state.config.flags & HAM_READ_ONLY) == 0) {
+  if ((m_state.config.flags & UPS_IN_MEMORY) == 0
+      && (m_state.config.flags & UPS_READ_ONLY) == 0) {
     maybe_store_state(context, true);
   }
 
@@ -483,14 +483,14 @@ PageManager::close(Context *context)
   // reclaim unused disk space
   // if logging is enabled: also flush the changeset to write back the
   // modified freelist pages
-  bool try_reclaim = m_state.config.flags & HAM_DISABLE_RECLAIM_INTERNAL
+  bool try_reclaim = m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL
                 ? false
                 : true;
 
 #ifdef WIN32
   // Win32: it's not possible to truncate the file while there's an active
   // mapping, therefore only reclaim if memory mapped I/O is disabled
-  if (!(m_state.config.flags & HAM_DISABLE_MMAP))
+  if (!(m_state.config.flags & UPS_DISABLE_MMAP))
     try_reclaim = false;
 #endif
 
@@ -564,7 +564,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
   }
 
   if ((flags & PageManager::kOnlyFromCache)
-          || m_state.config.flags & HAM_IN_MEMORY)
+          || m_state.config.flags & UPS_IN_MEMORY)
     return (0);
 
   page = new Page(m_state.device, context->db);
@@ -576,7 +576,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
     throw ex;
   }
 
-  ham_assert(page->get_data());
+  ups_assert(page->get_data());
 
   /* store the page in the list */
   m_state.cache.put(page);
@@ -588,7 +588,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
 
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
-  else if (m_state.config.flags & HAM_ENABLE_CRC32)
+  else if (m_state.config.flags & UPS_ENABLE_CRC32)
     verify_crc32(page);
 
   m_state.page_count_fetched++;
@@ -609,7 +609,7 @@ PageManager::alloc_unlocked(Context *context, uint32_t page_type,
     address = m_state.freelist.alloc(1);
 
     if (address != 0) {
-      ham_assert(address % page_size == 0);
+      ups_assert(address % page_size == 0);
       m_state.needs_flush = true;
 
       /* try to fetch the page from the cache */
@@ -777,7 +777,7 @@ PageManager::store_state(Context *context)
 void
 PageManager::maybe_store_state(Context *context, bool force)
 {
-  if (force || (m_state.config.flags & HAM_ENABLE_RECOVERY)) {
+  if (force || (m_state.config.flags & UPS_ENABLE_RECOVERY)) {
     uint64_t new_blobid = store_state(context);
     if (new_blobid != m_state.header->page_manager_blobid()) {
       m_state.header->set_page_manager_blobid(new_blobid);
@@ -818,7 +818,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
 
   context->changeset.put(page);
 
-  ham_assert(page->mutex().try_lock() == false);
+  ups_assert(page->mutex().try_lock() == false);
 
   // make sure that the old data is not leaked
   if (old_data != 0)
@@ -925,9 +925,9 @@ PageManager::verify_crc32(Page *page)
                   page->get_persisted_data()->size - (sizeof(PPageHeader) - 1),
                   (uint32_t)page->get_address(), &crc32);
   if (crc32 != page->get_crc32()) {
-    ham_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+    ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
                     page->get_address(), crc32, page->get_crc32()));
-    throw Exception(HAM_INTEGRITY_VIOLATED);
+    throw Exception(UPS_INTEGRITY_VIOLATED);
   }
 }
 

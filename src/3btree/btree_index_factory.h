@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_INDEX_FACTORY_H
-#define HAM_BTREE_INDEX_FACTORY_H
+#ifndef UPS_BTREE_INDEX_FACTORY_H
+#define UPS_BTREE_INDEX_FACTORY_H
 
 #include "0root/root.h"
 
@@ -47,7 +47,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "4db/db_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -64,8 +64,8 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
     // Returns -1, 0, +1 or higher positive values are the result of a
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(LocalDatabase *db, ham_key_t *lhs,
-            ham_key_t *rhs) const {
+    virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
+            ups_key_t *rhs) const {
       Comparator cmp(db);
       return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
     }
@@ -89,14 +89,14 @@ struct BtreeIndexFactory
 {
   static BtreeIndexTraits *create(LocalDatabase *db, uint32_t flags,
                 uint16_t key_type, uint16_t key_size, bool is_leaf) {
-    bool inline_records = (is_leaf && (flags & HAM_FORCE_RECORDS_INLINE));
-    bool fixed_keys = (key_size != HAM_KEY_SIZE_UNLIMITED);
-    bool use_duplicates = (flags & HAM_ENABLE_DUPLICATES) != 0;
+    bool inline_records = (is_leaf && (flags & UPS_FORCE_RECORDS_INLINE));
+    bool fixed_keys = (key_size != UPS_KEY_SIZE_UNLIMITED);
+    bool use_duplicates = (flags & UPS_ENABLE_DUPLICATES) != 0;
     int key_compression = db->config().key_compressor;
 
     switch (key_type) {
       // 8bit unsigned integer
-      case HAM_TYPE_UINT8:
+      case UPS_TYPE_UINT8:
         if (use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -132,7 +132,7 @@ struct BtreeIndexFactory
                       NumericCompare<uint8_t> >());
         }
       // 16bit unsigned integer
-      case HAM_TYPE_UINT16:
+      case UPS_TYPE_UINT16:
         if (use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -168,14 +168,14 @@ struct BtreeIndexFactory
                       NumericCompare<uint16_t> >());
         }
       // 32bit unsigned integer
-      case HAM_TYPE_UINT32:
+      case UPS_TYPE_UINT32:
         if (use_duplicates) {
           if (key_compression > 0) {
-            ham_trace(("key compression is not enabled for duplicate keys"));
+            ups_trace(("key compression is not enabled for duplicate keys"));
             // If required then just extend the code here. The KeyList
             // implementation itself will work. Only this file has to
             // be adjusted.
-            throw Exception(HAM_NOT_IMPLEMENTED);
+            throw Exception(UPS_NOT_IMPLEMENTED);
           }
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -194,7 +194,7 @@ struct BtreeIndexFactory
                   NumericCompare<uint32_t> >());
         }
         else {
-          if (key_compression == HAM_COMPRESSOR_UINT32_VARBYTE) {
+          if (key_compression == UPS_COMPRESSOR_UINT32_VARBYTE) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -211,7 +211,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_SIMDCOMP) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDCOMP) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -228,7 +228,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_FOR) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_FOR) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -245,7 +245,7 @@ struct BtreeIndexFactory
                             PaxLayout::DefaultRecordList>,
                       NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_SIMDFOR) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDFOR) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -262,7 +262,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_GROUPVARINT) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_GROUPVARINT) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -279,7 +279,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_STREAMVBYTE) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_STREAMVBYTE) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -296,7 +296,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_MASKEDVBYTE) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -313,7 +313,7 @@ struct BtreeIndexFactory
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == HAM_COMPRESSOR_UINT32_BLOCKINDEX) {
+          else if (key_compression == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -349,7 +349,7 @@ struct BtreeIndexFactory
           }
         }
       // 64bit unsigned integer
-      case HAM_TYPE_UINT64:
+      case UPS_TYPE_UINT64:
         if (use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -385,7 +385,7 @@ struct BtreeIndexFactory
                       NumericCompare<uint64_t> >());
         }
       // 32bit float
-      case HAM_TYPE_REAL32:
+      case UPS_TYPE_REAL32:
         if (use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -421,7 +421,7 @@ struct BtreeIndexFactory
                       NumericCompare<float> >());
         }
       // 64bit double
-      case HAM_TYPE_REAL64:
+      case UPS_TYPE_REAL64:
         if (use_duplicates) {
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
@@ -457,7 +457,7 @@ struct BtreeIndexFactory
                       NumericCompare<double> >());
         }
       // Callback function provided by user?
-      case HAM_TYPE_CUSTOM:
+      case UPS_TYPE_CUSTOM:
         // Fixed keys, no duplicates
         if (fixed_keys && !use_duplicates) {
           if (!is_leaf)
@@ -520,9 +520,9 @@ struct BtreeIndexFactory
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateDefaultRecordList>,
                   CallbackCompare >());
-        ham_assert(!"shouldn't be here");
+        ups_assert(!"shouldn't be here");
       // BINARY is the default:
-      case HAM_TYPE_BINARY:
+      case UPS_TYPE_BINARY:
         // Fixed keys, no duplicates
         if (fixed_keys && !use_duplicates) {
           if (!is_leaf)
@@ -585,16 +585,16 @@ struct BtreeIndexFactory
                   DefaultNodeImpl<DefLayout::VariableLengthKeyList,
                         DefLayout::DuplicateDefaultRecordList>,
                   VariableSizeCompare >());
-        ham_assert(!"shouldn't be here");
+        ups_assert(!"shouldn't be here");
       default:
         break;
     }
 
-    ham_assert(!"shouldn't be here");
+    ups_assert(!"shouldn't be here");
     return (0);
   }
 };
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_INDEX_FACTORY_H */
+#endif /* UPS_BTREE_INDEX_FACTORY_H */

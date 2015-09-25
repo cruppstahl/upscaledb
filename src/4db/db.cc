@@ -21,7 +21,7 @@
 #include "4db/db.h"
 #include "4cursor/cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -32,7 +32,7 @@ Database::Database(Environment *env, DatabaseConfiguration &config)
 {
 }
 
-ham_status_t
+ups_status_t
 Database::cursor_create(Cursor **pcursor, Transaction *txn, uint32_t flags)
 {
   try {
@@ -56,7 +56,7 @@ Database::cursor_create(Cursor **pcursor, Transaction *txn, uint32_t flags)
   }
 }
 
-ham_status_t
+ups_status_t
 Database::cursor_clone(Cursor **pdest, Cursor *src)
 {
   try {
@@ -65,7 +65,7 @@ Database::cursor_clone(Cursor **pdest, Cursor *src)
     // fix the linked list of cursors
     dest->set_previous(0);
     dest->set_next(m_cursor_list);
-    ham_assert(m_cursor_list != 0);
+    ups_assert(m_cursor_list != 0);
     m_cursor_list->set_previous(dest);
     m_cursor_list = dest;
 
@@ -82,7 +82,7 @@ Database::cursor_clone(Cursor **pdest, Cursor *src)
   }
 }
 
-ham_status_t
+ups_status_t
 Database::cursor_close(Cursor *cursor)
 {
   try {
@@ -120,22 +120,22 @@ Database::cursor_close(Cursor *cursor)
 }
 
 // No need to catch Exceptions - they're caught in Environment::close_db
-ham_status_t
+ups_status_t
 Database::close(uint32_t flags)
 {
   // auto-cleanup cursors?
-  if (flags & HAM_AUTO_CLEANUP) {
+  if (flags & UPS_AUTO_CLEANUP) {
     Cursor *cursor;
     while ((cursor = m_cursor_list))
       cursor_close(cursor);
   }
   else if (m_cursor_list) {
-    ham_trace(("cannot close Database if Cursors are still open"));
-    return (set_error(HAM_CURSOR_STILL_OPEN));
+    ups_trace(("cannot close Database if Cursors are still open"));
+    return (set_error(UPS_CURSOR_STILL_OPEN));
   }
 
   // the derived classes can now do the bulk of the work
-  ham_status_t st = close_impl(flags);
+  ups_status_t st = close_impl(flags);
   if (st)
     return (set_error(st));
 

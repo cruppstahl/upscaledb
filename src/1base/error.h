@@ -22,16 +22,16 @@
  * @thread_safe: no (b/c of the logging macros)
  */
 
-#ifndef HAM_ERROR_H
-#define HAM_ERROR_H
+#ifndef UPS_ERROR_H
+#define UPS_ERROR_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -42,15 +42,15 @@ namespace hamsterdb {
 //
 struct Exception
 {
-  Exception(ham_status_t st)
+  Exception(ups_status_t st)
     : code(st) {
   }
 
-  ham_status_t code;
+  ups_status_t code;
 };
 
 // the default error handler
-void HAM_CALLCONV
+void UPS_CALLCONV
 default_errhandler(int level, const char *message);
 
 extern void
@@ -74,7 +74,7 @@ dbg_verify_failed(int level, const char *file, int line,
                 const char *function, const char *expr) CLANG_ANALYZER_NORETURN;
 
 // a hook for unittests; will be triggered when an assert fails
-extern void (*ham_test_abort)();
+extern void (*ups_test_abort)();
 
 // if your compiler does not support __FUNCTION__, you can define it here:
 //  #define __FUNCTION__ 0
@@ -88,34 +88,34 @@ extern void (*ham_test_abort)();
  * arguments like a single argument. and we need to lock the output,
  * otherwise we are not thread-safe. this is super-ugly.
  */
-#ifdef HAM_DEBUG
-#   define ham_assert(e) while (!(e)) {                                       \
-                hamsterdb::dbg_verify_failed(HAM_DEBUG_LEVEL_FATAL, __FILE__, \
+#ifdef UPS_DEBUG
+#   define ups_assert(e) while (!(e)) {                                       \
+                hamsterdb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
                         __LINE__, __FUNCTION__, #e);                          \
                 break;                                                        \
               }
-#else /* !HAM_DEBUG */
-#   define ham_assert(e)      (void)0
-#endif /* HAM_DEBUG */
+#else /* !UPS_DEBUG */
+#   define ups_assert(e)      (void)0
+#endif /* UPS_DEBUG */
 
-// ham_log() and ham_verify() are available in every build
-#define ham_trace(f)     do {                                                 \
-                hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_DEBUG, __FILE__,       \
+// ups_log() and ups_verify() are available in every build
+#define ups_trace(f)     do {                                                 \
+                hamsterdb::dbg_prepare(UPS_DEBUG_LEVEL_DEBUG, __FILE__,       \
                     __LINE__, __FUNCTION__, 0);                               \
                 hamsterdb::dbg_log f;                                         \
               } while (0)
 
-#define ham_log(f)       do {                                                 \
-                hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_NORMAL, __FILE__,      \
+#define ups_log(f)       do {                                                 \
+                hamsterdb::dbg_prepare(UPS_DEBUG_LEVEL_NORMAL, __FILE__,      \
                     __LINE__, __FUNCTION__, 0);                               \
                 hamsterdb::dbg_log f;                                         \
               } while (0)
 
-#define ham_verify(e)      if (!(e)) {                                        \
-                hamsterdb::dbg_verify_failed(HAM_DEBUG_LEVEL_FATAL, __FILE__, \
+#define ups_verify(e)      if (!(e)) {                                        \
+                hamsterdb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
                         __LINE__, __FUNCTION__, #e);                          \
               }
 
 } // namespace hamsterdb
 
-#endif /* HAM_ERROR_H */
+#endif /* UPS_ERROR_H */

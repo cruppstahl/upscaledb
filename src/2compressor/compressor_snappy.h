@@ -22,10 +22,10 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_SNAPPY_H
-#define HAM_COMPRESSOR_SNAPPY_H
+#ifndef UPS_COMPRESSOR_SNAPPY_H
+#define UPS_COMPRESSOR_SNAPPY_H
 
-#ifdef HAM_ENABLE_COMPRESSION
+#ifdef UPS_ENABLE_COMPRESSION
 
 #ifdef HAVE_SNAPPY_H
 
@@ -36,7 +36,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "2compressor/compressor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -64,7 +64,7 @@ class SnappyCompressor : public Compressor {
       size_t real_outlength = outlength;
       snappy::RawCompress((const char *)inp, inlength,
                 (char *)outp, &real_outlength);
-      ham_assert(real_outlength <= outlength);
+      ups_assert(real_outlength <= outlength);
       return (real_outlength);
     }
 
@@ -72,10 +72,10 @@ class SnappyCompressor : public Compressor {
     // |m_arena| which has sufficient size for the decompressed data.
     virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
                             uint8_t *outp, uint32_t outlength) {
-      ham_assert(snappy::IsValidCompressedBuffer((const char *)inp, inlength));
+      ups_assert(snappy::IsValidCompressedBuffer((const char *)inp, inlength));
       if (!snappy::RawUncompress((const char *)inp, inlength,
                   (char *)outp))
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
     }
 };
 
@@ -83,6 +83,6 @@ class SnappyCompressor : public Compressor {
 
 #endif // HAVE_SNAPPY_H
 
-#endif // HAM_ENABLE_COMPRESSION
+#endif // UPS_ENABLE_COMPRESSION
 
-#endif // HAM_COMPRESSOR_SNAPPY_H
+#endif // UPS_COMPRESSOR_SNAPPY_H

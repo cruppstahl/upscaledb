@@ -23,20 +23,20 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_SOCKET_H
-#define HAM_SOCKET_H
+#ifndef UPS_SOCKET_H
+#define UPS_SOCKET_H
 
 #include "0root/root.h"
 
 #include <stdio.h>
 #include <limits.h>
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1os/os.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -47,7 +47,7 @@ class Socket
   public:
     // Constructor creates an empty socket
     Socket()
-      : m_socket(HAM_INVALID_FD) {
+      : m_socket(UPS_INVALID_FD) {
     }
 
     // Destructor closes the socket
@@ -68,9 +68,9 @@ class Socket
     void close();
 
   private:
-    ham_socket_t m_socket;
+    ups_socket_t m_socket;
 };
 
 } // namespace hamsterdb
 
-#endif /* HAM_SOCKET_H */
+#endif /* UPS_SOCKET_H */

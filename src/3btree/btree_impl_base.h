@@ -22,8 +22,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_IMPL_BASE_H
-#define HAM_BTREE_IMPL_BASE_H
+#ifndef UPS_BTREE_IMPL_BASE_H
+#define UPS_BTREE_IMPL_BASE_H
 
 #include "0root/root.h"
 
@@ -37,7 +37,7 @@
 #include "3btree/btree_node.h"
 #include "3btree/btree_keys_base.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -67,7 +67,7 @@ class BaseNodeImpl
 
     // Returns a copy of a key and stores it in |dest|
     void get_key(Context *context, int slot, ByteArray *arena,
-                    ham_key_t *dest) {
+                    ups_key_t *dest) {
       // copy (or assign) the key data
       m_keys.get_key(context, slot, arena, dest, true);
     }
@@ -84,25 +84,25 @@ class BaseNodeImpl
 
     // Returns the full record and stores it in |dest|
     void get_record(Context *context, int slot, ByteArray *arena,
-                    ham_record_t *record, uint32_t flags, int duplicate_index) {
+                    ups_record_t *record, uint32_t flags, int duplicate_index) {
       // copy the record data
       m_records.get_record(context, slot, arena, record,
                       flags, duplicate_index);
     }
 
     // Updates the record of a key
-    void set_record(Context *context, int slot, ham_record_t *record,
+    void set_record(Context *context, int slot, ups_record_t *record,
                     int duplicate_index, uint32_t flags,
                     uint32_t *new_duplicate_index) {
       // automatically overwrite an existing key unless this is a
       // duplicate operation
-      if ((flags & (HAM_DUPLICATE
-                    | HAM_DUPLICATE
-                    | HAM_DUPLICATE_INSERT_BEFORE
-                    | HAM_DUPLICATE_INSERT_AFTER
-                    | HAM_DUPLICATE_INSERT_FIRST
-                    | HAM_DUPLICATE_INSERT_LAST)) == 0)
-        flags |= HAM_OVERWRITE;
+      if ((flags & (UPS_DUPLICATE
+                    | UPS_DUPLICATE
+                    | UPS_DUPLICATE_INSERT_BEFORE
+                    | UPS_DUPLICATE_INSERT_AFTER
+                    | UPS_DUPLICATE_INSERT_FIRST
+                    | UPS_DUPLICATE_INSERT_LAST)) == 0)
+        flags |= UPS_OVERWRITE;
 
       m_records.set_record(context, slot, duplicate_index, record, flags,
               new_duplicate_index);
@@ -134,7 +134,7 @@ class BaseNodeImpl
     // However, compressed KeyLists can overwrite this behaviour and
     // combine both calls into one to save performance. 
     template<typename Cmp>
-    PBtreeNode::InsertResult insert(Context *context, ham_key_t *key,
+    PBtreeNode::InsertResult insert(Context *context, ups_key_t *key,
                     uint32_t flags, Cmp &comparator) {
       PBtreeNode::InsertResult result(0, 0);
       size_t node_count = m_node->get_count();
@@ -155,11 +155,11 @@ class BaseNodeImpl
           /* insert the new key at the beginning? */
           if (result.slot == -1) {
             result.slot = 0;
-            ham_assert(cmp != 0);
+            ups_assert(cmp != 0);
           }
           /* key exists already */
           else if (cmp == 0) {
-            result.status = HAM_DUPLICATE_KEY;
+            result.status = UPS_DUPLICATE_KEY;
             return (result);
           }
           /* if the new key is > than the slot key: move to the next slot */
@@ -186,14 +186,14 @@ class BaseNodeImpl
 
     // Compares two keys using the supplied comparator
     template<typename Cmp>
-    int compare(Context *context, const ham_key_t *lhs,
+    int compare(Context *context, const ups_key_t *lhs,
                     uint32_t rhs, Cmp &cmp) {
       if (KeyList::kHasSequentialData) {
         return (cmp(lhs->data, lhs->size, m_keys.get_key_data(rhs),
                                 m_keys.get_key_size(rhs)));
       }
       else {
-        ham_key_t tmp = {0};
+        ups_key_t tmp = {0};
         m_keys.get_key(context, rhs, &m_arena, &tmp, false);
         return (cmp(lhs->data, lhs->size, tmp.data, tmp.size));
       }
@@ -201,7 +201,7 @@ class BaseNodeImpl
 
     // Searches the node for the key and returns the slot of this key
     template<typename Cmp>
-    int find_lower_bound(Context *context, ham_key_t *key, Cmp &comparator,
+    int find_lower_bound(Context *context, ups_key_t *key, Cmp &comparator,
                     uint64_t *precord_id, int *pcmp) {
       int slot = find_lower_bound_impl(context, key, comparator, pcmp);
       if (precord_id) {
@@ -216,7 +216,7 @@ class BaseNodeImpl
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     template<typename Cmp>
-    int find(Context *context, ham_key_t *key, Cmp &comparator) {
+    int find(Context *context, ups_key_t *key, Cmp &comparator) {
       return (find_impl(context, key, comparator));
     }
 
@@ -271,7 +271,7 @@ class BaseNodeImpl
 
     // Reorganize this node; re-arranges capacities of KeyList and RecordList
     // in order to free space and avoid splits
-    bool reorganize(Context *context, const ham_key_t *key) const {
+    bool reorganize(Context *context, const ups_key_t *key) const {
       return (false);
     }
 
@@ -327,7 +327,7 @@ class BaseNodeImpl
     // is no exact match then the lower bound is returned, and the compare value
     // is returned in |*pcmp|.
     template<typename Cmp>
-    int find_lower_bound_impl(Context *context, const ham_key_t *key,
+    int find_lower_bound_impl(Context *context, const ups_key_t *key,
                     Cmp &comparator, int *pcmp) {
       if (KeyList::kCustomFindLowerBound)
         return (m_keys.find_lower_bound(context, m_node->get_count(), key,
@@ -339,7 +339,7 @@ class BaseNodeImpl
     // Implementation of the find method for exact matches. Supports a custom
     // search implementation in the KeyList (i.e. for SIMD).
     template<typename Cmp>
-    int find_impl(Context *context, const ham_key_t *key, Cmp &comparator) {
+    int find_impl(Context *context, const ups_key_t *key, Cmp &comparator) {
       if (KeyList::kCustomFind)
         return (m_keys.find(context, m_node->get_count(), key, comparator));
 
@@ -352,7 +352,7 @@ class BaseNodeImpl
 
     // Binary search
     template<typename Cmp>
-    int find_impl_binary(Context *context, const ham_key_t *key,
+    int find_impl_binary(Context *context, const ups_key_t *key,
             Cmp &comparator, int *pcmp) {
       int right = (int)m_node->get_count();
       int left = 0;
@@ -380,7 +380,7 @@ class BaseNodeImpl
         /* if the key is bigger than the item: search "to the left" */
         if (*pcmp < 0) {
           if (right == 0) {
-            ham_assert(middle == 0);
+            ups_assert(middle == 0);
             return (-1);
           }
           right = middle;
@@ -401,4 +401,4 @@ class BaseNodeImpl
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_IMPL_BASE_H */
+#endif /* UPS_BTREE_IMPL_BASE_H */

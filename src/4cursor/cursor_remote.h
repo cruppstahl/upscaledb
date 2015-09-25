@@ -22,10 +22,10 @@
  * @thread_safe: unknown
  */
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 
-#ifndef HAM_CURSOR_REMOTE_H
-#define HAM_CURSOR_REMOTE_H
+#ifndef UPS_CURSOR_REMOTE_H
+#define UPS_CURSOR_REMOTE_H
 
 #include "0root/root.h"
 
@@ -33,7 +33,7 @@
 #include "4db/db_remote.h"
 #include "4cursor/cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -60,22 +60,22 @@ class RemoteCursor : public Cursor
       m_remote_handle = handle;
     }
 
-    // Closes the cursor (ham_cursor_close)
+    // Closes the cursor (ups_cursor_close)
     virtual void close();
 
   private:
     // Implementation of overwrite()
-    virtual ham_status_t do_overwrite(ham_record_t *record, uint32_t flags);
+    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags);
 
-    // Returns number of duplicates (ham_cursor_get_duplicate_count)
-    virtual ham_status_t do_get_duplicate_count(uint32_t flags,
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
+    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
                                 uint32_t *pcount);
 
-    // Get current record size (ham_cursor_get_record_size)
-    virtual ham_status_t do_get_record_size(uint64_t *psize);
+    // Get current record size (ups_cursor_get_record_size)
+    virtual ups_status_t do_get_record_size(uint64_t *psize);
 
     // Implementation of get_duplicate_position()
-    virtual ham_status_t do_get_duplicate_position(uint32_t *pposition);
+    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition);
 
     // Returns the RemoteDatabase instance
     RemoteDatabase *rdb() {
@@ -93,6 +93,6 @@ class RemoteCursor : public Cursor
 
 } // namespace hamsterdb
 
-#endif /* HAM_CURSOR_REMOTE_H */
+#endif /* UPS_CURSOR_REMOTE_H */
 
-#endif /* HAM_ENABLE_REMOTE */
+#endif /* UPS_ENABLE_REMOTE */

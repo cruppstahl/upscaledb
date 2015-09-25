@@ -19,7 +19,7 @@
 
 #include "utils.h"
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 #include "2page/page.h"
 #include "3btree/btree_index.h"
@@ -37,27 +37,27 @@
 namespace hamsterdb {
 
 struct DbFixture {
-  ham_db_t *m_db;
+  ups_db_t *m_db;
   LocalDatabase *m_dbp;
-  ham_env_t *m_env;
+  ups_env_t *m_env;
   bool m_inmemory;
   ScopedPtr<Context> m_context;
 
   DbFixture(bool inmemory = false)
     : m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory) {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"),
+            (m_inmemory ? UPS_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13,
-            HAM_ENABLE_DUPLICATE_KEYS, 0));
+        ups_env_create_db(m_env, &m_db, 13,
+            UPS_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDatabase *)m_db;
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 
   ~DbFixture() {
     m_context->changeset.clear();
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void headerTest() {
@@ -73,7 +73,7 @@ struct DbFixture {
   }
 
   void defaultCompareTest() {
-    ham_key_t key1 = {0}, key2 = {0};
+    ups_key_t key1 = {0}, key2 = {0};
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)"abc";

@@ -22,19 +22,19 @@
  * @thread_safe no
  */
 
-#ifndef HAM_ENV_CONFIG_H
-#define HAM_ENV_CONFIG_H
+#ifndef UPS_ENV_CONFIG_H
+#define UPS_ENV_CONFIG_H
 
 #include "0root/root.h"
 
 #include <string>
 #include <limits>
 
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -47,12 +47,12 @@ struct EnvironmentConfiguration
   // Constructor initializes with default values
   EnvironmentConfiguration()
     : flags(0), file_mode(0644), max_databases(0),
-      page_size_bytes(HAM_DEFAULT_PAGE_SIZE),
-      cache_size_bytes(HAM_DEFAULT_CACHE_SIZE),
+      page_size_bytes(UPS_DEFAULT_PAGE_SIZE),
+      cache_size_bytes(UPS_DEFAULT_CACHE_SIZE),
       file_size_limit_bytes(std::numeric_limits<size_t>::max()), 
       remote_timeout_sec(0), journal_compressor(0),
       is_encryption_enabled(false), journal_switch_threshold(0),
-      posix_advice(HAM_POSIX_FADVICE_NORMAL) {
+      posix_advice(UPS_POSIX_FADVICE_NORMAL) {
   }
 
   // the environment's flags
@@ -100,4 +100,4 @@ struct EnvironmentConfiguration
 
 } // namespace hamsterdb
 
-#endif // HAM_ENV_CONFIG_H
+#endif // UPS_ENV_CONFIG_H

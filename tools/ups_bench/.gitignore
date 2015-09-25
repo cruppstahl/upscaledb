@@ -1,0 +1,10 @@
+*.db
+*.db.elog
+*.db.log*
+ups_bench
+ups_bench.exe
+*.o
+gnuplot*
+*.dat
+*.png
+graph.dot

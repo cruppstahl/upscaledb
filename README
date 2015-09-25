@@ -1,13 +1,13 @@
-hamsterdb 2.1.11                                   Mi 6. Mai 09:40:22 CEST 2015
-(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
+upscaledb 2.1.11                                   Mi 6. Mai 09:40:22 CEST 2015
+(C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
-This is the README file of hamsterdb.
+This is the README file of upscaledb.
 
 Contents:
 
 1. About
 
-hamsterdb is a database engine written in C/C++. It is fast, production-proven
+upscaledb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
 This release has several bug fixes (see below for a list). One bug is a race
@@ -33,12 +33,12 @@ Bugfixes
 
 Other Changes
 * Reducing I/O operations by allocating large buffers if file grows fast
-* Add InsertRecNo method to hamsterdb-dotnet (thanks, mjmckp)
+* Add InsertRecNo method to upscaledb-dotnet (thanks, mjmckp)
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
-- See https://github.com/cruppstahl/hamsterdb/wiki/Roadmap
+- See https://github.com/cruppstahl/upscaledb/wiki/Roadmap
 
 4. Features
 
@@ -72,13 +72,13 @@ To see a list of all changes, look in the file ChangeLog.
 
 5. Known Issues/Bugs
 
-See https://github.com/cruppstahl/hamsterdb/issues.
+See https://github.com/cruppstahl/upscaledb/issues.
 
 6. Compiling
 
 6.1 Linux, MacOS and other Unix systems
 
-To compile hamsterdb, run ./configure, make, make install.
+To compile upscaledb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library,
 build with debugging symbols etc).
@@ -87,7 +87,7 @@ build with debugging symbols etc).
 
 A Solution file is provided for Microsoft Visual C++ in the "win32" folder
 for MSVC 2010 and MSVC 2013.
-All libraries can be downloaded precompiled from the hamsterdb webpage.
+All libraries can be downloaded precompiled from the upscaledb webpage.
 
 To download Microsoft Visual Studio Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
@@ -106,23 +106,23 @@ On Ubuntu, the following packages are required:
       https://github.com/joyent/libuv)
 
 For Windows, precompiled dependencies are available here:
-https://github.com/cruppstahl/hamsterdb-alien
+https://github.com/cruppstahl/upscaledb-alien
 
 7. Testing and Example Code
 
 Make automatically compiles several example programs in the directory
-'samples'. To see hamsterdb in action, just run 'samples/db1'
+'samples'. To see upscaledb in action, just run 'samples/db1'
 or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
 
 The header files in 'include/ham' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
-documentation is also available on the hamsterdb web page.
+documentation is also available on the upscaledb web page.
 
-9. Other Ways to Compile hamsterdb
+9. Other Ways to Compile upscaledb
 
-If you want to compile hamsterdb without using the provided ./configure
+If you want to compile upscaledb without using the provided ./configure
 environment, you have to set some preprocessor macros:
 
 DEBUG                   enable debugging output and diagnostic checks (slow!)
@@ -133,9 +133,9 @@ Also, if you compile for windows, you have to compile the file
 'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on
 non-Windows platforms.
 
-10. Porting hamsterdb
+10. Porting upscaledb
 
-Porting hamsterdb shouldn't be too difficult. All operating
+Porting upscaledb shouldn't be too difficult. All operating
 system dependend functions are declared in 'src/os.h' and defined
 in 'src/os_win32.cc' or 'src/os_posix.cc'.
 Other compiler- and OS-specific macros are in 'include/ham/types.h'.
@@ -144,11 +144,11 @@ Most likely, these are the only files which have to be touched. Also see item
 
 11. Migrating files from older versions
 
-Usually, hamsterdb releases are backwards compatible. There are some exceptions,
+Usually, upscaledb releases are backwards compatible. There are some exceptions,
 though. In this case tools are provided to migrate the database. First, export
 your existing database with ham_export linked against the old version.
 (ham_export links statically and will NOT be confused if your system has a
-newer version of hamsterdb installed). Then use the newest version of
+newer version of upscaledb installed). Then use the newest version of
 ham_import to import the data into a new database. You can find ham_export
 and ham_import in the "tools" subdirectory.
 
@@ -158,7 +158,7 @@ and ham_import in the "tools" subdirectory.
 
 12. Licensing
 
-hamsterdb is released under the GNU Public License (GPL) 3.0. See the
+upscaledb is released under the GNU Public License (GPL) 3.0. See the
 file COPYING for more information.
 
 For commercial use licenses are available. Visit http://upscaledb.com
@@ -166,12 +166,12 @@ for more information.
 
 13. Contact
 
-Author of hamsterdb is
+Author of upscaledb is
     Christoph Rupp
     Paul-Preuss-Str. 63
     80995 Muenchen/Germany
     email: chris@crupp.de
-    web: http://www.hamsterdb.com
+    web: http://www.upscaledb.com
 
 14. Other Copyrights
 

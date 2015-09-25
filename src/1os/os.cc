@@ -19,7 +19,7 @@
 
 namespace hamsterdb {
 
-#ifdef HAM_ENABLE_SIMD
+#ifdef UPS_ENABLE_SIMD
 
 // AVX might be enabled at compile time, but it's still possible that
 // it's not enabled at run-time because the CPU is an older model.
@@ -75,7 +75,7 @@ os_get_simd_lane_width()
   return (os_has_avx() ? 8 : 4);
 }
 
-#else // !HAM_ENABLE_SIMD
+#else // !UPS_ENABLE_SIMD
 
 int
 os_get_simd_lane_width()
@@ -83,7 +83,7 @@ os_get_simd_lane_width()
   return (0);
 }
 
-#endif // HAM_ENABLE_SIMD
+#endif // UPS_ENABLE_SIMD
 
 } // namespace hamsterdb
 

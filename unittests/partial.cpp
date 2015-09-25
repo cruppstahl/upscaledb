@@ -30,8 +30,8 @@ using namespace hamsterdb;
 struct PartialWriteFixture {
   uint32_t m_page_size;
   bool m_inmemory;
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
 
   PartialWriteFixture(uint32_t page_size = 0, bool inmemory = false)
     : m_page_size(page_size), m_inmemory(inmemory) {
@@ -43,25 +43,25 @@ struct PartialWriteFixture {
   }
 
   void setup() {
-    ham_parameter_t params[] = {
+    ups_parameter_t params[] = {
       { 0, 0 },
       { 0, 0 }
     };
 
     if (m_page_size) {
-      params[0].name = HAM_PARAM_PAGESIZE;
+      params[0].name = UPS_PARAM_PAGESIZE;
       params[0].value = m_page_size;
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+            m_inmemory ? UPS_IN_MEMORY : 0, 0644, &params[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   void teardown() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void fillBuffer(uint8_t *ptr, uint32_t offset, uint32_t size) {
@@ -70,8 +70,8 @@ struct PartialWriteFixture {
   }
 
   void simpleInsertTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[50];
 
     /* fill the buffer with a pattern */
@@ -82,11 +82,11 @@ struct PartialWriteFixture {
     rec.partial_size = 50;
     rec.size = 50;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
 
     REQUIRE(50u == rec.size);
     REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
@@ -94,8 +94,8 @@ struct PartialWriteFixture {
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
@@ -107,11 +107,11 @@ struct PartialWriteFixture {
     rec.partial_size = partial_size;
     rec.size = record_size;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -257,8 +257,8 @@ struct OverwritePartialWriteFixture : public PartialWriteFixture {
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
@@ -267,7 +267,7 @@ struct OverwritePartialWriteFixture : public PartialWriteFixture {
     fillBufferReverse(&buffer[0], record_size);
     rec.size = record_size;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -278,11 +278,11 @@ struct OverwritePartialWriteFixture : public PartialWriteFixture {
     rec.size = record_size;
     rec.data = buffer;
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL | UPS_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
 
     fillBufferReverse(&buffer[0], record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -315,8 +315,8 @@ struct ShrinkPartialWriteFixture : public PartialWriteFixture {
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t *buffer = (uint8_t *)malloc(record_size * 2);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
@@ -326,7 +326,7 @@ struct ShrinkPartialWriteFixture : public PartialWriteFixture {
     fillBufferReverse(&buffer[0], record_size * 2);
     rec.size = record_size * 2;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -337,11 +337,11 @@ struct ShrinkPartialWriteFixture : public PartialWriteFixture {
     rec.size = record_size;
     rec.data = buffer;
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL | UPS_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
 
     fillBufferReverse(&buffer[0], record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -570,8 +570,8 @@ struct GrowPartialWriteFixture : public PartialWriteFixture {
 
   virtual void insertGaps(unsigned partial_offset,
           unsigned partial_size, unsigned record_size) {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     REQUIRE((unsigned)(partial_offset + partial_size) <= record_size);
@@ -581,7 +581,7 @@ struct GrowPartialWriteFixture : public PartialWriteFixture {
     fillBufferReverse(&buffer[0], record_size);
     rec.size = record_size / 2;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -592,11 +592,11 @@ struct GrowPartialWriteFixture : public PartialWriteFixture {
     rec.size = record_size;
     rec.data = buffer;
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL|HAM_OVERWRITE));
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL|UPS_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -817,31 +817,31 @@ struct PartialReadFixture {
   uint32_t m_page_size;
   bool m_inmemory;
   uint32_t m_find_flags;
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
 
   PartialReadFixture(uint32_t page_size = 0, bool inmemory = false,
                   uint32_t find_flags = 0)
     : m_page_size(page_size), m_inmemory(inmemory), m_find_flags(find_flags) {
-    ham_parameter_t params[] = {
+    ups_parameter_t params[] = {
       { 0, 0 },
       { 0, 0 }
     };
 
     if (m_page_size) {
-      params[0].name = HAM_PARAM_PAGESIZE;
+      params[0].name = UPS_PARAM_PAGESIZE;
       params[0].value = m_page_size;
     }
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
+        ups_env_create(&m_env, Utils::opath(".test"),
+            m_inmemory ? UPS_IN_MEMORY : 0, 0644, &params[0]));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   ~PartialReadFixture() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void fillBuffer(uint8_t *ptr, uint32_t offset, uint32_t size) {
@@ -850,8 +850,8 @@ struct PartialReadFixture {
   }
 
   void simpleFindTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[50];
 
     /* fill the buffer with a pattern */
@@ -860,14 +860,14 @@ struct PartialReadFixture {
     /* write a record of 50 bytes */
     rec.size = 50;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* read at 0, 50 (no gap) */
     memset(&rec, 0, sizeof(rec));
     rec.partial_offset = 0;
     rec.partial_size = 50;
     REQUIRE(0 ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL|m_find_flags));
 
     REQUIRE(50u == rec.size);
     REQUIRE(0 == memcmp(buffer, rec.data, rec.size));
@@ -875,8 +875,8 @@ struct PartialReadFixture {
 
   void findTest(unsigned partial_offset, unsigned partial_size,
           unsigned record_size) {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t *buffer = (uint8_t *)malloc(record_size);
 
     /* fill the buffer with a pattern */
@@ -885,14 +885,14 @@ struct PartialReadFixture {
     /* write the record */
     rec.size = record_size;
     rec.data = buffer;
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* now do the partial read */
     memset(&rec, 0, sizeof(rec));
     rec.partial_offset = partial_offset;
     rec.partial_size = partial_size;
     REQUIRE(0 ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL|m_find_flags));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[0], partial_offset, partial_size);
@@ -983,74 +983,74 @@ struct PartialReadFixture {
 #include "partial-read-direct-ps64.h"
 
 struct MiscPartialFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_inmemory;
   uint32_t m_find_flags;
 
   MiscPartialFixture(bool inmemory = false, uint32_t find_flags = 0)
     : m_inmemory(inmemory), m_find_flags(find_flags) {
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
-            m_inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
+        ups_env_create(&m_env, Utils::opath(".test"),
+            m_inmemory ? UPS_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   ~MiscPartialFixture() {
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void negativeInsertTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
-    ham_db_t *db;
-    ham_env_t *env;
+    ups_db_t *db;
+    ups_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Utils::opath(".test.db"),
-            (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
+        ups_env_create(&env, Utils::opath(".test.db"),
+            (m_inmemory ? UPS_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
+        ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(db, 0, &key, &rec, UPS_PARTIAL));
     REQUIRE(0 ==
-        ham_db_insert(db, 0, &key, &rec, 0));
+        ups_db_insert(db, 0, &key, &rec, 0));
 
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void negativeCursorInsertTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
 
-    ham_db_t *db;
-    ham_env_t *env;
+    ups_db_t *db;
+    ups_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Utils::opath(".test.db"),
-            (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
+        ups_env_create(&env, Utils::opath(".test.db"),
+            (m_inmemory ? UPS_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
+        ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_insert(c, &key, &rec, UPS_PARTIAL));
     REQUIRE(0 ==
-        ham_cursor_insert(c, &key, &rec, 0));
-    REQUIRE(0 == ham_cursor_close(c));
+        ups_cursor_insert(c, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_close(c));
 
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void invalidInsertParametersTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[500];
 
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
@@ -1058,80 +1058,80 @@ struct MiscPartialFixture {
     /* partial_offset > size */
     rec.partial_offset = 600;
     rec.partial_size = 50;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_insert(c, &key, &rec, UPS_PARTIAL));
 
     /* partial_offset + partial_size > size */
     rec.partial_offset = 100;
     rec.partial_size = 450;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_insert(c, &key, &rec, UPS_PARTIAL));
 
     /* partial_size > size */
     rec.partial_offset = 0;
     rec.partial_size = 600;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_insert(c, &key, &rec, UPS_PARTIAL));
 
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_close(c));
   }
 
   void invalidFindParametersTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[500];
 
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, 0));
+        ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* partial_offset > size */
     rec.partial_offset = 600;
     rec.partial_size = 50;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL|m_find_flags));
     REQUIRE(0 ==
-        ham_cursor_find(c, &key, 0, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ups_cursor_find(c, &key, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_move(c, &key, &rec, UPS_PARTIAL|m_find_flags));
 
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_close(c));
   }
 
   void reduceSizeTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[500];
 
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, 0));
+        ups_db_insert(m_db, 0, &key, &rec, 0));
 
     /* partial_offset + partial_size > size */
     rec.partial_offset = 100;
     rec.partial_size = 450;
     REQUIRE(0 ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL | m_find_flags));
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL | m_find_flags));
     REQUIRE(400u == rec.partial_size);
     REQUIRE(500u == rec.size);
     REQUIRE(0 ==
-        ham_cursor_find(c, &key, 0, 0));
+        ups_cursor_find(c, &key, 0, 0));
     REQUIRE(0 ==
-        ham_cursor_move(c, &key, &rec, HAM_PARTIAL | m_find_flags));
+        ups_cursor_move(c, &key, &rec, UPS_PARTIAL | m_find_flags));
     REQUIRE(400u == rec.partial_size);
     REQUIRE(500u == rec.size);
 
@@ -1139,122 +1139,122 @@ struct MiscPartialFixture {
     rec.partial_offset = 0;
     rec.partial_size = 600;
     REQUIRE(0 ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL|m_find_flags));
     REQUIRE(500u == rec.size);
     REQUIRE(0 ==
-        ham_cursor_find(c, &key, 0, 0));
+        ups_cursor_find(c, &key, 0, 0));
     REQUIRE(0 ==
-        ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ups_cursor_move(c, &key, &rec, UPS_PARTIAL|m_find_flags));
     REQUIRE(500u == rec.size);
 
-    REQUIRE(0 == ham_cursor_close(c));
+    REQUIRE(0 == ups_cursor_close(c));
   }
 
   void disabledSmallRecordsTest() {
-    ham_key_t key = {0};
-    ham_record_t rec = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
     uint8_t buffer[8];
 
     rec.data = (void *)&buffer[0];
     rec.size = 8;
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, 0));
+        ups_db_insert(m_db, 0, &key, &rec, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     rec.size = 5;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     rec.size = 8;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     rec.size = 5;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL));
 
     rec.size = 8;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL));
   }
 
   void disabledTransactionsTest() {
-    ham_db_t *db;
-    ham_env_t *env;
+    ups_db_t *db;
+    ups_env_t *env;
     REQUIRE(0 ==
-        ham_env_create(&env, Utils::opath(".test2"),
-            HAM_ENABLE_TRANSACTIONS, 0644, 0));
+        ups_env_create(&env, Utils::opath(".test2"),
+            UPS_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, 0, 0));
+        ups_env_create_db(env, &db, 1, 0, 0));
 
-    ham_cursor_t *c;
-    REQUIRE(0 == ham_cursor_create(&c, db, 0, 0));
+    ups_cursor_t *c;
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[16] = {0};
 
     rec.data = (void *)&buffer[0];
     rec.size = 16;
     REQUIRE(0 ==
-        ham_db_insert(db, 0, &key, &rec, 0));
+        ups_db_insert(db, 0, &key, &rec, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_insert(db, 0, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_insert(c, &key, &rec, UPS_PARTIAL));
 
     rec.partial_offset = 0;
     rec.partial_size = 1;
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_db_find(db, 0, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_find(c, &key, &rec, HAM_PARTIAL));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_cursor_move(c, &key, &rec, HAM_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_db_find(db, 0, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_find(c, &key, &rec, UPS_PARTIAL));
+    REQUIRE(UPS_INV_PARAMETER ==
+        ups_cursor_move(c, &key, &rec, UPS_PARTIAL));
 
-    REQUIRE(0 == ham_cursor_close(c));
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ups_cursor_close(c));
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void partialSizeTest() {
-    ham_key_t key = {};
-    ham_record_t rec = {};
+    ups_key_t key = {};
+    ups_record_t rec = {};
     uint8_t buffer[500];
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
     REQUIRE(0 ==
-        ham_db_insert(m_db, 0, &key, &rec, 0));
+        ups_db_insert(m_db, 0, &key, &rec, 0));
 
     rec.partial_offset = 50;
     rec.partial_size = 400;
     REQUIRE(0 ==
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL | m_find_flags));
+        ups_db_find(m_db, 0, &key, &rec, UPS_PARTIAL | m_find_flags));
     REQUIRE(500u == rec.size);
     REQUIRE(400u == rec.partial_size);
     REQUIRE(50u == rec.partial_offset);
@@ -1359,48 +1359,48 @@ TEST_CASE("PartialMisc-inmem/partialSizeTest", "")
 
 TEST_CASE("PartialMisc-direct/negativeInsertTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.negativeInsertTest();
 }
 
 TEST_CASE("PartialMisc-direct/negativeCursorInsertTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.negativeCursorInsertTest();
 }
 
 TEST_CASE("PartialMisc-direct/invalidInsertParametersTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.invalidInsertParametersTest();
 }
 
 TEST_CASE("PartialMisc-direct/invalidFindParametersTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.invalidFindParametersTest();
 }
 
 TEST_CASE("PartialMisc-direct/reduceSizeTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.reduceSizeTest();
 }
 
 TEST_CASE("PartialMisc-direct/disabledSmallRecordsTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.disabledSmallRecordsTest();
 }
 
 TEST_CASE("PartialMisc-direct/disabledTransactionsTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.disabledTransactionsTest();
 }
 
 TEST_CASE("PartialMisc-direct/partialSizeTest", "")
 {
-  MiscPartialFixture f(true, HAM_DIRECT_ACCESS);
+  MiscPartialFixture f(true, UPS_DIRECT_ACCESS);
   f.partialSizeTest();
 }

@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ham/hamsterdb.h>
-#include <ham/hamsterdb_srv.h>
+#include <ups/upscaledb.h>
+#include <ups/upscaledb_srv.h>
 
 #ifdef WIN32
 #   define EXT ".exe"
@@ -35,56 +35,56 @@
 int
 main()
 {
-  ham_db_t *db;
-  ham_env_t *env;
-  ham_srv_t *srv;
-  ham_srv_config_t cfg;
-  ham_status_t st;
+  ups_db_t *db;
+  ups_env_t *env;
+  ups_srv_t *srv;
+  ups_srv_config_t cfg;
+  ups_status_t st;
   char input[1024];
   int s;
 
   /* create a new Environment; this Environment will be attached to the
    * server */
-  st = ham_env_create(&env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
+  st = ups_env_create(&env, "env1.db", UPS_ENABLE_TRANSACTIONS, 0644, 0);
   if (st) {
-    printf("ham_env_create: %d\n", st);
+    printf("ups_env_create: %d\n", st);
     exit(-1);
   }
 
   /* also create a Database in that Environment ... */
-  st = ham_env_create_db(env, &db, 12, HAM_ENABLE_DUPLICATE_KEYS, 0);
+  st = ups_env_create_db(env, &db, 12, UPS_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
-    printf("ham_env_create_db: %d\n", st);
+    printf("ups_env_create_db: %d\n", st);
     exit(-1);
   }
 
   /* ... and close it again. It will be reopened remotely. */
-  ham_db_close(db, 0);
+  ups_db_close(db, 0);
 
   /* Create a second database */
-  st = ham_env_create_db(env, &db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0);
+  st = ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
-    printf("ham_env_create_db: %d\n", st);
+    printf("ups_env_create_db: %d\n", st);
     exit(-1);
   }
 
-  ham_db_close(db, 0);
+  ups_db_close(db, 0);
 
-  st = ham_env_create_db(env, &db, 33,
-                HAM_RECORD_NUMBER64 | HAM_ENABLE_DUPLICATE_KEYS, 0);
+  st = ups_env_create_db(env, &db, 33,
+                UPS_RECORD_NUMBER64 | UPS_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
-    printf("ham_env_create_db: %d\n", st);
+    printf("ups_env_create_db: %d\n", st);
     exit(-1);
   }
 
-  ham_db_close(db, 0);
+  ups_db_close(db, 0);
 
-  /* The ham_srv_config_t structure describes the settings of the server
+  /* The ups_srv_config_t structure describes the settings of the server
    * including the port, the Environment etc */
   memset(&cfg, 0, sizeof(cfg));
   cfg.port = 8080;
-  ham_srv_init(&cfg, &srv);
-  ham_srv_add_env(srv, env, "/env1.db");
+  ups_srv_init(&cfg, &srv);
+  ups_srv_add_env(srv, env, "/env1.db");
 
   printf("server1%s started - please run sample 'client1%s' for a test\n",
       EXT, EXT);
@@ -102,8 +102,8 @@ main()
   }
 
   /* Close the server and the Environment */
-  ham_srv_close(srv);
-  ham_env_close(env, HAM_AUTO_CLEANUP);
+  ups_srv_close(srv);
+  ups_env_close(env, UPS_AUTO_CLEANUP);
 
   return (0);
 }

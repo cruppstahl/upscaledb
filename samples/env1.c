@@ -23,11 +23,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 void
-error(const char *foo, ham_status_t st) {
-  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+error(const char *foo, ups_status_t st) {
+  printf("%s() returned error %d: %s\n", foo, st, ups_strerror(st));
   exit(-1);
 }
 
@@ -57,20 +57,20 @@ typedef struct {
 int
 main(int argc, char **argv) {
   int i;
-  ham_status_t st;               /* status variable */
-  ham_db_t *db[MAX_DBS];         /* hamsterdb database objects */
-  ham_env_t *env;                /* hamsterdb environment */
-  ham_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
+  ups_status_t st;               /* status variable */
+  ups_db_t *db[MAX_DBS];         /* hamsterdb database objects */
+  ups_env_t *env;                /* hamsterdb environment */
+  ups_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
 
-  ham_key_t key = {0};
-  ham_key_t cust_key = {0};
-  ham_key_t ord_key = {0};
-  ham_record_t record = {0};
-  ham_record_t cust_record = {0};
-  ham_record_t ord_record = {0};
+  ups_key_t key = {0};
+  ups_key_t cust_key = {0};
+  ups_key_t ord_key = {0};
+  ups_record_t record = {0};
+  ups_record_t cust_record = {0};
+  ups_record_t ord_record = {0};
 
-  ham_parameter_t params[] = {
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
+  ups_parameter_t params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
     {0, }
   };
 
@@ -93,9 +93,9 @@ main(int argc, char **argv) {
   };
 
   /* Now create a new hamsterdb Environment */
-  st = ham_env_create(&env, "test.db", 0, 0664, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create", st);
+  st = ups_env_create(&env, "test.db", 0, 0664, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create", st);
 
   /*
    * Then create the two Databases in this Environment; each Database
@@ -104,18 +104,18 @@ main(int argc, char **argv) {
    *
    * All database keys are uint32_t types.
    */
-  st = ham_env_create_db(env, &db[0], DBNAME_CUSTOMER, 0, &params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create_db (customer)", st);
-  st = ham_env_create_db(env, &db[1], DBNAME_ORDER, 0, &params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_env_create_db (order)", st);
+  st = ups_env_create_db(env, &db[0], DBNAME_CUSTOMER, 0, &params[0]);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create_db (customer)", st);
+  st = ups_env_create_db(env, &db[1], DBNAME_ORDER, 0, &params[0]);
+  if (st != UPS_SUCCESS)
+    error("ups_env_create_db (order)", st);
 
   /* Create a Cursor for each Database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
-    if (st != HAM_SUCCESS) {
-      printf("ham_cursor_create() failed with error %d\n", st);
+    st = ups_cursor_create(&cursor[i], db[i], 0, 0);
+    if (st != UPS_SUCCESS) {
+      printf("ups_cursor_create() failed with error %d\n", st);
       return (-1);
     }
   }
@@ -128,9 +128,9 @@ main(int argc, char **argv) {
     record.size = sizeof(customer_t);
     record.data = &customers[i];
 
-    st = ham_db_insert(db[0], 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert (customer)", st);
+    st = ups_db_insert(db[0], 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert (customer)", st);
   }
 
   /* And now the orders in the second database */
@@ -141,43 +141,43 @@ main(int argc, char **argv) {
     record.size = sizeof(order_t);
     record.data = &orders[i];
 
-    st = ham_db_insert(db[1], 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert (order)", st);
+    st = ups_db_insert(db[1], 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert (order)", st);
   }
 
   /*
    * To demonstrate even more functions: close all objects, then
    * re-open the environment and the two databases.
    *
-   * Note that ham_env_close automatically calls ham_db_close on all
+   * Note that ups_env_close automatically calls ups_db_close on all
    * databases.
    */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_close(cursor[i]);
-    if (st != HAM_SUCCESS)
-      error("ham_cursor_close", st);
+    st = ups_cursor_close(cursor[i]);
+    if (st != UPS_SUCCESS)
+      error("ups_cursor_close", st);
   }
-  st = ham_env_close(env, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_close", st);
+  st = ups_env_close(env, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_close", st);
 
   /* Now reopen the environment and the databases */
-  st = ham_env_open(&env, "test.db", 0, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_open", st);
-  st = ham_env_open_db(env, &db[0], DBNAME_CUSTOMER, 0, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_open_db (customer)", st);
-  st = ham_env_open_db(env, &db[1], DBNAME_ORDER, 0, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_open_db (order)", st);
+  st = ups_env_open(&env, "test.db", 0, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_open", st);
+  st = ups_env_open_db(env, &db[0], DBNAME_CUSTOMER, 0, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_open_db (customer)", st);
+  st = ups_env_open_db(env, &db[1], DBNAME_ORDER, 0, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_open_db (order)", st);
 
   /* Re-create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
-    if (st != HAM_SUCCESS) {
-      printf("ham_cursor_create() failed with error %d\n", st);
+    st = ups_cursor_create(&cursor[i], db[i], 0, 0);
+    if (st != UPS_SUCCESS) {
+      printf("ups_cursor_create() failed with error %d\n", st);
       return (-1);
     }
   }
@@ -192,14 +192,14 @@ main(int argc, char **argv) {
   while (1) {
     customer_t *customer;
 
-    st = ham_cursor_move(cursor[0], &cust_key, &cust_record,
-            HAM_CURSOR_NEXT);
-    if (st != HAM_SUCCESS) {
+    st = ups_cursor_move(cursor[0], &cust_key, &cust_record,
+            UPS_CURSOR_NEXT);
+    if (st != UPS_SUCCESS) {
       /* reached end of the database? */
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         break;
       else
-        error("ham_cursor_next(customer)", st);
+        error("ups_cursor_next(customer)", st);
     }
 
     customer = (customer_t *)cust_record.data;
@@ -211,14 +211,14 @@ main(int argc, char **argv) {
      * The inner loop prints all orders of this customer. Move the
      * cursor to the first entry.
      */
-    st = ham_cursor_move(cursor[1], &ord_key, &ord_record,
-            HAM_CURSOR_FIRST);
-    if (st != HAM_SUCCESS) {
+    st = ups_cursor_move(cursor[1], &ord_key, &ord_record,
+            UPS_CURSOR_FIRST);
+    if (st != UPS_SUCCESS) {
       /* reached end of the database? */
-      if (st == HAM_KEY_NOT_FOUND)
+      if (st == UPS_KEY_NOT_FOUND)
         continue;
       else
-        error("ham_cursor_next(order)", st);
+        error("ups_cursor_next(order)", st);
     }
 
     do {
@@ -229,25 +229,25 @@ main(int argc, char **argv) {
         printf("  order: %d (assigned to %s)\n",
             order->id, order->assignee);
 
-      st = ham_cursor_move(cursor[1], &ord_key,
-          &ord_record, HAM_CURSOR_NEXT);
-      if (st != HAM_SUCCESS) {
+      st = ups_cursor_move(cursor[1], &ord_key,
+          &ord_record, UPS_CURSOR_NEXT);
+      if (st != UPS_SUCCESS) {
         /* reached end of the database? */
-        if (st == HAM_KEY_NOT_FOUND)
+        if (st == UPS_KEY_NOT_FOUND)
           break;
         else
-          error("ham_cursor_next(order)", st);
+          error("ups_cursor_next(order)", st);
       }
     } while (1);
   }
 
   /*
-   * Now close the environment handle; the flag HAM_AUTO_CLEANUP will
+   * Now close the environment handle; the flag UPS_AUTO_CLEANUP will
    * automatically close all databases and cursors
    */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
-  if (st != HAM_SUCCESS)
-    error("ham_env_close", st);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
+  if (st != UPS_SUCCESS)
+    error("ups_env_close", st);
 
   printf("success!\n");
   return (0);

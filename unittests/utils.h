@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#include "ham/hamsterdb_int.h"
+#include "ups/upscaledb_int.h"
 
 #define REQUIRE_CATCH(x, y) \
         try { x; } catch (Exception &ex) { REQUIRE(ex.code == y); }

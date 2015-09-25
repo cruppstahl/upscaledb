@@ -10,7 +10,7 @@ DOCUMENTATION_FILES = documentation/Doxyfile*           \
 
 EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              ChangeLog                                  \
-             hamsterdb.spec                             \
+             upscaledb.spec                             \
              AUTHORS                                    \
              README                                     \
              CREDITS                                    \
@@ -51,7 +51,7 @@ bfc_doc:
 	doxygen documentation/Doxyfile.bfc
 
 html-dist: doc
-	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
+	tar cvzf upscaledb-html-documentation.$(VERSION).tar.gz documentation/html
 
 test:
 	cd unittests && make && ./test && ./issue32 -i && ./issue32 -r && ./issue43

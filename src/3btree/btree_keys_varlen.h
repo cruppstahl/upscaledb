@@ -38,8 +38,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_KEYS_VARLEN_H
-#define HAM_BTREE_KEYS_VARLEN_H
+#ifndef UPS_BTREE_KEYS_VARLEN_H
+#define UPS_BTREE_KEYS_VARLEN_H
 
 #include "0root/root.h"
 
@@ -61,7 +61,7 @@
 #include "3btree/btree_keys_base.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -144,7 +144,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Returns the actual key size including overhead. This is an estimate
     // since we don't know how large the keys will be
-    size_t get_full_key_size(const ham_key_t *key = 0) const {
+    size_t get_full_key_size(const ups_key_t *key = 0) const {
       if (!key)
         return (24 + m_index.get_full_index_size() + 1);
       // always make sure to have enough space for an extkey id
@@ -154,9 +154,9 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Copies a key into |dest|
-    void get_key(Context *context, int slot, ByteArray *arena, ham_key_t *dest,
+    void get_key(Context *context, int slot, ByteArray *arena, ups_key_t *dest,
                     bool deep_copy = true) {
-      ham_key_t tmp;
+      ups_key_t tmp;
       uint32_t offset = m_index.get_chunk_offset(slot);
       uint8_t *p = m_index.get_chunk_data_by_offset(offset);
 
@@ -181,7 +181,7 @@ class VariableLengthKeyList : public BaseKeyList
       }
 
       // allocate memory (if required)
-      if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+      if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(tmp.size);
         dest->data = arena->get_ptr();
       }
@@ -194,8 +194,8 @@ class VariableLengthKeyList : public BaseKeyList
     // for PAX style layouts.
     void scan(Context *context, ScanVisitor *visitor, size_t node_count,
                     uint32_t start) {
-      ham_assert(!"shouldn't be here");
-      throw Exception(HAM_INTERNAL_ERROR);
+      ups_assert(!"shouldn't be here");
+      throw Exception(UPS_INTERNAL_ERROR);
     }
 
     // Erases a key's payload. Does NOT remove the chunk from the UpfrontIndex
@@ -223,7 +223,7 @@ class VariableLengthKeyList : public BaseKeyList
     // node (otherwise the caller would have split the node).
     template<typename Cmp>
     PBtreeNode::InsertResult insert(Context *context, size_t node_count,
-                                const ham_key_t *key, uint32_t flags,
+                                const ups_key_t *key, uint32_t flags,
                                 Cmp &comparator, int slot) {
       m_index.insert(node_count, slot);
 
@@ -232,7 +232,7 @@ class VariableLengthKeyList : public BaseKeyList
 
       uint32_t key_flags = 0;
       // try to compress the key
-      ham_key_t helper = {0};
+      ups_key_t helper = {0};
       if (m_compressor && compress(key, &helper)) {
         key_flags = BtreeKey::kCompressed;
         key = &helper;
@@ -263,7 +263,7 @@ class VariableLengthKeyList : public BaseKeyList
     //
     // If there's no key specified then always assume the worst case and
     // pretend that the key has the maximum length
-    bool requires_split(size_t node_count, const ham_key_t *key) {
+    bool requires_split(size_t node_count, const ups_key_t *key) {
       size_t required;
       if (key) {
         required = key->size + 1;
@@ -281,7 +281,7 @@ class VariableLengthKeyList : public BaseKeyList
                     VariableLengthKeyList &dest, size_t other_node_count,
                     int dstart) {
       size_t to_copy = node_count - sstart;
-      ham_assert(to_copy > 0);
+      ups_assert(to_copy > 0);
 
       // make sure that the other node has sufficient capacity in its
       // UpfrontIndex
@@ -322,20 +322,20 @@ class VariableLengthKeyList : public BaseKeyList
       for (size_t i = 0; i < node_count; i++) {
         if (get_key_size(i) > m_extkey_threshold
             && !(get_key_flags(i) & BtreeKey::kExtendedKey)) {
-          ham_log(("key size %d, but key is not extended", get_key_size(i)));
-          throw Exception(HAM_INTEGRITY_VIOLATED);
+          ups_log(("key size %d, but key is not extended", get_key_size(i)));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
         }
 
         if (get_key_flags(i) & BtreeKey::kExtendedKey) {
           uint64_t blobid = get_extended_blob_id(i);
           if (!blobid) {
-            ham_log(("integrity check failed: item %u "
+            ups_log(("integrity check failed: item %u "
                     "is extended, but has no blob", i));
-            throw Exception(HAM_INTEGRITY_VIOLATED);
+            throw Exception(UPS_INTEGRITY_VIOLATED);
           }
 
           // make sure that the extended blob can be loaded
-          ham_record_t record = {0};
+          ups_record_t record = {0};
           m_db->lenv()->blob_manager()->read(context, blobid,
                           &record, 0, &arena);
 
@@ -344,12 +344,12 @@ class VariableLengthKeyList : public BaseKeyList
             ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
             if (it != m_extkey_cache->end()) {
               if (record.size != it->second.get_size()) {
-                ham_log(("Cached extended key differs from real key"));
-                throw Exception(HAM_INTEGRITY_VIOLATED);
+                ups_log(("Cached extended key differs from real key"));
+                throw Exception(UPS_INTEGRITY_VIOLATED);
               }
               if (memcmp(record.data, it->second.get_ptr(), record.size)) {
-                ham_log(("Cached extended key differs from real key"));
-                throw Exception(HAM_INTEGRITY_VIOLATED);
+                ups_log(("Cached extended key differs from real key"));
+                throw Exception(UPS_INTEGRITY_VIOLATED);
               }
             }
           }
@@ -403,7 +403,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) {
-      ham_key_t tmp = {0};
+      ups_key_t tmp = {0};
       if (get_key_flags(slot) & BtreeKey::kExtendedKey) {
         get_extended_key(context, get_extended_blob_id(slot), &tmp);
       }
@@ -440,14 +440,14 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Overwrites the (inline) data of the key
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ham_assert(m_index.get_chunk_size(slot) >= size);
+      ups_assert(m_index.get_chunk_size(slot) >= size);
       set_key_size(slot, (uint16_t)size);
       memcpy(get_key_data(slot), ptr, size);
     }
 
     // Sets the size of a key
     void set_key_size(int slot, size_t size) {
-      ham_assert(size + 1 <= m_index.get_chunk_size(slot));
+      ups_assert(size + 1 <= m_index.get_chunk_size(slot));
       m_index.set_chunk_size(slot, size + 1);
     }
 
@@ -473,7 +473,7 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Retrieves the extended key at |blobid| and stores it in |key|; will
     // use the cache.
-    void get_extended_key(Context *context, uint64_t blob_id, ham_key_t *key) {
+    void get_extended_key(Context *context, uint64_t blob_id, ups_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
       else {
@@ -486,9 +486,9 @@ class VariableLengthKeyList : public BaseKeyList
       }
 
       ByteArray arena;
-      ham_record_t record = {0};
+      ups_record_t record = {0};
       m_db->lenv()->blob_manager()->read(context, blob_id, &record,
-                      HAM_FORCE_DEEP_COPY, &arena);
+                      UPS_FORCE_DEEP_COPY, &arena);
       (*m_extkey_cache)[blob_id] = arena;
       arena.disown();
       key->data = record.data;
@@ -496,11 +496,11 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     // Allocates an extended key and stores it in the cache
-    uint64_t add_extended_key(Context *context, const ham_key_t *key) {
+    uint64_t add_extended_key(Context *context, const ups_key_t *key) {
       if (!m_extkey_cache)
         m_extkey_cache.reset(new ExtKeyCache());
 
-      ham_record_t rec = {0};
+      ups_record_t rec = {0};
       rec.data = key->data;
       rec.size = key->size;
 
@@ -512,8 +512,8 @@ class VariableLengthKeyList : public BaseKeyList
                                         m_compressor
                                             ? BlobManager::kDisableCompression
                                             : 0);
-      ham_assert(blob_id != 0);
-      ham_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
+      ups_assert(blob_id != 0);
+      ups_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
 
       ByteArray arena;
       arena.resize(key->size);
@@ -527,8 +527,8 @@ class VariableLengthKeyList : public BaseKeyList
       return (blob_id);
     }
 
-    bool compress(const ham_key_t *src, ham_key_t *dest) {
-      ham_assert(m_compressor != 0);
+    bool compress(const ups_key_t *src, ups_key_t *dest) {
+      ups_assert(m_compressor != 0);
 
       // reserve 2 bytes for the uncompressed key length
       m_compressor->reserve(sizeof(uint16_t));
@@ -551,8 +551,8 @@ class VariableLengthKeyList : public BaseKeyList
       return (true);
     }
 
-    void uncompress(const ham_key_t *src, ham_key_t *dest) {
-      ham_assert(m_compressor != 0);
+    void uncompress(const ups_key_t *src, ups_key_t *dest) {
+      ups_assert(m_compressor != 0);
 
       uint8_t *ptr = (uint8_t *)src->data;
 
@@ -587,4 +587,4 @@ class VariableLengthKeyList : public BaseKeyList
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_VARLEN_H */
+#endif /* UPS_BTREE_KEYS_VARLEN_H */

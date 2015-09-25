@@ -196,14 +196,14 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value) {
   return (1);
 }
 
-ham_status_t
+ups_status_t
 config_parse_string(const char *string, config_table_t **params) {
   unsigned count = 0;
   JSON_config config;
   struct JSON_parser_struct *jc = 0;
   config_table_t *p = (config_table_t *)calloc(sizeof(config_table_t), 1);
   if (!p)
-    return (HAM_OUT_OF_MEMORY);
+    return (UPS_OUT_OF_MEMORY);
 
   *params = 0;
 
@@ -220,7 +220,7 @@ config_parse_string(const char *string, config_table_t **params) {
       delete_JSON_parser(jc);
       hlog(3, "JSON syntax error in byte %u\n", count);
       config_clear_table(p);
-      return (HAM_INV_PARAMETER);
+      return (UPS_INV_PARAMETER);
     }
     count++;
     string++;
@@ -229,7 +229,7 @@ config_parse_string(const char *string, config_table_t **params) {
   if (!JSON_parser_done(jc)) {
     delete_JSON_parser(jc);
     config_clear_table(p);
-    return (HAM_INV_PARAMETER);
+    return (UPS_INV_PARAMETER);
   }
 
   *params = p;

@@ -23,41 +23,41 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for exit() */
-#include <ham/hamsterdb.h>
+#include <ups/upscaledb.h>
 
 #define LOOP      10
 #define DATABASE_NAME  1
 
 void
-error(const char *foo, ham_status_t st) {
-  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+error(const char *foo, ups_status_t st) {
+  printf("%s() returned error %d: %s\n", foo, st, ups_strerror(st));
   exit(-1);
 }
 
 int
 main(int argc, char **argv) {
   uint32_t i;
-  ham_status_t st;             /* status variable */
-  ham_env_t *env;              /* hamsterdb environment object */
-  ham_db_t *db;                /* hamsterdb database object */
-  ham_key_t key = {0};         /* the structure for a key */
-  ham_record_t record = {0};   /* the structure for a record */
-  ham_parameter_t params[] = { /* parameters for ham_env_create_db */
-    {HAM_PARAM_KEY_TYPE, HAM_TYPE_UINT32},
-    {HAM_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+  ups_status_t st;             /* status variable */
+  ups_env_t *env;              /* hamsterdb environment object */
+  ups_db_t *db;                /* hamsterdb database object */
+  ups_key_t key = {0};         /* the structure for a key */
+  ups_record_t record = {0};   /* the structure for a record */
+  ups_parameter_t params[] = { /* parameters for ups_env_create_db */
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
   /* First create a new hamsterdb Environment */
-  st = ham_env_create(&env, "test.db", 0, 0664, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_create", st);
+  st = ups_env_create(&env, "test.db", 0, 0664, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_create", st);
 
   /* And in this Environment we create a new Database for uint32-keys
    * and uint32-records. */
-  st = ham_env_create_db(env, &db, DATABASE_NAME, 0, &params[0]);
-  if (st != HAM_SUCCESS)
-    error("ham_create", st);
+  st = ups_env_create_db(env, &db, DATABASE_NAME, 0, &params[0]);
+  if (st != UPS_SUCCESS)
+    error("ups_create", st);
 
   /*
    * now we can insert, delete or lookup values in the database
@@ -72,15 +72,15 @@ main(int argc, char **argv) {
     record.size = key.size;
     record.data = key.data;
 
-    st = ham_db_insert(db, 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_insert", st);
+    st = ups_db_insert(db, 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_insert", st);
   }
 
   /*
    * now lookup all values
    *
-   * for ham_db_find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
+   * for ups_db_find(), we could use the flag UPS_RECORD_USER_ALLOC, if WE
    * allocate record.data (otherwise the memory is automatically allocated
    * by hamsterdb)
    */
@@ -88,15 +88,15 @@ main(int argc, char **argv) {
     key.data = &i;
     key.size = sizeof(i);
 
-    st = ham_db_find(db, 0, &key, &record, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_find", st);
+    st = ups_db_find(db, 0, &key, &record, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_find", st);
 
     /*
      * check if the value is ok
      */
     if (*(int *)record.data != i) {
-      printf("ham_db_find() ok, but returned bad value\n");
+      printf("ups_db_find() ok, but returned bad value\n");
       return (-1);
     }
   }
@@ -105,48 +105,48 @@ main(int argc, char **argv) {
    * close the database handle, then re-open it (to demonstrate how to open
    * an Environment and a Database)
    */
-  st = ham_db_close(db, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_db_close", st);
-  st = ham_env_close(env, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_close", st);
+  st = ups_db_close(db, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_db_close", st);
+  st = ups_env_close(env, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_close", st);
 
-  st = ham_env_open(&env, "test.db", 0, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_open", st);
-  st = ham_env_open_db(env, &db, DATABASE_NAME, 0, 0);
-  if (st != HAM_SUCCESS)
-    error("ham_env_open_db", st);
+  st = ups_env_open(&env, "test.db", 0, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_open", st);
+  st = ups_env_open_db(env, &db, DATABASE_NAME, 0, 0);
+  if (st != UPS_SUCCESS)
+    error("ups_env_open_db", st);
 
   /* now erase all values */
   for (i = 0; i < LOOP; i++) {
     key.size = sizeof(i);
     key.data = &i;
 
-    st = ham_db_erase(db, 0, &key, 0);
-    if (st != HAM_SUCCESS)
-      error("ham_db_erase", st);
+    st = ups_db_erase(db, 0, &key, 0);
+    if (st != UPS_SUCCESS)
+      error("ups_db_erase", st);
   }
 
   /*
-   * once more we try to find all values... every ham_db_find() call must
-   * now fail with HAM_KEY_NOT_FOUND
+   * once more we try to find all values... every ups_db_find() call must
+   * now fail with UPS_KEY_NOT_FOUND
    */
   for (i = 0; i < LOOP; i++) {
     key.size = sizeof(i);
     key.data = &i;
 
-    st = ham_db_find(db, 0, &key, &record, 0);
-    if (st != HAM_KEY_NOT_FOUND)
-      error("ham_db_find", st);
+    st = ups_db_find(db, 0, &key, &record, 0);
+    if (st != UPS_KEY_NOT_FOUND)
+      error("ups_db_find", st);
   }
 
-  /* we're done! close the handles. HAM_AUTO_CLEANUP will also close the
+  /* we're done! close the handles. UPS_AUTO_CLEANUP will also close the
    * 'db' handle */
-  st = ham_env_close(env, HAM_AUTO_CLEANUP);
-  if (st != HAM_SUCCESS)
-    error("ham_env_close", st);
+  st = ups_env_close(env, UPS_AUTO_CLEANUP);
+  if (st != UPS_SUCCESS)
+    error("ups_env_close", st);
 
   printf("success!\n");
   return (0);

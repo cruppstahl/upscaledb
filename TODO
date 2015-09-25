@@ -68,7 +68,7 @@ x clean up threading issues
             BEFORE a changeset flush was finished
             x ./ham_bench --use-berkeleydb=true --reopen=true  --cache=50 \
                 --use-cursors --overwrite \
-                ../../../hamsterdb-tests/testfiles/1/100.tst
+                ../../../upscaledb-tests/testfiles/1/100.tst
             x cache flush
             x changeset flush
     x switch to SpinLocks instead of mutexes
@@ -88,7 +88,7 @@ x Concurrency: flush the changeset asynchronously. As soon as the log
     x we HAVE to make sure that NO OTHER entity is allowed to flush pages,
         only the worker thread! otherwise we might have race conditions
         between the purger and the changeset-flush
-        (remove member function hamsterdb::Page::purge and see where it fails,
+        (remove member function upscaledb::Page::purge and see where it fails,
         completely replace usage with the static version)
     x compare performance (before/after) - wow! up to 60% faster!
     x fix unittests
@@ -105,7 +105,7 @@ x ftruncate() allocates larger buffers than required, for performance
 x recovery problem (Rajesh's issue?)
     x --simulate-crashes --use-recovery --verbose
     Usually fails after a few attempts to open/recover/fullcheck
-    Files can be verified with ./ham_bench ~/prj/hamsterdb-tests/testfiles/fullcheck.tst --verbose --verbose --use-berkeleydb
+    Files can be verified with ./ham_bench ~/prj/upscaledb-tests/testfiles/fullcheck.tst --verbose --verbose --use-berkeleydb
     x fix this
         x enable event logging
         x at least in one case the last insert operation is missing
@@ -143,7 +143,7 @@ o PRO/Zint32: implement FOR encoding, continue with paper
         o performance for hola-sum (zipf)
         o file sizes
     o continue with the paper
-        o describe benchmark hardware, hamsterdb configuration parameters
+        o describe benchmark hardware, upscaledb configuration parameters
             (cache size, page size, record size...)
         o describe test data
         o show the results

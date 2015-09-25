@@ -31,8 +31,7 @@ using namespace boost::filesystem;
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <ham/hamsterdb.h>
-#include <ham/types.h>
+#include <ups/upscaledb.h>
 #include "1base/error.h"
 #include "1base/util.h"
 

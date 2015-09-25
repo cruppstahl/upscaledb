@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_TXN_LOCAL_H
-#define HAM_TXN_LOCAL_H
+#ifndef UPS_TXN_LOCAL_H
+#define UPS_TXN_LOCAL_H
 
 #include "0root/root.h"
 
@@ -29,7 +29,7 @@
 #include "1rb/rb.h"
 #include "4txn/txn.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -81,7 +81,7 @@ class TransactionOperation
       m_flags |= kIsFlushed;
     }
 
-    // Returns the original flags of ham_insert/ham_cursor_insert/ham_erase...
+    // Returns the original flags of ups_insert/ups_cursor_insert/ups_erase...
     uint32_t get_orig_flags() const {
       return (m_orig_flags);
     }
@@ -112,12 +112,12 @@ class TransactionOperation
     }
 
     // Returns the key of this operation
-    ham_key_t *get_key() {
+    ups_key_t *get_key() {
       return (&m_key);
     }
 
     // Returns the record of this operation
-    ham_record_t *get_record() {
+    ups_record_t *get_record() {
       return (&m_record);
     }
 
@@ -160,7 +160,7 @@ class TransactionOperation
     // Initialization
     void initialize(LocalTransaction *txn, TransactionNode *node,
                     uint32_t flags, uint32_t orig_flags, uint64_t lsn,
-                    ham_key_t *key, ham_record_t *record);
+                    ups_key_t *key, ups_record_t *record);
 
     // Destructor
     void destroy();
@@ -197,11 +197,11 @@ class TransactionOperation
     uint32_t m_flags;
 
     // the original flags of this operation, used when calling
-    // ham_cursor_insert, ham_insert, ham_erase etc
+    // ups_cursor_insert, ups_insert, ups_erase etc
     uint32_t m_orig_flags;
 
     // the referenced duplicate id (if neccessary) - used if this is
-    // i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
+    // i.e. a ups_cursor_erase, ups_cursor_overwrite or ups_cursor_insert
     // with a DUPLICATE_AFTER/BEFORE flag
     // this is 1-based (like dupecache-index, which is also 1-based)
     uint32_t m_referenced_dupe;
@@ -225,10 +225,10 @@ class TransactionOperation
     TransactionOperation *m_txn_prev;
 
     // the key which is inserted or overwritten
-    ham_key_t m_key;
+    ups_key_t m_key;
 
     // the record which is inserted or overwritten
-    ham_record_t m_record;
+    ups_record_t m_record;
 
     // Storage for record->data. This saves us one memory allocation.
     uint8_t m_data[1];
@@ -256,7 +256,7 @@ class TransactionNode
     // TransactionNode without further memory allocations/copying. The actual
     // key is then fetched from |m_oldest_op| as soon as this node is fully
     // initialized.
-    TransactionNode(LocalDatabase *db = 0, ham_key_t *key = 0);
+    TransactionNode(LocalDatabase *db = 0, ups_key_t *key = 0);
 
     // Destructor; removes this node from the tree, unless |dont_insert|
     // was set to true
@@ -268,7 +268,7 @@ class TransactionNode
     }
 
     // Returns the modified key
-    ham_key_t *get_key() {
+    ups_key_t *get_key() {
       return (m_oldest_op ? m_oldest_op->get_key() : m_key);
     }
 
@@ -302,8 +302,8 @@ class TransactionNode
 
     // Appends an actual operation to this node
     TransactionOperation *append(LocalTransaction *txn, uint32_t orig_flags,
-                uint32_t flags, uint64_t lsn, ham_key_t *key,
-                ham_record_t *record);
+                uint32_t flags, uint64_t lsn, ups_key_t *key,
+                ups_record_t *record);
 
     // red-black tree stub, required for rb.h
     rb_node(TransactionNode) node;
@@ -322,7 +322,7 @@ class TransactionNode
 
     // Pointer to the key data; only used as long as there are no operations
     // attached. Otherwise we have a chicken-egg problem in rb.h.
-    ham_key_t *m_key;
+    ups_key_t *m_key;
 };
 
 
@@ -355,8 +355,8 @@ class TransactionIndex
 
     // Returns an opnode for an optree; if a node with this
     // key already exists then the existing node is returned, otherwise NULL.
-    // |flags| can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH etc
-    TransactionNode *get(ham_key_t *key, uint32_t flags);
+    // |flags| can be UPS_FIND_GEQ_MATCH, UPS_FIND_LEQ_MATCH etc
+    TransactionNode *get(ups_key_t *key, uint32_t flags);
 
     // Returns the first (= "smallest") node of the tree, or NULL if the
     // tree is empty
@@ -386,7 +386,7 @@ class LocalTransaction : public Transaction
 {
   public:
     // Constructor; "begins" the Transaction
-    // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
+    // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
     LocalTransaction(LocalEnvironment *env, const char *name, uint32_t flags);
 
     // Destructor; frees all TransactionOperation structures associated
@@ -499,11 +499,11 @@ class LocalTransactionManager : public TransactionManager
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t commit(Transaction *txn, uint32_t flags = 0);
+    virtual ups_status_t commit(Transaction *txn, uint32_t flags = 0);
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t abort(Transaction *txn, uint32_t flags = 0);
+    virtual ups_status_t abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns(Context *context = 0);
@@ -564,4 +564,4 @@ class LocalTransactionManager : public TransactionManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_LOCAL_H */
+#endif /* UPS_TXN_LOCAL_H */

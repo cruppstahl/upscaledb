@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_SIMDCOMP_H
-#define HAM_BTREE_KEYS_SIMDCOMP_H
+#ifndef UPS_BTREE_KEYS_SIMDCOMP_H
+#define UPS_BTREE_KEYS_SIMDCOMP_H
 
 #include <sstream>
 #include <iostream>
@@ -36,7 +36,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -51,7 +51,7 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 SimdCompIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
   public:
     enum {
       // Initial size of a new block (1 bit per key = 16 bytes)
@@ -112,7 +112,7 @@ HAM_PACK_0 class HAM_PACK_1 SimdCompIndex : public IndexBase {
     // copies this block to the |dest| block
     void copy_to(const uint8_t *block_data, SimdCompIndex *dest,
                     uint8_t *dest_data) {
-      ham_assert(dest->bits() == bits());
+      ups_assert(dest->bits() == bits());
       dest->set_value(value());
       dest->set_key_count(key_count());
       dest->set_highest(highest());
@@ -125,7 +125,7 @@ HAM_PACK_0 class HAM_PACK_1 SimdCompIndex : public IndexBase {
 
     // stored bits per integer; max 32
     unsigned short m_bits : 6;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
@@ -140,7 +140,7 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
 
   static uint32_t compress_block(SimdCompIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ham_assert(index->key_count() > 0);
+    ups_assert(index->key_count() > 0);
     simdpackwithoutmaskd1(index->value(), in, (__m128i *)out, index->bits());
     return (index->used_size());
   }
@@ -212,7 +212,7 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
     // grow the block?
     if (index->bits() < 32 && slot < (int)index->key_count() - 1) {
       uint32_t new_bits;
-      ham_assert(slot > 0);
+      ups_assert(slot > 0);
       if (slot == 1)
          new_bits = bits(data[0] - index->value());
       else
@@ -240,7 +240,7 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
   static uint32_t estimate_required_size(SimdCompIndex *index,
                         uint8_t *block_data, uint32_t key) {
     /* not used */
-    ham_assert(!"shouldn't be here");
+    ups_assert(!"shouldn't be here");
     return (0);
   }
 };
@@ -259,7 +259,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
     // is used to split and merge btree nodes.
     void copy_to(int sstart, size_t node_count, SimdCompKeyList &dest,
                     size_t other_count, int dstart) {
-      ham_assert(check_integrity(0, node_count));
+      ups_assert(check_integrity(0, node_count));
 
       // if the destination node is empty (often the case when merging nodes)
       // then re-initialize it.
@@ -288,13 +288,13 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         dsti->set_highest(srci->highest());
 
         if (src_position_in_block == 0) {
-          ham_assert(dst_position_in_block != 0);
+          ups_assert(dst_position_in_block != 0);
           srci->set_highest(srci->value());
           *d = srci->value();
           d++;
         }
         else {
-          ham_assert(dst_position_in_block == 0);
+          ups_assert(dst_position_in_block == 0);
           dsti->set_value(sdata[src_position_in_block - 1]);
           if (src_position_in_block == 1)
             srci->set_highest(sdata[src_position_in_block - 1]);
@@ -367,8 +367,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         initialize();
       }
 
-      ham_assert(dest.check_integrity(0, other_count + (node_count - sstart)));
-      ham_assert(check_integrity(0, sstart));
+      ups_assert(dest.check_integrity(0, other_count + (node_count - sstart)));
+      ups_assert(check_integrity(0, sstart));
     }
 
   private:
@@ -399,7 +399,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
       // fail if the key already exists
       if (key == index->value() || key == index->highest())
-        throw Exception(HAM_DUPLICATE_KEY);
+        throw Exception(UPS_DUPLICATE_KEY);
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];
@@ -424,7 +424,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           // swap the indices, done
           std::swap(*index, *new_index);
 
-          ham_assert(check_integrity(0, node_count + 1));
+          ups_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot));
         }
 
@@ -436,7 +436,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           new_index->set_value(key);
           new_index->set_highest(key);
 
-          ham_assert(check_integrity(0, node_count + 1));
+          ups_assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot + index->key_count()));
         }
 
@@ -446,13 +446,13 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         // The pivot position is aligned to 4.
         uint32_t *data = uncompress_block(index, datap);
         uint32_t to_copy = (index->key_count() / 2) & ~0x03;
-        ham_assert(to_copy > 0);
+        ups_assert(to_copy > 0);
         uint32_t new_key_count = index->key_count() - to_copy - 1;
         uint32_t new_value = data[to_copy];
 
         // once more check if the key already exists
         if (new_value == key)
-          throw Exception(HAM_DUPLICATE_KEY);
+          throw Exception(UPS_DUPLICATE_KEY);
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
@@ -484,13 +484,13 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         }
         else {
           new_index->set_used_size(compress_block(new_index, new_data));
-          ham_assert(new_index->used_size() <= new_index->block_size());
+          ups_assert(new_index->used_size() <= new_index->block_size());
         }
 
         // the block was modified and needs to be compressed again, even if
         // the actual insert operation fails (i.e. b/c the key already exists)
         index->set_used_size(compress_block(index, data));
-        ham_assert(index->used_size() <= index->block_size());
+        ups_assert(index->used_size() <= index->block_size());
 
         // fall through...
       }
@@ -550,7 +550,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           if (it < end && *it == key) {
             //if (needs_compress)
               //compress_block(index, data);
-            throw Exception(HAM_DUPLICATE_KEY);
+            throw Exception(UPS_DUPLICATE_KEY);
           }
 
           // insert the new key
@@ -570,7 +570,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
       if (key > index->highest())
         index->set_highest(key);
 
-      ham_assert(check_integrity(0, node_count + 1));
+      ups_assert(check_integrity(0, node_count + 1));
       return (PBtreeNode::InsertResult(0, slot));
     }
 
@@ -578,7 +578,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
     void vacuumize_weak() {
       // This is not implemented. Caller will abort the current operation and
       // perform a page split.
-      throw Exception(HAM_LIMITS_REACHED);
+      throw Exception(UPS_LIMITS_REACHED);
     }
 
     // Implementation of vacuumize()
@@ -663,4 +663,4 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_SIMDCOMP_H */
+#endif /* UPS_BTREE_KEYS_SIMDCOMP_H */

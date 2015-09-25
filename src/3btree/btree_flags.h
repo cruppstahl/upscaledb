@@ -20,16 +20,16 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_FLAGS_H
-#define HAM_BTREE_FLAGS_H
+#ifndef UPS_BTREE_FLAGS_H
+#define UPS_BTREE_FLAGS_H
 
 #include "0root/root.h"
 
-#include "ham/types.h"
+#include "ups/types.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -41,7 +41,7 @@ namespace hamsterdb {
 //
 struct BtreeKey
 {
-  // persisted btree key flags; also used in combination with ham_key_t._flags
+  // persisted btree key flags; also used in combination with ups_key_t._flags
   enum {
     // key is extended with overflow area
     kExtendedKey          = 0x01,
@@ -50,7 +50,7 @@ struct BtreeKey
     kCompressed           = 0x08
   };
 
-  // flags used with the ham_key_t::_flags (note the underscore - this
+  // flags used with the ups_key_t::_flags (note the underscore - this
   // field is for INTERNAL USE!)
   //
   // Note: these flags should NOT overlap with the persisted flags above!
@@ -93,4 +93,4 @@ struct BtreeRecord
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_FLAGS_H */
+#endif /* UPS_BTREE_FLAGS_H */

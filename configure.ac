@@ -1,5 +1,5 @@
 dnl
-dnl configuration script for hamsterdb
+dnl configuration script for upscaledb
 dnl
 dnl Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
 dnl All rights reserved. See file LICENSE for licence and copyright
@@ -7,7 +7,7 @@ dnl information
 dnl
 
 dnl Initialize autoconf/automake
-AC_INIT([hamsterdb], [2.1.11], [http://hamsterdb.com])
+AC_INIT([upscaledb], [2.1.11], [http://upscaledb.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 AC_CONFIG_MACRO_DIR(m4)
 AC_COPYRIGHT([Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de)])
@@ -29,7 +29,7 @@ AC_SYS_LARGEFILE
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 LT_INIT
-AC_CONFIG_SRCDIR(src/5hamsterdb/hamsterdb.cc)
+AC_CONFIG_SRCDIR(src/5upscaledb/upscaledb.cc)
 AC_CONFIG_HEADERS(config.h)
 AM_PROG_CC_C_O
 
@@ -71,7 +71,7 @@ settings=""
 AC_ARG_ENABLE(debug,
   AS_HELP_STRING(--enable-debug, build for debugging (slow!)),
     [if test x$enableval = xyes; then
-      CFLAGS="-g -O0 -DHAM_DEBUG -Wall"
+      CFLAGS="-g -O0 -DUPS_DEBUG -Wall"
       settings="$settings (debug)"
      fi])
 
@@ -92,7 +92,7 @@ AC_ARG_ENABLE(gcc-hardening,
 AC_ARG_ENABLE(logging,
   AS_HELP_STRING(--enable-logging, enables event logging),
     [if test x$enableval = xyes; then
-      CFLAGS="$CFLAGS -DHAM_ENABLE_EVENT_LOGGING"
+      CFLAGS="$CFLAGS -DUPS_ENABLE_EVENT_LOGGING"
       settings="$settings (logging)"
      fi])
 
@@ -254,10 +254,10 @@ fi
 AM_CONDITIONAL(ENABLE_REMOTE, test x$enable_remote != xno)
 
 # -------------------------------------------------------------------------
-# Build ham_bench with Berkeleydb?
+# Build ups_bench with Berkeleydb?
 # -------------------------------------------------------------------------
 AC_ARG_WITH(berkeleydb,
-  AS_HELP_STRING(--without-berkeleydb, enables ham_bench tests against berkeleydb))
+  AS_HELP_STRING(--without-berkeleydb, enables ups_bench tests against berkeleydb))
 if test x$with_berkeleydb = xyes; then
   AC_CHECK_LIB(db, db_create)
   AC_CHECK_HEADERS(db.h)
@@ -273,13 +273,13 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile src/Makefile src/2protobuf/Makefile src/2protoserde/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ham_bench/Makefile src/5server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile src/2protobuf/Makefile src/2protoserde/Makefile include/Makefile include/ups/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/json/Makefile tools/Makefile tools/ups_bench/Makefile src/5server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_CONFIG_FILES(3rdparty/liblzf/Makefile 3rdparty/murmurhash3/Makefile 3rdparty/simdcomp/Makefile 3rdparty/streamvbyte/Makefile 3rdparty/varint/Makefile 3rdparty/for/Makefile)
 AC_OUTPUT
 
 # Messages
 printf '#================================================================\n'
-printf "# Configuring hamsterdb version $PACKAGE_VERSION\n"
+printf "# Configuring upscaledb version $PACKAGE_VERSION\n"
 printf "# Settings:$settings\n"
 if test x$enable_remote = xno; then
 printf "#\n"

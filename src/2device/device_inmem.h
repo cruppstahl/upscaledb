@@ -20,8 +20,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_DEVICE_INMEM_H
-#define HAM_DEVICE_INMEM_H
+#ifndef UPS_DEVICE_INMEM_H
+#define UPS_DEVICE_INMEM_H
 
 #include "0root/root.h"
 
@@ -30,7 +30,7 @@
 #include "2device/device.h"
 #include "2page/page.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -65,8 +65,8 @@ class InMemoryDevice : public Device {
 
     // opens an existing device 
     virtual void open() {
-      ham_assert(!"can't open an in-memory-device");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"can't open an in-memory-device");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // returns true if the device is open 
@@ -76,7 +76,7 @@ class InMemoryDevice : public Device {
 
     // closes the device 
     virtual void close() {
-      ham_assert(m_state.is_open);
+      ups_assert(m_state.is_open);
       m_state.is_open = false;
     }
 
@@ -90,26 +90,26 @@ class InMemoryDevice : public Device {
 
     // get the current file/storage size 
     virtual uint64_t file_size() {
-      ham_assert(!"this operation is not possible for in-memory-databases");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"this operation is not possible for in-memory-databases");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // seek position in a file 
     virtual void seek(uint64_t offset, int whence) {
-      ham_assert(!"can't seek in an in-memory-device");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"can't seek in an in-memory-device");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // tell the position in a file 
     virtual uint64_t tell() {
-      ham_assert(!"can't tell in an in-memory-device");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"can't tell in an in-memory-device");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // reads from the device; this function does not use mmap 
     virtual void read(uint64_t offset, void *buffer, size_t len) {
-      ham_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"operation is not possible for in-memory-databases");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // writes to the device 
@@ -118,15 +118,15 @@ class InMemoryDevice : public Device {
 
     // reads a page from the device 
     virtual void read_page(Page *page, uint64_t address) {
-      ham_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(HAM_NOT_IMPLEMENTED);
+      ups_assert(!"operation is not possible for in-memory-databases");
+      throw Exception(UPS_NOT_IMPLEMENTED);
     }
 
     // allocate storage from this device; this function
     // will *NOT* use mmap.  
     virtual uint64_t alloc(size_t size) {
       if (m_state.allocated_size + size > m_config.file_size_limit_bytes)
-        throw Exception(HAM_LIMITS_REACHED);
+        throw Exception(UPS_LIMITS_REACHED);
 
       uint64_t retval = (uint64_t)Memory::allocate<uint8_t>(size);
       m_state.allocated_size += size;
@@ -135,11 +135,11 @@ class InMemoryDevice : public Device {
 
     // allocate storage for a page from this device 
     virtual void alloc_page(Page *page) {
-      ham_assert(page->get_data() == 0);
+      ups_assert(page->get_data() == 0);
 
       size_t page_size = m_config.page_size_bytes;
       if (m_state.allocated_size + page_size > m_config.file_size_limit_bytes)
-        throw Exception(HAM_LIMITS_REACHED);
+        throw Exception(UPS_LIMITS_REACHED);
 
       uint8_t *p = Memory::allocate<uint8_t>(page_size);
       page->assign_allocated_buffer(p, (uint64_t)PTR_TO_U64(p));
@@ -151,7 +151,7 @@ class InMemoryDevice : public Device {
     virtual void free_page(Page *page) {
       page->free_buffer();
 
-      ham_assert(m_state.allocated_size >= m_config.page_size_bytes);
+      ups_assert(m_state.allocated_size >= m_config.page_size_bytes);
       m_state.allocated_size -= m_config.page_size_bytes;
     }
 
@@ -167,7 +167,7 @@ class InMemoryDevice : public Device {
     // releases a chunk of memory previously allocated with alloc()
     void release(void *ptr, size_t size) {
       Memory::release(ptr);
-      ham_assert(m_state.allocated_size >= size);
+      ups_assert(m_state.allocated_size >= size);
       m_state.allocated_size -= size;
     }
 
@@ -177,4 +177,4 @@ class InMemoryDevice : public Device {
 
 } // namespace hamsterdb
 
-#endif /* HAM_DEVICE_INMEM_H */
+#endif /* UPS_DEVICE_INMEM_H */

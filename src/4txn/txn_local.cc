@@ -28,7 +28,7 @@
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -54,9 +54,9 @@ compare(void *vlhs, void *vrhs)
   if (lhs == rhs)
     return (0);
 
-  ham_key_t *lhskey = lhs->get_key();
-  ham_key_t *rhskey = rhs->get_key();
-  ham_assert(lhskey && rhskey);
+  ups_key_t *lhskey = lhs->get_key();
+  ups_key_t *rhskey = rhs->get_key();
+  ups_assert(lhskey && rhskey);
   return (db->btree_index()->compare_keys(lhskey, rhskey));
 }
 
@@ -66,7 +66,7 @@ rb_gen(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 void
 TransactionOperation::initialize(LocalTransaction *txn, TransactionNode *node,
             uint32_t flags, uint32_t orig_flags, uint64_t lsn,
-            ham_key_t *key, ham_record_t *record)
+            ups_key_t *key, ups_record_t *record)
 {
   memset(this, 0, sizeof(*this));
 
@@ -145,13 +145,13 @@ TransactionNode::get_previous_sibling()
   return (rbt_prev(get_db()->txn_index(), this));
 }
 
-TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key)
+TransactionNode::TransactionNode(LocalDatabase *db, ups_key_t *key)
   : m_db(db), m_oldest_op(0), m_newest_op(0), m_key(key)
 {
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
   // TransactionIndex::get() creates a new TransactionNode
-  // ham_assert(TransactionIndex::get(key, 0) == 0);
+  // ups_assert(TransactionIndex::get(key, 0) == 0);
 }
 
 TransactionNode::~TransactionNode()
@@ -160,8 +160,8 @@ TransactionNode::~TransactionNode()
 
 TransactionOperation *
 TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
-            uint32_t flags, uint64_t lsn, ham_key_t *key,
-            ham_record_t *record)
+            uint32_t flags, uint64_t lsn, ups_key_t *key,
+            ups_record_t *record)
 {
   TransactionOperation *op = TransactionFactory::create_operation(txn,
                                     this, flags, orig_flags, lsn,
@@ -169,7 +169,7 @@ TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
 
   /* store it in the chronological list which is managed by the node */
   if (!get_newest_op()) {
-    ham_assert(get_oldest_op() == 0);
+    ups_assert(get_oldest_op() == 0);
     set_newest_op(op);
     set_oldest_op(op);
   }
@@ -182,7 +182,7 @@ TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
 
   /* store it in the chronological list which is managed by the transaction */
   if (!txn->get_newest_op()) {
-    ham_assert(txn->get_oldest_op() == 0);
+    ups_assert(txn->get_oldest_op() == 0);
     txn->set_newest_op(op);
     txn->set_oldest_op(op);
   }
@@ -219,7 +219,7 @@ LocalTransactionManager::LocalTransactionManager(Environment *env)
     m_ops_threshold(kFlushOperationsThreshold),
     m_bytes_threshold(kFlushBytesThreshold)
 {
-  if (m_env->get_flags() & HAM_FLUSH_WHEN_COMMITTED) {
+  if (m_env->get_flags() & UPS_FLUSH_WHEN_COMMITTED) {
     m_txn_threshold = 0;
     m_ops_threshold = 0;
     m_bytes_threshold = 0;
@@ -236,9 +236,9 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
   m_id = ltm->get_incremented_txn_id();
 
   /* append journal entry */
-  if (env->get_flags() & HAM_ENABLE_RECOVERY
-      && env->get_flags() & HAM_ENABLE_TRANSACTIONS
-      && !(flags & HAM_TXN_TEMPORARY)) {
+  if (env->get_flags() & UPS_ENABLE_RECOVERY
+      && env->get_flags() & UPS_ENABLE_TRANSACTIONS
+      && !(flags & UPS_TXN_TEMPORARY)) {
     env->journal()->append_txn_begin(this, name,
             env->next_lsn());
   }
@@ -254,9 +254,9 @@ LocalTransaction::commit(uint32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
   if (get_cursor_refcount()) {
-    ham_trace(("Transaction cannot be committed till all attached "
+    ups_trace(("Transaction cannot be committed till all attached "
           "Cursors are closed"));
-    throw Exception(HAM_CURSOR_STILL_OPEN);
+    throw Exception(UPS_CURSOR_STILL_OPEN);
   }
 
   /* this transaction is now committed! */
@@ -268,9 +268,9 @@ LocalTransaction::abort(uint32_t flags)
 {
   /* are cursors attached to this txn? if yes, fail */
   if (get_cursor_refcount()) {
-    ham_trace(("Transaction cannot be aborted till all attached "
+    ups_trace(("Transaction cannot be aborted till all attached "
           "Cursors are closed"));
-    throw Exception(HAM_CURSOR_STILL_OPEN);
+    throw Exception(UPS_CURSOR_STILL_OPEN);
   }
 
   /* this transaction is now aborted!  */
@@ -315,7 +315,7 @@ TransactionIndex::~TransactionIndex()
 }
 
 TransactionNode *
-TransactionIndex::get(ham_key_t *key, uint32_t flags)
+TransactionIndex::get(ups_key_t *key, uint32_t flags)
 {
   TransactionNode *node = 0;
   int match = 0;
@@ -324,17 +324,17 @@ TransactionIndex::get(ham_key_t *key, uint32_t flags)
   TransactionNode tmp(m_db, key);
 
   /* search if node already exists - if yes, return it */
-  if ((flags & HAM_FIND_GEQ_MATCH) == HAM_FIND_GEQ_MATCH) {
+  if ((flags & UPS_FIND_GEQ_MATCH) == UPS_FIND_GEQ_MATCH) {
     node = rbt_nsearch(this, &tmp);
     if (node)
       match = compare(&tmp, node);
   }
-  else if ((flags & HAM_FIND_LEQ_MATCH) == HAM_FIND_LEQ_MATCH) {
+  else if ((flags & UPS_FIND_LEQ_MATCH) == UPS_FIND_LEQ_MATCH) {
     node = rbt_psearch(this, &tmp);
     if (node)
       match = compare(&tmp, node);
   }
-  else if (flags & HAM_FIND_GT_MATCH) {
+  else if (flags & UPS_FIND_GT_MATCH) {
     node = rbt_search(this, &tmp);
     if (node)
       node = node->get_next_sibling();
@@ -342,7 +342,7 @@ TransactionIndex::get(ham_key_t *key, uint32_t flags)
       node = rbt_nsearch(this, &tmp);
     match = 1;
   }
-  else if (flags & HAM_FIND_LT_MATCH) {
+  else if (flags & UPS_FIND_LT_MATCH) {
     node = rbt_search(this, &tmp);
     if (node)
       node = node->get_previous_sibling();
@@ -359,10 +359,10 @@ TransactionIndex::get(ham_key_t *key, uint32_t flags)
 
   /* approx. matching: set the key flag */
   if (match < 0)
-    ham_key_set_intflags(key, (ham_key_get_intflags(key)
+    ups_key_set_intflags(key, (ups_key_get_intflags(key)
             & ~BtreeKey::kApproximate) | BtreeKey::kLower);
   else if (match > 0)
-    ham_key_set_intflags(key, (ham_key_get_intflags(key)
+    ups_key_set_intflags(key, (ups_key_get_intflags(key)
             & ~BtreeKey::kApproximate) | BtreeKey::kGreater);
 
   return (node);
@@ -435,7 +435,7 @@ struct KeyCounter : public TransactionIndex::Visitor
             || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
           // check if the key already exists in the btree - if yes,
           // we do not count it (it will be counted later)
-          if (HAM_KEY_NOT_FOUND == be->find(context, 0, node->get_key(), 0, 0, 0, 0))
+          if (UPS_KEY_NOT_FOUND == be->find(context, 0, node->get_key(), 0, 0, 0, 0))
             counter++;
           return;
         }
@@ -455,7 +455,7 @@ struct KeyCounter : public TransactionIndex::Visitor
           }
         }
         else if (!(op->get_flags() & TransactionOperation::kNop)) {
-          ham_assert(!"shouldn't be here");
+          ups_assert(!"shouldn't be here");
           return;
         }
       }
@@ -487,7 +487,7 @@ LocalTransactionManager::begin(Transaction *txn)
   append_txn_at_tail(txn);
 }
 
-ham_status_t 
+ups_status_t 
 LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
@@ -497,9 +497,9 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
     txn->commit(flags);
 
     /* append journal entry */
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-        && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-        && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+    if (m_env->get_flags() & UPS_ENABLE_RECOVERY
+        && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS
+        && !(txn->get_flags() & UPS_TXN_TEMPORARY))
       lenv()->journal()->append_txn_commit(txn,
                       lenv()->next_lsn());
 
@@ -515,7 +515,7 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
   return (0);
 }
 
-ham_status_t 
+ups_status_t 
 LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 {
   LocalTransaction *txn = dynamic_cast<LocalTransaction *>(htxn);
@@ -525,9 +525,9 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
     txn->abort(flags);
 
     /* append journal entry */
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-        && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS
-        && !(txn->get_flags() & HAM_TXN_TEMPORARY))
+    if (m_env->get_flags() & UPS_ENABLE_RECOVERY
+        && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS
+        && !(txn->get_flags() & UPS_TXN_TEMPORARY))
       lenv()->journal()->append_txn_abort(txn,
                       lenv()->next_lsn());
 
@@ -573,22 +573,22 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   Journal *journal = lenv()->journal();
   uint64_t highest_lsn = 0;
 
-  ham_assert(context->changeset.is_empty());
+  ups_assert(context->changeset.is_empty());
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
   while ((oldest = (LocalTransaction *)get_oldest_txn())) {
     if (oldest->is_committed()) {
       m_queued_ops_for_flush -= oldest->get_op_counter();
-      ham_assert(m_queued_ops_for_flush >= 0);
+      ups_assert(m_queued_ops_for_flush >= 0);
       m_queued_bytes_for_flush -= oldest->get_accum_data_size();
-      ham_assert(m_queued_bytes_for_flush >= 0);
+      ups_assert(m_queued_bytes_for_flush >= 0);
       uint64_t lsn = flush_txn(context, (LocalTransaction *)oldest);
       if (lsn > highest_lsn)
         highest_lsn = lsn;
 
       /* this transaction was flushed! */
-      if (journal && (oldest->get_flags() & HAM_TXN_TEMPORARY) == 0)
+      if (journal && (oldest->get_flags() & UPS_TXN_TEMPORARY) == 0)
         journal->transaction_flushed(oldest);
     }
     else if (oldest->is_aborted()) {
@@ -611,12 +611,12 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   }
 
   /* now flush the changeset and write the modified pages to disk */
-  if (highest_lsn && m_env->get_flags() & HAM_ENABLE_RECOVERY)
+  if (highest_lsn && m_env->get_flags() & UPS_ENABLE_RECOVERY)
     context->changeset.flush(highest_lsn);
   else
     context->changeset.clear();
 
-  ham_assert(context->changeset.is_empty());
+  ups_assert(context->changeset.is_empty());
 }
 
 uint64_t
@@ -646,13 +646,13 @@ LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
 next_op:
     while ((cursor = op->cursor_list())) {
       LocalCursor *pc = cursor->get_parent();
-      ham_assert(pc->get_txn_cursor() == cursor);
+      ups_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?
       if (!pc->is_nil(LocalCursor::kTxn))
         pc->set_to_nil(LocalCursor::kTxn);
     }
 
-    ham_assert(op->get_lsn() > highest_lsn);
+    ups_assert(op->get_lsn() > highest_lsn);
     highest_lsn = op->get_lsn();
 
     /* continue with the next operation of this txn */

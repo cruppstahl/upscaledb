@@ -20,14 +20,14 @@
 // Always verify that a file of level N does not include headers > N!
 #include "4cursor/cursor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 namespace hamsterdb {
 
-ham_status_t
-Cursor::overwrite(ham_record_t *record, uint32_t flags)
+ups_status_t
+Cursor::overwrite(ups_record_t *record, uint32_t flags)
 {
   try {
     return (do_overwrite(record, flags));
@@ -37,7 +37,7 @@ Cursor::overwrite(ham_record_t *record, uint32_t flags)
   }
 }
 
-ham_status_t
+ups_status_t
 Cursor::get_duplicate_position(uint32_t *pposition)
 {
   try {
@@ -49,7 +49,7 @@ Cursor::get_duplicate_position(uint32_t *pposition)
   }
 }
 
-ham_status_t
+ups_status_t
 Cursor::get_duplicate_count(uint32_t flags, uint32_t *pcount)
 {
   try {
@@ -62,7 +62,7 @@ Cursor::get_duplicate_count(uint32_t flags, uint32_t *pcount)
   }
 }
 
-ham_status_t
+ups_status_t
 Cursor::get_record_size(uint64_t *psize)
 {
   try {

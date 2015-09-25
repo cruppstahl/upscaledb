@@ -32,8 +32,8 @@
 namespace hamsterdb {
 
 struct BlobManagerFixture {
-  ham_db_t *m_db;
-  ham_env_t *m_env;
+  ups_db_t *m_db;
+  ups_env_t *m_env;
   bool m_inmemory;
   bool m_use_txn;
   uint32_t m_cache_size;
@@ -45,25 +45,25 @@ struct BlobManagerFixture {
         uint32_t cache_size = 0, uint32_t page_size = 0)
     : m_db(0), m_inmemory(inmemory), m_use_txn(use_txn),
       m_cache_size(cache_size), m_page_size(page_size) {
-    ham_parameter_t params[3] = {
-      { HAM_PARAM_CACHESIZE, m_cache_size },
+    ups_parameter_t params[3] = {
+      { UPS_PARAM_CACHESIZE, m_cache_size },
       // set page_size, otherwise 16-bit limit bugs in freelist
       // will fire on Win32
-      { HAM_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
+      { UPS_PARAM_PAGESIZE, (m_page_size ? m_page_size : 4096) },
       { 0, 0 }
     };
 
     os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_env, Utils::opath(".test"),
+        ups_env_create(&m_env, Utils::opath(".test"),
             (m_inmemory
-                ? HAM_IN_MEMORY
+                ? UPS_IN_MEMORY
                 : (m_use_txn
-                    ? HAM_ENABLE_TRANSACTIONS
+                    ? UPS_ENABLE_TRANSACTIONS
                     : 0)),
             0644, &params[0]));
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
     m_blob_manager = ((LocalEnvironment *)m_env)->blob_manager();
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
@@ -74,28 +74,28 @@ struct BlobManagerFixture {
     m_context->changeset.clear();
 
     if (m_env)
-        REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
+        REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
   }
 
   void overwriteMappedBlob() {
     uint8_t buffer[128];
-    ham_key_t key = {0};
-    ham_record_t record = ham_make_record((void *)buffer, sizeof(buffer));
+    ups_key_t key = {0};
+    ups_record_t record = ups_make_record((void *)buffer, sizeof(buffer));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
 
     // reopen the file
     m_context->changeset.clear();
-    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
-    REQUIRE(0 == ham_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     ::memset(&buffer, 0x13, sizeof(buffer));
-    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &record, HAM_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_OVERWRITE));
 
-    ham_record_t record2 = {0};
-    REQUIRE(0 == ham_db_find(m_db, 0, &key, &record2, 0));
+    ups_record_t record2 = {0};
+    REQUIRE(0 == ups_db_find(m_db, 0, &key, &record2, 0));
     REQUIRE(sizeof(buffer) == record2.size);
     REQUIRE(0 == memcmp(buffer, record2.data, sizeof(buffer)));
   }
@@ -103,7 +103,7 @@ struct BlobManagerFixture {
   void allocReadFreeTest() {
     uint8_t buffer[64];
     uint64_t blobid;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
@@ -124,7 +124,7 @@ struct BlobManagerFixture {
   void freeBlobTest() {
     uint8_t buffer[64];
     uint64_t blobid;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
@@ -149,7 +149,7 @@ struct BlobManagerFixture {
   void replaceTest() {
     uint8_t buffer[64], buffer2[64];
     uint64_t blobid, blobid2;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
     ::memset(&buffer2, 0x15, sizeof(buffer2));
@@ -179,7 +179,7 @@ struct BlobManagerFixture {
   void replaceWithBigTest() {
     uint8_t buffer[64], buffer2[128];
     uint64_t blobid, blobid2;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
     ::memset(&buffer2, 0x15, sizeof(buffer2));
@@ -209,7 +209,7 @@ struct BlobManagerFixture {
   void replaceWithSmallTest() {
     uint8_t buffer[128], buffer2[64];
     uint64_t blobid, blobid2;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
     ::memset(&buffer2, 0x15, sizeof(buffer2));
@@ -282,7 +282,7 @@ struct BlobManagerFixture {
     unsigned ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
     uint8_t *buffer = (uint8_t *)malloc(ps * BLOCKS * 2);
     uint64_t blobid, blobid2;
-    ham_record_t record;
+    ups_record_t record;
     ::memset(&record, 0, sizeof(record));
     ::memset(buffer,  0, ps * BLOCKS * 2);
 
@@ -324,20 +324,20 @@ struct BlobManagerFixture {
   void loopInsert(int loops, int factor) {
     uint8_t *buffer;
     uint64_t *blobid;
-    ham_record_t record;
-    ham_txn_t *txn = 0; /* need a txn object for the blob routines */
+    ups_record_t record;
+    ups_txn_t *txn = 0; /* need a txn object for the blob routines */
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
     blobid = (uint64_t *)::malloc(sizeof(uint64_t) * loops);
     if (!m_inmemory && m_use_txn)
-      REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 0; i < loops; i++) {
       buffer = (uint8_t *)::malloc((i + 1) * factor);
       ::memset(buffer, (char)i, (i + 1) * factor);
 
-      ham_record_t rec = {0};
+      ups_record_t rec = {0};
       rec.data = buffer;
       rec.size = (uint32_t)((i + 1) * factor);
       blobid[i] = m_blob_manager->allocate(m_context.get(), &rec, 0);
@@ -365,7 +365,7 @@ struct BlobManagerFixture {
 
     ::free(blobid);
     if (!m_inmemory && m_use_txn)
-      REQUIRE(0 == ham_txn_commit(txn, 0));
+      REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void multipleAllocReadFreeTest() {

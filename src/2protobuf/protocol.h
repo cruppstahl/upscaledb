@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_PROTOCOL_H
-#define HAM_PROTOCOL_H
+#ifndef UPS_PROTOCOL_H
+#define UPS_PROTOCOL_H
 
 #include "0root/root.h"
 
@@ -33,14 +33,14 @@
 #include "1base/dynamic_array.h"
 #include "2protobuf/messages.pb.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 using namespace hamsterdb;
 
 /** a magic and version indicator for the remote protocol */
-#define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
+#define UPS_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
 
 /**
  * the Protocol class maps a single message that is exchanged between
@@ -56,8 +56,8 @@ class Protocol : public hamsterdb::ProtoWrapper
       set_type(type);
     }
 
-    /** helper function which copies a ham_key_t into a ProtoBuf key */
-    static void assign_key(hamsterdb::Key *protokey, ham_key_t *hamkey,
+    /** helper function which copies a ups_key_t into a ProtoBuf key */
+    static void assign_key(hamsterdb::Key *protokey, ups_key_t *hamkey,
             bool deep_copy = true) {
       if (deep_copy)
         protokey->set_data(hamkey->data, hamkey->size);
@@ -65,9 +65,9 @@ class Protocol : public hamsterdb::ProtoWrapper
       protokey->set_intflags(hamkey->_flags);
     }
 
-    /** helper function which copies a ham_record_t into a ProtoBuf record */
+    /** helper function which copies a ups_record_t into a ProtoBuf record */
     static void assign_record(hamsterdb::Record *protorec,
-            ham_record_t *hamrec, bool deep_copy = true) {
+            ups_record_t *hamrec, bool deep_copy = true) {
       if (deep_copy)
         protorec->set_data(hamrec->data, hamrec->size);
       protorec->set_flags(hamrec->flags);
@@ -80,8 +80,8 @@ class Protocol : public hamsterdb::ProtoWrapper
      * buffer
      */
     static Protocol *unpack(const uint8_t *buf, uint32_t size) {
-      if (*(uint32_t *)&buf[0] != HAM_TRANSFER_MAGIC_V1) {
-        ham_trace(("invalid protocol version"));
+      if (*(uint32_t *)&buf[0] != UPS_TRANSFER_MAGIC_V1) {
+        ups_trace(("invalid protocol version"));
         return (0);
       }
 
@@ -105,7 +105,7 @@ class Protocol : public hamsterdb::ProtoWrapper
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(uint32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(uint32_t *)&p[0] = UPS_TRANSFER_MAGIC_V1;
       *(uint32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
@@ -130,7 +130,7 @@ class Protocol : public hamsterdb::ProtoWrapper
         return (false);
 
       /* write the magic and the payload size of the packed structure */
-      *(uint32_t *)&p[0] = HAM_TRANSFER_MAGIC_V1;
+      *(uint32_t *)&p[0] = UPS_TRANSFER_MAGIC_V1;
       *(uint32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
@@ -145,4 +145,4 @@ class Protocol : public hamsterdb::ProtoWrapper
     }
 };
 
-#endif /* HAM_PROTOCOL_H */
+#endif /* UPS_PROTOCOL_H */

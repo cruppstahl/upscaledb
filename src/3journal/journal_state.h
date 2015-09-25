@@ -22,15 +22,15 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_JOURNAL_STATE_H
-#define HAM_JOURNAL_STATE_H
+#ifndef UPS_JOURNAL_STATE_H
+#define UPS_JOURNAL_STATE_H
 
 #include "0root/root.h"
 
 #include <map>
 #include <string>
 
-#include "ham/hamsterdb_int.h" // for metrics
+#include "ups/upscaledb_int.h" // for metrics
 
 #include "1base/dynamic_array.h"
 #include "1base/scoped_ptr.h"
@@ -38,7 +38,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -88,13 +88,13 @@ struct JournalState
   // Set to false to disable logging; used during recovery
   bool disable_logging;
 
-  // Counting the flushed bytes (for ham_env_get_metrics)
+  // Counting the flushed bytes (for ups_env_get_metrics)
   uint64_t count_bytes_flushed;
 
-  // Counting the bytes before compression (for ham_env_get_metrics)
+  // Counting the bytes before compression (for ups_env_get_metrics)
   uint64_t count_bytes_before_compression;
 
-  // Counting the bytes after compression (for ham_env_get_metrics)
+  // Counting the bytes after compression (for ups_env_get_metrics)
   uint64_t count_bytes_after_compression;
 
   // A map of all opened Databases
@@ -107,4 +107,4 @@ struct JournalState
 
 } // namespace hamsterdb
 
-#endif /* HAM_JOURNAL_STATE_H */
+#endif /* UPS_JOURNAL_STATE_H */

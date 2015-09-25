@@ -40,7 +40,7 @@
 #include "4db/db.h"
 #include "4env/env.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -52,7 +52,7 @@ class BtreeInsertAction : public BtreeUpdateAction
 {
   public:
     BtreeInsertAction(BtreeIndex *btree, Context *context, LocalCursor *cursor,
-                    ham_key_t *key, ham_record_t *record, uint32_t flags)
+                    ups_key_t *key, ups_record_t *record, uint32_t flags)
       : BtreeUpdateAction(btree, context, cursor
                                             ? cursor->get_btree_cursor()
                                             : 0, 0),
@@ -62,16 +62,16 @@ class BtreeInsertAction : public BtreeUpdateAction
     }
 
     // This is the entry point for the actual insert operation
-    ham_status_t run() {
+    ups_status_t run() {
       BtreeStatistics *stats = m_btree->get_statistics();
 
       m_hints = stats->get_insert_hints(m_flags);
       
-      ham_assert((m_hints.flags & (HAM_DUPLICATE_INSERT_BEFORE
-                            | HAM_DUPLICATE_INSERT_AFTER
-                            | HAM_DUPLICATE_INSERT_FIRST
-                            | HAM_DUPLICATE_INSERT_LAST))
-                ? (m_hints.flags & HAM_DUPLICATE)
+      ups_assert((m_hints.flags & (UPS_DUPLICATE_INSERT_BEFORE
+                            | UPS_DUPLICATE_INSERT_AFTER
+                            | UPS_DUPLICATE_INSERT_FIRST
+                            | UPS_DUPLICATE_INSERT_LAST))
+                ? (m_hints.flags & UPS_DUPLICATE)
                 : 1);
 
       /*
@@ -81,17 +81,17 @@ class BtreeInsertAction : public BtreeUpdateAction
        * already full, it will remove the HINT_APPEND (or HINT_PREPEND)
        * flag and call insert()
        */
-      ham_status_t st;
+      ups_status_t st;
       if (m_hints.leaf_page_addr
-          && (m_hints.flags & HAM_HINT_APPEND
-              || m_hints.flags & HAM_HINT_PREPEND))
+          && (m_hints.flags & UPS_HINT_APPEND
+              || m_hints.flags & UPS_HINT_PREPEND))
         st = append_or_prepend_key();
       else
         st = insert();
 
       /* TODO insert() retries the operation, and it will fail again because
        * the page is full -> immediately split the page! */
-      if (st == HAM_LIMITS_REACHED)
+      if (st == UPS_LIMITS_REACHED)
         st = insert();
 
       if (st)
@@ -108,7 +108,7 @@ class BtreeInsertAction : public BtreeUpdateAction
   private:
     // Appends a key at the "end" of the btree, or prepends it at the
     // "beginning"
-    ham_status_t append_or_prepend_key() {
+    ups_status_t append_or_prepend_key() {
       Page *page;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->lenv();
@@ -129,15 +129,15 @@ class BtreeInsertAction : public BtreeUpdateAction
         return (insert());
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      ham_assert(node->is_leaf());
+      ups_assert(node->is_leaf());
 
       /*
        * if the page is already full OR this page is not the right-most page
        * when we APPEND or the left-most node when we PREPEND
        * OR the new key is not the highest key: perform a normal insert
        */
-      if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
-              || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
+      if ((m_hints.flags & UPS_HINT_APPEND && node->get_right() != 0)
+              || (m_hints.flags & UPS_HINT_PREPEND && node->get_left() != 0)
               || node->requires_split(m_context, m_key))
         return (insert());
 
@@ -146,20 +146,20 @@ class BtreeInsertAction : public BtreeUpdateAction
        * (depending on the flags), or if it's actually inserted in the middle.
        */
       if (node->get_count() != 0) {
-        if (m_hints.flags & HAM_HINT_APPEND) {
+        if (m_hints.flags & UPS_HINT_APPEND) {
           int cmp_hi = node->compare(m_context, m_key, node->get_count() - 1);
           /* key is at the end */
           if (cmp_hi > 0) {
-            ham_assert(node->get_right() == 0);
+            ups_assert(node->get_right() == 0);
             force_append = true;
           }
         }
 
-        if (m_hints.flags & HAM_HINT_PREPEND) {
+        if (m_hints.flags & UPS_HINT_PREPEND) {
           int cmp_lo = node->compare(m_context, m_key, 0);
           /* key is at the start of page */
           if (cmp_lo < 0) {
-            ham_assert(node->get_left() == 0);
+            ups_assert(node->get_left() == 0);
             force_prepend = true;
           }
         }
@@ -171,20 +171,20 @@ class BtreeInsertAction : public BtreeUpdateAction
                                 force_prepend, force_append));
 
       /* otherwise reset the hints because they are no longer valid */
-      m_hints.flags &= ~HAM_HINT_APPEND;
-      m_hints.flags &= ~HAM_HINT_PREPEND;
+      m_hints.flags &= ~UPS_HINT_APPEND;
+      m_hints.flags &= ~UPS_HINT_PREPEND;
       return (insert());
     }
 
-    ham_status_t insert() {
+    ups_status_t insert() {
       // traverse the tree till a leaf is reached
       Page *parent;
       Page *page = traverse_tree(m_key, m_hints, &parent);
 
       // We've reached the leaf; it's still possible that we have to
       // split the page, therefore this case has to be handled
-      ham_status_t st = insert_in_page(page, m_key, m_record, m_hints);
-      if (st == HAM_LIMITS_REACHED) {
+      ups_status_t st = insert_in_page(page, m_key, m_record, m_hints);
+      if (st == UPS_LIMITS_REACHED) {
         page = split_page(page, parent, m_key, m_hints);
         return (insert_in_page(page, m_key, m_record, m_hints));
       }
@@ -192,21 +192,21 @@ class BtreeInsertAction : public BtreeUpdateAction
     }
 
     // the key that is inserted
-    ham_key_t *m_key;
+    ups_key_t *m_key;
 
     // the record that is inserted
-    ham_record_t *m_record;
+    ups_record_t *m_record;
 
-    // flags of ham_db_insert()
+    // flags of ups_db_insert()
     uint32_t m_flags;
 
     // statistical hints for this operation
     BtreeStatistics::InsertHints m_hints;
 };
 
-ham_status_t
-BtreeIndex::insert(Context *context, LocalCursor *cursor, ham_key_t *key,
-                ham_record_t *record, uint32_t flags)
+ups_status_t
+BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
+                ups_record_t *record, uint32_t flags)
 {
   context->db = get_db();
 

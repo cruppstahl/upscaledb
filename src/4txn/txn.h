@@ -45,8 +45,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_TXN_H
-#define HAM_TXN_H
+#ifndef UPS_TXN_H
+#define UPS_TXN_H
 
 #include "0root/root.h"
 
@@ -56,16 +56,16 @@
 #include "1base/dynamic_array.h"
 #include "1base/error.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 //
-// A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
-// opaque C structure, but internally we use a C++ class. The ham_txn_t
+// A helper structure; ups_txn_t is declared in ups/upscaledb.h as an
+// opaque C structure, but internally we use a C++ class. The ups_txn_t
 // struct satisfies the C compiler, and internally we just cast the pointers.
 //
-struct ham_txn_t
+struct ups_txn_t
 {
   int dummy;
 };
@@ -92,7 +92,7 @@ class Transaction
 
   public:
     // Constructor; "begins" the Transaction
-    // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
+    // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
     Transaction(Environment *env, const char *name, uint32_t flags)
       : m_id(0), m_env(env), m_flags(flags), m_next(0), m_cursor_refcount(0) {
         if (name)
@@ -150,19 +150,19 @@ class Transaction
 
     // Decreases the cursor refcount (numbers of Cursors using this Transaction)
     void decrease_cursor_refcount() {
-      ham_assert(m_cursor_refcount > 0);
+      ups_assert(m_cursor_refcount > 0);
       m_cursor_refcount--;
     }
 
     // Returns the memory buffer for the key data.
-    // Used to allocate array in ham_find, ham_cursor_move etc. which is
+    // Used to allocate array in ups_find, ups_cursor_move etc. which is
     // then returned to the user.
     ByteArray &key_arena() {
       return (m_key_arena);
     }
 
     // Returns the memory buffer for the record data.
-    // Used to allocate array in ham_find, ham_cursor_move etc. which is
+    // Used to allocate array in ups_find, ups_cursor_move etc. which is
     // then returned to the user.
     ByteArray &record_arena() {
       return (m_record_arena);
@@ -237,11 +237,11 @@ class TransactionManager
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t commit(Transaction *txn, uint32_t flags = 0) = 0;
+    virtual ups_status_t commit(Transaction *txn, uint32_t flags = 0) = 0;
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t abort(Transaction *txn, uint32_t flags = 0) = 0;
+    virtual ups_status_t abort(Transaction *txn, uint32_t flags = 0) = 0;
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns(Context *context = 0) = 0;
@@ -260,7 +260,7 @@ class TransactionManager
     // Adds a new transaction to this Environment
     void append_txn_at_tail(Transaction *txn) {
       if (!m_newest_txn) {
-        ham_assert(m_oldest_txn == 0);
+        ups_assert(m_oldest_txn == 0);
         m_oldest_txn = txn;
         m_newest_txn = txn;
       }
@@ -280,7 +280,7 @@ class TransactionManager
       if (m_newest_txn == txn)
         m_newest_txn = 0;
 
-      ham_assert(m_oldest_txn == txn);
+      ups_assert(m_oldest_txn == txn);
       m_oldest_txn = txn->get_next();
     }
 
@@ -296,4 +296,4 @@ class TransactionManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_TXN_H */
+#endif /* UPS_TXN_H */

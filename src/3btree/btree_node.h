@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_NODE_H
-#define HAM_BTREE_NODE_H
+#ifndef UPS_BTREE_NODE_H
+#define UPS_BTREE_NODE_H
 
 #include "0root/root.h"
 
@@ -29,7 +29,7 @@
 #include "2page/page.h"
 #include "3btree/btree_flags.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -44,17 +44,17 @@ class PBtreeKeyDefault;
  *
  * This structure is directly written to/read from the file.
  */
-HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
+UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
 {
   public:
     // Result of the insert() operation
     struct InsertResult {
-      InsertResult(ham_status_t _status = 0, int _slot = 0)
+      InsertResult(ups_status_t _status = 0, int _slot = 0)
         : status(_status), slot(_slot) {
       }
 
       // hamsterdb status code
-      ham_status_t status;
+      ups_status_t status;
 
       // the slot of the new (or existing) key
       int slot;
@@ -167,10 +167,10 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     // the entries of this node
     uint8_t m_data[1];
 
-} HAM_PACK_2;
+} UPS_PACK_2;
 
 #include "1base/packstop.h"
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_NODE_H */
+#endif /* UPS_BTREE_NODE_H */

@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_BTREE_KEYS_GROUPVARINT_H
-#define HAM_BTREE_KEYS_GROUPVARINT_H
+#ifndef UPS_BTREE_KEYS_GROUPVARINT_H
+#define UPS_BTREE_KEYS_GROUPVARINT_H
 
 #include <sstream>
 #include <iostream>
@@ -34,7 +34,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -57,7 +57,7 @@ const uint32_t varintgb_mask[4] = { 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF };
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-HAM_PACK_0 class HAM_PACK_1 GroupVarintIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 GroupVarintIndex : public IndexBase {
   public:
     enum {
       // Initial size of a new block
@@ -124,7 +124,7 @@ HAM_PACK_0 class HAM_PACK_1 GroupVarintIndex : public IndexBase {
 
     // the number of keys in this block
     unsigned int m_key_count : 9;
-} HAM_PACK_2;
+} UPS_PACK_2;
 #include "1base/packstop.h"
 
 static uint8_t group_size[] = {
@@ -158,7 +158,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
 
   static uint32_t compress_block(GroupVarintIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ham_assert(index->key_count() > 0);
+    ups_assert(index->key_count() > 0);
     return ((uint32_t)encodeArray(index->value(), in,
                             (size_t)index->key_count() - 1, out));
   }
@@ -166,7 +166,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
   static uint32_t *uncompress_block(GroupVarintIndex *index,
                   const uint32_t *block_data, uint32_t *out) {
     size_t nvalue = index->key_count() - 1;
-    ham_assert(nvalue > 0);
+    ups_assert(nvalue > 0);
     decodeArray(index->value(), block_data, (size_t)index->used_size(),
                       out, nvalue);
     return (out);
@@ -509,8 +509,8 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       if (nvalue > 3 && slot == i + 3)
         return (out[3]);
     }
-    ham_assert(false); // we should never get here
-    throw Exception(HAM_INTERNAL_ERROR);
+    ups_assert(false); // we should never get here
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   static uint32_t estimate_required_size(GroupVarintIndex *index,
@@ -734,4 +734,4 @@ class GroupVarintKeyList : public BlockKeyList<GroupVarintCodec>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_KEYS_GROUPVARINT_H */
+#endif /* UPS_BTREE_KEYS_GROUPVARINT_H */

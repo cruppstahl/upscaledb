@@ -22,8 +22,8 @@
  * @thread_safe: no
  */
 
-#ifndef HAM_DYNAMIC_ARRAY_H
-#define HAM_DYNAMIC_ARRAY_H
+#ifndef UPS_DYNAMIC_ARRAY_H
+#define UPS_DYNAMIC_ARRAY_H
 
 #include "0root/root.h"
 
@@ -33,7 +33,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1mem/mem.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -155,4 +155,4 @@ typedef DynamicArray<uint8_t> ByteArray;
 
 } // namespace hamsterdb
 
-#endif // HAM_DYNAMIC_ARRAY_H
+#endif // UPS_DYNAMIC_ARRAY_H

@@ -20,17 +20,17 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_TXN_REMOTE_H
-#define HAM_TXN_REMOTE_H
+#ifndef UPS_TXN_REMOTE_H
+#define UPS_TXN_REMOTE_H
 
-#ifdef HAM_ENABLE_REMOTE
+#ifdef UPS_ENABLE_REMOTE
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "4txn/txn.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -45,7 +45,7 @@ class RemoteTransaction : public Transaction
 {
   public:
     // Constructor; "begins" the Transaction
-    // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
+    // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
     RemoteTransaction(Environment *env, const char *name, uint32_t flags,
                     uint64_t remote_handle);
 
@@ -82,11 +82,11 @@ class RemoteTransactionManager : public TransactionManager
 
     // Commits a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t commit(Transaction *txn, uint32_t flags = 0);
+    virtual ups_status_t commit(Transaction *txn, uint32_t flags = 0);
 
     // Aborts a Transaction; the derived subclass has to take care of
     // flushing and/or releasing memory
-    virtual ham_status_t abort(Transaction *txn, uint32_t flags = 0);
+    virtual ups_status_t abort(Transaction *txn, uint32_t flags = 0);
 
     // Flushes committed (queued) transactions
     virtual void flush_committed_txns(Context *context = 0);
@@ -94,6 +94,6 @@ class RemoteTransactionManager : public TransactionManager
 
 } // namespace hamsterdb
 
-#endif // HAM_ENABLE_REMOTE
+#endif // UPS_ENABLE_REMOTE
 
-#endif /* HAM_TXN_REMOTE_H */
+#endif /* UPS_TXN_REMOTE_H */

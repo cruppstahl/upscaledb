@@ -55,8 +55,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_BTREE_IMPL_PAX_H
-#define HAM_BTREE_IMPL_PAX_H
+#ifndef UPS_BTREE_IMPL_PAX_H
+#define UPS_BTREE_IMPL_PAX_H
 
 #include "0root/root.h"
 
@@ -72,7 +72,7 @@
 #include "3btree/btree_impl_base.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -106,7 +106,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 
     // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(Context *context, const ham_key_t *key) const {
+    bool requires_split(Context *context, const ups_key_t *key) const {
       return (P::m_node->get_count() >= P::m_estimated_capacity);
     }
 
@@ -139,4 +139,4 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_IMPL_PAX_H */
+#endif /* UPS_BTREE_IMPL_PAX_H */

@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_ABI_H
-#define HAM_ABI_H
+#ifndef UPS_ABI_H
+#define UPS_ABI_H
 
 #include "0root/root.h"
 
@@ -36,7 +36,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -65,5 +65,5 @@ get_classname(const T& t)
 
 } // namespace hamsterdb
 
-#endif /* HAM_ABI_H */
+#endif /* UPS_ABI_H */
 

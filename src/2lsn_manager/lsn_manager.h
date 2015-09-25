@@ -22,12 +22,12 @@
  * @thread_safe: no
  */
  
-#ifndef HAM_LSN_MANAGER_H
-#define HAM_LSN_MANAGER_H
+#ifndef UPS_LSN_MANAGER_H
+#define UPS_LSN_MANAGER_H
 
 #include "0root/root.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -55,4 +55,4 @@ class LsnManager
 
 } // namespace hamsterdb
 
-#endif /* HAM_LSN_MANAGER_H */
+#endif /* UPS_LSN_MANAGER_H */

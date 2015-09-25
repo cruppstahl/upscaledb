@@ -22,15 +22,15 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_H
-#define HAM_COMPRESSOR_H
+#ifndef UPS_COMPRESSOR_H
+#define UPS_COMPRESSOR_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/dynamic_array.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -144,4 +144,4 @@ class Compressor {
 
 }; // namespace hamsterdb
 
-#endif // HAM_COMPRESSOR_H
+#endif // UPS_COMPRESSOR_H

@@ -20,16 +20,16 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_BTREE_VISITOR_H
-#define HAM_BTREE_VISITOR_H
+#ifndef UPS_BTREE_VISITOR_H
+#define UPS_BTREE_VISITOR_H
 
 #include "0root/root.h"
 
-#include "ham/hamsterdb_ola.h"
+#include "ups/upscaledb_uqi.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -68,4 +68,4 @@ struct BtreeVisitor {
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_VISITOR_H */
+#endif /* UPS_BTREE_VISITOR_H */

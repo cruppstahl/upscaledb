@@ -22,10 +22,10 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_ZLIB_H
-#define HAM_COMPRESSOR_ZLIB_H
+#ifndef UPS_COMPRESSOR_ZLIB_H
+#define UPS_COMPRESSOR_ZLIB_H
 
-#ifdef HAM_ENABLE_COMPRESSION
+#ifdef UPS_ENABLE_COMPRESSION
 
 #ifdef HAVE_ZLIB_H
 
@@ -60,7 +60,7 @@ class ZlibCompressor : public Compressor {
       int zret = ::compress((Bytef *)outp, &real_outlength,
                         (const Bytef *)inp, inlength);
       if (zret != 0)
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
       return (real_outlength);
     }
 
@@ -72,7 +72,7 @@ class ZlibCompressor : public Compressor {
       int zret = ::uncompress((Bytef *)outp, &real_outlength,
                             (const Bytef *)inp, inlength);
       if (zret != 0)
-        throw Exception(HAM_INTERNAL_ERROR);
+        throw Exception(UPS_INTERNAL_ERROR);
     }
 };
 
@@ -80,6 +80,6 @@ class ZlibCompressor : public Compressor {
 
 #endif // HAVE_ZLIB_H
 
-#endif // HAM_ENABLE_COMPRESSION
+#endif // UPS_ENABLE_COMPRESSION
 
-#endif // HAM_COMPRESSOR_ZLIB_H
+#endif // UPS_COMPRESSOR_ZLIB_H

@@ -15,8 +15,8 @@
  * See the file COPYING for License information.
  */
 
-#ifndef HAM_BLOB_MANAGER_FACTORY_H
-#define HAM_BLOB_MANAGER_FACTORY_H
+#ifndef UPS_BLOB_MANAGER_FACTORY_H
+#define UPS_BLOB_MANAGER_FACTORY_H
 
 #include "0root/root.h"
 
@@ -25,7 +25,7 @@
 #include "3blob_manager/blob_manager_inmem.h"
 #include "4env/env_local.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -34,7 +34,7 @@ namespace hamsterdb {
 struct BlobManagerFactory {
   // creates a new BlobManager instance depending on the flags
   static BlobManager *create(LocalEnvironment *env, uint32_t flags) {
-    if (flags & HAM_IN_MEMORY)
+    if (flags & UPS_IN_MEMORY)
       return (new InMemoryBlobManager(&env->config(), env->page_manager(),
                               env->device()));
     else
@@ -45,4 +45,4 @@ struct BlobManagerFactory {
 
 } // namespace hamsterdb
 
-#endif /* HAM_BLOB_MANAGER_FACTORY_H */
+#endif /* UPS_BLOB_MANAGER_FACTORY_H */

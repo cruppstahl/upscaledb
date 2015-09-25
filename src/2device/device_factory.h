@@ -22,8 +22,8 @@
  * @thread_safe: yes
  */
 
-#ifndef HAM_DEVICE_FACTORY_H
-#define HAM_DEVICE_FACTORY_H
+#ifndef UPS_DEVICE_FACTORY_H
+#define UPS_DEVICE_FACTORY_H
 
 #include "0root/root.h"
 
@@ -32,7 +32,7 @@
 #include "2device/device_disk.h"
 #include "2device/device_inmem.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -41,7 +41,7 @@ namespace hamsterdb {
 struct DeviceFactory {
   // creates a new Device instance depending on the flags
   static Device *create(const EnvironmentConfiguration &config) {
-    if (config.flags & HAM_IN_MEMORY)
+    if (config.flags & UPS_IN_MEMORY)
       return (new InMemoryDevice(config));
     else
       return (new DiskDevice(config));
@@ -50,4 +50,4 @@ struct DeviceFactory {
 
 } // namespace hamsterdb
 
-#endif /* HAM_DEVICE_FACTORY_H */
+#endif /* UPS_DEVICE_FACTORY_H */

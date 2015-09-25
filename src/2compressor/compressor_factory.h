@@ -22,15 +22,15 @@
  * @thread_safe: unknown
  */
 
-#ifndef HAM_COMPRESSOR_FACTORY_H
-#define HAM_COMPRESSOR_FACTORY_H
+#ifndef UPS_COMPRESSOR_FACTORY_H
+#define UPS_COMPRESSOR_FACTORY_H
 
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "2compressor/compressor.h"
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
@@ -42,10 +42,10 @@ class CompressorFactory {
     static bool is_available(int type);
 
     // Creates a new Compressor instance for the specified |type| (being
-    // HAM_COMPRESSOR_ZLIB, HAM_COMPRESSOR_SNAPPY etc)
+    // UPS_COMPRESSOR_ZLIB, UPS_COMPRESSOR_SNAPPY etc)
     static Compressor *create(int type);
 };
 
 }; // namespace hamsterdb
 
-#endif // HAM_COMPRESSOR_FACTORY_H
+#endif // UPS_COMPRESSOR_FACTORY_H
