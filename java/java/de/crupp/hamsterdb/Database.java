@@ -22,30 +22,30 @@ import java.util.Iterator;
 
 public class Database {
 
-  private native static int ham_get_version(int which);
+  private native static int ups_get_version(int which);
 
-  private native static void ham_set_errhandler(ErrorHandler eh);
+  private native static void ups_set_errhandler(ErrorHandler eh);
 
-  private native int ham_db_get_error(long handle);
+  private native int ups_db_get_error(long handle);
 
-  private native void ham_db_set_compare_func(long handle,
+  private native void ups_db_set_compare_func(long handle,
       CompareCallback cmp);
 
-  private native byte[] ham_db_find(long handle, long txnhandle,
+  private native byte[] ups_db_find(long handle, long txnhandle,
       byte[] key, int flags);
 
-  private native int ham_db_get_parameters(long handle, Parameter[] params);
+  private native int ups_db_get_parameters(long handle, Parameter[] params);
 
-  private native int ham_db_insert(long handle, long txnhandle,
+  private native int ups_db_insert(long handle, long txnhandle,
       byte[] key, byte[] record, int flags);
 
-  private native int ham_db_erase(long handle, long txnhandle,
+  private native int ups_db_erase(long handle, long txnhandle,
       byte[] key, int flags);
 
-  private native long ham_db_get_key_count(long handle, long txnhandle,
+  private native long ups_db_get_key_count(long handle, long txnhandle,
       int flags);
 
-  private native int ham_db_close(long handle, int flags);
+  private native int ups_db_close(long handle, int flags);
 
   /**
    * Sets the global error handler.
@@ -57,9 +57,9 @@ public class Database {
    * The default error handler prints all messages to stderr. To install a
    * different logging facility, you can provide your own error handler.
    * <p>
-   * This method wraps the native ham_set_errhandler function.
+   * This method wraps the native ups_set_errhandler function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
    *
    * @param eh ErrorHandler object which is called whenever an error message
    *      is emitted; use null to set the default error handler.
@@ -67,23 +67,23 @@ public class Database {
   public static void setErrorHandler(ErrorHandler eh) {
     // set a reference to eh to avoid that it's garbage collected
     m_eh = eh;
-    ham_set_errhandler(eh);
+    ups_set_errhandler(eh);
   }
 
   /**
    * Returns the version of the hamsterdb library.
    * <p>
-   * This method wraps the native ham_get_version function.
+   * This method wraps the native ups_get_version function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gafdbeaa3c3be6812.1.11d5470f7e984ca">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__static.html#gafdbeaa3c3be6812.1.11d5470f7e984ca">C documentation</a>
    *
    * @return the hamsterdb version tuple
    */
   public static Version getVersion() {
     Version v = new Version();
-    v.major = ham_get_version(0);
-    v.minor = ham_get_version(1);
-    v.revision = ham_get_version(2);
+    v.major = ups_get_version(0);
+    v.minor = ups_get_version(1);
+    v.revision = ups_get_version(2);
     return v;
   }
 
@@ -112,20 +112,20 @@ public class Database {
   /**
    * Returns the last error code
    * <p>
-   * This method wraps the native ham_db_get_error function.
+   * This method wraps the native ups_db_get_error function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
    *
    * @return the error code of the last operation
    */
   public int getError() {
-    return ham_db_get_error(m_handle);
+    return ups_db_get_error(m_handle);
   }
 
   /**
    * Sets the comparison function
    * <p>
-   * This method wraps the native ham_db_set_compare_func function.
+   * This method wraps the native ups_db_set_compare_func function.
    * <p>
    * The <code>CompareCallback.compare</code> method compares two index
    * keys. It returns -1 if the first key is smaller, +1 if the second
@@ -134,7 +134,7 @@ public class Database {
    * If <code>cmp</code> is null, hamsterdb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.11d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga0fa5d7a6c42.1.11d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>
@@ -142,13 +142,13 @@ public class Database {
    */
   public void setComparator(CompareCallback cmp) {
     m_cmp = cmp;
-    ham_db_set_compare_func(m_handle, m_cmp);
+    ups_db_set_compare_func(m_handle, m_cmp);
   }
 
   /**
    * Searches an item in the Database, returns the record
    * <p>
-   * This method wraps the native ham_db_find function.
+   * This method wraps the native ups_db_find function.
    * <p>
    * This function searches the Database for a key. If the key
    * is found, the method will return the record of this item.
@@ -156,7 +156,7 @@ public class Database {
    * <code>Database.find</code> can not search for duplicate keys. If the
    * key has multiple duplicates, only the first duplicate is returned.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
    * <p>
    * @param txn the (optional) Transaction
    * @param key the key of the item
@@ -168,7 +168,7 @@ public class Database {
     if (key == null)
       throw new NullPointerException();
     byte[] r;
-    r = ham_db_find(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
+    r = ups_db_find(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
     if (r == null)
       throw new DatabaseException(getError());
     return r;
@@ -218,7 +218,7 @@ public class Database {
   /**
    * Inserts a Database item
    * <p>
-   * This method wraps the native ham_db_insert function.
+   * This method wraps the native ups_db_insert function.
    * <p>
    * This function inserts a key/record pair as a new Database item.
    * <p>
@@ -248,14 +248,14 @@ public class Database {
    *      before the already existing duplicates.
    *    </ul>
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
    */
   public void insert(Transaction txn, byte[] key,
       byte[] record, int flags)
       throws DatabaseException {
     if (key == null || record == null)
       throw new NullPointerException();
-    int status = ham_db_insert(m_handle, txn != null ? txn.getHandle() : 0,
+    int status = ups_db_insert(m_handle, txn != null ? txn.getHandle() : 0,
                             key, record, flags);
     if (status != 0)
       throw new DatabaseException(status);
@@ -274,7 +274,7 @@ public class Database {
   /**
    * Erases a Database item
    * <p>
-   * This method wraps the native ham_db_erase function.
+   * This method wraps the native ups_db_erase function.
    * <p>
    * This function erases a Database item. If the item with the specified key
    * does not exist, <code>Const.HAM_KEY_NOT_FOUND</code> is thrown.
@@ -286,7 +286,7 @@ public class Database {
    * @param txn the (optional) Transaction
    * @param key the key to delete
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
    *
    * @see Cursor#erase
    */
@@ -294,7 +294,7 @@ public class Database {
       throws DatabaseException {
     if (key == null)
       throw new NullPointerException();
-    int status = ham_db_erase(m_handle, txn != null ? txn.getHandle() : 0,
+    int status = ups_db_erase(m_handle, txn != null ? txn.getHandle() : 0,
           key, 0);
     if (status != 0)
       throw new DatabaseException(status);
@@ -307,11 +307,11 @@ public class Database {
    * <p>
    * @param params A Parameter list of all values that should be retrieved
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
    */
   public void getParameters(Parameter[] params)
       throws DatabaseException {
-    int status = ham_db_get_parameters(m_handle, params);
+    int status = ups_db_get_parameters(m_handle, params);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -349,12 +349,12 @@ public class Database {
   /**
    * Calculates the number of keys stored in the Database
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
    */
   public long getKeyCount(Transaction txn, int flags)
       throws DatabaseException {
     // native function will throw exception
-    return ham_db_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
+    return ups_db_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
                 flags);
   }
 
@@ -368,16 +368,16 @@ public class Database {
   /**
    * Closes the Database
    * <p>
-   * This method wraps the native ham_db_close function.
+   * This method wraps the native ups_db_close function.
    * <p>
    * This function flushes the Database and then closes the file handle.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
    */
   public void close(int flags) {
     if (m_handle != 0) {
       closeCursors();
-      ham_db_close(m_handle, flags);
+      ups_db_close(m_handle, flags);
       m_handle = 0;
     }
   }

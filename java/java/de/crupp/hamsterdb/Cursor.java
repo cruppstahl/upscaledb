@@ -19,32 +19,32 @@ package de.crupp.hamsterdb;
 
 public class Cursor {
 
-  private native long ham_cursor_create(long dbhandle, long txnhandle);
+  private native long ups_cursor_create(long dbhandle, long txnhandle);
 
-  private native long ham_cursor_clone(long handle);
+  private native long ups_cursor_clone(long handle);
 
-  private native int ham_cursor_move_to(long handle, int flags);
+  private native int ups_cursor_move_to(long handle, int flags);
 
-  private native byte[] ham_cursor_get_key(long handle, int flags);
+  private native byte[] ups_cursor_get_key(long handle, int flags);
 
-  private native byte[] ham_cursor_get_record(long handle, int flags);
+  private native byte[] ups_cursor_get_record(long handle, int flags);
 
-  private native int ham_cursor_overwrite(long handle,
+  private native int ups_cursor_overwrite(long handle,
                         byte[] record, int flags);
 
-  private native int ham_cursor_find(long handle,
+  private native int ups_cursor_find(long handle,
                         byte[] key, int flags);
 
-  private native int ham_cursor_insert(long handle,
+  private native int ups_cursor_insert(long handle,
                         byte[] key, byte[] record, int flags);
 
-  private native int ham_cursor_erase(long handle, int flags);
+  private native int ups_cursor_erase(long handle, int flags);
 
-  private native int ham_cursor_get_duplicate_count(long handle, int flags);
+  private native int ups_cursor_get_duplicate_count(long handle, int flags);
 
-  private native long ham_cursor_get_record_size(long handle);
+  private native long ups_cursor_get_record_size(long handle);
 
-  private native int ham_cursor_close(long handle);
+  private native int ups_cursor_close(long handle);
 
   /**
    * Constructor - assigns a Database object and a Cursor handle
@@ -78,13 +78,13 @@ public class Cursor {
   /**
    * Creates a new Cursor
    * <p>
-   * This method wraps the native ham_cursor_create function.
+   * This method wraps the native ups_cursor_create function.
    * <p>
    * Creates a new Database Cursor. Cursors can be used to
    * traverse the Database from start to end or vice versa. Cursors
    * can also be used to insert, delete or search Database items.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#ga37c8ab3ca9b6005de5cb2c48659fa67f">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#ga37c8ab3ca9b6005de5cb2c48659fa67f">C documentation</a>
    *
    * @param db the Database object
    * @param txn an optional Transaction object
@@ -92,7 +92,7 @@ public class Cursor {
   public void create(Database db, Transaction txn)
       throws DatabaseException {
     m_db = db;
-    m_handle = ham_cursor_create(db.getHandle(),
+    m_handle = ups_cursor_create(db.getHandle(),
                 txn != null ? txn.getHandle() : 0);
     if (m_handle == 0)
       throw new DatabaseException(db.getError());
@@ -112,13 +112,13 @@ public class Cursor {
   /**
    * Clones a Database Cursor
    * <p>
-   * This method wraps the native ham_cursor_clone function.
+   * This method wraps the native ups_cursor_clone function.
    * <p>
    * Clones an existing Cursor. The new Cursor will point to exactly the
    * same item as the old Cursor. If the old Cursor did not point
    * to any item, so will the new Cursor.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gafdf11f0a6098ff4754231cd14cc59984">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gafdf11f0a6098ff4754231cd14cc59984">C documentation</a>
    *
    * @return the new Cursor object
    */
@@ -126,7 +126,7 @@ public class Cursor {
       throws DatabaseException {
     if (m_handle == 0)
       throw new DatabaseException(Const.HAM_INV_PARAMETER);
-    long newhandle = ham_cursor_clone(m_handle);
+    long newhandle = ups_cursor_clone(m_handle);
     if (newhandle == 0)
       throw new DatabaseException(m_db.getError());
     Cursor c = new Cursor(m_db, newhandle);
@@ -137,9 +137,9 @@ public class Cursor {
   /**
    * Moves the Cursor to the direction specified in the flags.
    * <p>
-   * This method wraps the native ham_cursor_move function.
+   * This method wraps the native ups_cursor_move function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
    *
    * @param flags the direction for the move. If no direction is specified,
    *      the Cursor will remain on the current position.
@@ -167,7 +167,7 @@ public class Cursor {
    */
   public void move(int flags)
       throws DatabaseException {
-    int status = ham_cursor_move_to(m_handle, flags);
+    int status = ups_cursor_move_to(m_handle, flags);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -237,19 +237,19 @@ public class Cursor {
   /**
    * Retrieves the Key of the current item
    * <p>
-   * This method wraps the native ham_cursor_move function.
+   * This method wraps the native ups_cursor_move function.
    * <p>
    * Returns the key of the current Database item. Throws
    * <code>Const.HAM_CURSOR_IS_NIL</code> if the Cursor does not point to
    * any item.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
    *
    * @return the key of the current item
    */
   public byte[] getKey()
       throws DatabaseException {
-    byte[] ret = ham_cursor_get_key(m_handle, 0);
+    byte[] ret = ups_cursor_get_key(m_handle, 0);
     if (ret == null)
       throw new DatabaseException(m_db.getError());
     return ret;
@@ -258,19 +258,19 @@ public class Cursor {
   /**
    * Retrieves the Record of the current item
    * <p>
-   * This method wraps the native ham_cursor_move function.
+   * This method wraps the native ups_cursor_move function.
    * <p>
    * Returns the record of the current Database item. Throws
    * <code>Const.HAM_CURSOR_IS_NIL</code> if the Cursor does not point to
    * any item.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
    *
    * @return the record of the current item
    */
   public byte[] getRecord()
       throws DatabaseException {
-    byte[] ret = ham_cursor_get_record(m_handle, 0);
+    byte[] ret = ups_cursor_get_record(m_handle, 0);
     if (ret == null)
       throw new DatabaseException(m_db.getError());
     return ret;
@@ -279,11 +279,11 @@ public class Cursor {
   /**
    * Overwrites the current Record
    * <p>
-   * This method wraps the native ham_cursor_overwrite function.
+   * This method wraps the native ups_cursor_overwrite function.
    * <p>
    * This function overwrites the record of the current item.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gae9da6fd465aff00e6b0076ba8f203287">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gae9da6fd465aff00e6b0076ba8f203287">C documentation</a>
    *
    * @param record the new Record of the item
    */
@@ -291,7 +291,7 @@ public class Cursor {
       throws DatabaseException {
     if (record == null)
       throw new NullPointerException();
-    int status = ham_cursor_overwrite(m_handle, record, 0);
+    int status = ups_cursor_overwrite(m_handle, record, 0);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -299,7 +299,7 @@ public class Cursor {
   /**
    * Searches a key and points the Cursor to this key
    * <p>
-   * This method wraps the native ham_cursor_find function.
+   * This method wraps the native ups_cursor_find function.
    * <p>
    * Searches for an item in the Database and points the Cursor to this
    * item. If the item could not be found, the Cursor is not modified.
@@ -307,7 +307,7 @@ public class Cursor {
    * If the key has multiple duplicates, the Cursor is positioned on the
    * first duplicate.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gabb460b8b80d67f574388519576b2c251">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gabb460b8b80d67f574388519576b2c251">C documentation</a>
    *
    * @param key the key to search for
    */
@@ -315,7 +315,7 @@ public class Cursor {
       throws DatabaseException {
     if (key == null)
       throw new NullPointerException();
-    int status = ham_cursor_find(m_handle, key, 0);
+    int status = ups_cursor_find(m_handle, key, 0);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -333,7 +333,7 @@ public class Cursor {
   /**
    * Inserts a Database item and points the Cursor to the inserted item
    * <p>
-   * This method wraps the native ham_cursor_insert function.
+   * This method wraps the native ups_cursor_insert function.
    * <p>
    * This function inserts a key/record pair as a new Database item.
    * If the key already exists in the Database, error
@@ -350,7 +350,7 @@ public class Cursor {
    * After inserting, the Cursor will point to the new item. If inserting
    * the item failed, the Cursor is not modified.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#ga4e2861736763d02a2a04f01ee787c37a">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#ga4e2861736763d02a2a04f01ee787c37a">C documentation</a>
    *
    * @param key the key of the new item
    * @param record the record of the new item
@@ -382,7 +382,7 @@ public class Cursor {
       throws DatabaseException {
     if (key == null || record == null)
       throw new NullPointerException();
-    int status = ham_cursor_insert(m_handle, key, record, flags);
+    int status = ups_cursor_insert(m_handle, key, record, flags);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -390,7 +390,7 @@ public class Cursor {
   /**
    * Erases the current key
    * <p>
-   * This method wraps the native ham_cursor_erase function.
+   * This method wraps the native ups_cursor_erase function.
    * <p>
    * Erases a key from the Database. If the erase was successfull, the
    * Cursor is invalidated, and does no longer point to any item.
@@ -400,11 +400,11 @@ public class Cursor {
    * <code>Const.HAM_ENABLE_DUPLICATE_KEYS</code>, this function erases only
    * the duplicate item to which the Cursor refers.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gaf7f093b157f1d98df93fb7358e677cac">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#gaf7f093b157f1d98df93fb7358e677cac">C documentation</a>
    */
   public void erase()
       throws DatabaseException {
-    int status = ham_cursor_erase(m_handle, 0);
+    int status = ups_cursor_erase(m_handle, 0);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -412,19 +412,19 @@ public class Cursor {
   /**
    * Returns the number of duplicate keys
    * <p>
-   * This method wraps the native ham_cursor_get_duplicate_count function.
+   * This method wraps the native ups_cursor_get_duplicate_count function.
    * <p>
    * Returns the number of duplicate keys of the item to which the
    * Cursor currently refers.<br>
    * Returns 1 if the key has no duplicates.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#ga4f17e3304e9d5cbe30a7798bf719cfc6">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#ga4f17e3304e9d5cbe30a7798bf719cfc6">C documentation</a>
    *
    * @return the number of duplicate keys
    */
   public int getDuplicateCount()
       throws DatabaseException {
-    int count = ham_cursor_get_duplicate_count(m_handle, 0);
+    int count = ups_cursor_get_duplicate_count(m_handle, 0);
     if (count == 0)
       throw new DatabaseException(m_db.getError());
     return count;
@@ -436,13 +436,13 @@ public class Cursor {
    * Returns the record size of the item to which the Cursor
    * currently refers.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html">C documentation</a>
    *
    * @return the size of the record
    */
   public long getRecordCount()
       throws DatabaseException {
-    long size = ham_cursor_get_record_size(m_handle);
+    long size = ups_cursor_get_record_size(m_handle);
     if (size == 0)
       throw new DatabaseException(m_db.getError());
     return size;
@@ -451,12 +451,12 @@ public class Cursor {
   /**
    * Closes the Cursor
    * <p>
-   * This method wraps the native ham_cursor_close function.
+   * This method wraps the native ups_cursor_close function.
    * <p>
    * Closes this Cursor and frees allocated memory. All Cursors
    * should be closed before closing the Database.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#ga260674c75512d6fe2c10b86e82aabf2b">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__cursor.html#ga260674c75512d6fe2c10b86e82aabf2b">C documentation</a>
    */
   public void close()
       throws DatabaseException {
@@ -469,7 +469,7 @@ public class Cursor {
 
   public void closeNoLock()
       throws DatabaseException {
-    int status = ham_cursor_close(m_handle);
+    int status = ups_cursor_close(m_handle);
     if (status != 0)
       throw new DatabaseException(status);
     m_handle = 0;

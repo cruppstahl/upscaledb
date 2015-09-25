@@ -680,7 +680,7 @@ struct HamsterdbFixture {
 
     /* empty DB: LT/GT must turn up error */
     REQUIRE(UPS_KEY_NOT_FOUND ==
-        ups_db_find(db, 0, &key, &rec, UPS_FIND_EXACT_MATCH));
+        ups_db_find(db, 0, &key, &rec, UPS_FIND_EQ_MATCH));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_db_find(db, 0, &key, &rec, UPS_FIND_LEQ_MATCH));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -703,7 +703,7 @@ struct HamsterdbFixture {
     /* one record in DB: LT/GT must turn up that one for the
      * right key values */
     ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, UPS_FIND_EXACT_MATCH));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, UPS_FIND_EQ_MATCH));
     REQUIRE(rec.data != key.data);
     my_rec_t *r = (my_rec_t *)rec.data;
     my_key_t *k = (my_key_t *)key.data;
@@ -875,8 +875,8 @@ struct HamsterdbFixture {
       { UPS_FIND_LT_MATCH, srch_res_lt1, "UPS_FIND_LT_MATCH '<'" },
       { UPS_FIND_GEQ_MATCH, srch_res_geq1, "UPS_FIND_GEQ_MATCH '>='" },
       { UPS_FIND_GT_MATCH, srch_res_gt1, "UPS_FIND_GT_MATCH '>'" },
-      { UPS_FIND_EXACT_MATCH, srch_res_eq1, "UPS_FIND_EXACT_MATCH '='" },
-      { 0 /* = UPS_FIND_EXACT_MATCH */, srch_res_eq1,
+      { UPS_FIND_EQ_MATCH, srch_res_eq1, "UPS_FIND_EQ_MATCH '='" },
+      { 0 /* = UPS_FIND_EQ_MATCH */, srch_res_eq1,
         "zero default (0) '='" },
     };
     unsigned int j;

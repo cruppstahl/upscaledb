@@ -19,7 +19,7 @@ package de.crupp.hamsterdb;
 
 public class DatabaseException extends java.lang.Exception {
 
-  private native String ham_strerror(int errno);
+  private native String ups_strerror(int errno);
 
   /**
    * Constructor
@@ -49,18 +49,18 @@ public class DatabaseException extends java.lang.Exception {
   /**
    * Returns an English error description.
    * <p>
-   * This method wraps the native ham_strerror function.
+   * This method wraps the native ups_strerror function.
    *
    * @return an English error description
    */
   public String getMessage() {
-    return ham_strerror(m_errno);
+    return ups_strerror(m_errno);
   }
 
   /**
    * Returns an English error description.
    * <p>
-   * This method wraps the native ham_strerror function.
+   * This method wraps the native ups_strerror function.
    *
    * @return an English error description
    */

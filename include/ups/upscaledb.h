@@ -2388,7 +2388,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
             ups_record_t *record, uint32_t flags);
 
 /* internal flag */
-#define UPS_FIND_EXACT_MATCH            0x4000
+#define UPS_FIND_EQ_MATCH            0x4000
 
 /**
  * Cursor 'find' flag 'Less Than': return the nearest match below the
@@ -2409,7 +2409,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * May be combined with @ref UPS_FIND_GEQ_MATCH to accept any 'near' key, or
  * you can use the @ref UPS_FIND_NEAR_MATCH constant as a shorthand for that.
  */
-#define UPS_FIND_LEQ_MATCH      (UPS_FIND_LT_MATCH | UPS_FIND_EXACT_MATCH)
+#define UPS_FIND_LEQ_MATCH      (UPS_FIND_LT_MATCH | UPS_FIND_EQ_MATCH)
 
 /**
  * Cursor 'find' flag 'Greater or Equal': return the nearest match above
@@ -2418,7 +2418,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * May be combined with @ref UPS_FIND_LEQ_MATCH to accept any 'near' key,
  * or you can use the @ref UPS_FIND_NEAR_MATCH constant as a shorthand for that.
  */
-#define UPS_FIND_GEQ_MATCH      (UPS_FIND_GT_MATCH | UPS_FIND_EXACT_MATCH)
+#define UPS_FIND_GEQ_MATCH      (UPS_FIND_GT_MATCH | UPS_FIND_EQ_MATCH)
 
 /**
  * Cursor 'find' flag 'Any Near Or Equal': return a match directly below or
@@ -2434,7 +2434,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * @ref UPS_FIND_GEQ_MATCH flags.
  */
 #define UPS_FIND_NEAR_MATCH     (UPS_FIND_LT_MATCH | UPS_FIND_GT_MATCH  \
-                                  | UPS_FIND_EXACT_MATCH)
+                                  | UPS_FIND_EQ_MATCH)
 
 /**
  * Inserts a Database item and points the Cursor to the inserted item

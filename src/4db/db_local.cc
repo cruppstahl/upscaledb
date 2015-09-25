@@ -411,7 +411,7 @@ retry:
       // the "exact match" key was erased? then don't fetch it again
       if (!first_run || exact_is_erased) {
         first_run = false;
-        new_flags = flags & (~UPS_FIND_EXACT_MATCH);
+        new_flags = flags & (~UPS_FIND_EQ_MATCH);
       }
 
       if (cursor)
@@ -445,7 +445,7 @@ retry:
 
     // the btree key is a direct match? then return it
     if ((!(ups_key_get_intflags(key) & BtreeKey::kApproximate))
-          && (flags & UPS_FIND_EXACT_MATCH)
+          && (flags & UPS_FIND_EQ_MATCH)
           && !exact_is_erased) {
       if (cursor)
         cursor->couple_to_btree();
@@ -472,7 +472,7 @@ retry:
       // lookup again, with the same flags and the btree key.
       // this will check if the key was erased or overwritten
       // in a transaction
-      st = find_txn(context, cursor, key, record, flags | UPS_FIND_EXACT_MATCH);
+      st = find_txn(context, cursor, key, record, flags | UPS_FIND_EQ_MATCH);
       if (st == 0)
         ups_key_set_intflags(key,
           (ups_key_get_intflags(key) | BtreeKey::kApproximate));

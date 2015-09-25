@@ -5,6 +5,7 @@ o Removed ham_is_pro, ham_is_pro_evaluation
 o Rebranding: renamed namespace prefix "ham_" to "ups_", "HAM_" to "UPS_"
 o Renamed ham_set_errhandler to ups_set_error_handler
 o Removed the flag UPS_FIND_NEAR_MATCH
+o Renamed the flag UPS_FIND_EXACT_MATCH UPS_FIND_EQ_MATCH
 
 Aug 26, 2015 - chris ---------------------------------------------------
 o issue #58 (.NET) - fixed crash in ham_strerror

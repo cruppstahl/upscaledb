@@ -208,7 +208,7 @@ return_result:
       int slot = node->find_lower_bound(context, key, 0, &cmp);
 
       /* successfull match */
-      if (cmp == 0 && (flags == 0 || flags & UPS_FIND_EXACT_MATCH))
+      if (cmp == 0 && (flags == 0 || flags & UPS_FIND_EQ_MATCH))
         return (slot);
 
       /* approx. matching: smaller key is required */
