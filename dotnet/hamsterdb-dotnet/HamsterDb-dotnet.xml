@@ -327,9 +327,6 @@
         <member name="F:Hamster.HamConst.HAM_FIND_GEQ_MATCH">
             <summary>Flag for Cursor.Find</summary>
         </member>
-        <member name="F:Hamster.HamConst.HAM_FIND_NEAR_MATCH">
-            <summary>Flag for Cursor.Find</summary>
-        </member>
         <member name="F:Hamster.HamConst.HAM_TYPE_BINARY">
             <summary>A binary blob without type; sorted by memcmp</summary>
         </member>

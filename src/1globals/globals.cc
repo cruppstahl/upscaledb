@@ -49,7 +49,7 @@ const char *Globals::ms_error_function;
 // the default error handler
 void UPS_CALLCONV default_errhandler(int level, const char *message);
 
-ups_errhandler_fun Globals::ms_error_handler = default_errhandler;
+ups_error_handler_fun Globals::ms_error_handler = default_errhandler;
 
 uint64_t Globals::ms_bytes_before_compression;
 

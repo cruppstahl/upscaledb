@@ -1676,7 +1676,7 @@ ups_db_get_key_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
 }
 
 void UPS_CALLCONV
-ups_set_errhandler(ups_errhandler_fun f)
+ups_set_error_handler(ups_error_handler_fun f)
 {
   if (f)
     hamsterdb::Globals::ms_error_handler = f;

@@ -330,10 +330,6 @@ public class Const {
   public final static int HAM_FIND_GEQ_MATCH          =
         HAM_FIND_GT_MATCH | HAM_FIND_EXACT_MATCH;
 
-  /** Flag for Database.find() */
-  public final static int HAM_FIND_NEAR_MATCH         =
-        HAM_FIND_GEQ_MATCH | HAM_FIND_LEQ_MATCH;
-
   /** A binary blob without type; sorted by memcmp */
   public final static int HAM_TYPE_BINARY           = 0;
   /** A binary blob without type; sorted by callback function */

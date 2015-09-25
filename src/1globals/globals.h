@@ -73,7 +73,7 @@ struct Globals {
   static const char *ms_error_function;
 
   // used in error.h/error.cc
-  static ups_errhandler_fun ms_error_handler;
+  static ups_error_handler_fun ms_error_handler;
 
   // PRO: Tracking key bytes before compression
   static uint64_t ms_bytes_before_compression;

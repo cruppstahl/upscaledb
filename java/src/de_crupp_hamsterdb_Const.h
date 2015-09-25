@@ -179,8 +179,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_FIND_LEQ_MATCH 20480L
 #undef de_crupp_hamsterdb_Const_HAM_FIND_GEQ_MATCH
 #define de_crupp_hamsterdb_Const_HAM_FIND_GEQ_MATCH 24576L
-#undef de_crupp_hamsterdb_Const_HAM_FIND_NEAR_MATCH
-#define de_crupp_hamsterdb_Const_HAM_FIND_NEAR_MATCH 28672L
 #ifdef __cplusplus
 }
 #endif

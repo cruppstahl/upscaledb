@@ -2,6 +2,9 @@ Sep 23, 2015 - chris ---------------------------------------------------
 o Merging the functionality of hamsterdb pro
 o Changed license to GPL 3.0
 o Removed ham_is_pro, ham_is_pro_evaluation
+o Rebranding: renamed namespace prefix "ham_" to "ups_", "HAM_" to "UPS_"
+o Renamed ham_set_errhandler to ups_set_error_handler
+o Removed the flag UPS_FIND_NEAR_MATCH
 
 Aug 26, 2015 - chris ---------------------------------------------------
 o issue #58 (.NET) - fixed crash in ham_strerror

@@ -278,8 +278,8 @@ class txn {
 class db {
   public:
     /** Set error handler function. */
-    static void set_errhandler(ups_errhandler_fun f) {
-      ups_set_errhandler(f);
+    static void set_errhandler(ups_error_handler_fun f) {
+      ups_set_error_handler(f);
     }
 
     /** Retrieves the hamsterdb library version. */

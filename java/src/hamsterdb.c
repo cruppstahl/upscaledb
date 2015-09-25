@@ -447,7 +447,7 @@ Java_de_crupp_hamsterdb_Database_ups_1set_1errhandler(JNIEnv *jenv,
     jclass jcls, jobject jeh)
 {
   if (!jeh) {
-    ups_set_errhandler(0);
+    ups_set_error_handler(0);
     return;
   }
 
@@ -459,7 +459,7 @@ Java_de_crupp_hamsterdb_Database_ups_1set_1errhandler(JNIEnv *jenv,
     }
   }
 
-  ups_set_errhandler(jni_errhandler);
+  ups_set_error_handler(jni_errhandler);
 }
 
 JNIEXPORT jint JNICALL

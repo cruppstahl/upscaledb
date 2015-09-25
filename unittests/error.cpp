@@ -22,6 +22,7 @@
 
 #include "utils.h"
 
+#include "ups/upscaledb.h"
 #include "1base/error.h"
 
 static void UPS_CALLCONV
@@ -51,16 +52,16 @@ my_abort_handler() {
 TEST_CASE("ErrorTest/handler",
            "Tests the error logging handler")
 {
-  ups_set_errhandler(my_handler);
+  ups_set_error_handler(my_handler);
   ups_trace(("hello world"));
-  ups_set_errhandler(0);
+  ups_set_error_handler(0);
   ups_log(("testing error handler - hello world\n"));
 }
 
 TEST_CASE("ErrorTest/verify",
            "Tests the ups_verify handler")
 {
-  ups_set_errhandler(my_handler);
+  ups_set_error_handler(my_handler);
   hamsterdb::ups_test_abort = my_abort_handler;
 
   g_aborted = 0;
@@ -76,6 +77,6 @@ TEST_CASE("ErrorTest/verify",
   REQUIRE(1 == g_aborted);
 
   hamsterdb::ups_test_abort = 0;
-  ups_set_errhandler(0);
+  ups_set_error_handler(0);
 }
 

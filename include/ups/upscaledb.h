@@ -432,7 +432,7 @@ typedef struct {
  * A typedef for a custom error handler function
  *
  * This error handler can be used in combination with
- * @ref ups_set_errhandler().
+ * @ref ups_set_error_handler().
  *
  * @param message The error message
  * @param level The error level:
@@ -445,7 +445,7 @@ typedef struct {
  *
  * @sa error_levels
  */
-typedef void UPS_CALLCONV (*ups_errhandler_fun)(int level, const char *message);
+typedef void UPS_CALLCONV (*ups_error_handler_fun)(int level, const char *message);
 
 /** A debug message */
 #define UPS_DEBUG_LEVEL_DEBUG     0
@@ -472,7 +472,7 @@ typedef void UPS_CALLCONV (*ups_errhandler_fun)(int level, const char *message);
  *      the default handler
  */
 UPS_EXPORT void UPS_CALLCONV
-ups_set_errhandler(ups_errhandler_fun f);
+ups_set_error_handler(ups_error_handler_fun f);
 
 /**
  * Translates a hamsterdb status code to a descriptive error string

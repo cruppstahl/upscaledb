@@ -256,8 +256,6 @@ namespace Hamster
     public const int HAM_FIND_LEQ_MATCH  = (HAM_FIND_LT_MATCH|HAM_FIND_EXACT_MATCH);
     /// <summary>Flag for Cursor.Find</summary>
     public const int HAM_FIND_GEQ_MATCH  = (HAM_FIND_GT_MATCH|HAM_FIND_EXACT_MATCH);
-    /// <summary>Flag for Cursor.Find</summary>
-    public const int HAM_FIND_NEAR_MATCH = (HAM_FIND_GEQ_MATCH|HAM_FIND_LEQ_MATCH);
 
     /// <summary>A binary blob without type; sorted by memcmp</summary>
     public const int HAM_TYPE_BINARY            =         0;

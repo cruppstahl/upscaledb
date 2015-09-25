@@ -84,9 +84,9 @@ test_SOURCES    = api110.cpp \
 
 recovery_SOURCES = recovery.cpp
 
-test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
+test_LDADD      = $(top_builddir)/src/.libs/libupscaledb.a \
 				  $(BOOST_LIBS) -lpthread -ldl
-recovery_LDADD  = $(top_builddir)/src/.libs/libhamsterdb.a \
+recovery_LDADD  = $(top_builddir)/src/.libs/libupscaledb.a \
 				  $(BOOST_LIBS) -lpthread -ldl
 test_LDFLAGS    = $(BOOST_FLAGS)
 recovery_LDFLAGS= $(BOOST_FLAGS)
@@ -94,9 +94,9 @@ recovery_LDFLAGS= $(BOOST_FLAGS)
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DUPS_ENABLE_REMOTE
-test_LDADD     += $(top_builddir)/src/5server/.libs/libhamserver.a \
+test_LDADD     += $(top_builddir)/src/5server/.libs/libupsserver.a \
 				  -lprotobuf -luv -ldl
-recovery_LDADD += $(top_builddir)/src/5server/.libs/libhamserver.a \
+recovery_LDADD += $(top_builddir)/src/5server/.libs/libupsserver.a \
 				  -lprotobuf -luv -ldl
 endif
 
@@ -145,7 +145,7 @@ test_recovery:
 	perl recovery.pl
 
 issue32_SOURCES = issue32.c
-issue32_LDADD   = $(top_builddir)/src/libhamsterdb.la
+issue32_LDADD   = $(top_builddir)/src/libupscaledb.la
 
 issue43_SOURCES = issue43.cc
-issue43_LDADD   = $(top_builddir)/src/libhamsterdb.la
+issue43_LDADD   = $(top_builddir)/src/libupscaledb.la
